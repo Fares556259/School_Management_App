@@ -9,15 +9,17 @@ export default function PaySalaryModal({
   salary,
   isPaid,
   isAdmin,
+  monthName,
 }: {
   teacherId: string;
   teacherName: string;
   salary: number;
   isPaid: boolean;
   isAdmin: boolean;
+  monthName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(monthName || "");
   const [isPending, startTransition] = useTransition();
 
   const handlePay = () => {
@@ -80,8 +82,8 @@ export default function PaySalaryModal({
             </h2>
             <p className="text-sm text-slate-500 mb-4">
               Process a monthly salary payment of <strong>${salary}</strong> for{" "}
-              <strong>{teacherName}</strong>. This will log an Expense in the
-              database.
+              <strong>{teacherName}</strong> {selectedMonth ? <>for <strong>{selectedMonth}</strong></> : ""}. 
+              This will log an Expense in the database.
             </p>
 
             <div className="mb-6">

@@ -10,6 +10,8 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
+import MonthSelector, { getMonthKey } from "@/components/MonthSelector";
+import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 const columns = [
   {
@@ -97,65 +99,73 @@ const TeacherListPage = async ({
     }
   }
 
+  // Compute month-based payment stats
+  const selectedMonthKey = getMonthKey(searchParams.month);
+
   const renderRow = (
     item: Teacher & { subjects: Subject[]; classes: Class[]; expenses: Expense[] }
-  ) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">
-        <Image
-          src={item.img || "/noavatar.png"}
-          alt=""
-          width={40}
-          height={40}
-          className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
-        />
-        <div className="flex flex-col">
-          <h3 className="font-semibold">{item.name}</h3>
-          <p className="text-xs text-gray-500">{item?.email}</p>
-        </div>
-      </td>
-      <td className="hidden md:table-cell">{item.username}</td>
-      <td className="hidden md:table-cell">
-        {item.subjects.map((s) => s.name).join(",")}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.classes.map((c) => c.name).join(",")}
-      </td>
-      <td className="hidden md:table-cell">{item.phone}</td>
-      <td className="hidden md:table-cell">{item.address}</td>
-      <td>
-        <PaySalaryModal 
-          teacherId={item.id} 
-          teacherName={item.name + " " + item.surname}
-          salary={item.salary}
-          isPaid={item.isPaid} 
-          isAdmin={role === "admin"} 
-        />
-      </td>
-      <td className="hidden xl:table-cell">
-        <PaymentTimeline payments={item.expenses} />
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          <Link href={`/list/teachers/${item.id}`}>
-            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-              <Image src="/view.png" alt="" width={16} height={16} />
-            </button>
-          </Link>
-          {role === "admin" && (
-            <>
-              <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} />
-              <CrudFormModal entity="teacher" mode="delete" id={item.id} />
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+  ) => {
+    // Check if paid for the currently selected month in the navigator
+    const isPaidThisMonth = item.expenses.some((e) => e.title.includes(`(${selectedMonthKey})`));
 
+    return (
+      <tr
+        key={item.id}
+        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      >
+        <td className="flex items-center gap-4 p-4">
+          <Image
+            src={item.img || "/noavatar.png"}
+            alt=""
+            width={40}
+            height={40}
+            className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
+          />
+          <div className="flex flex-col">
+            <h3 className="font-semibold">{item.name}</h3>
+            <p className="text-xs text-gray-500">{item?.email}</p>
+          </div>
+        </td>
+        <td className="hidden md:table-cell">{item.username}</td>
+        <td className="hidden md:table-cell">
+          {item.subjects.map((s) => s.name).join(",")}
+        </td>
+        <td className="hidden md:table-cell">
+          {item.classes.map((c) => c.name).join(",")}
+        </td>
+        <td className="hidden md:table-cell">{item.phone}</td>
+        <td className="hidden md:table-cell">{item.address}</td>
+        <td>
+          <PaySalaryModal 
+            teacherId={item.id} 
+            teacherName={item.name + " " + item.surname}
+            salary={item.salary}
+            isPaid={isPaidThisMonth} 
+            isAdmin={role === "admin"} 
+            monthName={selectedMonthKey}
+          />
+        </td>
+        <td className="hidden xl:table-cell">
+          <PaymentTimeline payments={item.expenses} />
+        </td>
+        <td>
+          <div className="flex items-center gap-2">
+            <Link href={`/list/teachers/${item.id}`}>
+              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                <Image src="/view.png" alt="" width={16} height={16} />
+              </button>
+            </Link>
+            {role === "admin" && (
+              <>
+                <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} />
+                <CrudFormModal entity="teacher" mode="delete" id={item.id} />
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
       where: query,
@@ -170,8 +180,23 @@ const TeacherListPage = async ({
     prisma.teacher.count({ where: query }),
   ]);
 
+  // Compute month-based payment stats for the summary bar
+  const paidThisMonth = data.filter((t) =>
+    t.expenses.some((e) => e.title.includes(`(${selectedMonthKey})`))
+  ).length;
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+      {/* MONTH NAVIGATOR */}
+      <MonthSelector />
+      <div className="flex items-center justify-between mb-4">
+        <MonthPaymentSummary
+          total={data.length}
+          paidCount={paidThisMonth}
+          monthLabel={selectedMonthKey}
+          entityName="teachers"
+        />
+      </div>
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">All Teachers</h1>

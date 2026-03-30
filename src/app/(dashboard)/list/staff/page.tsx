@@ -8,6 +8,8 @@ import Pagination from "@/components/Pagination";
 import PayStaffModal from "./PayStaffModal";
 import CrudFormModal from "@/components/CrudFormModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
+import MonthSelector, { getMonthKey } from "@/components/MonthSelector";
+import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -44,8 +46,24 @@ const StaffListPage = async ({
     prisma.staff.count({ where }),
   ]);
 
+  // Compute month-based payment stats
+  const selectedMonthKey = getMonthKey(searchParams.month);
+  const paidThisMonth = staff.filter((s) =>
+    s.expenses.some((e: any) => e.title.includes(`(${selectedMonthKey})`))
+  ).length;
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+      {/* MONTH NAVIGATOR */}
+      <MonthSelector />
+      <div className="flex items-center justify-between mb-4">
+        <MonthPaymentSummary
+          total={staff.length}
+          paidCount={paidThisMonth}
+          monthLabel={selectedMonthKey}
+          entityName="staff"
+        />
+      </div>
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">All Staff</h1>
@@ -76,49 +94,54 @@ const StaffListPage = async ({
           </tr>
         </thead>
         <tbody>
-          {staff.map((s) => (
-            <tr key={s.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight">
-              <td className="flex items-center gap-4 p-4">
-                <Image
-                  src={s.img || "/noAvatar.png"}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
-                />
-                <div className="flex flex-col">
-                  <Link href={`/list/staff/${s.id}`} className="font-semibold">{s.name} {s.surname}</Link>
-                  <p className="text-xs text-gray-500">{s.email}</p>
-                </div>
-              </td>
-              <td className="hidden md:table-cell">{s.role}</td>
-              <td className="hidden lg:table-cell">{s.phone}</td>
-              <td className="hidden md:table-cell font-semibold">${s.salary.toLocaleString()}</td>
-              <td>
-                <PayStaffModal
-                  staffId={s.id}
-                  staffName={`${s.name} ${s.surname}`}
-                  salary={s.salary}
-                  isPaid={s.isPaid}
-                  isAdmin={role === "admin"}
-                />
-              </td>
-              <td className="hidden xl:table-cell">
-                <PaymentTimeline payments={s.expenses} />
-              </td>
-              <td>
-                <div className="flex items-center gap-2">
-                  <Link href={`/list/staff/${s.id}`}>
-                    <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-                      <Image src="/view.png" alt="" width={16} height={16} />
-                    </button>
-                  </Link>
-                  <CrudFormModal entity="staff" mode="update" data={s} id={s.id} />
-                  <CrudFormModal entity="staff" mode="delete" id={s.id} />
-                </div>
-              </td>
-            </tr>
-          ))}
+          {staff.map((s: any) => {
+            const isPaidThisMonth = s.expenses.some((e: any) => e.title.includes(`(${selectedMonthKey})`));
+            
+            return (
+              <tr key={s.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight">
+                <td className="flex items-center gap-4 p-4">
+                  <Image
+                    src={s.img || "/noAvatar.png"}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex flex-col">
+                    <Link href={`/list/staff/${s.id}`} className="font-semibold">{s.name} {s.surname}</Link>
+                    <p className="text-xs text-gray-500">{s.email}</p>
+                  </div>
+                </td>
+                <td className="hidden md:table-cell">{s.role}</td>
+                <td className="hidden lg:table-cell">{s.phone}</td>
+                <td className="hidden md:table-cell font-semibold">${s.salary.toLocaleString()}</td>
+                <td>
+                  <PayStaffModal
+                    staffId={s.id}
+                    staffName={`${s.name} ${s.surname}`}
+                    salary={s.salary}
+                    isPaid={isPaidThisMonth}
+                    isAdmin={role === "admin"}
+                    monthName={selectedMonthKey}
+                  />
+                </td>
+                <td className="hidden xl:table-cell">
+                  <PaymentTimeline payments={s.expenses} />
+                </td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/list/staff/${s.id}`}>
+                      <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                        <Image src="/view.png" alt="" width={16} height={16} />
+                      </button>
+                    </Link>
+                    <CrudFormModal entity="staff" mode="update" data={s} id={s.id} />
+                    <CrudFormModal entity="staff" mode="delete" id={s.id} />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {/* PAGINATION */}
