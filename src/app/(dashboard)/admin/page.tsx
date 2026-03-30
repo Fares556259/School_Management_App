@@ -1,7 +1,4 @@
-import Announcements from "@/components/Announcements";
-import AttendanceChart from "@/components/AttendanceChart";
 import CountChart from "@/components/CountChart";
-import EventCalendar from "@/components/EventCalendar";
 import FinanceChart from "@/components/FinanceChart";
 import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
@@ -28,7 +25,7 @@ const AdminPage = async ({
     prisma.student.count(),
     prisma.teacher.count(),
     prisma.parent.count(),
-    prisma.admin.count(),
+    prisma.staff.count(),
     prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startOfMonth } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startOfMonth } } }),
     prisma.teacher.count({ where: { isPaid: false } }),
@@ -75,13 +72,13 @@ const AdminPage = async ({
           </div>
         </div>
 
-        {/* MIDDLE CHARTS */}
+        {/* CHARTS */}
         <div className="flex gap-4 flex-col lg:flex-row">
           <div className="w-full lg:w-1/3 h-[450px]">
             <CountChart />
           </div>
           <div className="w-full lg:w-2/3 h-[450px]">
-            <AttendanceChart />
+            {/* Finance chart below */}
           </div>
         </div>
         {/* BOTTOM CHART */}
@@ -91,12 +88,30 @@ const AdminPage = async ({
       </div>
       {/* RIGHT */}
       <div className="w-full lg:w-1/3 flex flex-col gap-8">
-        <EventCalendar searchParams={searchParams} />
-        <Announcements/>
+        {/* Quick links */}
+        <div className="glass-card p-6 rounded-3xl">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Quick Links</h2>
+          <div className="flex flex-col gap-3">
+            <Link href="/list/teachers" className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 transition-colors text-sm font-medium text-slate-600 hover:text-indigo-600">
+              👩‍🏫 Manage Teachers
+            </Link>
+            <Link href="/list/students" className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 transition-colors text-sm font-medium text-slate-600 hover:text-indigo-600">
+              🎓 Manage Students
+            </Link>
+            <Link href="/list/staff" className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 transition-colors text-sm font-medium text-slate-600 hover:text-indigo-600">
+              🏢 Manage Staff
+            </Link>
+            <Link href="/admin/finance" className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 transition-colors text-sm font-medium text-slate-600 hover:text-indigo-600">
+              💰 Finance Dashboard
+            </Link>
+            <Link href="/admin/audit" className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 transition-colors text-sm font-medium text-slate-600 hover:text-indigo-600">
+              📋 Audit Log
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default AdminPage;
-

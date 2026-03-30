@@ -1,5 +1,5 @@
 import { getRole } from "@/lib/role";
-import Announcements from "@/components/Announcements";
+
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import Performance from "@/components/Performance";
 import Image from "next/image";
@@ -207,7 +207,7 @@ const SingleStudentPage = async ({
         />
 
         <Performance />
-        <Announcements />
+
       </div>
     </div>
   );

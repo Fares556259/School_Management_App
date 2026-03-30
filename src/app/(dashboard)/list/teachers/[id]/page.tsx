@@ -1,5 +1,5 @@
 import { getRole } from "@/lib/role";
-import Announcements from "@/components/Announcements";
+
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormModal from "@/components/FormModal";
 import Performance from "@/components/Performance";
@@ -215,7 +215,7 @@ const SingleTeacherPage = async ({
         />
 
         <Performance />
-        <Announcements />
+
       </div>
     </div>
   );
