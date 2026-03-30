@@ -8,10 +8,11 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Grade, Prisma, Student } from "@/generated/prisma";
+import { Class, Grade, Income, Prisma, Student } from "@/generated/prisma";
 import PayStudentModal from "./PayStudentModal";
+import PaymentTimeline from "@/components/PaymentTimeline";
 
-type StudentList = Student & { class: Class } & { grade: Grade };
+type StudentList = Student & { class: Class } & { grade: Grade } & { incomes: Income[] };
 
 const columns = [
   {
@@ -41,6 +42,11 @@ const columns = [
   {
     header: "Actions",
     accessor: "action",
+  },
+  {
+    header: "Timeline",
+    accessor: "timeline",
+    className: "hidden xl:table-cell",
   },
 ];
 
@@ -131,6 +137,9 @@ const StudentListPage = async ({
           )}
         </div>
       </td>
+      <td className="hidden xl:table-cell">
+        <PaymentTimeline payments={item.incomes} />
+      </td>
     </tr>
   );
 
@@ -140,6 +149,7 @@ const StudentListPage = async ({
       include: {
         class: true,
         grade: true,
+        incomes: { select: { title: true, date: true } },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

@@ -7,6 +7,7 @@ import TableSearch from "@/components/TableSearch";
 import Pagination from "@/components/Pagination";
 import PayStaffModal from "./PayStaffModal";
 import CrudFormModal from "@/components/CrudFormModal";
+import PaymentTimeline from "@/components/PaymentTimeline";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -33,6 +34,9 @@ const StaffListPage = async ({
   const [staff, count] = await Promise.all([
     prisma.staff.findMany({
       where,
+      include: {
+        expenses: { select: { title: true, date: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: ITEMS_PER_PAGE,
       skip: ITEMS_PER_PAGE * (p - 1),
@@ -67,6 +71,7 @@ const StaffListPage = async ({
             <th className="hidden lg:table-cell">Phone</th>
             <th className="hidden md:table-cell">Salary</th>
             <th>Paid Status</th>
+            <th className="hidden xl:table-cell">Timeline</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -97,6 +102,9 @@ const StaffListPage = async ({
                   isPaid={s.isPaid}
                   isAdmin={role === "admin"}
                 />
+              </td>
+              <td className="hidden xl:table-cell">
+                <PaymentTimeline payments={s.expenses} />
               </td>
               <td>
                 <div className="flex items-center gap-2">
