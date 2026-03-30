@@ -10,7 +10,8 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import MonthSelector, { getMonthKey } from "@/components/MonthSelector";
+import MonthSelector from "@/components/MonthSelector";
+import { getMonthKey } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 const columns = [

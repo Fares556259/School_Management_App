@@ -11,7 +11,8 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Grade, Income, Prisma, Student } from "@/generated/prisma";
 import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import MonthSelector, { getMonthKey } from "@/components/MonthSelector";
+import MonthSelector from "@/components/MonthSelector";
+import { getMonthKey } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 type StudentList = Student & { class: Class } & { grade: Grade } & { incomes: Income[] };

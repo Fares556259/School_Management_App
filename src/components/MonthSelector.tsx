@@ -1,11 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+import { MONTHS, getMonthKey } from "@/lib/dateUtils";
 
 export default function MonthSelector() {
   const router = useRouter();
@@ -48,7 +44,6 @@ export default function MonthSelector() {
     if (m > 11) { m = 0; y++; }
     navigate(m, y);
   };
-
   return (
     <div className="flex items-center justify-between bg-slate-50 rounded-xl px-6 py-3 mb-4 border border-slate-200">
       <button
@@ -70,12 +65,3 @@ export default function MonthSelector() {
   );
 }
 
-/** Helper: given a month param string (e.g. "2-2026"), return the "Month Year" key used in payment titles */
-export function getMonthKey(monthParam: string | undefined): string {
-  const now = new Date();
-  if (!monthParam) {
-    return `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
-  }
-  const [m, y] = monthParam.split("-").map(Number);
-  return `${MONTHS[m]} ${y}`;
-}
