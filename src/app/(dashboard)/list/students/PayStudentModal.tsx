@@ -9,15 +9,17 @@ export default function PayStudentModal({
   gradeLevel,
   isPaid,
   isAdmin,
+  monthName,
 }: {
   studentId: string;
   studentName: string;
   gradeLevel: number;
   isPaid: boolean;
   isAdmin: boolean;
+  monthName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(monthName || "");
   const [isPending, startTransition] = useTransition();
 
   // "1 to 6 the monthly paiment change" mapping logic
@@ -82,7 +84,8 @@ export default function PayStudentModal({
             <p className="text-sm text-slate-500 mb-4">
               Process a monthly tuition payment of{" "}
               <strong>${tuitionAmount}</strong> (Grade {gradeLevel}) for{" "}
-              <strong>{studentName}</strong>. This logs an Income.
+              <strong>{studentName}</strong> {selectedMonth ? <>for <strong>{selectedMonth}</strong></> : ""}. 
+              This logs an Income.
             </p>
 
             <div className="mb-6">
