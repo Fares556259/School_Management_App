@@ -1,123 +1,54 @@
-"use client";
-
+import prisma from "@/lib/prisma";
+import FinanceChartClient from "./FinanceChartClient";
 import Image from "next/image";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
 
-const data = [
-  {
-    name: "Jan",
-    income: 4000,
-    expense: 2400,
-  },
-  {
-    name: "Feb",
-    income: 3000,
-    expense: 1398,
-  },
-  {
-    name: "Mar",
-    income: 2000,
-    expense: 9800,
-  },
-  {
-    name: "Apr",
-    income: 2780,
-    expense: 3908,
-  },
-  {
-    name: "May",
-    income: 1890,
-    expense: 4800,
-  },
-  {
-    name: "Jun",
-    income: 2390,
-    expense: 3800,
-  },
-  {
-    name: "Jul",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Aug",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Sep",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Oct",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Nov",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Dec",
-    income: 3490,
-    expense: 4300,
-  },
-];
+// Build last 12 months labels
+function getLast12Months(): string[] {
+  const months: string[] = [];
+  const d = new Date();
+  d.setMonth(d.getMonth() - 11);
+  for (let i = 0; i < 12; i++) {
+    months.push(d.toLocaleString("en-US", { month: "short", year: "numeric" }));
+    d.setMonth(d.getMonth() + 1);
+  }
+  return months;
+}
 
-const FinanceChart = () => {
+const FinanceChart = async () => {
+  const [incomes, expenses] = await Promise.all([
+    prisma.income.findMany({ select: { amount: true, date: true } }),
+    prisma.expense.findMany({ select: { amount: true, date: true } }),
+  ]);
+
+  // Group by month
+  const incomeMap: Record<string, number> = {};
+  const expenseMap: Record<string, number> = {};
+
+  for (const r of incomes) {
+    const key = r.date.toLocaleString("en-US", { month: "short", year: "numeric" });
+    incomeMap[key] = (incomeMap[key] || 0) + r.amount;
+  }
+  for (const r of expenses) {
+    const key = r.date.toLocaleString("en-US", { month: "short", year: "numeric" });
+    expenseMap[key] = (expenseMap[key] || 0) + r.amount;
+  }
+
+  const labels = getLast12Months();
+  const data = labels.map((m) => ({
+    name: m,
+    income: Math.round(incomeMap[m] || 0),
+    expense: Math.round(expenseMap[m] || 0),
+  }));
+
   return (
-    <div className="bg-white rounded-xl w-full h-full p-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Finance</h1>
-        <Image src="/moreDark.png" alt="" width={20} height={20} />
+    <div className="glass-card w-full h-full p-6 rounded-3xl">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-xl font-bold text-slate-800">Financial Overview</h1>
+        <div className="p-2 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">
+          <Image src="/moreDark.png" alt="" width={20} height={20} className="opacity-40" />
+        </div>
       </div>
-      <ResponsiveContainer width="100%" height="90%">
-        <LineChart
-          width={500}
-          height={300}
-          data={data}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-          <XAxis
-            dataKey="name"
-            axisLine={false}
-            tick={{ fill: "#d1d5db" }}
-            tickLine={false}
-            tickMargin={10}
-          />
-          <YAxis axisLine={false} tick={{ fill: "#d1d5db" }} tickLine={false}  tickMargin={20}/>
-          <Tooltip />
-          <Legend
-            align="center"
-            verticalAlign="top"
-            wrapperStyle={{ paddingTop: "10px", paddingBottom: "30px" }}
-          />
-          <Line
-            type="monotone"
-            dataKey="income"
-            stroke="#C3EBFA"
-            strokeWidth={5}
-          />
-          <Line type="monotone" dataKey="expense" stroke="#CFCEFF" strokeWidth={5}/>
-        </LineChart>
-      </ResponsiveContainer>
+      <FinanceChartClient data={data} />
     </div>
   );
 };

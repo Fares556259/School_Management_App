@@ -1,4 +1,3 @@
-import { role } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -13,10 +12,28 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
+        icon: "/result.png",
+        label: "Finance",
+        href: "/admin/finance",
+        visible: ["admin"],
+      },
+      {
+        icon: "/setting.png",
+        label: "Audit Log",
+        href: "/admin/audit",
+        visible: ["admin"],
+      },
+      {
         icon: "/teacher.png",
         label: "Teachers",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
+      },
+      {
+        icon: "/parent.png",
+        label: "Staff",
+        href: "/list/staff",
+        visible: ["admin"],
       },
       {
         icon: "/student.png",
@@ -117,12 +134,12 @@ const menuItems = [
   },
 ];
 
-const Menu = () => {
+const Menu = ({ role }: { role: string }) => {
   return (
-    <div className="mt-4 text-sm">
+    <div className="mt-6 text-sm px-4">
       {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
+        <div className="flex flex-col gap-2 mb-6" key={i.title}>
+          <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
             {i.title}
           </span>
           {i.items.map((item) => {
@@ -131,10 +148,19 @@ const Menu = () => {
                 <Link
                   href={item.href}
                   key={item.label}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
+                  className="flex items-center justify-center lg:justify-start gap-4 text-slate-500 py-3 px-3 rounded-2xl transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 group relative overflow-hidden"
                 >
-                  <Image src={item.icon} alt="" width={20} height={20} />
-                  <span className="hidden lg:block">{item.label}</span>
+                  <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-500 rounded-r-full scale-y-0 group-hover:scale-y-100 transition-transform duration-200" />
+                  <Image
+                    src={item.icon}
+                    alt=""
+                    width={22}
+                    height={22}
+                    className="opacity-60 group-hover:opacity-100 transition-all group-hover:scale-110"
+                  />
+                  <span className="hidden lg:block font-semibold tracking-tight">
+                    {item.label}
+                  </span>
                 </Link>
               );
             }
