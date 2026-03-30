@@ -125,7 +125,7 @@ const StudentListPage = async ({
           </Link>
           {role === "admin" && (
             <>
-              <CrudFormModal entity="student" mode="update" data={item} id={item.id} />
+              <CrudFormModal entity="student" mode="update" data={item} id={item.id} relatedData={studentRelatedData} />
               <CrudFormModal entity="student" mode="delete" id={item.id} />
             </>
           )}
@@ -134,7 +134,7 @@ const StudentListPage = async ({
     </tr>
   );
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, parents, classes, grades] = await Promise.all([
     prisma.student.findMany({
       where: query,
       include: {
@@ -145,7 +145,16 @@ const StudentListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.student.count({ where: query }),
+    prisma.parent.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.class.findMany({ select: { id: true, name: true } }),
+    prisma.grade.findMany({ select: { id: true, level: true } }),
   ]);
+
+  const studentRelatedData = {
+    parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
+    classId: classes.map((c) => ({ value: String(c.id), label: c.name })),
+    gradeId: grades.map((g) => ({ value: String(g.id), label: `Grade ${g.level}` })),
+  };
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -161,7 +170,7 @@ const StudentListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <CrudFormModal entity="student" mode="create" />}
+            {role === "admin" && <CrudFormModal entity="student" mode="create" relatedData={studentRelatedData} />}
           </div>
         </div>
       </div>

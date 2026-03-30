@@ -87,7 +87,7 @@ const ClassListPage = async ({
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
-              <CrudFormModal entity="class" mode="update" data={item} id={item.id} />
+              <CrudFormModal entity="class" mode="update" data={item} id={item.id} relatedData={classRelatedData} />
               <CrudFormModal entity="class" mode="delete" id={item.id} />
             </>
           )}
@@ -96,7 +96,7 @@ const ClassListPage = async ({
     </tr>
   );
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, grades, teachers] = await Promise.all([
     prisma.class.findMany({
       where: query,
       include: {
@@ -112,7 +112,14 @@ const ClassListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.class.count({ where: query }),
+    prisma.grade.findMany({ select: { id: true, level: true } }),
+    prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
   ]);
+
+  const classRelatedData = {
+    gradeId: grades.map((g) => ({ value: String(g.id), label: `Grade ${g.level}` })),
+    supervisorId: teachers.map((t) => ({ value: t.id, label: `${t.name} ${t.surname}` })),
+  };
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -128,7 +135,7 @@ const ClassListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <CrudFormModal entity="class" mode="create" />}
+            {role === "admin" && <CrudFormModal entity="class" mode="create" relatedData={classRelatedData} />}
           </div>
         </div>
       </div>
