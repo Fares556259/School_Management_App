@@ -8,7 +8,8 @@ import Pagination from "@/components/Pagination";
 import PayStaffModal from "./PayStaffModal";
 import CrudFormModal from "@/components/CrudFormModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import MonthSelector, { getMonthKey } from "@/components/MonthSelector";
+import MonthSelector from "@/components/MonthSelector";
+import { getMonthKey } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 const ITEMS_PER_PAGE = 10;
