@@ -20,6 +20,7 @@ interface FieldDef {
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
+  parseAsNumber?: boolean;
 }
 
 const entityFields: Record<EntityType, FieldDef[]> = {
@@ -45,9 +46,9 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "bloodType", label: "Blood Type", type: "text", required: true },
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "parentId", label: "Parent ID", type: "text", required: true, placeholder: "e.g. parentId1" },
-    { name: "classId", label: "Class ID", type: "number", required: true },
-    { name: "gradeId", label: "Grade ID", type: "number", required: true },
+    { name: "parentId", label: "Parent", type: "select", required: true },
+    { name: "classId", label: "Class", type: "select", required: true, parseAsNumber: true },
+    { name: "gradeId", label: "Grade", type: "select", required: true, parseAsNumber: true },
   ],
   staff: [
     { name: "username", label: "Username", type: "text", required: true },
@@ -73,8 +74,8 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   class: [
     { name: "name", label: "Class Name", type: "text", required: true, placeholder: "e.g. 1A, 2B" },
     { name: "capacity", label: "Capacity", type: "number", required: true },
-    { name: "gradeId", label: "Grade ID", type: "number", required: true },
-    { name: "supervisorId", label: "Supervisor (Teacher ID)", type: "text", placeholder: "e.g. teacher1" },
+    { name: "gradeId", label: "Grade", type: "select", required: true, parseAsNumber: true },
+    { name: "supervisorId", label: "Supervisor", type: "select" },
   ],
   subject: [
     { name: "name", label: "Subject Name", type: "text", required: true },
@@ -114,18 +115,26 @@ export default function CrudFormModal({
   data,
   id,
   trigger,
+  relatedData,
 }: {
   entity: EntityType;
   mode: "create" | "update" | "delete";
   data?: any;
   id?: string | number;
   trigger?: React.ReactNode;
+  relatedData?: Record<string, { value: string; label: string }[]>;
 }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const fields = entityFields[entity];
+  // Merge dynamic relatedData options into field definitions
+  const fields = entityFields[entity].map((f) => {
+    if (relatedData && relatedData[f.name] && f.type === "select" && !f.options) {
+      return { ...f, options: relatedData[f.name] };
+    }
+    return f;
+  });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -135,7 +144,7 @@ export default function CrudFormModal({
 
     fields.forEach((f) => {
       const val = formData.get(f.name) as string;
-      if (f.type === "number" && val) {
+      if ((f.type === "number" || f.parseAsNumber) && val) {
         values[f.name] = parseFloat(val);
       } else if (val) {
         values[f.name] = val;
