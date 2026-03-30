@@ -4,11 +4,12 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { auth } from "@clerk/nextjs/server";
-import { Teacher, Subject, Class } from "@/generated/prisma";
+import { Teacher, Subject, Class, Expense } from "@/generated/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import PaySalaryModal from "./PaySalaryModal";
+import PaymentTimeline from "@/components/PaymentTimeline";
 
 const columns = [
   {
@@ -43,6 +44,11 @@ const columns = [
   {
     header: "Paid Status",
     accessor: "isPaid",
+  },
+  {
+    header: "Timeline",
+    accessor: "timeline",
+    className: "hidden xl:table-cell",
   },
   {
     header: "Actions",
@@ -92,7 +98,7 @@ const TeacherListPage = async ({
   }
 
   const renderRow = (
-    item: Teacher & { subjects: Subject[]; classes: Class[] }
+    item: Teacher & { subjects: Subject[]; classes: Class[]; expenses: Expense[] }
   ) => (
     <tr
       key={item.id}
@@ -129,6 +135,9 @@ const TeacherListPage = async ({
           isAdmin={role === "admin"} 
         />
       </td>
+      <td className="hidden xl:table-cell">
+        <PaymentTimeline payments={item.expenses} />
+      </td>
       <td>
         <div className="flex items-center gap-2">
           <Link href={`/list/teachers/${item.id}`}>
@@ -153,6 +162,7 @@ const TeacherListPage = async ({
       include: {
         subjects: true,
         classes: true,
+        expenses: { select: { title: true, date: true } },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
