@@ -6,6 +6,7 @@ import Link from "next/link";
 import TableSearch from "@/components/TableSearch";
 import Pagination from "@/components/Pagination";
 import PayStaffModal from "./PayStaffModal";
+import CrudFormModal from "@/components/CrudFormModal";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -53,6 +54,7 @@ const StaffListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
+            <CrudFormModal entity="staff" mode="create" />
           </div>
         </div>
       </div>
@@ -103,6 +105,8 @@ const StaffListPage = async ({
                       <Image src="/view.png" alt="" width={16} height={16} />
                     </button>
                   </Link>
+                  <CrudFormModal entity="staff" mode="update" data={s} id={s.id} />
+                  <CrudFormModal entity="staff" mode="delete" id={s.id} />
                 </div>
               </td>
             </tr>

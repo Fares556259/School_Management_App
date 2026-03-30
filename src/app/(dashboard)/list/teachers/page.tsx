@@ -1,5 +1,5 @@
 import { getRole } from "@/lib/role";
-import FormModal from "@/components/FormModal";
+import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -137,7 +137,10 @@ const TeacherListPage = async ({
             </button>
           </Link>
           {role === "admin" && (
-            <FormModal table="teacher" type="delete" id={item.id} />
+            <>
+              <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} />
+              <CrudFormModal entity="teacher" mode="delete" id={item.id} />
+            </>
           )}
         </div>
       </td>
@@ -171,7 +174,7 @@ const TeacherListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModal table="teacher" type="create" />}
+            {role === "admin" && <CrudFormModal entity="teacher" mode="create" />}
           </div>
         </div>
       </div>
