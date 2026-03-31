@@ -1,320 +1,226 @@
-import CountChart from "@/components/CountChart";
-import FinanceChart from "@/components/FinanceChart";
-import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
-import Link from "next/link";
-import CollectionGauge from "./CollectionGauge";
-import PaymentHeatmap from "./PaymentHeatmap";
-import PeriodFilter from "./PeriodFilter";
-import ExportButton from "./ExportPDFButton";
-import QuickPayButton from "./finance/QuickPayButton";
 import { MONTHS } from "@/lib/dateUtils";
-import AddFinanceEntryModal from "../list/incomes/AddIncomeModal";
+import FinanceChart from "@/components/FinanceChart";
+import PaymentHeatmap from "./PaymentHeatmap";
+
+// New Components
+import KpiStrip from "./components/KpiStrip";
+import ActionCenter from "./components/ActionCenter";
+import RecentTransactions from "./components/RecentTransactions";
+import SmartInsights from "./components/SmartInsights";
+import OperationsSnapshot from "./components/OperationsSnapshot";
 
 const AdminPage = async ({
   searchParams,
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  console.log("=== ADMIN PAGE ACTIVELY SERVED AND RENDERED ===");
   const now = new Date();
-  
-  // URL PARAMS
-  const { period, type } = searchParams || {};
-
-  // Compute date ranges based on period parameter
-  let dateWhere: any = {};
-  if (period === "Last 3 Months") {
-    const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-    dateWhere = { date: { gte: start } };
-  } else if (period === "Last 6 Months") {
-    const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-    dateWhere = { date: { gte: start } };
-  } else if (period === "This Year") {
-    const start = new Date(now.getFullYear(), 0, 1);
-    dateWhere = { date: { gte: start } };
-  } else if (period === "All Time") {
-    dateWhere = {};
-  } else {
-    // Default to This Month
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    dateWhere = { date: { gte: start } };
-  }
-
-  // Generate current month identifier for the unpaids lists
+  const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 
-  // PARALLEL QUERIES
+  // 1. DATA FETCHING
   const [
+    // Operational Counts
     studentCount,
     teacherCount,
-    parentCount,
     staffCount,
-    studentBoysCount,
-    studentGirlsCount,
-    filteredIncomeAgg,
-    filteredExpenseAgg,
-    allPaymentsInRange,
-    filteredIncomes,
-    filteredExpenses,
-    recentAudit,
-    allStudents,
-    allTeachers,
-    allStaff
+    classCount,
+    // Financial Metrics (This Month)
+    incomeThisMonth,
+    expenseThisMonth,
+    paymentsThisMonth,
+    // Trends (Last Month Comparisons)
+    incomeLastMonth,
+    expenseLastMonth,
+    paymentsLastMonth,
+    // Transactions Feed
+    recentIncomes,
+    recentExpenses,
+    recentPaidPayments,
+    // Action Center (Unpaids)
+    unpaidPayments,
+    // Heatmap
+    allPayments
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
-    prisma.parent.count(),
     prisma.staff.count(),
-    prisma.student.count({ where: { sex: "MALE" } }),
-    prisma.student.count({ where: { sex: "FEMALE" } }),
-    prisma.income.aggregate({ _sum: { amount: true }, where: { ...dateWhere, NOT: { category: "TUITION" } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { ...dateWhere, NOT: { category: "SALARY" } } }),
+    prisma.class.count(),
+    // Current Period Aggregations
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayThisMonth } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayThisMonth } } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidAt: { gte: firstDayThisMonth } } }),
+    // Last Month Trends
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
+    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
+    // Transactions Feed
+    prisma.income.findMany({ take: 5, orderBy: { date: "desc" } }),
+    prisma.expense.findMany({ take: 5, orderBy: { date: "desc" } }),
+    prisma.payment.findMany({ 
+      where: { status: "PAID" }, 
+      take: 5, 
+      orderBy: { paidAt: "desc" },
+      include: { student: true, teacher: true, staff: true }
+    }),
+    // Action Center Fetching
     prisma.payment.findMany({
+      where: { status: "PENDING" },
       include: {
-        student: { select: { id: true, name: true, surname: true, grade: { select: { level: true } }, parent: { select: { name: true, phone: true } } } },
+        student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
         teacher: { select: { id: true, name: true, surname: true, salary: true } },
         staff: { select: { id: true, name: true, surname: true, salary: true } },
       }
     }),
-    type !== "expense"
-      ? prisma.income.findMany({
-          where: { ...dateWhere, NOT: { category: "TUITION" } },
-          select: { id: true, amount: true, title: true, category: true, date: true },
-          orderBy: { date: "desc" }
-        })
-      : Promise.resolve([]),
-    type !== "income"
-      ? prisma.expense.findMany({
-          where: { ...dateWhere, NOT: { category: "SALARY" } },
-          select: { id: true, amount: true, title: true, category: true, date: true },
-          orderBy: { date: "desc" }
-        })
-      : Promise.resolve([]),
-    prisma.auditLog.findMany({ orderBy: { timestamp: "desc" }, take: 5 }),
-    prisma.student.findMany({ select: { id: true, name: true, surname: true, grade: { select: { level: true } }, parent: { select: { name: true, phone: true } } } }),
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true, salary: true } }),
-    prisma.staff.findMany({ select: { id: true, name: true, surname: true, salary: true } }),
+    // Heatmap data
+    prisma.payment.findMany({ where: { status: "PAID" } })
   ]);
 
-  const [mName, yStr] = currentMonthKey.split(" ");
-  const currentMonthIdx = MONTHS.indexOf(mName);
-  const currentYearVal = parseInt(yStr);
+  // 2. AGGREGATES & CALCULATIONS
+  const totalIncomeThisMonth = (incomeThisMonth._sum.amount || 0) + (paymentsThisMonth._sum.amount || 0);
+  const totalIncomeLastMonth = (incomeLastMonth._sum.amount || 0) + (paymentsLastMonth._sum.amount || 0);
+  const totalExpenseThisMonth = (expenseThisMonth._sum.amount || 0);
+  const totalExpenseLastMonth = (expenseLastMonth._sum.amount || 0);
 
-  let studentsPaidCount = 0;
-  let teachersPaidCount = 0;
-  let staffPaidCount = 0;
-  
-  let tuitionPaidAmount = 0;
-  let salariesPaidAmount = 0;
+  const balanceTrend = totalIncomeLastMonth > 0 ? ((totalIncomeThisMonth - totalIncomeLastMonth) / totalIncomeLastMonth) * 100 : 0;
+  const expenseTrend = totalExpenseLastMonth > 0 ? ((totalExpenseThisMonth - totalExpenseLastMonth) / totalExpenseLastMonth) * 100 : 0;
 
-  const unpaidStudentsList: any[] = [];
-  const unpaidTeachersList: any[] = [];
-  const unpaidStaffList: any[] = [];
+  // Unpaid Processing
+  const unpaidAmount = unpaidPayments.reduce((acc, p) => acc + p.amount, 0);
+  const unpaidSet = new Set(unpaidPayments.map(p => p.studentId || p.teacherId || p.staffId));
+  const unpaidCount = unpaidSet.size;
 
-  const studentPayments = allPaymentsInRange.filter((p: any) => p.userType === "STUDENT");
-  const teacherPayments = allPaymentsInRange.filter((p: any) => p.userType === "TEACHER");
-  const staffPayments = allPaymentsInRange.filter((p: any) => p.userType === "STAFF");
+  const unpaidStudents = unpaidPayments.filter(p => p.userType === "STUDENT" && p.student).map(p => ({
+    id: p.student!.id,
+    name: `${p.student!.name} ${p.student!.surname}`,
+    amount: p.amount,
+    type: 'student' as const,
+    phone: p.student!.parent?.phone || undefined
+  }));
 
-  allPaymentsInRange.forEach((p: any) => {
-    const isViewedMonth = p.month === currentMonthIdx && p.year === currentYearVal;
-    
-    if (p.status === "PAID") {
-      if (p.userType === "STUDENT") {
-        studentsPaidCount++;
-        tuitionPaidAmount += p.amount;
-      } else if (p.userType === "TEACHER") {
-        teachersPaidCount++;
-        salariesPaidAmount += p.amount;
-      } else {
-        staffPaidCount++;
-        salariesPaidAmount += p.amount;
-      }
-    } else if (isViewedMonth) {
-      if (p.userType === "STUDENT" && p.student) unpaidStudentsList.push(p.student);
-      else if (p.userType === "TEACHER" && p.teacher) unpaidTeachersList.push(p.teacher);
-      else if (p.userType === "STAFF" && p.staff) unpaidStaffList.push(p.staff);
-    }
-  });
+  const unpaidTeachers = unpaidPayments.filter(p => p.userType === "TEACHER" && p.teacher).map(p => ({
+    id: p.teacher!.id,
+    name: `${p.teacher!.name} ${p.teacher!.surname}`,
+    amount: p.amount,
+    type: 'teacher' as const,
+  }));
 
-  const studentTotalExpected = studentPayments.length;
-  const teacherTotalExpected = teacherPayments.length;
-  const staffTotalExpected = staffPayments.length;
+  const unpaidStaff = unpaidPayments.filter(p => p.userType === "STAFF" && p.staff).map(p => ({
+    id: p.staff!.id,
+    name: `${p.staff!.name} ${p.staff!.surname}`,
+    amount: p.amount,
+    type: 'staff' as const,
+  }));
 
-  const totalMissedPaymentsInRange = 
-    (studentTotalExpected - studentsPaidCount) + 
-    (teacherTotalExpected - teachersPaidCount) + 
-    (staffTotalExpected - staffPaidCount);
+  // Unified Transaction Mapping
+  const transactions = [
+    ...recentIncomes.map(i => ({ type: 'income' as const, title: i.title, amount: i.amount, date: i.date, source: i.category })),
+    ...recentExpenses.map(e => ({ type: 'expense' as const, title: e.title, amount: e.amount, date: e.date, source: e.category })),
+    ...recentPaidPayments.map(p => ({ 
+      type: 'income' as const, 
+      title: `Payment: ${p.student?.name || p.teacher?.name || p.staff?.name}`, 
+      amount: p.amount, 
+      date: p.paidAt!, 
+      source: p.userType 
+    })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
 
-  const totalIncome = (filteredIncomeAgg._sum.amount ?? 0) + tuitionPaidAmount;
-  const totalExpense = (filteredExpenseAgg._sum.amount ?? 0) + salariesPaidAmount;
-  const netBalance = totalIncome - totalExpense;
+  // Insights Logic
+  const insights = [
+    `Total balance is ${totalIncomeThisMonth > totalExpenseThisMonth ? 'growing' : 'declining'} this month.`,
+    expenseTrend > 10 ? `⚠️ Expenses increased by ${expenseTrend.toFixed(1)}% since last month.` : "Spending remains within standard ranges.",
+    unpaidCount > 3 ? `📌 Unpaid actions required for ${unpaidCount} entities totaling $${unpaidAmount.toLocaleString()}.` : "Payment collection looks healthy."
+  ];
 
-  const studentsPaid = studentsPaidCount;
-  const studentTotal = studentTotalExpected || 1;
-  const teachersPaid = teachersPaidCount;
-  const teacherTotal = (teacherTotalExpected + staffTotalExpected) || 1; 
-
+  // Heatmap Mapping
   const heatmapMap: Record<string, { count: number; amount: number }> = {};
-  [...filteredIncomes, ...filteredExpenses].forEach((d: any) => {
-    const dateStr = d.date.toISOString().split("T")[0];
-    if (!heatmapMap[dateStr]) heatmapMap[dateStr] = { count: 0, amount: 0 };
-    heatmapMap[dateStr].count += 1;
-    heatmapMap[dateStr].amount += d.amount || 0;
-  });
-
-  allPaymentsInRange.forEach((p: any) => {
-    if (p.status === "PAID" && p.paidAt) {
+  allPayments.forEach((p) => {
+    if (p.paidAt) {
       const dateStr = p.paidAt.toISOString().split("T")[0];
       if (!heatmapMap[dateStr]) heatmapMap[dateStr] = { count: 0, amount: 0 };
       heatmapMap[dateStr].count += 1;
       heatmapMap[dateStr].amount += p.amount;
     }
   });
-
   const heatmapData = Object.entries(heatmapMap).map(([date, val]) => ({
     date,
     count: val.count,
     amount: val.amount,
   }));
 
-  const paymentRateList = ((studentsPaid + teachersPaid) / (studentTotal + teacherTotal)) * 100;
-  const collectionRate = isNaN(paymentRateList) ? 0 : paymentRateList;
-
   return (
-    <div className="p-4 flex flex-col gap-6">
-      {/* ROW 1: USER CARDS */}
-      <div className="flex gap-4 justify-between flex-wrap">
-        <UserCard type="student" count={studentCount} />
-        <UserCard type="teacher" count={teacherCount} />
-        <UserCard type="parent" count={parentCount} />
-        <UserCard type="staff" count={staffCount} />
+    <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen">
+      <div>
+        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Command Center</h1>
+        <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
       </div>
 
-      {/* ROW 2: GENERAL FINANCE AGGREGATES */}
-      <div className="flex gap-4 w-full h-auto flex-wrap">
-        <div className="flex-1 min-w-[300px] bg-emerald-500 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-transform">
-          <p className="text-xs font-bold uppercase tracking-wider text-emerald-100 flex justify-between">
-            <span className="bg-emerald-600/50 px-2 py-1 rounded-md">{period || "ALL TIME"}</span>
-            <span className="text-xl">📈</span>
-          </p>
-          <p className="text-xl font-bold text-white mt-1 opacity-80">Income</p>
-          <h1 className="text-4xl font-black text-white mt-2">${(totalIncome / 1000).toFixed(1)}K</h1>
-        </div>
+      {/* 1. KPI STRIP */}
+      <KpiStrip 
+        totalBalance={totalIncomeThisMonth - totalExpenseThisMonth}
+        thisMonthIncome={totalIncomeThisMonth}
+        thisMonthExpense={totalExpenseThisMonth}
+        unpaidAmount={unpaidAmount}
+        unpaidCount={unpaidCount}
+        incomeTrend={balanceTrend}
+        expenseTrend={expenseTrend}
+      />
 
-        <div className="flex-1 min-w-[300px] bg-rose-600 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-transform">
-          <p className="text-xs font-bold uppercase tracking-wider text-rose-200 flex justify-between">
-            <span className="bg-rose-700/50 px-2 py-1 rounded-md">{period || "ALL TIME"}</span>
-            <span className="text-xl">📉</span>
-          </p>
-          <p className="text-xl font-bold text-white mt-1 opacity-80">Expenses</p>
-          <h1 className="text-4xl font-black text-white mt-2">${(totalExpense / 1000).toFixed(1)}K</h1>
+      {/* 2. ACTION CENTER */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-lg">🚨</span>
+          <h2 className="text-xl font-bold text-slate-800">Critical Alerts</h2>
         </div>
+        <ActionCenter 
+          unpaidStudents={unpaidStudents} 
+          unpaidTeachers={unpaidTeachers} 
+          unpaidStaff={unpaidStaff} 
+        />
+      </section>
 
-        <div className="flex-1 min-w-[300px] bg-amber-500 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-transform">
-          <p className="text-xs font-bold uppercase tracking-wider text-amber-100 flex justify-between">
-            <span className="bg-amber-600/50 px-2 py-1 rounded-md">{period || "ALL TIME"}</span>
-            <span className="text-xl">⚠</span>
-          </p>
-          <p className="text-xl font-bold text-amber-50 mt-1 opacity-80">Net Balance</p>
-          <h1 className="text-4xl font-black text-white mt-2">${(netBalance / 1000).toFixed(1)}K</h1>
-        </div>
-
-        <div className="flex-1 min-w-[300px] bg-violet-600 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-transform">
-          <p className="text-xs font-bold uppercase tracking-wider text-violet-200 flex justify-between">
-            <span className="bg-violet-700/50 px-2 py-1 rounded-md">ALL TIME</span>
-            <span className="text-xl opacity-90">🔔</span>
-          </p>
-          <p className="text-xl font-bold text-violet-100 mt-1 opacity-80">Unpaid</p>
-          <h1 className="text-4xl font-black text-white mt-2">{totalMissedPaymentsInRange}</h1>
-        </div>
-      </div>
-
-      {/* ROW 3: INSIGHTS NAVBAR */}
-      <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 p-2 rounded-xl sticky top-0 z-10 w-full flex-wrap justify-between shadow-sm my-2">
-        <div className="flex items-center gap-4 px-4">
-          <h2 className="text-xl font-black text-slate-800">Financial Insights</h2>
-          <PeriodFilter />
-        </div>
-      </div>
-
-      {/* ROW 4: CHARTS */}
-      <div className="flex gap-4 flex-col lg:flex-row h-auto">
-        <div className="w-full lg:w-1/3">
-          <CollectionGauge rate={collectionRate} month={currentMonthKey} />
-        </div>
-        <div className="w-full lg:w-1/3 bg-white p-4 rounded-2xl shadow-sm h-full max-h-[450px]">
-          <h2 className="text-sm font-bold text-slate-700 mb-4">Student Distribution</h2>
-          <div className="h-[90%] w-full">
-            <CountChart />
+      {/* 3 & 4. CHARTS & FEED */}
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* LEFT COLUMN: CHARTS */}
+        <div className="flex-1 flex flex-col gap-8">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div className="flex justify-between items-center mb-6">
+               <h3 className="font-bold text-slate-800">Financial Performance</h3>
+            </div>
+            <div className="h-[400px]">
+              <FinanceChart />
+            </div>
+          </div>
+          <div className="h-[300px]">
+             <PaymentHeatmap data={heatmapData} />
           </div>
         </div>
-        <div className="w-full lg:w-1/3 min-h-[450px]">
-          <PaymentHeatmap data={heatmapData} />
+
+        {/* RIGHT COLUMN: TRANSACTIONS & INSIGHTS */}
+        <div className="w-full lg:w-[400px] flex flex-col gap-8">
+          <SmartInsights insights={insights} />
+          <div className="flex-1 min-h-[500px]">
+             <RecentTransactions transactions={transactions} />
+          </div>
         </div>
       </div>
 
-      <div className="w-full h-auto bg-white p-6 rounded-2xl shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-bold text-slate-800">Financial Overview</h2>
+      {/* 5. OPERATIONS SNAPSHOT */}
+      <section className="mt-4">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-bold text-slate-800">Operational Snapshot</h2>
         </div>
-        <div className="h-[400px]">
-          <FinanceChart />
-        </div>
-      </div>
-
-      {/* ROW 5: UNPAID LISTS */}
-      <div className="flex gap-6 flex-col xl:flex-row mt-6">
-        <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border-l-4 border-rose-400">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">⚠ Unpaid Teachers ({currentMonthKey})</h2>
-          {unpaidTeachersList.length === 0 ? (
-            <p className="text-emerald-600 text-sm font-medium">✓ All teachers paid this month!</p>
-          ) : (
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-2">
-              {unpaidTeachersList.map((t) => (
-                <div key={t.id} className="flex justify-between items-center border-b border-slate-50 pb-2">
-                  <span className="text-sm font-medium text-slate-700">{t.name} {t.surname}</span>
-                  <QuickPayButton id={t.id} name={`${t.name} ${t.surname}`} amount={t.salary} monthYear={currentMonthKey} type="teacher" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border-l-4 border-amber-400">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">⚠ Unpaid Students ({currentMonthKey})</h2>
-          {unpaidStudentsList.length === 0 ? (
-            <p className="text-emerald-600 text-sm font-medium">✓ All students paid this month!</p>
-          ) : (
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-2">
-              {unpaidStudentsList.map((s) => {
-                const tuitionAmount = 80 + s.grade.level * 20;
-                return (
-                  <div key={s.id} className="flex justify-between items-center border-b border-slate-50 pb-2">
-                    <span className="text-sm font-medium text-slate-700">{s.name} {s.surname}</span>
-                    <QuickPayButton id={s.id} name={`${s.name} ${s.surname}`} amount={tuitionAmount} monthYear={currentMonthKey} type="student" />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border-l-4 border-orange-400">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">⚠ Unpaid Staff ({currentMonthKey})</h2>
-          {unpaidStaffList.length === 0 ? (
-            <p className="text-emerald-600 text-sm font-medium">✓ All staff paid this month!</p>
-          ) : (
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-2">
-              {unpaidStaffList.map((s) => (
-                <div key={s.id} className="flex justify-between items-center border-b border-slate-50 pb-2">
-                  <span className="text-sm font-medium text-slate-700">{s.name} {s.surname}</span>
-                  <QuickPayButton id={s.id} name={`${s.name} ${s.surname}`} amount={s.salary} monthYear={currentMonthKey} type="staff" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+        <OperationsSnapshot 
+          students={studentCount}
+          teachers={teacherCount}
+          staff={staffCount}
+          classes={classCount}
+        />
+      </section>
     </div>
   );
 };
+
 export default AdminPage;
