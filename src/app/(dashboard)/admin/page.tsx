@@ -207,19 +207,6 @@ const AdminPage = async ({
         expenseTrend={expenseTrend}
       />
 
-      {/* 2. ACTION CENTER */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-lg">🚨</span>
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Critical Actions</h2>
-        </div>
-        <ActionCenter 
-          unpaidStudents={unpaidStudents} 
-          unpaidTeachers={unpaidTeachers} 
-          unpaidStaff={unpaidStaff} 
-        />
-      </section>
-
       {/* 3 & 4. CHARTS & FEED */}
       <div className="flex flex-col lg:flex-row gap-8">
         {/* LEFT COLUMN: CHARTS */}
@@ -241,16 +228,29 @@ const AdminPage = async ({
         </div>
       </div>
 
-      {/* 5. OPERATIONS SNAPSHOT */}
+      {/* 4. OPERATIONS SNAPSHOT */}
       <section className="mt-4">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Operational Snapshot</h2>
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">Operational Snapshot</h2>
         </div>
         <OperationsSnapshot 
           students={studentCount}
           teachers={teacherCount}
           staff={staffCount}
           classes={classCount}
+        />
+      </section>
+
+      {/* 5. ACTION CENTER (RELOCATED TO BOTTOM) */}
+      <section className="mt-8 border-t border-slate-100 pt-8">
+        <div className="flex items-center gap-2 mb-6">
+          <span className="text-xl">🚨</span>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight italic uppercase">Critical Actions: Full Unpaid Ledger</h2>
+        </div>
+        <ActionCenter 
+          unpaidStudents={unpaidStudents} 
+          unpaidTeachers={unpaidTeachers} 
+          unpaidStaff={unpaidStaff} 
         />
       </section>
     </div>
