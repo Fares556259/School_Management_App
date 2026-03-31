@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft, Filter, History, Search } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Filter, History, Search, ChevronUp } from 'lucide-react';
 
 interface Transaction {
   type: 'income' | 'expense';
@@ -17,10 +17,13 @@ interface RecentTransactionsProps {
 
 const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const filteredTxs = transactions.filter(tx => 
     filter === 'all' ? true : tx.type === filter
   );
+
+  const displayTxs = isExpanded ? filteredTxs : filteredTxs.slice(0, 5);
 
   return (
     <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 h-full flex flex-col group">
@@ -49,7 +52,7 @@ const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
 
       {/* 2. FEED */}
       <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar pr-1">
-        {filteredTxs.map((tx, idx) => (
+        {displayTxs.map((tx, idx) => (
           <div key={idx} className="flex justify-between items-center p-4 bg-white hover:bg-slate-50 rounded-2xl border border-slate-50 hover:border-slate-100 transition-all group/item">
             <div className="flex items-center gap-4">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm border ${
@@ -58,7 +61,7 @@ const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
                 {tx.type === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-700 leading-tight group-hover/item:text-indigo-600 transition-colors">{tx.title}</span>
+                <span className="text-sm font-bold text-slate-700 leading-tight group-hover/item:text-indigo-600 transition-colors uppercase tracking-tight">{tx.title}</span>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-400 uppercase tracking-tighter">
                     {tx.source}
@@ -86,8 +89,12 @@ const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
 
       {/* 3. FOOTER */}
       <div className="mt-6 pt-4 border-t border-slate-50">
-        <button className="w-full py-3 text-xs font-black text-indigo-500 hover:text-white hover:bg-indigo-500 border border-indigo-100 rounded-xl transition-all uppercase tracking-widest flex items-center justify-center gap-2">
-           View Full Statement <ArrowRight size={12} />
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full py-3 text-xs font-black text-indigo-500 hover:text-white hover:bg-indigo-500 border border-indigo-100 rounded-xl transition-all uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm"
+        >
+           {isExpanded ? "Show Less" : "View Full Statement"} 
+           {isExpanded ? <ChevronUp size={12} /> : <ArrowRight size={12} />}
         </button>
       </div>
     </div>

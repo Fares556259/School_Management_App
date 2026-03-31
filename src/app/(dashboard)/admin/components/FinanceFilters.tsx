@@ -1,8 +1,8 @@
 "use client";
 import React from 'react';
-import { Search, Filter, X, ChevronDown, Download } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import ExportButton from '@/components/ExportButton';
+import { Search, X, ChevronDown, Download } from 'lucide-react';
+import { downloadCSV } from '@/lib/csvExport';
 
 interface FinanceFiltersProps {
   currentFilters: {
@@ -10,11 +10,24 @@ interface FinanceFiltersProps {
     type?: string;
     q?: string;
   };
+  data?: any[];
 }
 
-const FinanceFilters = ({ currentFilters }: FinanceFiltersProps) => {
+const FinanceFilters = ({ currentFilters, data = [] }: FinanceFiltersProps) => {
   const router = useRouter();
   const pathname = usePathname();
+
+  const handleExport = () => {
+    if (!data || data.length === 0) return;
+    const exportData = data.map(item => ({
+      Date: new Date(item.date).toLocaleDateString(),
+      Title: item.title,
+      Type: item.type.toUpperCase(),
+      Category: item.source || "N/A",
+      Amount: item.amount
+    }));
+    downloadCSV(exportData, `finance-export-${new Date().toISOString().split('T')[0]}.csv`);
+  };
 
   const updateFilters = (updates: Record<string, string | undefined>) => {
     const params = new URLSearchParams(window.location.search);
@@ -96,7 +109,11 @@ const FinanceFilters = ({ currentFilters }: FinanceFiltersProps) => {
          <div className="hidden sm:block">
             {/* The ExportButton requires data which we'll handle in the parent or pass via prop if needed */}
             {/* For now, let's keep it simple or integrate a placeholder */}
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
+            <button 
+               onClick={handleExport}
+               disabled={data.length === 0}
+               className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 disabled:opacity-50 disabled:shadow-none"
+            >
                <Download size={16} />
                Export CSV
             </button>
