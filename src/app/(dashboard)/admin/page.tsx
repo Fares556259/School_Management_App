@@ -175,13 +175,7 @@ const AdminPage = async ({
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 30);
 
-  // Insights Logic (Real Data)
-  const insights = [
-    `Balance ${balanceTrend >= 0 ? 'increased' : 'decreased'} by ${Math.abs(balanceTrend).toFixed(1)}% vs last month.`,
-    expenseTrend > 20 ? `⚠️ High Spending Alert: Expenses up by ${expenseTrend.toFixed(1)}%.` : "Spending velocity is stable.",
-    unpaidCount > 0 ? `📌 ${unpaidCount} entities have pending payments ($${unpaidAmount.toLocaleString()}).` : "Zero pending payments this week."
-  ];
-
+  // Smart insights logic is now handled dynamically by the SmartInsights Client Component
   return (
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -226,7 +220,15 @@ const AdminPage = async ({
 
         {/* RIGHT COLUMN: SECONDARY DATA & UTILITIES */}
         <div className="lg:col-span-4 flex flex-col gap-8">
-          <SmartInsights insights={insights} />
+          <SmartInsights 
+            payload={{
+              totalBalance: totalIncomeThisMonth - totalExpenseThisMonth,
+              thisMonthIncome: totalIncomeThisMonth,
+              thisMonthExpense: totalExpenseThisMonth,
+              unpaidAmount,
+              unpaidCount
+            }} 
+          />
 
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">School Snapshot</h2>
