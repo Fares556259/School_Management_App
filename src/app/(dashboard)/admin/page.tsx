@@ -187,7 +187,7 @@ const AdminPage = async ({
         </div>
       </div>
 
-      <FinanceFilters currentFilters={{ category, type, q }} />
+      <FinanceFilters currentFilters={{ category, type, q }} data={transactions} />
 
       {/* 1. KPI STRIP */}
       <KpiStrip 
