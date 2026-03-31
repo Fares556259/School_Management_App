@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
 import FinanceChart from "@/components/FinanceChart";
 import PaymentHeatmap from "./PaymentHeatmap";
+import { calculateTrend } from "@/lib/trendUtils";
 
 // New Components
 import KpiStrip from "./components/KpiStrip";
@@ -9,6 +10,7 @@ import ActionCenter from "./components/ActionCenter";
 import RecentTransactions from "./components/RecentTransactions";
 import SmartInsights from "./components/SmartInsights";
 import OperationsSnapshot from "./components/OperationsSnapshot";
+import QuickActionBar from "./components/QuickActionBar";
 
 const AdminPage = async ({
   searchParams,
@@ -84,8 +86,10 @@ const AdminPage = async ({
   const totalExpenseThisMonth = (expenseThisMonth._sum.amount || 0);
   const totalExpenseLastMonth = (expenseLastMonth._sum.amount || 0);
 
-  const balanceTrend = totalIncomeLastMonth > 0 ? ((totalIncomeThisMonth - totalIncomeLastMonth) / totalIncomeLastMonth) * 100 : 0;
-  const expenseTrend = totalExpenseLastMonth > 0 ? ((totalExpenseThisMonth - totalExpenseLastMonth) / totalExpenseLastMonth) * 100 : 0;
+  // New Trend Logic
+  const incomeTrend = calculateTrend(totalIncomeThisMonth, totalIncomeLastMonth);
+  const expenseTrend = calculateTrend(totalExpenseThisMonth, totalExpenseLastMonth);
+  const balanceTrend = calculateTrend(totalIncomeThisMonth - totalExpenseThisMonth, totalIncomeLastMonth - totalExpenseLastMonth);
 
   // Unpaid Processing
   const unpaidAmount = unpaidPayments.reduce((acc, p) => acc + p.amount, 0);
@@ -127,11 +131,11 @@ const AdminPage = async ({
     })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
 
-  // Insights Logic
+  // Insights Logic (Real Data)
   const insights = [
-    `Total balance is ${totalIncomeThisMonth > totalExpenseThisMonth ? 'growing' : 'declining'} this month.`,
-    expenseTrend > 10 ? `⚠️ Expenses increased by ${expenseTrend.toFixed(1)}% since last month.` : "Spending remains within standard ranges.",
-    unpaidCount > 3 ? `📌 Unpaid actions required for ${unpaidCount} entities totaling $${unpaidAmount.toLocaleString()}.` : "Payment collection looks healthy."
+    `Balance ${balanceTrend >= 0 ? 'increased' : 'decreased'} by ${Math.abs(balanceTrend).toFixed(1)}% vs last month.`,
+    expenseTrend > 20 ? `⚠️ High Spending Alert: Expenses up by ${expenseTrend.toFixed(1)}%.` : "Spending velocity is stable.",
+    unpaidCount > 0 ? `📌 ${unpaidCount} entities have pending payments ($${unpaidAmount.toLocaleString()}).` : "Zero pending payments this week."
   ];
 
   // Heatmap Mapping
@@ -152,9 +156,12 @@ const AdminPage = async ({
 
   return (
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen">
-      <div>
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Command Center</h1>
-        <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Command Center</h1>
+          <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
+        </div>
+        <QuickActionBar />
       </div>
 
       {/* 1. KPI STRIP */}
@@ -164,7 +171,8 @@ const AdminPage = async ({
         thisMonthExpense={totalExpenseThisMonth}
         unpaidAmount={unpaidAmount}
         unpaidCount={unpaidCount}
-        incomeTrend={balanceTrend}
+        balanceTrend={balanceTrend}
+        incomeTrend={incomeTrend}
         expenseTrend={expenseTrend}
       />
 
@@ -172,7 +180,7 @@ const AdminPage = async ({
       <section>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-lg">🚨</span>
-          <h2 className="text-xl font-bold text-slate-800">Critical Alerts</h2>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Critical Actions</h2>
         </div>
         <ActionCenter 
           unpaidStudents={unpaidStudents} 
@@ -190,7 +198,7 @@ const AdminPage = async ({
                <h3 className="font-bold text-slate-800">Financial Performance</h3>
             </div>
             <div className="h-[400px]">
-              <FinanceChart />
+              <FinanceChart filter={searchParams?.chartFilter} />
             </div>
           </div>
           <div className="h-[300px]">
