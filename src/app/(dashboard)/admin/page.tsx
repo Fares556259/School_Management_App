@@ -90,7 +90,11 @@ const AdminPage = async ({
     }),
     // Action Center Fetching
     prisma.payment.findMany({
-      where: { status: "PENDING" },
+      where: { 
+        status: "PENDING",
+        month: now.getMonth(),
+        year: now.getFullYear()
+      },
       include: {
         student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
         teacher: { select: { id: true, name: true, surname: true, salary: true } },
