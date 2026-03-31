@@ -218,17 +218,12 @@ const AdminPage = async ({
       <div className="flex flex-col lg:flex-row gap-8">
         {/* LEFT COLUMN: CHARTS */}
         <div className="flex-1 flex flex-col gap-8">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <div className="flex justify-between items-center mb-6">
-               <h3 className="font-bold text-slate-800">Financial Performance</h3>
-            </div>
-            <div className="h-[400px]">
+           <div className="min-h-[450px] flex flex-col">
               <FinanceChart filter={searchParams?.chartFilter} />
-            </div>
-          </div>
-          <div className="h-[300px]">
-             <PaymentHeatmap data={heatmapData} />
-          </div>
+           </div>
+           <div className="min-h-[350px] flex flex-col">
+              <PaymentHeatmap data={heatmapData} />
+           </div>
         </div>
 
         {/* RIGHT COLUMN: TRANSACTIONS & INSIGHTS */}
