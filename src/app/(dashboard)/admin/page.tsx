@@ -11,16 +11,32 @@ import RecentTransactions from "./components/RecentTransactions";
 import SmartInsights from "./components/SmartInsights";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
+import FinanceFilters from "./components/FinanceFilters";
 
 const AdminPage = async ({
   searchParams,
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
+  const { category, type, q } = searchParams || {};
+  const { chartFilter } = searchParams || {};
+
   const now = new Date();
   const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Build where clauses for filtered transactions (Ledger view)
+  const incomeWhere: any = {};
+  const expenseWhere: any = {};
+  if (q) {
+    incomeWhere.title = { contains: q, mode: "insensitive" };
+    expenseWhere.title = { contains: q, mode: "insensitive" };
+  }
+  if (category) {
+    incomeWhere.category = category;
+    expenseWhere.category = category;
+  }
 
   // 1. DATA FETCHING
   const [
@@ -59,11 +75,16 @@ const AdminPage = async ({
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
     prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
     // Transactions Feed
-    prisma.income.findMany({ take: 5, orderBy: { date: "desc" } }),
-    prisma.expense.findMany({ take: 5, orderBy: { date: "desc" } }),
+    // Transactions Ledger (Filtered)
+    type !== "expense" 
+      ? prisma.income.findMany({ where: incomeWhere, take: 10, orderBy: { date: "desc" } })
+      : Promise.resolve([]),
+    type !== "income"
+      ? prisma.expense.findMany({ where: expenseWhere, take: 10, orderBy: { date: "desc" } })
+      : Promise.resolve([]),
     prisma.payment.findMany({ 
       where: { status: "PAID" }, 
-      take: 5, 
+      take: 10, 
       orderBy: { paidAt: "desc" },
       include: { student: true, teacher: true, staff: true }
     }),
@@ -118,7 +139,7 @@ const AdminPage = async ({
     type: 'staff' as const,
   }));
 
-  // Unified Transaction Mapping
+  // Unified Transaction Mapping (Ledger View)
   const transactions = [
     ...recentIncomes.map(i => ({ type: 'income' as const, title: i.title, amount: i.amount, date: i.date, source: i.category })),
     ...recentExpenses.map(e => ({ type: 'expense' as const, title: e.title, amount: e.amount, date: e.date, source: e.category })),
@@ -129,7 +150,7 @@ const AdminPage = async ({
       date: p.paidAt!, 
       source: p.userType 
     })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 20);
 
   // Insights Logic (Real Data)
   const insights = [
@@ -158,11 +179,15 @@ const AdminPage = async ({
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Command Center</h1>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight italic">Command Center</h1>
           <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
         </div>
-        <QuickActionBar />
+        <div className="flex items-center gap-3">
+           <QuickActionBar />
+        </div>
       </div>
+
+      <FinanceFilters currentFilters={{ category, type, q }} />
 
       {/* 1. KPI STRIP */}
       <KpiStrip 
@@ -207,9 +232,9 @@ const AdminPage = async ({
         </div>
 
         {/* RIGHT COLUMN: TRANSACTIONS & INSIGHTS */}
-        <div className="w-full lg:w-[400px] flex flex-col gap-8">
+        <div className="w-full lg:w-[450px] flex flex-col gap-8">
           <SmartInsights insights={insights} />
-          <div className="flex-1 min-h-[500px]">
+          <div className="flex-1 min-h-[600px]">
              <RecentTransactions transactions={transactions} />
           </div>
         </div>
