@@ -64,10 +64,10 @@ const ActionList = ({
         </div>
       </div>
       
-      <div className="p-4 space-y-3 flex-1">
+      <div className="p-4 space-y-3 flex-1 flex flex-col min-h-0">
         {items.length > 0 ? (
-          <>
-            {items.slice(0, 3).map((item) => (
+          <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3 scrollbar-slim">
+            {items.map((item) => (
               <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group/item">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100 text-slate-400 group-hover/item:text-indigo-500 transition-colors">
@@ -92,14 +92,9 @@ const ActionList = ({
                 </div>
               </div>
             ))}
-            {items.length > 3 && (
-              <button className="w-full py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-500 transition-colors flex items-center justify-center gap-1 group/more">
-                + {items.length - 3} more items <ArrowRight size={10} className="group-hover/more:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </>
+          </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-col items-center justify-center py-8 text-center h-full">
             <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-3">
               <CheckCircle2 size={24} />
             </div>
