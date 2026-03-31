@@ -16,8 +16,8 @@ export default function QuickPayButton({ id, name, amount, monthYear, type }: { 
     setLoading(false);
   };
   return (
-    <button disabled={loading} onClick={handlePay} className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-md shadow-sm transition-all disabled:opacity-50">
-      {loading ? "..." : "PAY"}
+    <button disabled={loading} onClick={handlePay} className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black rounded-lg shadow-sm transition-all disabled:opacity-50 tracking-wider">
+      {loading ? "..." : type === "student" ? "COLLECT" : "PAY"}
     </button>
   );
 }
