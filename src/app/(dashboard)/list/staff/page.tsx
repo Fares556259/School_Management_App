@@ -9,7 +9,7 @@ import PayStaffModal from "./PayStaffModal";
 import CrudFormModal from "@/components/CrudFormModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
-import { getMonthKey } from "@/lib/dateUtils";
+import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 import Table from "@/components/Table";
@@ -75,7 +75,7 @@ const StaffListPage = async ({
     prisma.staff.findMany({
       where,
       include: {
-        expenses: { select: { title: true, date: true } },
+        payments: { select: { month: true, year: true, status: true, paidAt: true } },
       },
       orderBy: { createdAt: "desc" },
       take: ITEMS_PER_PAGE,
@@ -86,12 +86,18 @@ const StaffListPage = async ({
 
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
+  const [mName, yStr] = selectedMonthKey.split(" ");
+  const monthIdx = MONTHS.indexOf(mName);
+  const yearVal = parseInt(yStr);
+
   const paidThisMonth = staff.filter((s) =>
-    s.expenses.some((e: any) => e.title.includes(`(${selectedMonthKey})`))
+    s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
   ).length;
 
   const renderRow = (s: any) => {
-    const isPaidThisMonth = s.expenses.some((e: any) => e.title.includes(`(${selectedMonthKey})`));
+    const isPaidThisMonth = s.payments.some(
+      (p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
+    );
     
     return (
       <tr key={s.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight">
@@ -119,14 +125,13 @@ const StaffListPage = async ({
             isPaid={isPaidThisMonth}
             isAdmin={role === "admin"}
             monthName={selectedMonthKey}
-            paidMonths={s.expenses.map((e: any) => {
-              const match = e.title.match(/\((.*?)\)/);
-              return match ? match[1] : "";
-            }).filter(Boolean)}
+            paidMonths={s.payments
+                .filter((p: any) => p.status === "PAID")
+                .map((p: any) => `${MONTHS[p.month]} ${p.year}`)}
           />
         </td>
         <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={s.expenses} />
+          <PaymentTimeline payments={s.payments} />
         </td>
         <td>
           <div className="flex items-center gap-2">

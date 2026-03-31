@@ -5,7 +5,7 @@ import Link from "next/link";
 import FinanceChart from "./FinanceChart";
 import AddFinanceEntryModal from "./AddFinanceEntryModal";
 import ExportButton from "@/components/ExportButton";
-
+import { MONTHS } from "@/lib/dateUtils";
 // Group records by "Month Year" and sum amounts
 function groupByMonth(records: { date: Date; amount: number }[]) {
   const map: Record<string, number> = {};
@@ -58,8 +58,8 @@ const FinancePage = async ({
     allExpenses,
     filteredIncomes,
     filteredExpenses,
-    unpaidTeachers,
-    unpaidStudents,
+    allTeachers,
+    allStudents,
   ] = await Promise.all([
     // All records for chart (unaffected by type/search filters)
     prisma.income.findMany({ orderBy: { date: "desc" } }),
@@ -69,18 +69,19 @@ const FinancePage = async ({
       ? prisma.income.findMany({ where: incomeWhere, orderBy: { date: "desc" } })
       : Promise.resolve([]),
     type !== "income"
-      ? prisma.expense.findMany({ where: expenseWhere, orderBy: { date: "desc" }, include: { teacher: true } })
+      ? prisma.expense.findMany({ where: expenseWhere, orderBy: { date: "desc" } })
       : Promise.resolve([]),
-    // Unpaid
+    // Unpaid (fetch all with current month payments, filter in JS)
     prisma.teacher.findMany({
-      where: { isPaid: false },
-      select: { id: true, name: true, surname: true, salary: true },
+      select: { id: true, name: true, surname: true, salary: true, payments: { where: { month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), year: new Date().getFullYear() } } },
     }),
     prisma.student.findMany({
-      where: { isPaid: false },
-      include: { grade: true },
+      include: { grade: true, payments: { where: { month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), year: new Date().getFullYear() } } },
     }),
   ]);
+
+  const unpaidTeachers = allTeachers.filter((t: any) => !t.payments.some((p: any) => p.status === "PAID"));
+  const unpaidStudents = allStudents.filter((s: any) => !s.payments.some((p: any) => p.status === "PAID"));
 
   const totalIncome = allIncomes.reduce((s, i) => s + i.amount, 0);
   const totalExpense = allExpenses.reduce((s, e) => s + e.amount, 0);
@@ -274,23 +275,26 @@ const FinancePage = async ({
         </div>
 
         <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border-l-4 border-amber-400">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">⚠ Unpaid Students ({currentMonth})</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">⚠ Unpaid Students</h2>
           {unpaidStudents.length === 0 ? (
             <p className="text-emerald-600 text-sm font-medium">✓ All students paid this month!</p>
           ) : (
-            <div className="flex flex-col gap-2">
-              {unpaidStudents.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/list/students/${s.id}`}
-                  className="flex justify-between items-center border-b border-slate-50 pb-2 hover:bg-slate-50 px-2 rounded-md"
-                >
-                  <span className="text-sm font-medium text-slate-700">{s.name} {s.surname}</span>
-                  <span className="text-xs text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded-full">
-                    Grade {s.grade.level}
-                  </span>
-                </Link>
-              ))}
+            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-2">
+              {unpaidStudents.map((s: any) => {
+                const tuitionAmount = 80 + s.grade.level * 20;
+                return (
+                  <Link
+                    key={s.id}
+                    href={`/list/students/${s.id}`}
+                    className="flex justify-between items-center border-b border-slate-50 pb-2 hover:bg-slate-50 px-2 rounded-md"
+                  >
+                    <span className="text-sm font-medium text-slate-700">{s.name} {s.surname}</span>
+                    <span className="text-xs text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded-full">
+                      ${tuitionAmount} due
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

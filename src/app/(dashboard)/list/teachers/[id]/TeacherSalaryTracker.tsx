@@ -2,18 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { payTeacherSalary } from "../actions";
+import { MONTHS } from "@/lib/dateUtils";
 
 export default function TeacherSalaryTracker({
   teacherId,
   teacherName,
   salary,
-  expenses,
+  payments,
   isAdmin,
 }: {
   teacherId: string;
   teacherName: string;
   salary: number;
-  expenses: { title: string; amount: number; date: Date }[];
+  payments: any[];
   isAdmin: boolean;
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -21,9 +22,8 @@ export default function TeacherSalaryTracker({
   // Local set of months paid — initialised from DB data, updated on success
   const [paidMonths, setPaidMonths] = useState<Set<string>>(() => {
     const s = new Set<string>();
-    expenses.forEach((exp) => {
-      const match = exp.title.match(/\((.+?)\)$/);
-      if (match) s.add(match[1]);
+    payments.forEach((p) => {
+      if (p.status === "PAID") s.add(`${MONTHS[p.month]} ${p.year}`);
     });
     return s;
   });

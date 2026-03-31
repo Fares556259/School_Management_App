@@ -8,14 +8,14 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Grade, Income, Prisma, Student } from "@/generated/prisma";
+import { Class, Grade, Payment, Prisma, Student } from "@prisma/client";
 import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
-import { getMonthKey } from "@/lib/dateUtils";
+import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
-type StudentList = Student & { class: Class } & { grade: Grade } & { incomes: Income[] };
+type StudentList = Student & { class: Class } & { grade: Grade } & { payments: Payment[] };
 
 const columns = [
   {
@@ -101,8 +101,14 @@ const StudentListPage = async ({
   }
 
   const renderRow = (item: StudentList) => {
+    const [mName, yStr] = selectedMonthKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName);
+    const yearVal = parseInt(yStr);
+
     // Check if paid for the currently selected month in the navigator
-    const isPaidThisMonth = item.incomes.some((i) => i.title.includes(`(${selectedMonthKey})`));
+    const isPaidThisMonth = item.payments.some(
+      (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
+    );
 
     return (
       <tr
@@ -135,15 +141,14 @@ const StudentListPage = async ({
               isPaid={isPaidThisMonth}
               isAdmin={role === "admin"}
               monthName={selectedMonthKey}
-              paidMonths={item.incomes.map(i => {
-                const match = i.title.match(/\((.*?)\)/);
-                return match ? match[1] : "";
-              }).filter(Boolean)}
+              paidMonths={item.payments
+                .filter(p => p.status === "PAID")
+                .map(p => `${MONTHS[p.month]} ${p.year}`)}
             />
           </div>
         </td>
         <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={item.incomes} />
+          <PaymentTimeline payments={item.payments} />
         </td>
         <td>
           <div className="flex items-center gap-2">
@@ -170,7 +175,7 @@ const StudentListPage = async ({
       include: {
         class: true,
         grade: true,
-        incomes: { select: { title: true, date: true } },
+        payments: { select: { month: true, year: true, status: true, paidAt: true } },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -189,8 +194,12 @@ const StudentListPage = async ({
 
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
+  const [mName, yStr] = selectedMonthKey.split(" ");
+  const monthIdx = MONTHS.indexOf(mName);
+  const yearVal = parseInt(yStr);
+
   const paidThisMonth = data.filter((s) =>
-    s.incomes.some((i) => i.title.includes(`(${selectedMonthKey})`))
+    s.payments.some((p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
   ).length;
 
   return (

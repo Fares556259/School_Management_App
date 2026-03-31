@@ -5,7 +5,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -28,12 +27,10 @@ model Staff {
   address   String
   img       String?
   bloodType String
-  sex       UserSex
-  isPaid    Boolean   @default(false)
   salary    Float     @default(1500)
   createdAt DateTime  @default(now())
   birthday  DateTime
-  expenses  Expense[]
+  payments  Payment[]
 }
 
 model Student {
@@ -55,8 +52,7 @@ model Student {
   gradeId   Int
   grade     Grade    @relation(fields: [gradeId], references: [id])
   results   Result[]
-  incomes   Income[]
-  isPaid    Boolean  @default(false)
+  payments  Payment[]
   birthday  DateTime
 }
 
@@ -71,13 +67,12 @@ model Teacher {
   img       String?
   bloodType String
   sex       UserSex
-  isPaid    Boolean   @default(false)
   salary    Float     @default(3000)
   createdAt DateTime  @default(now())
   subjects  Subject[]
   lessons   Lesson[]
   classes   Class[]
-  expenses  Expense[]
+  payments  Payment[]
   birthday  DateTime
 }
 
@@ -186,29 +181,54 @@ enum Day {
 }
 
 model Expense {
-  id          Int      @id @default(autoincrement())
-  title       String
-  amount      Float
-  date        DateTime @default(now())
-  category    String
-  
-  teacherId   String?
-  teacher     Teacher? @relation(fields: [teacherId], references: [id])
-  
-  staffId     String?
-  staff       Staff?   @relation(fields: [staffId], references: [id])
+  id            Int      @id @default(autoincrement())
+  title         String
+  amount        Float
+  date          DateTime @default(now())
+  category      String
+  referenceType String?
+  referenceId   String?
 }
 
 model Income {
-  id          Int      @id @default(autoincrement())
-  title       String
-  amount      Float
-  date        DateTime @default(now())
-  category    String
-  
-  studentId   String?
-  student     Student? @relation(fields: [studentId], references: [id])
+  id            Int      @id @default(autoincrement())
+  title         String
+  amount        Float
+  date          DateTime @default(now())
+  category      String
+  referenceType String?
+  referenceId   String?
 }
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  amount    Float
+  month     Int           
+  year      Int           
+  status    PaymentStatus @default(PENDING)
+  userType  String        // "STUDENT", "TEACHER", "STAFF"
+  paidAt    DateTime?     
+  
+  studentId String?
+  student   Student?      @relation(fields: [studentId], references: [id])
+  
+  teacherId String?
+  teacher   Teacher?      @relation(fields: [teacherId], references: [id])
+  
+  staffId   String?
+  staff     Staff?        @relation(fields: [staffId], references: [id])
+
+  @@unique([studentId, month, year])
+  @@unique([teacherId, month, year])
+  @@unique([staffId, month, year])
+}
+
 
 model AuditLog {
   id          Int      @id @default(autoincrement())

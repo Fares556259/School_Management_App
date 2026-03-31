@@ -10,20 +10,34 @@ export const payTeacherSalary = async (
   amount: number,
   monthYear: string
 ) => {
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const [mName, yStr] = monthYear.split(" ");
+  const monthIdx = MONTHS.indexOf(mName);
+  const yearVal = parseInt(yStr);
+
   try {
-    await prisma.expense.create({
-      data: {
-        title: `Salary - ${teacherName} (${monthYear})`,
-        amount,
-        category: "SALARY",
-        teacherId,
-        date: new Date(),
+    await prisma.payment.upsert({
+      where: {
+        teacherId_month_year: {
+          teacherId,
+          month: monthIdx,
+          year: yearVal
+        }
       },
-    });
-    
-    await prisma.teacher.update({
-      where: { id: teacherId },
-      data: { isPaid: true },
+      update: {
+        status: "PAID",
+        paidAt: new Date(),
+        amount
+      },
+      create: {
+        teacherId,
+        amount,
+        month: monthIdx,
+        year: yearVal,
+        status: "PAID",
+        userType: "TEACHER",
+        paidAt: new Date()
+      }
     });
 
     await createAuditLog(

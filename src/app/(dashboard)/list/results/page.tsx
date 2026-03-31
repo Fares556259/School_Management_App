@@ -17,7 +17,7 @@ import {
   Subject,
   Class,
   Teacher,
-} from "@/generated/prisma";
+} from "@prisma/client";
 
 type ResultList = Result & {
   student: Student;

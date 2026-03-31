@@ -6,7 +6,7 @@ import Performance from "@/components/Performance";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { Teacher, Subject, Class } from "@/generated/prisma";
+import { Teacher, Subject, Class } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import TeacherSalaryTracker from "./TeacherSalaryTracker";
@@ -22,7 +22,7 @@ const SingleTeacherPage = async ({
     | (Teacher & {
         subjects: Subject[];
         classes: Class[];
-        expenses: { title: string; amount: number; date: Date }[];
+        payments: any[];
         _count: { lessons: number; classes: number; subjects: number };
       })
     | null = await prisma.teacher.findUnique({
@@ -30,7 +30,7 @@ const SingleTeacherPage = async ({
     include: {
       subjects: true,
       classes: true,
-      expenses: true,
+      payments: true,
       _count: {
         select: {
           lessons: true,
@@ -149,18 +149,10 @@ const SingleTeacherPage = async ({
             </div>
             {/* CARD */}
             <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image
-                src="/singleClass.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
-                <h1 className="text-xl font-semibold">
-                  {teacher._count.classes}
-                </h1>
-                <span className="text-sm text-gray-400">Classes</span>
+              <Image src="/singleClass.png" alt="" width={24} height={24} className="w-6 h-6" />
+              <div>
+                <h1 className="text-xl font-semibold">{teacher.payments.length}</h1>
+                <span className="text-sm text-gray-400">Payments Made</span>
               </div>
             </div>
           </div>
@@ -210,7 +202,7 @@ const SingleTeacherPage = async ({
           teacherId={teacher.id}
           teacherName={teacher.name + " " + teacher.surname}
           salary={teacher.salary}
-          expenses={teacher.expenses}
+          payments={teacher.payments}
           isAdmin={role === "admin"}
         />
 

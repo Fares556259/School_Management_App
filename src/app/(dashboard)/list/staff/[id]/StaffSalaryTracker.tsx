@@ -2,27 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { payStaffSalary } from "../actions";
+import { MONTHS } from "@/lib/dateUtils";
 
 export default function StaffSalaryTracker({
   staffId,
   staffName,
   salary,
-  expenses,
+  payments,
   isAdmin,
 }: {
   staffId: string;
   staffName: string;
   salary: number;
-  expenses: { title: string; amount: number; date: Date }[];
+  payments: any[];
   isAdmin: boolean;
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPending, startTransition] = useTransition();
   const [paidMonths, setPaidMonths] = useState<Set<string>>(() => {
     const s = new Set<string>();
-    expenses.forEach((exp) => {
-      const match = exp.title.match(/\((.+?)\)$/);
-      if (match) s.add(match[1]);
+    payments.forEach((p) => {
+      if (p.status === "PAID") s.add(`${MONTHS[p.month]} ${p.year}`);
     });
     return s;
   });

@@ -2,7 +2,7 @@ import { getRole } from "@/lib/role";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { Income, Prisma } from "@/generated/prisma";
+import { Income, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import Image from "next/image";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -60,9 +60,6 @@ const IncomeListPage = async ({
   const [data, count] = await prisma.$transaction([
     prisma.income.findMany({
       where: query,
-      include: {
-        student: { select: { name: true, surname: true } },
-      },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
       orderBy: { date: "desc" },
@@ -70,7 +67,7 @@ const IncomeListPage = async ({
     prisma.income.count({ where: query }),
   ]);
 
-  const renderRow = (item: Income & { student?: {name:string, surname:string} | null }) => (
+  const renderRow = (item: Income) => (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
@@ -86,7 +83,7 @@ const IncomeListPage = async ({
         {new Date(item.date).toLocaleDateString()}
       </td>
       <td className="hidden lg:table-cell text-slate-500 italic">
-        {item.student ? `${item.student.name} ${item.student.surname}` : "General Income"}
+        General Income
       </td>
       <td>
         <div className="flex items-center gap-2">
