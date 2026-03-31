@@ -11,12 +11,19 @@ export const addGeneralExpense = async (
   date: string
 ) => {
   try {
+    const dateObj = new Date(date);
+    const now = new Date();
+    // If the input date is today, preserve the current time for better sorting
+    if (dateObj.toDateString() === now.toDateString()) {
+      dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+    }
+
     const expense = await prisma.expense.create({
       data: {
         title,
         amount,
         category,
-        date: new Date(date),
+        date: dateObj,
       },
     });
 

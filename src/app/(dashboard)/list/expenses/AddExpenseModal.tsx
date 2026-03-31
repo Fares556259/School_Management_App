@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { addGeneralExpense } from "./actions";
 
 const CATEGORIES = ["FUEL", "MAINTENANCE", "SUPPLIES", "UTILITIES", "OTHER", "SALARY"];
 
 export default function AddExpenseModal() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export default function AddExpenseModal() {
       );
 
       if (result.success) {
+        router.refresh();
         setOpen(false);
       } else {
         setError(result.error || "Something went wrong");

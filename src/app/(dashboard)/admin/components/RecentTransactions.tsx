@@ -23,7 +23,7 @@ const RecentTransactions = ({ transactions }: RecentTransactionsProps) => {
     filter === 'all' ? true : tx.type === filter
   );
 
-  const displayTxs = isExpanded ? filteredTxs : filteredTxs.slice(0, 5);
+  const displayTxs = isExpanded ? filteredTxs : filteredTxs.slice(0, 10);
 
   return (
     <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 h-full flex flex-col group">

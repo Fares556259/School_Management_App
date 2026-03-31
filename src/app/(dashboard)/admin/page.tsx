@@ -1,7 +1,6 @@
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
 import FinanceChart from "@/components/FinanceChart";
-import PaymentHeatmap from "./PaymentHeatmap";
 import { calculateTrend } from "@/lib/trendUtils";
 
 // New Components
@@ -11,8 +10,6 @@ import RecentTransactions from "./components/RecentTransactions";
 import SmartInsights from "./components/SmartInsights";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
-import FinanceFilters from "./components/FinanceFilters";
-
 export const dynamic = "force-dynamic";
 
 const AdminPage = async ({
@@ -31,11 +28,13 @@ const AdminPage = async ({
   // Build where clauses for filtered transactions (Ledger view)
   const incomeWhere: any = {};
   const expenseWhere: any = {};
-  if (q) {
+  
+  if (q && q.trim() !== "") {
     incomeWhere.title = { contains: q, mode: "insensitive" };
     expenseWhere.title = { contains: q, mode: "insensitive" };
   }
-  if (category) {
+  
+  if (category && category.trim() !== "") {
     incomeWhere.category = category;
     expenseWhere.category = category;
   }
@@ -62,9 +61,7 @@ const AdminPage = async ({
     recentExpenses,
     recentPaidPayments,
     // Action Center (Unpaids)
-    unpaidPayments,
-    // Heatmap
-    allPayments
+    unpaidPayments
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -99,14 +96,14 @@ const AdminPage = async ({
     // Transactions Feed
     // Transactions Ledger (Filtered)
     type !== "expense" 
-      ? prisma.income.findMany({ where: incomeWhere, take: 10, orderBy: { date: "desc" } })
+      ? prisma.income.findMany({ where: incomeWhere, take: 50, orderBy: { date: "desc" } })
       : Promise.resolve([]),
     type !== "income"
-      ? prisma.expense.findMany({ where: expenseWhere, take: 10, orderBy: { date: "desc" } })
+      ? prisma.expense.findMany({ where: expenseWhere, take: 50, orderBy: { date: "desc" } })
       : Promise.resolve([]),
     prisma.payment.findMany({ 
       where: { status: "PAID" }, 
-      take: 10, 
+      take: 50, 
       orderBy: { paidAt: "desc" },
       include: { student: true, teacher: true, staff: true }
     }),
@@ -122,9 +119,7 @@ const AdminPage = async ({
         teacher: { select: { id: true, name: true, surname: true, phone: true } },
         staff: { select: { id: true, name: true, surname: true, phone: true } },
       }
-    }),
-    // Heatmap data
-    prisma.payment.findMany({ where: { status: "PAID" } })
+    })
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
@@ -167,18 +162,18 @@ const AdminPage = async ({
     phone: p.staff!.phone || undefined
   }));
 
-  // Unified Transaction Mapping (Ledger View)
+  // 3. MERGE & SORT TRANSACTIONS
   const transactions = [
     ...recentIncomes.map(i => ({ type: 'income' as const, title: i.title, amount: i.amount, date: i.date, source: i.category })),
     ...recentExpenses.map(e => ({ type: 'expense' as const, title: e.title, amount: e.amount, date: e.date, source: e.category })),
     ...recentPaidPayments.map(p => ({ 
       type: (p.userType === "STUDENT" ? 'income' : 'expense') as 'income' | 'expense', 
-      title: `${p.userType === "STUDENT" ? 'Tuition Fee' : 'Salary Payout'}: ${p.student?.name || p.teacher?.name || p.staff?.name}`, 
+      title: `${p.userType === "STUDENT" ? 'Tuition Fee' : 'Salary Payout'}: ${p.student?.name || p.teacher?.name || p.staff?.name || 'Manual Payment'}`, 
       amount: p.amount, 
-      date: p.paidAt!, 
+      date: p.paidAt || new Date(), 
       source: p.userType 
     })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 20);
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 30);
 
   // Insights Logic (Real Data)
   const insights = [
@@ -186,22 +181,6 @@ const AdminPage = async ({
     expenseTrend > 20 ? `⚠️ High Spending Alert: Expenses up by ${expenseTrend.toFixed(1)}%.` : "Spending velocity is stable.",
     unpaidCount > 0 ? `📌 ${unpaidCount} entities have pending payments ($${unpaidAmount.toLocaleString()}).` : "Zero pending payments this week."
   ];
-
-  // Heatmap Mapping
-  const heatmapMap: Record<string, { count: number; amount: number }> = {};
-  allPayments.forEach((p) => {
-    if (p.paidAt) {
-      const dateStr = p.paidAt.toISOString().split("T")[0];
-      if (!heatmapMap[dateStr]) heatmapMap[dateStr] = { count: 0, amount: 0 };
-      heatmapMap[dateStr].count += 1;
-      heatmapMap[dateStr].amount += p.amount;
-    }
-  });
-  const heatmapData = Object.entries(heatmapMap).map(([date, val]) => ({
-    date,
-    count: val.count,
-    amount: val.amount,
-  }));
 
   return (
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen">
@@ -215,8 +194,6 @@ const AdminPage = async ({
         </div>
       </div>
 
-      <FinanceFilters currentFilters={{ category, type, q }} data={transactions} />
-
       {/* 1. KPI STRIP */}
       <KpiStrip 
         totalBalance={totalIncomeThisMonth - totalExpenseThisMonth}
@@ -229,45 +206,45 @@ const AdminPage = async ({
         expenseTrend={expenseTrend}
       />
 
-      {/* 3 & 4. CHARTS & FEED */}
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* LEFT COLUMN: CHARTS */}
-        <div className="flex-1 flex flex-col gap-8">
-           <div className="min-h-[450px] flex flex-col">
-              <FinanceChart filter={searchParams?.chartFilter} />
-           </div>
-           <div className="min-h-[350px] flex flex-col">
-              <PaymentHeatmap data={heatmapData} />
-           </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* LEFT COLUMN: PRIMARY DATA */}
+        <div className="lg:col-span-8 flex flex-col gap-8">
+          <div className="bg-white p-2 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[450px]">
+             <div className="px-6 pt-4">
+                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Financial Performance</h2>
+             </div>
+             <FinanceChart filter={searchParams?.chartFilter} />
+          </div>
+          
+          <div className="flex flex-col min-h-[600px]">
+             <div className="mb-4">
+                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Recent Activity Ledger</h2>
+             </div>
+             <RecentTransactions transactions={transactions} />
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: TRANSACTIONS & INSIGHTS */}
-        <div className="w-full lg:w-[450px] flex flex-col gap-8">
+        {/* RIGHT COLUMN: SECONDARY DATA & UTILITIES */}
+        <div className="lg:col-span-4 flex flex-col gap-8">
           <SmartInsights insights={insights} />
-          <div className="flex-1 min-h-[600px]">
-             <RecentTransactions transactions={transactions} />
+
+          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+             <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">School Snapshot</h2>
+             <OperationsSnapshot 
+                students={studentCount}
+                teachers={teacherCount}
+                staff={staffCount}
+                classes={classCount}
+             />
           </div>
         </div>
       </div>
 
-      {/* 4. OPERATIONS SNAPSHOT */}
-      <section className="mt-4">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-bold text-slate-800 tracking-tight">Operational Snapshot</h2>
-        </div>
-        <OperationsSnapshot 
-          students={studentCount}
-          teachers={teacherCount}
-          staff={staffCount}
-          classes={classCount}
-        />
-      </section>
-
-      {/* 5. ACTION CENTER (RELOCATED TO BOTTOM) */}
-      <section className="mt-8 border-t border-slate-100 pt-8">
+      {/* 5. ACTION CENTER */}
+      <section className="mt-8 border-t border-slate-200 pt-8">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-xl">🚨</span>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight italic uppercase">Critical Actions: Full Unpaid Ledger</h2>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight italic uppercase">Critical Actions: Unpaid Ledger</h1>
         </div>
         <ActionCenter 
           unpaidStudents={unpaidStudents} 
