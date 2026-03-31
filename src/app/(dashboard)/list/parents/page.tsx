@@ -7,7 +7,7 @@ import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Parent, Prisma, Student } from "@/generated/prisma";
+import { Parent, Prisma, Student } from "@prisma/client";
 
 type ParentList = Parent & { students: Student[] };
 

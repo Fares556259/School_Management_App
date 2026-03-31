@@ -1,4 +1,4 @@
-import { Day, PrismaClient, UserSex } from "../src/generated/prisma";
+import { Day, PrismaClient, UserSex } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import "dotenv/config";
@@ -10,14 +10,18 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // ADMIN
-  await prisma.admin.create({
-    data: {
+  await prisma.admin.upsert({
+    where: { username: "admin1" },
+    update: {},
+    create: {
       id: "admin1",
       username: "admin1",
     },
   });
-  await prisma.admin.create({
-    data: {
+  await prisma.admin.upsert({
+    where: { username: "admin2" },
+    update: {},
+    create: {
       id: "admin2",
       username: "admin2",
     },
@@ -77,6 +81,26 @@ async function main() {
         subjects: { connect: [{ id: (i % 10) + 1 }] }, 
         classes: { connect: [{ id: (i % 6) + 1 }] }, 
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 30)),
+      },
+    });
+  }
+
+  // STAFF
+  for (let i = 1; i <= 10; i++) {
+    await prisma.staff.create({
+      data: {
+        id: `staff${i}`,
+        username: `staff${i}`,
+        name: `StaffName${i}`,
+        surname: `StaffSurname${i}`,
+        email: `staff${i}@example.com`,
+        phone: `234-567-890${i}`,
+        address: `StaffAddress${i}`,
+        bloodType: "B+",
+        // @ts-ignore
+        sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
+        salary: 1500,
+        birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 25)),
       },
     });
   }
@@ -169,6 +193,58 @@ async function main() {
         ...(i <= 5 ? { examId: i } : { assignmentId: i - 5 }), 
       },
     });
+  }
+
+  // PAYMENTS
+  const months = [1, 2, 3, 4, 5]; // Representing Feb to Jun
+  const currentYear = new Date().getFullYear();
+
+  for (let i = 1; i <= 50; i++) {
+    for (let m of months) {
+      await prisma.payment.create({
+        data: {
+          amount: 80 + ((i % 6) + 1) * 20, // matching tuition
+          month: m,
+          year: currentYear,
+          status: m < 3 ? "PAID" : m === 3 && i % 2 === 0 ? "PAID" : "PENDING",
+          userType: "STUDENT",
+          paidAt: m < 3 || (m === 3 && i % 2 === 0) ? new Date(currentYear, m - 1, (i % 28) + 1) : null,
+          studentId: `student${i}`
+        }
+      });
+    }
+  }
+
+  for (let i = 1; i <= 15; i++) {
+    for (let m of months) {
+      await prisma.payment.create({
+        data: {
+          amount: 3000,
+          month: m,
+          year: currentYear,
+          status: m < 3 ? "PAID" : "PENDING",
+          userType: "TEACHER",
+          paidAt: m < 3 ? new Date(currentYear, m - 1, 25) : null,
+          teacherId: `teacher${i}`
+        }
+      });
+    }
+  }
+
+  for (let i = 1; i <= 10; i++) {
+    for (let m of months) {
+      await prisma.payment.create({
+        data: {
+          amount: 1500,
+          month: m,
+          year: currentYear,
+          status: m < 3 ? "PAID" : "PENDING",
+          userType: "STAFF",
+          paidAt: m < 3 ? new Date(currentYear, m - 1, 25) : null,
+          staffId: `staff${i}`
+        }
+      });
+    }
   }
 
   console.log("Seeding completed successfully.");

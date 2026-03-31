@@ -10,20 +10,34 @@ export const receiveStudentPayment = async (
   amount: number,
   monthYear: string
 ) => {
-  try {
-    await prisma.income.create({
-      data: {
-        title: `Tuition - ${studentName} (${monthYear})`,
-        amount,
-        category: "TUITION",
-        studentId,
-        date: new Date(),
-      },
-    });
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const [mName, yStr] = monthYear.split(" ");
+  const monthIdx = MONTHS.indexOf(mName);
+  const yearVal = parseInt(yStr);
 
-    await prisma.student.update({
-      where: { id: studentId },
-      data: { isPaid: true },
+  try {
+    await prisma.payment.upsert({
+      where: {
+        studentId_month_year: {
+          studentId,
+          month: monthIdx,
+          year: yearVal
+        }
+      },
+      update: {
+        status: "PAID",
+        paidAt: new Date(),
+        amount
+      },
+      create: {
+        studentId,
+        amount,
+        month: monthIdx,
+        year: yearVal,
+        status: "PAID",
+        userType: "STUDENT",
+        paidAt: new Date()
+      }
     });
 
     await createAuditLog(

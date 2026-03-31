@@ -1,4 +1,4 @@
-import { Day } from "@/generated/prisma";
+import { Day } from "@prisma/client";
 
 export const adjustWorkWeek = (lessons: any[]) => {
   const currentStartOfWeek = new Date();

@@ -1,6 +1,8 @@
 "use client";
 import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 
+import { Payment } from "@prisma/client";
+
 /**
  * Shows the last 6 months as colored dots indicating paid/unpaid status.
  * Green = paid, Red = unpaid, for each month.
@@ -8,14 +10,15 @@ import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 export default function PaymentTimeline({
   payments,
 }: {
-  payments: { title: string; date: Date }[];
+  payments: Payment[];
 }) {
   const now = new Date();
-  // Build a set of paid months from payment titles like "(March 2026)"
+  // Build a set of paid months dynamically from structured Payment records
   const paidMonths = new Set<string>();
   payments.forEach((p) => {
-    const match = p.title.match(/\((.+?)\)$/);
-    if (match) paidMonths.add(match[1]);
+    if (p.status === "PAID") {
+      paidMonths.add(`${MONTHS[p.month]} ${p.year}`);
+    }
   });
 
   const schoolMonths = getSchoolYearMonths(now);

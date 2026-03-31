@@ -2,7 +2,7 @@ import { getRole } from "@/lib/role";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { Expense, Teacher, Staff, Prisma } from "@/generated/prisma";
+import { Expense, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import Image from "next/image";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -60,10 +60,6 @@ const ExpenseListPage = async ({
   const [data, count] = await prisma.$transaction([
     prisma.expense.findMany({
       where: query,
-      include: {
-        teacher: { select: { name: true, surname: true } },
-        staff: { select: { name: true, surname: true } },
-      },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
       orderBy: { date: "desc" },
@@ -71,7 +67,7 @@ const ExpenseListPage = async ({
     prisma.expense.count({ where: query }),
   ]);
 
-  const renderRow = (item: Expense & { teacher?: {name:string, surname:string} | null, staff?: {name:string, surname:string} | null }) => (
+  const renderRow = (item: Expense) => (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
@@ -87,8 +83,7 @@ const ExpenseListPage = async ({
         {new Date(item.date).toLocaleDateString()}
       </td>
       <td className="hidden lg:table-cell text-slate-500 italic">
-        {item.teacher ? `${item.teacher.name} ${item.teacher.surname}` : 
-         item.staff ? `${item.staff.name} ${item.staff.surname}` : "School Overhead"}
+        School Overhead
       </td>
       <td>
         <div className="flex items-center gap-2">

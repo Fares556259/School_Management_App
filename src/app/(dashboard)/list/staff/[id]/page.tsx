@@ -16,9 +16,7 @@ const SingleStaffPage = async ({
   const staff = await prisma.staff.findUnique({
     where: { id: params.id },
     include: {
-      expenses: {
-        orderBy: { date: "desc" },
-      },
+      payments: true,
     },
   });
 
@@ -89,7 +87,7 @@ const SingleStaffPage = async ({
             <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
               <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
               <div>
-                <h1 className="text-xl font-semibold">{staff.expenses.length}</h1>
+                <h1 className="text-xl font-semibold">{staff.payments.length}</h1>
                 <span className="text-sm text-gray-400">Payments Made</span>
               </div>
             </div>
@@ -97,8 +95,8 @@ const SingleStaffPage = async ({
               <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
               <div>
                 <h1 className="text-xl font-semibold">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${staff.isPaid ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-                    {staff.isPaid ? "Paid" : "Unpaid"}
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${staff.payments.some((p: any) => p.month === new Date().getMonth() && p.year === new Date().getFullYear() && p.status === "PAID") ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                    {staff.payments.some((p: any) => p.month === new Date().getMonth() && p.year === new Date().getFullYear() && p.status === "PAID") ? "Paid" : "Unpaid"}
                   </span>
                 </h1>
                 <span className="text-sm text-gray-400">Current Status</span>
@@ -112,11 +110,7 @@ const SingleStaffPage = async ({
           staffId={staff.id}
           staffName={`${staff.name} ${staff.surname}`}
           salary={staff.salary}
-          expenses={staff.expenses.map((e) => ({
-            title: e.title,
-            amount: e.amount,
-            date: e.date,
-          }))}
+          payments={staff.payments}
           isAdmin={isAdmin}
         />
       </div>
@@ -126,17 +120,17 @@ const SingleStaffPage = async ({
         <div className="bg-white p-4 rounded-md">
           <h1 className="text-xl font-semibold mb-4">Payment History</h1>
           <div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
-            {staff.expenses.length === 0 ? (
+            {staff.payments.length === 0 ? (
               <p className="text-slate-400 text-sm text-center py-4">No payments yet.</p>
             ) : (
-              staff.expenses.map((exp) => (
-                <div key={exp.id} className="flex justify-between items-center border-b border-slate-50 pb-2">
+              [...staff.payments].reverse().map((p: any) => (
+                <div key={p.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
                   <div>
-                    <p className="text-sm font-medium text-slate-700">{exp.title}</p>
-                    <p className="text-xs text-slate-400">{exp.date.toLocaleDateString("en-GB")}</p>
+                    <h3 className="text-sm font-semibold">{p.month}/{p.year} Salary</h3>
+                    <p className="text-xs text-gray-500">Paid on {p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "-"}</p>
                   </div>
-                  <span className="text-rose-500 font-bold text-sm bg-rose-50 px-2 py-1 rounded-full">
-                    -${exp.amount.toLocaleString()}
+                  <span className={`font-bold text-sm ${p.status === "PAID" ? "text-emerald-600" : "text-amber-500"}`}>
+                    ${p.amount}
                   </span>
                 </div>
               ))
@@ -151,10 +145,7 @@ const SingleStaffPage = async ({
               <span className="text-slate-500">Address:</span>
               <span className="font-medium">{staff.address}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Sex:</span>
-              <span className="font-medium">{staff.sex}</span>
-            </div>
+
             <div className="flex justify-between">
               <span className="text-slate-500">Blood Type:</span>
               <span className="font-medium">{staff.bloodType}</span>

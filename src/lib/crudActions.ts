@@ -31,7 +31,6 @@ export const createTeacher = async (data: {
         birthday: new Date(data.birthday),
         sex: data.sex,
         salary: data.salary ?? 3000,
-        isPaid: false,
       },
     });
     revalidatePath("/list/teachers");
@@ -114,7 +113,6 @@ export const createStudent = async (data: {
         parentId: data.parentId,
         classId: data.classId,
         gradeId: data.gradeId,
-        isPaid: false,
       },
     });
     revalidatePath("/list/students");
@@ -189,10 +187,8 @@ export const createStaff = async (data: {
         address: data.address,
         bloodType: data.bloodType,
         birthday: new Date(data.birthday),
-        sex: data.sex,
         role: data.role,
         salary: data.salary ?? 1500,
-        isPaid: false,
       },
     });
     revalidatePath("/list/staff");

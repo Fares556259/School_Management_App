@@ -4,14 +4,14 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { auth } from "@clerk/nextjs/server";
-import { Teacher, Subject, Class, Expense } from "@/generated/prisma";
+import { Teacher, Subject, Class, Payment } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
-import { getMonthKey } from "@/lib/dateUtils";
+import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
 const columns = [
@@ -60,7 +60,7 @@ const columns = [
 ];
 
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@prisma/client";
 
 const TeacherListPage = async ({
   searchParams,
@@ -104,10 +104,16 @@ const TeacherListPage = async ({
   const selectedMonthKey = getMonthKey(searchParams.month);
 
   const renderRow = (
-    item: Teacher & { subjects: Subject[]; classes: Class[]; expenses: Expense[] }
+    item: Teacher & { subjects: Subject[]; classes: Class[]; payments: Payment[] }
   ) => {
+    const [mName, yStr] = selectedMonthKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName);
+    const yearVal = parseInt(yStr);
+
     // Check if paid for the currently selected month in the navigator
-    const isPaidThisMonth = item.expenses.some((e) => e.title.includes(`(${selectedMonthKey})`));
+    const isPaidThisMonth = item.payments.some(
+      (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
+    );
 
     return (
       <tr
@@ -144,14 +150,13 @@ const TeacherListPage = async ({
             isPaid={isPaidThisMonth} 
             isAdmin={role === "admin"} 
             monthName={selectedMonthKey}
-            paidMonths={item.expenses.map(e => {
-              const match = e.title.match(/\((.*?)\)/);
-              return match ? match[1] : "";
-            }).filter(Boolean)}
+            paidMonths={item.payments
+              .filter(p => p.status === "PAID")
+              .map(p => `${MONTHS[p.month]} ${p.year}`)}
           />
         </td>
         <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={item.expenses} />
+          <PaymentTimeline payments={item.payments} />
         </td>
         <td>
           <div className="flex items-center gap-2">
@@ -177,7 +182,7 @@ const TeacherListPage = async ({
       include: {
         subjects: true,
         classes: true,
-        expenses: { select: { title: true, date: true } },
+        payments: { select: { month: true, year: true, status: true, paidAt: true } },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -186,8 +191,12 @@ const TeacherListPage = async ({
   ]);
 
   // Compute month-based payment stats for the summary bar
+  const [mName, yStr] = selectedMonthKey.split(" ");
+  const monthIdx = MONTHS.indexOf(mName);
+  const yearVal = parseInt(yStr);
+
   const paidThisMonth = data.filter((t) =>
-    t.expenses.some((e) => e.title.includes(`(${selectedMonthKey})`))
+    t.payments.some((p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
   ).length;
 
   return (

@@ -7,7 +7,7 @@ import TableSearch from "@/components/TableSearch";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Lesson, Prisma, Subject, Teacher } from "@/generated/prisma";
+import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 
 type LessonList = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
