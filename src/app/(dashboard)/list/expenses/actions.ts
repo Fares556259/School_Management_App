@@ -28,7 +28,7 @@ export const addGeneralExpense = async (
     );
 
     revalidatePath("/list/expenses");
-    revalidatePath("/admin/finance");
+    revalidatePath("/admin");
     revalidatePath("/admin/audit");
     return { success: true };
   } catch (err) {
