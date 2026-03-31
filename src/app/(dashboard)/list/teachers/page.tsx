@@ -144,6 +144,10 @@ const TeacherListPage = async ({
             isPaid={isPaidThisMonth} 
             isAdmin={role === "admin"} 
             monthName={selectedMonthKey}
+            paidMonths={item.expenses.map(e => {
+              const match = e.title.match(/\((.*?)\)/);
+              return match ? match[1] : "";
+            }).filter(Boolean)}
           />
         </td>
         <td className="hidden xl:table-cell">

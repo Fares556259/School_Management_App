@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import { createAuditLog } from "@/lib/audit";
 
 export const payTeacherSalary = async (
   teacherId: string,
@@ -10,7 +10,6 @@ export const payTeacherSalary = async (
   amount: number,
   monthYear: string
 ) => {
-  const { userId } = auth();
   try {
     await prisma.expense.create({
       data: {
@@ -21,19 +20,19 @@ export const payTeacherSalary = async (
         date: new Date(),
       },
     });
+    
     await prisma.teacher.update({
       where: { id: teacherId },
       data: { isPaid: true },
     });
-    await prisma.auditLog.create({
-      data: {
-        action: "PAY_SALARY",
-        performedBy: userId || "unknown",
-        entityType: "Teacher",
-        entityId: teacherId,
-        description: `Paid salary of $${amount} to ${teacherName} for ${monthYear}`,
-      },
-    });
+
+    await createAuditLog(
+      "PAY_SALARY",
+      "Teacher",
+      teacherId,
+      `Paid salary of $${amount} to ${teacherName} for ${monthYear}`
+    );
+
     revalidatePath("/list/teachers");
     revalidatePath(`/list/teachers/${teacherId}`);
     revalidatePath("/admin/finance");

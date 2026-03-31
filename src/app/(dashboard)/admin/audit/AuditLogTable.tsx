@@ -18,6 +18,8 @@ const actionColors: Record<string, string> = {
   RECEIVE_TUITION: "bg-emerald-100 text-emerald-700",
   ADD_INCOME: "bg-blue-100 text-blue-700",
   ADD_EXPENSE: "bg-amber-100 text-amber-700",
+  GENERAL_EXPENSE: "bg-amber-100 text-amber-700",
+  GENERAL_INCOME: "bg-blue-100 text-blue-700",
 };
 
 const actionIcons: Record<string, string> = {
@@ -25,6 +27,8 @@ const actionIcons: Record<string, string> = {
   RECEIVE_TUITION: "🎓",
   ADD_INCOME: "📈",
   ADD_EXPENSE: "📉",
+  GENERAL_EXPENSE: "⛽",
+  GENERAL_INCOME: "💰",
 };
 
 export default function AuditLogTable({ logs }: { logs: AuditEntry[] }) {

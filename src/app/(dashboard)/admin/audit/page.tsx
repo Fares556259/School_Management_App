@@ -14,7 +14,7 @@ const AuditPage = async () => {
   });
 
   // Resolve Clerk user IDs to real names
-  const uniqueIds = [...new Set(logs.map((l) => l.performedBy).filter((id) => id !== "unknown"))];
+  const uniqueIds = Array.from(new Set(logs.map((l) => l.performedBy).filter((id) => id !== "unknown")));
   const nameMap: Record<string, string> = {};
   for (const uid of uniqueIds) {
     try {

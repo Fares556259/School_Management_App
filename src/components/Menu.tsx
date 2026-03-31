@@ -18,6 +18,18 @@ const menuItems = [
         visible: ["admin"],
       },
       {
+        icon: "/result.png",
+        label: "Expenses",
+        href: "/list/expenses",
+        visible: ["admin"],
+      },
+      {
+        icon: "/result.png",
+        label: "Incomes",
+        href: "/list/incomes",
+        visible: ["admin"],
+      },
+      {
         icon: "/setting.png",
         label: "Audit Log",
         href: "/admin/audit",

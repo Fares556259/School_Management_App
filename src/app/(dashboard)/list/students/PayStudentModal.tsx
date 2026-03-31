@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { receiveStudentPayment } from "./actions";
+import { getSchoolYearMonths, isMonthBefore } from "@/lib/dateUtils";
 
 export default function PayStudentModal({
   studentId,
@@ -10,6 +11,7 @@ export default function PayStudentModal({
   isPaid,
   isAdmin,
   monthName,
+  paidMonths = [],
 }: {
   studentId: string;
   studentName: string;
@@ -17,6 +19,7 @@ export default function PayStudentModal({
   isPaid: boolean;
   isAdmin: boolean;
   monthName?: string;
+  paidMonths?: string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || "");
@@ -25,8 +28,24 @@ export default function PayStudentModal({
   // "1 to 6 the monthly paiment change" mapping logic
   const tuitionAmount = 80 + gradeLevel * 20; // Grade 1 = $100, Grade 6 = $200
 
+  // Find earliest unpaid month in the reachable window (last 6 months)
+  const getEarliestUnpaid = () => {
+    const list = [];
+    const date = new Date();
+    date.setMonth(date.getMonth() - 5);
+    for (let i = 0; i < 6; i++) {
+      const m = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+      list.push(m);
+      date.setMonth(date.getMonth() + 1);
+    }
+    return list.find(m => !paidMonths.includes(m));
+  };
+
+  const earliestUnpaid = getEarliestUnpaid();
+  const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
+
   const handlePay = () => {
-    if (!isAdmin || !selectedMonth) return;
+    if (!isAdmin || !selectedMonth || isSkipping) return;
 
     startTransition(async () => {
       const result = await receiveStudentPayment(
@@ -43,23 +62,7 @@ export default function PayStudentModal({
     });
   };
 
-  const getMonthsList = () => {
-    const months = [];
-    const date = new Date();
-    date.setMonth(date.getMonth() - 2);
-
-    for (let i = 0; i < 4; i++) {
-      const monthStr = date.toLocaleString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-      months.push(monthStr);
-      date.setMonth(date.getMonth() + 1);
-    }
-    return months;
-  };
-
-  const monthsList = getMonthsList();
+  const monthsList = getSchoolYearMonths();
 
   return (
     <>
@@ -108,6 +111,15 @@ export default function PayStudentModal({
               </select>
             </div>
 
+            {isSkipping && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                <span className="text-amber-500 font-bold">⚠️</span>
+                <p className="text-xs text-amber-700">
+                  You are skipping unpaid months. Please pay for <strong>{earliestUnpaid}</strong> first to maintain sequential records.
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setIsOpen(false)}
@@ -118,7 +130,7 @@ export default function PayStudentModal({
               </button>
               <button
                 onClick={handlePay}
-                disabled={isPending || !selectedMonth}
+                disabled={isPending || !selectedMonth || isSkipping}
                 className="px-4 py-2 text-sm font-medium text-white bg-lamaSky hover:bg-blue-400 rounded-md transition-colors disabled:opacity-50"
               >
                 {isPending ? "Processing..." : "Confirm Payment"}
