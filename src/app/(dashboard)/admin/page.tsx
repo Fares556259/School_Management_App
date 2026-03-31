@@ -170,8 +170,8 @@ const AdminPage = async ({
     ...recentIncomes.map(i => ({ type: 'income' as const, title: i.title, amount: i.amount, date: i.date, source: i.category })),
     ...recentExpenses.map(e => ({ type: 'expense' as const, title: e.title, amount: e.amount, date: e.date, source: e.category })),
     ...recentPaidPayments.map(p => ({ 
-      type: 'income' as const, 
-      title: `Payment: ${p.student?.name || p.teacher?.name || p.staff?.name}`, 
+      type: (p.userType === "STUDENT" ? 'income' : 'expense') as 'income' | 'expense', 
+      title: `${p.userType === "STUDENT" ? 'Tuition Fee' : 'Salary Payout'}: ${p.student?.name || p.teacher?.name || p.staff?.name}`, 
       amount: p.amount, 
       date: p.paidAt!, 
       source: p.userType 
