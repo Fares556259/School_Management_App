@@ -97,8 +97,6 @@ async function main() {
         phone: `234-567-890${i}`,
         address: `StaffAddress${i}`,
         bloodType: "B+",
-        // @ts-ignore
-        sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
         salary: 1500,
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 25)),
       },
