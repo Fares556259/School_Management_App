@@ -12,12 +12,6 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/result.png",
-        label: "Finance",
-        href: "/admin",
-        visible: ["admin"],
-      },
-      {
         icon: "/setting.png",
         label: "Audit Log",
         href: "/admin/audit",
