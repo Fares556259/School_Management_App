@@ -14,19 +14,7 @@ const menuItems = [
       {
         icon: "/result.png",
         label: "Finance",
-        href: "/admin/finance",
-        visible: ["admin"],
-      },
-      {
-        icon: "/result.png",
-        label: "Expenses",
-        href: "/list/expenses",
-        visible: ["admin"],
-      },
-      {
-        icon: "/result.png",
-        label: "Incomes",
-        href: "/list/incomes",
+        href: "/admin",
         visible: ["admin"],
       },
       {
