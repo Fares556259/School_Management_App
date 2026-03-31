@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import { createAuditLog } from "@/lib/audit";
 
 export const receiveStudentPayment = async (
   studentId: string,
@@ -10,7 +10,6 @@ export const receiveStudentPayment = async (
   amount: number,
   monthYear: string
 ) => {
-  const { userId } = auth();
   try {
     await prisma.income.create({
       data: {
@@ -21,19 +20,19 @@ export const receiveStudentPayment = async (
         date: new Date(),
       },
     });
+
     await prisma.student.update({
       where: { id: studentId },
       data: { isPaid: true },
     });
-    await prisma.auditLog.create({
-      data: {
-        action: "RECEIVE_TUITION",
-        performedBy: userId || "unknown",
-        entityType: "Student",
-        entityId: studentId,
-        description: `Received tuition of $${amount} from ${studentName} for ${monthYear}`,
-      },
-    });
+
+    await createAuditLog(
+      "RECEIVE_TUITION",
+      "Student",
+      studentId,
+      `Received tuition of $${amount} from ${studentName} for ${monthYear}`
+    );
+
     revalidatePath("/list/students");
     revalidatePath(`/list/students/${studentId}`);
     revalidatePath("/admin/finance");

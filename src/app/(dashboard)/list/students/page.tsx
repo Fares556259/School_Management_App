@@ -43,13 +43,17 @@ const columns = [
     className: "hidden lg:table-cell",
   },
   {
-    header: "Actions",
-    accessor: "action",
+    header: "Paid Status",
+    accessor: "isPaid",
   },
   {
     header: "Timeline",
     accessor: "timeline",
     className: "hidden xl:table-cell",
+  },
+  {
+    header: "Actions",
+    accessor: "action",
   },
 ];
 
@@ -131,7 +135,18 @@ const StudentListPage = async ({
               isPaid={isPaidThisMonth}
               isAdmin={role === "admin"}
               monthName={selectedMonthKey}
+              paidMonths={item.incomes.map(i => {
+                const match = i.title.match(/\((.*?)\)/);
+                return match ? match[1] : "";
+              }).filter(Boolean)}
             />
+          </div>
+        </td>
+        <td className="hidden xl:table-cell">
+          <PaymentTimeline payments={item.incomes} />
+        </td>
+        <td>
+          <div className="flex items-center gap-2">
             <Link href={`/list/students/${item.id}`}>
               <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
                 <Image src="/view.png" alt="" width={16} height={16} />
@@ -144,9 +159,6 @@ const StudentListPage = async ({
               </>
             )}
           </div>
-        </td>
-        <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={item.incomes} />
         </td>
       </tr>
     );

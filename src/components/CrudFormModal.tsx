@@ -9,9 +9,11 @@ import {
   createParent, updateParent, deleteParent,
   createClass, updateClass, deleteClass,
   createSubject, updateSubject, deleteSubject,
+  createExpense, updateExpense, deleteExpense,
+  createIncome, updateIncome, deleteIncome,
 } from "@/lib/crudActions";
 
-type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subject";
+type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subject" | "expense" | "income";
 
 interface FieldDef {
   name: string;
@@ -80,6 +82,31 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   subject: [
     { name: "name", label: "Subject Name", type: "text", required: true },
   ],
+  expense: [
+    { name: "title", label: "Description", type: "text", required: true, placeholder: "e.g., Bus Fuel - Route A" },
+    { name: "amount", label: "Amount ($)", type: "number", required: true, parseAsNumber: true },
+    { name: "category", label: "Category", type: "select", required: true, options: [
+      {value: "FUEL", label: "FUEL"},
+      {value: "MAINTENANCE", label: "MAINTENANCE"},
+      {value: "SUPPLIES", label: "SUPPLIES"},
+      {value: "UTILITIES", label: "UTILITIES"},
+      {value: "OTHER", label: "OTHER"},
+      {value: "SALARY", label: "SALARY"}
+    ] },
+    { name: "date", label: "Date", type: "date", required: true },
+  ],
+  income: [
+    { name: "title", label: "Source/Description", type: "text", required: true, placeholder: "e.g., Annual Charity Event" },
+    { name: "amount", label: "Amount ($)", type: "number", required: true, parseAsNumber: true },
+    { name: "category", label: "Category", type: "select", required: true, options: [
+      {value: "TUITION", label: "TUITION"},
+      {value: "DONATION", label: "DONATION"},
+      {value: "EVENT", label: "EVENT"},
+      {value: "GRANT", label: "GRANT"},
+      {value: "OTHER", label: "OTHER"}
+    ] },
+    { name: "date", label: "Date", type: "date", required: true },
+  ],
 };
 
 const createFns: Record<EntityType, (data: any) => Promise<any>> = {
@@ -89,6 +116,8 @@ const createFns: Record<EntityType, (data: any) => Promise<any>> = {
   parent: createParent,
   class: createClass,
   subject: createSubject,
+  expense: createExpense,
+  income: createIncome,
 };
 
 const updateFns: Record<EntityType, (id: any, data: any) => Promise<any>> = {
@@ -98,6 +127,8 @@ const updateFns: Record<EntityType, (id: any, data: any) => Promise<any>> = {
   parent: updateParent,
   class: updateClass,
   subject: updateSubject,
+  expense: updateExpense,
+  income: updateIncome,
 };
 
 const deleteFns: Record<EntityType, (id: any) => Promise<any>> = {
@@ -107,6 +138,8 @@ const deleteFns: Record<EntityType, (id: any) => Promise<any>> = {
   parent: deleteParent,
   class: deleteClass,
   subject: deleteSubject,
+  expense: deleteExpense,
+  income: deleteIncome,
 };
 
 export default function CrudFormModal({

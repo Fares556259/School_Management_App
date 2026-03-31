@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { createAuditLog } from "@/lib/audit";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -379,5 +380,159 @@ export const deleteSubject = async (id: number) => {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to delete subject." };
+  }
+};
+
+// ===================== EXPENSE =====================
+export const createExpense = async (data: {
+  title: string;
+  amount: number;
+  category: string;
+  date: string;
+}) => {
+  try {
+    const expense = await prisma.expense.create({
+      data: {
+        title: data.title,
+        amount: data.amount,
+        category: data.category,
+        date: new Date(data.date),
+      },
+    });
+    await createAuditLog(
+      "GENERAL_EXPENSE",
+      "School",
+      expense.id.toString(),
+      `Logged expense: ${data.title} ($${data.amount}) under ${data.category}`
+    );
+    revalidatePath("/list/expenses");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/audit");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to create expense." };
+  }
+};
+
+export const updateExpense = async (
+  id: number,
+  data: Partial<{
+    title: string;
+    amount: number;
+    category: string;
+    date: string;
+  }>
+) => {
+  try {
+    const updateData: any = { ...data };
+    if (data.date) updateData.date = new Date(data.date);
+    await prisma.expense.update({ where: { id }, data: updateData });
+    await createAuditLog(
+      "EDIT_EXPENSE",
+      "Expense",
+      id.toString(),
+      `Updated expense ${id}`
+    );
+    revalidatePath("/list/expenses");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/audit");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update expense." };
+  }
+};
+
+export const deleteExpense = async (id: number) => {
+  try {
+    await prisma.expense.delete({ where: { id } });
+    await createAuditLog(
+      "DELETE_EXPENSE",
+      "Expense",
+      id.toString(),
+      `Deleted expense ${id}`
+    );
+    revalidatePath("/list/expenses");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/audit");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete expense." };
+  }
+};
+
+// ===================== INCOME =====================
+export const createIncome = async (data: {
+  title: string;
+  amount: number;
+  category: string;
+  date: string;
+}) => {
+  try {
+    const income = await prisma.income.create({
+      data: {
+        title: data.title,
+        amount: data.amount,
+        category: data.category,
+        date: new Date(data.date),
+      },
+    });
+    await createAuditLog(
+      "GENERAL_INCOME",
+      "School",
+      income.id.toString(),
+      `Logged income: ${data.title} ($${data.amount}) under ${data.category}`
+    );
+    revalidatePath("/list/incomes");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/audit");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to create income." };
+  }
+};
+
+export const updateIncome = async (
+  id: number,
+  data: Partial<{
+    title: string;
+    amount: number;
+    category: string;
+    date: string;
+  }>
+) => {
+  try {
+    const updateData: any = { ...data };
+    if (data.date) updateData.date = new Date(data.date);
+    await prisma.income.update({ where: { id }, data: updateData });
+    await createAuditLog(
+      "EDIT_INCOME",
+      "Income",
+      id.toString(),
+      `Updated income ${id}`
+    );
+    revalidatePath("/list/incomes");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/audit");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update income." };
+  }
+};
+
+export const deleteIncome = async (id: number) => {
+  try {
+    await prisma.income.delete({ where: { id } });
+    await createAuditLog(
+      "DELETE_INCOME",
+      "Income",
+      id.toString(),
+      `Deleted income ${id}`
+    );
+    revalidatePath("/list/incomes");
+    revalidatePath("/admin/finance");
+    revalidatePath("/admin/audit");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete income." };
   }
 };

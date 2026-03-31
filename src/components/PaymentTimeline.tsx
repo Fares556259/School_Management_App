@@ -1,4 +1,5 @@
 "use client";
+import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 
 /**
  * Shows the last 6 months as colored dots indicating paid/unpaid status.
@@ -9,6 +10,7 @@ export default function PaymentTimeline({
 }: {
   payments: { title: string; date: Date }[];
 }) {
+  const now = new Date();
   // Build a set of paid months from payment titles like "(March 2026)"
   const paidMonths = new Set<string>();
   payments.forEach((p) => {
@@ -16,20 +18,39 @@ export default function PaymentTimeline({
     if (match) paidMonths.add(match[1]);
   });
 
-  // Generate the last 6 months
-  const months: { key: string; short: string }[] = [];
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = d.toLocaleString("en-US", { month: "long", year: "numeric" });
-    const short = d.toLocaleString("en-US", { month: "short" });
-    months.push({ key, short });
-  }
+  const schoolMonths = getSchoolYearMonths(now);
+  const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Generate only unpaid past/current months and paid future months
+  const months: { key: string; short: string; status: "paid" | "unpaid" }[] = [];
+  
+  schoolMonths.forEach((monthKey: string) => {
+    const isPastOrCurrent = monthKey === currentMonthKey || isMonthBefore(monthKey, currentMonthKey);
+    const isPaid = paidMonths.has(monthKey);
+
+    if (isPastOrCurrent && !isPaid) {
+      // Show unpaid past/current in Red
+      const [mName] = monthKey.split(" ");
+      months.push({ 
+        key: monthKey, 
+        short: mName.substring(0, 3),
+        status: "unpaid"
+      });
+    } else if (!isPastOrCurrent && isPaid) {
+      // Show paid future in Green
+      const [mName] = monthKey.split(" ");
+      months.push({ 
+        key: monthKey, 
+        short: mName.substring(0, 3),
+        status: "paid"
+      });
+    }
+  });
 
   return (
     <div className="flex items-center gap-1">
       {months.map((m) => {
-        const isPaid = paidMonths.has(m.key);
+        const isPaid = m.status === "paid";
         return (
           <div
             key={m.key}
