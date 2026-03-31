@@ -50,6 +50,7 @@ export const receiveStudentPayment = async (
     revalidatePath("/list/students");
     revalidatePath(`/list/students/${studentId}`);
     revalidatePath("/admin");
+    revalidatePath("/", "layout");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
     return { success: true };

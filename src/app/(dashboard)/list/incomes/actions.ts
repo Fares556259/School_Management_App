@@ -29,6 +29,7 @@ export const addGeneralIncome = async (
 
     revalidatePath("/list/incomes");
     revalidatePath("/admin");
+    revalidatePath("/", "layout");
     revalidatePath("/admin/audit");
     return { success: true };
   } catch (err) {
