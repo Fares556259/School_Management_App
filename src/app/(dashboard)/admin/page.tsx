@@ -13,6 +13,8 @@ import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
 import FinanceFilters from "./components/FinanceFilters";
 
+export const dynamic = "force-dynamic";
+
 const AdminPage = async ({
   searchParams,
 }: {

@@ -50,6 +50,7 @@ export const payStaffSalary = async (
     revalidatePath("/list/staff");
     revalidatePath(`/list/staff/${staffId}`);
     revalidatePath("/admin");
+    revalidatePath("/", "layout");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
     return { success: true };
