@@ -1,3 +1,4 @@
+"use client";
 import QuickPayButton from '../finance/QuickPayButton';
 import Link from 'next/link';
 import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wallet, Download } from 'lucide-react';
