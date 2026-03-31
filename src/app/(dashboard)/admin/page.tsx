@@ -45,14 +45,16 @@ const AdminPage = async ({
     teacherCount,
     staffCount,
     classCount,
-    // Financial Metrics (This Month)
+    // Current Period Aggregations
     incomeThisMonth,
     expenseThisMonth,
-    paymentsThisMonth,
-    // Trends (Last Month Comparisons)
+    studentPaymentsThisMonth,
+    salaryPaymentsThisMonth,
+    // Last Month Trends
     incomeLastMonth,
     expenseLastMonth,
-    paymentsLastMonth,
+    studentPaymentsLastMonth,
+    salaryPaymentsLastMonth,
     // Transactions Feed
     recentIncomes,
     recentExpenses,
@@ -69,11 +71,29 @@ const AdminPage = async ({
     // Current Period Aggregations
     prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayThisMonth } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayThisMonth } } }),
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidAt: { gte: firstDayThisMonth } } }),
+    // Student Payments (Income)
+    prisma.payment.aggregate({ 
+      _sum: { amount: true }, 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: firstDayThisMonth } } 
+    }),
+    // Salary Payments (Expense)
+    prisma.payment.aggregate({ 
+      _sum: { amount: true }, 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: firstDayThisMonth } } 
+    }),
     // Last Month Trends
     prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
-    prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "PAID", paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
+    // Last Month Student Payments
+    prisma.payment.aggregate({ 
+      _sum: { amount: true }, 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } 
+    }),
+    // Last Month Salary Payments
+    prisma.payment.aggregate({ 
+      _sum: { amount: true }, 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } 
+    }),
     // Transactions Feed
     // Transactions Ledger (Filtered)
     type !== "expense" 
@@ -106,10 +126,10 @@ const AdminPage = async ({
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
-  const totalIncomeThisMonth = (incomeThisMonth._sum.amount || 0) + (paymentsThisMonth._sum.amount || 0);
-  const totalIncomeLastMonth = (incomeLastMonth._sum.amount || 0) + (paymentsLastMonth._sum.amount || 0);
-  const totalExpenseThisMonth = (expenseThisMonth._sum.amount || 0);
-  const totalExpenseLastMonth = (expenseLastMonth._sum.amount || 0);
+  const totalIncomeThisMonth = (incomeThisMonth._sum.amount || 0) + (studentPaymentsThisMonth._sum.amount || 0);
+  const totalIncomeLastMonth = (incomeLastMonth._sum.amount || 0) + (studentPaymentsLastMonth._sum.amount || 0);
+  const totalExpenseThisMonth = (expenseThisMonth._sum.amount || 0) + (salaryPaymentsThisMonth._sum.amount || 0);
+  const totalExpenseLastMonth = (expenseLastMonth._sum.amount || 0) + (salaryPaymentsLastMonth._sum.amount || 0);
 
   // New Trend Logic
   const incomeTrend = calculateTrend(totalIncomeThisMonth, totalIncomeLastMonth);
