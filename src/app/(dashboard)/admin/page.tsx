@@ -97,8 +97,8 @@ const AdminPage = async ({
       },
       include: {
         student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
-        teacher: { select: { id: true, name: true, surname: true, salary: true } },
-        staff: { select: { id: true, name: true, surname: true, salary: true } },
+        teacher: { select: { id: true, name: true, surname: true, phone: true } },
+        staff: { select: { id: true, name: true, surname: true, phone: true } },
       }
     }),
     // Heatmap data
@@ -134,6 +134,7 @@ const AdminPage = async ({
     name: `${p.teacher!.name} ${p.teacher!.surname}`,
     amount: p.amount,
     type: 'teacher' as const,
+    phone: p.teacher!.phone || undefined
   }));
 
   const unpaidStaff = unpaidPayments.filter(p => p.userType === "STAFF" && p.staff).map(p => ({
@@ -141,6 +142,7 @@ const AdminPage = async ({
     name: `${p.staff!.name} ${p.staff!.surname}`,
     amount: p.amount,
     type: 'staff' as const,
+    phone: p.staff!.phone || undefined
   }));
 
   // Unified Transaction Mapping (Ledger View)

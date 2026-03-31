@@ -9,6 +9,19 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // CLEANUP
+  await prisma.payment.deleteMany();
+  await prisma.assignment.deleteMany();
+  await prisma.exam.deleteMany();
+  await prisma.lesson.deleteMany();
+  await prisma.student.deleteMany();
+  await prisma.parent.deleteMany();
+  await prisma.staff.deleteMany();
+  await prisma.teacher.deleteMany();
+  await prisma.subject.deleteMany();
+  await prisma.class.deleteMany();
+  await prisma.grade.deleteMany();
+
   // ADMIN
   await prisma.admin.upsert({
     where: { username: "admin1" },
@@ -28,23 +41,27 @@ async function main() {
   });
 
   // GRADE
+  const grades = [];
   for (let i = 1; i <= 6; i++) {
-    await prisma.grade.create({
+    const grade = await prisma.grade.create({
       data: {
         level: i,
       },
     });
+    grades.push(grade);
   }
 
   // CLASS
-  for (let i = 1; i <= 6; i++) {
-    await prisma.class.create({
+  const classes = [];
+  for (let i = 0; i < 6; i++) {
+    const classItem = await prisma.class.create({
       data: {
-        name: `${i}A`, 
-        gradeId: i, 
+        name: `${i + 1}A`, 
+        gradeId: grades[i].id, 
         capacity: Math.floor(Math.random() * (20 - 15 + 1)) + 15,
       },
     });
+    classes.push(classItem);
   }
 
   // SUBJECT
@@ -61,13 +78,16 @@ async function main() {
     { name: "Art" },
   ];
 
+  const subjects = [];
   for (const subject of subjectData) {
-    await prisma.subject.create({ data: subject });
+    const s = await prisma.subject.create({ data: subject });
+    subjects.push(s);
   }
 
   // TEACHER
+  const teachers = [];
   for (let i = 1; i <= 15; i++) {
-    await prisma.teacher.create({
+    const t = await prisma.teacher.create({
       data: {
         id: `teacher${i}`,
         username: `teacher${i}`,
@@ -78,11 +98,12 @@ async function main() {
         address: `Address${i}`,
         bloodType: "A+",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
-        subjects: { connect: [{ id: (i % 10) + 1 }] }, 
-        classes: { connect: [{ id: (i % 6) + 1 }] }, 
+        subjects: { connect: [{ id: subjects[i % subjects.length].id }] }, 
+        classes: { connect: [{ id: classes[i % classes.length].id }] }, 
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 30)),
       },
     });
+    teachers.push(t);
   }
 
   // STAFF
@@ -115,9 +136,9 @@ async function main() {
         ], 
         startTime: new Date(new Date().setHours(new Date().getHours() + 1)), 
         endTime: new Date(new Date().setHours(new Date().getHours() + 3)), 
-        subjectId: (i % 10) + 1, 
-        classId: (i % 6) + 1, 
-        teacherId: `teacher${(i % 15) + 1}`, 
+        subjectId: subjects[i % subjects.length].id, 
+        classId: classes[i % classes.length].id, 
+        teacherId: teachers[i % teachers.length].id, 
       },
     });
   }
@@ -138,8 +159,9 @@ async function main() {
   }
 
   // STUDENT
+  const students = [];
   for (let i = 1; i <= 50; i++) {
-    await prisma.student.create({
+    const s = await prisma.student.create({
       data: {
         id: `student${i}`, 
         username: `student${i}`, 
@@ -151,44 +173,52 @@ async function main() {
         bloodType: "O-",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
         parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`, 
-        gradeId: (i % 6) + 1, 
-        classId: (i % 6) + 1, 
+        gradeId: grades[i % grades.length].id, 
+        classId: classes[i % classes.length].id, 
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 10)),
       },
     });
+    students.push(s);
   }
 
+  // Fetch all lessons back to get their IDs
+  const lessons = await prisma.lesson.findMany();
+
   // EXAM
+  const exams = [];
   for (let i = 1; i <= 10; i++) {
-    await prisma.exam.create({
+    const ex = await prisma.exam.create({
       data: {
         title: `Exam ${i}`, 
         startTime: new Date(new Date().setHours(new Date().getHours() + 1)), 
         endTime: new Date(new Date().setHours(new Date().getHours() + 2)), 
-        lessonId: (i % 30) + 1, 
+        lessonId: lessons[i % lessons.length].id, 
       },
     });
+    exams.push(ex);
   }
 
   // ASSIGNMENT
+  const assignments = [];
   for (let i = 1; i <= 10; i++) {
-    await prisma.assignment.create({
+    const as = await prisma.assignment.create({
       data: {
         title: `Assignment ${i}`, 
         startDate: new Date(new Date().setHours(new Date().getHours() + 1)), 
         dueDate: new Date(new Date().setDate(new Date().getDate() + 1)), 
-        lessonId: (i % 30) + 1, 
+        lessonId: lessons[i % lessons.length].id, 
       },
     });
+    assignments.push(as);
   }
 
   // RESULT
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 0; i < 10; i++) {
     await prisma.result.create({
       data: {
         score: 90, 
-        studentId: `student${i}`, 
-        ...(i <= 5 ? { examId: i } : { assignmentId: i - 5 }), 
+        studentId: students[i % students.length].id, 
+        ...(i < 5 ? { examId: exams[i].id } : { assignmentId: assignments[i - 5].id }), 
       },
     });
   }
@@ -197,49 +227,50 @@ async function main() {
   const months = [1, 2, 3, 4, 5]; // Representing Feb to Jun
   const currentYear = new Date().getFullYear();
 
-  for (let i = 1; i <= 50; i++) {
+  for (let i = 0; i < students.length; i++) {
     for (let m of months) {
       await prisma.payment.create({
         data: {
           amount: 80 + ((i % 6) + 1) * 20, // matching tuition
           month: m,
           year: currentYear,
-          status: m < 3 ? "PAID" : m === 3 && i % 2 === 0 ? "PAID" : "PENDING",
+          status: m < 2 ? "PAID" : (m === 2 && i % 4 === 0) ? "PAID" : "PENDING",
           userType: "STUDENT",
-          paidAt: m < 3 || (m === 3 && i % 2 === 0) ? new Date(currentYear, m - 1, (i % 28) + 1) : null,
-          studentId: `student${i}`
+          paidAt: m < 2 || (m === 2 && i % 4 === 0) ? new Date(currentYear, m - 1, (i % 28) + 1) : null,
+          studentId: students[i].id
         }
       });
     }
   }
 
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 0; i < teachers.length; i++) {
     for (let m of months) {
       await prisma.payment.create({
         data: {
           amount: 3000,
           month: m,
           year: currentYear,
-          status: m < 3 ? "PAID" : "PENDING",
+          status: m < 2 ? "PAID" : "PENDING",
           userType: "TEACHER",
-          paidAt: m < 3 ? new Date(currentYear, m - 1, 25) : null,
-          teacherId: `teacher${i}`
+          paidAt: m < 2 ? new Date(currentYear, m - 1, 25) : null,
+          teacherId: teachers[i].id
         }
       });
     }
   }
 
-  for (let i = 1; i <= 10; i++) {
+  const staff = await prisma.staff.findMany();
+  for (let i = 0; i < staff.length; i++) {
     for (let m of months) {
       await prisma.payment.create({
         data: {
           amount: 1500,
           month: m,
           year: currentYear,
-          status: m < 3 ? "PAID" : "PENDING",
+          status: m < 2 ? "PAID" : "PENDING",
           userType: "STAFF",
-          paidAt: m < 3 ? new Date(currentYear, m - 1, 25) : null,
-          staffId: `staff${i}`
+          paidAt: m < 2 ? new Date(currentYear, m - 1, 25) : null,
+          staffId: staff[i].id
         }
       });
     }
