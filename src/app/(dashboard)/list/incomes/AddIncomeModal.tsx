@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { addGeneralIncome } from "./actions";
 
 const CATEGORIES = ["TUITION", "DONATION", "EVENT", "GRANT", "OTHER"];
 
 export default function AddIncomeModal() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export default function AddIncomeModal() {
       );
 
       if (result.success) {
+        router.refresh();
         setOpen(false);
       } else {
         setError(result.error || "Something went wrong");
