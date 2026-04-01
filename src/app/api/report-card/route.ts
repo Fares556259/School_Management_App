@@ -24,10 +24,7 @@ export async function GET(req: NextRequest) {
     }
 
     const allSubjects = await prisma.subject.findMany();
-    const studentGrades = await prisma.grade.findMany({
-      where: { studentId, term },
-    });
-
+    
     // 2. Fetch All Students in the same Class for Ranking and Stats
     const classStudents = await prisma.student.findMany({
       where: { classId: student.classId },
@@ -38,41 +35,93 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 3. Helper to calculate student general average
-    const calculateAverage = (grades: { score: number }[]) => {
-      if (allSubjects.length === 0) return 0;
-      const totalScore = grades.reduce((acc, g) => acc + g.score, 0);
-      return totalScore / allSubjects.length;
+    // Helper: Find student grades
+    const getStudentGrades = (studentId: string) => {
+      return classStudents.find(s => s.id === studentId)?.grades || [];
+    };
+
+    const studentGrades = getStudentGrades(studentId);
+
+    // 3. Helper to calculate Tunisian General Average for any student
+    const calculateStudentAverages = (grades: { score: number; subjectId: number }[]) => {
+      // Map score by subject name
+      const scoreMap: Record<string, number> = {};
+      allSubjects.forEach(subject => {
+        const grade = grades.find(g => g.subjectId === subject.id);
+        scoreMap[subject.name] = grade ? grade.score : 0;
+      });
+
+      // Domains
+      const arabicAvg = (
+        (scoreMap["Arabic Communication"] || 0) +
+        (scoreMap["Reading"] || 0) +
+        (scoreMap["Writing"] || 0) +
+        (scoreMap["Grammar"] || 0)
+      ) / 4;
+
+      const scienceAvg = (
+        (scoreMap["Mathematics"] || 0) +
+        (scoreMap["Scientific Activities"] || 0) +
+        (scoreMap["Technology"] || 0)
+      ) / 3;
+
+      const discoveryAvg = (
+        (scoreMap["Islamic Education"] || 0) +
+        (scoreMap["History"] || 0) +
+        (scoreMap["Geography"] || 0) +
+        (scoreMap["Civic Education"] || 0) +
+        (scoreMap["Artistic Education"] || 0) +
+        (scoreMap["Plastic Arts"] || 0) +
+        (scoreMap["Physical Education"] || 0)
+      ) / 7;
+
+      const frenchAvg = (
+        (scoreMap["French Oral Expression"] || 0) +
+        (scoreMap["French Reading"] || 0) +
+        (scoreMap["French Written Production"] || 0)
+      ) / 3;
+
+      const foreignAvg = (frenchAvg + (scoreMap["English"] || 0)) / 2;
+
+      const generalAverage = (arabicAvg + scienceAvg + discoveryAvg + foreignAvg) / 4;
+
+      return {
+        arabicAvg,
+        scienceAvg,
+        discoveryAvg,
+        frenchAvg,
+        foreignAvg,
+        generalAverage
+      };
     };
 
     // 4. Calculate averages for all students in class to find rank and max/min
-    const studentAverages = classStudents.map((s) => ({
+    const studentAveragesList = classStudents.map((s) => ({
       id: s.id,
-      average: calculateAverage(s.grades),
+      averages: calculateStudentAverages(s.grades),
     }));
 
     // Sort by average descending
-    const sortedAverages = [...studentAverages].sort((a, b) => b.average - a.average);
+    const sortedAverages = [...studentAveragesList].sort((a, b) => b.averages.generalAverage - a.averages.generalAverage);
     const rank = sortedAverages.findIndex((a) => a.id === studentId) + 1;
 
-    const averagesList = studentAverages.map((a) => a.average);
-    const maxAverage = Math.max(...averagesList);
-    const minAverage = Math.min(...averagesList);
+    const generalAverages = studentAveragesList.map((a) => a.averages.generalAverage);
+    const maxAverage = generalAverages.length > 0 ? Math.max(...generalAverages) : 0;
+    const minAverage = generalAverages.length > 0 ? Math.min(...generalAverages) : 0;
 
-    // 5. Group student's own grades by domain
-    const domains = Array.from(new Set(allSubjects.map((s) => s.domain)));
-    const reportData = domains.map((domain) => {
-      const subjectList = allSubjects.filter((s) => s.domain === domain);
-      const domainGrades = studentGrades.filter((g) => 
-        subjectList.some((s) => s.id === g.subjectId)
-      );
+    // Averages for THIS student
+    const myAverages = calculateStudentAverages(studentGrades);
 
+    // 5. Structure Report Data by Domain
+    const buildDomainData = (domainName: string, subjectNames: string[], domainAvg: number) => {
+      const subjectList = allSubjects.filter(s => subjectNames.includes(s.name));
+      
       const subjectsWithScores = subjectList.map((s) => {
-        const grade = domainGrades.find((g) => g.subjectId === s.id);
+        const grade = studentGrades.find(g => g.subjectId === s.id);
         
-        // Calculate class-wide max/min for this subject
-        const allGradesForSubject = classStudents.flatMap(student => 
-          student.grades.filter(g => g.subjectId === s.id)
+        // Calculate class-wide max/min for this specific subject
+        const allGradesForSubject = classStudents.flatMap(st => 
+          st.grades.filter(g => g.subjectId === s.id)
         ).map(g => g.score);
 
         const maxScore = allGradesForSubject.length > 0 ? Math.max(...allGradesForSubject) : 0;
@@ -87,29 +136,35 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      const domainTotal = subjectsWithScores.reduce((acc, s) => acc + s.score, 0);
-      const domainAverage = domainTotal / subjectList.length;
-
       return {
-        domain,
+        domain: domainName,
         subjects: subjectsWithScores,
-        domainAverage,
+        domainAverage: domainAvg,
       };
-    });
+    };
 
-    const generalAverage = calculateAverage(studentGrades);
+    const domains = [
+      buildDomainData("Arabic Language Domain", ["Arabic Communication", "Reading", "Writing", "Grammar"], myAverages.arabicAvg),
+      buildDomainData("Science & Technology Domain", ["Mathematics", "Scientific Activities", "Technology"], myAverages.scienceAvg),
+      buildDomainData("Discovery Domain", ["Islamic Education", "History", "Geography", "Civic Education", "Artistic Education", "Plastic Arts", "Physical Education"], myAverages.discoveryAvg),
+      buildDomainData("Foreign Languages Domain", ["French Oral Expression", "French Reading", "French Written Production", "English"], myAverages.foreignAvg)
+    ];
 
+    // Note: We'll pass frenchAvg to the frontend somehow, but we can also just let the frontend know the rules or display it differently.
+    // Wait, the frontend needs to know if French is grouped. 
+    // We will emit the raw foreign domain data, and the frontend can render the French sub-average manually by looking at the French subjects.
+    
     return NextResponse.json({
       header: {
         studentName: `${student.name} ${student.surname}`,
         class: student.class.name,
         term,
-        generalAverage,
+        generalAverage: myAverages.generalAverage,
         maxAverage,
         minAverage,
         rank,
       },
-      domains: reportData,
+      domains: domains,
     });
   } catch (error) {
     console.error("Error generating report card data:", error);
