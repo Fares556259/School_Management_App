@@ -12,7 +12,7 @@ export const payTeacherSalary = async (
 ) => {
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const [mName, yStr] = monthYear.split(" ");
-  const monthIdx = MONTHS.indexOf(mName);
+  const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
   try {
