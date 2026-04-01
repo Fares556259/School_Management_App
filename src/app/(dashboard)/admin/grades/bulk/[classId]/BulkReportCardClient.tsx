@@ -256,24 +256,34 @@ export default function BulkReportCardClient({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 pb-20" dir="rtl">
+    <div className="max-w-4xl mx-auto space-y-4 pb-20 print:max-w-none print:w-full print:p-0 print:m-0" dir="rtl">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 0; size: A4; }
-          body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { 
+            background: white !important; 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+          }
           .print-hidden { display: none !important; }
+          .print-block { display: block !important; }
           .report-card-page { 
             margin: 0 !important; 
             padding: 1.5cm !important;
             height: 297mm; 
             width: 210mm;
             page-break-after: always !important; 
+            break-after: page !important;
             border: none !important;
             box-shadow: none !important;
+            overflow: hidden;
+            display: block !important;
+            position: relative;
           }
-           /* Fix for some browsers ignoring page-break-after */
-          .report-card-page:last-child {
-            page-break-after: auto !important;
+          /* Fix for Chrome/Webkit pagination in flex/grid */
+          .bulk-print-container {
+            display: block !important;
+            width: 100% !important;
           }
         }
       ` }} />
@@ -296,8 +306,12 @@ export default function BulkReportCardClient({
         </button>
       </div>
 
-      <div className="flex flex-col gap-10">
-          {data.map(report => renderReportCard(report))}
+      <div className="bulk-print-container flex flex-col gap-10 print:gap-0 print:block">
+          {data.map((report, idx) => (
+            <div key={idx} className="print-block">
+              {renderReportCard(report)}
+            </div>
+          ))}
       </div>
     </div>
   );
