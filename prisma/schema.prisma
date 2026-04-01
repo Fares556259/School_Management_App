@@ -49,10 +49,11 @@ model Student {
   parent    Parent   @relation(fields: [parentId], references: [id])
   classId   Int
   class     Class    @relation(fields: [classId], references: [id])
-  gradeId   Int
-  grade     Grade    @relation(fields: [gradeId], references: [id])
+  levelId   Int
+  level     Level    @relation(fields: [levelId], references: [id])
   results   Result[]
   payments  Payment[]
+  grades    Grade[]
   birthday  DateTime
 }
 
@@ -88,7 +89,7 @@ model Parent {
   students  Student[]
 }
 
-model Grade {
+model Level {
   id    Int @id @default(autoincrement())
   level Int @unique
 
@@ -105,15 +106,31 @@ model Class {
   supervisor   Teacher? @relation(fields: [supervisorId], references: [id])
   lessons      Lesson[]
   students     Student[]
-  gradeId      Int
-  grade        Grade    @relation(fields: [gradeId], references: [id])
+  levelId      Int
+  level        Level    @relation(fields: [levelId], references: [id])
 }
 
 model Subject {
   id       Int       @id @default(autoincrement())
   name     String    @unique
+  domain   String    @default("General")
   teachers Teacher[]
   lessons  Lesson[]
+  grades   Grade[]
+}
+
+model Grade {
+  id        Int      @id @default(autoincrement())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  subjectId Int
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  term      Int      // 1, 2, or 3
+  score     Float    // 0 to 20
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, subjectId, term])
 }
 
 model Lesson {

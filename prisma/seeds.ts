@@ -9,18 +9,21 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // CLEANUP
+  // CLEANUP (Order: dependent children -> parents)
+  await prisma.grade.deleteMany();
+  await prisma.result.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.assignment.deleteMany();
   await prisma.exam.deleteMany();
   await prisma.lesson.deleteMany();
   await prisma.student.deleteMany();
-  await prisma.parent.deleteMany();
-  await prisma.staff.deleteMany();
+  await prisma.class.deleteMany();
   await prisma.teacher.deleteMany();
   await prisma.subject.deleteMany();
-  await prisma.class.deleteMany();
-  await prisma.grade.deleteMany();
+  await prisma.level.deleteMany();
+  await prisma.parent.deleteMany();
+  await prisma.staff.deleteMany();
+  await prisma.admin.deleteMany();
 
   // ADMIN
   await prisma.admin.upsert({
@@ -40,15 +43,15 @@ async function main() {
     },
   });
 
-  // GRADE
-  const grades = [];
+  // LEVEL
+  const levels = [];
   for (let i = 1; i <= 6; i++) {
-    const grade = await prisma.grade.create({
+    const level = await prisma.level.create({
       data: {
         level: i,
       },
     });
-    grades.push(grade);
+    levels.push(level);
   }
 
   // CLASS
@@ -57,7 +60,7 @@ async function main() {
     const classItem = await prisma.class.create({
       data: {
         name: `${i + 1}A`, 
-        gradeId: grades[i].id, 
+        levelId: levels[i].id, 
         capacity: Math.floor(Math.random() * (20 - 15 + 1)) + 15,
       },
     });
@@ -66,16 +69,17 @@ async function main() {
 
   // SUBJECT
   const subjectData = [
-    { name: "Mathematics" },
-    { name: "Science" },
-    { name: "English" },
-    { name: "History" },
-    { name: "Geography" },
-    { name: "Physics" },
-    { name: "Chemistry" },
-    { name: "Biology" },
-    { name: "Computer Science" },
-    { name: "Art" },
+    { name: "Arabic", domain: "Languages Domain" },
+    { name: "French", domain: "Languages Domain" },
+    { name: "English", domain: "Languages Domain" },
+    { name: "Mathematics", domain: "Science & Technology Domain" },
+    { name: "Science", domain: "Science & Technology Domain" },
+    { name: "Computer Science", domain: "Science & Technology Domain" },
+    { name: "History", domain: "Social / Discovery Domain" },
+    { name: "Geography", domain: "Social / Discovery Domain" },
+    { name: "Civics", domain: "Social / Discovery Domain" },
+    { name: "Physical Education", domain: "Artistic & Sports Domain" },
+    { name: "Music / Arts", domain: "Artistic & Sports Domain" },
   ];
 
   const subjects = [];
@@ -173,7 +177,7 @@ async function main() {
         bloodType: "O-",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
         parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`, 
-        gradeId: grades[i % grades.length].id, 
+        levelId: levels[i % levels.length].id, 
         classId: classes[i % classes.length].id, 
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 10)),
       },

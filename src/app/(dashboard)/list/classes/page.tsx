@@ -7,9 +7,9 @@ import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Teacher, Grade, Prisma } from "@prisma/client";
+import { Class, Teacher, Level, Prisma } from "@prisma/client";
 
-type ClassList = Class & { supervisor: Teacher | null } & { grade: Grade } & {
+type ClassList = Class & { supervisor: Teacher | null } & { level: Level } & {
   _count: { students: number };
 };
 
@@ -24,8 +24,8 @@ const columns = [
     className: "hidden md:table-cell",
   },
   {
-    header: "Grade",
-    accessor: "grade",
+    header: "Level",
+    accessor: "level",
     className: "hidden md:table-cell",
   },
   {
@@ -59,8 +59,8 @@ const ClassListPage = async ({
           case "supervisorId":
             query.supervisorId = value;
             break;
-          case "gradeId":
-            query.gradeId = parseInt(value);
+          case "levelId":
+            query.levelId = parseInt(value);
             break;
           case "search":
             query.name = { contains: value, mode: "insensitive" };
@@ -77,9 +77,9 @@ const ClassListPage = async ({
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="hidden md:table-cell">{item.name}</td>
       <td className="hidden md:table-cell">{item.capacity}</td>
-      <td className="hidden md:table-cell">{item.grade?.level}</td>
+      <td className="hidden md:table-cell">{item.level?.level}</td>
       <td className="hidden md:table-cell">
         {item.supervisor ? item.supervisor.name + " " + item.supervisor.surname : "-"}
       </td>
@@ -96,12 +96,12 @@ const ClassListPage = async ({
     </tr>
   );
 
-  const [data, count, grades, teachers] = await Promise.all([
+  const [data, count, levels, teachers] = await Promise.all([
     prisma.class.findMany({
       where: query,
       include: {
         supervisor: true,
-        grade: true,
+        level: true,
         _count: {
           select: {
             students: true,
@@ -112,12 +112,12 @@ const ClassListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.class.count({ where: query }),
-    prisma.grade.findMany({ select: { id: true, level: true } }),
+    prisma.level.findMany({ select: { id: true, level: true } }),
     prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
   ]);
 
   const classRelatedData = {
-    gradeId: grades.map((g) => ({ value: String(g.id), label: `Grade ${g.level}` })),
+    levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
     supervisorId: teachers.map((t) => ({ value: t.id, label: `${t.name} ${t.surname}` })),
   };
 

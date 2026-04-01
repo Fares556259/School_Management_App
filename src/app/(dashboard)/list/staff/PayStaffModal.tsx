@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { payStaffSalary } from "./actions";
 import { getSchoolYearMonths, isMonthBefore } from "@/lib/dateUtils";
 
@@ -21,25 +21,21 @@ export default function PayStaffModal({
   monthName?: string;
   paidMonths?: string[];
 }) {
+  const allMonths = getSchoolYearMonths();
+  const monthsList = allMonths.filter(m => !paidMonths.includes(m));
+
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(monthName || "");
+  const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
   const [isPending, startTransition] = useTransition();
 
-  // Find earliest unpaid month in the reachable window (last 6 months)
-  const getEarliestUnpaid = () => {
-    const list = [];
-    const date = new Date();
-    date.setMonth(date.getMonth() - 5);
-    for (let i = 0; i < 6; i++) {
-      const m = date.toLocaleString("en-US", { month: "long", year: "numeric" });
-      list.push(m);
-      date.setMonth(date.getMonth() + 1);
-    }
-    return list.find(m => !paidMonths.includes(m));
-  };
-
-  const earliestUnpaid = getEarliestUnpaid();
+  const earliestUnpaid = monthsList[0];
   const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
+
+  useEffect(() => {
+    if (isOpen && (!selectedMonth || paidMonths.includes(selectedMonth))) {
+      setSelectedMonth(monthsList[0] || "");
+    }
+  }, [isOpen, monthsList, selectedMonth, paidMonths]);
 
   const handlePay = () => {
     if (!isAdmin || !selectedMonth || isSkipping) return;
@@ -59,7 +55,6 @@ export default function PayStaffModal({
     });
   };
 
-  const monthsList = getSchoolYearMonths();
 
   return (
     <>
