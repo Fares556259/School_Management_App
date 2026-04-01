@@ -16,6 +16,7 @@ interface ActionItem {
 interface ActionCenterProps {
   unpaidEmployees: ActionItem[];
   unpaidFees: ActionItem[];
+  monthLabel: string;
 }
 
 const SendSmsButton = ({ listType }: { listType: string }) => {
@@ -92,14 +93,16 @@ const ActionList = ({
   color, 
   ctaLabel, 
   ctaIcon: CtaIcon,
-  showSmsAction = false
+  showSmsAction = false,
+  monthLabel
 }: { 
   title: string, 
   items: ActionItem[], 
   color: string,
   ctaLabel: string,
   ctaIcon: any,
-  showSmsAction?: boolean
+  showSmsAction?: boolean,
+  monthLabel: string
 }) => {
   const handleExport = () => {
     if (items.length === 0) return;
@@ -115,8 +118,9 @@ const ActionList = ({
   return (
     <div className="flex-1 min-w-[300px] bg-white rounded-[24px] shadow-sm border border-slate-100 flex flex-col overflow-hidden group">
       <div className={`p-5 border-b border-slate-50 flex justify-between items-center ${color}`}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-0.5">
           <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">{title}</h3>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70 italic">{monthLabel} Only</span>
         </div>
         <div className="flex items-center gap-2">
             {items.length > 0 && (
@@ -200,7 +204,7 @@ const ActionList = ({
   );
 };
 
-const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [] }: ActionCenterProps) => {
+const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: ActionCenterProps) => {
   // 1. Calculations
   const calculatedUnpaidEmployeesTotal = (unpaidEmployees || []).reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const calculatedUncollectedFeesTotal = (unpaidFees || []).reduce((acc, curr) => acc + (curr.amount || 0), 0);
@@ -244,6 +248,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [] }: ActionCenterPro
         color="bg-indigo-500/5 text-indigo-600" 
         ctaLabel="Process Salaries & Payouts" 
         ctaIcon={HandCoins}
+        monthLabel={monthLabel}
       />
       <ActionList 
         title="Uncollected Fees" 
@@ -252,6 +257,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [] }: ActionCenterPro
         ctaLabel="Collect Student Payments" 
         ctaIcon={Calendar}
         showSmsAction={true}
+        monthLabel={monthLabel}
       />
       </div>
     </div>
