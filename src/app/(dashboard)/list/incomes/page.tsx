@@ -8,6 +8,7 @@ import Image from "next/image";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import CrudFormModal from "@/components/CrudFormModal";
 import FinanceDateFilter from "@/components/FinanceDateFilter";
+import FinanceExportButton from "@/components/FinanceExportButton";
 
 const columns = [
   {
@@ -65,7 +66,7 @@ const IncomeListPage = async ({
     };
   }
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, allData] = await prisma.$transaction([
     prisma.income.findMany({
       where: query,
       take: ITEM_PER_PAGE,
@@ -73,6 +74,10 @@ const IncomeListPage = async ({
       orderBy: { date: "desc" },
     }),
     prisma.income.count({ where: query }),
+    prisma.income.findMany({
+      where: query,
+      orderBy: { date: "desc" },
+    }),
   ]);
 
   const renderRow = (item: Income) => (
@@ -115,9 +120,7 @@ const IncomeListPage = async ({
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
             <FinanceDateFilter />
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            <FinanceExportButton data={allData} filename="Incomes" />
             {role === "admin" && <CrudFormModal entity="income" mode="create" />}
           </div>
         </div>
