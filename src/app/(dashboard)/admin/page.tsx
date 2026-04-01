@@ -138,7 +138,8 @@ const AdminPage = async ({
   const unpaidSet = new Set(unpaidPayments.map(p => p.studentId || p.teacherId || p.staffId));
   const unpaidCount = unpaidSet.size;
 
-  const unpaidStudents = unpaidPayments.filter(p => p.userType === "STUDENT" && p.student).map(p => ({
+  // Grouped Unpaid Processing
+  const unpaidFees = unpaidPayments.filter(p => p.userType === "STUDENT" && p.student).map(p => ({
     id: p.student!.id,
     name: `${p.student!.name} ${p.student!.surname}`,
     amount: p.amount,
@@ -146,21 +147,16 @@ const AdminPage = async ({
     phone: p.student!.parent?.phone || undefined
   }));
 
-  const unpaidTeachers = unpaidPayments.filter(p => p.userType === "TEACHER" && p.teacher).map(p => ({
-    id: p.teacher!.id,
-    name: `${p.teacher!.name} ${p.teacher!.surname}`,
-    amount: p.amount,
-    type: 'teacher' as const,
-    phone: p.teacher!.phone || undefined
-  }));
-
-  const unpaidStaff = unpaidPayments.filter(p => p.userType === "STAFF" && p.staff).map(p => ({
-    id: p.staff!.id,
-    name: `${p.staff!.name} ${p.staff!.surname}`,
-    amount: p.amount,
-    type: 'staff' as const,
-    phone: p.staff!.phone || undefined
-  }));
+  const unpaidEmployees = unpaidPayments.filter(p => ["TEACHER", "STAFF"].includes(p.userType) && (p.teacher || p.staff)).map(p => {
+    const entity = p.teacher || p.staff;
+    return {
+      id: entity!.id,
+      name: `${entity!.name} ${entity!.surname}`,
+      amount: p.amount,
+      type: p.userType.toLowerCase() as 'teacher' | 'staff',
+      phone: (p.teacher?.phone || p.staff?.phone) || undefined
+    };
+  });
 
   // 3. MERGE & SORT TRANSACTIONS
   const transactions = [
@@ -220,15 +216,17 @@ const AdminPage = async ({
 
         {/* RIGHT COLUMN: SECONDARY DATA & UTILITIES */}
         <div className="lg:col-span-4 flex flex-col gap-8">
-          <SmartInsights 
-            payload={{
-              totalBalance: totalIncomeThisMonth - totalExpenseThisMonth,
-              thisMonthIncome: totalIncomeThisMonth,
-              thisMonthExpense: totalExpenseThisMonth,
-              unpaidAmount,
-              unpaidCount
-            }} 
-          />
+          <div className="flex-1 flex flex-col min-h-[400px]">
+            <SmartInsights 
+              payload={{
+                totalBalance: totalIncomeThisMonth - totalExpenseThisMonth,
+                thisMonthIncome: totalIncomeThisMonth,
+                thisMonthExpense: totalExpenseThisMonth,
+                unpaidAmount,
+                unpaidCount
+              }} 
+            />
+          </div>
 
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">School Snapshot</h2>
@@ -249,9 +247,8 @@ const AdminPage = async ({
           <h1 className="text-2xl font-black text-slate-800 tracking-tight italic uppercase">Critical Actions: Unpaid Ledger</h1>
         </div>
         <ActionCenter 
-          unpaidStudents={unpaidStudents} 
-          unpaidTeachers={unpaidTeachers} 
-          unpaidStaff={unpaidStaff} 
+          unpaidEmployees={unpaidEmployees} 
+          unpaidFees={unpaidFees} 
         />
       </section>
     </div>

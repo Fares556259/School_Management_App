@@ -15,8 +15,6 @@ const QuickActionBar = () => {
     <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
       <QuickAction icon={Plus} label="Add Income" color="bg-emerald-500" href="/list/incomes?add=true" />
       <QuickAction icon={Receipt} label="Add Expense" color="bg-rose-500" href="/list/expenses?add=true" />
-      <QuickAction icon={Wallet} label="Pay Salaries" color="bg-indigo-500" href="/admin?scroll=action-center" />
-      <QuickAction icon={HandCoins} label="Collect Payments" color="bg-amber-500" href="/admin?scroll=action-center" />
     </div>
   );
 };

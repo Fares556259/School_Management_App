@@ -1,8 +1,9 @@
 "use client";
 import QuickPayButton from '../finance/QuickPayButton';
 import Link from 'next/link';
-import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wallet, Download } from 'lucide-react';
+import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wallet, Download, MessageSquare, Clock } from 'lucide-react';
 import { downloadCSV } from '@/lib/csvExport';
+import { useState, useEffect } from 'react';
 
 interface ActionItem {
   id: string;
@@ -13,23 +14,92 @@ interface ActionItem {
 }
 
 interface ActionCenterProps {
-  unpaidStudents: ActionItem[];
-  unpaidTeachers: ActionItem[];
-  unpaidStaff: ActionItem[];
+  unpaidEmployees: ActionItem[];
+  unpaidFees: ActionItem[];
 }
+
+const SendSmsButton = ({ listType }: { listType: string }) => {
+  const [cooldown, setCooldown] = useState<number>(0);
+  const [isSending, setIsSending] = useState(false);
+  const storageKey = `sms_cooldown_${listType}`;
+
+  useEffect(() => {
+    const checkCooldown = () => {
+      const lastSent = localStorage.getItem(storageKey);
+      if (lastSent) {
+        const elapsed = Date.now() - parseInt(lastSent);
+        const remaining = 24 * 60 * 60 * 1000 - elapsed;
+        if (remaining > 0) {
+          setCooldown(remaining);
+        } else {
+          setCooldown(0);
+        }
+      }
+    };
+
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [storageKey]);
+
+  const handleSendSms = async () => {
+    setIsSending(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    localStorage.setItem(storageKey, Date.now().toString());
+    setCooldown(24 * 60 * 60 * 1000);
+    setIsSending(false);
+  };
+
+  const formatCooldown = (ms: number) => {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
+
+  if (cooldown > 0) {
+    return (
+      <button 
+        disabled
+        className="w-full py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed"
+      >
+        <Clock size={14} />
+        SMS Sent (Locked for {formatCooldown(cooldown)})
+      </button>
+    );
+  }
+
+  return (
+    <button 
+      onClick={handleSendSms}
+      disabled={isSending}
+      className="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-[#4F46E5] hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 shadow-sm group/sms"
+    >
+      {isSending ? (
+        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <MessageSquare size={14} className="text-indigo-400 group-hover/sms:scale-110 transition-transform" />
+      )}
+      {isSending ? 'Sending Reminders...' : 'Send Payment SMS Reminders'}
+    </button>
+  );
+};
 
 const ActionList = ({ 
   title, 
   items, 
   color, 
   ctaLabel, 
-  ctaIcon: CtaIcon 
+  ctaIcon: CtaIcon,
+  showSmsAction = false
 }: { 
   title: string, 
   items: ActionItem[], 
   color: string,
   ctaLabel: string,
-  ctaIcon: any
+  ctaIcon: any,
+  showSmsAction?: boolean
 }) => {
   const handleExport = () => {
     if (items.length === 0) return;
@@ -74,7 +144,16 @@ const ActionList = ({
                     <User size={14} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-700">{item.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-700">{item.name}</span>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest ${
+                        item.type === 'student' ? 'bg-amber-100 text-amber-600' :
+                        item.type === 'teacher' ? 'bg-rose-100 text-rose-600' :
+                        'bg-indigo-100 text-indigo-600'
+                      }`}>
+                        {item.type}
+                      </span>
+                    </div>
                     <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-tight">
                         {item.phone || <span className="text-rose-400 opacity-60">No Contact</span>}
                     </span>
@@ -104,11 +183,14 @@ const ActionList = ({
         )}
       </div>
 
-      <div className="p-4 bg-slate-50/50 border-t border-slate-50 mt-auto">
+      <div className="p-4 bg-slate-50/50 border-t border-slate-50 mt-auto space-y-3">
         <button className="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 shadow-sm">
           <CtaIcon size={14} className="text-slate-400" />
           {ctaLabel}
         </button>
+        
+        {showSmsAction && items.length > 0 && <SendSmsButton listType={title.toLowerCase().replace(' ', '_')} />}
+        
         <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-indigo-500 cursor-pointer transition-colors uppercase tracking-widest">
           <span>View full history</span>
           <ExternalLink size={10} />
@@ -118,29 +200,23 @@ const ActionList = ({
   );
 };
 
-const ActionCenter = ({ unpaidStudents, unpaidTeachers, unpaidStaff }: ActionCenterProps) => {
+const ActionCenter = ({ unpaidEmployees, unpaidFees }: ActionCenterProps) => {
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
       <ActionList 
-        title="Students" 
-        items={unpaidStudents} 
-        color="bg-amber-500/5 text-amber-600" 
-        ctaLabel="Collect Payments" 
-        ctaIcon={Calendar}
-      />
-      <ActionList 
-        title="Teachers" 
-        items={unpaidTeachers} 
-        color="bg-rose-500/5 text-rose-600" 
-        ctaLabel="Pay Salaries" 
+        title="Unpaid Employees" 
+        items={unpaidEmployees} 
+        color="bg-indigo-500/5 text-indigo-600" 
+        ctaLabel="Process Salaries & Payouts" 
         ctaIcon={HandCoins}
       />
       <ActionList 
-        title="Staff" 
-        items={unpaidStaff} 
-        color="bg-indigo-500/5 text-indigo-600" 
-        ctaLabel="Process Payouts" 
-        ctaIcon={Wallet}
+        title="Uncollected Fees" 
+        items={unpaidFees} 
+        color="bg-amber-500/5 text-amber-600" 
+        ctaLabel="Collect Student Payments" 
+        ctaIcon={Calendar}
+        showSmsAction={true}
       />
     </div>
   );

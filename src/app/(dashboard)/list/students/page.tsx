@@ -8,14 +8,14 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Grade, Payment, Prisma, Student } from "@prisma/client";
+import { Class, Level, Payment, Prisma, Student } from "@prisma/client";
 import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 
-type StudentList = Student & { class: Class } & { grade: Grade } & { payments: Payment[] };
+type StudentList = Student & { class: Class } & { level: Level } & { payments: Payment[] };
 
 const columns = [
   {
@@ -28,8 +28,8 @@ const columns = [
     className: "hidden md:table-cell",
   },
   {
-    header: "Grade",
-    accessor: "grade",
+    header: "Level",
+    accessor: "level",
     className: "hidden md:table-cell",
   },
   {
@@ -129,7 +129,7 @@ const StudentListPage = async ({
           </div>
         </td>
         <td className="hidden md:table-cell">{item.username}</td>
-        <td className="hidden md:table-cell">{item.grade.level}</td>
+        <td className="hidden md:table-cell">{item.level.level}</td>
         <td className="hidden md:table-cell">{item.phone}</td>
         <td className="hidden md:table-cell">{item.address}</td>
         <td>
@@ -137,7 +137,7 @@ const StudentListPage = async ({
             <PayStudentModal
               studentId={item.id}
               studentName={item.name + " " + item.surname}
-              gradeLevel={item.grade.level}
+              gradeLevel={item.level.level}
               isPaid={isPaidThisMonth}
               isAdmin={role === "admin"}
               monthName={selectedMonthKey}
@@ -169,12 +169,12 @@ const StudentListPage = async ({
     );
   };
 
-  const [data, count, parents, classes, grades] = await Promise.all([
+  const [data, count, parents, classes, levels] = await Promise.all([
     prisma.student.findMany({
       where: query,
       include: {
         class: true,
-        grade: true,
+        level: true,
         payments: { select: { month: true, year: true, status: true, paidAt: true } },
       },
       take: ITEM_PER_PAGE,
@@ -183,13 +183,13 @@ const StudentListPage = async ({
     prisma.student.count({ where: query }),
     prisma.parent.findMany({ select: { id: true, name: true, surname: true } }),
     prisma.class.findMany({ select: { id: true, name: true } }),
-    prisma.grade.findMany({ select: { id: true, level: true } }),
+    prisma.level.findMany({ select: { id: true, level: true } }),
   ]);
 
   const studentRelatedData = {
     parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
     classId: classes.map((c) => ({ value: String(c.id), label: c.name })),
-    gradeId: grades.map((g) => ({ value: String(g.id), label: `Grade ${g.level}` })),
+    levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
   };
 
   // Compute month-based payment stats

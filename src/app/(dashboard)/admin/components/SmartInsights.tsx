@@ -21,28 +21,46 @@ type Insight = {
 const SmartInsights = ({ payload }: SmartInsightsProps) => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchInsights = async () => {
       setLoading(true);
+      setErrorMsg(null);
       try {
         const res = await fetch('/api/smart-insights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (res.ok) {
-          const data = await res.json();
-          setInsights(data.insights);
+        
+        if (!res.ok) {
+           throw new Error(`API Error: ${res.status}`);
         }
-      } catch (error) {
+        
+        const data = await res.json();
+        if (isMounted) {
+          if (data.insights && Array.isArray(data.insights)) {
+            setInsights(data.insights);
+          } else {
+            throw new Error("Invalid response format from API");
+          }
+        }
+      } catch (error: any) {
         console.error("Failed to fetch insights", error);
+        if (isMounted) {
+          setErrorMsg(error.message || "Failed to load insights");
+          setInsights([{ text: "Error fetching data. Check your API key or network.", severity: "orange" }]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchInsights();
+    
+    return () => { isMounted = false; };
   }, [
     payload.totalBalance, 
     payload.thisMonthIncome, 
@@ -57,14 +75,15 @@ const SmartInsights = ({ payload }: SmartInsightsProps) => {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform duration-300 relative">
             <Sparkles size={20} />
-            {!loading && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full"></div>}
+            {!loading && !errorMsg && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full"></div>}
+            {errorMsg && <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-400 border-2 border-white rounded-full"></div>}
           </div>
           <h3 className="text-lg font-bold text-slate-800 tracking-tight">Smart Insights</h3>
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg">
-           <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+           <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : errorMsg ? 'bg-rose-500' : 'bg-emerald-500'}`} />
            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-             {loading ? 'Analyzing' : 'Live AI'}
+             {loading ? 'Analyzing' : errorMsg ? 'Error' : 'Live AI'}
            </span>
         </div>
       </div>
@@ -91,10 +110,8 @@ const SmartInsights = ({ payload }: SmartInsightsProps) => {
             return (
               <div 
                 key={idx} 
-                className="flex gap-4 items-start p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 transition-all duration-300 group/item hover:shadow-sm"
-                style={{ animationDelay: `${idx * 150}ms`, animationFillMode: 'both' }}
-                // Using Tailwind utility classes to animate in
-                data-animate="animate-in slide-in-from-right-4 fade-in"
+                className="flex gap-4 items-start p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 transition-all duration-300 group/item hover:shadow-sm animate-in slide-in-from-right-4 fade-in"
+                style={{ animationDelay: `${idx * 150}ms` }}
               >
                 <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${
                   isRed ? 'bg-rose-50 text-rose-500 shadow-inner' : 
@@ -125,15 +142,15 @@ const SmartInsights = ({ payload }: SmartInsightsProps) => {
 
       {/* 3. FOOTER STATUS */}
       <div className="mt-8 pt-4 border-t border-slate-50">
-        <div className={`flex items-center justify-between p-3 rounded-xl border border-dashed transition-colors ${loading ? 'bg-slate-50 border-slate-200' : 'bg-indigo-50/50 border-indigo-100'}`}>
+        <div className={`flex items-center justify-between p-3 rounded-xl border border-dashed transition-colors ${loading ? 'bg-slate-50 border-slate-200' : errorMsg ? 'bg-rose-50/50 border-rose-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
            <div className="flex items-center gap-2">
-              <RefreshCcw size={12} className={loading ? "text-slate-400 animate-spin" : "text-indigo-400"} />
-              <p className={`text-[10px] font-bold uppercase tracking-widest text-center ${loading ? 'text-slate-400' : 'text-indigo-400'}`}>
-                 {loading ? "AI Analysis in progress..." : "Analysis complete"}
+              <RefreshCcw size={12} className={loading ? "text-slate-400 animate-spin" : errorMsg ? "text-rose-400" : "text-indigo-400"} />
+              <p className={`text-[10px] font-bold uppercase tracking-widest text-center ${loading ? 'text-slate-400' : errorMsg ? 'text-rose-400' : 'text-indigo-400'}`}>
+                 {loading ? "AI Analysis in progress..." : errorMsg ? "Analysis Failed" : "Analysis complete"}
               </p>
            </div>
-           <span className={`text-[10px] font-black ${loading ? 'text-slate-300' : 'text-indigo-300'}`}>
-             {loading ? "..." : "100%"}
+           <span className={`text-[10px] font-black ${loading ? 'text-slate-300' : errorMsg ? 'text-rose-300' : 'text-indigo-300'}`}>
+             {loading ? "..." : errorMsg ? "! ! !" : "100%"}
            </span>
         </div>
       </div>
