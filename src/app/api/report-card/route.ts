@@ -40,9 +40,9 @@ export async function GET(req: NextRequest) {
 
     // 3. Helper to calculate student general average
     const calculateAverage = (grades: { score: number }[]) => {
-      if (grades.length === 0) return 0;
+      if (allSubjects.length === 0) return 0;
       const totalScore = grades.reduce((acc, g) => acc + g.score, 0);
-      return totalScore / allSubjects.length; // Total 11 subjects as per requirements
+      return totalScore / allSubjects.length;
     };
 
     // 4. Calculate averages for all students in class to find rank and max/min

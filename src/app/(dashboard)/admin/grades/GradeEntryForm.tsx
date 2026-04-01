@@ -247,9 +247,11 @@ export default function GradeEntryForm({
                               <span className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
                                 {subject.name}
                               </span>
-                              <span className="text-[10px] font-bold text-slate-400">
-                                {subjectTranslations[subject.name] || ""}
-                              </span>
+                              {subjectTranslations[subject.name] && (
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  {subjectTranslations[subject.name]}
+                                </span>
+                              )}
                             </label>
                             <div className="flex items-center gap-3">
                               <input

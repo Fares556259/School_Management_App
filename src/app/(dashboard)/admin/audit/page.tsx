@@ -16,12 +16,16 @@ const AuditPage = async () => {
   // Resolve Clerk user IDs to real names
   const uniqueIds = Array.from(new Set(logs.map((l) => l.performedBy).filter((id) => id !== "unknown")));
   const nameMap: Record<string, string> = {};
-  for (const uid of uniqueIds) {
-    try {
-      const user = await clerkClient.users.getUser(uid);
-      nameMap[uid] = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || uid;
-    } catch {
-      nameMap[uid] = uid;
+  
+  if (uniqueIds.length > 0) {
+    const client = await clerkClient();
+    for (const uid of uniqueIds) {
+      try {
+        const user = await client.users.getUser(uid);
+        nameMap[uid] = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || uid;
+      } catch {
+        nameMap[uid] = uid;
+      }
     }
   }
 

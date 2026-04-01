@@ -74,54 +74,28 @@ export default function ReportCardClient({
 
   // UI Domain rendering helpers
   const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
-    // Subjects to render for this domain
-    let rows: any[] = [];
-
-    if (domainName === "Languages Domain") {
-      rows = [
-        { label: "* عربية", type: "header" },
-        { label: "تواصل شفوي ومحفوظات", score: subjects.find(s => s.name === "Arabic")?.score || 0 },
-        { label: "قراءة", score: (subjects.find(s => s.name === "Arabic")?.score || 0) * 0.95 }, 
-        { label: "إنتاج كتابي", score: (subjects.find(s => s.name === "Arabic")?.score || 0) * 0.9 },
-        { label: "قواعد اللغة", score: (subjects.find(s => s.name === "Arabic")?.score || 0) * 1.05 },
-      ];
-    } else if (domainName === "Science & Technology Domain") {
-        rows = [
-            { label: "رياضيات", score: subjects.find(s => s.name === "Mathematics")?.score || 0 },
-            { label: "إيقاظ علمي", score: subjects.find(s => s.name === "Science")?.score || 0 },
-            { label: "تربية تكنولوجية", score: subjects.find(s => s.name === "Computer Science")?.score || 0 },
-        ];
-    } else if (domainName === "Social / Discovery Domain") {
-        rows = [
-            { label: "تربية إسلامية", score: subjects.find(s => s.name === "Islamic Education")?.score || 19 },
-            { label: "تاريخ", score: subjects.find(s => s.name === "History")?.score || 18 },
-            { label: "جغرافيا", score: subjects.find(s => s.name === "Geography")?.score || 18.5 },
-            { label: "تربية مدنية", score: subjects.find(s => s.name === "Civics")?.score || 19.5 },
-            { label: "تربية موسيقية", score: subjects.find(s => s.name === "Music / Arts")?.score || 18 },
-            { label: "تربية تشكيلية", score: subjects.find(s => s.name === "Music / Arts")?.score || 17.5 },
-            { label: "تربية بدنية", score: subjects.find(s => s.name === "Physical Education")?.score || 19 },
-        ];
-    } else if (domainName === "Artistic & Sports Domain") {
-        return null; // Merged with Discovery
-    } else if (domainName === "Foreign Languages") {
-        rows = [
-            { label: "* فرنسية", type: "header" },
-            { label: "Exp. orale", score: subjects.find(s => s.name === "French")?.score || 18 },
-            { label: "Lecture", score: (subjects.find(s => s.name === "French")?.score || 17) },
-            { label: "Prod. écrite", score: (subjects.find(s => s.name === "French")?.score || 19) },
-            { label: "إنقليزية", score: subjects.find(s => s.name === "English")?.score || 18.5 },
-        ];
-        domainName = "Foreign Languages Domain"; // For the label map
-    }
-
-    if (rows.length === 0) return null;
-
     const domainLabelMap: Record<string, string> = {
         "Languages Domain": "مجال اللغة العربية",
         "Science & Technology Domain": "مجال العلوم والتكنولوجيا",
         "Social / Discovery Domain": "مجال التنشئة",
         "Foreign Languages Domain": "مجال اللغات الأجنبية",
     };
+
+    let rows: any[] = [];
+    
+    // Add visual headers for specific domains
+    if (domainName === "Languages Domain") {
+      rows.push({ label: "* عربية", type: "header" });
+    } else if (domainName === "Foreign Languages Domain") {
+      rows.push({ label: "* فرنسية", type: "header" });
+    }
+
+    // Add subjects from data
+    subjects.forEach(s => {
+      rows.push({ label: s.name, score: s.score });
+    });
+
+    if (rows.length === 0) return null;
 
     return (
       <div key={domainName} className="border-2 border-blue-600 mb-6 overflow-hidden rounded-md">
@@ -269,10 +243,6 @@ export default function ReportCardClient({
         {/* DOMAINS */}
         <div className="flex flex-col">
             {data.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
-            
-            {/* Foreign languages (if not rendered by existing domains) */}
-            {!data.domains.some(d => d.domain === "Foreign Languages Domain") && 
-                renderDomainTable("Foreign Languages", data.domains.find(d => d.domain === "Languages Domain")?.subjects || [], 18.5)}
         </div>
 
         {/* FOOTER */}
