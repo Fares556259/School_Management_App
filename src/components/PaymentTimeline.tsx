@@ -17,7 +17,7 @@ export default function PaymentTimeline({
   const paidMonths = new Set<string>();
   payments.forEach((p) => {
     if (p.status === "PAID") {
-      paidMonths.add(`${MONTHS[p.month]} ${p.year}`);
+      paidMonths.add(`${MONTHS[p.month - 1]} ${p.year}`);
     }
   });
 

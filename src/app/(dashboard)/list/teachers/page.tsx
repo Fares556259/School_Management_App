@@ -107,7 +107,7 @@ const TeacherListPage = async ({
     item: Teacher & { subjects: Subject[]; classes: Class[]; payments: Payment[] }
   ) => {
     const [mName, yStr] = selectedMonthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName);
+    const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
     // Check if paid for the currently selected month in the navigator
@@ -152,7 +152,7 @@ const TeacherListPage = async ({
             monthName={selectedMonthKey}
             paidMonths={item.payments
               .filter(p => p.status === "PAID")
-              .map(p => `${MONTHS[p.month]} ${p.year}`)}
+              .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
           />
         </td>
         <td className="hidden xl:table-cell">
@@ -192,7 +192,7 @@ const TeacherListPage = async ({
 
   // Compute month-based payment stats for the summary bar
   const [mName, yStr] = selectedMonthKey.split(" ");
-  const monthIdx = MONTHS.indexOf(mName);
+  const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
   const paidThisMonth = data.filter((t) =>
