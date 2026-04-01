@@ -14,9 +14,15 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId) return;
 
   // Fetch user directly from Clerk to get publicMetadata
-  const client = await clerkClient();
-  const user = await client.users.getUser(userId);
-  const role = user.publicMetadata?.role as string | undefined;
+  let role: string | undefined;
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    role = user.publicMetadata?.role as string | undefined;
+  } catch (err) {
+    console.error("Middleware Clerk fetch error:", err);
+    return; // Proceed as unauthenticated/unassigned if fetch fails
+  }
 
   for (const { matcher, allowedRoles } of matchers) {
     if (matcher(req) && !allowedRoles.includes(role!)) {
