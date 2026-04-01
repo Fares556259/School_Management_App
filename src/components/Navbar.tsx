@@ -3,7 +3,12 @@ import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image"
 
 const Navbar = async () => {
-  const user = await currentUser();
+  let user = null;
+  try {
+    user = await currentUser();
+  } catch (err) {
+    console.error("Error fetching user in Navbar:", err);
+  }
 
   return (
     <div className='flex items-center justify-between p-6 bg-white/50 backdrop-blur-sm sticky top-0 z-50'>
@@ -23,10 +28,12 @@ const Navbar = async () => {
         </div>
         <div className='h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block'></div>
         <div className='flex items-center gap-3 pl-2'>
-          <div className='flex flex-col text-right hidden sm:flex'>
-            <span className="text-sm font-bold text-slate-700">{user?.firstName + " " + user?.lastName}</span>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-              {user?.publicMetadata?.role as string}
+          <div className='flex flex-col text-right hidden sm:flex leading-tight'>
+            <span className="text-sm font-black text-slate-800">
+                {user ? `${user.firstName || ""} ${user.lastName || ""}` : "Loading..."}
+            </span>
+            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+              {(user?.publicMetadata?.role as string) || "User"}
             </span>
           </div>
           {/* <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-sm cursor-pointer hover:scale-105 transition-transform">

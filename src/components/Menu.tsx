@@ -1,7 +1,22 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-const menuItems = [
+interface MenuItem {
+  icon: string;
+  label: string;
+  href: string;
+  visible: string[];
+}
+
+interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
+
+const menuItems: MenuSection[] = [
   {
     title: "MENU",
     items: [
@@ -123,30 +138,47 @@ const menuItems = [
 ];
 
 const Menu = ({ role }: { role: string }) => {
+  const pathname = usePathname();
+
   return (
     <div className="mt-6 text-sm px-4">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2 mb-6" key={i.title}>
+      {menuItems.map((section) => (
+        <div className="flex flex-col gap-2 mb-6" key={section.title}>
           <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
-            {i.title}
+            {section.title}
           </span>
-          {i.items.map((item) => {
+          {section.items.map((item) => {
             if (item.visible.includes(role)) {
+              const isActive = 
+                pathname === item.href || 
+                (item.href === "/" && pathname === "/admin") ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              
               return (
                 <Link
                   href={item.href}
                   key={item.label}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-slate-500 py-3 px-3 rounded-2xl transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 group relative overflow-hidden"
+                  className={`flex items-center justify-center lg:justify-start gap-4 py-3 px-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
+                    isActive 
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                      : "text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"
+                  }`}
                 >
-                  <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-500 rounded-r-full scale-y-0 group-hover:scale-y-100 transition-transform duration-200" />
+                  {/* Active Indicator */}
+                  <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 bg-white rounded-r-full transition-transform duration-300 ${
+                    isActive ? "scale-y-100" : "scale-y-0 group-hover:scale-y-100 group-hover:bg-indigo-400"
+                  }`} />
+                  
                   <Image
                     src={item.icon}
                     alt=""
                     width={22}
                     height={22}
-                    className="opacity-60 group-hover:opacity-100 transition-all group-hover:scale-110"
+                    className={`transition-all duration-300 ${
+                      isActive ? "opacity-100 brightness-200" : "opacity-60 group-hover:opacity-100"
+                    } group-hover:scale-110`}
                   />
-                  <span className="hidden lg:block font-semibold tracking-tight">
+                  <span className={`hidden lg:block font-bold tracking-tight ${isActive ? "translate-x-1" : ""} transition-transform duration-300`}>
                     {item.label}
                   </span>
                 </Link>
