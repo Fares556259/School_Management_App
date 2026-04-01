@@ -21,7 +21,7 @@ export default async function DashboardLayout({
   const role = await getRole();
 
   return (
-    <div className="h-screen flex text-slate-900">
+    <div className="h-screen flex text-slate-900 print:h-auto print:block">
       {/* LEFT */}
       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4 print:hidden border-r border-slate-100 bg-white shadow-sm z-10">
         <Link
@@ -34,12 +34,12 @@ export default async function DashboardLayout({
         <Menu role={role!} />
       </div>
       {/* RIGHT */}
-      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] overflow-scroll flex flex-col print:w-full print:p-0 print:bg-white relative">
+      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] overflow-scroll flex flex-col print:w-full print:p-0 print:bg-white print:overflow-visible print:h-auto print:block relative">
         <div className="print:hidden sticky top-0 bg-[#F7F8FA]/80 backdrop-blur-md z-20">
           <Navbar />
         </div>
         <PageTransition>
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className="p-4 md:p-6 lg:p-8 print:p-0 print:m-0">
             {children}
           </div>
         </PageTransition>
