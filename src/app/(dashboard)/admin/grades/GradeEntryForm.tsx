@@ -25,6 +25,21 @@ interface Student {
   }[];
 }
 
+const subjectTranslations: Record<string, string> = {
+  "Arabic": "عربية",
+  "French": "فرنسية",
+  "English": "إنقليزية",
+  "Mathematics": "رياضيات",
+  "Science": "إيقاظ علمي",
+  "Computer Science": "إعلامية / تكنولوجيا",
+  "History": "تاريخ",
+  "Geography": "جغرافيا",
+  "Civics": "تربية مدنية",
+  "Physical Education": "تربية بدنية",
+  "Music / Arts": "تربية موسيقية / تشكيلية",
+  "Islamic Education": "تربية إسلامية",
+};
+
 export default function GradeEntryForm({
   students,
   subjects,
@@ -228,8 +243,13 @@ export default function GradeEntryForm({
                             key={subject.id} 
                             className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-indigo-100 transition-all"
                           >
-                            <label className="text-sm font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">
-                              {subject.name}
+                            <label className="flex flex-col">
+                              <span className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
+                                {subject.name}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {subjectTranslations[subject.name] || ""}
+                              </span>
                             </label>
                             <div className="flex items-center gap-3">
                               <input

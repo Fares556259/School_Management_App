@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,7 +18,7 @@ model Staff {
   surname   String
   email     String?   @unique
   phone     String?   @unique
-  role      String    @default("General") // e.g. Janitor, Secretary, Guard
+  role      String    @default("General")
   address   String
   img       String?
   bloodType String
@@ -34,27 +29,27 @@ model Staff {
 }
 
 model Student {
-  id        String   @id
-  username  String   @unique
+  id        String    @id
+  username  String    @unique
   name      String
   surname   String
-  email     String?  @unique
-  phone     String?  @unique
+  email     String?   @unique
+  phone     String?   @unique
   address   String
   img       String?
   bloodType String
   sex       UserSex
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   parentId  String
-  parent    Parent   @relation(fields: [parentId], references: [id])
   classId   Int
-  class     Class    @relation(fields: [classId], references: [id])
-  levelId   Int
-  level     Level    @relation(fields: [levelId], references: [id])
-  results   Result[]
-  payments  Payment[]
-  grades    Grade[]
   birthday  DateTime
+  levelId   Int
+  grades    Grade[]
+  payments  Payment[]
+  results   Result[]
+  class     Class     @relation(fields: [classId], references: [id])
+  level     Level     @relation(fields: [levelId], references: [id])
+  parent    Parent    @relation(fields: [parentId], references: [id])
 }
 
 model Teacher {
@@ -68,13 +63,13 @@ model Teacher {
   img       String?
   bloodType String
   sex       UserSex
-  salary    Float     @default(3000)
   createdAt DateTime  @default(now())
-  subjects  Subject[]
-  lessons   Lesson[]
-  classes   Class[]
-  payments  Payment[]
   birthday  DateTime
+  salary    Float     @default(3000)
+  classes   Class[]
+  lessons   Lesson[]
+  payments  Payment[]
+  subjects  Subject[] @relation("SubjectToTeacher")
 }
 
 model Parent {
@@ -90,64 +85,61 @@ model Parent {
 }
 
 model Level {
-  id    Int @id @default(autoincrement())
-  level Int @unique
-
-  students Student[]
+  id       Int       @id @default(autoincrement())
+  level    Int       @unique
   classess Class[]
+  students Student[]
 }
 
 model Class {
-  id       Int    @id @default(autoincrement())
-  name     String @unique
-  capacity Int
-
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  capacity     Int
   supervisorId String?
-  supervisor   Teacher? @relation(fields: [supervisorId], references: [id])
+  levelId      Int
+  level        Level     @relation(fields: [levelId], references: [id])
+  supervisor   Teacher?  @relation(fields: [supervisorId], references: [id])
   lessons      Lesson[]
   students     Student[]
-  levelId      Int
-  level        Level    @relation(fields: [levelId], references: [id])
 }
 
 model Subject {
   id       Int       @id @default(autoincrement())
   name     String    @unique
   domain   String    @default("General")
-  teachers Teacher[]
-  lessons  Lesson[]
   grades   Grade[]
+  lessons  Lesson[]
+  teachers Teacher[] @relation("SubjectToTeacher")
 }
 
 model Grade {
   id        Int      @id @default(autoincrement())
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id])
-  subjectId Int
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  term      Int      // 1, 2, or 3
-  score     Float    // 0 to 20
   createdAt DateTime @default(now())
+  score     Float
+  studentId String
+  subjectId Int
+  term      Int
   updatedAt DateTime @updatedAt
+  student   Student  @relation(fields: [studentId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
 
   @@unique([studentId, subjectId, term])
 }
 
 model Lesson {
-  id        Int      @id @default(autoincrement())
-  name      String
-  day       Day
-  startTime DateTime
-  endTime   DateTime
-
+  id          Int          @id @default(autoincrement())
+  name        String
+  day         Day
+  startTime   DateTime
+  endTime     DateTime
   subjectId   Int
-  subject     Subject      @relation(fields: [subjectId], references: [id])
   classId     Int
-  class       Class        @relation(fields: [classId], references: [id])
   teacherId   String
-  teacher     Teacher      @relation(fields: [teacherId], references: [id])
-  exams       Exam[]
   assignments Assignment[]
+  exams       Exam[]
+  class       Class        @relation(fields: [classId], references: [id])
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
 }
 
 model Exam {
@@ -155,10 +147,9 @@ model Exam {
   title     String
   startTime DateTime
   endTime   DateTime
-
-  lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
-  results  Result[]
+  lessonId  Int
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  results   Result[]
 }
 
 model Assignment {
@@ -166,35 +157,20 @@ model Assignment {
   title     String
   startDate DateTime
   dueDate   DateTime
-
-  lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
-  results  Result[]
+  lessonId  Int
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  results   Result[]
 }
 
 model Result {
-  id    Int @id @default(autoincrement())
-  score Int
-
+  id           Int         @id @default(autoincrement())
+  score        Int
   examId       Int?
-  exam         Exam?       @relation(fields: [examId], references: [id])
   assignmentId Int?
-  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
   studentId    String
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+  exam         Exam?       @relation(fields: [examId], references: [id])
   student      Student     @relation(fields: [studentId], references: [id])
-}
-
-enum UserSex {
-  MALE
-  FEMALE
-}
-
-enum Day {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
 }
 
 model Expense {
@@ -217,35 +193,25 @@ model Income {
   referenceId   String?
 }
 
-enum PaymentStatus {
-  PENDING
-  PAID
-  OVERDUE
-}
-
 model Payment {
   id        Int           @id @default(autoincrement())
   amount    Float
-  month     Int           
-  year      Int           
+  month     Int
+  year      Int
   status    PaymentStatus @default(PENDING)
-  userType  String        // "STUDENT", "TEACHER", "STAFF"
-  paidAt    DateTime?     
-  
+  userType  String
+  paidAt    DateTime?
   studentId String?
-  student   Student?      @relation(fields: [studentId], references: [id])
-  
   teacherId String?
-  teacher   Teacher?      @relation(fields: [teacherId], references: [id])
-  
   staffId   String?
   staff     Staff?        @relation(fields: [staffId], references: [id])
+  student   Student?      @relation(fields: [studentId], references: [id])
+  teacher   Teacher?      @relation(fields: [teacherId], references: [id])
 
   @@unique([studentId, month, year])
   @@unique([teacherId, month, year])
   @@unique([staffId, month, year])
 }
-
 
 model AuditLog {
   id          Int      @id @default(autoincrement())
@@ -255,4 +221,23 @@ model AuditLog {
   entityId    String?
   description String
   timestamp   DateTime @default(now())
+}
+
+enum UserSex {
+  MALE
+  FEMALE
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
 }
