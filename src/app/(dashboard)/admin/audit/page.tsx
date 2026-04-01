@@ -19,14 +19,16 @@ const AuditPage = async () => {
   
   if (uniqueIds.length > 0) {
     const client = await clerkClient();
-    for (const uid of uniqueIds) {
-      try {
-        const user = await client.users.getUser(uid);
-        nameMap[uid] = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || uid;
-      } catch {
-        nameMap[uid] = uid;
-      }
-    }
+    await Promise.all(
+      uniqueIds.map(async (uid) => {
+        try {
+          const user = await client.users.getUser(uid);
+          nameMap[uid] = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || uid;
+        } catch {
+          nameMap[uid] = uid;
+        }
+      })
+    );
   }
 
   // Serialize for client component
