@@ -193,7 +193,7 @@ async function main() {
   for (let i = 0; i < students.length; i++) {
     const student = students[i];
     for (const m of months) {
-      const isPaid = m < 3 || (m === 3 && i % 3 !== 0);
+      const isPaid = m < 4; // Jan-Mar paid, Apr pending
       await prisma.payment.create({
         data: {
           amount: 250,
@@ -203,6 +203,47 @@ async function main() {
           userType: "STUDENT",
           paidAt: isPaid ? new Date(currentYear, m - 1, (i % 20) + 1) : null,
           studentId: student.id,
+        },
+      });
+    }
+  }
+
+  // Teacher Salary Payments
+  console.log("💰 Seeding Teacher Salaries...");
+  for (let i = 0; i < teachers.length; i++) {
+    const teacher = teachers[i];
+    for (const m of months) {
+      const isPaid = m < 4; // Jan-Mar paid, Apr pending
+      await prisma.payment.create({
+        data: {
+          amount: teacher.salary,
+          month: m,
+          year: currentYear,
+          status: isPaid ? PaymentStatus.PAID : PaymentStatus.PENDING,
+          userType: "TEACHER",
+          paidAt: isPaid ? new Date(currentYear, m - 1, 28) : null,
+          teacherId: teacher.id,
+        },
+      });
+    }
+  }
+
+  // Staff Salary Payments
+  console.log("💰 Seeding Staff Salaries...");
+  const staff = await prisma.staff.findMany();
+  for (let i = 0; i < staff.length; i++) {
+    const member = staff[i];
+    for (const m of months) {
+      const isPaid = m < 4; // Jan-Mar paid, Apr pending
+      await prisma.payment.create({
+        data: {
+          amount: member.salary,
+          month: m,
+          year: currentYear,
+          status: isPaid ? PaymentStatus.PAID : PaymentStatus.PENDING,
+          userType: "STAFF",
+          paidAt: isPaid ? new Date(currentYear, m - 1, 28) : null,
+          staffId: member.id,
         },
       });
     }
