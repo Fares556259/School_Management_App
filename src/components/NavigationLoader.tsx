@@ -23,7 +23,7 @@ export default function NavigationLoader() {
       const target = event.target as HTMLElement;
       const anchor = target.closest("a");
 
-      if (anchor && anchor.href && anchor.href !== window.location.href) {
+      if (anchor && anchor.href && !anchor.hasAttribute("download") && anchor.href !== window.location.href) {
         // Only trigger for internal links that are different from current page
         const url = new URL(anchor.href);
         if (url.origin === window.location.origin) {
