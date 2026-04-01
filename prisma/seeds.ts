@@ -56,16 +56,23 @@ async function main() {
 
   // CLASS
   const classes = [];
+  const sections = ["A", "B", "C"];
   for (let i = 0; i < 6; i++) {
-    const classItem = await prisma.class.create({
-      data: {
-        name: `${i + 1}A`, 
-        levelId: levels[i].id, 
-        capacity: Math.floor(Math.random() * (20 - 15 + 1)) + 15,
-      },
-    });
-    classes.push(classItem);
+    for (const section of sections) {
+      const classItem = await prisma.class.create({
+        data: {
+          name: `${i + 1}${section}`, 
+          levelId: levels[i].id, 
+          capacity: Math.floor(Math.random() * (25 - 20 + 1)) + 20,
+        },
+      });
+      classes.push(classItem);
+    }
   }
+
+  // SUBJECT
+  // ... (keeping subjectData same but ensure 18-subject list is used if needed)
+  // Actually, I'll keep the subject list as is for now, but I'll update the Teacher/Lesson distribution.
 
   // SUBJECT
   const subjectData = [
@@ -108,7 +115,7 @@ async function main() {
         bloodType: "A+",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
         subjects: { connect: [{ id: subjects[i % subjects.length].id }] }, 
-        classes: { connect: [{ id: classes[i % classes.length].id }] }, 
+        classes: { connect: [{ id: classes[i % classes.length].id }, { id: classes[(i + 7) % classes.length].id }] }, 
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 30)),
       },
     });
@@ -153,7 +160,7 @@ async function main() {
   }
 
   // PARENT
-  for (let i = 1; i <= 25; i++) {
+  for (let i = 1; i <= 150; i++) {
     await prisma.parent.create({
       data: {
         id: `parentId${i}`,
@@ -169,7 +176,7 @@ async function main() {
 
   // STUDENT
   const students = [];
-  for (let i = 1; i <= 50; i++) {
+  for (let i = 1; i <= 300; i++) {
     const s = await prisma.student.create({
       data: {
         id: `student${i}`, 
@@ -181,7 +188,7 @@ async function main() {
         address: `Address${i}`,
         bloodType: "O-",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
-        parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`, 
+        parentId: `parentId${Math.ceil(i / 2) % 150 || 150}`, 
         levelId: levels[i % levels.length].id, 
         classId: classes[i % classes.length].id, 
         birthday: new Date(new Date().setFullYear(new Date().getFullYear() - 10)),
