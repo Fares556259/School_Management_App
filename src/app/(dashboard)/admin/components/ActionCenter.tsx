@@ -209,30 +209,30 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [] }: ActionCenterPro
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Summary Totals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
-        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-[32px] p-7 text-white shadow-xl shadow-indigo-200/50 flex items-center justify-between group overflow-hidden relative border border-white/10">
-          <div className="absolute right-[-5%] top-[-10%] opacity-10 group-hover:rotate-12 transition-transform duration-700">
-             <Wallet size={140} strokeWidth={1} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
+        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl p-5 text-white shadow-lg shadow-indigo-100 flex items-center justify-between group overflow-hidden relative border border-white/5">
+          <div className="absolute right-[-2%] top-[-10%] opacity-10 group-hover:rotate-6 transition-transform duration-700">
+             <Wallet size={80} strokeWidth={1} />
           </div>
           <div className="relative z-10">
-            <p className="text-indigo-100/80 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Total Unpaid Employees</p>
-            <h2 className="text-4xl font-black italic tracking-tighter drop-shadow-sm">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
+            <p className="text-indigo-100/70 text-[9px] font-black uppercase tracking-wider mb-1">Unpaid Employees</p>
+            <h2 className="text-2xl font-black italic tracking-tighter">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/20 flex items-center justify-center relative z-10 shadow-inner">
-             <Wallet size={28} className="text-white" />
+          <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
+             <Wallet size={22} className="text-white" />
           </div>
         </div>
 
-        <div className="bg-amber-500/95 rounded-[28px] p-5 text-white shadow-lg shadow-amber-200/40 flex items-center justify-between group overflow-hidden relative border border-white/5">
-          <div className="absolute right-[-5%] top-[-10%] opacity-10 group-hover:-rotate-12 transition-transform duration-700">
-             <HandCoins size={100} strokeWidth={1} />
+        <div className="bg-amber-500/95 rounded-3xl p-5 text-white shadow-lg shadow-amber-100 flex items-center justify-between group overflow-hidden relative border border-white/5">
+          <div className="absolute right-[-2%] top-[-10%] opacity-10 group-hover:-rotate-6 transition-transform duration-700">
+             <HandCoins size={80} strokeWidth={1} />
           </div>
           <div className="relative z-10">
-            <p className="text-amber-50/80 text-[10px] font-black uppercase tracking-[0.15em] mb-1">Total Uncollected Fees</p>
-            <h2 className="text-2xl font-black italic tracking-tight opacity-95">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
+            <p className="text-amber-50/70 text-[9px] font-black uppercase tracking-wider mb-1">Uncollected Fees</p>
+            <h2 className="text-2xl font-black italic tracking-tighter">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10">
-             <HandCoins size={20} className="text-white" />
+          <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
+             <HandCoins size={22} className="text-white" />
           </div>
         </div>
       </div>

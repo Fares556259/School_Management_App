@@ -20,6 +20,8 @@ interface ReportData {
       id: number;
       name: string;
       score: number;
+      maxScore: number;
+      minScore: number;
     }[];
     domainAverage: number;
   }[];
@@ -75,30 +77,37 @@ export default function ReportCardClient({
   // UI Domain rendering helpers
   const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
     const domainLabelMap: Record<string, string> = {
-        "Languages Domain": "مجال اللغة العربية",
+        "Arabic Language Domain": "مجال اللغة العربية",
         "Science & Technology Domain": "مجال العلوم والتكنولوجيا",
-        "Social / Discovery Domain": "مجال التنشئة",
+        "Discovery Domain": "مجال التنشئة",
         "Foreign Languages Domain": "مجال اللغات الأجنبية",
     };
 
     let rows: any[] = [];
     
-    // Add visual headers for specific domains
-    if (domainName === "Languages Domain") {
-      rows.push({ label: "* عربية", type: "header" });
-    } else if (domainName === "Foreign Languages Domain") {
-      rows.push({ label: "* فرنسية", type: "header" });
-    }
-
-    // Add subjects from data
-    subjects.forEach(s => {
-      rows.push({ 
-        label: s.name, 
-        score: s.score,
-        maxScore: s.maxScore,
-        minScore: s.minScore
+    // Handle French Grouping within Foreign Languages Domain
+    if (domainName === "Foreign Languages Domain") {
+      const frenchSubjects = subjects.filter(s => s.name.startsWith("French"));
+      const nonFrenchSubjects = subjects.filter(s => !s.name.startsWith("French"));
+      
+      if (frenchSubjects.length > 0) {
+        rows.push({ label: "* اللغة الفرنسية", type: "sub-header" });
+        frenchSubjects.forEach(s => rows.push({ ...s, label: s.name.replace("French ", "") }));
+        
+        const frenchTotal = frenchSubjects.reduce((acc, s) => acc + s.score, 0);
+        const frenchAvg = frenchTotal / frenchSubjects.length;
+        rows.push({ label: "معدل اللغة الفرنسية", score: frenchAvg, type: "sub-total" });
+      }
+      
+      nonFrenchSubjects.forEach(s => rows.push({ ...s, label: s.name }));
+    } else {
+      subjects.forEach(s => {
+        rows.push({ 
+          ...s,
+          label: s.name
+        });
       });
-    });
+    }
 
     if (rows.length === 0) return null;
 
@@ -110,33 +119,49 @@ export default function ReportCardClient({
         <table className="w-full text-sm border-collapse">
           <thead className="bg-slate-50 border-b border-blue-600 text-[10px] font-black text-slate-900">
             <tr>
-              <th className="py-2 px-2 text-right w-1/3 border-l border-blue-100 uppercase">المادة</th>
+              <th className="py-2 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
               <th className="py-2 px-2 border-l border-blue-100">العدد/20</th>
               <th className="py-2 px-2 border-l border-blue-100">معدل المجال</th>
               <th className="py-2 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
               <th className="py-2 px-2 border-l border-blue-100">أعلى عدد</th>
-              <th className="py-2 px-2 text-center">أدنى عدد</th>
+              <th className="py-2 px-2 text-center text-[8px]">أدنى عدد</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => {
-              if (row.type === "header") {
+              if (row.type === "sub-header") {
                   return (
                     <tr key={idx} className="bg-blue-50/20">
-                      <td colSpan={2} className="py-1 px-4 font-black text-blue-800 border-b border-blue-100">{row.label}</td>
+                      <td colSpan={2} className="py-1 px-4 font-black text-blue-800 border-b border-blue-100 text-xs">{row.label}</td>
                       <td colSpan={4} className="border-b border-blue-100"></td>
                     </tr>
                   );
               }
-              return (
-                <tr key={idx} className="border-b border-blue-100 group">
-                    <td className="py-2.5 px-6 font-bold text-slate-700 border-l border-blue-100 text-xs bg-blue-600/[0.02]">
+              if (row.type === "sub-total") {
+                return (
+                  <tr key={idx} className="bg-slate-50 border-b border-blue-100">
+                    <td className="py-1.5 px-6 font-black text-slate-900 border-l border-blue-100 text-xs italic">
                         {row.label}
                     </td>
-                    <td className="py-2.5 px-2 text-center font-black text-slate-900 border-l border-blue-100">
-                        {row.score ? row.score.toFixed(2) : "ـ"}
+                    <td className="py-1.5 px-2 text-center font-black text-blue-700 border-l border-blue-100 bg-blue-50/50">
+                        {row.score.toFixed(2)}
                     </td>
-                    {idx === (rows[0].type === 'header' ? 1 : 0) && (
+                    <td className="border-l border-blue-100"></td>
+                    <td className="border-l border-blue-100 font-bold text-[10px] italic text-slate-400 text-center px-2">ـ</td>
+                    <td className="border-l border-blue-100"></td>
+                    <td></td>
+                  </tr>
+                );
+              }
+              return (
+                <tr key={idx} className="border-b border-blue-100 group">
+                    <td className="py-2 px-6 font-bold text-slate-700 border-l border-blue-100 text-[11px] bg-blue-600/[0.01]">
+                        {row.label}
+                    </td>
+                    <td className="py-2 px-2 text-center font-black text-slate-900 border-l border-blue-100">
+                        {row.score.toFixed(2)}
+                    </td>
+                    {idx === 0 && (
                         <td 
                             rowSpan={rows.length} 
                             className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100"
@@ -144,12 +169,12 @@ export default function ReportCardClient({
                             {domainAvg.toFixed(2)}
                         </td>
                     )}
-                    <td className="py-2.5 px-2 border-l border-blue-100"></td>
-                    <td className="py-2.5 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">
-                        {row.maxScore !== undefined ? row.maxScore.toFixed(2) : "ـ"}
+                    <td className="py-2 px-2 border-l border-blue-100"></td>
+                    <td className="py-2 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">
+                        {row.maxScore?.toFixed(2) || "ـ"}
                     </td>
-                    <td className="py-2.5 px-2 text-center text-red-600/70 text-[10px] font-bold">
-                        {row.minScore !== undefined ? row.minScore.toFixed(2) : "ـ"}
+                    <td className="py-2 px-2 text-center text-red-600/70 text-[10px] font-bold">
+                        {row.minScore?.toFixed(2) || "ـ"}
                     </td>
                 </tr>
               );
@@ -184,7 +209,7 @@ export default function ReportCardClient({
         </button>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 transition-all"
+          className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
         >
           <Printer size={18} />
           طباعة بطاقة الأعداد
@@ -197,33 +222,36 @@ export default function ReportCardClient({
         {/* HEADER */}
         <div className="flex justify-between items-start mb-8 pb-4">
             <div className="text-right space-y-0.5">
-                <h3 className="font-bold text-sm tracking-tight text-slate-900">الجمهورية التونسية</h3>
-                <h3 className="font-bold text-sm tracking-tight text-slate-900">وزارة التربية</h3>
-                <h4 className="text-xs font-medium text-slate-600">المندوبية الجهوية للتربية</h4>
+                <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">الجمهورية التونسية</h3>
+                <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">وزارة التربية</h3>
+                <h4 className="text-[10px] font-medium text-slate-600">المندوبية الجهوية للتربية</h4>
             </div>
             
             <div className="text-center">
                 <div className="bg-slate-50 border-2 border-slate-100 px-10 py-1.5 rounded-full mb-2 inline-block">
-                    <h2 className="text-lg font-black text-slate-800 tracking-tight">{getTermText(data.header.term)}</h2>
+                    <h2 className="text-md font-black text-slate-800 tracking-tight">{getTermText(data.header.term)}</h2>
                 </div>
             </div>
 
             <div className="text-left space-y-0.5">
-                <h3 className="font-bold text-sm tracking-tight text-slate-900">المدرسة الابتدائية الخاصة</h3>
-                <div className="text-xs font-bold text-slate-700">السنة الدراسية 2024-2025</div>
+                <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight text-left">المدرسة الابتدائية الخاصة</h3>
+                <div className="text-[10px] font-bold text-slate-700 text-left">السنة الدراسية 2024-2025</div>
             </div>
         </div>
 
         {/* INFO BOXES */}
         <div className="flex gap-4 mb-4">
-            <div className="flex-1 border-2 border-slate-200 p-4 space-y-2 rounded-sm">
+            <div className="flex-1 border-2 border-slate-200 p-4 space-y-2 rounded-sm relative">
                 <div className="flex justify-between items-center whitespace-nowrap">
-                    <span className="text-xs font-bold text-slate-500">الإسم واللقب :</span>
+                    <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
                     <span className="text-lg font-black text-blue-700">{data.header.studentName}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500">القسم :</span>
+                    <span className="text-xs font-bold text-slate-400">القسم :</span>
                     <span className="text-md font-black text-slate-800">{data.header.class}</span>
+                </div>
+                <div className="absolute top-1 left-3 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
+                   الرتبة: {data.header.rank}
                 </div>
             </div>
 
@@ -233,16 +261,16 @@ export default function ReportCardClient({
                     <div className="flex-1 flex items-center justify-center font-black text-xl text-blue-900">{data.header.generalAverage.toFixed(2)}</div>
                 </div>
                 <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أعلى معدل بالقسم</div>
+                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أعلى معدل</div>
                     <div className="flex-1 flex items-center justify-center font-black text-sm text-slate-700">{data.header.maxAverage.toFixed(2)}</div>
                 </div>
                 <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أدنى معدل بالقسم</div>
+                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أدنى معدل</div>
                     <div className="flex-1 flex items-center justify-center font-black text-sm text-slate-700">{data.header.minAverage.toFixed(2)}</div>
                 </div>
                 <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
                     <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">الشهادة</div>
-                    <div className="flex-1 flex items-center justify-center font-black text-[9px] text-blue-600 leading-none px-1">
+                    <div className="flex-1 flex items-center justify-center font-black text-[10px] text-blue-600 leading-none px-1">
                         {getCertificate(data.header.generalAverage)}
                     </div>
                 </div>
