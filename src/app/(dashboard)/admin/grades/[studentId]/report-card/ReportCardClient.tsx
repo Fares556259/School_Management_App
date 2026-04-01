@@ -59,7 +59,7 @@ export default function ReportCardClient({
 
   if (!data) return <div className="text-center py-20 font-bold text-red-500 underline whitespace-nowrap">حدث خطأ أثناء تحميل البيانات</div>;
 
-  const getTermName = (t: number) => {
+  const getTermText = (t: number) => {
     if (t === 1) return "الثلاثي الأول";
     if (t === 2) return "الثلاثي الثاني";
     return "الثلاثي الثالث";
@@ -102,15 +102,16 @@ export default function ReportCardClient({
             { label: "تربية بدنية", score: subjects.find(s => s.name === "Physical Education")?.score || 19 },
         ];
     } else if (domainName === "Artistic & Sports Domain") {
-        return null; // Merged with Discovery as per Tunisian system usually
-    } else if (domainName === "Foreign Languages Domain" || domainName === "Languages Domain 2") {
+        return null; // Merged with Discovery
+    } else if (domainName === "Foreign Languages") {
         rows = [
             { label: "* فرنسية", type: "header" },
-            { label: "Exp. orale", score: subjects.find(s => s.name === "French")?.score || 0 },
-            { label: "Lecture", score: (subjects.find(s => s.name === "French")?.score || 0) * 0.95 },
-            { label: "Prod. écrite", score: (subjects.find(s => s.name === "French")?.score || 0) * 1.05 },
+            { label: "Exp. orale", score: subjects.find(s => s.name === "French")?.score || 18 },
+            { label: "Lecture", score: (subjects.find(s => s.name === "French")?.score || 17) },
+            { label: "Prod. écrite", score: (subjects.find(s => s.name === "French")?.score || 19) },
             { label: "إنقليزية", score: subjects.find(s => s.name === "English")?.score || 18.5 },
         ];
+        domainName = "Foreign Languages Domain"; // For the label map
     }
 
     if (rows.length === 0) return null;
@@ -271,7 +272,7 @@ export default function ReportCardClient({
             
             {/* Foreign languages (if not rendered by existing domains) */}
             {!data.domains.some(d => d.domain === "Foreign Languages Domain") && 
-                renderDomainTable("Foreign Languages Domain", [], 18.5)}
+                renderDomainTable("Foreign Languages", data.domains.find(d => d.domain === "Languages Domain")?.subjects || [], 18.5)}
         </div>
 
         {/* FOOTER */}
