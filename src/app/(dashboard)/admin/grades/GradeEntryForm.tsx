@@ -112,6 +112,17 @@ export default function GradeEntryForm({
     return (total / subjects.length).toFixed(2);
   };
 
+  if (students.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+          <span className="text-2xl opacity-50">👥</span>
+        </div>
+        <p className="text-slate-500 font-bold">No students found in this class.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)]">
       {/* Student List Sidebar */}
