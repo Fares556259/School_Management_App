@@ -78,13 +78,18 @@ async function main() {
     { name: "History", domain: "Social / Discovery Domain" },
     { name: "Geography", domain: "Social / Discovery Domain" },
     { name: "Civics", domain: "Social / Discovery Domain" },
-    { name: "Physical Education", domain: "Artistic & Sports Domain" },
-    { name: "Music / Arts", domain: "Artistic & Sports Domain" },
+    { name: "Islamic Education", domain: "Social / Discovery Domain" },
+    { name: "Physical Education", domain: "Social / Discovery Domain" },
+    { name: "Music / Arts", domain: "Social / Discovery Domain" },
   ];
 
   const subjects = [];
   for (const subject of subjectData) {
-    const s = await prisma.subject.create({ data: subject });
+    const s = await prisma.subject.upsert({
+      where: { name: subject.name },
+      update: { domain: subject.domain },
+      create: subject,
+    });
     subjects.push(s);
   }
 
