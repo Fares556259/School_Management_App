@@ -111,7 +111,7 @@ const AdminPage = async ({
     prisma.payment.findMany({
       where: { 
         status: "PENDING",
-        month: now.getMonth(),
+        month: now.getMonth() + 1,
         year: now.getFullYear()
       },
       include: {
