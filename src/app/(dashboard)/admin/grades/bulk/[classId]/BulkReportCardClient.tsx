@@ -260,30 +260,44 @@ export default function BulkReportCardClient({
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 0; size: A4; }
+          
+          /* CRITICAL: Force all ancestors to be visible for multi-page printing */
+          html, body, main, div, section, article {
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            max-height: none !important;
+            flex: none !important;
+          }
+
           body { 
             background: white !important; 
             -webkit-print-color-adjust: exact !important; 
             print-color-adjust: exact !important; 
           }
+
           .print-hidden { display: none !important; }
           .print-block { display: block !important; }
+
           .report-card-page { 
             margin: 0 !important; 
             padding: 1.5cm !important;
-            height: 297mm; 
-            width: 210mm;
+            height: 297mm !important; 
+            width: 210mm !important;
             page-break-after: always !important; 
             break-after: page !important;
             border: none !important;
             box-shadow: none !important;
-            overflow: hidden;
+            overflow: hidden !important;
             display: block !important;
-            position: relative;
+            position: relative !important;
+            visibility: visible !important;
           }
-          /* Fix for Chrome/Webkit pagination in flex/grid */
+
           .bulk-print-container {
             display: block !important;
             width: 100% !important;
+            visibility: visible !important;
           }
         }
       ` }} />
