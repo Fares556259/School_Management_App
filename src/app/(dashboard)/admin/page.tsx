@@ -249,6 +249,7 @@ const AdminPage = async ({
         <ActionCenter 
           unpaidEmployees={unpaidEmployees} 
           unpaidFees={unpaidFees} 
+          monthLabel={currentMonthKey}
         />
       </section>
     </div>
