@@ -39,10 +39,12 @@ export async function GET(req: NextRequest) {
     });
 
     // 3. Helper to calculate student general average
-    const calculateAverage = (grades: { score: number }[]) => {
-      if (allSubjects.length === 0) return 0;
+    const calculateAverage = (grades: { score: number; subjectId: number }[]) => {
+      // Logic: Only divide by subjects that have a grade
+      const subjectsWithGrades = new Set(grades.map(g => g.subjectId));
+      if (subjectsWithGrades.size === 0) return 0;
       const totalScore = grades.reduce((acc, g) => acc + g.score, 0);
-      return totalScore / allSubjects.length;
+      return totalScore / subjectsWithGrades.size;
     };
 
     // 4. Calculate averages for all students in class to find rank and max/min
@@ -84,11 +86,16 @@ export async function GET(req: NextRequest) {
           score: grade ? grade.score : 0,
           maxScore,
           minScore,
+          hasGrade: !!grade
         };
       });
 
       const domainTotal = subjectsWithScores.reduce((acc, s) => acc + s.score, 0);
-      const domainAverage = domainTotal / subjectList.length;
+      // Logic: Only divide by subjects that have a score for domain average
+      const subjectsWithActualScores = subjectsWithScores.filter(s => s.hasGrade);
+      const domainAverage = subjectsWithActualScores.length > 0 
+        ? domainTotal / subjectsWithActualScores.length 
+        : 0;
 
       return {
         domain,
