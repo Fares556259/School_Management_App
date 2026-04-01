@@ -187,8 +187,8 @@ export default function GradeEntryForm({
                 <div>
                   <h3 className="text-lg font-black text-slate-800">{selectedStudent.name} {selectedStudent.surname}</h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md uppercase tracking-widest">Student</span>
-                    <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-widest">Term {term}</span>
+                    <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md uppercase tracking-widest">طالب</span>
+                    <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-widest">الثلاثي {term}</span>
                   </div>
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function GradeEntryForm({
                   className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-50 transition-all"
                 >
                   <FileText size={14} />
-                  VIEW REPORT CARD
+                  عرض بطاقة الأعداد
                 </Link>
                 <button
                   onClick={handleSave}
@@ -221,7 +221,7 @@ export default function GradeEntryForm({
                   ) : (
                     <Save size={14} />
                   )}
-                  {saveStatus === "saving" ? "SAVING..." : saveStatus === "success" ? "SAVED!" : saveStatus === "error" ? "ERROR" : "SAVE GRADES"}
+                  {saveStatus === "saving" ? "جاري الحفظ..." : saveStatus === "success" ? "تم الحفظ!" : saveStatus === "error" ? "خطأ" : "حفظ الأعداد"}
                 </button>
               </div>
             </div>
@@ -232,7 +232,13 @@ export default function GradeEntryForm({
                   <div key={domain} className="space-y-4">
                     <div className="flex items-center gap-3 px-2">
                         <div className="h-4 w-1 bg-indigo-500 rounded-full" />
-                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">{domain}</h4>
+                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                          {domain === "Languages Domain" ? "مجال اللغة العربية" :
+                           domain === "Science & Technology Domain" ? "مجال العلوم والتكنولوجيا" :
+                           domain === "Social / Discovery Domain" ? "مجال التنشئة" :
+                           domain === "Foreign Languages Domain" ? "مجال اللغات الأجنبية" : 
+                           domain}
+                        </h4>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
