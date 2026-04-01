@@ -102,7 +102,7 @@ const StudentListPage = async ({
 
   const renderRow = (item: StudentList) => {
     const [mName, yStr] = selectedMonthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName);
+    const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
     // Check if paid for the currently selected month in the navigator
@@ -143,7 +143,7 @@ const StudentListPage = async ({
               monthName={selectedMonthKey}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID")
-                .map(p => `${MONTHS[p.month]} ${p.year}`)}
+                .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
             />
           </div>
         </td>
@@ -195,7 +195,7 @@ const StudentListPage = async ({
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
   const [mName, yStr] = selectedMonthKey.split(" ");
-  const monthIdx = MONTHS.indexOf(mName);
+  const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
   const paidThisMonth = data.filter((s) =>

@@ -87,7 +87,7 @@ const StaffListPage = async ({
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
   const [mName, yStr] = selectedMonthKey.split(" ");
-  const monthIdx = MONTHS.indexOf(mName);
+  const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
   const paidThisMonth = staff.filter((s) =>
@@ -127,7 +127,7 @@ const StaffListPage = async ({
             monthName={selectedMonthKey}
             paidMonths={s.payments
                 .filter((p: any) => p.status === "PAID")
-                .map((p: any) => `${MONTHS[p.month]} ${p.year}`)}
+                .map((p: any) => `${MONTHS[p.month - 1]} ${p.year}`)}
           />
         </td>
         <td className="hidden xl:table-cell">

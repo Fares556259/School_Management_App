@@ -23,7 +23,7 @@ export default function TeacherSalaryTracker({
   const [paidMonths, setPaidMonths] = useState<Set<string>>(() => {
     const s = new Set<string>();
     payments.forEach((p) => {
-      if (p.status === "PAID") s.add(`${MONTHS[p.month]} ${p.year}`);
+      if (p.status === "PAID") s.add(`${MONTHS[p.month - 1]} ${p.year}`);
     });
     return s;
   });
