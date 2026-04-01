@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import Image from "next/image";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import CrudFormModal from "@/components/CrudFormModal";
+import FinanceDateFilter from "@/components/FinanceDateFilter";
 
 const columns = [
   {
@@ -44,7 +45,7 @@ const ExpenseListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
-  const { page, search, ...queryParams } = searchParams;
+  const { page, search, from, to, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
   // URL QUERY PARAMS CONDITION
@@ -55,6 +56,13 @@ const ExpenseListPage = async ({
       { title: { contains: search, mode: "insensitive" } },
       { category: { contains: search, mode: "insensitive" } },
     ];
+  }
+
+  if (from || to) {
+    query.date = {
+      gte: from ? new Date(from) : undefined,
+      lte: to ? new Date(to) : undefined,
+    };
   }
 
   const [data, count] = await prisma.$transaction([
@@ -106,9 +114,7 @@ const ExpenseListPage = async ({
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
+            <FinanceDateFilter />
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
