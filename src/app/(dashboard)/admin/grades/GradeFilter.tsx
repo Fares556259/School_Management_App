@@ -55,6 +55,27 @@ export default function GradeFilter({
           <option value="3">Term 3</option>
         </select>
       </div>
+
+      <div className="ml-auto pt-5">
+        <button
+          onClick={() => {
+            if (classId) {
+                window.open(`/admin/grades/bulk/${classId}?term=${term}`, '_blank');
+            }
+          }}
+          disabled={!classId}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${
+            classId 
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95" 
+              : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-50"
+          }`}
+        >
+          <Printer size={16} />
+          Print Class Report Cards
+        </button>
+      </div>
     </div>
   );
 }
+
+import { Printer } from "lucide-react";
