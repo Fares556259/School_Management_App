@@ -92,7 +92,12 @@ export default function ReportCardClient({
 
     // Add subjects from data
     subjects.forEach(s => {
-      rows.push({ label: s.name, score: s.score });
+      rows.push({ 
+        label: s.name, 
+        score: s.score,
+        maxScore: s.maxScore,
+        minScore: s.minScore
+      });
     });
 
     if (rows.length === 0) return null;
@@ -140,8 +145,12 @@ export default function ReportCardClient({
                         </td>
                     )}
                     <td className="py-2.5 px-2 border-l border-blue-100"></td>
-                    <td className="py-2.5 px-2 text-center text-slate-400 text-[10px] border-l border-blue-100 font-bold">18.5</td>
-                    <td className="py-2.5 px-2 text-center text-slate-400 text-[10px] font-bold">11.5</td>
+                    <td className="py-2.5 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">
+                        {row.maxScore !== undefined ? row.maxScore.toFixed(2) : "ـ"}
+                    </td>
+                    <td className="py-2.5 px-2 text-center text-red-600/70 text-[10px] font-bold">
+                        {row.minScore !== undefined ? row.minScore.toFixed(2) : "ـ"}
+                    </td>
                 </tr>
               );
             })}

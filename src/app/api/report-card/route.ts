@@ -69,10 +69,21 @@ export async function GET(req: NextRequest) {
 
       const subjectsWithScores = subjectList.map((s) => {
         const grade = domainGrades.find((g) => g.subjectId === s.id);
+        
+        // Calculate class-wide max/min for this subject
+        const allGradesForSubject = classStudents.flatMap(student => 
+          student.grades.filter(g => g.subjectId === s.id)
+        ).map(g => g.score);
+
+        const maxScore = allGradesForSubject.length > 0 ? Math.max(...allGradesForSubject) : 0;
+        const minScore = allGradesForSubject.length > 0 ? Math.min(...allGradesForSubject) : 0;
+
         return {
           id: s.id,
           name: s.name,
-          score: grade ? grade.score : 0, // No missing subjects allowed, default 0 if not entered
+          score: grade ? grade.score : 0,
+          maxScore,
+          minScore,
         };
       });
 
