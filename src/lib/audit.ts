@@ -8,12 +8,23 @@ import { auth } from "@clerk/nextjs/server";
  * @param entityId - The ID of the affected record (optional)
  * @param description - Human readable details, e.g. "Paid $3000 to John Doe for March 2026"
  */
-export async function createAuditLog(
-  action: string,
-  entityType: string,
-  entityId: string | null,
-  description: string
-) {
+export async function createAuditLog({
+  action,
+  entityType,
+  entityId,
+  description,
+  amount,
+  type,
+  effectiveDate,
+}: {
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  description: string;
+  amount?: number;
+  type?: 'income' | 'expense';
+  effectiveDate?: Date;
+}) {
   try {
     const { sessionClaims } = auth();
     const performedBy = (sessionClaims?.metadata as any)?.role || "admin";
@@ -25,11 +36,12 @@ export async function createAuditLog(
         entityType,
         entityId,
         description,
+        amount,
+        type,
+        effectiveDate,
       },
     });
   } catch (error) {
     console.error("Failed to create audit log:", error);
-    // Don't throw error to avoid breaking the main transaction, 
-    // unless auditing is mission-critical.
   }
 }

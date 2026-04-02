@@ -214,13 +214,16 @@ model Payment {
 }
 
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  action      String
-  performedBy String
-  entityType  String
-  entityId    String?
-  description String
-  timestamp   DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  action        String
+  performedBy   String
+  entityType    String
+  entityId      String?
+  description   String
+  amount        Float?
+  type          String?
+  effectiveDate DateTime?
+  timestamp     DateTime @default(now())
 }
 
 enum UserSex {

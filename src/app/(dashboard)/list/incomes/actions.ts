@@ -27,12 +27,15 @@ export const addGeneralIncome = async (
       },
     });
 
-    await createAuditLog(
-      "GENERAL_INCOME",
-      "School",
-      income.id.toString(),
-      `Logged income: ${title} ($${amount}) under ${category}`
-    );
+    await createAuditLog({
+      action: "GENERAL_INCOME",
+      entityType: "School",
+      entityId: income.id.toString(),
+      description: `Logged income: ${title} ($${amount}) under ${category}`,
+      amount,
+      type: 'income',
+      effectiveDate: dateObj
+    });
 
     revalidatePath("/list/incomes");
     revalidatePath("/admin");

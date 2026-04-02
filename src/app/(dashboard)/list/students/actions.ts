@@ -16,7 +16,7 @@ export const receiveStudentPayment = async (
   const yearVal = parseInt(yStr);
 
   try {
-    await prisma.payment.upsert({
+    const payment = await prisma.payment.upsert({
       where: {
         studentId_month_year: {
           studentId,
@@ -40,12 +40,28 @@ export const receiveStudentPayment = async (
       }
     });
 
-    await createAuditLog(
-      "RECEIVE_TUITION",
-      "Student",
-      studentId,
-      `Received tuition of $${amount} from ${studentName} for ${monthYear}`
-    );
+    // Also add to Income table for central reporting
+    await prisma.income.create({
+      data: {
+        title: `Tuition: ${studentName} (${monthYear})`,
+        amount,
+        date: new Date(),
+        category: "Tuition",
+        referenceType: "StudentPayment",
+        referenceId: payment.id.toString(),
+      },
+    });
+
+    const effectiveDate = new Date(yearVal, monthIdx - 1, 1);
+    await createAuditLog({
+      action: "RECEIVE_TUITION",
+      entityType: "Student",
+      entityId: studentId,
+      description: `Received tuition of $${amount} from ${studentName} for ${monthYear}`,
+      amount,
+      type: 'income',
+      effectiveDate,
+    });
 
     revalidatePath("/list/students");
     revalidatePath(`/list/students/${studentId}`);

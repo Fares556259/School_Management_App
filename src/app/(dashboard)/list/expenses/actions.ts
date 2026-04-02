@@ -27,12 +27,15 @@ export const addGeneralExpense = async (
       },
     });
 
-    await createAuditLog(
-      "GENERAL_EXPENSE",
-      "School",
-      expense.id.toString(),
-      `Logged expense: ${title} ($${amount}) under ${category}`
-    );
+    await createAuditLog({
+      action: "GENERAL_EXPENSE",
+      entityType: "School",
+      entityId: expense.id.toString(),
+      description: `Logged expense: ${title} ($${amount}) under ${category}`,
+      amount,
+      type: 'expense',
+      effectiveDate: dateObj
+    });
 
     revalidatePath("/list/expenses");
     revalidatePath("/admin");

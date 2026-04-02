@@ -26,7 +26,17 @@ const columns = [
     accessor: "description",
   },
   {
-    header: "Time",
+    header: "Amount",
+    accessor: "amount",
+    className: "hidden md:table-cell",
+  },
+  {
+    header: "Effective Date",
+    accessor: "effectiveDate",
+    className: "hidden lg:table-cell",
+  },
+  {
+    header: "Log Time",
     accessor: "timestamp",
     className: "hidden lg:table-cell",
   },
@@ -76,6 +86,16 @@ const AuditLogPage = async ({
         <span className="text-xs text-slate-500 uppercase font-bold">{item.entityType}</span>
       </td>
       <td className="p-4 italic text-slate-700">{item.description}</td>
+      <td className="hidden md:table-cell font-bold">
+        {item.amount !== null && item.amount !== undefined ? (
+          <span className={item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}>
+            {item.type === 'income' ? '+' : '-'}${item.amount.toLocaleString()}
+          </span>
+        ) : "-"}
+      </td>
+      <td className="hidden lg:table-cell text-xs text-slate-500 font-medium">
+        {item.effectiveDate ? new Date(item.effectiveDate).toLocaleDateString() : "-"}
+      </td>
       <td className="hidden lg:table-cell text-xs text-slate-400">
         {new Date(item.timestamp).toLocaleString()}
       </td>
