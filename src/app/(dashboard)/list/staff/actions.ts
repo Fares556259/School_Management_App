@@ -16,7 +16,7 @@ export const payStaffSalary = async (
   const yearVal = parseInt(yStr);
 
   try {
-    await prisma.payment.upsert({
+    const payment = await prisma.payment.upsert({
       where: {
         staffId_month_year: {
           staffId,
@@ -40,12 +40,28 @@ export const payStaffSalary = async (
       }
     });
 
-    await createAuditLog(
-      "PAY_SALARY",
-      "Staff",
-      staffId,
-      `Paid staff salary of $${amount} to ${staffName} for ${monthYear}`
-    );
+    // Also add to Expense table for central reporting
+    await prisma.expense.create({
+      data: {
+        title: `Salary: ${staffName} (${monthYear})`,
+        amount,
+        date: new Date(),
+        category: "Salary",
+        referenceType: "StaffSalary",
+        referenceId: payment.id.toString(),
+      },
+    });
+
+    const effectiveDate = new Date(yearVal, monthIdx - 1, 1);
+    await createAuditLog({
+      action: "PAY_SALARY",
+      entityType: "Staff",
+      entityId: staffId,
+      description: `Paid staff salary of $${amount} to ${staffName} for ${monthYear}`,
+      amount,
+      type: 'expense',
+      effectiveDate,
+    });
 
     revalidatePath("/list/staff");
     revalidatePath(`/list/staff/${staffId}`);

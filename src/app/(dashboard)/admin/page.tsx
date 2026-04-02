@@ -56,10 +56,8 @@ const AdminPage = async ({
     expenseLastMonth,
     studentPaymentsLastMonth,
     salaryPaymentsLastMonth,
-    // Transactions Feed
-    recentIncomes,
-    recentExpenses,
-    recentPaidPayments,
+    // Transactions Feed (from Audit Logs)
+    recentFinancialLogs,
     // Action Center (Unpaids)
     unpaidPayments
   ] = await Promise.all([
@@ -93,19 +91,14 @@ const AdminPage = async ({
       _sum: { amount: true }, 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } 
     }),
-    // Transactions Feed
-    // Transactions Ledger (Filtered)
-    type !== "expense" 
-      ? prisma.income.findMany({ where: incomeWhere, take: 50, orderBy: { date: "desc" } })
-      : Promise.resolve([]),
-    type !== "income"
-      ? prisma.expense.findMany({ where: expenseWhere, take: 50, orderBy: { date: "desc" } })
-      : Promise.resolve([]),
-    prisma.payment.findMany({ 
-      where: { status: "PAID" }, 
-      take: 50, 
-      orderBy: { paidAt: "desc" },
-      include: { student: true, teacher: true, staff: true }
+    // Transactions Feed (Unified Audit Log)
+    prisma.auditLog.findMany({
+      where: {
+        action: { in: ["RECEIVE_TUITION", "PAY_SALARY", "GENERAL_INCOME", "GENERAL_EXPENSE"] },
+        ...(q ? { description: { contains: q, mode: "insensitive" } } : {})
+      },
+      take: 30,
+      orderBy: { timestamp: "desc" }
     }),
     // Action Center Fetching
     prisma.payment.findMany({
@@ -158,18 +151,22 @@ const AdminPage = async ({
     };
   });
 
-  // 3. MERGE & SORT TRANSACTIONS
-  const transactions = [
-    ...recentIncomes.map(i => ({ type: 'income' as const, title: i.title, amount: i.amount, date: i.date, source: i.category })),
-    ...recentExpenses.map(e => ({ type: 'expense' as const, title: e.title, amount: e.amount, date: e.date, source: e.category })),
-    ...recentPaidPayments.map(p => ({ 
-      type: (p.userType === "STUDENT" ? 'income' : 'expense') as 'income' | 'expense', 
-      title: `${p.userType === "STUDENT" ? 'Tuition Fee' : 'Salary Payout'}: ${p.student?.name || p.teacher?.name || p.staff?.name || 'Manual Payment'}`, 
-      amount: p.amount, 
-      date: p.paidAt || new Date(), 
-      source: p.userType 
-    })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 30);
+  // 3. MAP AUDIT LOGS TO TRANSACTIONS
+  const actionTitles: Record<string, string> = {
+    RECEIVE_TUITION: "Tuition Collection",
+    PAY_SALARY: "Salary Payout",
+    GENERAL_INCOME: "Other Income",
+    GENERAL_EXPENSE: "School Expense"
+  };
+
+  const transactions = recentFinancialLogs.map(log => ({
+    type: (log.type === 'income' ? 'income' : 'expense') as 'income' | 'expense',
+    title: actionTitles[log.action] || log.action,
+    amount: log.amount || 0,
+    date: log.timestamp, // Audit log timestamp (when admin did it)
+    effectiveDate: log.effectiveDate || log.timestamp, // Transaction date
+    source: log.entityType
+  }));
 
   // Smart insights logic is now handled dynamically by the SmartInsights Client Component
   return (
