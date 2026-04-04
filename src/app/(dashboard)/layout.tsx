@@ -29,7 +29,7 @@ export default async function DashboardLayout({
           className="flex items-center justify-center lg:justify-start gap-2 px-2"
         >
           <Image src="/logo.png" alt="logo" width={32} height={32} />
-          <span className="hidden lg:block font-black text-xl tracking-tighter text-indigo-600">SchooLama</span>
+          <span className="hidden lg:block font-black text-xl tracking-tighter text-indigo-600">SnapSchool</span>
         </Link>
         <Menu role={role!} />
       </div>

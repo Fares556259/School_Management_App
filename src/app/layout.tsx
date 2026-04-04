@@ -9,7 +9,7 @@ import { Suspense } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Lama Dev School Management Dashboard",
+  title: "SnapSchool - School Management Dashboard",
   description: "Next.js School Management System",
 };
 
