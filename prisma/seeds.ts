@@ -15,6 +15,7 @@ async function main() {
   await prisma.payment.deleteMany();
   await prisma.assignment.deleteMany();
   await prisma.exam.deleteMany();
+  await prisma.timetableSlot.deleteMany();
   await prisma.lesson.deleteMany();
   await prisma.student.deleteMany();
   await prisma.class.deleteMany();

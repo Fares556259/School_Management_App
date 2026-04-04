@@ -19,6 +19,8 @@ import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
 import MonthYearFilter from "./components/MonthYearFilter"; // We will create this
+import SnapAssistant from "./components/SnapAssistant";
+import { checkModels } from "./actions/aiActions";
 
 export const dynamic = "force-dynamic";
 
@@ -254,6 +256,24 @@ const AdminPage = async ({
     };
   });
 
+  const dashboardContext = {
+    month: MONTHS[startDate.getMonth()],
+    year: startDate.getFullYear(),
+    metrics: {
+      income: currentIncome,
+      expense: currentExpense,
+      balance: currentBalance,
+      unpaid: unpaidAmount
+    },
+    census: {
+      students: studentCount,
+      teachers: teacherCount,
+      staff: staffCount,
+      classes: classCount
+    },
+    topExpenses: expenseBreakdown.slice(0, 3)
+  };
+
   return (
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen dashboard-chrome">
       {/* 1. HEADER SECTION */}
@@ -346,6 +366,9 @@ const AdminPage = async ({
           monthLabel={MONTHS[startDate.getMonth()]}
         />
       </section>
+
+      {/* 6. AI ASSISTANT */}
+      <SnapAssistant context={dashboardContext} />
     </div>
   );
 };
