@@ -38,7 +38,7 @@ const Homepage = () => {
               <span className="text-white text-2xl font-black">S</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight">
-              SchooLama Admin Portal
+              SnapSchool Admin Portal
             </h1>
           </div>
           <p className="text-lg md:text-xl text-slate-500 max-w-xl mx-auto font-medium mb-10">
@@ -57,7 +57,7 @@ const Homepage = () => {
         {/* Footer */}
         <div className="mt-16 text-center">
           <p className="text-sm text-slate-400">
-            © 2024 SchooLama — School Management Dashboard
+            © 2024 SnapSchool — School Management Dashboard
           </p>
         </div>
       </div>
