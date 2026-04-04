@@ -18,6 +18,7 @@ import FinancialBreakdown from "./components/FinancialBreakdown";
 import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
+import MonthYearFilter from "./components/MonthYearFilter"; // We will create this
 
 export const dynamic = "force-dynamic";
 
@@ -26,50 +27,71 @@ const AdminPage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  const { chartFilter, timeFilter = "thisMonth" } = searchParams || {};
+  const { 
+    timeFilter = "thisMonth", 
+    month: queryMonth, 
+    year: queryYear 
+  } = searchParams || {};
 
   const now = new Date();
   
-  // Define Time Ranges
+  // 0. DATE LOGIC REFINEMENT
   let startDate: Date;
+  let endDate: Date;
   let prevStartDate: Date;
+  let prevEndDate: Date;
 
-  if (timeFilter === "lastMonth") {
+  if (queryMonth && queryYear) {
+    // Specific Month/Year selected
+    const m = parseInt(queryMonth);
+    const y = parseInt(queryYear);
+    startDate = new Date(y, m, 1);
+    endDate = new Date(y, m + 1, 1);
+    
+    // Comparison period is the PREVIOUS month
+    prevStartDate = new Date(y, m - 1, 1);
+    prevEndDate = new Date(y, m, 1);
+  } else if (timeFilter === "lastMonth") {
     startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth(), 1);
     prevStartDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   } else if (timeFilter === "last3Months") {
     startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1); // Up to end of this month
     prevStartDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   } else {
     // Default: thisMonth
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth(), 1);
   }
 
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  // 1. DATA FETCHING
+  // 1. DATA FETCHING (Using dynamic date ranges)
   const [
-    // Operational Counts
     studentCount,
     teacherCount,
     staffCount,
     classCount,
     // Current Period Aggregations
-    incomeThisMonth,
-    expenseThisMonth,
-    incomeCategoriesThisMonth,
-    expenseCategoriesThisMonth,
-    studentPaymentsThisMonth,
-    salaryPaymentsThisMonth,
+    incomeThisPeriod,
+    expenseThisPeriod,
+    incomeCategoriesThisPeriod,
+    expenseCategoriesThisPeriod,
+    studentPaymentsThisPeriod,
+    salaryPaymentsThisPeriod,
     // Previous Period Trends
-    incomeLastMonth,
-    expenseLastMonth,
-    studentPaymentsLastMonth,
-    salaryPaymentsLastMonth,
+    incomePrevPeriod,
+    expensePrevPeriod,
+    studentPaymentsPrevPeriod,
+    salaryPaymentsPrevPeriod,
     // Action Center (Unpaids)
     unpaidPayments,
-    // Historical Trends (6 Months)
+    // Historical Trends (6 Months) - Static for context
     histIncome,
     histExpense,
     histStudPayments,
@@ -80,47 +102,43 @@ const AdminPage = async ({
     prisma.staff.count(),
     prisma.class.count(),
     // Current Period Aggregations
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate } } }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate } } }),
     prisma.income.groupBy({
       by: ['category'],
       _sum: { amount: true },
-      where: { date: { gte: startDate } }
+      where: { date: { gte: startDate, lt: endDate } }
     }),
     prisma.expense.groupBy({
       by: ['category'],
       _sum: { amount: true },
-      where: { date: { gte: startDate } }
+      where: { date: { gte: startDate, lt: endDate } }
     }),
-    // Student Payments (Income)
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate } } 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate, lt: endDate } } 
     }),
-    // Salary Payments (Expense)
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate } } 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate, lt: endDate } } 
     }),
     // Previous Period Trends
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: startDate } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: startDate } } }),
-    // Previous Period Student Payments
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate } } }),
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: prevStartDate, lt: startDate } } 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: prevStartDate, lt: prevEndDate } } 
     }),
-    // Previous Period Salary Payments
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: startDate } } 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: prevEndDate } } 
     }),
-    // Action Center Fetching
+    // Action Center Fetching (Always current logical context)
     prisma.payment.findMany({
       where: { 
         status: "PENDING",
-        month: now.getMonth() + 1,
-        year: now.getFullYear()
+        month: startDate.getMonth() + 1,
+        year: startDate.getFullYear()
       },
       include: {
         student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
@@ -142,12 +160,12 @@ const AdminPage = async ({
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
-  const currentIncome = (incomeThisMonth._sum.amount || 0) + (studentPaymentsThisMonth._sum.amount || 0);
-  const currentExpense = (expenseThisMonth._sum.amount || 0) + (salaryPaymentsThisMonth._sum.amount || 0);
+  const currentIncome = (incomeThisPeriod._sum.amount || 0) + (studentPaymentsThisPeriod._sum.amount || 0);
+  const currentExpense = (expenseThisPeriod._sum.amount || 0) + (salaryPaymentsThisPeriod._sum.amount || 0);
   const currentBalance = currentIncome - currentExpense;
 
-  const prevIncome = (incomeLastMonth._sum.amount || 0) + (studentPaymentsLastMonth._sum.amount || 0);
-  const prevExpense = (expenseLastMonth._sum.amount || 0) + (salaryPaymentsLastMonth._sum.amount || 0);
+  const prevIncome = (incomePrevPeriod._sum.amount || 0) + (studentPaymentsPrevPeriod._sum.amount || 0);
+  const prevExpense = (expensePrevPeriod._sum.amount || 0) + (salaryPaymentsPrevPeriod._sum.amount || 0);
   const prevBalance = prevIncome - prevExpense;
 
   // Process Historical Data
@@ -186,8 +204,8 @@ const AdminPage = async ({
   };
 
   const incomeBreakdown = [
-    { name: 'Tuition', value: studentPaymentsThisMonth._sum.amount || 0, type: 'income' as const },
-    ...incomeCategoriesThisMonth.map(cat => ({
+    { name: 'Tuition', value: studentPaymentsThisPeriod._sum.amount || 0, type: 'income' as const },
+    ...incomeCategoriesThisPeriod.map(cat => ({
       name: normalize(cat.category),
       value: cat._sum.amount || 0,
       type: 'income' as const
@@ -200,8 +218,8 @@ const AdminPage = async ({
   }, [] as { name: string, value: number, type: 'income' | 'expense' }[]);
 
   const expenseBreakdown = [
-    { name: 'Salaries', value: salaryPaymentsThisMonth._sum.amount || 0, type: 'expense' as const },
-    ...expenseCategoriesThisMonth.map(cat => ({
+    { name: 'Salaries', value: salaryPaymentsThisPeriod._sum.amount || 0, type: 'expense' as const },
+    ...expenseCategoriesThisPeriod.map(cat => ({
       name: normalize(cat.category),
       value: cat._sum.amount || 0,
       type: 'expense' as const
@@ -244,7 +262,8 @@ const AdminPage = async ({
           <h1 className="text-3xl font-black text-slate-800 tracking-tight italic">Command Center</h1>
           <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+           <MonthYearFilter activeMonth={queryMonth} activeYear={queryYear} />
            <QuickActionBar />
         </div>
       </div>
@@ -257,6 +276,7 @@ const AdminPage = async ({
         prevExpense={prevExpense}
         currentBalance={currentBalance}
         prevBalance={prevBalance}
+        isCustomRange={!!(queryMonth && queryYear)}
       />
 
       {/* 3. MAIN DASHBOARD GRID (CHARTS & INSIGHTS) */}
@@ -290,7 +310,7 @@ const AdminPage = async ({
             income={currentIncome}
             expense={currentExpense}
             unpaid={unpaidAmount}
-            month={MONTHS[now.getMonth()]}
+            month={MONTHS[startDate.getMonth()]}
           />
         </div>
       </div>
@@ -322,7 +342,7 @@ const AdminPage = async ({
         <ActionCenter 
           unpaidEmployees={unpaidEmployees} 
           unpaidFees={unpaidFees} 
-          monthLabel={MONTHS[now.getMonth()]}
+          monthLabel={MONTHS[startDate.getMonth()]}
         />
       </section>
     </div>
