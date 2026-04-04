@@ -64,11 +64,8 @@ export const payTeacherSalary = async (
     });
 
     revalidatePath("/list/teachers");
-    revalidatePath(`/list/teachers/${teacherId}`);
     revalidatePath("/admin");
-    revalidatePath("/", "layout");
     revalidatePath("/admin/finance");
-    revalidatePath("/admin/audit");
     return { success: true };
   } catch (err) {
     console.error("Failed to process salary payment:", err);

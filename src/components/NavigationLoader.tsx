@@ -24,10 +24,16 @@ export default function NavigationLoader() {
       const anchor = target.closest("a");
 
       if (anchor && anchor.href && !anchor.hasAttribute("download") && anchor.href !== window.location.href) {
-        // Only trigger for internal links that are different from current page
-        const url = new URL(anchor.href);
-        if (url.origin === window.location.origin) {
-            setLoading(true);
+        // Only trigger for internal links starting with http that are different from current page
+        if (anchor.href.startsWith("http")) {
+            try {
+                const url = new URL(anchor.href);
+                if (url.origin === window.location.origin) {
+                    setLoading(true);
+                }
+            } catch (err) {
+                console.warn("Invalid navigation URL:", anchor.href);
+            }
         }
       }
     };

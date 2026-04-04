@@ -133,3 +133,20 @@
 .rbc-event-label{
   @apply text-slate-500 font-medium mb-1 !important;
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Universal hide for all dashboard chrome except the intended print section */
+  .dashboard-chrome {
+    display: none !important;
+  }
+}
