@@ -104,17 +104,17 @@ const AdminPage = async ({
     prisma.staff.count(),
     prisma.class.count(),
     // Current Period Aggregations
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate } } }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } } }),
     prisma.income.groupBy({
       by: ['category'],
       _sum: { amount: true },
-      where: { date: { gte: startDate, lt: endDate } }
+      where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } }
     }),
     prisma.expense.groupBy({
       by: ['category'],
       _sum: { amount: true },
-      where: { date: { gte: startDate, lt: endDate } }
+      where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } }
     }),
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
@@ -125,8 +125,8 @@ const AdminPage = async ({
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate, lt: endDate } } 
     }),
     // Previous Period Trends
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate } } }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Tuition" } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Salary" } } }),
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
       where: { status: "PAID", userType: "STUDENT", paidAt: { gte: prevStartDate, lt: prevEndDate } } 
@@ -149,8 +149,8 @@ const AdminPage = async ({
       }
     }),
     // Historical Trends
-    prisma.income.findMany({ where: { date: { gte: sixMonthsAgo } }, select: { date: true, amount: true } }),
-    prisma.expense.findMany({ where: { date: { gte: sixMonthsAgo } }, select: { date: true, amount: true } }),
+    prisma.income.findMany({ where: { date: { gte: sixMonthsAgo }, NOT: { category: "Tuition" } }, select: { date: true, amount: true } }),
+    prisma.expense.findMany({ where: { date: { gte: sixMonthsAgo }, NOT: { category: "Salary" } }, select: { date: true, amount: true } }),
     prisma.payment.findMany({ 
       where: { status: "PAID", userType: "STUDENT", paidAt: { gte: sixMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
