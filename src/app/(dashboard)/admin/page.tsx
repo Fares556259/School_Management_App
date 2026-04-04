@@ -18,7 +18,6 @@ import FinancialBreakdown from "./components/FinancialBreakdown";
 import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
-import ActivityFeed from "./components/ActivityFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -74,9 +73,7 @@ const AdminPage = async ({
     histIncome,
     histExpense,
     histStudPayments,
-    histSalPayments,
-    // Recent Activity (Audit Logs)
-    recentAuditLogs
+    histSalPayments
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -141,11 +138,6 @@ const AdminPage = async ({
     prisma.payment.findMany({ 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: sixMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
-    }),
-    // Recent Audit Logs
-    prisma.auditLog.findMany({
-      take: 10,
-      orderBy: { timestamp: "desc" }
     })
   ]);
 
@@ -269,9 +261,9 @@ const AdminPage = async ({
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* LEFT COLUMN */}
+        {/* LEFT COLUMN - High-Fidelity Charts */}
         <div className="lg:col-span-8 flex flex-col gap-8">
-          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[300px]">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[350px]">
              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
                 <FiscalTimeFilter activeFilter={timeFilter} />
@@ -283,11 +275,9 @@ const AdminPage = async ({
           </div>
           
           <CashFlowTrend data={trendData} />
-
-          <FinancialBreakdown data={fullBreakdown} />
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN - Insights & Breakdown */}
         <div className="lg:col-span-4 flex flex-col gap-8">
           <SmartFinancialInsights 
             income={currentIncome}
@@ -303,7 +293,7 @@ const AdminPage = async ({
             month={MONTHS[now.getMonth()]}
           />
 
-          <ActivityFeed logs={recentAuditLogs as any} />
+          <FinancialBreakdown data={fullBreakdown} />
 
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
