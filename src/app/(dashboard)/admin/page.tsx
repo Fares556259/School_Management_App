@@ -17,6 +17,7 @@ import FiscalBarChart from "./components/FiscalBarChart";
 import FinancialBreakdown from "./components/FinancialBreakdown";
 import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
+import CashFlowTrend from "./components/CashFlowTrend";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,8 @@ const AdminPage = async ({
     prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   }
 
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
   // 1. DATA FETCHING
   const [
     // Operational Counts
@@ -65,7 +68,12 @@ const AdminPage = async ({
     studentPaymentsLastMonth,
     salaryPaymentsLastMonth,
     // Action Center (Unpaids)
-    unpaidPayments
+    unpaidPayments,
+    // Historical Trends (6 Months)
+    histIncome,
+    histExpense,
+    histStudPayments,
+    histSalPayments
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -119,7 +127,18 @@ const AdminPage = async ({
         teacher: { select: { id: true, name: true, surname: true, phone: true } },
         staff: { select: { id: true, name: true, surname: true, phone: true } },
       }
-    })
+    }),
+    // Historical Trends
+    prisma.income.findMany({ where: { date: { gte: sixMonthsAgo } }, select: { date: true, amount: true } }),
+    prisma.expense.findMany({ where: { date: { gte: sixMonthsAgo } }, select: { date: true, amount: true } }),
+    prisma.payment.findMany({ 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: sixMonthsAgo } }, 
+      select: { paidAt: true, amount: true } 
+    }),
+    prisma.payment.findMany({ 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: sixMonthsAgo } }, 
+      select: { paidAt: true, amount: true } 
+    }),
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
@@ -130,6 +149,29 @@ const AdminPage = async ({
   const prevIncome = (incomeLastMonth._sum.amount || 0) + (studentPaymentsLastMonth._sum.amount || 0);
   const prevExpense = (expenseLastMonth._sum.amount || 0) + (salaryPaymentsLastMonth._sum.amount || 0);
   const prevBalance = prevIncome - prevExpense;
+
+  // Process Historical Data
+  const trendData = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthName = MONTHS[d.getMonth()];
+    
+    const monthlyIncome = histIncome.filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
+      .reduce((acc, curr) => acc + curr.amount, 0) +
+      histStudPayments.filter(x => x.paidAt!.getMonth() === d.getMonth() && x.paidAt!.getFullYear() === d.getFullYear())
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    const monthlyExpense = histExpense.filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
+      .reduce((acc, curr) => acc + curr.amount, 0) +
+      histSalPayments.filter(x => x.paidAt!.getMonth() === d.getMonth() && x.paidAt!.getFullYear() === d.getFullYear())
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    trendData.push({
+      month: monthName,
+      income: monthlyIncome,
+      expense: monthlyExpense
+    });
+  }
 
   // Category Normalization (Merging Salary/Salaries etc)
   const normalize = (name: string) => {
@@ -232,6 +274,9 @@ const AdminPage = async ({
              />
           </div>
           
+          {/* NEW TREND CHART TO FILL SPACE */}
+          <CashFlowTrend data={trendData} />
+
           <FinancialBreakdown data={fullBreakdown} />
         </div>
 
