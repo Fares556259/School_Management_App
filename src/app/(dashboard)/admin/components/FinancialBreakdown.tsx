@@ -29,7 +29,7 @@ const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data }) => {
          </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+      <div className="grid grid-cols-1 gap-y-6">
         {sortedData.map((item, idx) => {
           const total = item.type === 'income' ? totalIncome : totalExpense;
           const percentage = total === 0 ? 0 : (item.value / total) * 100;
