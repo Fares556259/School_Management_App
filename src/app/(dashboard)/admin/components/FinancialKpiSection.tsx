@@ -10,6 +10,7 @@ interface KpiCardProps {
   isCurrency?: boolean;
   isPercentage?: boolean;
   inverseColors?: boolean;
+  compareLabel?: string;
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ 
@@ -18,7 +19,8 @@ const KpiCard: React.FC<KpiCardProps> = ({
   prevValue, 
   isCurrency = true, 
   isPercentage = false,
-  inverseColors = false 
+  inverseColors = false,
+  compareLabel = "vs last period"
 }) => {
   const diff = prevValue === 0 ? 0 : ((value - prevValue) / Math.abs(prevValue)) * 100;
   const isPositive = diff >= 0;
@@ -59,7 +61,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
       </div>
       
       <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase italic opacity-60">
-        vs last period
+        {compareLabel}
       </p>
     </motion.div>
   );
@@ -72,6 +74,7 @@ interface FinancialKpiSectionProps {
   prevExpense: number;
   currentBalance: number;
   prevBalance: number;
+  isCustomRange?: boolean;
 }
 
 const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
@@ -80,10 +83,13 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
   currentExpense,
   prevExpense,
   currentBalance,
-  prevBalance
+  prevBalance,
+  isCustomRange = false
 }) => {
   const currentMargin = currentIncome === 0 ? 0 : (currentBalance / currentIncome) * 100;
   const prevMargin = prevIncome === 0 ? 0 : (prevBalance / prevIncome) * 100;
+
+  const compareLabel = isCustomRange ? "vs prev. month" : "vs last period";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -91,17 +97,20 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
         title="Net Balance" 
         value={currentBalance} 
         prevValue={prevBalance} 
+        compareLabel={compareLabel}
       />
       <KpiCard 
         title="Total Revenue" 
         value={currentIncome} 
         prevValue={prevIncome} 
+        compareLabel={compareLabel}
       />
       <KpiCard 
         title="Total Expenses" 
         value={currentExpense} 
         prevValue={prevExpense} 
         inverseColors 
+        compareLabel={compareLabel}
       />
       <KpiCard 
         title="Profit Margin" 
@@ -109,6 +118,7 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
         prevValue={prevMargin} 
         isCurrency={false} 
         isPercentage 
+        compareLabel={compareLabel}
       />
     </div>
   );
