@@ -67,7 +67,13 @@ const FormModal = ({
         </button>
       </form>
     ) : type === "create" || type === "update" ? (
-      forms[table](type, data)
+      forms[table] ? (
+        forms[table](type, data)
+      ) : (
+        <div className="p-8 text-center text-slate-400 font-bold">
+          Form for "{table}" is not implemented yet.
+        </div>
+      )
     ) : (
       "Form not found!"
     );

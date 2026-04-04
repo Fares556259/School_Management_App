@@ -2,8 +2,61 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "";
+
+// DIRECT FETCH IMPLEMENTATION WITH MULTI-MODEL FALLBACK
+async function callGeminiDirect(prompt: string) {
+    if (!apiKey) throw new Error("Missing API Key");
+
+    // GEMINI 2.0 FLASH is confirmed fast and available for this key
+    const models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"];
+    let lastError = "";
+
+    for (const modelName of models) {
+        try {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            
+            // Add abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1024,
+                    }
+                })
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+            } else {
+                const errorData = await response.json();
+                lastError = errorData?.error?.message || response.statusText;
+                console.log(`Model ${modelName} failed: ${lastError}`);
+            }
+        } catch (e: any) {
+            lastError = e.message;
+            console.log(`Model ${modelName} encountered error: ${lastError}`);
+        }
+    }
+
+    throw new Error(`All Gemini models failed. Last error: ${lastError}`);
+}
 
 export async function getFinancialInsights(data: {
     income: number;
@@ -12,7 +65,7 @@ export async function getFinancialInsights(data: {
     prevIncome: number;
     month: string;
 }) {
-    if (!process.env.GOOGLE_AI_API_KEY) {
+    if (!apiKey) {
         return { error: "Missing API Key", fallback: true };
     }
 
@@ -34,13 +87,47 @@ export async function getFinancialInsights(data: {
             Return ONLY a JSON array of these objects.
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().replace(/```json|```/g, "").trim();
+        const text = await callGeminiDirect(prompt);
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        const cleanJson = jsonMatch ? jsonMatch[0] : text;
         
-        return JSON.parse(text);
+        return JSON.parse(cleanJson);
     } catch (error) {
         console.error("Gemini AI Error:", error);
         return { error: "AI Failed", fallback: true };
+    }
+}
+
+export async function getChatResponse(message: string, context: any) {
+    if (!apiKey) {
+        return { error: "Missing API Key" };
+    }
+
+    try {
+        const prompt = `
+            You are "SnapAssistant", the dedicated AI financial advisor for SnapSchool.
+            
+            OFFICIAL SCHOOL DATA (CONTEXT):
+            ${JSON.stringify(context, null, 2)}
+            
+            USER MESSAGE:
+            "${message}"
+            
+            GUIDELINES:
+            1. Be professional, friendly, and concise.
+            2. Use the provided financial and operational data to answer accurately.
+            
+            Format your response as a JSON object: { "response": "Your markdown response here" }
+        `;
+
+        const text = await callGeminiDirect(prompt);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const cleanJson = jsonMatch ? jsonMatch[0] : text;
+        
+        return JSON.parse(cleanJson);
+    } catch (error: any) {
+        const errorMsg = error?.message || "Unknown error";
+        console.error("SnapAssistant Error:", error);
+        return { error: `Assistant Error: ${errorMsg}` };
     }
 }

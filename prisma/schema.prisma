@@ -70,6 +70,7 @@ model Teacher {
   lessons   Lesson[]
   payments  Payment[]
   subjects  Subject[] @relation("SubjectToTeacher")
+  timetable TimetableSlot[]
 }
 
 model Parent {
@@ -87,7 +88,7 @@ model Parent {
 model Level {
   id       Int       @id @default(autoincrement())
   level    Int       @unique
-  classess Class[]
+  classes  Class[]
   students Student[]
 }
 
@@ -101,6 +102,7 @@ model Class {
   supervisor   Teacher?  @relation(fields: [supervisorId], references: [id])
   lessons      Lesson[]
   students     Student[]
+  timetable    TimetableSlot[]
 }
 
 model Subject {
@@ -110,6 +112,7 @@ model Subject {
   grades   Grade[]
   lessons  Lesson[]
   teachers Teacher[] @relation("SubjectToTeacher")
+  timetable TimetableSlot[]
 }
 
 model Grade {
@@ -251,4 +254,21 @@ model Notice {
   message   String
   date      DateTime @default(now())
   important Boolean  @default(false)
+}
+
+model TimetableSlot {
+  id          Int      @id @default(autoincrement())
+  day         Day
+  startTime   String   // e.g. "08:00 AM"
+  endTime     String   // e.g. "09:00 AM"
+  slotNumber  Int      // 1 to 6
+  subjectId   Int?
+  teacherId   String?
+  classId     Int
+  
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  teacher     Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, day, slotNumber])
 }
