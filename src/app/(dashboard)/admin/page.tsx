@@ -304,6 +304,7 @@ const AdminPage = async ({
             expense={currentExpense}
             breakdown={fullBreakdown}
             prevIncome={prevIncome}
+            month={MONTHS[startDate.getMonth()]}
           />
 
           <FinancialQuickReport 
