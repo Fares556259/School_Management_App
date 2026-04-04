@@ -173,7 +173,7 @@ const AdminPage = async ({
     });
   }
 
-  // Category Normalization (Merging Salary/Salaries etc)
+  // Category Normalization
   const normalize = (name: string) => {
     const n = name.trim().toLowerCase();
     if (n === 'salary') return 'Salaries';
@@ -182,7 +182,7 @@ const AdminPage = async ({
     if (n === 'tuition') return 'Tuition';
     if (n === 'donation') return 'Donations';
     if (n === 'donations') return 'Donations';
-    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(); // Default capitalization
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
   const incomeBreakdown = [
@@ -217,8 +217,6 @@ const AdminPage = async ({
 
   // Unpaid Processing
   const unpaidAmount = unpaidPayments.reduce((acc, p) => acc + p.amount, 0);
-  const unpaidCount = new Set(unpaidPayments.map(p => p.studentId || p.teacherId || p.staffId)).size;
-
   const unpaidFees = unpaidPayments.filter(p => p.userType === "STUDENT" && p.student).map(p => ({
     id: p.student!.id,
     name: `${p.student!.name} ${p.student!.surname}`,
@@ -240,6 +238,7 @@ const AdminPage = async ({
 
   return (
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen dashboard-chrome">
+      {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight italic">Command Center</h1>
@@ -250,7 +249,7 @@ const AdminPage = async ({
         </div>
       </div>
 
-      {/* 1. KPI SECTION */}
+      {/* 2. KPI SECTION */}
       <FinancialKpiSection 
         currentIncome={currentIncome}
         prevIncome={prevIncome}
@@ -260,6 +259,7 @@ const AdminPage = async ({
         prevBalance={prevBalance}
       />
 
+      {/* 3. MAIN DASHBOARD GRID (CHARTS & INSIGHTS) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT COLUMN - High-Fidelity Charts */}
         <div className="lg:col-span-8 flex flex-col gap-8">
@@ -277,7 +277,7 @@ const AdminPage = async ({
           <CashFlowTrend data={trendData} />
         </div>
 
-        {/* RIGHT COLUMN - Insights & Breakdown */}
+        {/* RIGHT COLUMN - Insights & Reports */}
         <div className="lg:col-span-4 flex flex-col gap-8">
           <SmartFinancialInsights 
             income={currentIncome}
@@ -292,10 +292,16 @@ const AdminPage = async ({
             unpaid={unpaidAmount}
             month={MONTHS[now.getMonth()]}
           />
+        </div>
+      </div>
 
+      {/* 4. BALANCED LOWER GRID (SIDE-BY-SIDE BREAKDOWN & SNAPSHOT) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8">
           <FinancialBreakdown data={fullBreakdown} />
-
-          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+        </div>
+        <div className="lg:col-span-4 flex flex-col">
+          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm grow">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
              <OperationsSnapshot 
                 students={studentCount}
@@ -307,7 +313,7 @@ const AdminPage = async ({
         </div>
       </div>
 
-      {/* 5. ACTION CENTER */}
+      {/* 5. ACTION CENTER (UNPAID LEDGER) */}
       <section className="mt-8 border-t border-slate-200 pt-8">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-xl">🚨</span>
