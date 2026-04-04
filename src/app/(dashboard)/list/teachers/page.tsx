@@ -151,8 +151,8 @@ const TeacherListPage = async ({
             isAdmin={role === "admin"} 
             monthName={selectedMonthKey}
             paidMonths={item.payments
-              .filter(p => p.status === "PAID")
-              .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
+              .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
+              .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
           />
         </td>
         <td className="hidden xl:table-cell">

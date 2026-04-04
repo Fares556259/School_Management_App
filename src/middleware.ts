@@ -13,15 +13,18 @@ export default clerkMiddleware(async (auth, req) => {
   // Skip role check for unauthenticated users on non-protected routes
   if (!userId) return;
 
-  // Fetch user directly from Clerk to get publicMetadata
-  let role: string | undefined;
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    role = user.publicMetadata?.role as string | undefined;
-  } catch (err) {
-    console.error("Middleware Clerk fetch error:", err);
-    return; // Proceed as unauthenticated/unassigned if fetch fails
+  // Try to get role from session claims first (fastest)
+  let role = (auth().sessionClaims as any)?.metadata?.role as string | undefined;
+
+  // Fallback to fetch only if not in claims
+  if (!role && userId) {
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      role = user.publicMetadata?.role as string | undefined;
+    } catch (err) {
+      console.error("Middleware Clerk fetch error:", err);
+    }
   }
 
   for (const { matcher, allowedRoles } of matchers) {

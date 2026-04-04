@@ -18,9 +18,10 @@ export const createTeacher = async (data: {
   salary?: number;
 }) => {
   try {
+    const id = crypto.randomUUID();
     await prisma.teacher.create({
       data: {
-        id: crypto.randomUUID(),
+        id,
         username: data.username,
         name: data.name,
         surname: data.surname,
@@ -32,6 +33,12 @@ export const createTeacher = async (data: {
         sex: data.sex,
         salary: data.salary ?? 3000,
       },
+    });
+    await createAuditLog({
+      action: "CREATE_TEACHER",
+      entityType: "Teacher",
+      entityId: id,
+      description: `Enrolled new teacher: ${data.name} ${data.surname} (${data.username})`,
     });
     revalidatePath("/list/teachers");
     return { success: true };
@@ -64,6 +71,12 @@ export const updateTeacher = async (
         birthday: data.birthday ? new Date(data.birthday) : undefined,
       },
     });
+    await createAuditLog({
+      action: "UPDATE_TEACHER",
+      entityType: "Teacher",
+      entityId: id,
+      description: `Updated teacher profile: ${id}`,
+    });
     revalidatePath("/list/teachers");
     revalidatePath(`/list/teachers/${id}`);
     return { success: true };
@@ -74,7 +87,14 @@ export const updateTeacher = async (
 
 export const deleteTeacher = async (id: string) => {
   try {
+    const teacher = await prisma.teacher.findUnique({ where: { id } });
     await prisma.teacher.delete({ where: { id } });
+    await createAuditLog({
+      action: "DELETE_TEACHER",
+      entityType: "Teacher",
+      entityId: id,
+      description: `Removed teacher: ${teacher?.name} ${teacher?.surname} (${teacher?.username})`,
+    });
     revalidatePath("/list/teachers");
     return { success: true };
   } catch (err: any) {
@@ -95,12 +115,13 @@ export const createStudent = async (data: {
   sex: "MALE" | "FEMALE";
   parentId: string;
   classId: number;
-  gradeId: number;
+  levelId: number;
 }) => {
   try {
+    const id = crypto.randomUUID();
     await prisma.student.create({
       data: {
-        id: crypto.randomUUID(),
+        id,
         username: data.username,
         name: data.name,
         surname: data.surname,
@@ -112,8 +133,14 @@ export const createStudent = async (data: {
         sex: data.sex,
         parentId: data.parentId,
         classId: data.classId,
-        gradeId: data.gradeId,
+        levelId: data.levelId,
       },
+    });
+    await createAuditLog({
+      action: "CREATE_STUDENT",
+      entityType: "Student",
+      entityId: id,
+      description: `Enrolled new student: ${data.name} ${data.surname} (${data.username})`,
     });
     revalidatePath("/list/students");
     return { success: true };
@@ -136,13 +163,19 @@ export const updateStudent = async (
     sex: "MALE" | "FEMALE";
     parentId: string;
     classId: number;
-    gradeId: number;
+    levelId: number;
   }>
 ) => {
   try {
     const updateData: any = { ...data };
     if (data.birthday) updateData.birthday = new Date(data.birthday);
     await prisma.student.update({ where: { id }, data: updateData });
+    await createAuditLog({
+      action: "UPDATE_STUDENT",
+      entityType: "Student",
+      entityId: id,
+      description: `Updated student profile: ${id}`,
+    });
     revalidatePath("/list/students");
     revalidatePath(`/list/students/${id}`);
     return { success: true };
@@ -228,7 +261,14 @@ export const updateStaff = async (
 
 export const deleteStaff = async (id: string) => {
   try {
+    const staff = await prisma.staff.findUnique({ where: { id } });
     await prisma.staff.delete({ where: { id } });
+    await createAuditLog({
+      action: "DELETE_STAFF",
+      entityType: "Staff",
+      entityId: id,
+      description: `Removed staff member: ${staff?.name} ${staff?.surname} (${staff?.username})`,
+    });
     revalidatePath("/list/staff");
     return { success: true };
   } catch (err: any) {
@@ -298,7 +338,7 @@ export const deleteParent = async (id: string) => {
 export const createClass = async (data: {
   name: string;
   capacity: number;
-  gradeId: number;
+  levelId: number;
   supervisorId?: string;
 }) => {
   try {
@@ -306,7 +346,7 @@ export const createClass = async (data: {
       data: {
         name: data.name,
         capacity: data.capacity,
-        gradeId: data.gradeId,
+        levelId: data.levelId,
         supervisorId: data.supervisorId || null,
       },
     });
@@ -322,7 +362,7 @@ export const updateClass = async (
   data: Partial<{
     name: string;
     capacity: number;
-    gradeId: number;
+    levelId: number;
     supervisorId: string;
   }>
 ) => {
@@ -395,12 +435,15 @@ export const createExpense = async (data: {
         date: new Date(data.date),
       },
     });
-    await createAuditLog(
-      "GENERAL_EXPENSE",
-      "School",
-      expense.id.toString(),
-      `Logged expense: ${data.title} ($${data.amount}) under ${data.category}`
-    );
+    await createAuditLog({
+      action: "GENERAL_EXPENSE",
+      entityType: "School",
+      entityId: expense.id.toString(),
+      description: `Logged expense: ${data.title} ($${data.amount}) under ${data.category}`,
+      amount: data.amount,
+      type: "expense",
+      effectiveDate: new Date(data.date),
+    });
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -420,15 +463,27 @@ export const updateExpense = async (
   }>
 ) => {
   try {
+    // Fetch old data for meaningful audit
+    const oldExpense = await prisma.expense.findUnique({ where: { id } });
+    
     const updateData: any = { ...data };
     if (data.date) updateData.date = new Date(data.date);
     await prisma.expense.update({ where: { id }, data: updateData });
-    await createAuditLog(
-      "EDIT_EXPENSE",
-      "Expense",
-      id.toString(),
-      `Updated expense ${id}`
-    );
+
+    const changes = [];
+    if (data.title && data.title !== oldExpense?.title) changes.push(`Title: "${oldExpense?.title}" → "${data.title}"`);
+    if (data.amount !== undefined && data.amount !== oldExpense?.amount) changes.push(`Amount: $${oldExpense?.amount} → $${data.amount}`);
+    if (data.category && data.category !== oldExpense?.category) changes.push(`Category: "${oldExpense?.category}" → "${data.category}"`);
+
+    await createAuditLog({
+      action: "EDIT_EXPENSE",
+      entityType: "Expense",
+      entityId: id.toString(),
+      description: `Updated expense ${id}. ${changes.join(", ")}`,
+      amount: data.amount ?? oldExpense?.amount,
+      type: "expense",
+      effectiveDate: updateData.date ?? oldExpense?.date,
+    });
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -440,13 +495,16 @@ export const updateExpense = async (
 
 export const deleteExpense = async (id: number) => {
   try {
+    const oldExpense = await prisma.expense.findUnique({ where: { id } });
     await prisma.expense.delete({ where: { id } });
-    await createAuditLog(
-      "DELETE_EXPENSE",
-      "Expense",
-      id.toString(),
-      `Deleted expense ${id}`
-    );
+    await createAuditLog({
+      action: "DELETE_EXPENSE",
+      entityType: "Expense",
+      entityId: id.toString(),
+      description: `Deleted expense: ${oldExpense?.title} ($${oldExpense?.amount})`,
+      amount: oldExpense?.amount,
+      type: "expense",
+    });
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -472,12 +530,15 @@ export const createIncome = async (data: {
         date: new Date(data.date),
       },
     });
-    await createAuditLog(
-      "GENERAL_INCOME",
-      "School",
-      income.id.toString(),
-      `Logged income: ${data.title} ($${data.amount}) under ${data.category}`
-    );
+    await createAuditLog({
+      action: "GENERAL_INCOME",
+      entityType: "School",
+      entityId: income.id.toString(),
+      description: `Logged income: ${data.title} ($${data.amount}) under ${data.category}`,
+      amount: data.amount,
+      type: "income",
+      effectiveDate: new Date(data.date),
+    });
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -497,15 +558,27 @@ export const updateIncome = async (
   }>
 ) => {
   try {
+    // Fetch old data for meaningful audit
+    const oldIncome = await prisma.income.findUnique({ where: { id } });
+
     const updateData: any = { ...data };
     if (data.date) updateData.date = new Date(data.date);
     await prisma.income.update({ where: { id }, data: updateData });
-    await createAuditLog(
-      "EDIT_INCOME",
-      "Income",
-      id.toString(),
-      `Updated income ${id}`
-    );
+
+    const changes = [];
+    if (data.title && data.title !== oldIncome?.title) changes.push(`Title: "${oldIncome?.title}" → "${data.title}"`);
+    if (data.amount !== undefined && data.amount !== oldIncome?.amount) changes.push(`Amount: $${oldIncome?.amount} → $${data.amount}`);
+    if (data.category && data.category !== oldIncome?.category) changes.push(`Category: "${oldIncome?.category}" → "${data.category}"`);
+
+    await createAuditLog({
+      action: "EDIT_INCOME",
+      entityType: "Income",
+      entityId: id.toString(),
+      description: `Updated income ${id}. ${changes.join(", ")}`,
+      amount: data.amount ?? oldIncome?.amount,
+      type: "income",
+      effectiveDate: updateData.date ?? oldIncome?.date,
+    });
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -517,13 +590,16 @@ export const updateIncome = async (
 
 export const deleteIncome = async (id: number) => {
   try {
+    const oldIncome = await prisma.income.findUnique({ where: { id } });
     await prisma.income.delete({ where: { id } });
-    await createAuditLog(
-      "DELETE_INCOME",
-      "Income",
-      id.toString(),
-      `Deleted income ${id}`
-    );
+    await createAuditLog({
+      action: "DELETE_INCOME",
+      entityType: "Income",
+      entityId: id.toString(),
+      description: `Deleted income: ${oldIncome?.title} ($${oldIncome?.amount})`,
+      amount: oldIncome?.amount,
+      type: "income",
+    });
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");

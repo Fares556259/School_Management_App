@@ -16,8 +16,8 @@ export default function PaymentTimeline({
   // Build a set of paid months dynamically from structured Payment records
   const paidMonths = new Set<string>();
   payments.forEach((p) => {
-    if (p.status === "PAID") {
-      paidMonths.add(`${MONTHS[p.month - 1]} ${p.year}`);
+    if (p.status === "PAID" && p.month > 0 && p.month <= 12) {
+      paidMonths.add(`${MONTHS[p.month - 1] || "Unknown"} ${p.year}`);
     }
   });
 

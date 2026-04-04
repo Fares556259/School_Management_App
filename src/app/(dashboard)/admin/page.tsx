@@ -6,7 +6,8 @@ import { calculateTrend } from "@/lib/trendUtils";
 // New Components
 import KpiStrip from "./components/KpiStrip";
 import ActionCenter from "./components/ActionCenter";
-import RecentTransactions from "./components/RecentTransactions";
+import FinancialQuickReport from "./components/FinancialQuickReport";
+import NoticeBoard from "./components/NoticeBoard";
 import SmartInsights from "./components/SmartInsights";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
@@ -17,27 +18,12 @@ const AdminPage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  const { category, type, q } = searchParams || {};
   const { chartFilter } = searchParams || {};
 
   const now = new Date();
   const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
-
-  // Build where clauses for filtered transactions (Ledger view)
-  const incomeWhere: any = {};
-  const expenseWhere: any = {};
-  
-  if (q && q.trim() !== "") {
-    incomeWhere.title = { contains: q, mode: "insensitive" };
-    expenseWhere.title = { contains: q, mode: "insensitive" };
-  }
-  
-  if (category && category.trim() !== "") {
-    incomeWhere.category = category;
-    expenseWhere.category = category;
-  }
 
   // 1. DATA FETCHING
   const [
@@ -56,8 +42,8 @@ const AdminPage = async ({
     expenseLastMonth,
     studentPaymentsLastMonth,
     salaryPaymentsLastMonth,
-    // Transactions Feed (from Audit Logs)
-    recentFinancialLogs,
+    // Notices
+    notices,
     // Action Center (Unpaids)
     unpaidPayments
   ] = await Promise.all([
@@ -91,15 +77,11 @@ const AdminPage = async ({
       _sum: { amount: true }, 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } 
     }),
-    // Transactions Feed (Unified Audit Log)
-    prisma.auditLog.findMany({
-      where: {
-        action: { in: ["RECEIVE_TUITION", "PAY_SALARY", "GENERAL_INCOME", "GENERAL_EXPENSE"] },
-        ...(q ? { description: { contains: q, mode: "insensitive" } } : {})
-      },
-      take: 30,
-      orderBy: { timestamp: "desc" }
-    }),
+    // Notices
+    (prisma as any).notice?.findMany({
+      take: 3,
+      orderBy: { date: "desc" }
+    }) ?? Promise.resolve([]),
     // Action Center Fetching
     prisma.payment.findMany({
       where: { 
@@ -151,26 +133,8 @@ const AdminPage = async ({
     };
   });
 
-  // 3. MAP AUDIT LOGS TO TRANSACTIONS
-  const actionTitles: Record<string, string> = {
-    RECEIVE_TUITION: "Tuition Collection",
-    PAY_SALARY: "Salary Payout",
-    GENERAL_INCOME: "Other Income",
-    GENERAL_EXPENSE: "School Expense"
-  };
-
-  const transactions = recentFinancialLogs.map(log => ({
-    type: (log.type === 'income' ? 'income' : 'expense') as 'income' | 'expense',
-    title: actionTitles[log.action] || log.action,
-    amount: log.amount || 0,
-    date: log.timestamp, // Audit log timestamp (when admin did it)
-    effectiveDate: log.effectiveDate || log.timestamp, // Transaction date
-    source: log.entityType
-  }));
-
-  // Smart insights logic is now handled dynamically by the SmartInsights Client Component
   return (
-    <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen">
+    <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen dashboard-chrome">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight italic">Command Center</h1>
@@ -203,11 +167,15 @@ const AdminPage = async ({
              <FinanceChart filter={searchParams?.chartFilter} />
           </div>
           
-          <div className="flex flex-col min-h-[600px]">
-             <div className="mb-4">
-                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Recent Activity Ledger</h2>
-             </div>
-             <RecentTransactions transactions={transactions} />
+          {/* New Actions Section replacing the Ledger */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <FinancialQuickReport 
+                income={totalIncomeThisMonth}
+                expense={totalExpenseThisMonth}
+                unpaid={unpaidAmount}
+                month={currentMonthKey}
+             />
+             <NoticeBoard notices={notices} />
           </div>
         </div>
 

@@ -244,3 +244,11 @@ enum PaymentStatus {
   PAID
   OVERDUE
 }
+
+model Notice {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String
+  date      DateTime @default(now())
+  important Boolean  @default(false)
+}

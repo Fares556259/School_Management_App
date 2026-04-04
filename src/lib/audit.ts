@@ -26,8 +26,10 @@ export async function createAuditLog({
   effectiveDate?: Date;
 }) {
   try {
-    const { sessionClaims } = auth();
-    const performedBy = (sessionClaims?.metadata as any)?.role || "admin";
+    const authData = await auth();
+    const userId = authData?.userId;
+    // If we have a userId, use it; otherwise fallback to "system" or role if available
+    const performedBy = userId || "system";
     
     await prisma.auditLog.create({
       data: {
@@ -42,6 +44,6 @@ export async function createAuditLog({
       },
     });
   } catch (error) {
-    console.error("Failed to create audit log:", error);
+    console.error(`[AUDIT_ERROR] Failed to record ${action}:`, error);
   }
 }
