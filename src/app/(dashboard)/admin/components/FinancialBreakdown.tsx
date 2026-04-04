@@ -21,7 +21,7 @@ const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data }) => {
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-6">
+    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-6 h-full">
       <div className="flex items-center justify-between">
          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Category Breakdown</h2>
          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
