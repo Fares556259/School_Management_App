@@ -8,9 +8,16 @@ import KpiStrip from "./components/KpiStrip";
 import ActionCenter from "./components/ActionCenter";
 import FinancialQuickReport from "./components/FinancialQuickReport";
 import NoticeBoard from "./components/NoticeBoard";
-import SmartInsights from "./components/SmartInsights";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
+
+// Redesign Components
+import FinancialKpiSection from "./components/FinancialKpiSection";
+import FiscalBarChart from "./components/FiscalBarChart";
+import FinancialBreakdown from "./components/FinancialBreakdown";
+import SmartFinancialInsights from "./components/SmartFinancialInsights";
+import FiscalTimeFilter from "./components/FiscalTimeFilter";
+
 export const dynamic = "force-dynamic";
 
 const AdminPage = async ({
@@ -18,12 +25,25 @@ const AdminPage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  const { chartFilter } = searchParams || {};
+  const { chartFilter, timeFilter = "thisMonth" } = searchParams || {};
 
   const now = new Date();
-  const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  
+  // Define Time Ranges
+  let startDate: Date;
+  let prevStartDate: Date;
+
+  if (timeFilter === "lastMonth") {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  } else if (timeFilter === "last3Months") {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+  } else {
+    // Default: thisMonth
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  }
 
   // 1. DATA FETCHING
   const [
@@ -35,9 +55,11 @@ const AdminPage = async ({
     // Current Period Aggregations
     incomeThisMonth,
     expenseThisMonth,
+    incomeCategoriesThisMonth,
+    expenseCategoriesThisMonth,
     studentPaymentsThisMonth,
     salaryPaymentsThisMonth,
-    // Last Month Trends
+    // Previous Period Trends
     incomeLastMonth,
     expenseLastMonth,
     studentPaymentsLastMonth,
@@ -52,30 +74,40 @@ const AdminPage = async ({
     prisma.staff.count(),
     prisma.class.count(),
     // Current Period Aggregations
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayThisMonth } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayThisMonth } } }),
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate } } }),
+    prisma.income.groupBy({
+      by: ['category'],
+      _sum: { amount: true },
+      where: { date: { gte: startDate } }
+    }),
+    prisma.expense.groupBy({
+      by: ['category'],
+      _sum: { amount: true },
+      where: { date: { gte: startDate } }
+    }),
     // Student Payments (Income)
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: firstDayThisMonth } } 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate } } 
     }),
     // Salary Payments (Expense)
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: firstDayThisMonth } } 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate } } 
     }),
-    // Last Month Trends
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: firstDayLastMonth, lt: firstDayThisMonth } } }),
-    // Last Month Student Payments
+    // Previous Period Trends
+    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: startDate } } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: startDate } } }),
+    // Previous Period Student Payments
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: prevStartDate, lt: startDate } } 
     }),
-    // Last Month Salary Payments
+    // Previous Period Salary Payments
     prisma.payment.aggregate({ 
       _sum: { amount: true }, 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: firstDayLastMonth, lt: firstDayThisMonth } } 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: startDate } } 
     }),
     // Notices
     (prisma as any).notice?.findMany({
@@ -98,22 +130,60 @@ const AdminPage = async ({
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
-  const totalIncomeThisMonth = (incomeThisMonth._sum.amount || 0) + (studentPaymentsThisMonth._sum.amount || 0);
-  const totalIncomeLastMonth = (incomeLastMonth._sum.amount || 0) + (studentPaymentsLastMonth._sum.amount || 0);
-  const totalExpenseThisMonth = (expenseThisMonth._sum.amount || 0) + (salaryPaymentsThisMonth._sum.amount || 0);
-  const totalExpenseLastMonth = (expenseLastMonth._sum.amount || 0) + (salaryPaymentsLastMonth._sum.amount || 0);
+  const currentIncome = (incomeThisMonth._sum.amount || 0) + (studentPaymentsThisMonth._sum.amount || 0);
+  const currentExpense = (expenseThisMonth._sum.amount || 0) + (salaryPaymentsThisMonth._sum.amount || 0);
+  const currentBalance = currentIncome - currentExpense;
 
-  // New Trend Logic
-  const incomeTrend = calculateTrend(totalIncomeThisMonth, totalIncomeLastMonth);
-  const expenseTrend = calculateTrend(totalExpenseThisMonth, totalExpenseLastMonth);
-  const balanceTrend = calculateTrend(totalIncomeThisMonth - totalExpenseThisMonth, totalIncomeLastMonth - totalExpenseLastMonth);
+  const prevIncome = (incomeLastMonth._sum.amount || 0) + (studentPaymentsLastMonth._sum.amount || 0);
+  const prevExpense = (expenseLastMonth._sum.amount || 0) + (salaryPaymentsLastMonth._sum.amount || 0);
+  const prevBalance = prevIncome - prevExpense;
+
+  // Category Normalization (Merging Salary/Salaries etc)
+  const normalize = (name: string) => {
+    const n = name.trim().toLowerCase();
+    if (n === 'salary') return 'Salaries';
+    if (n === 'salaries') return 'Salaries';
+    if (n === 'fees') return 'Tuition';
+    if (n === 'tuition') return 'Tuition';
+    if (n === 'donation') return 'Donations';
+    if (n === 'donations') return 'Donations';
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(); // Default capitalization
+  };
+
+  const incomeBreakdown = [
+    { name: 'Tuition', value: studentPaymentsThisMonth._sum.amount || 0, type: 'income' as const },
+    ...incomeCategoriesThisMonth.map(cat => ({
+      name: normalize(cat.category),
+      value: cat._sum.amount || 0,
+      type: 'income' as const
+    }))
+  ].reduce((acc, curr) => {
+    const existing = acc.find(x => x.name === curr.name);
+    if (existing) existing.value += curr.value;
+    else acc.push(curr);
+    return acc;
+  }, [] as { name: string, value: number, type: 'income' | 'expense' }[]);
+
+  const expenseBreakdown = [
+    { name: 'Salaries', value: salaryPaymentsThisMonth._sum.amount || 0, type: 'expense' as const },
+    ...expenseCategoriesThisMonth.map(cat => ({
+      name: normalize(cat.category),
+      value: cat._sum.amount || 0,
+      type: 'expense' as const
+    }))
+  ].reduce((acc, curr) => {
+    const existing = acc.find(x => x.name === curr.name);
+    if (existing) existing.value += curr.value;
+    else acc.push(curr);
+    return acc;
+  }, [] as { name: string, value: number, type: 'income' | 'expense' }[]);
+
+  const fullBreakdown = [...incomeBreakdown, ...expenseBreakdown];
 
   // Unpaid Processing
   const unpaidAmount = unpaidPayments.reduce((acc, p) => acc + p.amount, 0);
-  const unpaidSet = new Set(unpaidPayments.map(p => p.studentId || p.teacherId || p.staffId));
-  const unpaidCount = unpaidSet.size;
+  const unpaidCount = new Set(unpaidPayments.map(p => p.studentId || p.teacherId || p.staffId)).size;
 
-  // Grouped Unpaid Processing
   const unpaidFees = unpaidPayments.filter(p => p.userType === "STUDENT" && p.student).map(p => ({
     id: p.student!.id,
     name: `${p.student!.name} ${p.student!.surname}`,
@@ -145,56 +215,44 @@ const AdminPage = async ({
         </div>
       </div>
 
-      {/* 1. KPI STRIP */}
-      <KpiStrip 
-        totalBalance={totalIncomeThisMonth - totalExpenseThisMonth}
-        thisMonthIncome={totalIncomeThisMonth}
-        thisMonthExpense={totalExpenseThisMonth}
-        unpaidAmount={unpaidAmount}
-        unpaidCount={unpaidCount}
-        balanceTrend={balanceTrend}
-        incomeTrend={incomeTrend}
-        expenseTrend={expenseTrend}
+      {/* 1. KPI SECTION */}
+      <FinancialKpiSection 
+        currentIncome={currentIncome}
+        prevIncome={prevIncome}
+        currentExpense={currentExpense}
+        prevExpense={prevExpense}
+        currentBalance={currentBalance}
+        prevBalance={prevBalance}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* LEFT COLUMN: PRIMARY DATA */}
+        {/* LEFT COLUMN */}
         <div className="lg:col-span-8 flex flex-col gap-8">
-          <div className="bg-white p-2 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[450px]">
-             <div className="px-6 pt-4">
-                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Financial Performance</h2>
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[450px]">
+             <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
+                <FiscalTimeFilter activeFilter={timeFilter} />
              </div>
-             <FinanceChart filter={searchParams?.chartFilter} />
+             <FiscalBarChart 
+                incomeData={incomeBreakdown}
+                expenseData={expenseBreakdown}
+             />
           </div>
           
-          {/* New Actions Section replacing the Ledger */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <FinancialQuickReport 
-                income={totalIncomeThisMonth}
-                expense={totalExpenseThisMonth}
-                unpaid={unpaidAmount}
-                month={currentMonthKey}
-             />
-             <NoticeBoard notices={notices} />
-          </div>
+          <FinancialBreakdown data={fullBreakdown} />
         </div>
 
-        {/* RIGHT COLUMN: SECONDARY DATA & UTILITIES */}
+        {/* RIGHT COLUMN */}
         <div className="lg:col-span-4 flex flex-col gap-8">
-          <div className="flex-1 flex flex-col min-h-[400px]">
-            <SmartInsights 
-              payload={{
-                totalBalance: totalIncomeThisMonth - totalExpenseThisMonth,
-                thisMonthIncome: totalIncomeThisMonth,
-                thisMonthExpense: totalExpenseThisMonth,
-                unpaidAmount,
-                unpaidCount
-              }} 
-            />
-          </div>
+          <SmartFinancialInsights 
+            income={currentIncome}
+            expense={currentExpense}
+            breakdown={fullBreakdown}
+            prevIncome={prevIncome}
+          />
 
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-             <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">School Snapshot</h2>
+             <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
              <OperationsSnapshot 
                 students={studentCount}
                 teachers={teacherCount}
@@ -202,6 +260,15 @@ const AdminPage = async ({
                 classes={classCount}
              />
           </div>
+
+          <FinancialQuickReport 
+            income={currentIncome}
+            expense={currentExpense}
+            unpaid={unpaidAmount}
+            month={MONTHS[now.getMonth()]}
+          />
+
+          <NoticeBoard notices={notices} />
         </div>
       </div>
 
@@ -214,7 +281,7 @@ const AdminPage = async ({
         <ActionCenter 
           unpaidEmployees={unpaidEmployees} 
           unpaidFees={unpaidFees} 
-          monthLabel={currentMonthKey}
+          monthLabel={MONTHS[now.getMonth()]}
         />
       </section>
     </div>
