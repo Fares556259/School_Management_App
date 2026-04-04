@@ -18,6 +18,7 @@ import FinancialBreakdown from "./components/FinancialBreakdown";
 import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
+import ActivityFeed from "./components/ActivityFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,9 @@ const AdminPage = async ({
     histIncome,
     histExpense,
     histStudPayments,
-    histSalPayments
+    histSalPayments,
+    // Recent Activity (Audit Logs)
+    recentAuditLogs
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -139,6 +142,11 @@ const AdminPage = async ({
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: sixMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
     }),
+    // Recent Audit Logs
+    prisma.auditLog.findMany({
+      take: 10,
+      orderBy: { timestamp: "desc" }
+    })
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
@@ -274,7 +282,6 @@ const AdminPage = async ({
              />
           </div>
           
-          {/* NEW TREND CHART TO FILL SPACE */}
           <CashFlowTrend data={trendData} />
 
           <FinancialBreakdown data={fullBreakdown} />
@@ -295,6 +302,8 @@ const AdminPage = async ({
             unpaid={unpaidAmount}
             month={MONTHS[now.getMonth()]}
           />
+
+          <ActivityFeed logs={recentAuditLogs as any} />
 
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
