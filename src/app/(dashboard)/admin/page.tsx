@@ -64,8 +64,6 @@ const AdminPage = async ({
     expenseLastMonth,
     studentPaymentsLastMonth,
     salaryPaymentsLastMonth,
-    // Notices
-    notices,
     // Action Center (Unpaids)
     unpaidPayments
   ] = await Promise.all([
@@ -109,11 +107,6 @@ const AdminPage = async ({
       _sum: { amount: true }, 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: startDate } } 
     }),
-    // Notices
-    (prisma as any).notice?.findMany({
-      take: 3,
-      orderBy: { date: "desc" }
-    }) ?? Promise.resolve([]),
     // Action Center Fetching
     prisma.payment.findMany({
       where: { 
@@ -228,7 +221,7 @@ const AdminPage = async ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-8 flex flex-col gap-8">
-          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[450px]">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[300px]">
              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
                 <FiscalTimeFilter activeFilter={timeFilter} />
@@ -251,6 +244,13 @@ const AdminPage = async ({
             prevIncome={prevIncome}
           />
 
+          <FinancialQuickReport 
+            income={currentIncome}
+            expense={currentExpense}
+            unpaid={unpaidAmount}
+            month={MONTHS[now.getMonth()]}
+          />
+
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
              <OperationsSnapshot 
@@ -260,15 +260,6 @@ const AdminPage = async ({
                 classes={classCount}
              />
           </div>
-
-          <FinancialQuickReport 
-            income={currentIncome}
-            expense={currentExpense}
-            unpaid={unpaidAmount}
-            month={MONTHS[now.getMonth()]}
-          />
-
-          <NoticeBoard notices={notices} />
         </div>
       </div>
 
