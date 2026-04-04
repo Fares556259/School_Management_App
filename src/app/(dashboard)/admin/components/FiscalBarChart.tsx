@@ -33,7 +33,7 @@ const FiscalBarChart: React.FC<FiscalBarChartProps> = ({
     setMounted(true);
   }, []);
 
-  if (!mounted) return <div className="h-[350px] w-full bg-slate-50 animate-pulse rounded-[24px]" />;
+  if (!mounted) return <div className="h-[280px] w-full bg-slate-50 animate-pulse rounded-[24px]" />;
 
   // Combine and sort for the horizontal view
   const combinedData = [
@@ -58,13 +58,13 @@ const FiscalBarChart: React.FC<FiscalBarChartProps> = ({
   };
 
   return (
-    <div className="flex-1 w-full min-h-[350px]">
-      <ResponsiveContainer width="100%" height={350}>
+    <div className="flex-1 w-full min-h-[280px]">
+      <ResponsiveContainer width="100%" height={280}>
         <BarChart
           data={combinedData}
           layout="vertical"
           margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-          barSize={24}
+          barSize={20}
         >
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
           <XAxis type="number" hide />
