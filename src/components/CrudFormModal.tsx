@@ -13,12 +13,14 @@ import {
   createIncome, updateIncome, deleteIncome,
 } from "@/lib/crudActions";
 
+import { CldUploadWidget } from "next-cloudinary";
+
 type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subject" | "expense" | "income";
 
 interface FieldDef {
   name: string;
   label: string;
-  type: "text" | "email" | "number" | "date" | "select";
+  type: "text" | "email" | "number" | "date" | "select" | "image";
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -94,6 +96,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
       {value: "SALARY", label: "SALARY"}
     ] },
     { name: "date", label: "Date", type: "date", required: true },
+    { name: "img", label: "Proof Image", type: "image" },
   ],
   income: [
     { name: "title", label: "Source/Description", type: "text", required: true, placeholder: "e.g., Annual Charity Event" },
@@ -106,6 +109,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
       {value: "OTHER", label: "OTHER"}
     ] },
     { name: "date", label: "Date", type: "date", required: true },
+    { name: "img", label: "Proof Image", type: "image" },
   ],
 };
 
@@ -160,6 +164,7 @@ export default function CrudFormModal({
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [img, setImg] = useState<any>(data?.img || null);
 
   // Merge dynamic relatedData options into field definitions
   const fields = entityFields[entity].map((f) => {
@@ -176,6 +181,7 @@ export default function CrudFormModal({
     const values: any = {};
 
     fields.forEach((f) => {
+      if (f.type === "image") return; // Manual handle
       const val = formData.get(f.name) as string;
       if ((f.type === "number" || f.parseAsNumber) && val) {
         values[f.name] = parseFloat(val);
@@ -183,6 +189,10 @@ export default function CrudFormModal({
         values[f.name] = val;
       }
     });
+
+    if (img) {
+      values.img = typeof img === "string" ? img : img.secure_url;
+    }
 
     startTransition(async () => {
       let result;
@@ -310,6 +320,34 @@ export default function CrudFormModal({
                               <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                           </select>
+                        ) : f.type === "image" ? (
+                          <div className="flex flex-col gap-2">
+                            <CldUploadWidget
+                              uploadPreset="school"
+                              onSuccess={(result, { close }) => {
+                                setImg(result.info);
+                                close();
+                              }}
+                            >
+                              {({ open }) => (
+                                <div
+                                  className="flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 transition-all p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50"
+                                  onClick={() => open()}
+                                >
+                                  <Image src="/upload.png" alt="" width={24} height={24} />
+                                  <span className="text-sm">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
+                                </div>
+                              )}
+                            </CldUploadWidget>
+                            {img && (
+                              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1">
+                                <Image 
+                                  src={typeof img === "string" ? img : img.secure_url} 
+                                  alt="Proof" fill className="object-cover" 
+                                />
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <input
                             name={f.name}
