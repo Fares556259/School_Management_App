@@ -4,11 +4,43 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "";
 
-// DIRECT FETCH IMPLEMENTATION WITH MULTI-MODEL FALLBACK
+// DIRECT FETCH IMPLEMENTATION WITH MULTI-MODEL FALLBACK AND OPENROUTER SUPPORT
 async function callGeminiDirect(prompt: string) {
     if (!apiKey) throw new Error("Missing API Key");
 
-    // GEMINI 2.0 FLASH is confirmed fast and available for this key
+    const isOpenRouter = apiKey.startsWith("sk-or-");
+    
+    // If it's an OpenRouter key, use their OpenAI-compatible endpoint
+    if (isOpenRouter) {
+        try {
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://snapschool.app", // Optional
+                    "X-Title": "SnapSchool Admin", // Optional
+                },
+                body: JSON.stringify({
+                    model: "google/gemini-2.0-flash-001",
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.7,
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return data.choices[0]?.message?.content || "";
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData?.error?.message || response.statusText);
+            }
+        } catch (e: any) {
+            throw new Error(`OpenRouter failed: ${e.message}`);
+        }
+    }
+
+    // ORIGINAL GOOGLE GEMINI FLOW
     const models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"];
     let lastError = "";
 
@@ -16,24 +48,16 @@ async function callGeminiDirect(prompt: string) {
         try {
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             
-            // Add abort controller for timeout
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000);
 
             const response = await fetch(endpoint, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 signal: controller.signal,
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1024,
-                    }
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
                 })
             });
 
