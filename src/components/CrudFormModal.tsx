@@ -342,7 +342,11 @@ export default function CrudFormModal({
                             {img && (
                               <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1">
                                 <Image 
-                                  src={typeof img === "string" ? img : img.secure_url} 
+                                  src={
+                                    (typeof img === "string" ? img : img.secure_url).toLowerCase().endsWith(".pdf") 
+                                      ? (typeof img === "string" ? img : img.secure_url).replace(/\.pdf$/i, ".jpg")
+                                      : (typeof img === "string" ? img : img.secure_url)
+                                  } 
                                   alt="Proof" fill className="object-cover" 
                                 />
                               </div>
