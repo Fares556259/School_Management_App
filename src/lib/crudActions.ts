@@ -425,6 +425,7 @@ export const createExpense = async (data: {
   amount: number;
   category: string;
   date: string;
+  img?: string;
 }) => {
   try {
     const expense = await prisma.expense.create({
@@ -433,6 +434,7 @@ export const createExpense = async (data: {
         amount: data.amount,
         category: data.category,
         date: new Date(data.date),
+        img: data.img || null,
       },
     });
     await createAuditLog({
@@ -460,6 +462,7 @@ export const updateExpense = async (
     amount: number;
     category: string;
     date: string;
+    img: string;
   }>
 ) => {
   try {
@@ -520,6 +523,7 @@ export const createIncome = async (data: {
   amount: number;
   category: string;
   date: string;
+  img?: string;
 }) => {
   try {
     const income = await prisma.income.create({
@@ -528,6 +532,7 @@ export const createIncome = async (data: {
         amount: data.amount,
         category: data.category,
         date: new Date(data.date),
+        img: data.img || null,
       },
     });
     await createAuditLog({
@@ -555,6 +560,7 @@ export const updateIncome = async (
     amount: number;
     category: string;
     date: string;
+    img: string;
   }>
 ) => {
   try {
