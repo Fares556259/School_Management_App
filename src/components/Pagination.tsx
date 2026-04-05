@@ -31,23 +31,41 @@ const Pagination = ({
         Prev
       </button>
       <div className="flex items-center gap-2 text-sm">
-        {Array.from(
-          { length: Math.ceil(count / ITEM_PER_PAGE) },
-          (_, index) => {
-            const pageIndex = index + 1;
+        {(() => {
+          const totalPages = Math.ceil(count / ITEM_PER_PAGE);
+          const pages = [];
+          const range = 2; // Pages to show on either side of current page
+
+          for (let i = 1; i <= totalPages; i++) {
+            if (
+              i === 1 ||
+              i === totalPages ||
+              (i >= page - range && i <= page + range)
+            ) {
+              if (pages.length > 0 && i > (pages[pages.length - 1] as number) + 1) {
+                pages.push("...");
+              }
+              pages.push(i);
+            }
+          }
+
+          return pages.map((p, index) => {
+            if (p === "...") {
+              return <span key={`dots-${index}`}>...</span>;
+            }
             return (
               <button
-                key={pageIndex}
+                key={p}
                 className={`px-2 rounded-sm ${
-                  page === pageIndex ? "bg-lamaSky" : ""
+                  page === p ? "bg-lamaSky" : ""
                 }`}
-                onClick={() => changePage(pageIndex)}
+                onClick={() => changePage(p as number)}
               >
-                {pageIndex}
+                {p}
               </button>
             );
-          }
-        )}
+          });
+        })()}
       </div>
       <button
         disabled={!hasNext}
