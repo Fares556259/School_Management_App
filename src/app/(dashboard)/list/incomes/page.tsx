@@ -99,7 +99,7 @@ const IncomeListPage = async ({
         {item.img ? (
           <Link href={item.img} target="_blank" className="relative w-8 h-8 block group">
             <Image
-              src={item.img}
+              src={item.img.toLowerCase().endsWith(".pdf") ? item.img.replace(/\.pdf$/i, ".jpg") : item.img}
               alt="Proof"
               fill
               className="object-cover rounded-md border border-slate-200 group-hover:scale-110 transition-transform"
