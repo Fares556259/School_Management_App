@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { addGeneralIncome } from "./actions";
+import { CldUploadWidget } from "next-cloudinary";
 
 const CATEGORIES = ["TUITION", "DONATION", "EVENT", "GRANT", "OTHER"];
 
@@ -12,6 +13,7 @@ export default function AddIncomeModal() {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [img, setImg] = useState<any>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,12 +25,14 @@ export default function AddIncomeModal() {
         formData.get("title") as string,
         parseFloat(formData.get("amount") as string),
         formData.get("category") as string,
-        formData.get("date") as string
+        formData.get("date") as string,
+        img?.secure_url
       );
 
       if (result.success) {
         router.refresh();
         setOpen(false);
+        setImg(null);
       } else {
         setError(result.error || "Something went wrong");
       }
@@ -105,6 +109,32 @@ export default function AddIncomeModal() {
                   defaultValue={new Date().toISOString().split("T")[0]}
                   className="p-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
                 />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Proof Image</label>
+                <CldUploadWidget
+                  uploadPreset="school"
+                  onSuccess={(result, { close }) => {
+                    setImg(result.info);
+                    close();
+                  }}
+                >
+                  {({ open }) => (
+                    <div
+                      className="flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 transition-all p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50"
+                      onClick={() => open()}
+                    >
+                      <Image src="/upload.png" alt="" width={24} height={24} />
+                      <span className="text-sm">{img ? "Image Uploaded ✅" : "Upload Proof (Receipt/Invoice)"}</span>
+                    </div>
+                  )}
+                </CldUploadWidget>
+                {img && (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1">
+                    <Image src={img.secure_url} alt="Proof" fill className="object-cover" />
+                  </div>
+                )}
               </div>
 
               {error && <p className="text-red-500 text-xs font-semibold animate-bounce">{error}</p>}

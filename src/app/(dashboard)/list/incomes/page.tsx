@@ -5,6 +5,7 @@ import TableSearch from "@/components/TableSearch";
 import { Income, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import Image from "next/image";
+import Link from "next/link";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import CrudFormModal from "@/components/CrudFormModal";
 import FinanceDateFilter from "@/components/FinanceDateFilter";
@@ -30,9 +31,8 @@ const columns = [
     className: "hidden md:table-cell",
   },
   {
-    header: "Received From",
-    accessor: "receivedFrom",
-    className: "hidden lg:table-cell",
+    header: "Proof",
+    accessor: "img",
   },
   {
     header: "Actions",
@@ -95,8 +95,19 @@ const IncomeListPage = async ({
       <td className="hidden md:table-cell">
         {new Date(item.date).toLocaleDateString()}
       </td>
-      <td className="hidden lg:table-cell text-slate-500 italic">
-        General Income
+      <td className="">
+        {item.img ? (
+          <Link href={item.img} target="_blank" className="relative w-8 h-8 block group">
+            <Image
+              src={item.img}
+              alt="Proof"
+              fill
+              className="object-cover rounded-md border border-slate-200 group-hover:scale-110 transition-transform"
+            />
+          </Link>
+        ) : (
+          <span className="text-slate-300 italic text-xs">No proof</span>
+        )}
       </td>
       <td>
         <div className="flex items-center gap-2">
