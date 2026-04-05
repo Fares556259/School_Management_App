@@ -20,7 +20,7 @@ import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
 import MonthYearFilter from "./components/MonthYearFilter"; // We will create this
 import SnapAssistant from "./components/SnapAssistant";
-import { checkModels } from "./actions/aiActions";
+// import { checkModels } from "./actions/aiActions";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +97,12 @@ const AdminPage = async ({
     histIncome,
     histExpense,
     histStudPayments,
-    histSalPayments
+    histSalPayments,
+    // AI ENRICHMENT DATA
+    recentPaidPayments,
+    recentGeneralExpenses,
+    recentGeneralIncomes,
+    schoolClasses
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -158,7 +163,21 @@ const AdminPage = async ({
     prisma.payment.findMany({ 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: sixMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
-    })
+    }),
+    // AI ENRICHMENT DATA FETCH
+    prisma.payment.findMany({ 
+      take: 15, 
+      orderBy: { paidAt: 'desc' }, 
+      where: { status: 'PAID' }, 
+      include: { 
+        student: { select: { name: true, surname: true } }, 
+        teacher: { select: { name: true, surname: true } }, 
+        staff: { select: { name: true, surname: true } } 
+      } 
+    }),
+    prisma.expense.findMany({ take: 10, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
+    prisma.income.findMany({ take: 10, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
+    prisma.class.findMany({ select: { name: true, _count: { select: { students: true } } } })
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
@@ -269,9 +288,21 @@ const AdminPage = async ({
       students: studentCount,
       teachers: teacherCount,
       staff: staffCount,
-      classes: classCount
+      classes: classCount,
+      classDetails: schoolClasses.map(c => ({ name: c.name, students: c._count.students }))
     },
-    topExpenses: expenseBreakdown.slice(0, 3)
+    topExpenses: expenseBreakdown.slice(0, 5),
+    financials: {
+      recentPayments: recentPaidPayments.map(p => ({
+        amount: p.amount,
+        date: p.paidAt,
+        type: p.userType,
+        name: p.student ? `${p.student.name} ${p.student.surname}` : (p.teacher || p.staff)?.name
+      })),
+      recentExpenses: recentGeneralExpenses,
+      recentIncomes: recentGeneralIncomes,
+      unpaidDetails: unpaidFees.slice(0, 10)
+    }
   };
 
   return (
