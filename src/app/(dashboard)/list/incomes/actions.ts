@@ -8,7 +8,8 @@ export const addGeneralIncome = async (
   title: string,
   amount: number,
   category: string,
-  date: string
+  date: string,
+  img?: string
 ) => {
   try {
     const dateObj = new Date(date);
@@ -24,6 +25,7 @@ export const addGeneralIncome = async (
         amount,
         category,
         date: dateObj,
+        img,
       },
     });
 

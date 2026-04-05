@@ -184,6 +184,7 @@ model Expense {
   category      String
   referenceType String?
   referenceId   String?
+  img           String?
 }
 
 model Income {
@@ -194,6 +195,7 @@ model Income {
   category      String
   referenceType String?
   referenceId   String?
+  img           String?
 }
 
 model Payment {
