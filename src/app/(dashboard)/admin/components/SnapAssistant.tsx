@@ -34,6 +34,36 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const compressImage = (dataUrl: string, maxWidth = 1024): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxWidth) {
+            width *= maxWidth / height;
+            height = maxWidth;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = dataUrl;
+    });
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading, selectedImage]);
@@ -42,8 +72,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setSelectedImage(compressed);
       };
       reader.readAsDataURL(file);
     }
@@ -53,23 +84,23 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     if ((!input.trim() && !selectedImage) || isLoading) return;
 
     const userMessage = input.trim();
-    const imageBase64 = selectedImage ? selectedImage.split(',')[1] : undefined;
+    const currentImage = selectedImage; // Store locally for this async operation
+    const imageBase64 = currentImage ? currentImage.split(',')[1] : undefined;
 
     setMessages(prev => [...prev, { 
       role: 'user', 
       content: userMessage || "Sent an image for analysis.",
-      image: selectedImage || undefined 
+      image: currentImage || undefined 
     }]);
 
     setInput('');
-    setSelectedImage(null);
     setIsLoading(true);
 
     let imageUrl = undefined;
-    if (selectedImage) {
+    if (currentImage) {
       try {
         // Convert base64 Data URL to Blob for more reliable Cloudinary upload
-        const fetchRes = await fetch(selectedImage);
+        const fetchRes = await fetch(currentImage);
         const blob = await fetchRes.blob();
 
         const formData = new FormData();
@@ -90,27 +121,32 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
       }
     }
 
-    const result = await getChatResponse(userMessage, context, imageBase64, imageUrl);
+    try {
+      const result = await getChatResponse(userMessage, context, imageBase64, imageUrl);
 
-    if (result.response) {
-      setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
-      
-      // HANDLE AI COMMANDS
-      if (result.command) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *Processing Action: ${result.command.type}...*` }]);
-        const cmdResult = await executeAICommand(result.command);
-        if (cmdResult.success) {
-          setMessages(prev => [...prev, { role: 'assistant', content: `✅ **Success**: ${cmdResult.message}` }]);
-          router.refresh();
-        } else {
-          setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: ${cmdResult.error}` }]);
+      if (result.response) {
+        setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
+        
+        // HANDLE AI COMMANDS
+        if (result.command) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *Processing Action: ${result.command.type}...*` }]);
+          const cmdResult = await executeAICommand(result.command);
+          if (cmdResult.success) {
+            setMessages(prev => [...prev, { role: 'assistant', content: `✅ **Success**: ${cmdResult.message}` }]);
+            router.refresh();
+          } else {
+            setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: ${cmdResult.error}` }]);
+          }
         }
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: result.error || "I'm sorry, I'm having trouble connecting right now." }]);
       }
-    } else {
-      setMessages(prev => [...prev, { role: 'assistant', content: result.error || "I'm sorry, I'm having trouble connecting right now." }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: "❌ **Error**: Connection failed." }]);
     }
 
     setIsLoading(false);
+    setSelectedImage(null); // Clear only AFTER everything is done
   };
 
   return (
