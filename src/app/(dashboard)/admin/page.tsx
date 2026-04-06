@@ -102,7 +102,11 @@ const AdminPage = async ({
     recentPaidPayments,
     recentGeneralExpenses,
     recentGeneralIncomes,
-    schoolClasses
+    schoolClasses,
+    yearPaymentStatus,
+    yearIncomeByCategory,
+    yearExpenseByCategory,
+    recentAuditLogs
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -175,9 +179,27 @@ const AdminPage = async ({
         staff: { select: { name: true, surname: true } } 
       } 
     }),
-    prisma.expense.findMany({ take: 10, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
-    prisma.income.findMany({ take: 10, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
-    prisma.class.findMany({ select: { name: true, _count: { select: { students: true } } } })
+    prisma.expense.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
+    prisma.income.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
+    prisma.class.findMany({ select: { name: true, _count: { select: { students: true } } } }),
+    // FULL YEAR FINANCIAL INTELLIGENCE
+    prisma.payment.groupBy({
+      by: ['month', 'status', 'userType'],
+      _sum: { amount: true },
+      _count: { _all: true },
+      where: { year: now.getFullYear() }
+    }),
+    prisma.income.groupBy({
+      by: ['category'],
+      _sum: { amount: true },
+      where: { date: { gte: new Date(now.getFullYear(), 0, 1) } }
+    }),
+    prisma.expense.groupBy({
+      by: ['category'],
+      _sum: { amount: true },
+      where: { date: { gte: new Date(now.getFullYear(), 0, 1) } }
+    }),
+    prisma.auditLog.findMany({ take: 20, orderBy: { timestamp: 'desc' } })
   ]);
 
   // 2. AGGREGATES & CALCULATIONS
@@ -293,15 +315,31 @@ const AdminPage = async ({
     },
     topExpenses: expenseBreakdown.slice(0, 5),
     financials: {
-      recentPayments: recentPaidPayments.map(p => ({
-        amount: p.amount,
-        date: p.paidAt,
-        type: p.userType,
-        name: p.student ? `${p.student.name} ${p.student.surname}` : (p.teacher || p.staff)?.name
-      })),
-      recentExpenses: recentGeneralExpenses,
-      recentIncomes: recentGeneralIncomes,
-      unpaidDetails: unpaidFees.slice(0, 10)
+      currentPeriod: {
+        income: currentIncome,
+        expense: currentExpense,
+        categories: fullBreakdown
+      },
+      yearlyAggregates: {
+        incomeByCategory: yearIncomeByCategory,
+        expenseByCategory: yearExpenseByCategory,
+        paymentStatusByMonth: yearPaymentStatus
+      },
+      recentActivity: {
+        payments: recentPaidPayments.map(p => ({
+          amount: p.amount,
+          date: p.paidAt,
+          type: p.userType,
+          name: p.student ? `${p.student.name} ${p.student.surname}` : (p.teacher || p.staff)?.name
+        })),
+        auditTrail: recentAuditLogs.map(log => ({
+          action: log.action,
+          desc: log.description,
+          user: log.performedBy,
+          time: log.timestamp
+        }))
+      },
+      debtors: unpaidFees.slice(0, 15)
     }
   };
 
