@@ -171,14 +171,14 @@ export async function getChatResponse(message: string, context: any, base64Image
             "${message || "Please analyze this image and extract financial data."}"
             
             GUIDELINES:
-            1. If the user provides an image, automatically extract: Title, Amount, Category, and Date.
-            2. If it's a student tuition slip, look for the student name in studentLedger and return MARK_PAID.
+            1. If the image is NOT a financial document (receipt, invoice, tuition slip, donation), simply respond that you can only process school-related financial records for now. DO NOT return a command in this case.
+            2. If it is a tuition slip, look for the student name in studentLedger and return MARK_PAID.
             3. If it's a general revenue source (donation, event gift), return ADD_INCOME.
             4. If it's a general expense receipt (electricity, supplies), return ADD_EXPENSE.
-            5. If the user just wants to perform an action via text, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
-            6. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
-            7. If an image was processed, start your response with "✅ [Document Verified]".
-            8. Be professional and confirm the extraction/action in your response.
+            5. If you see a document but cannot clearly read the Amount or Title, ask the user for clarification.
+            6. If you generate a command, provide a brief summary of the extraction.
+            7. If an image was processed and a command returned, start your response with "✅ [Document Verified]".
+            8. Be professional and context-aware.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 
