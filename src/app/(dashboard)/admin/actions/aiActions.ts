@@ -12,40 +12,59 @@ export async function callGeminiDirect(prompt: string, base64Image?: string) {
     
     // If it's an OpenRouter key, use their OpenAI-compatible endpoint
     if (isOpenRouter) {
-        try {
-            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${apiKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://snapschool.app", // Optional
-                    "X-Title": "SnapSchool Admin", // Optional
-                },
-                body: JSON.stringify({
-                    model: "google/gemini-2.0-flash-001",
-                    messages: [{ 
-                        role: "user", 
-                        content: base64Image 
-                            ? [
-                                { type: "text", text: prompt },
-                                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-                              ]
-                            : prompt 
-                    }],
-                    temperature: 0.7,
-                })
-            });
+        const orModels = [
+            "google/gemini-2.0-flash-001", 
+            "google/gemini-2.0-flash-exp:free", 
+            "google/gemini-pro-1.5", 
+            "google/gemini-flash-1.5"
+        ];
+        let lastORError = "";
 
-            if (response.ok) {
-                const data = await response.json();
-                return data.choices[0]?.message?.content || "";
-            } else {
-                const errorData = await response.json();
-                throw new Error(errorData?.error?.message || response.statusText);
+        for (const modelId of orModels) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for OpenRouter
+
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://snapschool.app",
+                        "X-Title": "SnapSchool Admin",
+                    },
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        model: modelId,
+                        messages: [{ 
+                            role: "user", 
+                            content: base64Image 
+                                ? [
+                                    { type: "text", text: prompt },
+                                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                                  ]
+                                : prompt 
+                        }],
+                        temperature: 0.7,
+                    })
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.choices[0]?.message?.content || "";
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    lastORError = errorData?.error?.message || response.statusText;
+                    console.error(`OpenRouter Model ${modelId} failed: ${lastORError}`);
+                }
+            } catch (e: any) {
+                lastORError = e.message;
+                console.error(`OpenRouter Error (${modelId}): ${lastORError}`);
             }
-        } catch (e: any) {
-            throw new Error(`OpenRouter failed: ${e.message}`);
         }
+        throw new Error(`OpenRouter failed for all fallback models. Last error: ${lastORError}`);
     }
 
     // ORIGINAL GOOGLE GEMINI FLOW
