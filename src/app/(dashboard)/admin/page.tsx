@@ -223,6 +223,9 @@ const AdminPage = async ({
         payments: {
           where: { year: now.getFullYear() },
           select: { status: true, month: true }
+        },
+        parent: {
+          select: { name: true, surname: true, phone: true }
         }
       }
     })
@@ -242,6 +245,8 @@ const AdminPage = async ({
   // Map Student Ledger for AI (Compressed)
   const studentLedger = allStudents.map(s => ({
     n: `${s.name} ${s.surname}`,
+    pn: `${s.parent.name} ${s.parent.surname}`,
+    ph: s.parent.phone,
     paid: s.payments.filter(p => p.status === 'PAID').map(p => MONTHS[p.month - 1]),
     pend: s.payments.filter(p => p.status === 'PENDING').map(p => MONTHS[p.month - 1])
   }));
