@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Minus, Maximize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getChatResponse } from '../actions/aiActions';
+import { executeAICommand } from '../actions/crudActions';
+import { useRouter } from 'next/navigation';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -16,6 +18,7 @@ interface SnapAssistantProps {
 }
 
 const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: "Hi! I'm **SnapAssistant**. I now have **Total School Intelligence**: access to all finances, academic performance, timetables, and demographics. How can I help you manage SnapSchool today?" }
@@ -42,6 +45,18 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
 
     if (result.response) {
       setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
+      
+      // HANDLE AI COMMANDS
+      if (result.command) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *Processing Action: ${result.command.type}...*` }]);
+        const cmdResult = await executeAICommand(result.command);
+        if (cmdResult.success) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `✅ **Success**: ${cmdResult.message}` }]);
+          router.refresh();
+        } else {
+          setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: ${cmdResult.error}` }]);
+        }
+      }
     } else {
       setMessages(prev => [...prev, { role: 'assistant', content: result.error || "I'm sorry, I'm having trouble connecting right now." }]);
     }
