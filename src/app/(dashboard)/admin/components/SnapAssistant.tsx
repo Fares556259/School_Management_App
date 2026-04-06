@@ -175,39 +175,39 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
                 </div>
               )}
               
-              <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                accept="image/*"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl transition-all shadow-sm border border-indigo-100 flex items-center justify-center shrink-0 group"
+                title="Snap a photo of Receipt/Invoice"
+              >
+                <Camera size={22} className="group-hover:scale-110 transition-transform" />
+              </button>
+              <div className="relative flex-1">
                 <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageSelect}
-                  accept="image/*"
-                  className="hidden"
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder={selectedImage ? "Describe this image..." : "Ask SnapAssistant..."}
+                  className="w-full p-4 pr-12 bg-slate-50 border-2 border-transparent focus:border-indigo-500/20 rounded-[22px] text-sm focus:ring-4 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-medium"
                 />
                 <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                  title="Upload Receipt/Invoice"
+                  onClick={handleSend}
+                  disabled={isLoading || (!input.trim() && !selectedImage)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:scale-100 active:scale-95 transition-all"
                 >
-                  <Camera size={20} />
+                  <Send size={18} />
                 </button>
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder={selectedImage ? "Describe this image..." : "Ask SnapAssistant..."}
-                    className="w-full p-3 pr-12 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={isLoading || (!input.trim() && !selectedImage)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all"
-                  >
-                    <Send size={16} />
-                  </button>
-                </div>
               </div>
+            </div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-3 text-center">
                 Powered by Gemini 1.5 Flash • Context Aware
               </p>
