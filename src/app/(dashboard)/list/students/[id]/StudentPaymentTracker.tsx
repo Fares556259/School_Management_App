@@ -94,15 +94,31 @@ export default function StudentPaymentTracker({
         </div>
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
           <span className="text-sm font-medium text-slate-500">Status:</span>
-          <span
-            className={`px-3 py-1 text-xs font-bold rounded-full ${
-              isPaid
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-rose-100 text-rose-700"
-            }`}
-          >
-            {isPaid ? "PAID" : "UNPAID"}
-          </span>
+          <div className="flex items-center gap-2">
+            {isPaid && (
+              <>
+                {payments.find(p => `${MONTHS[p.month-1]} ${p.year}` === monthStr)?.img && (
+                  <a 
+                    href={payments.find(p => `${MONTHS[p.month-1]} ${p.year}` === monthStr).img} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-bold text-indigo-500 hover:underline flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 shadow-sm"
+                  >
+                    View Receipt
+                  </a>
+                )}
+              </>
+            )}
+            <span
+              className={`px-3 py-1 text-xs font-bold rounded-full ${
+                isPaid
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-rose-100 text-rose-700"
+              }`}
+            >
+              {isPaid ? "PAID" : "UNPAID"}
+            </span>
+          </div>
         </div>
 
         {!isPaid && isAdmin && (

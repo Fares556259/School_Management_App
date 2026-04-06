@@ -177,8 +177,9 @@ export async function getChatResponse(message: string, context: any, base64Image
             4. If it's a general expense receipt (electricity, supplies), return ADD_EXPENSE.
             5. If the user just wants to perform an action via text, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
             6. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
-            7. If you generate a command and an imageUrl is provided (${imageUrl || "none"}), you MUST include it in the result command data as "img".
-            8. Be professional and confirm the extraction/action in your response.
+            7. CRITICAL: If you generate a command and an imageUrl is provided (${imageUrl || "none"}), you MUST include it in the result command data as "img". DO NOT OMIT THIS.
+            8. If an image was processed, start your response with "✅ [Document Verified]" to confirm the proof was linked.
+            9. Be professional and confirm the extraction/action in your response.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 

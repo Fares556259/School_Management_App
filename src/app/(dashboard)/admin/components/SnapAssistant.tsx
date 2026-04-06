@@ -68,9 +68,12 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     let imageUrl = undefined;
     if (selectedImage) {
       try {
-        // Perform unsigned Cloudinary upload
+        // Convert base64 Data URL to Blob for more reliable Cloudinary upload
+        const fetchRes = await fetch(selectedImage);
+        const blob = await fetchRes.blob();
+
         const formData = new FormData();
-        formData.append('file', selectedImage);
+        formData.append('file', blob);
         formData.append('upload_preset', 'school');
         
         const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
