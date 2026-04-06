@@ -18,7 +18,7 @@ interface SnapAssistantProps {
 const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm **SnapAssistant**. I now have full access to your school's payments, expenses, and class data. How can I help you today?" }
+    { role: 'assistant', content: "Hi! I'm **SnapAssistant**. I now have **Total School Intelligence**: access to all finances, academic performance, timetables, and demographics. How can I help you manage SnapSchool today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

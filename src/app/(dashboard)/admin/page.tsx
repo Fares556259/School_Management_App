@@ -110,7 +110,15 @@ const AdminPage = async ({
     allTeachers,
     allStaffMemberData,
     allPaymentsThisYear,
-    allStudents
+    allStudents,
+    // TOTAL INTELLIGENCE (NEW)
+    allGrades,
+    allNotices,
+    allLessons,
+    allSubjects,
+    teacherTimetables,
+    maleStudents,
+    femaleStudents
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -185,7 +193,7 @@ const AdminPage = async ({
     }),
     prisma.expense.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.income.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
-    prisma.class.findMany({ select: { name: true, _count: { select: { students: true } } } }),
+    prisma.class.findMany({ select: { id: true, name: true, _count: { select: { students: true } } } }),
     // FULL YEAR FINANCIAL INTELLIGENCE
     prisma.payment.groupBy({
       by: ['month', 'status', 'userType'],
@@ -228,7 +236,21 @@ const AdminPage = async ({
           select: { name: true, surname: true, phone: true }
         }
       }
-    })
+    }),
+    // TOTAL INTELLIGENCE FETCH
+    prisma.grade.findMany({
+      select: { score: true, student: { select: { classId: true } }, subjectId: true }
+    }),
+    prisma.notice.findMany({ take: 10, orderBy: { date: 'desc' } }),
+    prisma.lesson.findMany({
+      select: { classId: true, teacherId: true, subjectId: true, day: true }
+    }),
+    prisma.subject.findMany({ select: { id: true, name: true } }),
+    prisma.timetableSlot.findMany({
+      select: { teacherId: true, classId: true, day: true, slotNumber: true }
+    }),
+    prisma.student.count({ where: { sex: "MALE" } }),
+    prisma.student.count({ where: { sex: "FEMALE" } })
   ]);
 
   // Map Personnel Payments for AI
@@ -249,6 +271,30 @@ const AdminPage = async ({
     ph: s.parent.phone,
     paid: s.payments.filter(p => p.status === 'PAID').map(p => MONTHS[p.month - 1]),
     pend: s.payments.filter(p => p.status === 'PENDING').map(p => MONTHS[p.month - 1])
+  }));
+
+  // Map Academic Intelligence
+  const classAverages = schoolClasses.map(c => {
+    const classGrades = allGrades.filter(g => g.student.classId === c.id);
+    const avg = classGrades.length ? classGrades.reduce((acc, curr) => acc + curr.score, 0) / classGrades.length : 0;
+    
+    // Breakdown by subject
+    const subjectAvgs = allSubjects.map(sub => {
+      const subGrades = classGrades.filter(g => g.subjectId === sub.id);
+      return {
+        subject: sub.name,
+        avg: subGrades.length ? subGrades.reduce((acc, curr) => acc + curr.score, 0) / subGrades.length : 0
+      };
+    }).filter(s => s.avg > 0);
+
+    return { className: c.name, average: avg.toFixed(1), subjects: subjectAvgs };
+  });
+
+  // Map Operational Intelligence (Workload)
+  const teacherWorkload = allTeachers.map(t => ({
+    name: `${t.name} ${t.surname}`,
+    lessons: allLessons.filter(l => l.teacherId === t.id).length,
+    slots: teacherTimetables.filter(slot => slot.teacherId === t.id).length
   }));
 
   // 2. AGGREGATES & CALCULATIONS
@@ -390,7 +436,22 @@ const AdminPage = async ({
       },
       personnelPaymentStatus: personnelMap,
       studentLedger: studentLedger,
-      unpaidSummary: unpaidFees.slice(0, 10)
+      unpaidSummary: unpaidFees.slice(0, 10),
+      // NEW INTELLIGENCE LAYERS
+      academics: {
+        classAverages: classAverages,
+        overallAvg: allGrades.length ? (allGrades.reduce((acc, curr) => acc + curr.score, 0) / allGrades.length).toFixed(1) : 0
+      },
+      operations: {
+        teacherWorkloads: teacherWorkload,
+        totalLessons: allLessons.length,
+        notices: allNotices.map(n => ({ title: n.title, message: n.message, date: n.date }))
+      },
+      demographics: {
+        male: maleStudents,
+        female: femaleStudents,
+        total: studentCount
+      }
     }
   };
 
