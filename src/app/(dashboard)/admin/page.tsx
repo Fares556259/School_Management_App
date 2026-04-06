@@ -106,7 +106,10 @@ const AdminPage = async ({
     yearPaymentStatus,
     yearIncomeByCategory,
     yearExpenseByCategory,
-    recentAuditLogs
+    recentAuditLogs,
+    allTeachers,
+    allStaffMemberData,
+    allPaymentsThisYear
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -199,8 +202,29 @@ const AdminPage = async ({
       _sum: { amount: true },
       where: { date: { gte: new Date(now.getFullYear(), 0, 1) } }
     }),
-    prisma.auditLog.findMany({ take: 20, orderBy: { timestamp: 'desc' } })
+    prisma.auditLog.findMany({ take: 20, orderBy: { timestamp: 'desc' } }),
+    // FULL PERSONNEL STATUS
+    prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.staff.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.payment.findMany({ 
+      where: { 
+        year: now.getFullYear(),
+        userType: { in: ["TEACHER", "STAFF"] }
+      },
+      select: { month: true, status: true, userType: true, teacherId: true, staffId: true }
+    })
   ]);
+
+  // Map Personnel Payments for AI
+  const personnelMap = [...allTeachers, ...allStaffMemberData].map(p => {
+    const history = allPaymentsThisYear.filter(pay => pay.teacherId === p.id || pay.staffId === p.id);
+    return {
+      name: `${p.name} ${p.surname}`,
+      id: p.id,
+      paidMonths: history.filter(h => h.status === 'PAID').map(h => MONTHS[h.month - 1]),
+      pendingMonths: history.filter(h => h.status === 'PENDING').map(h => MONTHS[h.month - 1])
+    };
+  });
 
   // 2. AGGREGATES & CALCULATIONS
   const currentIncome = (incomeThisPeriod._sum.amount || 0) + (studentPaymentsThisPeriod._sum.amount || 0);
@@ -339,6 +363,7 @@ const AdminPage = async ({
           time: log.timestamp
         }))
       },
+      personnelPaymentStatus: personnelMap,
       debtors: unpaidFees.slice(0, 15)
     }
   };
