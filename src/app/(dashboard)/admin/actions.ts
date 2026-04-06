@@ -248,52 +248,86 @@ export async function getFinancialReportData(monthLabel: string): Promise<Report
 export async function getAIFinancialReport(reportData: any): Promise<string> {
   try {
     const prompt = `
-You are a Lead Financial Auditor and CFO for SnapSchool, a private education institution.
-Your task is to generate a comprehensive, professional, and deep-dive Fiscal Audit Review.
+You are a senior business consultant and financial analyst with expertise in strategy, operations, and scaling companies.
 
-MONTH: ${reportData.month}
+You are given structured business data (financials, operations, and performance metrics).
 
-EXECUTIVE FINANCIAL SNAPSHOT:
-----------------------------
-- Net Monthly Performance: $${reportData.metrics.netPerformance.toLocaleString()}
-- Profit Margin: ${reportData.metrics.margin.toFixed(1)}%
-- Total Income Generated: $${(reportData.metrics.totalTuitionIncome + reportData.incomeBreakdown.reduce((a:any,b:any)=>a+b.amount,0)).toLocaleString()}
-- Total Operational Cost: $${reportData.metrics.totalGeneralExpenses.toLocaleString()}
-- Payroll Commitment: $${reportData.metrics.totalSalaryExpenses.toLocaleString()}
-- Outstanding Arrears (Unpaid): $${reportData.metrics.unpaidArrears.toLocaleString()}
+Your task is to generate a HIGH-QUALITY, PROFESSIONAL business report that provides deep analysis and actionable decisions.
 
-DETAILED DATA SET:
------------------
-Full JSON Context:
+INPUT DATA:
 ${JSON.stringify(reportData, null, 2)}
 
 ---
 
-REPORT STRUCTURE GUIDELINES (USE BOLD MARKDOWN):
+INSTRUCTIONS:
 
-### 1. STRATEGIC EXECUTIVE OVERVIEW
-Interpret the overall health of the school this month. Is the margin healthy? How does it compare to typical educational overhead?
+Generate a comprehensive report with the following sections:
 
-### 2. AUDIT OF REVENUE STREAMS
-Analyze Tuition vs Other income. Comment on the impact of Arrears (unpaid fees) on liquidity.
+### 1. Executive Summary
 
-### 3. EXPENDITURE & PAYROLL ANALYSIS
-Review salary distributions. Highlight top paid talent and general operational overhead.
+* Clear overview of the business performance
+* Highlight key wins, risks, and overall health (growing, stable, declining)
 
-### 4. ANOMALIES & COMPLIANCE RISKS
-Directly address any duplicates, mismatches, or unpaid staff members identified in the data.
+### 2. Financial Analysis
 
-### 5. STRATEGIC RECOMMENDATIONS
-Provide 3 specific, data-driven recommendations to improve the bottom line or operational efficiency.
+* Revenue, expenses, and profit breakdown
+* Cost structure analysis
+* Identify main cost drivers and inefficiencies
+* Highlight unusual patterns or risks
+
+### 3. Operational Insights
+
+* Analyze efficiency of operations (staff, processes, resources)
+* Identify bottlenecks or underperformance
+* Detect any waste or optimization opportunities
+
+### 4. Performance Trends
+
+* Compare current data with previous periods (if available)
+* Identify growth, decline, or stagnation patterns
+* Highlight key drivers behind changes
+
+### 5. Risk & Anomaly Detection
+
+* Identify critical issues (financial, operational, or structural)
+* Explain impact of each risk
+* Prioritize by severity (high, medium, low)
+
+### 6. Strategic Insights
+
+* Explain what is really driving the business (core levers)
+* Identify opportunities for growth
+* Highlight competitive advantages or weaknesses
+
+### 7. Actionable Recommendations (MOST IMPORTANT)
+
+Provide 5–10 clear, practical, high-impact actions:
+
+* Each recommendation must:
+
+  * Be specific (not generic)
+  * Be immediately actionable
+  * Include expected impact (cost reduction, revenue increase, efficiency gain)
+  * Be prioritized (High / Medium / Low impact)
+
+### 8. Conclusion
+
+* Short final assessment
+* Clear direction: what should be done next
+
+---
 
 RULES:
-- Use a formal, authoritative, yet supportive tone.
-- Do NOT just list numbers; provide context.
-- Keep the language suitable for a Board of Directors meeting.
-- Use Markdown formatting strictly (headers, lists, bold text).
+
+* Be concise but insightful (no fluff)
+* Think like a CEO advisor, not a generic AI
+* Focus on decisions, not just descriptions
+* Use bullet points for clarity
+* Use numbers and percentages when possible
+* If data is incomplete, make reasonable assumptions and state them
 
 OUTPUT:
-Return ONLY the Markdown report content.
+Return only the final report (well-structured, clean, professional)
     `;
 
     return await callGeminiDirect(prompt);
