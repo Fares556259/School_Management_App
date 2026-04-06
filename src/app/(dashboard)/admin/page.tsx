@@ -18,6 +18,7 @@ import FinancialBreakdown from "./components/FinancialBreakdown";
 import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
+import GrowthAnalyticsChart from "./components/GrowthAnalyticsChart";
 import MonthYearFilter from "./components/MonthYearFilter"; // We will create this
 import SnapAssistant from "./components/SnapAssistant";
 // import { checkModels } from "./actions/aiActions";
@@ -71,7 +72,7 @@ const AdminPage = async ({
     prevEndDate = new Date(now.getFullYear(), now.getMonth(), 1);
   }
 
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
   // 1. DATA FETCHING (Using dynamic date ranges)
   const [
@@ -169,15 +170,15 @@ const AdminPage = async ({
         staff: { select: { id: true, name: true, surname: true, phone: true } },
       }
     }),
-    // Historical Trends
-    prisma.income.findMany({ where: { date: { gte: sixMonthsAgo }, NOT: { category: "Tuition" } }, select: { date: true, amount: true } }),
-    prisma.expense.findMany({ where: { date: { gte: sixMonthsAgo }, NOT: { category: "Salary" } }, select: { date: true, amount: true } }),
+    // Historical Trends (12 Months)
+    prisma.income.findMany({ where: { date: { gte: twelveMonthsAgo }, NOT: { category: "Tuition" } }, select: { date: true, amount: true } }),
+    prisma.expense.findMany({ where: { date: { gte: twelveMonthsAgo }, NOT: { category: "Salary" } }, select: { date: true, amount: true } }),
     prisma.payment.findMany({ 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: sixMonthsAgo } }, 
+      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: twelveMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
     }),
     prisma.payment.findMany({ 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: sixMonthsAgo } }, 
+      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: twelveMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
     }),
     // AI ENRICHMENT DATA FETCH
@@ -306,9 +307,9 @@ const AdminPage = async ({
   const prevExpense = (expensePrevPeriod._sum.amount || 0) + (salaryPaymentsPrevPeriod._sum.amount || 0);
   const prevBalance = prevIncome - prevExpense;
 
-  // Process Historical Data
+  // Process Historical Data (Last 12 Months)
   const trendData = [];
-  for (let i = 5; i >= 0; i--) {
+  for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthName = MONTHS[d.getMonth()];
     
@@ -437,6 +438,8 @@ const AdminPage = async ({
       personnelPaymentStatus: personnelMap,
       studentLedger: studentLedger,
       unpaidSummary: unpaidFees.slice(0, 10),
+      // NEW TREND INTELLIGENCE
+      historicalTrends: trendData,
       // NEW INTELLIGENCE LAYERS
       academics: {
         classAverages: classAverages,
@@ -489,13 +492,31 @@ const AdminPage = async ({
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
                 <FiscalTimeFilter activeFilter={timeFilter} />
              </div>
-             <FiscalBarChart 
+              <FiscalBarChart 
                 incomeData={incomeBreakdown}
                 expenseData={expenseBreakdown}
              />
           </div>
           
-          <CashFlowTrend data={trendData} />
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+             <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Growth Analytics & AI Projection</h2>
+                  <p className="text-xs text-slate-400 font-medium mt-1">12-month historical performance + 3-month AI predictive forecasting</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Revenue</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-slate-200" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Expense</span>
+                  </div>
+                </div>
+             </div>
+             <GrowthAnalyticsChart data={trendData} />
+          </div>
         </div>
 
         {/* RIGHT COLUMN - Insights & Reports */}
