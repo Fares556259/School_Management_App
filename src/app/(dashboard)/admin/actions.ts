@@ -248,11 +248,11 @@ export async function getFinancialReportData(monthLabel: string): Promise<Report
 export async function getAIFinancialReport(reportData: any): Promise<string> {
   try {
     const prompt = `
-You are a senior business consultant and financial strategist specializing in SaaS, education businesses, and financial modeling.
+You are a senior business consultant and financial analyst with expertise in strategy, operations, and scaling companies.
 
-You are analyzing structured business data for SnapSchool (a school management SaaS).
+You are given structured business data (financials, operations, and performance metrics) for SnapSchool.
 
-Your objective is to generate a HIGH-QUALITY, INVESTOR-GRADE business report with deep insights, clear reasoning, and actionable decisions.
+Your task is to generate a HIGH-QUALITY, PROFESSIONAL business report that provides deep analysis and actionable decisions, incorporating the following financial modeling principles:
 
 INPUT DATA:
 ${JSON.stringify(reportData, null, 2)}
@@ -261,109 +261,62 @@ ${JSON.stringify(reportData, null, 2)}
 
 INSTRUCTIONS:
 
-Generate a comprehensive report with the following sections:
+Generate a comprehensive report with the following specific sections (reflecting professional financial modeling standards):
 
 ### 1. EXECUTIVE SUMMARY & BUSINESS HEALTH
+* Clear overview of the monthly performance.
+* Highlight key wins, risks, and overall health (Growing, Stable, or Declining).
+* Statement on the current **Path to Profitability** and operational leverage.
 
-* Provide a clear assessment: **Growing, Stable, or Declining**
-* Quantify performance using key numbers (%, growth rates, totals)
-* Evaluate **path to profitability** and operational leverage
-* Highlight 2–3 critical insights that matter most
+### 2. CORE REVENUE ASSUMPTIONS
+* Analyze revenue by segments (Tuition, Enrollment, Extra-curricular).
+* Comment on **Occupancy Rates** (capacity vs actual) and their impact on the bottom line.
+* Identify if current revenue meets the projected forecast.
 
----
+### 3. FINANCIAL ANALYSIS & ROI METRICS
+* Revenue, Expenses, and Profit breakdown.
+* Analyze **Return on Investment (ROI)** and **Return on Equity (ROE)** indicators if possible.
+* Highlight **EBITDA Growth** or stability.
 
-### 2. CORE REVENUE ANALYSIS
-
-* Break down revenue streams (Tuition, Enrollment, Extra)
-* Analyze **Occupancy Rate vs Capacity**
-* Identify revenue drivers using numbers (e.g., “80% of revenue comes from X”)
-* Detect unrealistic or risky assumptions
-
----
-
-### 3. FINANCIAL PERFORMANCE & PROFITABILITY
-
-* Analyze Revenue, Expenses, Profit
-* Evaluate margins (Gross, EBITDA if available)
-* Identify cost inefficiencies (with estimated % impact)
-* Comment on scalability of the model
-
----
-
-### 4. CASH FLOW & LIQUIDITY
-
-* Identify **cash flow risks or gaps**
-* Analyze impact of unpaid fees (arrears)
-* Estimate liquidity pressure (low / medium / high)
-* Suggest financial protections (specific, not generic)
-
----
+### 4. CASH FLOW DYNAMICS & LIQUIDITY
+* Identify any **Cash Flow Gaps** or seasonal dips.
+* Analyze the impact of Arrears (unpaid fees) on school liquidity.
+* Suggestions to protect cash flow (e.g., pre-payment discounts, line of credit).
 
 ### 5. BREAK-EVEN & PROFITABILITY PATH
-
-* Estimate how far the business is from break-even
-* Identify key variables needed to reach it (e.g., +15% occupancy)
-* Provide timeline assumptions if possible
-
----
+* Identify how close the school is to the **Break-even Point** (Revenue = Total Costs).
+* Discuss the timeline for hitting key financial milestones.
 
 ### 6. SCENARIO & RISK ANALYSIS
+* Perform a "What-if" analysis (e.g., impact of a 10% drop in occupancy).
+* Identify critical issues (Financial, Operational, or Structural).
+* Prioritize risks by severity (High, Medium, Low).
 
-* Perform at least ONE quantitative scenario:
-  Example: “If occupancy drops 10%, revenue decreases by X%”
-* Identify top 3 risks and explain:
+### 7. STRATEGIC INSIGHTS & CORE LEVERS
+* Explain what is really driving the business this month (the Core Levers).
+* Identify opportunities for growth or high-margin summer/specialty programs.
 
-  * Root cause
-  * Impact
-  * Likelihood
+### 8. ACTIONABLE RECOMMENDATIONS (MOST IMPORTANT)
+Provide 5–10 clear, practical, high-impact actions. Each recommendation must:
+* Be specific and immediately actionable.
+* Include **Expected Impact** (Cost reduction, revenue increase, or efficiency gain).
+* Be prioritized (High / Medium / Low impact).
 
----
-
-### 7. STRATEGIC INSIGHTS (DEEP ANALYSIS)
-
-* Identify the TRUE drivers of the business (core levers)
-* Explain WHY performance is what it is (root-cause thinking)
-* Highlight hidden opportunities (e.g., pricing, utilization, upsells)
-
----
-
-### 8. ACTIONABLE RECOMMENDATIONS (CRITICAL SECTION)
-
-Provide 5–10 high-impact actions.
-
-Each recommendation MUST include:
-
-* Action (clear and specific)
-* Expected Impact (quantified if possible: %, revenue, cost)
-* Priority (High / Medium / Low based on impact vs effort)
-
-Focus on:
-
-* Increasing revenue
-* Reducing costs
-* Improving efficiency
-
----
-
-### 9. FINAL VERDICT & NEXT STEPS
-
-* Should the business continue current strategy?
-* What are the TOP 3 priorities for next month?
+### 9. CONCLUSION & DIRECTION
+* Short final assessment.
+* What should the CEO/Director do next to ensure continued growth?
 
 ---
 
 RULES:
-
-* Use NUMBERS wherever possible (%, amounts, trends)
-* Avoid generic statements
-* Be concise but insightful
-* Think like an investor + CEO advisor
-* If data is missing, make reasonable assumptions and state them
-* Prioritize depth over length
+* Be concise but insightful (no fluff).
+* Think like a CEO advisor, not a generic AI.
+* Focus on decisions, not just descriptions.
+* Use bullet points, bold text, and percentages for maximum readability.
+* If data is incomplete, make reasonable assumptions and state them clearly.
 
 OUTPUT:
-Return a clean, well-structured Markdown report.
-
+Return only the final Markdown report (well-structured, clean, professional).
     `;
 
     return await callGeminiDirect(prompt);
