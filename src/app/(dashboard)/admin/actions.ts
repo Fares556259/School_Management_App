@@ -297,18 +297,15 @@ Generate a comprehensive report with the following specific sections (reflecting
 * Identify opportunities for growth or high-margin summer/specialty programs.
 
 ### 8. ACTIONABLE RECOMMENDATIONS (MOST IMPORTANT)
-Provide 5–10 clear, practical, high-impact actions. Each recommendation must:
-* Be specific and immediately actionable.
-* Include **Expected Impact** (Cost reduction, revenue increase, or efficiency gain).
-* Be prioritized (High / Medium / Low impact).
-
-### 9. CONCLUSION & DIRECTION
-* Short final assessment.
-* What should the CEO/Director do next to ensure continued growth?
+Provide 5–10 clear, practical, high-impact actions. Each recommendation must follow this EXACT format:
+1. **[Bold Recommendation Title]**: Detailed description of the action.
+    * **Expected Impact**: [Cost reduction, revenue increase, or efficiency gain quantified].
+    * **Priority**: [High / Medium / Low].
 
 ---
 
 RULES:
+* **IMPORTANT: DO NOT use Markdown tables.** They are hard to read on mobile/PDF. Use structured lists only.
 * Be concise but insightful (no fluff).
 * Think like a CEO advisor, not a generic AI.
 * Focus on decisions, not just descriptions.

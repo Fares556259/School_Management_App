@@ -126,11 +126,11 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                         </div>
                                     ),
                                     p: ({node, ...props}) => <p className="text-xl leading-relaxed text-[#0F172A] font-medium mb-8" {...props} />,
-                                    ul: ({node, ...props}) => <ul className="pl-0 space-y-6 mb-12" {...props} />,
+                                    ul: ({node, ...props}) => <ul className="list-none space-y-4 mb-8 pl-6" {...props} />,
+                                    ol: ({node, ...props}) => <ol className="list-decimal space-y-8 mb-8 pl-6 marker:text-[#2563EB] marker:font-black" {...props} />,
                                     li: ({node, ...props}) => (
-                                        <li className="list-none flex items-start gap-4 text-xl">
-                                            <div className="mt-2.5 w-2 h-2 rounded-full bg-[#2563EB] shrink-0" />
-                                            <span className="text-[#0F172A] font-medium leading-relaxed">{props.children}</span>
+                                        <li className="relative group">
+                                            <span className="text-[#0F172A] font-medium leading-relaxed block">{props.children}</span>
                                         </li>
                                     ),
                                     strong: ({node, children, ...props}) => {
