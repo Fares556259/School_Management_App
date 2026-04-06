@@ -300,7 +300,7 @@ REPORT SECTIONS:
 
 ### 8. MANDATORY TACTICAL ACTIONS
 Provide 5–8 clear, high-impact actions. Format each as:
-1. **[ACTION TITLE]**: Concise description of the execution step.
+1. **ACTION TITLE**: Concise description of the execution step.
     - **Expected Outcome**: Quantify (e.g., "Reduce payroll overhead by 5%").
     - **Urgency**: [High / Medium / Low].
 
