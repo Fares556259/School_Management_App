@@ -250,9 +250,9 @@ export async function getAIFinancialReport(reportData: any): Promise<string> {
     const prompt = `
 You are a senior business consultant and financial analyst with expertise in strategy, operations, and scaling companies.
 
-You are given structured business data (financials, operations, and performance metrics).
+You are given structured business data (financials, operations, and performance metrics) for SnapSchool.
 
-Your task is to generate a HIGH-QUALITY, PROFESSIONAL business report that provides deep analysis and actionable decisions.
+Your task is to generate a HIGH-QUALITY, PROFESSIONAL business report that provides deep analysis and actionable decisions, incorporating the following financial modeling principles:
 
 INPUT DATA:
 ${JSON.stringify(reportData, null, 2)}
@@ -261,73 +261,62 @@ ${JSON.stringify(reportData, null, 2)}
 
 INSTRUCTIONS:
 
-Generate a comprehensive report with the following sections:
+Generate a comprehensive report with the following specific sections (reflecting professional financial modeling standards):
 
-### 1. Executive Summary
+### 1. EXECUTIVE SUMMARY & BUSINESS HEALTH
+* Clear overview of the monthly performance.
+* Highlight key wins, risks, and overall health (Growing, Stable, or Declining).
+* Statement on the current **Path to Profitability** and operational leverage.
 
-* Clear overview of the business performance
-* Highlight key wins, risks, and overall health (growing, stable, declining)
+### 2. CORE REVENUE ASSUMPTIONS
+* Analyze revenue by segments (Tuition, Enrollment, Extra-curricular).
+* Comment on **Occupancy Rates** (capacity vs actual) and their impact on the bottom line.
+* Identify if current revenue meets the projected forecast.
 
-### 2. Financial Analysis
+### 3. FINANCIAL ANALYSIS & ROI METRICS
+* Revenue, Expenses, and Profit breakdown.
+* Analyze **Return on Investment (ROI)** and **Return on Equity (ROE)** indicators if possible.
+* Highlight **EBITDA Growth** or stability.
 
-* Revenue, expenses, and profit breakdown
-* Cost structure analysis
-* Identify main cost drivers and inefficiencies
-* Highlight unusual patterns or risks
+### 4. CASH FLOW DYNAMICS & LIQUIDITY
+* Identify any **Cash Flow Gaps** or seasonal dips.
+* Analyze the impact of Arrears (unpaid fees) on school liquidity.
+* Suggestions to protect cash flow (e.g., pre-payment discounts, line of credit).
 
-### 3. Operational Insights
+### 5. BREAK-EVEN & PROFITABILITY PATH
+* Identify how close the school is to the **Break-even Point** (Revenue = Total Costs).
+* Discuss the timeline for hitting key financial milestones.
 
-* Analyze efficiency of operations (staff, processes, resources)
-* Identify bottlenecks or underperformance
-* Detect any waste or optimization opportunities
+### 6. SCENARIO & RISK ANALYSIS
+* Perform a "What-if" analysis (e.g., impact of a 10% drop in occupancy).
+* Identify critical issues (Financial, Operational, or Structural).
+* Prioritize risks by severity (High, Medium, Low).
 
-### 4. Performance Trends
+### 7. STRATEGIC INSIGHTS & CORE LEVERS
+* Explain what is really driving the business this month (the Core Levers).
+* Identify opportunities for growth or high-margin summer/specialty programs.
 
-* Compare current data with previous periods (if available)
-* Identify growth, decline, or stagnation patterns
-* Highlight key drivers behind changes
+### 8. ACTIONABLE RECOMMENDATIONS (MOST IMPORTANT)
+Provide 5–10 clear, practical, high-impact actions. Each recommendation must:
+* Be specific and immediately actionable.
+* Include **Expected Impact** (Cost reduction, revenue increase, or efficiency gain).
+* Be prioritized (High / Medium / Low impact).
 
-### 5. Risk & Anomaly Detection
-
-* Identify critical issues (financial, operational, or structural)
-* Explain impact of each risk
-* Prioritize by severity (high, medium, low)
-
-### 6. Strategic Insights
-
-* Explain what is really driving the business (core levers)
-* Identify opportunities for growth
-* Highlight competitive advantages or weaknesses
-
-### 7. Actionable Recommendations (MOST IMPORTANT)
-
-Provide 5–10 clear, practical, high-impact actions:
-
-* Each recommendation must:
-
-  * Be specific (not generic)
-  * Be immediately actionable
-  * Include expected impact (cost reduction, revenue increase, efficiency gain)
-  * Be prioritized (High / Medium / Low impact)
-
-### 8. Conclusion
-
-* Short final assessment
-* Clear direction: what should be done next
+### 9. CONCLUSION & DIRECTION
+* Short final assessment.
+* What should the CEO/Director do next to ensure continued growth?
 
 ---
 
 RULES:
-
-* Be concise but insightful (no fluff)
-* Think like a CEO advisor, not a generic AI
-* Focus on decisions, not just descriptions
-* Use bullet points for clarity
-* Use numbers and percentages when possible
-* If data is incomplete, make reasonable assumptions and state them
+* Be concise but insightful (no fluff).
+* Think like a CEO advisor, not a generic AI.
+* Focus on decisions, not just descriptions.
+* Use bullet points, bold text, and percentages for maximum readability.
+* If data is incomplete, make reasonable assumptions and state them clearly.
 
 OUTPUT:
-Return only the final report (well-structured, clean, professional)
+Return only the final Markdown report (well-structured, clean, professional).
     `;
 
     return await callGeminiDirect(prompt);
