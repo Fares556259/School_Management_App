@@ -31,7 +31,11 @@ export interface ReportData {
 }
 
 export async function getFinancialReportData(monthLabel: string): Promise<ReportData> {
-  const [monthName, yearStr] = monthLabel.split(" ");
+  // Handle both "April 2026" and "April_2026"
+  const parts = monthLabel.includes("_") ? monthLabel.split("_") : monthLabel.split(" ");
+  const monthName = parts[0];
+  const yearStr = parts[1];
+
   const MONTHS = [
     "January","February","March","April","May","June",
     "July","August","September","October","November","December"
@@ -39,6 +43,10 @@ export async function getFinancialReportData(monthLabel: string): Promise<Report
 
   const monthIdx = MONTHS.indexOf(monthName) + 1;
   const yearVal = parseInt(yearStr);
+
+  if (!yearVal || monthIdx === 0) {
+    throw new Error(`Invalid month/year provided: ${monthLabel}`);
+  }
 
   const prevMonthIdx = monthIdx === 1 ? 12 : monthIdx - 1;
   const prevYearVal = monthIdx === 1 ? yearVal - 1 : yearVal;
