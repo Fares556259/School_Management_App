@@ -35,7 +35,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
     return (
         <div className="bg-[#F8FAFC] min-h-screen text-[#0F172A] font-inter">
             {/* Fonts */}
-            <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
             
             {/* Auto-print script */}
             <script dangerouslySetInnerHTML={{ __html: `window.onload = () => { setTimeout(() => window.print(), 1500); }` }} />
@@ -45,16 +45,16 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                 {/* --- PAGE 1: COVER PAGE --- */}
                 <div className="h-[1414px] w-full relative flex flex-col justify-center px-24 bg-white border-b-8 border-[#2563EB]">
                     <div className="absolute top-24 left-24 flex items-center gap-4">
-                        <div className="w-12 h-12 bg-[#2563EB] rounded-2xl flex items-center justify-center text-white text-2xl font-black">S</div>
+                        <div className="w-12 h-12 bg-[#2563EB] rounded-2xl flex items-center justify-center text-white text-2xl font-black italic">S</div>
                         <span className="text-2xl font-black tracking-tighter text-[#0F172A]">SnapSchool</span>
                     </div>
                     
                     <div className="space-y-8">
                         <span className="text-sm font-bold uppercase tracking-[0.4em] text-[#2563EB]">Fiscal Audit Review</span>
-                        <h1 className="text-8xl font-playfair font-black leading-[0.9] text-[#0F172A]">
+                        <h1 className="text-8xl font-black leading-[0.9] text-[#0F172A] tracking-tighter">
                             Financial Report – {monthLabel}
                         </h1>
-                        <p className="text-2xl text-[#64748B] font-medium max-w-xl leading-relaxed italic">
+                        <p className="text-2xl text-[#64748B] font-medium max-w-xl leading-relaxed">
                             Comprehensive performance analysis, operational audits, and strategic scalability roadmap.
                         </p>
                     </div>
@@ -79,10 +79,10 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                 {/* --- PAGE 2: EXECUTIVE SUMMARY --- */}
                 <div className="min-h-[1414px] w-full px-24 py-24 bg-white border-b border-slate-100">
                     <div className="flex justify-between items-start mb-20">
-                        <h2 className="text-4xl font-playfair font-black text-[#0F172A]">Executive Summary</h2>
+                        <h2 className="text-4xl font-black text-[#0F172A] tracking-tight">Executive Summary</h2>
                         <div className="text-right">
                             <p className="text-[10px] font-black text-[#64748B] uppercase tracking-widest mb-1">Fiscal Period</p>
-                            <p className="text-xl font-black text-[#2563EB] italic underline decoration-4 underline-offset-8 decoration-[#2563EB]/20">{monthLabel}</p>
+                            <p className="text-xl font-black text-[#2563EB] underline decoration-4 underline-offset-8 decoration-[#2563EB]/20">{monthLabel}</p>
                         </div>
                     </div>
 
@@ -93,21 +93,21 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                 <span className="text-[10px] font-black text-[#64748B] uppercase tracking-widest">Gross Revenue</span>
                                 <span className="text-[#10B981] font-bold text-xs bg-[#10B981]/10 px-2 py-0.5 rounded-full">+12% vs LY</span>
                             </div>
-                            <p className="text-4xl font-playfair font-black text-[#0F172A] italic">${totalIncome.toLocaleString()}</p>
+                            <p className="text-4xl font-black text-[#0F172A]">${totalIncome.toLocaleString()}</p>
                             <div className="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-[#10B981] w-[85%]" />
                             </div>
                         </div>
                         <div className="p-8 bg-[#F8FAFC] rounded-[32px] border border-slate-100 space-y-4">
                             <span className="text-[10px] font-black text-[#64748B] uppercase tracking-widest">Total Expenses</span>
-                            <p className="text-4xl font-playfair font-black text-[#0F172A] italic">${totalExpense.toLocaleString()}</p>
+                            <p className="text-4xl font-black text-[#0F172A]">${totalExpense.toLocaleString()}</p>
                             <div className="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-[#EF4444] w-[65%]" />
                             </div>
                         </div>
                         <div className="p-8 bg-[#2563EB] rounded-[32px] shadow-xl shadow-blue-100 space-y-4">
                             <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Net Profit</span>
-                            <p className="text-4xl font-playfair font-black text-white italic">${profit.toLocaleString()}</p>
+                            <p className="text-4xl font-black text-white">${profit.toLocaleString()}</p>
                             <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
                                 <div className="h-full bg-white w-[73%]" />
                             </div>
@@ -121,7 +121,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                 components={{
                                     h3: ({node, ...props}) => (
                                         <div className="mt-20 mb-10">
-                                            <h3 className="text-4xl font-playfair font-black text-[#0F172A] mb-4" {...props} />
+                                            <h3 className="text-4xl font-black text-[#0F172A] mb-4 tracking-tight" {...props} />
                                             <div className="h-1 w-24 bg-[#2563EB]" />
                                         </div>
                                     ),
@@ -185,9 +185,8 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
             </div>
             
             <style dangerouslySetInnerHTML={{ __html: `
-                @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,900&family=Inter:wght@400;500;600;700;800&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
                 
-                .font-playfair { font-family: 'Playfair Display', serif; }
                 .font-inter { font-family: 'Inter', sans-serif; }
                 
                 @media print {
