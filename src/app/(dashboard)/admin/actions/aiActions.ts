@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "";
 
 // DIRECT FETCH IMPLEMENTATION WITH MULTI-MODEL FALLBACK AND OPENROUTER SUPPORT
-async function callGeminiDirect(prompt: string) {
+export async function callGeminiDirect(prompt: string) {
     if (!apiKey) throw new Error("Missing API Key");
 
     const isOpenRouter = apiKey.startsWith("sk-or-");
