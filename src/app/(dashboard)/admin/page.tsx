@@ -109,7 +109,8 @@ const AdminPage = async ({
     recentAuditLogs,
     allTeachers,
     allStaffMemberData,
-    allPaymentsThisYear
+    allPaymentsThisYear,
+    allStudents
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -212,6 +213,18 @@ const AdminPage = async ({
         userType: { in: ["TEACHER", "STAFF"] }
       },
       select: { month: true, status: true, userType: true, teacherId: true, staffId: true }
+    }),
+    // FULL STUDENT LEDGER FOR AI
+    prisma.student.findMany({
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        payments: {
+          where: { year: now.getFullYear() },
+          select: { status: true, month: true }
+        }
+      }
     })
   ]);
 
@@ -221,10 +234,17 @@ const AdminPage = async ({
     return {
       name: `${p.name} ${p.surname}`,
       id: p.id,
-      paidMonths: history.filter(h => h.status === 'PAID').map(h => MONTHS[h.month - 1]),
-      pendingMonths: history.filter(h => h.status === 'PENDING').map(h => MONTHS[h.month - 1])
+      paid: history.filter(h => h.status === 'PAID').map(h => MONTHS[h.month - 1]),
+      pending: history.filter(h => h.status === 'PENDING').map(h => MONTHS[h.month - 1])
     };
   });
+
+  // Map Student Ledger for AI (Compressed)
+  const studentLedger = allStudents.map(s => ({
+    n: `${s.name} ${s.surname}`,
+    paid: s.payments.filter(p => p.status === 'PAID').map(p => MONTHS[p.month - 1]),
+    pend: s.payments.filter(p => p.status === 'PENDING').map(p => MONTHS[p.month - 1])
+  }));
 
   // 2. AGGREGATES & CALCULATIONS
   const currentIncome = (incomeThisPeriod._sum.amount || 0) + (studentPaymentsThisPeriod._sum.amount || 0);
@@ -364,7 +384,8 @@ const AdminPage = async ({
         }))
       },
       personnelPaymentStatus: personnelMap,
-      debtors: unpaidFees.slice(0, 15)
+      studentLedger: studentLedger,
+      unpaidSummary: unpaidFees.slice(0, 10)
     }
   };
 
