@@ -55,7 +55,7 @@ export async function executeAICommand(command: AICommand) {
           prisma.auditLog.create({
             data: {
               action: "UPDATE",
-              performedBy: "SnapAssistant (AI)",
+              performedBy: "zbiba (AI)",
               entityType: "Payment",
               entityId: payment.id.toString(),
               description: `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
@@ -86,7 +86,7 @@ export async function executeAICommand(command: AICommand) {
         await prisma.auditLog.create({
           data: {
             action: "CREATE",
-            performedBy: "SnapAssistant (AI)",
+            performedBy: "zbiba (AI)",
             entityType: "Expense",
             entityId: expense.id.toString(),
             description: `AI recorded new expense: ${title} (Category: ${category})`,
@@ -117,7 +117,7 @@ export async function executeAICommand(command: AICommand) {
         await prisma.auditLog.create({
           data: {
             action: "CREATE",
-            performedBy: "SnapAssistant (AI)",
+            performedBy: "zbiba (AI)",
             entityType: "Income",
             entityId: income.id.toString(),
             description: `AI recorded new income: ${title} (Category: ${category})`,
@@ -146,7 +146,7 @@ export async function executeAICommand(command: AICommand) {
         await prisma.auditLog.create({
           data: {
             action: "CREATE",
-            performedBy: "SnapAssistant (AI)",
+            performedBy: "zbiba (AI)",
             entityType: "Notice",
             entityId: notice.id.toString(),
             description: `AI posted official notice: ${title}`,

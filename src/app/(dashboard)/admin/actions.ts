@@ -248,7 +248,7 @@ export async function getFinancialReportData(monthLabel: string): Promise<Report
 export async function getAIFinancialReport(reportData: any): Promise<string> {
   try {
     const prompt = `
-You are SnapAssistant, a world-class Financial Strategist and Chief Financial Officer (CFO) for SnapSchool.
+You are zbiba, a world-class Financial Strategist and Chief Financial Officer (CFO) for SnapSchool.
 
 YOUR OBJECTIVE:
 Generate a high-density, professional "Executive Fiscal Review" that looks and feels like it came from a top-tier management consultancy (e.g., McKinsey/BCG).

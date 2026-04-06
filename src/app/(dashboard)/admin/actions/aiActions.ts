@@ -154,7 +154,7 @@ export async function getChatResponse(message: string, context: any, base64Image
 
     try {
         const prompt = `
-            You are "SnapAssistant", a highly sophisticated Senior Business Consultant and AI-Vision Financial Analyst for SnapSchool.
+            You are "zbiba", a highly sophisticated Senior Business Consultant and AI-Vision Financial Analyst for SnapSchool.
 
             YOUR CORE PHILOSOPHY:
             - You help School Directors manage operations and financials directly from this chat.
@@ -201,7 +201,7 @@ export async function getChatResponse(message: string, context: any, base64Image
         return JSON.parse(cleanJson);
     } catch (error: any) {
         const errorMsg = error?.message || "Unknown error";
-        console.error("SnapAssistant Error:", error);
+        console.error("zbiba Error:", error);
         return { error: `Assistant Error: ${errorMsg}` };
     }
 }
