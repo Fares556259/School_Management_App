@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export type AICommand = {
-  type: "MARK_PAID" | "ADD_EXPENSE" | "POST_NOTICE";
+  type: "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE";
   data: any;
 };
 
@@ -48,7 +48,8 @@ export async function executeAICommand(command: AICommand) {
             where: { id: payment.id },
             data: {
               status: "PAID",
-              paidAt: new Date()
+              paidAt: new Date(),
+              img: command.data.img || undefined
             }
           }),
           prisma.auditLog.create({
@@ -77,7 +78,8 @@ export async function executeAICommand(command: AICommand) {
             title,
             amount: parseFloat(amount),
             category: category || "General",
-            date: date ? new Date(date) : new Date()
+            date: date ? new Date(date) : new Date(),
+            img: command.data.img || undefined
           }
         });
 
@@ -96,6 +98,37 @@ export async function executeAICommand(command: AICommand) {
 
         revalidatePath("/admin");
         return { success: true, message: `New expense '${title}' of $${amount} added successfully.` };
+      }
+
+      case "ADD_INCOME": {
+        const { title, amount, category, date, img } = command.data;
+        if (!title || !amount || !category) throw new Error("Missing income data");
+
+        const income = await prisma.income.create({
+          data: {
+            title,
+            amount: parseFloat(amount),
+            category: category || "General",
+            date: date ? new Date(date) : new Date(),
+            img: img || undefined
+          }
+        });
+
+        await prisma.auditLog.create({
+          data: {
+            action: "CREATE",
+            performedBy: "SnapAssistant (AI)",
+            entityType: "Income",
+            entityId: income.id.toString(),
+            description: `AI recorded new income: ${title} (Category: ${category})`,
+            amount: income.amount,
+            type: "income",
+            effectiveDate: income.date
+          }
+        });
+
+        revalidatePath("/admin");
+        return { success: true, message: `New income '${title}' of $${amount} added successfully.` };
       }
 
       case "POST_NOTICE": {

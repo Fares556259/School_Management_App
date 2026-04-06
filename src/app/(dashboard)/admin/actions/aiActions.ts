@@ -140,7 +140,7 @@ export async function getFinancialInsights(data: {
     }
 }
 
-export async function getChatResponse(message: string, context: any, base64Image?: string) {
+export async function getChatResponse(message: string, context: any, base64Image?: string, imageUrl?: string) {
     if (!apiKey) {
         return { error: "Missing API Key" };
     }
@@ -159,7 +159,9 @@ export async function getChatResponse(message: string, context: any, base64Image
                - Data: { "studentId"?: string, "teacherId"?: string, "staffId"?: string, "month": number, "year": number }
             2. **ADD_EXPENSE**: To record a new school expense.
                - Data: { "title": string, "amount": number, "category": string, "date"?: string }
-            3. **POST_NOTICE**: To publish a new announcement on the notice board.
+            3. **ADD_INCOME**: To record new non-student income (donations, grants, etc.).
+               - Data: { "title": string, "amount": number, "category": string, "date"?: string }
+            4. **POST_NOTICE**: To publish a new announcement on the notice board.
                - Data: { "title": string, "message": string }
 
             OFFICIAL SCHOOL DATA (CONTEXT):
@@ -171,10 +173,12 @@ export async function getChatResponse(message: string, context: any, base64Image
             GUIDELINES:
             1. If the user provides an image, automatically extract: Title, Amount, Category, and Date.
             2. If it's a student tuition slip, look for the student name in studentLedger and return MARK_PAID.
-            3. If it's a general receipt (electricity, supplies), return ADD_EXPENSE.
-            4. If the user just wants to perform an action via text, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
-            5. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
-            6. Be professional and confirm the extraction/action in your response.
+            3. If it's a general revenue source (donation, event gift), return ADD_INCOME.
+            4. If it's a general expense receipt (electricity, supplies), return ADD_EXPENSE.
+            5. If the user just wants to perform an action via text, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
+            6. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
+            7. If you generate a command and an imageUrl is provided (${imageUrl || "none"}), you MUST include it in the result command data as "img".
+            8. Be professional and confirm the extraction/action in your response.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 

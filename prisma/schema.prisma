@@ -209,6 +209,7 @@ model Payment {
   studentId String?
   teacherId String?
   staffId   String?
+  img       String?
   staff     Staff?        @relation(fields: [staffId], references: [id])
   student   Student?      @relation(fields: [studentId], references: [id])
   teacher   Teacher?      @relation(fields: [teacherId], references: [id])
