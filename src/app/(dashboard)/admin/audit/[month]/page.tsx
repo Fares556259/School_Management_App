@@ -143,6 +143,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                         }
                                         return <strong className="font-black text-[#0F172A] bg-yellow-50 px-1 rounded-sm" {...props}>{children}</strong>;
                                     },
+                                    hr: ({node, ...props}) => <hr className="my-20 border-slate-100" {...props} />,
                                     blockquote: ({node, children, ...props}) => (
                                         <div className="p-10 bg-[#F8FAFC] border-r-8 border-[#2563EB] rounded-3xl my-12 shadow-sm overflow-hidden">
                                             <p className="text-[10px] font-black text-[#2563EB] uppercase tracking-widest mb-6 flex items-center gap-2">
