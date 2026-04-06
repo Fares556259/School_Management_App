@@ -86,7 +86,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
 
                     {/* KPI CARDS (PREMIUM) */}
                     <div className="grid grid-cols-3 gap-6 mb-20">
-                        <div className="p-8 bg-[#F8FAFC] rounded-[40px] border border-slate-100/50 shadow-sm space-y-4">
+                        <div className="p-8 bg-gradient-to-br from-[#F8FAFC] to-[#F1F5F9] rounded-[40px] border border-slate-100/50 shadow-sm space-y-4">
                             <div className="flex items-center gap-2">
                                 <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-lg">💰</span>
                                 <span className="text-[10px] font-black text-[#64748B] uppercase tracking-widest">Revenue</span>
@@ -96,7 +96,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded-full">↑ Healthy Vol.</span>
                             </div>
                         </div>
-                        <div className="p-8 bg-[#F8FAFC] rounded-[40px] border border-slate-100/50 shadow-sm space-y-4">
+                        <div className="p-8 bg-gradient-to-br from-[#F8FAFC] to-[#F1F5F9] rounded-[40px] border border-slate-100/50 shadow-sm space-y-4">
                             <div className="flex items-center gap-2">
                                 <span className="p-2 bg-rose-50 text-rose-600 rounded-lg text-lg">📉</span>
                                 <span className="text-[10px] font-black text-[#64748B] uppercase tracking-widest">Expenses</span>
@@ -124,9 +124,9 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                             <ReactMarkdown 
                                 components={{
                                     h3: ({node, ...props}) => (
-                                        <div className="mt-20 mb-8 flex items-center gap-4">
-                                            <h3 className="text-2xl font-outfit font-black text-[#0F172A] uppercase tracking-tight" {...props} />
-                                            <div className="h-px grow bg-slate-100" />
+                                        <div className="mt-20 mb-8 flex items-center gap-4 bg-blue-50/50 p-4 rounded-xl border-l-4 border-blue-500">
+                                            <h3 className="text-xl font-outfit font-black text-[#1E3A8A] uppercase tracking-tight" {...props} />
+                                            <div className="h-px grow bg-blue-100" />
                                         </div>
                                     ),
                                     p: ({node, ...props}) => <p className="text-lg leading-relaxed text-[#334155] font-medium mb-8" {...props} />,
@@ -145,7 +145,6 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                     ),
                                     strong: ({node, children, ...props}) => {
                                         const originalText = String(children);
-                                        // Fail-safe: Strip accidental brackets [ ] from bold titles for a cleaner look
                                         const text = originalText.replace(/^\[|\]$/g, '').toLowerCase();
                                         const cleanDisplay = originalText.replace(/^\[|\]$/g, '');
 
@@ -155,14 +154,14 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                         if (text.includes("risk") || text.includes("issue")) {
                                             return <span className="text-rose-600 font-bold">{cleanDisplay}</span>;
                                         }
-                                        return <strong className="font-bold text-[#0F172A] border-b-2 border-indigo-50" {...props}>{cleanDisplay}</strong>;
+                                        return <strong className="font-extrabold text-blue-800 bg-blue-50/30 px-1 rounded-sm" {...props}>{cleanDisplay}</strong>;
                                     },
                                     hr: ({node, ...props}) => <hr className="my-16 border-slate-100" {...props} />,
                                     blockquote: ({node, children, ...props}) => (
-                                        <div className="p-10 bg-slate-50/50 border-l-4 border-[#3B82F6] rounded-2xl my-10 shadow-sm relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-4 opacity-5 text-6xl font-black">AI</div>
-                                            <p className="text-[10px] font-black text-[#3B82F6] uppercase tracking-[0.4em] mb-4 flex items-center gap-2">
-                                                Strategic Intelligence Insight
+                                        <div className="p-10 bg-indigo-50/50 border-l-4 border-[#4F46E5] rounded-3xl my-10 shadow-sm relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-4 opacity-5 text-6xl font-black text-indigo-900">AI</div>
+                                            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.4em] mb-4 flex items-center gap-2">
+                                                Strategic Intelligence Recommendation
                                             </p>
                                             <div className="text-lg italic font-medium text-[#1E293B] leading-relaxed">
                                                 {children}
