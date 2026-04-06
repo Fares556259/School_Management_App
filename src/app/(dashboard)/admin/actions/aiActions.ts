@@ -136,8 +136,8 @@ export async function getChatResponse(message: string, context: any) {
             - You can PERFORM ACTIONS in the database when the user requests them.
             
             AVAILABLE TOOLS (COMMANDS):
-            1. **MARK_PAID**: To mark a student's pending payment as PAID.
-               - Data: { "studentId": string, "month": number, "year": number }
+            1. **MARK_PAID**: To mark a Student, Teacher, or Staff pending payment as PAID.
+               - Data: { "studentId"?: string, "teacherId"?: string, "staffId"?: string, "month": number, "year": number }
             2. **ADD_EXPENSE**: To record a new school expense.
                - Data: { "title": string, "amount": number, "category": string, "date"?: string }
             3. **POST_NOTICE**: To publish a new announcement on the notice board.
@@ -150,9 +150,10 @@ export async function getChatResponse(message: string, context: any) {
             "${message}"
             
             GUIDELINES:
-            1. If the user wants to perform an action (e.g., "Mark X as paid"), identify the correct IDs/Data from the CONTEXT and return a COMMAND.
-            2. For MARK_PAID, look into the studentLedger to find the student's name and ID.
-            3. Be professional and confirm the action in your response.
+            1. If the user wants to perform an action, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
+            2. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
+            3. Look into studentLedger for students, and personnelPaymentStatus for teachers/staff to find IDs.
+            4. Be professional and confirm the action in your response.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 

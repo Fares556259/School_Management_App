@@ -12,23 +12,36 @@ export async function executeAICommand(command: AICommand) {
   try {
     switch (command.type) {
       case "MARK_PAID": {
-        const { studentId, month, year } = command.data;
-        if (!studentId || !month || !year) throw new Error("Missing payment data");
+        const { studentId, teacherId, staffId, month, year } = command.data;
+        if (!month || !year) throw new Error("Missing month/year data");
+        if (!studentId && !teacherId && !staffId) throw new Error("Missing recipient ID");
 
-        // Find the pending payment for this student, month, and year
+        // Find the pending payment
         const payment = await prisma.payment.findFirst({
           where: {
-            studentId,
+            studentId: studentId || undefined,
+            teacherId: teacherId || undefined,
+            staffId: staffId || undefined,
             month: parseInt(month),
             year: parseInt(year),
             status: "PENDING"
           },
-          include: { student: true }
+          include: { 
+            student: true,
+            teacher: true,
+            staff: true
+          }
         });
 
         if (!payment) throw new Error("No pending payment found for this period");
 
-        const studentName = payment.student ? `${payment.student.name} ${payment.student.surname}` : studentId;
+        const recipient = payment.student 
+          ? `${payment.student.name} ${payment.student.surname}`
+          : payment.teacher
+            ? `${payment.teacher.name} ${payment.teacher.surname}`
+            : payment.staff
+              ? `${payment.staff.name} ${payment.staff.surname}`
+              : "Unknown Recipient";
 
         await prisma.$transaction([
           prisma.payment.update({
@@ -44,15 +57,15 @@ export async function executeAICommand(command: AICommand) {
               performedBy: "SnapAssistant (AI)",
               entityType: "Payment",
               entityId: payment.id.toString(),
-              description: `AI marked payment as PAID for ${studentName} (Month: ${month}, Year: ${year})`,
+              description: `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
               amount: payment.amount,
-              type: "INCOME"
+              type: payment.student ? "INCOME" : "EXPENSE"
             }
           })
         ]);
         
         revalidatePath("/admin");
-        return { success: true, message: `Payment for month ${month}/${year} has been marked as PAID.` };
+        return { success: true, message: `Payment for ${recipient} (${month}/${year}) has been marked as PAID.` };
       }
 
       case "ADD_EXPENSE": {
