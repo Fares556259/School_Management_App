@@ -458,6 +458,34 @@ const AdminPage = async ({
     }
   };
 
+  // Process Daily Data for insights
+  const dailyMap: Record<string, { income: number; expense: number }> = {};
+  histIncome.filter(x => x.date >= startDate && x.date < endDate).forEach(x => {
+    const day = x.date.toISOString().split('T')[0];
+    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
+    dailyMap[day].income += x.amount;
+  });
+  histExpense.filter(x => x.date >= startDate && x.date < endDate).forEach(x => {
+    const day = x.date.toISOString().split('T')[0];
+    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
+    dailyMap[day].expense += x.amount;
+  });
+  histStudPayments.filter(x => x.paidAt! >= startDate && x.paidAt! < endDate).forEach(x => {
+    const day = x.paidAt!.toISOString().split('T')[0];
+    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
+    dailyMap[day].income += x.amount;
+  });
+  histSalPayments.filter(x => x.paidAt! >= startDate && x.paidAt! < endDate).forEach(x => {
+    const day = x.paidAt!.toISOString().split('T')[0];
+    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
+    dailyMap[day].expense += x.amount;
+  });
+
+  const dailyInsightsData = Object.entries(dailyMap).map(([date, vals]) => ({
+    date,
+    ...vals
+  })).sort((a, b) => a.date.localeCompare(b.date));
+
   return (
     <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen dashboard-chrome">
       {/* 1. HEADER SECTION */}
@@ -527,6 +555,7 @@ const AdminPage = async ({
             breakdown={fullBreakdown}
             prevIncome={prevIncome}
             month={MONTHS[startDate.getMonth()]}
+            dailyData={dailyInsightsData}
           />
 
           <FinancialQuickReport 
