@@ -23,7 +23,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm **SnapAssistant**. I now have **AI-Vision**: you can upload receipts or tuition slips and I will automatically process them for you. How can I help today?" }
+    { role: 'assistant', content: "Hi! I'm **zbiba**. I now have **AI-Vision**: you can upload receipts or tuition slips and I will automatically process them for you. How can I help today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -164,7 +164,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-white font-black tracking-tight text-lg leading-none">SnapAssistant</h3>
+                  <h3 className="text-white font-black tracking-tight text-lg leading-none">zbiba</h3>
                   <p className="text-indigo-100/70 text-[10px] font-black uppercase tracking-widest mt-1">AI Intelligence Layer</p>
                 </div>
               </div>
@@ -255,7 +255,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={selectedImage ? "Describe this image..." : "Ask SnapAssistant..."}
+                  placeholder={selectedImage ? "Describe this image..." : "Ask zbiba..."}
                   className="w-full p-4 pr-12 bg-slate-50 border-2 border-transparent focus:border-indigo-500/20 rounded-[22px] text-sm focus:ring-4 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-medium"
                 />
                 <button
