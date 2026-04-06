@@ -512,7 +512,7 @@ const AdminPage = async ({
             income={currentIncome}
             expense={currentExpense}
             unpaid={unpaidAmount}
-            month={MONTHS[startDate.getMonth()]}
+            month={MONTHS[startDate.getMonth()] + " " + startDate.getFullYear()}
           />
         </div>
       </div>
