@@ -1,10 +1,18 @@
 import React from 'react';
-import { getFinancialReportData, getAIFinancialReport } from '../../actions';
+import { getFinancialReportData, getAIFinancialReport } from '../../../(dashboard)/admin/actions';
 import ReactMarkdown from 'react-markdown';
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const AuditPage = async ({ params }: { params: { month: string } }) => {
+    const { userId } = auth();
+
+    if (!userId) {
+        return redirect("/sign-in");
+    }
+
     // month will be like "April_2026"
     const monthLabel = decodeURIComponent(params.month).replace('_', ' ');
     
