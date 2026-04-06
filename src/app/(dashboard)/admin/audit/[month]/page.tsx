@@ -144,14 +144,18 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
                                         </li>
                                     ),
                                     strong: ({node, children, ...props}) => {
-                                        const text = String(children).toLowerCase();
+                                        const originalText = String(children);
+                                        // Fail-safe: Strip accidental brackets [ ] from bold titles for a cleaner look
+                                        const text = originalText.replace(/^\[|\]$/g, '').toLowerCase();
+                                        const cleanDisplay = originalText.replace(/^\[|\]$/g, '');
+
                                         if (text.includes("growth") || text.includes("+")) {
-                                            return <span className="text-emerald-600 font-bold">{children}</span>;
+                                            return <span className="text-emerald-600 font-bold">{cleanDisplay}</span>;
                                         }
                                         if (text.includes("risk") || text.includes("issue")) {
-                                            return <span className="text-rose-600 font-bold">{children}</span>;
+                                            return <span className="text-rose-600 font-bold">{cleanDisplay}</span>;
                                         }
-                                        return <strong className="font-bold text-[#0F172A] border-b-2 border-indigo-50" {...props}>{children}</strong>;
+                                        return <strong className="font-bold text-[#0F172A] border-b-2 border-indigo-50" {...props}>{cleanDisplay}</strong>;
                                     },
                                     hr: ({node, ...props}) => <hr className="my-16 border-slate-100" {...props} />,
                                     blockquote: ({node, children, ...props}) => (
