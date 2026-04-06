@@ -59,7 +59,7 @@ export async function executeAICommand(command: AICommand) {
               entityId: payment.id.toString(),
               description: `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
               amount: payment.amount,
-              type: payment.student ? "INCOME" : "EXPENSE"
+              type: payment.student ? "income" : "expense"
             }
           })
         ]);
@@ -89,7 +89,7 @@ export async function executeAICommand(command: AICommand) {
             entityId: expense.id.toString(),
             description: `AI recorded new expense: ${title} (Category: ${category})`,
             amount: expense.amount,
-            type: "EXPENSE",
+            type: "expense",
             effectiveDate: expense.date
           }
         });
