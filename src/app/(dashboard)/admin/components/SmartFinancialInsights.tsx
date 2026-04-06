@@ -6,7 +6,7 @@ import { getFinancialInsights } from '../actions/aiActions';
 
 interface Insight {
   text: string;
-  type: 'positive' | 'warning' | 'info';
+  type: 'positive' | 'warning' | 'info' | 'action';
   icon: string;
 }
 
@@ -16,6 +16,7 @@ interface SmartFinancialInsightsProps {
   breakdown: { name: string, value: number, type: 'income' | 'expense' }[];
   prevIncome: number;
   month: string;
+  dailyData?: { date: string, income: number, expense: number }[];
 }
 
 const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
@@ -23,7 +24,8 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   expense,
   breakdown,
   prevIncome,
-  month
+  month,
+  dailyData
 }) => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +39,8 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         expense,
         breakdown,
         prevIncome,
-        month
+        month,
+        dailyData
       });
 
       if (Array.isArray(result)) {
@@ -80,7 +83,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
     };
 
     fetchAiInsights();
-  }, [income, expense, breakdown, prevIncome, month]);
+  }, [income, expense, breakdown, prevIncome, month, dailyData]);
 
   return (
     <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 min-h-[300px]">
@@ -106,11 +109,11 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               exit={{ opacity: 0 }}
               className="flex flex-col gap-3"
             >
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3, 4].map(i => (
                 <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-[20px] border border-slate-100 border-dashed" />
               ))}
               <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase italic animate-bounce">
-                AI is thinking...
+                AI Financial Analyst is analyzing trends...
               </p>
             </motion.div>
           ) : (
@@ -122,24 +125,31 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
             >
               {insights.map((insight, idx) => (
                 <motion.div 
-                  key={idx}
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className={`p-4 rounded-[20px] flex items-start gap-4 border ${
-                      insight.type === 'positive' ? 'bg-emerald-50 border-emerald-100' :
-                      insight.type === 'warning' ? 'bg-rose-50 border-rose-100' :
-                      'bg-slate-50 border-slate-100'
-                  }`}
+                   key={idx}
+                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                   transition={{ delay: idx * 0.1 }}
+                   className={`p-4 rounded-[20px] flex items-start gap-4 border shadow-sm transition-all hover:shadow-md ${
+                       insight.type === 'positive' ? 'bg-emerald-50 border-emerald-100' :
+                       insight.type === 'warning' ? 'bg-rose-50 border-rose-100' :
+                       insight.type === 'action' ? 'bg-amber-50 border-amber-200' :
+                       'bg-slate-50 border-slate-100'
+                   }`}
                 >
                   <span className="text-xl shrink-0">{insight.icon}</span>
-                  <p className={`text-xs font-bold leading-relaxed ${
-                      insight.type === 'positive' ? 'text-emerald-700' :
-                      insight.type === 'warning' ? 'text-rose-700' :
-                      'text-slate-600'
-                  }`}>
-                    {insight.text}
-                  </p>
+                  <div className="flex flex-col gap-1">
+                    {insight.type === 'action' && (
+                        <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Recommended Action</span>
+                    )}
+                    <p className={`text-xs font-bold leading-relaxed ${
+                        insight.type === 'positive' ? 'text-emerald-700' :
+                        insight.type === 'warning' ? 'text-rose-700' :
+                        insight.type === 'action' ? 'text-amber-800' :
+                        'text-slate-600'
+                    }`}>
+                      {insight.text}
+                    </p>
+                  </div>
                 </motion.div>
               ))}
               

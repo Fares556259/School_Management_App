@@ -106,6 +106,7 @@ export async function getFinancialInsights(data: {
     breakdown: { name: string, value: number, type: 'income' | 'expense' }[];
     prevIncome: number;
     month: string;
+    dailyData?: { date: string, income: number, expense: number }[];
 }) {
     if (!apiKey) {
         return { error: "Missing API Key", fallback: true };
@@ -120,10 +121,16 @@ export async function getFinancialInsights(data: {
             - Previous Month Revenue: $${data.prevIncome.toLocaleString()}
             - Expense Breakdown: ${JSON.stringify(data.breakdown.filter(b => b.type === 'expense'))}
             
-            Provide exactly 3 or 4 short, actionable "Smart Insights" for the school director.
+            ${data.dailyData ? `DAILY TRENDS FOR THIS MONTH: ${JSON.stringify(data.dailyData)}` : ""}
+
+            TASK:
+            Provide 4 to 6 "Smart Insights" and "Actionable Steps" for the school director.
+            - Include 2-3 high-level monthly trends.
+            - Include 2-3 specific "Next Steps" or "Daily Observations" based on the daily flow or category concentration.
+            
             Each insight must be a JSON object with:
-            - "text": The insight text (max 100 characters).
-            - "type": "positive" (for good news), "warning" (for issues), or "info" (for facts).
+            - "text": The insight text (max 120 characters).
+            - "type": "positive" (for good news), "warning" (for issues), "info" (for facts), or "action" (for specific steps TO DO).
             - "icon": A single emoji representing the insight.
             
             Return ONLY a JSON array of these objects.
