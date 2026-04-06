@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "";
 
 // DIRECT FETCH IMPLEMENTATION WITH MULTI-MODEL FALLBACK AND OPENROUTER SUPPORT
-export async function callGeminiDirect(prompt: string) {
+export async function callGeminiDirect(prompt: string, base64Image?: string) {
     if (!apiKey) throw new Error("Missing API Key");
 
     const isOpenRouter = apiKey.startsWith("sk-or-");
@@ -23,7 +23,15 @@ export async function callGeminiDirect(prompt: string) {
                 },
                 body: JSON.stringify({
                     model: "google/gemini-2.0-flash-001",
-                    messages: [{ role: "user", content: prompt }],
+                    messages: [{ 
+                        role: "user", 
+                        content: base64Image 
+                            ? [
+                                { type: "text", text: prompt },
+                                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                              ]
+                            : prompt 
+                    }],
                     temperature: 0.7,
                 })
             });
@@ -56,7 +64,17 @@ export async function callGeminiDirect(prompt: string) {
                 headers: { "Content-Type": "application/json" },
                 signal: controller.signal,
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
+                    contents: [{ 
+                        parts: [
+                            { text: prompt },
+                            ...(base64Image ? [{
+                                inline_data: {
+                                    mime_type: "image/jpeg",
+                                    data: base64Image
+                                }
+                            }] : [])
+                        ] 
+                    }],
                     generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
                 })
             });
@@ -122,18 +140,19 @@ export async function getFinancialInsights(data: {
     }
 }
 
-export async function getChatResponse(message: string, context: any) {
+export async function getChatResponse(message: string, context: any, base64Image?: string) {
     if (!apiKey) {
         return { error: "Missing API Key" };
     }
 
     try {
         const prompt = `
-            You are "SnapAssistant", a highly sophisticated Senior Business Consultant and Active Operator for SnapSchool.
+            You are "SnapAssistant", a highly sophisticated Senior Business Consultant and AI-Vision Financial Analyst for SnapSchool.
 
             YOUR CORE PHILOSOPHY:
             - You help School Directors manage operations and financials directly from this chat.
             - You can PERFORM ACTIONS in the database when the user requests them.
+            - If an IMAGE is provided (receipt, invoice, or tuition slip), extract the data and return an "ADD_EXPENSE" or "MARK_PAID" command.
             
             AVAILABLE TOOLS (COMMANDS):
             1. **MARK_PAID**: To mark a Student, Teacher, or Staff pending payment as PAID.
@@ -147,22 +166,24 @@ export async function getChatResponse(message: string, context: any) {
             ${JSON.stringify(context, null, 2)}
             
             USER MESSAGE:
-            "${message}"
+            "${message || "Please analyze this image and extract financial data."}"
             
             GUIDELINES:
-            1. If the user wants to perform an action, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
-            2. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
-            3. Look into studentLedger for students, and personnelPaymentStatus for teachers/staff to find IDs.
-            4. Be professional and confirm the action in your response.
+            1. If the user provides an image, automatically extract: Title, Amount, Category, and Date.
+            2. If it's a student tuition slip, look for the student name in studentLedger and return MARK_PAID.
+            3. If it's a general receipt (electricity, supplies), return ADD_EXPENSE.
+            4. If the user just wants to perform an action via text, identify the correct IDs/Data from the CONTEXT and return a COMMAND.
+            5. For MARK_PAID, use studentId, teacherId, or staffId based on who is being paid.
+            6. Be professional and confirm the extraction/action in your response.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 
-              "response": "Brief professional confirmation message here.",
+              "response": "Brief professional confirmation or extraction summary here.",
               "command": { "type": "COMMAND_NAME", "data": { ... } } // OPTIONAL: Only if an action is requested
             }
         `;
 
-        const text = await callGeminiDirect(prompt);
+        const text = await callGeminiDirect(prompt, base64Image);
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         const cleanJson = jsonMatch ? jsonMatch[0] : text;
         

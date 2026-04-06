@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Sparkles, Minus, Maximize2 } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, Minus, Maximize2, Camera } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getChatResponse } from '../actions/aiActions';
 import { executeAICommand } from '../actions/crudActions';
@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  image?: string;
 }
 
 interface SnapAssistantProps {
@@ -19,29 +20,52 @@ interface SnapAssistantProps {
 
 const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm **SnapAssistant**. I now have **Total School Intelligence**: access to all finances, academic performance, timetables, and demographics. How can I help you manage SnapSchool today?" }
+    { role: 'assistant', content: "Hi! I'm **SnapAssistant**. I now have **AI-Vision**: you can upload receipts or tuition slips and I will automatically process them for you. How can I help today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    scrollToBottom();
+  }, [messages, isLoading, selectedImage]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }, [messages, isLoading]);
+  };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !selectedImage) || isLoading) return;
 
     const userMessage = input.trim();
+    const imageBase64 = selectedImage ? selectedImage.split(',')[1] : undefined;
+
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      content: userMessage || "Sent an image for analysis.",
+      image: selectedImage || undefined 
+    }]);
+
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setSelectedImage(null);
     setIsLoading(true);
 
-    const result = await getChatResponse(userMessage, context);
+    const result = await getChatResponse(userMessage, context, imageBase64);
 
     if (result.response) {
       setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
@@ -94,10 +118,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
             </div>
 
             {/* Chat Area */}
-            <div 
-              ref={scrollRef}
-              className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scroll-smooth"
-            >
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scroll-smooth">
               {messages.map((m, i) => (
                 <motion.div
                   key={i}
@@ -116,10 +137,16 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
                         <ReactMarkdown>
                             {m.content}
                         </ReactMarkdown>
+                        {m.image && (
+                          <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                            <img src={m.image} alt="Uploaded" className="w-full max-h-48 object-cover" />
+                          </div>
+                        )}
                     </div>
                   </div>
                 </motion.div>
               ))}
+              <div ref={messagesEndRef} />
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-indigo-50 p-4 rounded-[24px] rounded-tl-none flex gap-1 items-center">
@@ -132,23 +159,54 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
             </div>
 
             {/* Input Area */}
-            <div className="p-6 bg-slate-50/50 border-t border-slate-100">
-              <div className="relative group">
+            <div className="p-4 border-t border-slate-100 bg-white">
+              {selectedImage && (
+                <div className="mb-3 relative inline-block group">
+                  <div className="relative rounded-xl overflow-hidden border-2 border-indigo-500 shadow-lg">
+                    <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                  </div>
+                  <button 
+                    onClick={() => setSelectedImage(null)}
+                    className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-md hover:bg-rose-600 transition-colors z-10"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              
+              <div className="relative flex items-center gap-2">
                 <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask SnapAssistant..."
-                  className="w-full bg-white border border-slate-200 p-4 pr-12 rounded-[20px] text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium placeholder:text-slate-400"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageSelect}
+                  accept="image/*"
+                  className="hidden"
                 />
-                <button 
-                  onClick={handleSend}
-                  disabled={isLoading || !input.trim()}
-                  className="absolute right-2 top-2 p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:grayscale transition-all shadow-md active:scale-95"
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                  title="Upload Receipt/Invoice"
                 >
-                  <Send className="w-5 h-5" />
+                  <Camera size={20} />
                 </button>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder={selectedImage ? "Describe this image..." : "Ask SnapAssistant..."}
+                    className="w-full p-3 pr-12 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={isLoading || (!input.trim() && !selectedImage)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
               </div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-3 text-center">
                 Powered by Gemini 1.5 Flash • Context Aware
