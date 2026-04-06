@@ -97,32 +97,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     setIsLoading(true);
 
     let imageUrl = undefined;
-    if (currentImage) {
-      try {
-        // Convert base64 Data URL to Blob for more reliable Cloudinary upload
-        const fetchRes = await fetch(currentImage);
-        const blob = await fetchRes.blob();
-
-        const formData = new FormData();
-        formData.append('file', blob);
-        formData.append('upload_preset', 'school');
-        
-        const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          imageUrl = uploadData.secure_url;
-        }
-      } catch (err) {
-        console.error("Cloudinary upload failed:", err);
-      }
-    }
-
     try {
-      const result = await getChatResponse(userMessage, context, imageBase64, imageUrl);
+      const result = await getChatResponse(userMessage, context, imageBase64);
 
       if (result.response) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
@@ -130,6 +106,28 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
         // HANDLE AI COMMANDS
         if (result.command) {
           setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *Processing Action: ${result.command.type}...*` }]);
+          
+          // IF an image is present, UPLOAD IT NOW (when AI decides to act)
+          if (currentImage) {
+            try {
+              const fetchRes = await fetch(currentImage);
+              const blob = await fetchRes.blob();
+              const formData = new FormData();
+              formData.append('file', blob);
+              formData.append('upload_preset', 'school');
+              const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
+                method: 'POST',
+                body: formData,
+              });
+              if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                result.command.data.img = uploadData.secure_url;
+              }
+            } catch (err) {
+              console.error("Cloudinary upload failed:", err);
+            }
+          }
+
           const cmdResult = await executeAICommand(result.command);
           if (cmdResult.success) {
             setMessages(prev => [...prev, { role: 'assistant', content: `✅ **Success**: ${cmdResult.message}` }]);
