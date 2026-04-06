@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^3.9.0",
     "@prisma/client": "^7.6.0",
     "@types/react-big-calendar": "^1.8.9",
+    "cloudinary": "^2.9.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.453.0",
     "moment": "^2.30.1",

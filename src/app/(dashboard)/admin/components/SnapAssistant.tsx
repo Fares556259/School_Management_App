@@ -65,7 +65,29 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     setSelectedImage(null);
     setIsLoading(true);
 
-    const result = await getChatResponse(userMessage, context, imageBase64);
+    let imageUrl = undefined;
+    if (selectedImage) {
+      try {
+        // Perform unsigned Cloudinary upload
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('upload_preset', 'school');
+        
+        const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          imageUrl = uploadData.secure_url;
+        }
+      } catch (err) {
+        console.error("Cloudinary upload failed:", err);
+      }
+    }
+
+    const result = await getChatResponse(userMessage, context, imageBase64, imageUrl);
 
     if (result.response) {
       setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
