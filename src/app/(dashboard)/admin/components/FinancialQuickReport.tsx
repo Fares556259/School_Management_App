@@ -19,9 +19,6 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
   unpaid,
   month,
 }) => {
-  const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -31,83 +28,11 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
   const balance = income - expense;
   const healthScore = income > 0 ? Math.min(100, Math.round(((income - expense) / income) * 100)) : 0;
 
-  const handlePrint = async () => {
-    setLoading(true);
-    try {
-      const data = await getFinancialReportData(month);
-      setReport(data);
-      
-      const analysis = await getAIFinancialReport(data);
-      setAiAnalysis(analysis);
-
-      // Wait for React to render the portal content
-      setTimeout(() => {
-        window.print();
-        setLoading(false);
-      }, 1200);
-    } catch (err) {
-      console.error("Failed to generate report:", err);
-      setLoading(false);
-    }
+  const handlePrint = () => {
+    // Generate the URL safe month label (e.g. "April 2026" -> "April_2026")
+    const urlSafeMonth = month.replace(' ', '_');
+    window.open(`/admin/audit/${encodeURIComponent(urlSafeMonth)}`, '_blank');
   };
-
-  const ReportContent = report ? (
-    <div id="print-report" className="hidden print:block absolute inset-0 bg-white z-[9999] px-20 py-24 overflow-visible min-h-screen w-full">
-      {/* Header */}
-      <div className="border-b-[10px] border-slate-900 pb-16 mb-20 flex justify-between items-end">
-        <div>
-          <h1 className="text-7xl font-black italic tracking-tighter uppercase mb-6 leading-none text-slate-900">Fiscal Audit</h1>
-          <div className="flex items-center gap-6">
-            <span className="px-6 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-sm">Confidential</span>
-            <p className="text-base text-slate-500 font-bold uppercase tracking-[0.1em]">{report.month} Senior Review</p>
-          </div>
-        </div>
-        <div className="text-right">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Audit Timestamp</p>
-            <p className="text-xl font-black italic text-slate-900">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
-        </div>
-      </div>
-
-      {/* AI Analysis Content */}
-      <div className="prose prose-slate max-w-none ai-report-container">
-        {aiAnalysis ? (
-          <div className="space-y-12 text-slate-800">
-            <ReactMarkdown 
-              components={{
-                h3: ({node, ...props}) => <h3 className="text-3xl font-black text-slate-900 mt-16 mb-8 uppercase tracking-tight border-l-[8px] border-indigo-600 pl-6 leading-none" {...props} />,
-                p: ({node, ...props}) => <p className="text-lg leading-relaxed text-slate-700 italic font-medium mb-6" {...props} />,
-                li: ({node, ...props}) => <li className="text-lg leading-relaxed text-slate-700 mb-2 list-none flex items-start gap-3 before:content-['→'] before:text-indigo-600 before:font-black" {...props} />,
-                ul: ({node, ...props}) => <ul className="pl-0 space-y-4 mb-8" {...props} />,
-                strong: ({node, ...props}) => <strong className="font-black text-slate-900 underline decoration-indigo-200 decoration-4 underline-offset-4" {...props} />
-              }}
-            >
-              {aiAnalysis}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <div className="py-20 text-center">
-            <p className="text-xl font-bold text-slate-400 animate-pulse uppercase tracking-widest">Compiling fiscal intelligence...</p>
-          </div>
-        )}
-      </div>
-
-      {/* Signature Area for Authority */}
-      <div className="mt-32 pt-20 border-t-2 border-slate-100 flex justify-between items-end">
-         <div className="space-y-8">
-            <div className="w-64 h-px bg-slate-300 mb-2" />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lead Financial Analyst Signature</p>
-         </div>
-         <div className="text-right">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em] mb-4">
-                Automated School Audit Engine | Fiscal Transparency Initiative
-            </p>
-            <p className="text-[8px] font-bold text-slate-200 uppercase tracking-widest">
-               ID: {Math.random().toString(36).substring(7).toUpperCase()} / v1.42.AI
-            </p>
-         </div>
-      </div>
-    </div>
-  ) : null;
 
   return (
     <>
@@ -169,18 +94,14 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
             </div>
             <button 
               onClick={handlePrint}
-              disabled={loading}
               className="group w-full py-4 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-slate-200"
             >
               <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
-              {loading ? "Compiling Analyst Audit..." : "Print Full Fiscal Review"}
+              Print Full Fiscal Review
             </button>
           </div>
         </div>
       </motion.div>
-
-      {/* Portal for Printing */}
-      {mounted && createPortal(ReportContent, document.body)}
     </>
   );
 };
