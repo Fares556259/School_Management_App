@@ -1,5 +1,8 @@
-import React from 'react';
-import { GraduationCap, Users, UserRound, LayoutDashboard, ArrowRight } from 'lucide-react';
+"use client";
+
+import { GraduationCap, Users, UserRound, LayoutDashboard, ArrowRight, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
 interface OperationsSnapshotProps {
   students: number;
@@ -40,8 +43,32 @@ const StatItem = ({ label, value, icon: Icon, theme }: { label: string, value: n
 );
 
 const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSnapshotProps) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
-    <div className="grid grid-cols-2 gap-4 w-full">
+    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm grow flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 text-slate-400">
+            <Activity size={12} />
+            <h2 className="text-[10px] font-black uppercase tracking-widest">Operational Snapshot</h2>
+        </div>
+        <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 transition-colors"
+        >
+            {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-4 w-full">
       <StatItem 
         label="Students Enrolled" 
         value={students} 
@@ -66,6 +93,10 @@ const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSn
         icon={LayoutDashboard} 
         theme={{ bg: "bg-rose-50", text: "text-rose-600", bar: "bg-rose-500" }} 
       />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

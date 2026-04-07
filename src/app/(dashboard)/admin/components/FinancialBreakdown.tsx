@@ -14,66 +14,93 @@ interface FinancialBreakdownProps {
 }
 
 const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data }) => {
-  const totalIncome = data.filter(d => d.type === 'income').reduce((acc, curr) => acc + curr.value, 0);
-  const totalExpense = data.filter(d => d.type === 'expense').reduce((acc, curr) => acc + curr.value, 0);
+  const incomeItems = data.filter(d => d.type === 'income').sort((a, b) => b.value - a.value);
+  const expenseItems = data.filter(d => d.type === 'expense').sort((a, b) => b.value - a.value);
 
-  // Sorting: Highest value first
-  const sortedData = [...data].sort((a, b) => b.value - a.value);
+  const totalIncome = incomeItems.reduce((acc, curr) => acc + curr.value, 0);
+  const totalExpense = expenseItems.reduce((acc, curr) => acc + curr.value, 0);
+
+  // Create unified rows by taking the max length of both lists
+  const rowCount = Math.max(incomeItems.length, expenseItems.length);
+  const rows = Array.from({ length: rowCount }, (_, i) => ({
+    income: incomeItems[i] || null,
+    expense: expenseItems[i] || null,
+  }));
+
+  const renderItem = (item: BreakdownItem | null, total: number, idx: number) => {
+    const isIncome = item?.type === 'income';
+    const color = isIncome ? 'bg-indigo-500' : 'bg-rose-500';
+    const percentage = !item || total === 0 ? 0 : (item.value / total) * 100;
+
+    return (
+      <div className={`flex-1 flex flex-col gap-3 py-2 ${!item ? 'opacity-0 select-none' : ''}`}>
+        {/* Row 1: Header (Label + Amount) - Fixed height ensures baseline alignment */}
+        <div className="flex items-baseline justify-between h-5">
+          <div className="flex items-baseline gap-2 overflow-hidden">
+            <span className="text-[11px] font-black text-slate-800 tracking-tight uppercase truncate">
+              {item?.name || 'Spacer'}
+            </span>
+            <span className="text-[8px] font-black text-slate-400 border border-slate-100 px-1.5 py-0.5 rounded uppercase tracking-tighter bg-slate-50 flex-shrink-0">
+              {item?.type || 'Empty'}
+            </span>
+          </div>
+          <span className="text-sm font-black text-slate-800 tracking-tighter tabular-nums flex-shrink-0 ml-4">
+            ${item ? Math.round(item.value).toLocaleString() : '000'}
+          </span>
+        </div>
+
+        {/* Row 2: Visual (Progress Bar + Percentage) - Fixed height for horizontal synchronization */}
+        <div className="flex items-center gap-4 h-4">
+          <div className="flex-1 h-1.5 bg-slate-100/50 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${percentage}%` }}
+              transition={{ duration: 1, ease: "circOut", delay: idx * 0.05 }}
+              className={`h-full ${color} shadow-[0_0_8px_rgba(31,41,55,0.1)]`} 
+            />
+          </div>
+          <span className="text-[10px] font-black text-slate-400 w-8 text-right tabular-nums tracking-tighter">
+            {Math.round(percentage)}%
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-6 h-full">
-      <div className="flex items-center justify-between">
-         <h2 className="text-xl font-bold text-slate-800 tracking-tight">Category Breakdown</h2>
-         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-            Detailed Metrics
-         </span>
+    <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-10 h-full">
+      <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+         <div className="flex flex-col gap-1">
+            <h2 className="text-sm font-black text-slate-800 tracking-widest uppercase opacity-40">
+                Category Breakdown
+            </h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                Symmetrical Financial Distribution
+            </p>
+         </div>
+         <div className="flex items-center gap-6">
+            <span className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Income</span>
+            </span>
+            <span className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense</span>
+            </span>
+         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-        {sortedData.map((item, idx) => {
-          const total = item.type === 'income' ? totalIncome : totalExpense;
-          const percentage = total === 0 ? 0 : (item.value / total) * 100;
-          const color = item.type === 'income' ? 'bg-indigo-500' : 'bg-rose-500';
-
-          return (
-            <motion.div 
-              key={idx}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-2 h-10 rounded-full ${color} opacity-20 group-hover:opacity-100 transition-opacity`} />
-                <div className="flex flex-col">
-                  <span className="text-sm font-black text-slate-700 italic tracking-tight underline decoration-slate-100 decoration-2 underline-offset-4">
-                    {item.name}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">
-                    {item.type}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end">
-                <span className="text-lg font-black text-slate-800 tracking-tighter italic">
-                  ${Math.round(item.value).toLocaleString()}
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-1 bg-slate-50 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${color}`} 
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400">
-                    {Math.round(percentage)}%
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+      <div className="flex flex-col gap-8">
+        {rows.map((row, idx) => (
+          <div key={idx} className="grid grid-cols-1 lg:grid-cols-2 gap-x-16 gap-y-0 items-start relative">
+            {renderItem(row.income, totalIncome, idx)}
+            
+            {/* Center Alignment Guide (Visible only in high-res) */}
+            <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-10 bg-slate-100 opacity-30" />
+            
+            {renderItem(row.expense, totalExpense, idx)}
+          </div>
+        ))}
       </div>
     </div>
   );
