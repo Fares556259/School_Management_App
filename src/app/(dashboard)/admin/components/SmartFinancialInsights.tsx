@@ -86,10 +86,10 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   }, [income, expense, breakdown, prevIncome, month, dailyData]);
 
   return (
-    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 min-h-[300px]">
+    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4 min-h-[300px]">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-            <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
+            <h2 className="text-sm font-black text-slate-500 uppercase tracking-widest">
             Smart Insights
             </h2>
             <div className="px-2 py-0.5 bg-indigo-50 rounded-md">
@@ -112,8 +112,8 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-[20px] border border-slate-100 border-dashed" />
               ))}
-              <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase italic animate-bounce">
-                AI Financial Analyst is analyzing trends...
+              <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase animate-bounce">
+                AI analyst is analyzing trends...
               </p>
             </motion.div>
           ) : (
