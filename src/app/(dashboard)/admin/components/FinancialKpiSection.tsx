@@ -11,6 +11,8 @@ interface KpiCardProps {
   isPercentage?: boolean;
   inverseColors?: boolean;
   compareLabel?: string;
+  icon: string;
+  accentColor: string;
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ 
@@ -20,15 +22,17 @@ const KpiCard: React.FC<KpiCardProps> = ({
   isCurrency = true, 
   isPercentage = false,
   inverseColors = false,
-  compareLabel = "vs last period"
+  compareLabel = "vs last period",
+  icon,
+  accentColor,
 }) => {
   const diff = prevValue === 0 ? 0 : ((value - prevValue) / Math.abs(prevValue)) * 100;
   const isPositive = diff >= 0;
   
   // For expenses, positive diff is "bad" (red), negative is "good" (green)
-  let statusColor = isPositive ? 'text-emerald-500 bg-emerald-50' : 'text-rose-500 bg-rose-50';
+  let trendColor = isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50';
   if (inverseColors) {
-    statusColor = isPositive ? 'text-rose-500 bg-rose-50' : 'text-emerald-500 bg-emerald-50';
+    trendColor = isPositive ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50';
   }
 
   const formattedValue = isPercentage 
@@ -37,32 +41,28 @@ const KpiCard: React.FC<KpiCardProps> = ({
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-2 relative overflow-hidden group"
+      className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow"
     >
-      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-        <span className="text-4xl font-black italic tracking-tighter">KPI</span>
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
+        <span className={`w-8 h-8 rounded-xl ${accentColor} flex items-center justify-center text-sm`}>{icon}</span>
       </div>
       
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-        {title}
-      </span>
+      {/* Value */}
+      <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-none">
+        {formattedValue}
+      </h3>
       
-      <div className="flex items-end justify-between gap-2">
-        <h3 className="text-3xl font-black text-slate-800 tracking-tighter italic">
-          {formattedValue}
-        </h3>
-        
-        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-black uppercase italic ${statusColor}`}>
-          <span>{isPositive ? '↑' : '↓'}</span>
-          <span>{Math.abs(Math.round(diff))}%</span>
-        </div>
+      {/* Trend */}
+      <div className="flex items-center gap-2">
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${trendColor}`}>
+          {isPositive ? '↑' : '↓'} {Math.abs(Math.round(diff))}%
+        </span>
+        <span className="text-[11px] text-slate-400 font-medium">{compareLabel}</span>
       </div>
-      
-      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase italic opacity-60">
-        {compareLabel}
-      </p>
     </motion.div>
   );
 };
@@ -92,18 +92,22 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
   const compareLabel = isCustomRange ? "vs prev. month" : "vs last period";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <KpiCard 
         title="Net Balance" 
         value={currentBalance} 
         prevValue={prevBalance} 
         compareLabel={compareLabel}
+        icon="💰"
+        accentColor="bg-indigo-50"
       />
       <KpiCard 
         title="Total Revenue" 
         value={currentIncome} 
         prevValue={prevIncome} 
         compareLabel={compareLabel}
+        icon="📈"
+        accentColor="bg-emerald-50"
       />
       <KpiCard 
         title="Total Expenses" 
@@ -111,6 +115,8 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
         prevValue={prevExpense} 
         inverseColors 
         compareLabel={compareLabel}
+        icon="📉"
+        accentColor="bg-rose-50"
       />
       <KpiCard 
         title="Profit Margin" 
@@ -119,6 +125,8 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
         isCurrency={false} 
         isPercentage 
         compareLabel={compareLabel}
+        icon="🎯"
+        accentColor="bg-amber-50"
       />
     </div>
   );
