@@ -99,7 +99,23 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         <span className={`flex h-2 w-2 rounded-full ${isLoading ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`} />
       </div>
 
-      <div className="flex flex-col gap-3 relative flex-1">
+      <div className="flex flex-col gap-3 relative flex-1 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+        <style jsx>{`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.5);
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(203, 213, 225, 0.8);
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 1);
+          }
+        `}</style>
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 
@@ -109,7 +125,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               exit={{ opacity: 0 }}
               className="flex flex-col gap-3"
             >
-              {[1, 2, 3, 4].map(i => (
+              {[1, 2, 3].map(i => (
                 <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-[20px] border border-slate-100 border-dashed" />
               ))}
               <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase italic animate-bounce">

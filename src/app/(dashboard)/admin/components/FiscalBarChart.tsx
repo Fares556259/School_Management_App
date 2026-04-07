@@ -33,7 +33,7 @@ const FiscalBarChart: React.FC<FiscalBarChartProps> = ({
     setMounted(true);
   }, []);
 
-  if (!mounted) return <div className="h-[280px] w-full bg-slate-50 animate-pulse rounded-[24px]" />;
+  if (!mounted) return <div className="h-[280px] w-full bg-slate-50 animate-pulse rounded-2xl" />;
 
   // Combine and sort for the horizontal view
   const combinedData = [
@@ -45,9 +45,9 @@ const FiscalBarChart: React.FC<FiscalBarChartProps> = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-4 rounded-[20px] border border-slate-100 shadow-xl">
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xl">
           <p className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">{data.type}</p>
-          <p className="text-sm font-black text-slate-800 italic">{data.name}</p>
+          <p className="text-sm font-black text-slate-800 tracking-tight">{data.name}</p>
           <p className={`text-lg font-black tracking-tight ${data.type === 'income' ? 'text-indigo-500' : 'text-rose-500'}`}>
             ${Math.round(data.value).toLocaleString()}
           </p>

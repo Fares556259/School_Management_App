@@ -116,11 +116,11 @@ const ActionList = ({
   };
 
   return (
-    <div className="flex-1 min-w-[300px] bg-white rounded-[24px] shadow-sm border border-slate-100 flex flex-col overflow-hidden group">
+    <div className="flex-1 min-w-[300px] bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden group">
       <div className={`p-5 border-b border-slate-50 flex justify-between items-center ${color}`}>
         <div className="flex flex-col gap-0.5">
           <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">{title}</h3>
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70 italic">{monthLabel} Only</span>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70">{monthLabel} Only</span>
         </div>
         <div className="flex items-center gap-2">
             {items.length > 0 && (
@@ -220,7 +220,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
           </div>
           <div className="relative z-10">
             <p className="text-indigo-100/70 text-[9px] font-black uppercase tracking-wider mb-1">Unpaid Employees</p>
-            <h2 className="text-2xl font-black italic tracking-tighter">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
+            <h2 className="text-2xl font-black tracking-tight">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
           </div>
           <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
              <Wallet size={22} className="text-white" />
@@ -233,7 +233,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
           </div>
           <div className="relative z-10">
             <p className="text-amber-50/70 text-[9px] font-black uppercase tracking-wider mb-1">Uncollected Fees</p>
-            <h2 className="text-2xl font-black italic tracking-tighter">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
+            <h2 className="text-2xl font-black tracking-tight">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
           </div>
           <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
              <HandCoins size={22} className="text-white" />

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { getFinancialReportData, getAIFinancialReport, ReportData } from "../actions";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface FinancialQuickReportProps {
   income: number;
@@ -20,6 +21,7 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
   month,
 }) => {
   const [mounted, setMounted] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -39,21 +41,46 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-6 print:hidden no-print"
+        className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-6 print:hidden no-print"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-800 tracking-tight uppercase opacity-50">
-            Financial Quick-Report
-          </h2>
-          <span className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded-full">
-            {month}
-          </span>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight uppercase opacity-50">
+                Financial Quick-Report
+            </h2>
+            {isCollapsed && (
+                <span className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded-full">
+                    {month}
+                </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {!isCollapsed && (
+                <span className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded-full">
+                    {month}
+                </span>
+            )}
+            <button 
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 transition-colors"
+            >
+                {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <AnimatePresence>
+            {!isCollapsed && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                >
+                    <div className="flex flex-col gap-4">
           <div className="flex items-end justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-2xl font-black text-slate-800 tracking-tighter italic">
+              <span className="text-2xl font-black text-slate-800 tracking-tight">
                 ${balance.toLocaleString()}
               </span>
               <span className="text-xs text-slate-400 font-medium">Net Monthly Performance</span>
@@ -87,20 +114,34 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 mt-2">
-            <div className="flex items-center justify-between text-xs font-medium">
-              <span className="text-slate-400">Arrears/Unpaid</span>
-              <span className="text-rose-500 font-bold">${unpaid.toLocaleString()}</span>
+          <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-black text-slate-800">${Math.round(balance / 1000)}k</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Profit</span>
             </div>
+            <div className="flex flex-col items-center border-l border-r border-slate-100">
+              <span className="text-sm font-black text-rose-500">${Math.round(unpaid / 1000)}k</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Arrears</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-black text-indigo-500">{healthScore}%</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Margin</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 mt-4">
             <button 
               onClick={handlePrint}
-              className="group w-full py-4 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-slate-200"
+              className="group w-full py-3.5 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-slate-200"
             >
-              <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
+              <span className="text-lg group-hover:scale-110 transition-transform">📊</span>
               Print Full Fiscal Review
             </button>
           </div>
-        </div>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
       </motion.div>
     </>
   );

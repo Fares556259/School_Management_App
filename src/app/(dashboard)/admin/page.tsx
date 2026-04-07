@@ -511,11 +511,12 @@ const AdminPage = async ({
         isCustomRange={!!(queryMonth && queryYear)}
       />
 
-      {/* 3. MAIN DASHBOARD GRID (CHARTS & INSIGHTS) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT COLUMN - High-Fidelity Charts */}
+      {/* 3. CONSOLIDATED MAIN GRID (CHARTS, INSIGHTS & OPERATIONAL DATA) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN - High-Fidelity Analytics (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[320px]">
+          {/* Fiscal Overview */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[380px]">
              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
                 <FiscalTimeFilter activeFilter={timeFilter} />
@@ -526,8 +527,9 @@ const AdminPage = async ({
              />
           </div>
           
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-             <div className="flex items-center justify-between mb-2">
+          {/* Growth Analytics */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[380px] flex flex-col">
+             <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">Growth Analytics & AI Projection</h2>
                   <p className="text-xs text-slate-400 font-medium mt-1">12-month historical performance + 3-month AI predictive forecasting</p>
@@ -543,11 +545,16 @@ const AdminPage = async ({
                   </div>
                 </div>
              </div>
-             <GrowthAnalyticsChart data={trendData} />
+             <div className="flex-1 min-h-0">
+               <GrowthAnalyticsChart data={trendData} />
+             </div>
           </div>
+
+          {/* Detailed Category Breakdown */}
+          <FinancialBreakdown data={fullBreakdown} />
         </div>
 
-        {/* RIGHT COLUMN - Insights & Reports */}
+        {/* RIGHT COLUMN - Insights, Reports & Snapshots (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           <SmartFinancialInsights 
             income={currentIncome}
@@ -564,16 +571,8 @@ const AdminPage = async ({
             unpaid={unpaidAmount}
             month={MONTHS[startDate.getMonth()] + " " + startDate.getFullYear()}
           />
-        </div>
-      </div>
 
-      {/* 4. BALANCED LOWER GRID (SIDE-BY-SIDE BREAKDOWN & SNAPSHOT) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8">
-          <FinancialBreakdown data={fullBreakdown} />
-        </div>
-        <div className="lg:col-span-4 flex flex-col">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm grow">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Operational Snapshot</h2>
              <OperationsSnapshot 
                 students={studentCount}
