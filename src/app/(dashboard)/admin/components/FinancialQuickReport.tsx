@@ -39,11 +39,11 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-6 print:hidden no-print"
+        className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-6 print:hidden no-print"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-            Financial Report
+          <h2 className="text-sm font-bold text-slate-800 tracking-tight uppercase opacity-50">
+            Financial Quick-Report
           </h2>
           <span className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded-full">
             {month}
@@ -53,7 +53,7 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
         <div className="flex flex-col gap-4">
           <div className="flex items-end justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-2xl font-black text-slate-800 tracking-tight">
+              <span className="text-2xl font-black text-slate-800 tracking-tighter italic">
                 ${balance.toLocaleString()}
               </span>
               <span className="text-xs text-slate-400 font-medium">Net Monthly Performance</span>

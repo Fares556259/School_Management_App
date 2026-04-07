@@ -487,7 +487,7 @@ const AdminPage = async ({
   })).sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="p-6 flex flex-col gap-6 bg-[#F7F8FA] min-h-screen">
+    <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen dashboard-chrome">
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -515,7 +515,7 @@ const AdminPage = async ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT COLUMN - High-Fidelity Charts */}
         <div className="lg:col-span-8 flex flex-col gap-8">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[350px]">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[350px]">
              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
                 <FiscalTimeFilter activeFilter={timeFilter} />
@@ -526,7 +526,7 @@ const AdminPage = async ({
              />
           </div>
           
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
              <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">Growth Analytics & AI Projection</h2>
@@ -573,7 +573,7 @@ const AdminPage = async ({
           <FinancialBreakdown data={fullBreakdown} />
         </div>
         <div className="lg:col-span-4 flex flex-col">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm grow">
+          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm grow">
              <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
              <OperationsSnapshot 
                 students={studentCount}
