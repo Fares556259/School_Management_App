@@ -15,7 +15,7 @@ type ColorTheme = {
 };
 
 const StatItem = ({ label, value, icon: Icon, theme }: { label: string, value: number, icon: any, theme: ColorTheme }) => (
-  <div className="flex flex-col p-6 bg-white rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+  <div className="flex flex-col p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
     {/* Subtle Background Glow */}
     <div className={`absolute -right-12 -top-12 w-32 h-32 rounded-full ${theme.bg} blur-[40px] opacity-40 group-hover:opacity-80 transition-opacity pointer-events-none`} />
 
