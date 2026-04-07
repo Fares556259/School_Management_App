@@ -7,6 +7,7 @@ import TableSearch from "@/components/TableSearch";
 import Pagination from "@/components/Pagination";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import AuditFilter from "@/components/AuditFilter";
+import Image from "next/image";
 import AuditLogTableClient from "./AuditLogTableClient";
 
 // Re-defining columns to match the high-fidelity version
@@ -88,35 +89,25 @@ const AuditPage = async ({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* PAGE HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Audit Trail</h1>
-            <span className="text-xs font-black bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 uppercase tracking-wider">
-              {count} logs
-            </span>
+    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0 border border-slate-100 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div className="space-y-1">
+          <h1 className="text-xl font-black text-slate-800 tracking-tight">Master Audit Trail</h1>
+          <p className="text-xs text-slate-400 font-medium">Immutable log of financial and administrative actions</p>
+        </div>
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+          <TableSearch />
+          <div className="flex items-center gap-3 self-end">
+            <AuditFilter />
+            <div className="w-px h-6 bg-slate-200 hidden md:block" />
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow hover:scale-110 transition-transform shadow-sm">
+              <Image src="/sort.png" alt="" width={14} height={14} />
+            </button>
           </div>
-          <p className="text-sm text-slate-400 font-medium">Immutable log of all financial and administrative actions</p>
         </div>
       </div>
-
-      {/* FILTER TOOLBAR */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
-        <TableSearch />
-        <div className="flex items-center gap-3 ml-auto">
-          <AuditFilter />
-        </div>
-      </div>
-
-      {/* TABLE */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <AuditLogTableClient logs={logs} performerMap={performerMap} columns={columns} />
-        <div className="border-t border-slate-100 px-4 py-3">
-          <Pagination page={p} count={count} />
-        </div>
-      </div>
+      <AuditLogTableClient logs={logs} performerMap={performerMap} columns={columns} />
+      <Pagination page={p} count={count} />
     </div>
   );
 };
