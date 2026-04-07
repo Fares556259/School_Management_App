@@ -491,7 +491,7 @@ const AdminPage = async ({
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight italic">Command Center</h1>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Command Center</h1>
           <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
         </div>
         <div className="flex items-center gap-4">
@@ -586,10 +586,13 @@ const AdminPage = async ({
       </div>
 
       {/* 5. ACTION CENTER (UNPAID LEDGER) */}
-      <section className="mt-8 border-t border-slate-200 pt-8">
-        <div className="flex items-center gap-2 mb-6">
-          <span className="text-xl">🚨</span>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight italic uppercase">Critical Actions: Unpaid Ledger</h1>
+      <section className="border-t border-slate-100 pt-6">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-lg">🚨</span>
+          <div>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">Critical Actions</h2>
+            <p className="text-sm text-slate-400 font-medium">Unpaid ledger — requires immediate attention</p>
+          </div>
         </div>
         <ActionCenter 
           unpaidEmployees={unpaidEmployees} 
