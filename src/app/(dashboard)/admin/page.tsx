@@ -487,11 +487,11 @@ const AdminPage = async ({
   })).sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="p-6 flex flex-col gap-8 bg-[#F7F8FA] min-h-screen dashboard-chrome">
+    <div className="p-6 flex flex-col gap-6 bg-[#F7F8FA] min-h-screen">
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight italic">Command Center</h1>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Command Center</h1>
           <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
         </div>
         <div className="flex items-center gap-4">
@@ -512,10 +512,10 @@ const AdminPage = async ({
       />
 
       {/* 3. MAIN DASHBOARD GRID (CHARTS & INSIGHTS) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* LEFT COLUMN - High-Fidelity Charts */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
-          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col min-h-[350px]">
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[320px]">
              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
                 <FiscalTimeFilter activeFilter={timeFilter} />
@@ -526,7 +526,7 @@ const AdminPage = async ({
              />
           </div>
           
-          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
              <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">Growth Analytics & AI Projection</h2>
@@ -548,7 +548,7 @@ const AdminPage = async ({
         </div>
 
         {/* RIGHT COLUMN - Insights & Reports */}
-        <div className="lg:col-span-4 flex flex-col gap-8">
+        <div className="lg:col-span-4 flex flex-col gap-6">
           <SmartFinancialInsights 
             income={currentIncome}
             expense={currentExpense}
@@ -568,13 +568,13 @@ const AdminPage = async ({
       </div>
 
       {/* 4. BALANCED LOWER GRID (SIDE-BY-SIDE BREAKDOWN & SNAPSHOT) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
           <FinancialBreakdown data={fullBreakdown} />
         </div>
         <div className="lg:col-span-4 flex flex-col">
-          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm grow">
-             <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-4 uppercase opacity-50">Operational Snapshot</h2>
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm grow">
+             <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Operational Snapshot</h2>
              <OperationsSnapshot 
                 students={studentCount}
                 teachers={teacherCount}
@@ -586,10 +586,13 @@ const AdminPage = async ({
       </div>
 
       {/* 5. ACTION CENTER (UNPAID LEDGER) */}
-      <section className="mt-8 border-t border-slate-200 pt-8">
-        <div className="flex items-center gap-2 mb-6">
-          <span className="text-xl">🚨</span>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight italic uppercase">Critical Actions: Unpaid Ledger</h1>
+      <section className="border-t border-slate-100 pt-6">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-lg">🚨</span>
+          <div>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">Critical Actions</h2>
+            <p className="text-sm text-slate-400 font-medium">Unpaid ledger — requires immediate attention</p>
+          </div>
         </div>
         <ActionCenter 
           unpaidEmployees={unpaidEmployees} 
