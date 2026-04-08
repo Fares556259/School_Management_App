@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import prisma from "../../../../lib/prisma";
 import { getRole } from "@/lib/role";
 import GradeEntryForm from "./GradeEntryForm";
 import GradeFilter from "./GradeFilter";

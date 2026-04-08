@@ -5,9 +5,10 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
-import prisma from "@/lib/prisma";
+import prisma from "../../../../lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Link from "next/link";
+
 import {
   Prisma,
   Result,
@@ -255,7 +256,7 @@ const ResultListPage = async ({
             <Link href="/admin/grades" className="text-[10px] font-black text-indigo-500 hover:text-indigo-600 uppercase tracking-widest">View All Sheets →</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            {sheets.map((sheet) => (
+            {sheets.map((sheet: any) => (
               <div key={sheet.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3 hover:border-indigo-100 hover:shadow-lg transition-all">
                 <div className="flex items-center justify-between gap-2">
                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-sm">📄</div>
