@@ -40,6 +40,7 @@ export async function createGradeSheet(data: {
   );
 
   revalidatePath("/admin/grades");
+  revalidatePath("/list/results");
   return { success: true, sheetId: sheet.id };
 }
 
