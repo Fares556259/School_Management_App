@@ -7,11 +7,11 @@ const TimetablePage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const classesRes = await getAllClasses();
-  const classes = classesRes.success ? classesRes.data : [];
+  const classes = (classesRes.success ? classesRes.data : []) as any[];
   
   const subjectsTeachersRes = await getAllSubjectsAndTeachers();
-  const subjects = subjectsTeachersRes.success ? subjectsTeachersRes.subjects : [];
-  const teachers = subjectsTeachersRes.success ? subjectsTeachersRes.teachers : [];
+  const subjects = (subjectsTeachersRes.success ? subjectsTeachersRes.subjects : []) as any[];
+  const teachers = (subjectsTeachersRes.success ? subjectsTeachersRes.teachers : []) as any[];
 
   return (
     <TimetableClient 
