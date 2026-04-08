@@ -17,12 +17,14 @@ const TimetableGrid = ({
   classId,
   className,
   subjects,
-  teachers
+  teachers,
+  isEditMode,
 }: {
   classId: number;
   className: string;
   subjects: any[];
   teachers: any[];
+  isEditMode: boolean;
 }) => {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +106,7 @@ const TimetableGrid = ({
                         subjects={subjects}
                         teachers={teachers}
                         onUpdate={fetchSlots}
+                        isEditMode={isEditMode}
                       />
                     </div>
                   );

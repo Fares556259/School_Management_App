@@ -15,9 +15,10 @@ interface SlotProps {
   subjects: any[];
   teachers: any[];
   onUpdate: () => void;
+  isEditMode: boolean; // Add this
 }
 
-const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, subjects, teachers, onUpdate }: SlotProps) => {
+const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, subjects, teachers, onUpdate, isEditMode }: SlotProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -46,7 +47,10 @@ const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, sub
     setLoading(false);
   };
 
-  if (!slot && !isEditing) return (
+  // If slot is empty and NOT in edit mode, return null (hide the add button)
+  if (!slot && !isEditMode) return null;
+
+  if (!slot && isEditMode && !isEditing) return (
     <button 
         onClick={() => setIsEditing(true)}
         className="w-full h-full border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-200 hover:border-indigo-100 hover:text-indigo-400 hover:bg-slate-50 transition-all group"
@@ -110,12 +114,14 @@ const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, sub
         <h3 className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
           {slot.subject?.name}
         </h3>
-        <button 
-          onClick={() => setIsEditing(true)}
-          className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600"
-        >
-          <Edit2 size={12} />
-        </button>
+        {isEditMode && (
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600"
+          >
+            <Edit2 size={12} />
+          </button>
+        )}
       </div>
       
       <div className="mt-2 flex flex-col gap-1">
