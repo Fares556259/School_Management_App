@@ -1,11 +1,18 @@
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image"
+import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
 
 const Navbar = async () => {
   let user = null;
+  let adminData = null;
+  
   try {
     user = await currentUser();
+    if (user?.publicMetadata?.role === "admin") {
+      const resp = await getAdminProfile();
+      adminData = resp?.data;
+    }
   } catch (err) {
     console.error("Error fetching user in Navbar:", err);
   }
@@ -36,10 +43,13 @@ const Navbar = async () => {
               {(user?.publicMetadata?.role as string) || "User"}
             </span>
           </div>
-          {/* <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-sm cursor-pointer hover:scale-105 transition-transform">
-            <Image src="/avatar.png" alt="" width={38} height={38} className="rounded-full border-2 border-white"/>
-          </div> */}
-          <UserButton />
+          {adminData?.img ? (
+            <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-sm cursor-pointer hover:scale-105 transition-transform overflow-hidden">
+               <Image src={adminData.img} alt="" width={38} height={38} className="rounded-full border-2 border-white object-cover w-[38px] h-[38px]"/>
+            </div>
+          ) : (
+            <UserButton />
+          )}
         </div>
       </div>
     </div>
