@@ -1,192 +1,13 @@
 import { getRole } from "@/lib/role";
-import FormModal from "@/components/FormModal";
-import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
 import { auth } from "@clerk/nextjs/server";
-import Image from "next/image";
 import prisma from "../../../../lib/prisma";
-import { ITEM_PER_PAGE } from "@/lib/settings";
-import Link from "next/link";
 import ResultsPageClient from "./ResultsPageClient";
 
-interface StudentMinimal {
-  id: string;
-  name: string;
-  surname: string;
-}
-
-import {
-  Prisma,
-  Result,
-  Student,
-  Exam,
-  Assignment,
-  Lesson,
-  Subject,
-  Class,
-  Teacher,
-} from "@prisma/client";
-
-type ResultList = Result & {
-  student: Student;
-  exam?:
-    | (Exam & {
-        lesson: Lesson & {
-          subject: Subject;
-          class: Class;
-          teacher: Teacher;
-        };
-      })
-    | null;
-  assignment?:
-    | (Assignment & {
-        lesson: Lesson & {
-          subject: Subject;
-          class: Class;
-          teacher: Teacher;
-        };
-      })
-    | null;
-};
-
-const columns = [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Student",
-    accessor: "student",
-  },
-  {
-    header: "Score",
-    accessor: "score",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
-];
-
-const ResultListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const ResultListPage = async () => {
   const { userId } = auth();
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
-  const p = page ? parseInt(page) : 1;
 
-  // URL QUERY PARAMS CONDITION
-  const query: Prisma.ResultWhereInput = {};
-
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "studentId":
-            query.studentId = value;
-            break;
-          case "classId":
-            query.OR = [
-              { exam: { lesson: { classId: parseInt(value) } } },
-              { assignment: { lesson: { classId: parseInt(value) } } },
-            ];
-            break;
-          case "teacherId":
-            query.OR = [
-              { exam: { lesson: { teacherId: value } } },
-              { assignment: { lesson: { teacherId: value } } },
-            ];
-            break;
-          case "search":
-            query.OR = [
-              { exam: { title: { contains: value, mode: "insensitive" } } },
-              { student: { name: { contains: value, mode: "insensitive" } } },
-              { student: { surname: { contains: value, mode: "insensitive" } } },
-              {
-                exam: {
-                  lesson: {
-                    subject: { name: { contains: value, mode: "insensitive" } },
-                  },
-                },
-              },
-              {
-                assignment: {
-                  lesson: {
-                    subject: { name: { contains: value, mode: "insensitive" } },
-                  },
-                },
-              },
-            ];
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
-
-  const [data, count, sheets, classes, subjects, teachers] = await prisma.$transaction([
-    prisma.result.findMany({
-      where: query,
-      include: {
-        student: true,
-        exam: {
-          include: {
-            lesson: {
-              include: {
-                subject: true,
-                class: true,
-                teacher: true,
-              },
-            },
-          },
-        },
-        assignment: {
-          include: {
-            lesson: {
-              include: {
-                subject: true,
-                class: true,
-                teacher: true,
-              },
-            },
-          },
-        },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.result.count({ where: query }),
-    prisma.gradeSheet.findMany({
-      include: {
-        class: { select: { name: true } },
-        subject: { select: { name: true } },
-        teacher: { select: { name: true, surname: true } },
-        grades: { select: { id: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
+  const [classes, subjects, teachers] = await Promise.all([
     prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.subject.findMany({ orderBy: { domain: "asc" } }),
     prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
@@ -201,18 +22,12 @@ const ResultListPage = async ({
   return (
     <ResultsPageClient
       role={role}
-      sheets={sheets}
       classes={classes}
       subjects={subjects}
       teachers={teachers}
       initialStudents={initialStudents}
-      data={data}
-      count={count}
-      page={p}
     />
   );
 };
-
-
 
 export default ResultListPage;
