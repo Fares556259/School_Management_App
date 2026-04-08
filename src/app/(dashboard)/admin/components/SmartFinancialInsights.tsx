@@ -6,8 +6,9 @@ import { getFinancialInsights } from '../actions/aiActions';
 
 interface Insight {
   text: string;
-  type: 'positive' | 'warning' | 'info' | 'action';
+  type: 'performance' | 'risk' | 'opportunity' | 'trend' | 'action';
   icon: string;
+  confidence?: string;
 }
 
 interface SmartFinancialInsightsProps {
@@ -17,6 +18,7 @@ interface SmartFinancialInsightsProps {
   prevIncome: number;
   month: string;
   dailyData?: { date: string, income: number, expense: number }[];
+  className?: string;
 }
 
 const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
@@ -25,7 +27,8 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   breakdown,
   prevIncome,
   month,
-  dailyData
+  dailyData,
+  className
 }) => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +57,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         if (salaryPercent > 60) {
             fallbackInsights.push({
             text: `Salaries represent ${Math.round(salaryPercent)}% of total expenses — unusually high concentration.`,
-            type: 'warning',
+            type: 'risk',
             icon: '⚠️'
           });
         }
@@ -63,7 +66,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         if (revDiff < 0) {
             fallbackInsights.push({
             text: `Revenue decreased by ${Math.abs(Math.round(revDiff))}% compared to last period.`,
-            type: 'warning',
+            type: 'risk',
             icon: '📉'
           });
         }
@@ -72,7 +75,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         if (margin < 0) {
             fallbackInsights.push({
             text: `Operating at a deficit ($${Math.round(expense - income).toLocaleString()}). Consider reducing non-essential costs.`,
-            type: 'warning',
+            type: 'opportunity',
             icon: '🚩'
           });
         }
@@ -86,7 +89,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   }, [income, expense, breakdown, prevIncome, month, dailyData]);
 
   return (
-    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 min-h-[300px]">
+    <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 ${className || ''}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
             <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
@@ -99,23 +102,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         <span className={`flex h-2 w-2 rounded-full ${isLoading ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`} />
       </div>
 
-      <div className="flex flex-col gap-3 relative flex-1 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
-        <style jsx>{`
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(241, 245, 249, 0.5);
-            border-radius: 10px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(203, 213, 225, 0.8);
-            border-radius: 10px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(148, 163, 184, 1);
-          }
-        `}</style>
+      <div className="relative flex-1 min-h-0 w-full">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 
@@ -123,58 +110,90 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col gap-3"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
             >
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-[20px] border border-slate-100 border-dashed" />
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-24 bg-slate-50 animate-pulse rounded-[20px] border border-slate-100 border-dashed" />
               ))}
-              <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase italic animate-bounce">
-                AI Financial Analyst is analyzing trends...
-              </p>
+              <div className="col-span-full">
+                  <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase italic animate-bounce">
+                    AI Financial Analyst is analyzing trends...
+                  </p>
+              </div>
             </motion.div>
           ) : (
             <motion.div 
               key="content"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col gap-3"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start w-full"
             >
-              {insights.map((insight, idx) => (
-                <motion.div 
-                   key={idx}
-                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                   transition={{ delay: idx * 0.1 }}
-                   className={`p-4 rounded-[20px] flex items-start gap-4 border shadow-sm transition-all hover:shadow-md ${
-                       insight.type === 'positive' ? 'bg-emerald-50 border-emerald-100' :
-                       insight.type === 'warning' ? 'bg-rose-50 border-rose-100' :
-                       insight.type === 'action' ? 'bg-amber-50 border-amber-200' :
-                       'bg-slate-50 border-slate-100'
-                   }`}
-                >
-                  <span className="text-xl shrink-0">{insight.icon}</span>
-                  <div className="flex flex-col gap-1">
-                    {insight.type === 'action' && (
-                        <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Recommended Action</span>
+              {[
+                { type: 'performance', label: 'Performance', icon: '🟢', color: 'emerald' },
+                { type: 'risk', label: 'Risks', icon: '🔴', color: 'rose' },
+                { type: 'opportunity', label: 'Opportunities', icon: '🟡', color: 'amber' },
+                { type: 'trend', label: 'Trends', icon: '🔵', color: 'indigo' },
+                { type: 'action', label: 'Actionable Steps', icon: '⚡', color: 'orange' }
+              ].map((category) => {
+                const categoryInsights = insights.filter(i => i.type === category.type);
+                
+                return (
+                  <div key={category.type} className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 mb-1 px-1">
+                      <span className="text-xs">{category.icon}</span>
+                      <h3 className={`text-[10px] font-black uppercase tracking-widest ${
+                          category.type === 'performance' ? 'text-emerald-500' :
+                          category.type === 'risk' ? 'text-rose-500' :
+                          category.type === 'opportunity' ? 'text-amber-500' :
+                          category.type === 'action' ? 'text-orange-500' :
+                          'text-indigo-500'
+                      }`}>
+                        {category.label}
+                      </h3>
+                    </div>
+                    
+                    {categoryInsights.length > 0 ? (
+                      categoryInsights.map((insight, idx) => (
+                        <motion.div 
+                           key={idx}
+                           initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                           animate={{ opacity: 1, scale: 1, y: 0 }}
+                           transition={{ delay: idx * 0.1 }}
+                           className={`p-4 rounded-[20px] flex flex-col gap-3 border shadow-sm transition-all hover:shadow-md ${
+                               category.type === 'performance' ? 'bg-emerald-50 border-emerald-100' :
+                               category.type === 'risk' ? 'bg-rose-50 border-rose-100' :
+                               category.type === 'opportunity' ? 'bg-amber-50 border-amber-200' :
+                               category.type === 'action' ? 'bg-orange-50 border-orange-100' :
+                               'bg-indigo-50 border-indigo-100'
+                           }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                             <span className="text-xl leading-none">{insight.icon}</span>
+                             {insight.confidence && (
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">
+                                    {insight.confidence}
+                                </span>
+                             )}
+                          </div>
+                          <p className={`text-xs font-bold leading-relaxed ${
+                              category.type === 'performance' ? 'text-emerald-700' :
+                              category.type === 'risk' ? 'text-rose-700' :
+                              category.type === 'opportunity' ? 'text-amber-800' :
+                              category.type === 'action' ? 'text-orange-700' :
+                              'text-indigo-700'
+                          }`}>
+                            {insight.text}
+                          </p>
+                        </motion.div>
+                      ))
+                    ) : (
+                       <div className="p-4 rounded-[20px] border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center h-24">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50">No {category.label} Detected</span>
+                       </div>
                     )}
-                    <p className={`text-xs font-bold leading-relaxed ${
-                        insight.type === 'positive' ? 'text-emerald-700' :
-                        insight.type === 'warning' ? 'text-rose-700' :
-                        insight.type === 'action' ? 'text-amber-800' :
-                        'text-slate-600'
-                    }`}>
-                      {insight.text}
-                    </p>
                   </div>
-                </motion.div>
-              ))}
-              
-              {insights.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <span className="text-2xl mb-2">📊</span>
-                    <p className="text-xs font-bold text-slate-400 italic">No significant insights detected for this period.</p>
-                </div>
-              )}
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

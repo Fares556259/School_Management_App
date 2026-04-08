@@ -6,7 +6,6 @@ import { calculateTrend } from "@/lib/trendUtils";
 // New Components
 import KpiStrip from "./components/KpiStrip";
 import ActionCenter from "./components/ActionCenter";
-import FinancialQuickReport from "./components/FinancialQuickReport";
 import NoticeBoard from "./components/NoticeBoard";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
@@ -19,8 +18,10 @@ import SmartFinancialInsights from "./components/SmartFinancialInsights";
 import FiscalTimeFilter from "./components/FiscalTimeFilter";
 import CashFlowTrend from "./components/CashFlowTrend";
 import GrowthAnalyticsChart from "./components/GrowthAnalyticsChart";
-import MonthYearFilter from "./components/MonthYearFilter"; // We will create this
+import MonthYearFilter from "./components/MonthYearFilter";
+import FiscalDistribution from "./components/FiscalDistribution";
 import SnapAssistant from "./components/SnapAssistant";
+import PrintReportAction from "./components/PrintReportAction";
 // import { checkModels } from "./actions/aiActions";
 
 export const dynamic = "force-dynamic";
@@ -489,103 +490,88 @@ const AdminPage = async ({
   return (
     <div className="p-6 flex flex-col gap-6 bg-[#F7F8FA] min-h-screen">
       {/* 1. HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Command Center</h1>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tighter">Command Center</h1>
           <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
         </div>
         <div className="flex items-center gap-4">
+           <PrintReportAction month={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`} />
+           <div className="h-10 w-[1px] bg-slate-200 hidden md:block mx-2" />
            <MonthYearFilter activeMonth={queryMonth} activeYear={queryYear} />
            <QuickActionBar />
         </div>
       </div>
 
-      {/* 2. KPI SECTION */}
-      <FinancialKpiSection 
-        currentIncome={currentIncome}
-        prevIncome={prevIncome}
-        currentExpense={currentExpense}
-        prevExpense={prevExpense}
-        currentBalance={currentBalance}
-        prevBalance={prevBalance}
-        isCustomRange={!!(queryMonth && queryYear)}
-      />
+      {/* 2. UNIFIED COMMAND CENTER (KPIs + Operations) */}
+      <div className="flex flex-col">
+        <FinancialKpiSection 
+          currentIncome={currentIncome}
+          prevIncome={prevIncome}
+          currentExpense={currentExpense}
+          prevExpense={prevExpense}
+          currentBalance={currentBalance}
+          prevBalance={prevBalance}
+          isCustomRange={!!(queryMonth && queryYear)}
+        />
 
-      {/* 3. CONSOLIDATED MAIN GRID (CHARTS, INSIGHTS & OPERATIONAL DATA) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN - High-Fidelity Analytics (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          {/* Fiscal Overview */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[380px]">
-             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">Fiscal Overview</h2>
-                <FiscalTimeFilter activeFilter={timeFilter} />
-             </div>
-              <FiscalBarChart 
-                incomeData={incomeBreakdown}
-                expenseData={expenseBreakdown}
-             />
-          </div>
-          
-          {/* Growth Analytics */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[380px] flex flex-col">
-             <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Growth Analytics & AI Projection</h2>
-                  <p className="text-xs text-slate-400 font-medium mt-1">12-month historical performance + 3-month AI predictive forecasting</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#2563EB]" />
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Revenue</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-slate-200" />
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Expense</span>
-                  </div>
-                </div>
-             </div>
-             <div className="flex-1 min-h-0">
-               <GrowthAnalyticsChart data={trendData} />
-             </div>
-          </div>
-
-          {/* Detailed Category Breakdown */}
-          <FinancialBreakdown data={fullBreakdown} />
-        </div>
-
-        {/* RIGHT COLUMN - Insights, Reports & Snapshots (4 cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <SmartFinancialInsights 
-            income={currentIncome}
-            expense={currentExpense}
-            breakdown={fullBreakdown}
-            prevIncome={prevIncome}
-            month={MONTHS[startDate.getMonth()]}
-            dailyData={dailyInsightsData}
-          />
-
-          <FinancialQuickReport 
-            income={currentIncome}
-            expense={currentExpense}
-            unpaid={unpaidAmount}
-            month={MONTHS[startDate.getMonth()] + " " + startDate.getFullYear()}
-          />
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-             <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Operational Snapshot</h2>
-             <OperationsSnapshot 
-                students={studentCount}
-                teachers={teacherCount}
-                staff={staffCount}
-                classes={classCount}
-             />
-          </div>
-        </div>
+        <OperationsSnapshot 
+            students={studentCount}
+            teachers={teacherCount}
+            staff={staffCount}
+            classes={classCount}
+        />
       </div>
 
-      {/* 5. ACTION CENTER (UNPAID LEDGER) */}
-      <section className="border-t border-slate-100 pt-6">
+      {/* 3. GROWTH ANALYTICS (FULL WIDTH) */}
+      <section className="mt-8">
+        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm h-[480px] flex flex-col overflow-hidden">
+           <div className="flex items-center justify-between mb-8 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Growth Analytics</h2>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">12-Month Performance + AI Projection</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense</span>
+                </div>
+              </div>
+           </div>
+           <div className="flex-1 min-h-0 relative">
+             <GrowthAnalyticsChart data={trendData} />
+           </div>
+        </div>
+      </section>
+
+      {/* 4. FISCAL INTELLIGENCE (FULL WIDTH) */}
+      <section className="mt-8">
+        <FiscalDistribution 
+          incomeData={incomeBreakdown}
+          expenseData={expenseBreakdown}
+          fullBreakdown={fullBreakdown}
+          timeFilter={timeFilter}
+        />
+      </section>
+
+      {/* 5. AI BRAIN - SMART INSIGHTS HERO (FULL WIDTH) */}
+      <section className="mt-8">
+        <SmartFinancialInsights 
+          income={currentIncome}
+          expense={currentExpense}
+          breakdown={fullBreakdown}
+          prevIncome={prevIncome}
+          month={MONTHS[startDate.getMonth()]}
+          dailyData={dailyInsightsData}
+        />
+      </section>
+
+      {/* 6. ACTION CENTER (UNPAID LEDGER) */}
+      <section className="border-t border-slate-100 pt-8 mt-8">
         <div className="flex items-center gap-3 mb-6">
           <span className="text-lg">🚨</span>
           <div>

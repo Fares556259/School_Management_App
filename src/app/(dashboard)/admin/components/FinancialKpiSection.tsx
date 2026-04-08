@@ -54,10 +54,6 @@ const KpiCard: React.FC<KpiCardProps> = ({
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-70">
           {title}
         </span>
-        <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${statusColor}`}>
-          <span>{isPositive ? '↑' : '↓'}</span>
-          <span>{Math.abs(Math.round(diff))}%</span>
-        </div>
       </div>
       
       <div className="flex items-center justify-between gap-4">
@@ -81,12 +77,9 @@ const KpiCard: React.FC<KpiCardProps> = ({
       </div>
       
       <div className="flex items-center gap-2 mt-3">
-        <div className="h-1 flex-1 bg-slate-50 rounded-full overflow-hidden">
-            <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: '65%' }}
-                className={`h-full rounded-full ${isPositive ? 'bg-emerald-400' : 'bg-rose-400'}`}
-            />
+        <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${statusColor}`}>
+          <span>{isPositive ? '↑' : '↓'}</span>
+          <span>{Math.abs(Math.round(diff))}%</span>
         </div>
         <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
           {compareLabel}
