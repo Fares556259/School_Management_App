@@ -47,51 +47,6 @@ export default async function GradesPage({
       </div>
 
 
-      {/* ─── GRADE SHEETS LIST ─── */}
-      {sheets.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recorded Sheet{sheets.length !== 1 ? "s" : ""} — Term {term}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {sheets.map((sheet) => {
-              const isPdf = sheet.proofUrl.endsWith(".pdf");
-              return (
-                <div key={sheet.id} className="group bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg hover:shadow-slate-100 hover:border-indigo-100 transition-all flex">
-                  {/* Proof thumbnail */}
-                  <div className="w-20 flex-shrink-0 bg-slate-50 flex items-center justify-center border-r border-slate-100 text-2xl">
-                    {isPdf ? "📄" : (
-                      <img src={sheet.proofUrl} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 p-4 flex flex-col justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-black text-slate-800 tracking-tight">{sheet.subject.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{sheet.class.name} · Term {sheet.term}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-400">{sheet.grades.length} students graded</span>
-                      {sheet.teacher && (
-                        <span className="text-[10px] font-bold text-slate-400">{sheet.teacher.name}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* View proof link */}
-                  <a
-                    href={sheet.proofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center px-3 border-l border-slate-100 text-slate-300 hover:text-indigo-500 transition-colors"
-                    title="View Proof"
-                  >
-                    ↗
-                  </a>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ─── GRADE ENTRY FORM ─── */}
       {!classId ? (
