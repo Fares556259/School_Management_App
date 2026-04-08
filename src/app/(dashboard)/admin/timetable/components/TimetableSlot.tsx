@@ -64,7 +64,6 @@ const TimetableSlotItem = ({
           onUpdate();
         } else {
             console.error("Save failed:", res.error);
-            alert("Erreur: " + res.error);
         }
     } catch (err) {
         console.error("Update error:", err);
