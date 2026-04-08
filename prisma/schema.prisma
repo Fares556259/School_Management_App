@@ -53,24 +53,25 @@ model Student {
 }
 
 model Teacher {
-  id        String    @id
-  username  String    @unique
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String?   @unique
-  address   String
-  img       String?
-  bloodType String
-  sex       UserSex
-  createdAt DateTime  @default(now())
-  birthday  DateTime
-  salary    Float     @default(3000)
-  classes   Class[]
-  lessons   Lesson[]
-  payments  Payment[]
-  subjects  Subject[] @relation("SubjectToTeacher")
-  timetable TimetableSlot[]
+  id          String         @id
+  username    String         @unique
+  name        String
+  surname     String
+  email       String?        @unique
+  phone       String?        @unique
+  address     String
+  img         String?
+  bloodType   String
+  sex         UserSex
+  createdAt   DateTime       @default(now())
+  birthday    DateTime
+  salary      Float          @default(3000)
+  classes     Class[]
+  lessons     Lesson[]
+  payments    Payment[]
+  subjects    Subject[]      @relation("SubjectToTeacher")
+  timetable   TimetableSlot[]
+  gradeSheets GradeSheet[]
 }
 
 model Parent {
@@ -93,40 +94,62 @@ model Level {
 }
 
 model Class {
-  id           Int       @id @default(autoincrement())
-  name         String    @unique
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
   capacity     Int
   supervisorId String?
   levelId      Int
-  level        Level     @relation(fields: [levelId], references: [id])
-  supervisor   Teacher?  @relation(fields: [supervisorId], references: [id])
+  level        Level          @relation(fields: [levelId], references: [id])
+  supervisor   Teacher?       @relation(fields: [supervisorId], references: [id])
   lessons      Lesson[]
   students     Student[]
   timetable    TimetableSlot[]
+  gradeSheets  GradeSheet[]
 }
 
 model Subject {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  domain   String    @default("General")
-  grades   Grade[]
-  lessons  Lesson[]
-  teachers Teacher[] @relation("SubjectToTeacher")
-  timetable TimetableSlot[]
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  domain      String       @default("General")
+  grades      Grade[]
+  lessons     Lesson[]
+  teachers    Teacher[]    @relation("SubjectToTeacher")
+  timetable   TimetableSlot[]
+  gradeSheets GradeSheet[]
 }
 
 model Grade {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
   score     Float
   studentId String
   subjectId Int
   term      Int
-  updatedAt DateTime @updatedAt
-  student   Student  @relation(fields: [studentId], references: [id])
-  subject   Subject  @relation(fields: [subjectId], references: [id])
+  updatedAt DateTime    @updatedAt
+  sheetId   Int?
+  sheet     GradeSheet? @relation(fields: [sheetId], references: [id], onDelete: SetNull)
+  student   Student     @relation(fields: [studentId], references: [id])
+  subject   Subject     @relation(fields: [subjectId], references: [id])
 
   @@unique([studentId, subjectId, term])
+}
+
+model GradeSheet {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  subjectId   Int
+  term        Int
+  proofUrl    String
+  notes       String?  @default("")
+  teacherId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  grades      Grade[]
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+
+  @@unique([classId, subjectId, term])
 }
 
 model Lesson {

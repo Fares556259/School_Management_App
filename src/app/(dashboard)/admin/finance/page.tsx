@@ -76,7 +76,7 @@ const FinancePage = async ({
       select: { id: true, name: true, surname: true, salary: true, payments: { where: { month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), year: new Date().getFullYear() } } },
     }),
     prisma.student.findMany({
-      include: { grade: true, payments: { where: { month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), year: new Date().getFullYear() } } },
+      include: { grades: true, payments: { where: { month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), year: new Date().getFullYear() } } },
     }),
   ]);
 

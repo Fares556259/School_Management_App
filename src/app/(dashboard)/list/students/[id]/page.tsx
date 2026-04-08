@@ -20,7 +20,6 @@ const SingleStudentPage = async ({
   const student:
     | (Student & {
         class: Class & { _count: { lessons: number } };
-        grade: Grade;
         payments: any[];
       })
     | null = await prisma.student.findUnique({
@@ -35,7 +34,6 @@ const SingleStudentPage = async ({
           },
         },
       },
-      grade: true,
       payments: true,
     },
   });
@@ -118,7 +116,7 @@ const SingleStudentPage = async ({
                 className="w-6 h-6"
               />
               <div className="">
-                <h1 className="text-xl font-semibold">{student.grade.level}th</h1>
+                <h1 className="text-xl font-semibold">{student.levelId}</h1>
                 <span className="text-sm text-gray-400">Grade</span>
               </div>
             </div>
@@ -153,7 +151,7 @@ const SingleStudentPage = async ({
         <StudentPaymentTracker
           studentId={student.id}
           studentName={`${student.name} ${student.surname}`}
-          gradeLevel={student.grade.level}
+          gradeLevel={student.levelId}
           payments={student.payments}
           isAdmin={role === "admin"}
         />
@@ -205,7 +203,7 @@ const SingleStudentPage = async ({
         <StudentPaymentTracker 
           studentId={student.id}
           studentName={student.name + " " + student.surname}
-          gradeLevel={student.grade.level}
+          gradeLevel={student.levelId}
           payments={student.payments}
           isAdmin={role === "admin"}
         />
