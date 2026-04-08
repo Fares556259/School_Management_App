@@ -7,10 +7,19 @@ const ResultListPage = async () => {
   const { userId } = auth();
   const role = await getRole();
 
-  const [classes, subjects, teachers] = await Promise.all([
+  const [classes, subjects, teachers, sheets] = await Promise.all([
     prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.subject.findMany({ orderBy: { domain: "asc" } }),
     prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
+    prisma.gradeSheet.findMany({
+      include: {
+        class: { select: { name: true } },
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } },
+        grades: { select: { id: true } },
+      },
+      orderBy: [{ updatedAt: "desc" }],
+    }),
   ]);
 
   // For the recorder, we need a list of students for the first class by default
@@ -26,6 +35,7 @@ const ResultListPage = async () => {
       subjects={subjects}
       teachers={teachers}
       initialStudents={initialStudents}
+      sheets={sheets}
     />
   );
 };

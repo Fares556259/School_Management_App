@@ -41,20 +41,28 @@ export default function GradeSheetRecorder({
   teachers,
   initialClassId,
   initialTerm = 1,
+  existingSheet,
   onClose,
   onCloseRedirect,
-}: Props) {
+}: Props & { existingSheet?: any }) {
   const router = useRouter();
-  const [classId, setClassId] = useState<number>(initialClassId ?? classes[0]?.id ?? 0);
+  const [classId, setClassId] = useState<number>(initialClassId ?? existingSheet?.classId ?? classes[0]?.id ?? 0);
   const [students, setStudents] = useState<Student[]>(initialStudents);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
-  const [subjectId, setSubjectId] = useState<number>(subjects[0]?.id ?? 0);
-  const [term, setTerm] = useState<number>(initialTerm);
-  const [teacherId, setTeacherId] = useState<string>("");
-  const [notes, setNotes] = useState("");
+  const [subjectId, setSubjectId] = useState<number>(existingSheet?.subjectId ?? subjects[0]?.id ?? 0);
+  const [term, setTerm] = useState<number>(existingSheet?.term ?? initialTerm);
+  const [teacherId, setTeacherId] = useState<string>(existingSheet?.teacherId ?? "");
+  const [notes, setNotes] = useState(existingSheet?.notes ?? "");
   const [proofFile, setProofFile] = useState<File | null>(null);
-  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
-  const [grades, setGrades] = useState<Record<string, string>>({});
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);
+  
+  // Initialize grades from existingSheet if provided
+  const initialGradesMap = existingSheet?.grades?.reduce((acc: any, g: any) => {
+    acc[g.studentId] = String(g.score);
+    return acc;
+  }, {}) ?? {};
+
+  const [grades, setGrades] = useState<Record<string, string>>(initialGradesMap);
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [zoom, setZoom] = useState(1);
