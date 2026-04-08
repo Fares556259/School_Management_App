@@ -57,6 +57,12 @@ const menuItems: MenuSection[] = [
         visible: ["admin"],
       },
       {
+        icon: "/calendar.png",
+        label: "Timetable",
+        href: "/admin/timetable",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
         icon: "/teacher.png",
         label: "Teachers",
         href: "/list/teachers",
@@ -97,12 +103,6 @@ const menuItems: MenuSection[] = [
         label: "Lessons",
         href: "/list/lessons",
         visible: ["admin", "teacher"],
-      },
-      {
-        icon: "/calendar.png",
-        label: "Timetable",
-        href: "/admin/timetable",
-        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/exam.png",
