@@ -27,15 +27,9 @@ const menuItems: MenuSection[] = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/setting.png",
-        label: "Audit Log",
-        href: "/admin/audit",
-        visible: ["admin"],
-      },
-      {
-        icon: "/result.png",
-        label: "Grades",
-        href: "/admin/grades",
+        icon: "/finance.png",
+        label: "Expenses",
+        href: "/list/expenses",
         visible: ["admin"],
       },
       {
@@ -45,9 +39,21 @@ const menuItems: MenuSection[] = [
         visible: ["admin"],
       },
       {
-        icon: "/finance.png",
-        label: "Expenses",
-        href: "/list/expenses",
+        icon: "/setting.png",
+        label: "Audit Log",
+        href: "/admin/audit",
+        visible: ["admin"],
+      },
+      {
+        icon: "/result.png",
+        label: "Results",
+        href: "/list/results",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/result.png",
+        label: "Grades",
+        href: "/admin/grades",
         visible: ["admin"],
       },
       {
@@ -108,12 +114,6 @@ const menuItems: MenuSection[] = [
         icon: "/assignment.png",
         label: "Assignments",
         href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/result.png",
-        label: "Results",
-        href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
