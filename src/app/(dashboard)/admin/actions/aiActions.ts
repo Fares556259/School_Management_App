@@ -133,26 +133,98 @@ export async function getFinancialInsights(data: {
 
     try {
         const prompt = `
-            You are a professional financial analyst for a private school called "SnapSchool".
-            Analyze the following financial data for the month of ${data.month}:
-            - Total Revenue: $${data.income.toLocaleString()}
-            - Total Expenses: $${data.expense.toLocaleString()}
-            - Previous Month Revenue: $${data.prevIncome.toLocaleString()}
-            - Expense Breakdown: ${JSON.stringify(data.breakdown.filter(b => b.type === 'expense'))}
-            
-            ${data.dailyData ? `DAILY TRENDS FOR THIS MONTH: ${JSON.stringify(data.dailyData)}` : ""}
+            You are an advanced financial analyst AI embedded inside a dashboard.
 
-            TASK:
-            Provide 4 to 6 "Smart Insights" and "Actionable Steps" for the school director.
-            - Include 2-3 high-level monthly trends.
-            - Include 2-3 specific "Next Steps" or "Daily Observations" based on the daily flow or category concentration.
-            
-            Each insight must be a JSON object with:
-            - "text": The insight text (max 120 characters).
-            - "type": "positive" (for good news), "warning" (for issues), "info" (for facts), or "action" (for specific steps TO DO).
-            - "icon": A single emoji representing the insight.
-            
-            Return ONLY a JSON array of these objects.
+            Your role is to analyze financial data and generate high-quality "Smart Insights" that are:
+            * Specific
+            * Data-driven
+            * Actionable
+            * Concise but insightful
+
+            ---
+            ### 📊 INPUT DATA:
+            You will receive:
+            * Total Revenue: $${data.income.toLocaleString()}
+            * Total Expenses: $${data.expense.toLocaleString()}
+            * Profit Margin: ${data.income > 0 ? (((data.income - data.expense) / data.income) * 100).toFixed(1) : 0}%
+            * Net Balance: $${(data.income - data.expense).toLocaleString()}
+            * Category breakdown: ${JSON.stringify(data.breakdown)}
+            * Previous Month Revenue: $${data.prevIncome.toLocaleString()}
+            * Daily Trends: ${data.dailyData ? JSON.stringify(data.dailyData) : "N/A"}
+
+            ---
+            ### 🎯 YOUR TASK:
+            Generate 5–7 Smart Insights divided into these categories:
+            1. 🟢 Performance
+            2. 🔴 Risks
+            3. 🟡 Opportunities
+            4. 🔵 Trends
+            5. ⚡ Actionable Steps
+
+            ---
+            ### ⚙️ RULES:
+            1. ALWAYS include numbers:
+               * % change (e.g., +45%)
+               * absolute values (e.g., +$31,200)
+               * ratios when relevant (e.g., 54% of total expenses)
+            2. ALWAYS explain WHY something happened:
+               * Identify main drivers (categories, dates, anomalies)
+            3. ALWAYS include impact:
+               * What it means for the business
+            4. For at least 2 insights, include ACTIONABLE recommendations:
+               * With quantified impact if possible
+            5. Detect anomalies:
+               * spikes, drops, unusual patterns
+            6. Keep each insight under 2 lines
+
+            ---
+            ### 🧠 OUTPUT FORMAT:
+            Return ONLY a JSON array like this:
+            [
+              {
+                "type": "performance",
+                "icon": "📈",
+                "text": "Revenue increased by +42% (+$31,200) vs last period, mainly driven by Grants (68% of total), significantly boosting profitability.",
+                "confidence": "High"
+              },
+              {
+                "type": "risk",
+                "icon": "⚠️",
+                "text": "Salaries represent 54% of total expenses (+18% MoM), indicating rising fixed costs that could reduce flexibility.",
+                "confidence": "Medium"
+              },
+              {
+                "type": "opportunity",
+                "icon": "💡",
+                "text": "Reducing maintenance costs by 15% could improve profit margin from 75.7% to ~79%, increasing net savings.",
+                "confidence": "Medium"
+              },
+              {
+                "type": "trend",
+                "icon": "📊",
+                "text": "Revenue shows a strong upward trend since March, with a major spike on 2026-04-14 accounting for the monthly peak.",
+                "confidence": "High"
+              },
+              {
+                "type": "action",
+                "icon": "⚡",
+                "text": "Negotiate new supplier contracts to lower fixed material costs before the next fiscal quarter begins.",
+                "confidence": "High"
+              }
+            ]
+
+            ---
+            ### ❌ AVOID:
+            * Generic statements like "Revenue increased"
+            * No vague language
+            * No repetition
+            * No long paragraphs
+
+            ---
+            ### ✅ STYLE:
+            * Professional but simple
+            * Clear business insights
+            * Feels like a real CFO assistant
         `;
 
         const text = await callGeminiDirect(prompt);

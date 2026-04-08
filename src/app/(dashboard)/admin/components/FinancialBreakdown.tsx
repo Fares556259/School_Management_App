@@ -11,9 +11,10 @@ interface BreakdownItem {
 
 interface FinancialBreakdownProps {
   data: BreakdownItem[];
+  hideCard?: boolean;
 }
 
-const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data }) => {
+const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data, hideCard = false }) => {
   const incomeItems = data.filter(d => d.type === 'income').sort((a, b) => b.value - a.value);
   const expenseItems = data.filter(d => d.type === 'expense').sort((a, b) => b.value - a.value);
 
@@ -67,30 +68,32 @@ const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data }) => {
     );
   };
 
-  return (
-    <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-10 h-full">
-      <div className="flex items-center justify-between border-b border-slate-50 pb-6">
-         <div className="flex flex-col gap-1">
-            <h2 className="text-sm font-black text-slate-800 tracking-widest uppercase opacity-40">
-                Category Breakdown
-            </h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                Symmetrical Financial Distribution
-            </p>
-         </div>
-         <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Income</span>
-            </span>
-            <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense</span>
-            </span>
-         </div>
-      </div>
+  const content = (
+    <>
+      {!hideCard && (
+        <div className="flex items-center justify-between border-b border-slate-50 pb-6">
+          <div className="flex flex-col gap-1">
+              <h2 className="text-sm font-black text-slate-800 tracking-widest uppercase opacity-40">
+                  Category Breakdown
+              </h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                  Symmetrical Financial Distribution
+              </p>
+          </div>
+          <div className="flex items-center gap-6">
+              <span className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Income</span>
+              </span>
+              <span className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense</span>
+              </span>
+          </div>
+        </div>
+      )}
 
-      <div className="flex flex-col gap-8">
+      <div className={`flex flex-col gap-8 ${hideCard ? 'pt-2' : ''}`}>
         {rows.map((row, idx) => (
           <div key={idx} className="grid grid-cols-1 lg:grid-cols-2 gap-x-16 gap-y-0 items-start relative">
             {renderItem(row.income, totalIncome, idx)}
@@ -102,6 +105,14 @@ const FinancialBreakdown: React.FC<FinancialBreakdownProps> = ({ data }) => {
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (hideCard) return content;
+
+  return (
+    <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-10 h-full">
+      {content}
     </div>
   );
 };

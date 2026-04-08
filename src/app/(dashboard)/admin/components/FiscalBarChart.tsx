@@ -58,8 +58,8 @@ const FiscalBarChart: React.FC<FiscalBarChartProps> = ({
   };
 
   return (
-    <div className="flex-1 w-full min-h-[280px]">
-      <ResponsiveContainer width="100%" height={280}>
+    <div className="w-full h-full min-h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={combinedData}
           layout="vertical"

@@ -18,7 +18,7 @@ type ColorTheme = {
 };
 
 const StatItem = ({ label, value, icon: Icon, theme }: { label: string, value: number, icon: any, theme: ColorTheme }) => (
-  <div className="flex flex-col p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+  <div className="flex flex-col p-6 bg-white rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-xl group relative overflow-hidden">
     {/* Subtle Background Glow */}
     <div className={`absolute -right-12 -top-12 w-32 h-32 rounded-full ${theme.bg} blur-[40px] opacity-40 group-hover:opacity-80 transition-opacity pointer-events-none`} />
 
@@ -33,11 +33,7 @@ const StatItem = ({ label, value, icon: Icon, theme }: { label: string, value: n
     
     <div className="flex flex-col relative z-10">
       <span className="text-3xl font-black text-slate-800 tracking-tighter">{value.toLocaleString()}</span>
-      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1 mb-4">{label}</span>
-    </div>
-    
-    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden relative z-10">
-       <div className={`h-full rounded-full ${theme.bar} opacity-80`} style={{ width: '60%' }} />
+      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">{label}</span>
     </div>
   </div>
 );
@@ -46,7 +42,7 @@ const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSn
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm grow flex flex-col">
+    <div className="w-full flex flex-col mt-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-slate-400">
             <Activity size={12} />
@@ -68,7 +64,7 @@ const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSn
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-2 gap-4 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
       <StatItem 
         label="Students Enrolled" 
         value={students} 
