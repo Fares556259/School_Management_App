@@ -2,7 +2,6 @@ import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
 import GradeEntryForm from "./GradeEntryForm";
 import GradeFilter from "./GradeFilter";
-import GradeSheetEntry from "./GradeSheetEntry";
 import { getAllGradeSheets } from "./actions";
 import Link from "next/link";
 
@@ -42,20 +41,13 @@ export default async function GradesPage({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">GRADE MANAGEMENT</h1>
-          <p className="text-sm text-slate-500 font-medium tracking-tight">Manual entry & proof-linked grade sheets</p>
+          <p className="text-sm text-slate-500 font-medium tracking-tight">Manual entry for academic reports</p>
         </div>
         <div className="flex items-center gap-3">
           <GradeFilter classes={classes} classId={classId} term={term} />
-          <GradeSheetEntry
-            students={students}
-            subjects={subjects}
-            classes={classes}
-            teachers={teachers}
-            classId={classId ?? undefined}
-            term={term}
-          />
         </div>
       </div>
+
 
       {/* ─── GRADE SHEETS LIST ─── */}
       {sheets.length > 0 && (

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useRef, useTransition, useCallback } from "react";
+import { useState, useRef, useTransition, useCallback, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { createGradeSheet, GradeEntry } from "./actions";
+
 
 interface Student {
   id: string;
@@ -27,20 +29,25 @@ interface Props {
   initialClassId?: number;
   initialTerm?: number;
   onClose?: () => void;
+  onCloseRedirect?: string;
 }
 
 const TERMS = [1, 2, 3];
 
 export default function GradeSheetRecorder({
-  students,
+  students: initialStudents,
   subjects,
   classes,
   teachers,
   initialClassId,
   initialTerm = 1,
   onClose,
+  onCloseRedirect,
 }: Props) {
+  const router = useRouter();
   const [classId, setClassId] = useState<number>(initialClassId ?? classes[0]?.id ?? 0);
+  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [subjectId, setSubjectId] = useState<number>(subjects[0]?.id ?? 0);
   const [term, setTerm] = useState<number>(initialTerm);
   const [teacherId, setTeacherId] = useState<string>("");
@@ -52,6 +59,27 @@ export default function GradeSheetRecorder({
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [zoom, setZoom] = useState(1);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleClassChange = async (newId: number) => {
+    setClassId(newId);
+    setIsLoadingStudents(true);
+    try {
+      // Fetch students for the new class
+      const response = await fetch(`/api/students?classId=${newId}`);
+      const data = await response.json();
+      setStudents(data);
+      setGrades({}); // Reset grades when class changes
+    } catch (err) {
+      console.error("Failed to fetch students:", err);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (onClose) onClose();
+    if (onCloseRedirect) router.push(onCloseRedirect);
+  };
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,7 +133,10 @@ export default function GradeSheetRecorder({
           grades: gradeEntries,
         });
         setSaveStatus("success");
-        setTimeout(() => setSaveStatus("idle"), 3000);
+        setTimeout(() => {
+          setSaveStatus("idle");
+          handleClose();
+        }, 1500);
       } catch (err) {
         console.error(err);
         setSaveStatus("error");
@@ -153,22 +184,24 @@ export default function GradeSheetRecorder({
 
           <button
             onClick={handleSave}
-            disabled={isPending}
+            disabled={isPending || isLoadingStudents}
             className="px-5 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 uppercase tracking-widest shadow-lg shadow-indigo-100"
           >
             {isPending ? "Saving…" : "Save Sheet"}
           </button>
-          {onClose && (
-            <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-all text-slate-500 font-black">
-              ✕
-            </button>
-          )}
+          
+          <button 
+            onClick={handleClose} 
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-all text-slate-500 font-black"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
       {/* ─── FILTERS BAR ─── */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 bg-white border-b border-slate-100">
-        <SelectField label="Class" value={String(classId)} onChange={(v) => setClassId(Number(v))}>
+        <SelectField label="Class" value={String(classId)} onChange={(v) => handleClassChange(Number(v))}>
           {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </SelectField>
 
@@ -263,7 +296,12 @@ export default function GradeSheetRecorder({
             </button>
           </div>
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto relative">
+            {isLoadingStudents && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Loading Students…</span>
+              </div>
+            )}
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white border-b border-slate-100 z-10">
                 <tr>
