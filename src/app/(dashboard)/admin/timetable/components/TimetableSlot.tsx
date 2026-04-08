@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { updateTimetableSlot } from "../../actions/timetableActions";
 import { Day } from "@prisma/client";
-import { Edit2, MoreHorizontal, User, BookOpen, Clock, X, Check } from "lucide-react";
+import { Edit2, BookOpen, X, Check } from "lucide-react";
 
 interface SlotProps {
   slot: any;
@@ -15,39 +15,65 @@ interface SlotProps {
   subjects: any[];
   teachers: any[];
   onUpdate: () => void;
-  isEditMode: boolean; // Add this
+  isEditMode: boolean;
 }
 
-const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, subjects, teachers, onUpdate, isEditMode }: SlotProps) => {
+const TimetableSlotItem = ({ 
+  slot, 
+  classId, 
+  day, 
+  period, 
+  startTime, 
+  endTime, 
+  subjects, 
+  teachers, 
+  onUpdate, 
+  isEditMode 
+}: SlotProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // Form State
-  const [subjectId, setSubjectId] = useState(slot?.subjectId || "");
-  const [teacherId, setTeacherId] = useState(slot?.teacherId || "");
-  const [room, setRoom] = useState(slot?.room || "");
+  const [subjectId, setSubjectId] = useState("");
+  const [teacherId, setTeacherId] = useState("");
+  const [room, setRoom] = useState("");
+
+  // Sync state when slot prop changes (crucial for persistence display)
+  useEffect(() => {
+    setSubjectId(slot?.subjectId?.toString() || "");
+    setTeacherId(slot?.teacherId || "");
+    setRoom(slot?.room || "");
+  }, [slot]);
 
   const handleUpdate = async () => {
     setLoading(true);
-    const res = await updateTimetableSlot({
-      id: slot?.id ?? -1,
-      subjectId: parseInt(subjectId) || null,
-      teacherId: teacherId || null,
-      classId: classId,
-      day: day,
-      slotNumber: period,
-      startTime,
-      endTime,
-      room: room || null,
-    });
-    if (res.success) {
-      setIsEditing(false);
-      onUpdate();
+    try {
+        const res = await updateTimetableSlot({
+          id: slot?.id ?? -1,
+          subjectId: parseInt(subjectId) || null,
+          teacherId: teacherId || null,
+          classId: classId,
+          day: day,
+          slotNumber: period,
+          startTime,
+          endTime,
+          room: room || null,
+        });
+        if (res.success) {
+          setIsEditing(false);
+          onUpdate();
+        } else {
+            console.error("Save failed:", res.error);
+            alert("Erreur: " + res.error);
+        }
+    } catch (err) {
+        console.error("Update error:", err);
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   };
 
-  // If slot is empty and NOT in edit mode, return null (hide the add button)
+  // Logic for display
   if (!slot && !isEditMode) return null;
 
   if (!slot && isEditMode && !isEditing) return (
@@ -67,7 +93,7 @@ const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, sub
       <div className="w-full h-full bg-white p-4 rounded-[24px] border border-indigo-200 shadow-xl shadow-indigo-50/50 flex flex-col gap-3">
         <div className="flex flex-col gap-2">
            <select 
-             className="text-[10px] h-9 px-3 border border-slate-100 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
+             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
              value={subjectId}
              onChange={(e) => setSubjectId(e.target.value)}
            >
@@ -75,7 +101,7 @@ const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, sub
              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
            </select>
            <select 
-             className="text-[10px] h-9 px-3 border border-slate-100 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
+             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
              value={teacherId}
              onChange={(e) => setTeacherId(e.target.value)}
            >
@@ -84,7 +110,7 @@ const TimetableSlotItem = ({ slot, classId, day, period, startTime, endTime, sub
            </select>
            <input 
              placeholder="Room (e.g. A1, Lab 5)"
-             className="text-[10px] h-9 px-3 border border-slate-100 rounded-xl bg-slate-50 font-black text-slate-800 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest placeholder:text-slate-300"
+             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-800 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest placeholder:text-slate-300"
              value={room}
              onChange={(e) => setRoom(e.target.value)}
            />

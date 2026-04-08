@@ -97,6 +97,7 @@ const TimetableGrid = ({
                   return (
                     <div key={day} className="min-h-[140px] flex items-stretch">
                       <TimetableSlotItem 
+                        key={`${day}-${session.id}-${slot?.id || "empty"}`} // Improved key
                         slot={slot} 
                         classId={classId}
                         day={day}
