@@ -21,6 +21,8 @@ interface AuditLog {
   type: string | null;
   effectiveDate: string | null;
   timestamp: string;
+  oldValues?: any;
+  newValues?: any;
 }
 
 interface AuditLogDetailsProps {
@@ -162,6 +164,63 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
             )}
 
             {/* Additional Context (Mocking if empty) */}
+             {/* Data Transformation Explorer */}
+             {(log.oldValues || log.newValues) && (
+               <div className="space-y-4">
+                 <h4 className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-widest opacity-50">
+                   <Activity size={12} />
+                   Data Transformation
+                 </h4>
+                 <div className="bg-slate-50 rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                   <div className="p-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase italic">Field Changes</span>
+                      <div className="flex gap-2 text-[8px] font-black uppercase tracking-tighter">
+                         <span className="text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 italic">NEW STATE</span>
+                         <span className="text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">PREVIOUS</span>
+                      </div>
+                   </div>
+                   <div className="p-2 space-y-1">
+                      {(() => {
+                        const oldV = log.oldValues || {};
+                        const newV = log.newValues || {};
+                        const allKeys = Array.from(new Set([...Object.keys(oldV), ...Object.keys(newV)]))
+                          .filter(k => !['id', 'createdAt', 'updatedAt'].includes(k));
+
+                        if (allKeys.length === 0) return <div className="p-4 text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">No detailed field changes recorded</div>;
+
+                        return allKeys.map(key => {
+                          const oldVal = JSON.stringify(oldV[key]);
+                          const newVal = JSON.stringify(newV[key]);
+                          const isChanged = oldVal !== newVal;
+                          const isNew = oldVal === undefined;
+                          const isRemoved = newVal === undefined;
+
+                          if (!isChanged && !isNew && !isRemoved) return null;
+
+                          return (
+                            <div key={key} className="p-3 bg-white rounded-2xl border border-slate-100 flex flex-col gap-2 hover:border-slate-300 transition-all group">
+                               <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-mono font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-tighter">{key}</span>
+                                  {isChanged && <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest italic opacity-0 group-hover:opacity-100 transition-opacity">Modified</span>}
+                               </div>
+                               <div className="grid grid-cols-2 gap-2">
+                                  <div className={`p-2 rounded-xl text-[10px] font-mono break-all ${oldVal !== undefined ? 'bg-rose-50/30 text-rose-700/60' : 'bg-slate-50 text-slate-300 italic'}`}>
+                                     {oldVal !== undefined ? oldVal : 'null'}
+                                  </div>
+                                  <div className={`p-2 rounded-xl text-[10px] font-mono break-all ${newVal !== undefined ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm' : 'bg-slate-50 text-slate-300 italic'}`}>
+                                     {newVal !== undefined ? newVal : 'null'}
+                                  </div>
+                               </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                   </div>
+                 </div>
+               </div>
+             )}
+
+             {/* System Fingerprint */}
              <div className="space-y-4">
                <h4 className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-widest opacity-50">
                  <Info size={12} />

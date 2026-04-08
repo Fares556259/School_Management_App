@@ -59,6 +59,8 @@ export async function executeAICommand(command: AICommand) {
               entityType: "Payment",
               entityId: payment.id.toString(),
               description: `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
+              oldValues: payment as any,
+              newValues: { status: "PAID", paidAt: new Date() } as any,
               amount: payment.amount,
               type: payment.student ? "income" : "expense"
             }
@@ -90,6 +92,7 @@ export async function executeAICommand(command: AICommand) {
             entityType: "Expense",
             entityId: expense.id.toString(),
             description: `AI recorded new expense: ${title} (Category: ${category})`,
+            newValues: expense as any,
             amount: expense.amount,
             type: "expense",
             effectiveDate: expense.date
@@ -121,6 +124,7 @@ export async function executeAICommand(command: AICommand) {
             entityType: "Income",
             entityId: income.id.toString(),
             description: `AI recorded new income: ${title} (Category: ${category})`,
+            newValues: income as any,
             amount: income.amount,
             type: "income",
             effectiveDate: income.date
@@ -150,6 +154,7 @@ export async function executeAICommand(command: AICommand) {
             entityType: "Notice",
             entityId: notice.id.toString(),
             description: `AI posted official notice: ${title}`,
+            newValues: notice as any,
           }
         });
 
