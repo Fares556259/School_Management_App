@@ -109,7 +109,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                           {performer?.role}
                        </span>
                     </div>
-                    <p className="text-xs text-slate-400 font-medium lowercase italic leading-none mb-2">{performer?.email}</p>
+                    <p className="text-xs text-slate-400 font-medium lowercase leading-none mb-2">{performer?.email}</p>
                     <div className="flex items-center gap-2">
                        <span className="text-[10px] font-mono text-slate-300 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{log.performedBy}</span>
                     </div>
@@ -173,10 +173,10 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                  </h4>
                  <div className="bg-slate-50 rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
                    <div className="p-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
-                      <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase italic">Field Changes</span>
+                      <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">Field Changes</span>
                       <div className="flex gap-2 text-[8px] font-black uppercase tracking-tighter">
-                         <span className="text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 italic">NEW STATE</span>
-                         <span className="text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">PREVIOUS</span>
+                         <span className="text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">NEW STATE</span>
+                         <span className="text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">PREVIOUS</span>
                       </div>
                    </div>
                    <div className="p-2 space-y-1">
@@ -201,7 +201,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                             <div key={key} className="p-3 bg-white rounded-2xl border border-slate-100 flex flex-col gap-2 hover:border-slate-300 transition-all group">
                                <div className="flex items-center justify-between">
                                   <span className="text-[10px] font-mono font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-tighter">{key}</span>
-                                  {isChanged && <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest italic opacity-0 group-hover:opacity-100 transition-opacity">Modified</span>}
+                                  {isChanged && <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Modified</span>}
                                </div>
                                <div className="grid grid-cols-2 gap-2">
                                   <div className={`p-2 rounded-xl text-[10px] font-mono break-all ${oldVal !== undefined ? 'bg-rose-50/30 text-rose-700/60' : 'bg-slate-50 text-slate-300 italic'}`}>
