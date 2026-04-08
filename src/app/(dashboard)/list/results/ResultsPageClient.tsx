@@ -108,22 +108,14 @@ export default function ResultsPageClient({
 
   if (view === "recorder") {
     return (
-      <div className="flex flex-col h-screen bg-slate-50 relative">
-        <div className="absolute top-4 right-6 z-50">
-          <button
-            onClick={() => setView("history")}
-            className="px-4 py-2 bg-white text-slate-500 font-bold text-[10px] uppercase tracking-widest rounded-xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-all"
-          >
-            Switch to History View 📜
-          </button>
-        </div>
+      <div className="h-[calc(100vh-180px)] bg-slate-50 relative rounded-[32px] overflow-hidden border border-slate-200 shadow-sm">
         <GradeSheetRecorder
           students={initialStudents}
           subjects={subjects}
           classes={classes}
           teachers={teachers}
           initialClassId={classes[0]?.id}
-          onCloseRedirect="/list/results"
+          onClose={() => setView("history")}
         />
       </div>
     );

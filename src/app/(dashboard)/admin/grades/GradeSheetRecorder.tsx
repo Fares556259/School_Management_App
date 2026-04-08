@@ -156,7 +156,7 @@ export default function GradeSheetRecorder({
       : "—";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
       {/* ─── HEADER BAR ─── */}
       <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-4">
