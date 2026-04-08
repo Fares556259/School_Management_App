@@ -40,8 +40,6 @@ export default async function GradesPage({
       {/* ─── HEADER ─── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">GRADE MANAGEMENT</h1>
-          <p className="text-sm text-slate-500 font-medium tracking-tight">Manual entry for academic reports</p>
         </div>
         <div className="flex items-center gap-3">
           <GradeFilter classes={classes} classId={classId} term={term} />
