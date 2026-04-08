@@ -36,9 +36,18 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-indigo-50/50 cursor-pointer transition-all group"
     >
       <td className="p-4">
-        <span className="px-2 py-1 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-600 uppercase tracking-wider group-hover:bg-indigo-100 transition-colors">
-          {item.action.replace(/_/g, " ")}
-        </span>
+        {(() => {
+          let bgColor = "bg-indigo-50 text-indigo-600";
+          if (item.action.includes("CREATE") || item.action.includes("POST")) bgColor = "bg-emerald-50 text-emerald-600 border border-emerald-100 italic";
+          if (item.action.includes("UPDATE") || item.action.includes("MARK")) bgColor = "bg-amber-50 text-amber-600 border border-amber-100 italic";
+          if (item.action.includes("DELETE")) bgColor = "bg-rose-50 text-rose-600 border border-rose-100 italic";
+          
+          return (
+            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors ${bgColor}`}>
+              {item.action.replace(/_/g, " ")}
+            </span>
+          );
+        })()}
       </td>
       <td className="hidden md:table-cell px-4 py-4">
         <div className="flex flex-col">

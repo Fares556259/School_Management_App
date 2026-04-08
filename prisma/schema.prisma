@@ -226,6 +226,8 @@ model AuditLog {
   entityType    String
   entityId      String?
   description   String
+  oldValues     Json?
+  newValues     Json?
   amount        Float?
   type          String?
   effectiveDate DateTime?

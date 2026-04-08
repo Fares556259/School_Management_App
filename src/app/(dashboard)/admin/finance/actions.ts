@@ -15,23 +15,27 @@ export const addFinanceEntry = async (formData: FormData) => {
 
   try {
     if (type === "income") {
-      await prisma.income.create({ data: { title, amount, category, date } });
+      const income = await prisma.income.create({ data: { title, amount, category, date } });
       await prisma.auditLog.create({
         data: {
           action: "ADD_INCOME",
           performedBy: userId || "unknown",
           entityType: "Finance",
+          entityId: income.id.toString(),
           description: `Manually added income: "${title}" — $${amount} [${category}]`,
+          newValues: income as any,
         },
       });
     } else {
-      await prisma.expense.create({ data: { title, amount, category, date } });
+      const expense = await prisma.expense.create({ data: { title, amount, category, date } });
       await prisma.auditLog.create({
         data: {
           action: "ADD_EXPENSE",
           performedBy: userId || "unknown",
           entityType: "Finance",
+          entityId: expense.id.toString(),
           description: `Manually added expense: "${title}" — $${amount} [${category}]`,
+          newValues: expense as any,
         },
       });
     }
