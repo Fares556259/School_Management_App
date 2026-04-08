@@ -10,6 +10,7 @@ export type TimetableSlotUpdate = {
   teacherId?: string | null;
   startTime?: string;
   endTime?: string;
+  room?: string | null;
 };
 
 export async function getTimetableByClass(classId: number) {
@@ -45,6 +46,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
           classId: data.classId!,
           subjectId: data.subjectId,
           teacherId: data.teacherId,
+          room: data.room,
         }
       });
       revalidatePath(`/admin/timetable`);
@@ -58,6 +60,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         teacherId: data.teacherId,
         startTime: data.startTime,
         endTime: data.endTime,
+        room: data.room,
       },
     });
     
