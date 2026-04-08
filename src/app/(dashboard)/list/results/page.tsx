@@ -145,43 +145,6 @@ const ResultListPage = async ({
     }
   }
 
-  const renderRow = (item: ResultList) => {
-    const label = item.exam ? item.exam.lesson.subject.name : item.assignment?.lesson.subject.name;
-    const teacherName = item.exam
-      ? item.exam.lesson.teacher.name + " " + item.exam.lesson.teacher.surname
-      : item.assignment?.lesson.teacher.name + " " + item.assignment?.lesson.teacher.surname;
-    const className = item.exam
-      ? item.exam.lesson.class.name
-      : item.assignment?.lesson.class.name;
-    const date = item.exam ? item.exam.startTime : item.assignment?.dueDate;
-
-    return (
-      <tr
-        key={item.id}
-        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-      >
-        <td className="flex items-center gap-4 p-4">{label}</td>
-        <td>{item.student.name}</td>
-        <td className="hidden md:table-cell">{item.score}</td>
-        <td className="hidden md:table-cell">{teacherName}</td>
-        <td className="hidden md:table-cell">{className}</td>
-        <td className="hidden md:table-cell">
-          {date ? new Intl.DateTimeFormat("en-GB").format(date) : "-"}
-        </td>
-        <td>
-          <div className="flex items-center gap-2">
-            {(role === "admin" || role === "teacher") && (
-              <>
-                <FormModal table="result" type="update" data={item} />
-                <FormModal table="result" type="delete" id={item.id} />
-              </>
-            )}
-          </div>
-        </td>
-      </tr>
-    );
-  };
-
   const [data, count, sheets, classes, subjects, teachers] = await prisma.$transaction([
     prisma.result.findMany({
       where: query,
@@ -246,8 +209,6 @@ const ResultListPage = async ({
       data={data}
       count={count}
       page={p}
-      columns={columns}
-      renderRow={renderRow}
     />
   );
 };
