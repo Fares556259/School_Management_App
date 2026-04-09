@@ -293,15 +293,45 @@ export default function GradeSheetRecorder({
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT: Proof Viewer */}
         <div className="w-1/2 flex flex-col border-r border-slate-200 bg-slate-100 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📄 Original Document</span>
-            {proofPreviewUrl && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold flex items-center justify-center">−</button>
-                <span className="text-[10px] font-black text-slate-500">{Math.round(zoom * 100)}%</span>
-                <button onClick={() => setZoom((z) => Math.min(3, z + 0.25))} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold flex items-center justify-center">+</button>
-              </div>
-            )}
+          <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📄 Original Document</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {proofPreviewUrl && !isPdf && (
+                <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-slate-200">
+                  <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-6 h-6 rounded bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center transition-colors">−</button>
+                  <span className="text-[9px] font-black text-slate-500 w-8 text-center">{Math.round(zoom * 100)}%</span>
+                  <button onClick={() => setZoom((z) => Math.min(3, z + 0.25))} className="w-6 h-6 rounded bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center transition-colors">+</button>
+                </div>
+              )}
+
+              {proofPreviewUrl && (
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+                  <button
+                    onClick={handleAiScan}
+                    disabled={isScanning || isPdf}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                      isScanning 
+                        ? "bg-slate-100 text-slate-400" 
+                        : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-100"
+                    }`}
+                  >
+                    {isScanning ? (
+                      <div className="w-2.5 h-2.5 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
+                    ) : "✨ AI Scan"}
+                  </button>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={isScanning}
+                    className="px-3 py-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest rounded-lg bg-white hover:bg-slate-50 transition-all border border-slate-200"
+                  >
+                    Replace
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div
@@ -336,38 +366,9 @@ export default function GradeSheetRecorder({
 
           <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
 
-          {proofPreviewUrl && (
-            <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
-              <button
-                onClick={handleAiScan}
-                disabled={isScanning || isPdf}
-                className={`flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm ${
-                  isScanning 
-                    ? "bg-slate-100 text-slate-400" 
-                    : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
-                }`}
-              >
-                {isScanning ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
-                    Scanning...
-                  </>
-                ) : (
-                  <>✨ AI Scan & Fill</>
-                )}
-              </button>
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={isScanning}
-                className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100"
-              >
-                Replace
-              </button>
-            </div>
-          )}
           {scanError && (
-            <div className="px-4 py-2 bg-rose-50 border-t border-rose-100 text-[10px] font-bold text-rose-500 text-center">
-              ⚠️ {scanError}
+            <div className="mx-4 mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-[10px] font-bold text-rose-500 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+              <span className="text-sm">⚠️</span> {scanError}
             </div>
           )}
         </div>
