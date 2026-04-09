@@ -183,26 +183,47 @@ export default function GradeSheetRecorder({
 
     startTransition(async () => {
       try {
-        // In a real app, you'd upload proofFile to storage first and get a URL back.
-        // Here we simulate with a placeholder or the object URL.
-        const proofUrl = proofPreviewUrl ?? "pending_upload";
+        let finalProofUrl = proofPreviewUrl ?? "";
+
+        // If we have a NEW file to upload
+        if (proofFile) {
+          const formData = new FormData();
+          formData.append("file", proofFile);
+          formData.append("upload_preset", "school"); // Using the school preset from SnapAssistant
+
+          const uploadRes = await fetch(
+            "https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          if (!uploadRes.ok) {
+            throw new Error("Failed to upload proof to Cloudinary");
+          }
+
+          const uploadData = await uploadRes.json();
+          finalProofUrl = uploadData.secure_url;
+        }
 
         await createGradeSheet({
           classId,
           subjectId,
           term,
-          proofUrl,
+          proofUrl: finalProofUrl,
           teacherId: teacherId || undefined,
           notes,
           grades: gradeEntries,
         });
+
         setSaveStatus("success");
         setTimeout(() => {
           setSaveStatus("idle");
           handleClose();
         }, 1500);
       } catch (err) {
-        console.error(err);
+        console.error("Save Error:", err);
         setSaveStatus("error");
       }
     });
