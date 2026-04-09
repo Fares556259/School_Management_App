@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
+import { UserSex } from "@prisma/client";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -45,6 +46,44 @@ export const createTeacher = async (data: {
   } catch (err: any) {
     console.error("createTeacher error:", err);
     return { success: false, error: err?.message || "Failed to create teacher." };
+  }
+};
+
+export const bulkCreateTeachers = async (teachers: any[]) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const t of teachers) {
+        const id = crypto.randomUUID();
+        await tx.teacher.create({
+          data: {
+            id,
+            username: t.username,
+            name: t.name,
+            surname: t.surname,
+            email: t.email || null,
+            phone: t.phone || null,
+            address: t.address || "Unknown",
+            bloodType: t.bloodType || "O+",
+            birthday: new Date(t.birthday || "1980-01-01"),
+            sex: t.sex as UserSex || UserSex.MALE,
+            salary: t.salary ?? 3000,
+          },
+        });
+
+        await createAuditLog({
+          action: "BULK_CREATE_TEACHER",
+          entityType: "Teacher",
+          entityId: id,
+          description: `Bulk enrolled teacher: ${t.name} ${t.surname} (${t.username})`,
+        });
+      }
+    });
+
+    revalidatePath("/list/teachers");
+    return { success: true };
+  } catch (err: any) {
+    console.error("bulkCreateTeachers error:", err);
+    return { success: false, error: err?.message || "Failed to bulk create teachers." };
   }
 };
 

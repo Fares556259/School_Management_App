@@ -13,6 +13,7 @@ import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
+import TeacherListClient from "./TeacherListClient";
 
 const columns = [
   {
@@ -228,9 +229,14 @@ const TeacherListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
+      <TeacherListClient 
+        initialData={data} 
+        columns={columns} 
+        renderRow={renderRow} 
+        count={count}
+        page={p}
+        role={role}
+      />
     </div>
   );
 };
