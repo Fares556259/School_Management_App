@@ -2,23 +2,32 @@
 
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { parseTeachersFromText } from "../../admin/actions/teacherAiActions";
+import { parseTeachersFromText, parseTeachersFromImage } from "../../admin/actions/teacherAiActions";
 import { bulkCreateTeachers } from "@/lib/crudActions";
-import { X, Check, Loader2, AlertCircle, Rocket, FileText, UserPlus } from "lucide-react";
+import { X, Check, Loader2, AlertCircle, Rocket, FileText, UserPlus, Image as ImageIcon, Type } from "lucide-react";
+import { CldUploadWidget } from "next-cloudinary";
+import Image from "next/image";
 
 export default function BulkTeacherImport({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
+  const [importMode, setImportMode] = useState<"text" | "image">("text");
   const [rawText, setRawText] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleParse = async () => {
-    if (!rawText.trim()) return;
+    if (importMode === "text" && !rawText.trim()) return;
+    if (importMode === "image" && !imageUrl) return;
+
     setStep("parsing");
     setError(null);
 
-    const result = await parseTeachersFromText(rawText);
+    const result = importMode === "text" 
+      ? await parseTeachersFromText(rawText)
+      : await parseTeachersFromImage(imageUrl!);
+
     if (result.error) {
       setError(result.error);
       setStep("input");
@@ -55,7 +64,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">AI Teacher Bulk Import</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Paste · Parse · Review · Enroll</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Vision · Parse · Review · Enroll</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
@@ -74,22 +83,83 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                 exit={{ opacity: 0, x: -20 }}
                 className="flex flex-col gap-6"
               >
+                {/* MODE TOGGLE */}
+                <div className="flex p-1 bg-slate-100 rounded-2xl w-fit self-center border border-slate-200 shadow-inner">
+                  <button
+                    onClick={() => setImportMode("text")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      importMode === "text" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    <Type size={14} />
+                    Paste Text
+                  </button>
+                  <button
+                    onClick={() => setImportMode("image")}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      importMode === "image" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    <ImageIcon size={14} />
+                    Upload Image
+                  </button>
+                </div>
+
                 <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
                    <AlertCircle size={18} className="text-indigo-600 mt-0.5" />
                    <p className="text-xs text-indigo-700 font-medium leading-relaxed">
-                     Paste your list of teachers below. You can include names, emails, phone numbers, and salaries. 
-                     Our AI will automatically structure everything for you.
+                     {importMode === "text" 
+                        ? "Paste your list of teachers below. Our AI will automatically structure everything for you."
+                        : "Upload a clear photo or scan of your teacher list. AI Vision will read and extract all details."}
                    </p>
                 </div>
                 
-                <textarea
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  placeholder="Example:
-John Doe, j.doe@school.com, +123456789, Math Teacher
-Jane Smith, jane@example.com, Female, 3500 salary"
-                  className="w-full h-64 p-6 rounded-3xl border border-slate-200 bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 outline-none transition-all text-sm font-medium leading-relaxed resize-none shadow-sm"
-                />
+                {importMode === "text" ? (
+                  <textarea
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    placeholder="Example: John Doe, j.doe@school.com, Math..."
+                    className="w-full h-64 p-6 rounded-3xl border border-slate-200 bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 outline-none transition-all text-sm font-medium leading-relaxed resize-none shadow-sm"
+                  />
+                ) : (
+                  <div className="w-full h-64 rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-4 group hover:border-indigo-400 transition-colors overflow-hidden">
+                    {imageUrl ? (
+                      <div className="relative w-full h-full">
+                        <Image src={imageUrl} alt="Document" fill className="object-contain" />
+                        <button 
+                           onClick={() => setImageUrl(null)}
+                           className="absolute top-4 right-4 p-2 bg-slate-900/50 text-white rounded-full backdrop-blur-sm hover:bg-slate-900/80 transition-all"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <CldUploadWidget
+                        uploadPreset="school_grade_sheets"
+                        onSuccess={(result: any) => {
+                          if (result.info && typeof result.info !== "string") {
+                            setImageUrl(result.info.secure_url);
+                          }
+                        }}
+                      >
+                        {({ open }) => (
+                          <button
+                            onClick={() => open()}
+                            className="flex flex-col items-center gap-3"
+                          >
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                              <ImageIcon size={24} />
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Select Image</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PNG, JPG, OR PDF SCAN</p>
+                            </div>
+                          </button>
+                        )}
+                      </CldUploadWidget>
+                    )}
+                  </div>
+                )}
 
                 {error && (
                   <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">
@@ -99,10 +169,11 @@ Jane Smith, jane@example.com, Female, 3500 salary"
 
                 <button
                   onClick={handleParse}
-                  disabled={!rawText.trim()}
+                  disabled={importMode === "text" ? !rawText.trim() : !imageUrl}
                   className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                 >
-                  ✨ Start AI Parsing
+                   {importMode === "image" ? <ImageIcon size={14} /> : <FileText size={14} />}
+                   ✨ Start AI Extraction
                 </button>
               </motion.div>
             )}
@@ -121,8 +192,8 @@ Jane Smith, jane@example.com, Female, 3500 salary"
                   </div>
                 </div>
                 <div className="text-center">
-                  <h3 className="font-black text-slate-800 uppercase tracking-tight">AI is analyzing your data...</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Structuring teach profiles · mapping fields</p>
+                  <h3 className="font-black text-slate-800 uppercase tracking-tight">AI is analyzing your document...</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Vision parsing · OCR extraction · structuring profiles</p>
                 </div>
               </motion.div>
             )}
@@ -137,7 +208,7 @@ Jane Smith, jane@example.com, Female, 3500 salary"
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-slate-800 uppercase tracking-tight">Review Extraction</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verify and edit parsed data before saving</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verify parsed data before saving</p>
                   </div>
                   <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black">{parsedData.length} Teachers Found</span>
                 </div>
@@ -149,24 +220,15 @@ Jane Smith, jane@example.com, Female, 3500 salary"
                         <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Teacher</th>
                         <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Contact</th>
                         <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">username</th>
-                        <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Credentials</th>
                         <th className="text-right px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Salary</th>
                       </tr>
                     </thead>
                     <tbody>
                       {parsedData.map((t, i) => (
                         <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                          <td className="px-4 py-3 font-bold text-slate-700">{t.name} {t.surname} <span className="text-[10px] text-slate-300 ml-1">({t.sex[0]})</span></td>
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-slate-600">{t.email || "No Email"}</p>
-                            <p className="text-[10px] text-slate-400">{t.phone || "No Phone"}</p>
-                          </td>
+                          <td className="px-4 py-3 font-bold text-slate-700">{t.name} {t.surname || ""}</td>
+                          <td className="px-4 py-3 font-medium text-slate-600">{t.email || t.phone || "N/A"}</td>
                           <td className="px-4 py-3 font-mono text-indigo-500">{t.username}</td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono select-all">
-                              {t.password || "Auto-gen"}
-                            </span>
-                          </td>
                           <td className="px-4 py-3 text-right font-black text-slate-800">${t.salary}</td>
                         </tr>
                       ))}
