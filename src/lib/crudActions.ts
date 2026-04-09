@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { UserSex } from "@prisma/client";
+import { clerkClient } from "@clerk/nextjs/server";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -17,12 +18,30 @@ export const createTeacher = async (data: {
   birthday: string;
   sex: "MALE" | "FEMALE";
   salary?: number;
+  img?: string;
+  password?: string;
 }) => {
   try {
-    const id = crypto.randomUUID();
+    const client = await clerkClient();
+    
+    // 1. Create Clerk User if email + password provided
+    let clerkId = crypto.randomUUID();
+    if (data.email && data.password) {
+      const user = await client.users.createUser({
+        username: data.username,
+        emailAddress: [data.email],
+        password: data.password,
+        firstName: data.name,
+        lastName: data.surname,
+        publicMetadata: { role: "teacher" },
+      });
+      clerkId = user.id;
+    }
+
+    // 2. Create Prisma Record
     await prisma.teacher.create({
       data: {
-        id,
+        id: clerkId,
         username: data.username,
         name: data.name,
         surname: data.surname,
@@ -33,13 +52,14 @@ export const createTeacher = async (data: {
         birthday: new Date(data.birthday),
         sex: data.sex,
         salary: data.salary ?? 3000,
+        img: data.img || null,
       },
     });
     await createAuditLog({
       action: "CREATE_TEACHER",
       entityType: "Teacher",
-      entityId: id,
-      description: `Enrolled new teacher: ${data.name} ${data.surname} (${data.username})`,
+      entityId: clerkId,
+      description: `Enrolled new teacher: ${data.name} ${data.surname} (${data.username}) with Clerk account: ${data.email ? "YES" : "NO"}`,
     });
     revalidatePath("/list/teachers");
     return { success: true };
@@ -51,33 +71,59 @@ export const createTeacher = async (data: {
 
 export const bulkCreateTeachers = async (teachers: any[]) => {
   try {
-    await prisma.$transaction(async (tx) => {
-      for (const t of teachers) {
-        const id = crypto.randomUUID();
-        await tx.teacher.create({
-          data: {
-            id,
+    const client = await clerkClient();
+    
+    // We process these one by one outside a Prisma transaction for Clerk consistency,
+    // or we can use a transaction for Prisma but Clerk calls are irreversible.
+    // For simplicity and safety, we'll do them sequentially.
+    
+    for (const t of teachers) {
+      // 1. Create Clerk User
+      let clerkId = crypto.randomUUID();
+      if (t.email && t.password) {
+        try {
+          const user = await client.users.createUser({
             username: t.username,
-            name: t.name,
-            surname: t.surname,
-            email: t.email || null,
-            phone: t.phone || null,
-            address: t.address || "Unknown",
-            bloodType: t.bloodType || "O+",
-            birthday: new Date(t.birthday || "1980-01-01"),
-            sex: t.sex as UserSex || UserSex.MALE,
-            salary: t.salary ?? 3000,
-          },
-        });
-
-        await createAuditLog({
-          action: "BULK_CREATE_TEACHER",
-          entityType: "Teacher",
-          entityId: id,
-          description: `Bulk enrolled teacher: ${t.name} ${t.surname} (${t.username})`,
-        });
+            emailAddress: [t.email],
+            password: t.password,
+            firstName: t.name,
+            lastName: t.surname,
+            publicMetadata: { role: "teacher" },
+          });
+          clerkId = user.id;
+        } catch (clerkErr: any) {
+          console.error(`Clerk creation failed for ${t.username}:`, clerkErr);
+          // Continue with local ID if Clerk fails, or throw? 
+          // Better to throw to inform the admin of the failure.
+          throw new Error(`Failed to create Clerk account for ${t.username}: ${clerkErr.message}`);
+        }
       }
-    });
+
+      // 2. Create Prisma Record
+      await prisma.teacher.create({
+        data: {
+          id: clerkId,
+          username: t.username,
+          name: t.name,
+          surname: t.surname,
+          email: t.email || null,
+          phone: t.phone || null,
+          address: t.address || "Unknown",
+          bloodType: t.bloodType || "O+",
+          birthday: new Date(t.birthday || "1980-01-01"),
+          sex: t.sex as UserSex || UserSex.MALE,
+          salary: t.salary ?? 3000,
+          img: t.img || null,
+        },
+      });
+
+      await createAuditLog({
+        action: "BULK_CREATE_TEACHER",
+        entityType: "Teacher",
+        entityId: clerkId,
+        description: `Bulk enrolled teacher: ${t.name} ${t.surname} (${t.username}) with Clerk account: ${t.email ? "YES" : "NO"}`,
+      });
+    }
 
     revalidatePath("/list/teachers");
     return { success: true };

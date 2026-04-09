@@ -23,7 +23,8 @@ export async function parseTeachersFromText(text: string) {
       "bloodType": "string (default to 'O+' if missing)",
       "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
       "sex": "MALE | FEMALE",
-      "salary": number (default to 3000)
+      "salary": number (default to 3000),
+      "password": "string (Generate a secure temporary password like 'Snap2026!Name')"
     }
 
     Notes:

@@ -7,6 +7,8 @@ import { useTransition } from "react";
 import InputField from "../InputField";
 import Image from "next/image";
 import { createTeacher, updateTeacher } from "@/lib/crudActions";
+import { CldUploadWidget } from "next-cloudinary";
+import { useState } from "react";
 
 const schema = z.object({
   username: z
@@ -22,6 +24,7 @@ const schema = z.object({
   birthday: z.string().min(1, { message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   salary: z.coerce.number().optional(),
+  password: z.string().min(8, { message: "Password must be at least 8 characters long!" }).optional().or(z.literal("")),
 });
 
 type Inputs = z.infer<typeof schema>;
@@ -34,6 +37,7 @@ const TeacherForm = ({
   data?: any;
 }) => {
   const [isPending, startTransition] = useTransition();
+  const [img, setImg] = useState<string | null>(data?.img || null);
   const {
     register,
     handleSubmit,
@@ -67,6 +71,8 @@ const TeacherForm = ({
         birthday: formData.birthday,
         sex: formData.sex as "MALE" | "FEMALE",
         salary: formData.salary,
+        password: formData.password || undefined,
+        img: img || undefined,
       };
       const res = type === "create"
         ? await createTeacher(payload)
@@ -147,6 +153,16 @@ const TeacherForm = ({
           error={errors.salary}
           type="number"
         />
+        {type === "create" && (
+          <InputField
+            label="Default Password"
+            name="password"
+            defaultValue=""
+            register={register}
+            error={errors.password}
+            type="password"
+          />
+        )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Sex</label>
           <select
@@ -162,11 +178,32 @@ const TeacherForm = ({
           )}
         </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4 justify-center">
-          <label className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer" htmlFor="img">
-            <Image src="/upload.png" alt="" width={28} height={28} />
-            <span>Upload a photo</span>
-          </label>
-          <input type="file" id="img" className="hidden" />
+          <label className="text-xs text-gray-500 mb-1">Profile Photo</label>
+          <CldUploadWidget
+            uploadPreset="school_grade_sheets"
+            onSuccess={(result: any) => {
+              if (result.info && typeof result.info !== "string") {
+                 setImg(result.info.secure_url);
+              }
+            }}
+          >
+            {({ open }) => (
+              <button
+                type="button"
+                onClick={() => open()}
+                className="flex items-center gap-2 p-2 border border-dashed border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                  {img ? (
+                    <Image src={img} alt="Preview" width={40} height={40} className="object-cover" />
+                  ) : (
+                    <Image src="/upload.png" alt="" width={20} height={20} />
+                  )}
+                </div>
+                <span className="text-xs text-gray-500">{img ? "Change Photo" : "Upload Photo"}</span>
+              </button>
+            )}
+          </CldUploadWidget>
         </div>
       </div>
       <button
