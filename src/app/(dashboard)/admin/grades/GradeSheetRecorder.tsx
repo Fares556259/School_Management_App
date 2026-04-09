@@ -2,6 +2,8 @@
 
 import { useState, useRef, useTransition, useCallback, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Maximize2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { createGradeSheet, GradeEntry } from "./actions";
 import { extractGradesFromImage } from "./aiActions";
 
@@ -69,6 +71,9 @@ export default function GradeSheetRecorder({
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Sync proof URL for initial render or class change
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleClassChange = async (newId: number) => {
@@ -315,18 +320,33 @@ export default function GradeSheetRecorder({
         {/* LEFT: Proof Viewer */}
         <div className="w-1/2 flex flex-col border-r border-slate-200 bg-slate-100 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📄 Original Document</span>
-            {proofPreviewUrl && !isPdf && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold flex items-center justify-center">−</button>
-                <span className="text-[10px] font-black text-slate-500">{Math.round(zoom * 100)}%</span>
-                <button onClick={() => setZoom((z) => Math.min(3, z + 0.25))} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold flex items-center justify-center">+</button>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📄 Original Document</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {proofPreviewUrl && !isPdf && (
+                <div className="flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200">
+                  <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">-</button>
+                  <span className="text-[9px] font-black text-slate-500 w-8 text-center">{Math.round(zoom * 100)}%</span>
+                  <button onClick={() => setZoom((z) => Math.min(4, z + 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">+</button>
+                </div>
+              )}
+              
+              {proofPreviewUrl && (
+                <button 
+                  onClick={() => setIsFullscreen(true)}
+                  className="p-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 transition-colors"
+                  title="View Fullscreen"
+                >
+                  <Maximize2 size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div
-            className="flex-1 overflow-auto flex items-center justify-center p-4"
+            className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative ${zoom === 1 ? 'items-center' : ''}`}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
@@ -337,16 +357,20 @@ export default function GradeSheetRecorder({
                 <img
                   src={proofPreviewUrl}
                   alt="Proof document"
-                  className="rounded-2xl shadow-2xl border border-slate-200 transition-transform duration-300"
-                  style={{ transform: `scale(${zoom})`, transformOrigin: "center top", maxWidth: "none" }}
+                  className={`rounded-xl shadow-2xl border border-white/50 transition-transform duration-200 ${zoom === 1 ? 'max-w-full max-h-full object-contain' : ''}`}
+                  style={zoom !== 1 ? { 
+                    transform: `scale(${zoom})`, 
+                    transformOrigin: "center top",
+                    maxWidth: "none"
+                  } : {}}
                 />
               )
             ) : (
               <button
                 onClick={() => fileRef.current?.click()}
-                className="flex flex-col items-center gap-4 p-12 border-2 border-dashed border-slate-300 rounded-3xl hover:border-indigo-400 hover:bg-indigo-50/50 transition-all group cursor-pointer"
+                className="flex flex-col items-center gap-4 p-12 border-2 border-dashed border-slate-300 rounded-3xl hover:border-indigo-400 hover:bg-indigo-50/50 transition-all group cursor-pointer bg-white"
               >
-                <div className="w-16 h-16 rounded-2xl bg-slate-200 group-hover:bg-indigo-100 flex items-center justify-center transition-all text-2xl">📄</div>
+                <div className="w-16 h-16 rounded-2xl bg-slate-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all text-2xl">📄</div>
                 <div className="text-center">
                   <p className="font-black text-slate-600 group-hover:text-indigo-600 transition-colors">Upload Grade Sheet Proof</p>
                   <p className="text-xs text-slate-400 mt-1">Drag & drop or click · JPG, PNG, or PDF</p>
