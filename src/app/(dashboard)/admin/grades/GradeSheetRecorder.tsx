@@ -3,6 +3,7 @@
 import { useState, useRef, useTransition, useCallback, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createGradeSheet, GradeEntry } from "./actions";
+import { extractGradesFromImage } from "./aiActions";
 
 
 interface Student {
@@ -65,6 +66,8 @@ export default function GradeSheetRecorder({
   const [grades, setGrades] = useState<Record<string, string>>(initialGradesMap);
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +115,41 @@ export default function GradeSheetRecorder({
     const all: Record<string, string> = {};
     students.forEach((s) => (all[s.id] = value));
     setGrades(all);
+  };
+
+  const handleAiScan = async () => {
+    if (!proofFile) {
+      alert("Please upload an image first.");
+      return;
+    }
+    
+    setIsScanning(true);
+    setScanError(null);
+
+    try {
+      // 1. Convert file to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(proofFile);
+      const base64 = await base64Promise;
+
+      // 2. Call AI Action
+      const result = await extractGradesFromImage(base64, students);
+
+      if (result.error) {
+        setScanError(result.error);
+      } else if (result.data) {
+        setGrades(prev => ({ ...prev, ...result.data }));
+      }
+    } catch (err: any) {
+      console.error("Scan failed:", err);
+      setScanError("Failed to process image.");
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleSave = () => {
@@ -283,11 +321,35 @@ export default function GradeSheetRecorder({
           {proofPreviewUrl && (
             <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
               <button
-                onClick={() => fileRef.current?.click()}
-                className="flex-1 text-[10px] font-black text-slate-500 uppercase tracking-widest py-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100"
+                onClick={handleAiScan}
+                disabled={isScanning || isPdf}
+                className={`flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm ${
+                  isScanning 
+                    ? "bg-slate-100 text-slate-400" 
+                    : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+                }`}
               >
-                Replace Document
+                {isScanning ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
+                    Scanning...
+                  </>
+                ) : (
+                  <>✨ AI Scan & Fill</>
+                )}
               </button>
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={isScanning}
+                className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100"
+              >
+                Replace
+              </button>
+            </div>
+          )}
+          {scanError && (
+            <div className="px-4 py-2 bg-rose-50 border-t border-rose-100 text-[10px] font-bold text-rose-500 text-center">
+              ⚠️ {scanError}
             </div>
           )}
         </div>
