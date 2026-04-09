@@ -138,8 +138,19 @@ export default function GradeSheetRecorder({
         });
         reader.readAsDataURL(proofFile);
         imageInput = await base64Promise;
+      } else if (proofPreviewUrl?.startsWith("blob:")) {
+        // Fallback for cases where proofPreviewUrl is a blob but proofFile is missing/unexpected
+        const response = await fetch(proofPreviewUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+        });
+        reader.readAsDataURL(blob);
+        imageInput = await base64Promise;
       } else {
-        // Use existing URL
+        // Use existing URL (presumably http/https Cloudinary URL)
         imageInput = proofPreviewUrl!;
       }
 
