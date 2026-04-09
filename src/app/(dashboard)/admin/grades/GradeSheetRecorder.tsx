@@ -164,7 +164,7 @@ export default function GradeSheetRecorder({
       }
     } catch (err: any) {
       console.error("Scan failed:", err);
-      setScanError("Failed to process image.");
+      setScanError(err.message || "Failed to process image.");
     } finally {
       setIsScanning(false);
     }
