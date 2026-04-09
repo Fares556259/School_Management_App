@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition, useCallback, ReactNode } from "react";
+import { useState, useRef, useTransition, useCallback, ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Maximize2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -72,6 +72,9 @@ export default function GradeSheetRecorder({
   const [scanError, setScanError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [leftWidth, setLeftWidth] = useState(50); // Percentage for the left panel
+  const [isResizing, setIsResizing] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
 
   // Sync proof URL for initial render or class change
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,6 +104,7 @@ export default function GradeSheetRecorder({
     const file = e.target.files?.[0];
     if (!file) return;
     setProofFile(file);
+    setIsImageLoading(true);
     setProofPreviewUrl(URL.createObjectURL(file));
   }, []);
 
@@ -109,8 +113,41 @@ export default function GradeSheetRecorder({
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
     setProofFile(file);
+    setIsImageLoading(true);
     setProofPreviewUrl(URL.createObjectURL(file));
   }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    const newWidth = (e.clientX / window.innerWidth) * 100;
+    if (newWidth > 20 && newWidth < 80) {
+      setLeftWidth(newWidth);
+    }
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Use raw window listeners for drag reliability
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    } else {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const handleGradeChange = (studentId: string, value: string) => {
     setGrades((prev) => ({ ...prev, [studentId]: value }));
@@ -318,17 +355,25 @@ export default function GradeSheetRecorder({
       {/* ─── SPLIT VIEW ─── */}
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT: Proof Viewer */}
-        <div className="w-1/2 flex flex-col border-r border-slate-200 bg-slate-100 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100">
+        <div 
+          className="flex flex-col border-r border-slate-200 bg-slate-100 overflow-hidden relative"
+          style={{ width: `${leftWidth}%` }}
+        >
+          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📄 Original Document</span>
             </div>
             
             <div className="flex items-center gap-3">
               {proofPreviewUrl && !isPdf && (
-                <div className="flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                   <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">-</button>
-                  <span className="text-[9px] font-black text-slate-500 w-8 text-center">{Math.round(zoom * 100)}%</span>
+                  <button 
+                    onClick={() => setZoom(1)}
+                    className="text-[9px] font-black text-slate-500 w-12 text-center bg-white hover:bg-slate-50 rounded h-6 flex items-center justify-center border-x border-slate-100"
+                  >
+                    {zoom === 1 ? "FIT" : `${Math.round(zoom * 100)}%`}
+                  </button>
                   <button onClick={() => setZoom((z) => Math.min(4, z + 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">+</button>
                 </div>
               )}
@@ -346,10 +391,17 @@ export default function GradeSheetRecorder({
           </div>
 
           <div
-            className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative ${zoom === 1 ? 'items-center' : ''}`}
+            className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative scrollbar-thin scrollbar-thumb-slate-300 ${zoom === 1 ? 'items-center' : ''}`}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
+            {isImageLoading && (
+              <div className="absolute inset-0 z-10 bg-slate-100 flex flex-col items-center justify-center gap-4 animate-pulse">
+                <div className="w-24 h-32 bg-slate-200 rounded-xl"></div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Document...</span>
+              </div>
+            )}
+            
             {proofPreviewUrl ? (
               isPdf ? (
                 <iframe src={proofPreviewUrl} className="w-full h-full rounded-2xl border border-slate-200 bg-white shadow-lg" title="Proof PDF" />
@@ -357,6 +409,7 @@ export default function GradeSheetRecorder({
                 <img
                   src={proofPreviewUrl}
                   alt="Proof document"
+                  onLoad={() => setIsImageLoading(false)}
                   className={`rounded-xl shadow-2xl border border-white/50 transition-transform duration-200 ${zoom === 1 ? 'max-w-full max-h-full object-contain' : ''}`}
                   style={zoom !== 1 ? { 
                     transform: `scale(${zoom})`, 
@@ -417,8 +470,19 @@ export default function GradeSheetRecorder({
           )}
         </div>
 
+        {/* DRAGGABLE DIVIDER */}
+        <div 
+          onMouseDown={handleMouseDown}
+          className="w-1.5 hover:w-2 bg-slate-200 hover:bg-indigo-400 cursor-col-resize flex-shrink-0 transition-all z-20 flex items-center justify-center overflow-visible"
+        >
+          <div className="w-1 h-8 bg-slate-300 rounded-full"></div>
+        </div>
+
         {/* RIGHT: Editable Grades Table */}
-        <div className="w-1/2 flex flex-col overflow-hidden">
+        <div 
+          className="flex flex-col overflow-hidden transition-all"
+          style={{ width: `${100 - leftWidth}%` }}
+        >
           <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">✏️ Grade Entry</span>
             <button
