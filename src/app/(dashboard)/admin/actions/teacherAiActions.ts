@@ -23,8 +23,7 @@ export async function parseTeachersFromText(text: string) {
       "bloodType": "string (default to 'O+' if missing)",
       "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
       "sex": "MALE | FEMALE",
-      "salary": number (default to 3000),
-      "password": "string (Generate a secure temporary password like 'Snap2026!Name')"
+      "salary": number (default to 3000)
     }
 
     Notes:
@@ -51,5 +50,47 @@ export async function parseTeachersFromText(text: string) {
   } catch (err: any) {
     console.error("AI Parse Error:", err);
     return { error: "Failed to parse teacher data. Please ensure the format is readable." };
+  }
+}
+export async function parseTeachersFromImage(imageUrl: string) {
+  if (!imageUrl) {
+    return { error: "Please provide a valid image of a teacher list." };
+  }
+
+  const prompt = `
+    You are an expert school administrative assistant with high-performance OCR and vision parsing skills.
+    I will provide you with an image of a teacher list or staff document. 
+    Your task is to parse this list into a JSON array of teacher objects.
+    
+    Each teacher object MUST follow this structure:
+    {
+      "username": "string (lowercase, no spaces, e.g. jdoe)",
+      "name": "string (First name)",
+      "surname": "string (Last name)",
+      "email": "string (optional)",
+      "phone": "string (optional)",
+      "address": "string (default to 'Unknown' if missing)",
+      "bloodType": "string (default to 'O+' if missing)",
+      "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
+      "sex": "MALE | FEMALE",
+      "salary": number (default to 3000)
+    }
+
+    IMPORTANT: 
+    - Return ONLY the JSON array. No markdown, no explanation.
+    - If names overlap or are ambiguous, use your best judgment to separate them.
+    - Username should be first initial + surname (e.g., John Doe -> jdoe).
+  `;
+
+  try {
+    const response = await callGeminiDirect(prompt, imageUrl);
+    
+    const cleaned = response.replace(/```json/g, "").replace(/```/g, "").trim();
+    const data = JSON.parse(cleaned);
+
+    return { data };
+  } catch (err: any) {
+    console.error("AI Vision Parse Error:", err);
+    return { error: "Failed to parse image. Please ensure the document is clear and readable." };
   }
 }

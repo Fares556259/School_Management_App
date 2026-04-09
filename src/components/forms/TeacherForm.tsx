@@ -24,7 +24,6 @@ const schema = z.object({
   birthday: z.string().min(1, { message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   salary: z.coerce.number().optional(),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long!" }).optional().or(z.literal("")),
 });
 
 type Inputs = z.infer<typeof schema>;
@@ -71,7 +70,6 @@ const TeacherForm = ({
         birthday: formData.birthday,
         sex: formData.sex as "MALE" | "FEMALE",
         salary: formData.salary,
-        password: formData.password || undefined,
         img: img || undefined,
       };
       const res = type === "create"
@@ -153,16 +151,6 @@ const TeacherForm = ({
           error={errors.salary}
           type="number"
         />
-        {type === "create" && (
-          <InputField
-            label="Default Password"
-            name="password"
-            defaultValue=""
-            register={register}
-            error={errors.password}
-            type="password"
-          />
-        )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Sex</label>
           <select
