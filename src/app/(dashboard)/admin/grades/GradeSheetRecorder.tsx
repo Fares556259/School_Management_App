@@ -75,6 +75,7 @@ export default function GradeSheetRecorder({
   const [leftWidth, setLeftWidth] = useState(50); // Percentage for the left panel
   const [isResizing, setIsResizing] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
 
   // Sync proof URL for initial render or class change
   const fileRef = useRef<HTMLInputElement>(null);
@@ -398,19 +399,40 @@ export default function GradeSheetRecorder({
           >
             {isImageLoading && (
               <div className="absolute inset-0 z-10 bg-slate-100 flex flex-col items-center justify-center gap-4 animate-pulse">
-                <div className="w-24 h-32 bg-slate-200 rounded-xl"></div>
+                <div className="w-24 h-32 bg-slate-200 rounded-xl shadow-inner"></div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Document...</span>
               </div>
             )}
             
-            {proofPreviewUrl ? (
+            {(hasImageError || !proofPreviewUrl || proofPreviewUrl === "pending_upload") ? (
+              <div className="flex flex-col items-center gap-6 p-12 bg-white rounded-[40px] border border-slate-100 shadow-sm text-center max-w-sm">
+                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-3xl">📭</div>
+                <div>
+                   <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">No Proof Available</h3>
+                   <p className="text-[10px] text-slate-400 font-bold mt-2 leading-relaxed">The original grade sheet document hasn't been uploaded yet or the link has expired.</p>
+                </div>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100"
+                >
+                  Upload Grade Sheet
+                </button>
+              </div>
+            ) : (
               isPdf ? (
                 <iframe src={proofPreviewUrl} className="w-full h-full rounded-2xl border border-slate-200 bg-white shadow-lg" title="Proof PDF" />
               ) : (
                 <img
                   src={proofPreviewUrl}
                   alt="Proof document"
-                  onLoad={() => setIsImageLoading(false)}
+                  onLoad={() => {
+                    setIsImageLoading(false);
+                    setHasImageError(false);
+                  }}
+                  onError={() => {
+                    setIsImageLoading(false);
+                    setHasImageError(true);
+                  }}
                   className={`rounded-xl shadow-2xl border border-white/50 transition-transform duration-200 ${zoom === 1 ? 'max-w-full max-h-full object-contain' : ''}`}
                   style={zoom !== 1 ? { 
                     transform: `scale(${zoom})`, 
@@ -419,17 +441,6 @@ export default function GradeSheetRecorder({
                   } : {}}
                 />
               )
-            ) : (
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="flex flex-col items-center gap-4 p-12 border-2 border-dashed border-slate-300 rounded-3xl hover:border-indigo-400 hover:bg-indigo-50/50 transition-all group cursor-pointer bg-white"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all text-2xl">📄</div>
-                <div className="text-center">
-                  <p className="font-black text-slate-600 group-hover:text-indigo-600 transition-colors">Upload Grade Sheet Proof</p>
-                  <p className="text-xs text-slate-400 mt-1">Drag & drop or click · JPG, PNG, or PDF</p>
-                </div>
-              </button>
             )}
           </div>
 
