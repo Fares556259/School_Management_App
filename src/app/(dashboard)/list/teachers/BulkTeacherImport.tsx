@@ -149,6 +149,7 @@ Jane Smith, jane@example.com, Female, 3500 salary"
                         <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Teacher</th>
                         <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Contact</th>
                         <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">username</th>
+                        <th className="text-left px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Credentials</th>
                         <th className="text-right px-4 py-3 font-black text-slate-400 uppercase tracking-widest">Salary</th>
                       </tr>
                     </thead>
@@ -161,6 +162,11 @@ Jane Smith, jane@example.com, Female, 3500 salary"
                             <p className="text-[10px] text-slate-400">{t.phone || "No Phone"}</p>
                           </td>
                           <td className="px-4 py-3 font-mono text-indigo-500">{t.username}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-mono select-all">
+                              {t.password || "Auto-gen"}
+                            </span>
+                          </td>
                           <td className="px-4 py-3 text-right font-black text-slate-800">${t.salary}</td>
                         </tr>
                       ))}
