@@ -118,7 +118,7 @@ export default function GradeSheetRecorder({
   };
 
   const handleAiScan = async () => {
-    if (!proofFile) {
+    if (!proofFile && !proofPreviewUrl) {
       alert("Please upload an image first.");
       return;
     }
@@ -127,17 +127,24 @@ export default function GradeSheetRecorder({
     setScanError(null);
 
     try {
-      // 1. Convert file to base64
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-      });
-      reader.readAsDataURL(proofFile);
-      const base64 = await base64Promise;
+      let imageInput: string;
+
+      if (proofFile) {
+        // 1. Convert local file to base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+        });
+        reader.readAsDataURL(proofFile);
+        imageInput = await base64Promise;
+      } else {
+        // Use existing URL
+        imageInput = proofPreviewUrl!;
+      }
 
       // 2. Call AI Action
-      const result = await extractGradesFromImage(base64, students);
+      const result = await extractGradesFromImage(imageInput, students);
 
       if (result.error) {
         setScanError(result.error);

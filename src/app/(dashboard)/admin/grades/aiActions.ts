@@ -6,7 +6,7 @@ const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_AP
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function extractGradesFromImage(
-  base64Image: string,
+  imageInput: string, // Can be base64 string OR a URL
   students: { id: string; name: string; surname: string }[]
 ) {
   if (!apiKey) {
@@ -37,18 +37,31 @@ export async function extractGradesFromImage(
       CRITICAL: Return ONLY valid JSON. No markdown, no commentary.
     `;
 
-    // Extract the pure base64 data (remove prefix if present)
-    const base64Data = base64Image.split(",")[1] || base64Image;
+    let imageParts: any;
 
-    const result = await model.generateContent([
-      prompt,
-      {
+    if (imageInput.startsWith("http")) {
+      // Use URL strategy (fetch image first as Gemini 1.5 prefers inline data for certain formats, or use URL if supported)
+      // For simplicity and robustness across environments, we fetch and convert to inline data here
+      const response = await fetch(imageInput);
+      const buffer = await response.arrayBuffer();
+      imageParts = {
+        inlineData: {
+          data: Buffer.from(buffer).toString("base64"),
+          mimeType: "image/jpeg",
+        },
+      };
+    } else {
+      // Extract the pure base64 data (remove prefix if present)
+      const base64Data = imageInput.split(",")[1] || imageInput;
+      imageParts = {
         inlineData: {
           data: base64Data,
-          mimeType: "image/jpeg", // We'll handle different types on frontend or assume jpeg for simplicity here
+          mimeType: "image/jpeg",
         },
-      },
-    ]);
+      };
+    }
+
+    const result = await model.generateContent([prompt, imageParts]);
 
     const response = await result.response;
     const text = response.text();
