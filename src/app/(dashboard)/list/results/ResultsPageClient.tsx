@@ -3,6 +3,7 @@
 import { useState } from "react";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet } from "../../admin/grades/actions";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   role: string | undefined;
@@ -28,6 +29,8 @@ export default function ResultsPageClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const startNewRecording = () => {
     setEditingSheetId(null);
@@ -195,17 +198,48 @@ export default function ResultsPageClient({
                >
                  Edit Recording
                </button>
-               <a 
-                 href={sheet.proofUrl} 
-                 target="_blank" 
-                 className="w-12 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-100 transition-all border border-indigo-100"
-               >
-                 📄
-               </a>
+                <button 
+                  onClick={() => {
+                    setPreviewUrl(sheet.proofUrl);
+                    setIsPreviewOpen(true);
+                  }}
+                  className="w-12 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-100 transition-all border border-indigo-100 group"
+                  title="Quick Preview"
+                >
+                  <span className="group-hover:scale-125 transition-transform text-lg">👁️</span>
+                </button>
             </div>
           </div>
         ))}
       </div>
+      {/* PREVIEW MODAL */}
+      <AnimatePresence>
+        {isPreviewOpen && previewUrl && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex flex-col"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <h3 className="text-white font-black tracking-tight uppercase">Document Quick Preview</h3>
+              <button 
+                onClick={() => setIsPreviewOpen(false)}
+                className="p-2 hover:bg-white/10 rounded-full text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-12 flex items-center justify-center">
+              <img 
+                src={previewUrl} 
+                alt="Document Preview" 
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl shadow-black"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

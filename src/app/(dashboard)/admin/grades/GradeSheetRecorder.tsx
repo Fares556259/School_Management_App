@@ -381,10 +381,11 @@ export default function GradeSheetRecorder({
               {proofPreviewUrl && (
                 <button 
                   onClick={() => setIsFullscreen(true)}
-                  className="p-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 transition-all group"
                   title="View Fullscreen"
                 >
-                  <Maximize2 size={14} />
+                  <Maximize2 size={12} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Preview</span>
                 </button>
               )}
             </div>
