@@ -1,21 +1,12 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(apiKey);
+import { callGeminiDirect } from "../actions/aiActions";
 
 export async function extractGradesFromImage(
   imageInput: string, // Can be base64 string OR a URL
   students: { id: string; name: string; surname: string }[]
 ) {
-  if (!apiKey) {
-    return { error: "Gemini API Key is not configured in .env file." };
-  }
-
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     // Prepare student context for better matching
     const studentListStr = students.map(s => `${s.name} ${s.surname}`).join(", ");
 
@@ -37,34 +28,20 @@ export async function extractGradesFromImage(
       CRITICAL: Return ONLY valid JSON. No markdown, no commentary.
     `;
 
-    let imageParts: any;
+    let base64Data: string;
 
     if (imageInput.startsWith("http")) {
-      // Use URL strategy (fetch image first as Gemini 1.5 prefers inline data for certain formats, or use URL if supported)
-      // For simplicity and robustness across environments, we fetch and convert to inline data here
+      // Use URL strategy (fetch image first)
       const response = await fetch(imageInput);
       const buffer = await response.arrayBuffer();
-      imageParts = {
-        inlineData: {
-          data: Buffer.from(buffer).toString("base64"),
-          mimeType: "image/jpeg",
-        },
-      };
+      base64Data = Buffer.from(buffer).toString("base64");
     } else {
       // Extract the pure base64 data (remove prefix if present)
-      const base64Data = imageInput.split(",")[1] || imageInput;
-      imageParts = {
-        inlineData: {
-          data: base64Data,
-          mimeType: "image/jpeg",
-        },
-      };
+      base64Data = imageInput.split(",")[1] || imageInput;
     }
 
-    const result = await model.generateContent([prompt, imageParts]);
-
-    const response = await result.response;
-    const text = response.text();
+    // Use the optimized common dispatcher
+    const text = await callGeminiDirect(prompt, base64Data);
     
     // Clean potential markdown code blocks from AI response
     const jsonStr = text.replace(/```json|```/g, "").trim();
