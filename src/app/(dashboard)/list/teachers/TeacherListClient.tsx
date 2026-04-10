@@ -7,6 +7,9 @@ import BulkTeacherImport from "./BulkTeacherImport";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
+import TableSearch from "@/components/TableSearch";
+import MonthSelector from "@/components/MonthSelector";
+import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,6 +23,7 @@ interface Props {
   page: number;
   role: string | undefined;
   selectedMonthKey: string;
+  paidThisMonth: number;
 }
 
 export default function TeacherListClient({
@@ -29,6 +33,7 @@ export default function TeacherListClient({
   page,
   role,
   selectedMonthKey,
+  paidThisMonth,
 }: Props) {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
 
@@ -39,7 +44,6 @@ export default function TeacherListClient({
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
-    // Check if paid for the currently selected month in the navigator
     const isPaidThisMonth = item.payments.some(
       (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
     );
@@ -108,23 +112,51 @@ export default function TeacherListClient({
 
   return (
     <>
-      <div className="flex flex-col gap-4 relative">
-        {role === "admin" && (
-          <div className="absolute right-0 top-[-60px] flex items-center gap-3">
-             <button 
-               onClick={() => setIsBulkOpen(true)}
-               className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group"
-             >
-               <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
-               AI Bulk Enroll
-             </button>
-          </div>
-        )}
-        
-        <Table columns={columns} renderRow={renderRow} data={initialData} />
-        <Pagination page={page} count={count} />
+      {/* 1. MONTH NAVIGATOR & SUMMARY */}
+      <MonthSelector />
+      <div className="flex items-center justify-between mb-6">
+        <MonthPaymentSummary
+          total={initialData.length}
+          paidCount={paidThisMonth}
+          monthLabel={selectedMonthKey}
+          entityName="teachers"
+        />
       </div>
 
+      {/* 2. TOP ACTIONS HEADER */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="hidden md:block text-lg font-black text-slate-800 uppercase tracking-tight">All Teachers</h1>
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <TableSearch />
+          <div className="flex items-center gap-3 self-end">
+            <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-lamaYellow border border-amber-200 shadow-sm hover:shadow transition-all">
+              <Image src="/filter.png" alt="" width={14} height={14} />
+            </button>
+            <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-lamaYellow border border-amber-200 shadow-sm hover:shadow transition-all">
+              <Image src="/sort.png" alt="" width={14} height={14} />
+            </button>
+            
+            {role === "admin" && (
+              <div className="flex items-center gap-2 ml-2">
+                <button 
+                  onClick={() => setIsBulkOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group shrink-0"
+                >
+                  <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
+                  AI Bulk Enroll
+                </button>
+                <CrudFormModal entity="teacher" mode="create" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TABLE & PAGINATION */}
+      <Table columns={columns} renderRow={renderRow} data={initialData} />
+      <Pagination page={page} count={count} />
+
+      {/* MODALS */}
       {isBulkOpen && (
         <BulkTeacherImport onClose={() => setIsBulkOpen(false)} />
       )}
