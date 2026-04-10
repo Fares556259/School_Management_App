@@ -133,8 +133,19 @@ const TimetableSlotItem = ({
     );
   }
 
+  const handleDragStart = (e: React.DragEvent) => {
+    if (slot?.id) {
+       e.dataTransfer.setData("slotId", slot.id.toString());
+       e.dataTransfer.effectAllowed = "move";
+    }
+  };
+
   return (
-    <div className="w-full h-full bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 hover:border-indigo-100 transition-all flex flex-col relative group">
+    <div 
+      draggable={isEditMode && !!slot}
+      onDragStart={handleDragStart}
+      className={`w-full h-full bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 hover:border-indigo-100 transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing' : ''}`}
+    >
       <div className="flex items-start justify-between">
         <h3 className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
           {slot.subject?.name}
