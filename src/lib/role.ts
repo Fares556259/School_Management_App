@@ -5,17 +5,10 @@ export const getRole = async () => {
 
   if (!userId) return undefined;
 
-  // 1. Try session claims (fastest, no API call)
+  // 1. USE SESSION CLAIMS ONLY (Maximum Performance)
+  // This reads the role directly from the JWT token.
+  // Requires "role" to be added to the Clerk JWT Template.
   const role = (sessionClaims as any)?.metadata?.role as string | undefined;
-  if (role) return role;
-
-  // 2. Fallback to Clerk API fetch
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    return user.publicMetadata?.role as string | undefined;
-  } catch (error) {
-    console.error("Error fetching user role from Clerk:", error);
-    return undefined;
-  }
+  
+  return role;
 };

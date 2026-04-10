@@ -1,20 +1,24 @@
 import { UserButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image"
 import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
 
 const Navbar = async () => {
-  let user = null;
+  const { userId, sessionClaims } = auth();
+  
+  // 1. EXTRACTION: Get role and basic info from Session Claims (FAST - No Network)
+  const role = (sessionClaims as any)?.metadata?.role as string | undefined;
+  const fullName = (sessionClaims as any)?.fullName || "User";
+  
   let adminData = null;
   
   try {
-    user = await currentUser();
-    if (user?.publicMetadata?.role === "admin") {
+    if (role === "admin") {
       const resp = await getAdminProfile();
       adminData = resp?.data;
     }
   } catch (err) {
-    console.error("Error fetching user in Navbar:", err);
+    console.error("Error fetching admin data in Navbar:", err);
   }
 
   return (
@@ -37,10 +41,10 @@ const Navbar = async () => {
         <div className='flex items-center gap-3 pl-2'>
           <div className='flex flex-col text-right hidden sm:flex leading-tight'>
             <span className="text-sm font-black text-slate-800">
-                {user ? `${user.firstName || ""} ${user.lastName || ""}` : "Loading..."}
+                {fullName}
             </span>
             <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-              {(user?.publicMetadata?.role as string) || "User"}
+              {role || "User"}
             </span>
           </div>
           {adminData?.img ? (
