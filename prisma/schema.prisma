@@ -307,3 +307,10 @@ model TimetableSlot {
 
   @@unique([classId, day, slotNumber])
 }
+
+model DailyReportLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    String
+  schoolId  String
+}
