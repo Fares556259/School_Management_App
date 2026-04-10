@@ -29,11 +29,19 @@ export async function GET(request: Request) {
     });
 
     // 4. Send Email
+    // Fetch subscribers
+    const subscribers = await prisma.reportSubscriber.findMany();
+    const toEmails = subscribers.map((sub) => sub.email);
+
+    if (toEmails.length === 0) {
+      return NextResponse.json({ success: true, message: "No subscribers found, report skipped" });
+    }
+
     // Using a verified domain email or onboarding test email
     const { data: emailData, error } = await resend.emails.send({
-      from: "SnapSchool Reports <onboarding@resend.dev>", // Replace with verified domain in production, e.g., reports@yourdomain.com
-      to: ["reports@yourdomain.com"], // Replace with actual stakeholder emails
-      subject: `Daily School Report - ${dateString}`,
+      from: "SnapSchool Reports <onboarding@resend.dev>", // Replace with verified domain in production
+      to: toEmails,
+      subject: `Daily School AI Report - ${dateString}`,
       react: DailyReportEmail({
         date: dateString,
         financialData: data.financialData,
