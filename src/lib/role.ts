@@ -1,4 +1,5 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import prisma from "./prisma";
 
 export const getRole = async () => {
   const { userId, sessionClaims } = auth();
@@ -10,13 +11,26 @@ export const getRole = async () => {
   if (role) return role;
 
   // 2. DEFENSIVE FALLBACK (Safe Path - API call)
-  // Re-added this to prevent lockouts while user configures JWT Templates
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
-    return user.publicMetadata?.role as string | undefined;
+    const role = user.publicMetadata?.role as string | undefined;
+    if (role) return role;
   } catch (error) {
-    console.error("Error fetching user role from Clerk fallback:", error);
-    return undefined;
+    console.warn("Clerk Role Fetch failed, trying DB fallback:", error);
   }
+
+  // 3. DATABASE FALLBACK (Final Safety Net)
+  // If Clerk is unreachable or metadata is empty, check if they exist in our Admin table
+  try {
+    const admin = await prisma.admin.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+    if (admin) return "admin";
+  } catch (dbErr) {
+    console.error("Database fallback error in getRole:", dbErr);
+  }
+
+  return undefined;
 };
