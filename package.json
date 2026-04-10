@@ -16,6 +16,8 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.0",
     "@prisma/client": "^7.6.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.6",
     "@types/react-big-calendar": "^1.8.9",
     "cloudinary": "^2.9.0",
     "framer-motion": "^12.38.0",
@@ -32,6 +34,7 @@
     "react-hook-form": "^7.52.2",
     "react-markdown": "^10.1.0",
     "recharts": "^2.15.4",
+    "resend": "^6.10.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
