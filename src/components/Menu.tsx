@@ -46,6 +46,12 @@ const menuItems: MenuSection[] = [
       },
       {
         icon: "/result.png",
+        label: "Daily Reports",
+        href: "/admin/reports",
+        visible: ["admin"],
+      },
+      {
+        icon: "/result.png",
         label: "Results",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
