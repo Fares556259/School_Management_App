@@ -314,3 +314,10 @@ model DailyReportLog {
   status    String
   schoolId  String
 }
+
+model ReportSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
