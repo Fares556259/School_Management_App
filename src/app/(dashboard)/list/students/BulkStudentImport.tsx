@@ -59,8 +59,8 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
         {/* HEADER */}
         <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-sky-600 flex items-center justify-center shadow-lg shadow-sky-100">
-              <Users size={20} className="text-white" />
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
+              <Rocket size={20} className="text-white" />
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">AI Student Bulk Import</h2>
@@ -88,7 +88,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <button
                     onClick={() => setImportMode("text")}
                     className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      importMode === "text" ? "bg-white text-sky-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      importMode === "text" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                     }`}
                   >
                     <Type size={14} />
@@ -97,7 +97,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <button
                     onClick={() => setImportMode("image")}
                     className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      importMode === "image" ? "bg-white text-sky-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      importMode === "image" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                     }`}
                   >
                     <ImageIcon size={14} />
@@ -105,12 +105,12 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   </button>
                 </div>
 
-                <div className="bg-sky-50 border border-sky-100 p-4 rounded-2xl flex items-start gap-3">
-                   <AlertCircle size={18} className="text-sky-600 mt-0.5" />
-                   <p className="text-xs text-sky-700 font-medium leading-relaxed">
+                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
+                   <AlertCircle size={18} className="text-indigo-600 mt-0.5" />
+                   <p className="text-xs text-indigo-700 font-medium leading-relaxed">
                      {importMode === "text" 
-                        ? "Paste your list of students below. Include names, genders, and parent details. AI will handle the structure."
-                        : "Upload a photo of your classroom register or enrollment forms. AI Vision will read and extract all details."}
+                        ? "Paste your list of students below. Our AI will automatically structure everything for you."
+                        : "Upload a clear photo or scan of your student list. AI Vision will read and extract all details."}
                    </p>
                 </div>
                 
@@ -118,11 +118,11 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder="Example: John Doe, Male, Class 1A, Parent: Robert Doe, +12345678..."
-                    className="w-full h-64 p-6 rounded-3xl border border-slate-200 bg-white focus:ring-4 focus:ring-sky-50 focus:border-sky-400 outline-none transition-all text-sm font-medium leading-relaxed resize-none shadow-sm"
+                    placeholder="Example: John Doe, Male, Class 1A, Parent: Robert Doe..."
+                    className="w-full h-64 p-6 rounded-3xl border border-slate-200 bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 outline-none transition-all text-sm font-medium leading-relaxed resize-none shadow-sm"
                   />
                 ) : (
-                  <div className="w-full h-64 rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-4 group hover:border-sky-400 transition-colors overflow-hidden">
+                  <div className="w-full h-64 rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-4 group hover:border-indigo-400 transition-colors overflow-hidden">
                     {imageUrl ? (
                       <div className="relative w-full h-full">
                         <Image src={imageUrl} alt="Document" fill className="object-contain" />
@@ -147,7 +147,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                             onClick={() => open()}
                             className="flex flex-col items-center gap-3"
                           >
-                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-sky-50 group-hover:text-sky-600 transition-all">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
                               <ImageIcon size={24} />
                             </div>
                             <div className="text-center">
@@ -170,7 +170,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 <button
                   onClick={handleParse}
                   disabled={importMode === "text" ? !rawText.trim() : !imageUrl}
-                  className="w-full py-4 bg-sky-600 text-white font-black rounded-2xl shadow-xl shadow-sky-100 hover:bg-sky-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                 >
                    {importMode === "image" ? <ImageIcon size={14} /> : <FileText size={14} />}
                    ✨ Start AI Extraction
@@ -186,14 +186,14 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 className="flex flex-col items-center justify-center py-20 gap-6"
               >
                 <div className="relative">
-                  <div className="w-20 h-20 border-4 border-slate-100 border-t-sky-600 rounded-full animate-spin"></div>
-                  <div className="absolute inset-0 flex items-center justify-center text-sky-600 animate-pulse">
-                    <Users size={24} />
+                  <div className="w-20 h-20 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-indigo-600 animate-pulse">
+                    <FileText size={24} />
                   </div>
                 </div>
                 <div className="text-center">
                   <h3 className="font-black text-slate-800 uppercase tracking-tight">AI is analyzing student data...</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Vision parsing · Parent mapping · Grouping classes</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Vision parsing · OCR extraction · structuring profiles</p>
                 </div>
               </motion.div>
             )}
@@ -208,9 +208,9 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-slate-800 uppercase tracking-tight">Review Extraction</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verify student and parent data before saving</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verify parsed data before saving</p>
                   </div>
-                  <span className="px-3 py-1 bg-sky-50 text-sky-600 rounded-xl text-[10px] font-black">{parsedData.length} Students Found</span>
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black">{parsedData.length} Students Found</span>
                 </div>
 
                 <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
@@ -255,7 +255,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <button
                     onClick={handleSave}
                     disabled={isPending}
-                    className="flex-[2] py-4 bg-sky-600 text-white font-black rounded-2xl shadow-xl shadow-sky-100 hover:bg-sky-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                    className="flex-[2] py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                   >
                     {isPending ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
                     Finalize & Enroll Students
