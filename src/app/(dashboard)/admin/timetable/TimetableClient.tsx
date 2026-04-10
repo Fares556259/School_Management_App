@@ -19,7 +19,12 @@ const TimetablePage = ({
   const searchParams = useSearchParams();
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
+
+  const handleAiSuccess = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   const selectedClass = classId 
     ? classes.find(c => c.id === classId) 
@@ -27,6 +32,7 @@ const TimetablePage = ({
 
   return (
     <div className="p-4 flex flex-col gap-6 flex-1">
+      {/* ... header contents ... */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
@@ -99,12 +105,14 @@ const TimetablePage = ({
           subjects={subjects}
           teachers={teachers}
           isEditMode={isEditMode}
+          refreshKey={refreshKey}
         />
       )}
 
       {isAiOpen && selectedClass && (
         <AiTimetableModal 
           onClose={() => setIsAiOpen(false)}
+          onSuccess={handleAiSuccess}
           classContext={{
             id: selectedClass.id,
             name: selectedClass.name,

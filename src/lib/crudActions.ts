@@ -743,11 +743,11 @@ export const bulkUpdateTimetableSlots = async (classId: number, slots: any[]) =>
             day: slot.day,
             startTime: slot.startTime,
             endTime: slot.endTime,
-            slotNumber: slot.slotNumber,
+            slotNumber: parseInt(String(slot.slotNumber)),
             room: slot.room || "TBA",
-            subjectId: slot.subjectId || null,
-            teacherId: slot.teacherId || null,
-            classId: classId,
+            subjectId: slot.subjectId ? parseInt(String(slot.subjectId)) : null,
+            teacherId: slot.teacherId ? String(slot.teacherId) : null,
+            classId: parseInt(String(classId)),
           },
         });
       }

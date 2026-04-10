@@ -8,12 +8,13 @@ import { X, Sparkles, Loader2, AlertCircle, Check, Calendar, ArrowRight, User, B
 
 interface Props {
   onClose: () => void;
+  onSuccess?: () => void;
   classContext: { id: number; name: string; level: number };
   subjects: any[];
   teachers: any[];
 }
 
-export default function AiTimetableModal({ onClose, classContext, subjects, teachers }: Props) {
+export default function AiTimetableModal({ onClose, onSuccess, classContext, subjects, teachers }: Props) {
   const [step, setStep] = useState<"input" | "generating" | "review" | "success">("input");
   const [prompt, setPrompt] = useState("");
   const [generatedSlots, setGeneratedSlots] = useState<any[]>([]);
@@ -41,6 +42,7 @@ export default function AiTimetableModal({ onClose, classContext, subjects, teac
       const res = await bulkUpdateTimetableSlots(classContext.id, generatedSlots);
       if (res.success) {
         setStep("success");
+        onSuccess?.();
         setTimeout(() => onClose(), 2000);
       } else {
         setError(res.error || "Failed to save timetable.");
