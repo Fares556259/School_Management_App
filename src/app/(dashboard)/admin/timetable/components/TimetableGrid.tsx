@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTimetableByClass } from "../../actions/timetableActions";
+import { getTimetableByClass, moveTimetableSlot } from "../../actions/timetableActions";
 import TimetableSlotItem from "./TimetableSlot";
 import { Day } from "@prisma/client";
 
@@ -30,6 +30,7 @@ const TimetableGrid = ({
 }) => {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [draggedOver, setDraggedOver] = useState<string | null>(null);
 
   const fetchSlots = async () => {
     setLoading(true);
@@ -38,6 +39,26 @@ const TimetableGrid = ({
       setSlots(res.data as any[]);
     }
     setLoading(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent, day: Day, period: number) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    setDraggedOver(`${day}-${period}`);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetDay: Day, targetPeriod: number) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    setDraggedOver(null);
+    const slotIdStr = e.dataTransfer.getData("slotId");
+    if (!slotIdStr) return;
+
+    const slotId = parseInt(slotIdStr);
+    const res = await moveTimetableSlot(slotId, targetDay, targetPeriod);
+    if (res.success) {
+      fetchSlots();
+    }
   };
 
   useEffect(() => {
@@ -96,8 +117,15 @@ const TimetableGrid = ({
                   const slot = slots.find(
                     (s) => s.day === day && s.slotNumber === session.id
                   );
+                  const isDraggedOver = draggedOver === `${day}-${session.id}`;
                   return (
-                    <div key={day} className="min-h-[140px] flex items-stretch">
+                    <div 
+                      key={day} 
+                      className={`min-h-[140px] flex items-stretch rounded-[30px] transition-all border-2 ${isDraggedOver ? 'border-indigo-400 bg-indigo-50/30 scale-[0.98]' : 'border-transparent'}`}
+                      onDragOver={(e) => handleDragOver(e, day, session.id)}
+                      onDragLeave={() => setDraggedOver(null)}
+                      onDrop={(e) => handleDrop(e, day, session.id)}
+                    >
                       <TimetableSlotItem 
                         key={`${day}-${session.id}-${slot?.id || "empty"}`} // Improved key
                         slot={slot} 

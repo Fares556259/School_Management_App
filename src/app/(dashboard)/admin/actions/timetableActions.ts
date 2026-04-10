@@ -104,3 +104,72 @@ export async function getAllSubjectsAndTeachers() {
     return { success: false, error: error.message };
   }
 }
+
+export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSlotNumber: number) {
+  try {
+    const sourceSlot = await prisma.timetableSlot.findUnique({
+      where: { id: slotId },
+    });
+
+    if (!sourceSlot) return { success: false, error: "Source slot not found" };
+
+    // Check if target slot is occupied
+    const targetOccupied = await prisma.timetableSlot.findUnique({
+      where: {
+        classId_day_slotNumber: {
+          classId: sourceSlot.classId,
+          day: targetDay,
+          slotNumber: targetSlotNumber,
+        },
+      },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      if (targetOccupied) {
+        // SWAP: Move target occupied slot to source position
+        // Temporary set to negative ID or use update to avoid unique constraint mismatch mid-transaction
+        // Actually, we can just delete and recreate or update Source first with target data
+        
+        // 1. Clear target location temporarily (we have sourceSlot data in memory)
+        // No need, we can just update them in two steps if we handle the unique constraint carefully
+        // But Prisma handles transactions well.
+        
+        await tx.timetableSlot.update({
+          where: { id: targetOccupied.id },
+          data: { slotNumber: -1 }, // Move to limbo
+        });
+
+        await tx.timetableSlot.update({
+          where: { id: sourceSlot.id },
+          data: {
+            day: targetDay,
+            slotNumber: targetSlotNumber,
+          },
+        });
+
+        await tx.timetableSlot.update({
+          where: { id: targetOccupied.id },
+          data: {
+            day: sourceSlot.day,
+            slotNumber: sourceSlot.slotNumber,
+          },
+        });
+      } else {
+        // SIMPLE MOVE
+        await tx.timetableSlot.update({
+          where: { id: sourceSlot.id },
+          data: {
+            day: targetDay,
+            slotNumber: targetSlotNumber,
+          },
+        });
+      }
+    });
+
+    revalidatePath(`/admin/timetable`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error moving timetable slot:", error);
+    return { success: false, error: error.message };
+  }
+}
