@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Clock, Check, Edit2 } from "lucide-react";
+import { Clock, Check, Edit2, Sparkles } from "lucide-react";
 import TimetableGrid from "./components/TimetableGrid";
+import AiTimetableModal from "./components/AiTimetableModal";
 
 const TimetablePage = ({
   classes,
@@ -17,6 +18,7 @@ const TimetablePage = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
   const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
 
   const selectedClass = classId 
@@ -42,6 +44,17 @@ const TimetablePage = ({
         </div>
         
         <div className="flex items-center gap-3">
+          {/* AI GENERATE BUTTON */}
+          <button 
+            onClick={() => setIsAiOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group"
+          >
+            <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
+            AI Magic Generate
+          </button>
+
+          <div className="h-10 w-px bg-slate-100 mx-2"></div>
+
           {/* EDIT TOGGLE BUTTON */}
           <button 
             onClick={() => setIsEditMode(!isEditMode)}
@@ -86,6 +99,19 @@ const TimetablePage = ({
           subjects={subjects}
           teachers={teachers}
           isEditMode={isEditMode}
+        />
+      )}
+
+      {isAiOpen && selectedClass && (
+        <AiTimetableModal 
+          onClose={() => setIsAiOpen(false)}
+          classContext={{
+            id: selectedClass.id,
+            name: selectedClass.name,
+            level: selectedClass.level.level
+          }}
+          subjects={subjects}
+          teachers={teachers}
         />
       )}
     </div>

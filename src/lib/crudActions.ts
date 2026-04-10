@@ -726,3 +726,44 @@ export const deleteIncome = async (id: number) => {
     return { success: false, error: err?.message || "Failed to delete income." };
   }
 };
+
+// ===================== TIMETABLE =====================
+export const bulkUpdateTimetableSlots = async (classId: number, slots: any[]) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete existing slots for this class
+      await tx.timetableSlot.deleteMany({
+        where: { classId },
+      });
+
+      // 2. Create new slots
+      for (const slot of slots) {
+        await tx.timetableSlot.create({
+          data: {
+            day: slot.day,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            slotNumber: slot.slotNumber,
+            room: slot.room || "TBA",
+            subjectId: slot.subjectId || null,
+            teacherId: slot.teacherId || null,
+            classId: classId,
+          },
+        });
+      }
+    });
+
+    await createAuditLog({
+      action: "AI_GENERATE_TIMETABLE",
+      entityType: "Class",
+      entityId: String(classId),
+      description: `AI Generated new timetable for Class ID: ${classId} (${slots.length} slots)`,
+    });
+
+    revalidatePath("/admin/timetable");
+    return { success: true };
+  } catch (err: any) {
+    console.error("bulkUpdateTimetableSlots error:", err);
+    return { success: false, error: err?.message || "Failed to update timetable." };
+  }
+};
