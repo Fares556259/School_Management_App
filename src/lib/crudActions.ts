@@ -193,6 +193,74 @@ export const createStudent = async (data: {
   }
 };
 
+export const bulkCreateStudents = async (students: any[]) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const s of students) {
+        const studentId = crypto.randomUUID();
+
+        // 1. Find or Create Parent
+        let parentId = s.parentId;
+
+        if (!parentId && s.parentPhone) {
+          const existingParent = await tx.parent.findUnique({
+            where: { phone: s.parentPhone },
+          });
+
+          if (existingParent) {
+            parentId = existingParent.id;
+          } else {
+            // Create new parent
+            parentId = crypto.randomUUID();
+            await tx.parent.create({
+              data: {
+                id: parentId,
+                username: s.parentName?.toLowerCase() + Math.floor(Math.random() * 1000),
+                name: s.parentName || "Parent",
+                surname: s.parentSurname || s.surname || "Unknown",
+                phone: s.parentPhone,
+                address: s.address || "Unknown",
+              },
+            });
+          }
+        }
+
+        // 2. Create Student
+        await tx.student.create({
+          data: {
+            id: studentId,
+            username: s.username,
+            name: s.name,
+            surname: s.surname,
+            email: s.email || null,
+            phone: s.phone || null,
+            address: s.address || "Unknown",
+            bloodType: s.bloodType || "O+",
+            birthday: new Date(s.birthday || "2015-01-01"),
+            sex: s.sex as UserSex || UserSex.MALE,
+            parentId: parentId || "default-parent-id", // Should ideally have a fallback or throw
+            classId: s.classId || 1,
+            levelId: s.levelId || 1,
+          },
+        });
+
+        await createAuditLog({
+          action: "BULK_CREATE_STUDENT",
+          entityType: "Student",
+          entityId: studentId,
+          description: `Bulk enrolled student: ${s.name} ${s.surname} (${s.username})`,
+        });
+      }
+    });
+
+    revalidatePath("/list/students");
+    return { success: true };
+  } catch (err: any) {
+    console.error("bulkCreateStudents error:", err);
+    return { success: false, error: err?.message || "Failed to bulk create students." };
+  }
+};
+
 export const updateStudent = async (
   id: string,
   data: Partial<{
