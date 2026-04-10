@@ -1,14 +1,30 @@
 import { UserButton } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import Image from "next/image"
 import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
 
 const Navbar = async () => {
   const { userId, sessionClaims } = auth();
   
-  // 1. EXTRACTION: Get role and basic info from Session Claims (FAST - No Network)
-  const role = (sessionClaims as any)?.metadata?.role as string | undefined;
-  const fullName = (sessionClaims as any)?.fullName || "User";
+  // 1. EXTRACTION: Try fast claims first
+  let role = (sessionClaims as any)?.metadata?.role as string | undefined;
+  let fullName = (sessionClaims as any)?.fullName as string | undefined;
+
+  // 2. FALLBACK: Fetch only if data is missing from session
+  if (!fullName || !role) {
+    try {
+      const user = await currentUser();
+      if (user) {
+        fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+        role = role || (user.publicMetadata?.role as string | undefined);
+      }
+    } catch (err) {
+      console.error("Clerk Navbar Fallback Error:", err);
+    }
+  }
+
+  // Final defaults
+  fullName = fullName || "User";
   
   let adminData = null;
   
