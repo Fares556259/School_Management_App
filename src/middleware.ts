@@ -10,26 +10,24 @@ const matchers = Object.keys(routeAccessMap).map((route) => ({
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = auth();
 
-  // Skip role check for unauthenticated users on non-protected routes
+  // 1. If not logged in, we let the route matcher handle public/private logic
+  // However, we only care about role-based access if they ARE logged in
   if (!userId) return;
 
-  // Try to get role from session claims first (fastest)
-  let role = (auth().sessionClaims as any)?.metadata?.role as string | undefined;
+  // 2. EXTRACTION: Get role from Session Claims (FAST - No Network)
+  // This requires the user to set up a JWT Template in Clerk Dashboard: 
+  // { "metadata": { "role": "{{user.public_metadata.role}}" } }
+  const role = (auth().sessionClaims as any)?.metadata?.role as string | undefined;
 
-  // Fallback to fetch only if not in claims
-  if (!role && userId) {
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      role = user.publicMetadata?.role as string | undefined;
-    } catch (err) {
-      console.error("Middleware Clerk fetch error:", err);
-    }
-  }
-
+  // 3. AUTHORIZATION: Check matching routes
   for (const { matcher, allowedRoles } of matchers) {
-    if (matcher(req) && !allowedRoles.includes(role!)) {
-      return NextResponse.redirect(new URL(`/${role || ""}`, req.url));
+    if (matcher(req)) {
+      // If the user has NO role, or their role isn't allowed, redirect them.
+      // We redirect to their own dashboard if they have one, otherwise to the root.
+      if (!role || !allowedRoles.includes(role)) {
+        const redirectUrl = role ? `/${role}` : "/";
+        return NextResponse.redirect(new URL(redirectUrl, req.url));
+      }
     }
   }
 });
