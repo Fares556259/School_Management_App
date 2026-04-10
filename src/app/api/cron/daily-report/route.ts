@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         },
       });
 
-      return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to send email", details: error }, { status: 500 });
     }
 
     // 5. Log Success
