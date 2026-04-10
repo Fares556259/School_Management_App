@@ -137,7 +137,7 @@ export default function StudentListClient({
               <div className="flex items-center gap-2 ml-2">
                 <button 
                   onClick={() => setIsBulkOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-sky-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-sky-700 transition-all shadow-lg shadow-sky-100 group shrink-0"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group shrink-0"
                 >
                   <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
                   AI Bulk Enroll Students
