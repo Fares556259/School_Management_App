@@ -46,12 +46,6 @@ const menuItems: MenuSection[] = [
       },
       {
         icon: "/result.png",
-        label: "Daily Reports",
-        href: "/admin/reports",
-        visible: ["admin"],
-      },
-      {
-        icon: "/result.png",
         label: "Results",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
@@ -132,6 +126,12 @@ const menuItems: MenuSection[] = [
         label: "Profile",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/setting.png",
+        label: "Daily Reports",
+        href: "/admin/reports",
+        visible: ["admin"],
       },
       {
         icon: "/setting.png",
