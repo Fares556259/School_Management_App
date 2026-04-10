@@ -83,7 +83,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                   {log.action.replace(/_/g, " ")}
                 </span>
                 <h3 className="text-center text-sm font-medium text-slate-500 leading-relaxed max-w-sm italic">
-                  "{log.description}"
+                  &quot;{log.description}&quot;
                 </h3>
             </div>
 

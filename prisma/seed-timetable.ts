@@ -1,6 +1,6 @@
 import { Day, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { Pool } from "../node_modules/@types/pg";
 import "dotenv/config";
 
 const connectionString = process.env.DATABASE_URL;
@@ -27,7 +27,7 @@ async function main() {
   ];
 
   const subjectNames = [
-    "Mathematics", "Arabic", "French", "English", "Science", 
+    "Mathematics", "Arabic", "French", "English", "Science",
     "History", "Geography", "Physical Education", "Music / Arts"
   ];
 
@@ -38,7 +38,7 @@ async function main() {
         // Randomly pick a subject from the predefined list
         const randSubjectName = subjectNames[Math.floor(Math.random() * subjectNames.length)];
         const subject = subjects.find(s => s.name === randSubjectName) || subjects[0];
-        
+
         // Pick a teacher that teaches this subject if possible
         const teacher = teachers[Math.floor(Math.random() * teachers.length)];
 

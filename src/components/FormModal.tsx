@@ -71,7 +71,7 @@ const FormModal = ({
         forms[table](type, data)
       ) : (
         <div className="p-8 text-center text-slate-400 font-bold">
-          Form for "{table}" is not implemented yet.
+          Form for &quot;{table}&quot; is not implemented yet.
         </div>
       )
     ) : (

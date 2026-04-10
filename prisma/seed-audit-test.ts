@@ -1,6 +1,6 @@
 import { Day, PrismaClient, UserSex, PaymentStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { Pool } from "../node_modules/@types/pg";
 import "dotenv/config";
 
 const connectionString = process.env.DATABASE_URL;
@@ -35,7 +35,7 @@ async function main() {
   // 2. CORE INFRASTRUCTURE
   console.log("🏛️  Seeding Core Infrastructure...");
   await prisma.admin.create({ data: { id: "admin1", username: "admin" } });
-  
+
   const levels = [];
   for (let i = 1; i <= 6; i++) {
     levels.push(await prisma.level.create({ data: { level: i } }));
@@ -44,7 +44,7 @@ async function main() {
   const classes = [];
   for (let i = 0; i < 3; i++) { // Fewer classes for a "Clean test"
     classes.push(await prisma.class.create({
-      data: { name: `${i+1}A`, levelId: levels[i].id, capacity: 25 }
+      data: { name: `${i + 1}A`, levelId: levels[i].id, capacity: 25 }
     }));
   }
 
@@ -56,7 +56,7 @@ async function main() {
 
   // 3. PEOPLE
   console.log("👥 Seeding Test Users...");
-  
+
   // Create a Parent first to avoid foreign key violation
   const parent = await prisma.parent.create({
     data: {
