@@ -14,6 +14,7 @@ import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
+import StudentListClient from "./StudentListClient";
 
 type StudentList = Student & { class: Class } & { level: Level } & { payments: Payment[] };
 
@@ -204,36 +205,16 @@ const StudentListPage = async ({
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* MONTH NAVIGATOR */}
-      <MonthSelector />
-      <div className="flex items-center justify-between mb-4">
-        <MonthPaymentSummary
-          total={data.length}
-          paidCount={paidThisMonth}
-          monthLabel={selectedMonthKey}
-          entityName="students"
-        />
-      </div>
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Students</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
-            {role === "admin" && <CrudFormModal entity="student" mode="create" relatedData={studentRelatedData} />}
-          </div>
-        </div>
-      </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
+      <StudentListClient
+        initialData={data}
+        columns={columns}
+        count={count}
+        page={p}
+        role={role}
+        selectedMonthKey={selectedMonthKey}
+        paidThisMonth={paidThisMonth}
+        relatedData={studentRelatedData}
+      />
     </div>
   );
 };
