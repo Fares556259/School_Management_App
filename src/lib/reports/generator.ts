@@ -1,18 +1,7 @@
-"use server";
-
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
+import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
 
 export async function generateSmartInsights(aggregatedData: any) {
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-      }
-    });
-
     const prompt = `
       You are an expert school administrator. Analyze the following daily aggregated data for the school and provide 2-3 short, actionable, and smart insights.
       Provide the output as a simple JSON array of strings. Do not include markdown formatting.
@@ -24,8 +13,7 @@ export async function generateSmartInsights(aggregatedData: any) {
       ["Insight 1", "Insight 2", "Insight 3"]
     `;
 
-    const result = await model.generateContent(prompt);
-    const textResult = result.response.text();
+    const textResult = await callGeminiDirect(prompt);
     
     try {
       const parsed = JSON.parse(textResult.trim());
