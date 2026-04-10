@@ -1,6 +1,6 @@
 import { Day, PrismaClient, UserSex, PaymentStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { Pool } from "../node_modules/@types/pg";
 import "dotenv/config";
 
 const connectionString = process.env.DATABASE_URL;
@@ -166,7 +166,7 @@ async function main() {
   // We'll seed Term 1 for ALL students, and Term 2 for 40% of students
   for (let i = 0; i < students.length; i++) {
     const student = students[i];
-    
+
     // Term 1 - All
     for (const subject of subjects) {
       const scoreT1 = Math.floor(Math.random() * (19 - 9 + 1)) + 9;

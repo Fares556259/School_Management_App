@@ -1,49 +1,52 @@
-# School Management Dashboard
+# SnapSchool 🏫
 
-A modern, responsive school management dashboard built with Next.js 14, TypeScript, and Tailwind CSS.
+**SnapSchool** is a high-performance, AI-powered school management dashboard built with Next.js 14, TypeScript, and Tailwind CSS. It is designed to streamline administrative tasks, financial tracking, and academic management for modern educational institutions.
 
-## Features
+## 🚀 Key Features
 
-- **Admin Dashboard**: Overview of school statistics, finance charts, and user cards.
-- **Role-based Views**: Tailored experiences for students, teachers, parents, and staff.
-- **Interactive Charts**: Developed using Recharts for data visualization (Attendance, Finance, etc.).
-- **Event Calendar**: Integrated calendar for tracking school events and announcements.
+- **AI-Powered Insights**: Integrated Gemini API for financial analysis and automated data extraction.
+- **SnapAssistant (zbiba)**: A Vision-AI tool for processing receipts and executing database actions from images.
+- **Comprehensive Audit Logs**: Immutable tracking of all administrative modifications.
+- **Finance Management**: Streamlined tuition, salary, and expense tracking.
+- **Role-Based Access**: Tailored dashboards for Admins, Teachers, Students, and Parents.
+- **Dockerized Infrastructure**: Simplified database management with persistent storage.
 
-## Getting Started
+## 🛠 Tech Stack
 
-### Prerequisites
+- **Frontend**: Next.js 14, Framer Motion, Recharts
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Clerk
+- **Infrastructure**: Docker & Docker Compose
 
+## 🏁 Getting Started
+
+### 1. Prerequisites
+- Docker & Docker Compose
 - Node.js 18+
-- npm or yarn
 
-### Installation
+### 2. Installation & Setup
+```bash
+# Clone the repository
+git clone https://github.com/Fares556259/School_Management_App.git
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Fares556259/School_Management_App.git
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-### Running the Project
+# Start the database
+docker-compose up -d
 
-First, run the development server:
+# Sync database schema & seed data
+npx prisma db push
+npx prisma db seed
+```
 
+### 3. Run Development Server
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📖 Documentation
+For a deep dive into the architecture, AI features, and module breakdown, see the [Full Project Documentation](file:///Users/faresselmi/.gemini/antigravity/brain/d6d8f998-c5f3-4b4f-9927-de32dcfe196a/project_documentation.md).
 
-## Recent Fixes
-
-### Module Not Found Error
-Resolved a critical "Cannot find module" error caused by Next.js build cache corruption.
-- **Action**: Cleared `.next` directory and reinstalled dependencies.
-- **Outcome**: Restored full functionality to the `/admin` dashboard and other routes.
-
-## Credits
-
+---
 Inspired by [Lama Dev](https://youtube.com/lamadev).

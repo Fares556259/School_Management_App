@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:alpine
+    container_name: school-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: fares
+      POSTGRES_PASSWORD: fares123
+      POSTGRES_DB: school
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

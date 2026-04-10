@@ -158,10 +158,17 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
             className="mb-4 w-[380px] h-[550px] bg-white/90 backdrop-blur-xl rounded-[32px] shadow-2xl border border-white/20 overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-white/40 rounded-2xl blur-sm opacity-25"></div>
+                  <div className="relative w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-inner overflow-hidden border border-white/50">
+                    <img 
+                      src={isLoading ? "/zbiba-thinking.png" : selectedImage ? "/zbiba-reports.png" : "/zbiba.png"} 
+                      alt="zbiba" 
+                      className={`w-full h-full object-cover ${isLoading ? 'animate-pulse' : ''}`} 
+                    />
+                  </div>
                 </div>
                 <div>
                   <h3 className="text-white font-black tracking-tight text-lg leading-none">zbiba</h3>
@@ -170,9 +177,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="p-2 hover:bg-white/10 rounded-full transition-colors group"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
               </button>
             </div>
 
@@ -276,13 +283,47 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
       </AnimatePresence>
 
       <motion.button
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.05, y: -4 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="p-5 bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-full shadow-2xl shadow-indigo-200 border-4 border-white flex items-center justify-center group relative overflow-hidden"
+        className={`relative flex items-center justify-center transition-all duration-500 ${
+          isOpen 
+            ? 'w-14 h-14 bg-rose-500 rounded-full' 
+            : 'w-16 h-16 bg-white rounded-[24px] shadow-[0_10px_40px_-10px_rgba(79,70,229,0.4)]'
+        } border border-slate-200/50 group`}
       >
-        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-        {isOpen ? <Minus className="w-7 h-7 relative z-10" /> : <MessageCircle className="w-7 h-7 relative z-10" />}
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.div
+              key="close"
+              initial={{ opacity: 0, rotate: -90 }}
+              animate={{ opacity: 1, rotate: 0 }}
+              exit={{ opacity: 0, rotate: 90 }}
+            >
+              <X size={24} className="text-white" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="open"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="relative p-2"
+            >
+              <img src="/zbiba.png" className="w-12 h-12 object-contain" alt="zbiba" />
+              {/* Minimalist Live Indicator */}
+              <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-sm ring-4 ring-emerald-500/20 animate-pulse" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Sleek Tooltip */}
+        {!isOpen && (
+          <div className="absolute right-full mr-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap uppercase tracking-widest shadow-xl">
+            Ask zbiba
+            <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45" />
+          </div>
+        )}
       </motion.button>
     </div>
   );

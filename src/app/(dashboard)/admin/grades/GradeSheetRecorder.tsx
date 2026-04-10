@@ -409,7 +409,7 @@ export default function GradeSheetRecorder({
                 <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-3xl">📭</div>
                 <div>
                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">No Proof Available</h3>
-                   <p className="text-[10px] text-slate-400 font-bold mt-2 leading-relaxed">The original grade sheet document hasn't been uploaded yet or the link has expired.</p>
+                   <p className="text-[10px] text-slate-400 font-bold mt-2 leading-relaxed">The original grade sheet document hasn&apos;t been uploaded yet or the link has expired.</p>
                 </div>
                 <button
                   onClick={() => fileRef.current?.click()}
