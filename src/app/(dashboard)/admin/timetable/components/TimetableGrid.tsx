@@ -19,12 +19,14 @@ const TimetableGrid = ({
   subjects,
   teachers,
   isEditMode,
+  refreshKey,
 }: {
   classId: number;
   className: string;
   subjects: any[];
   teachers: any[];
   isEditMode: boolean;
+  refreshKey: number;
 }) => {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ const TimetableGrid = ({
 
   useEffect(() => {
     fetchSlots();
-  }, [classId]);
+  }, [classId, refreshKey]);
 
   if (loading) {
     return (
@@ -84,9 +86,9 @@ const TimetableGrid = ({
               <div key={session.id} className="grid grid-cols-[100px_repeat(6,1fr)] gap-4 items-stretch">
                 {/* TIME AXIS LABEL */}
                 <div className="flex flex-col items-center justify-center bg-white p-4 rounded-3xl border border-slate-50 relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 group-hover:bg-indigo-300 transition-colors"></div>
-                  <span className="text-xl font-black text-slate-800 leading-none">{session.id}</span>
-                  <span className="text-[9px] font-bold text-slate-400 mt-2 whitespace-nowrap tracking-tighter">{session.time}</span>
+                   <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 group-hover:bg-indigo-300 transition-colors"></div>
+                   <span className="text-xl font-black text-slate-800 leading-none">{session.id}</span>
+                   <span className="text-[9px] font-bold text-slate-400 mt-2 whitespace-nowrap tracking-tighter">{session.time}</span>
                 </div>
 
                 {/* SLOTS FOR EACH DAY */}
