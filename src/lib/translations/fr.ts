@@ -67,5 +67,54 @@ export const fr = {
     printReport: "Imprimer Bilan Fiscal",
     addIncome: "Ajouter Revenu",
     addExpense: "Ajouter Dépense"
+  },
+  analyticsChart: {
+    revenue: "Revenus",
+    expenses: "Dépenses",
+    netProfit: "Bénéfice Net",
+    healthyGrowth: "Croissance saine",
+    expensesGrowing: "Les dépenses augmentent plus vite",
+    filterAll: "TOUT",
+    filterIncome: "REVENU",
+    filterExpense: "DÉPENSE",
+    filterProfit: "BÉNÉFICE",
+    aiProjection: "PROJECTION IA"
+  },
+  months: [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+  ],
+  fiscalDistribution: {
+    title: "Intelligence Fiscale",
+    subtitle: "Revenus Unifiés & Dépenses Opérationnelles",
+    visual: "Visuel",
+    detailed: "Détaillé"
+  },
+  smartInsights: {
+    title: "Aperçus Intelligents",
+    aiPowered: "Propulsé par l'IA",
+    analyzing: "L'analyste financier IA analyse les tendances...",
+    performance: "Performance",
+    risks: "Risques",
+    opportunities: "Opportunités",
+    trends: "Tendances",
+    actionableSteps: "Mesures Actionnables",
+    noExt: "Aucun",
+    detected: "Détecté"
+  },
+  actionCenter: {
+    smsLocked: "SMS Envoyé (Verrouillé pour",
+    sendingReminders: "Envoi des rappels...",
+    sendReminders: "Envoyer SMS de Rappel",
+    pending: "En attente",
+    noContact: "Sans Contact",
+    allSettled: "Tout Décaissé",
+    noPending: "Aucun paiement en attente pour ce mois.",
+    viewHistory: "Voir l'historique complet",
+    unpaidEmployees: "Employés Non Payés",
+    uncollectedFees: "Frais Non Perçus",
+    processSalaries: "Traiter les Salaires",
+    collectPayments: "Collecter les Paiements",
+    only: "Seulement"
   }
 };

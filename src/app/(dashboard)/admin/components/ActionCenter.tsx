@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wallet, Download, MessageSquare, Clock } from 'lucide-react';
 import { downloadCSV } from '@/lib/csvExport';
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface ActionItem {
   id: string;
@@ -20,6 +21,7 @@ interface ActionCenterProps {
 }
 
 const SendSmsButton = ({ listType }: { listType: string }) => {
+  const { t } = useLanguage();
   const [cooldown, setCooldown] = useState<number>(0);
   const [isSending, setIsSending] = useState(false);
   const storageKey = `sms_cooldown_${listType}`;
@@ -66,7 +68,7 @@ const SendSmsButton = ({ listType }: { listType: string }) => {
         className="w-full py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed"
       >
         <Clock size={14} />
-        SMS Sent (Locked for {formatCooldown(cooldown)})
+        {t.actionCenter.smsLocked} {formatCooldown(cooldown)})
       </button>
     );
   }
@@ -82,7 +84,7 @@ const SendSmsButton = ({ listType }: { listType: string }) => {
       ) : (
         <MessageSquare size={14} className="text-indigo-400 group-hover/sms:scale-110 transition-transform" />
       )}
-      {isSending ? 'Sending Reminders...' : 'Send Payment SMS Reminders'}
+      {isSending ? t.actionCenter.sendingReminders : t.actionCenter.sendReminders}
     </button>
   );
 };
@@ -104,6 +106,8 @@ const ActionList = ({
   showSmsAction?: boolean,
   monthLabel: string
 }) => {
+  const { t } = useLanguage();
+  
   const handleExport = () => {
     if (items.length === 0) return;
     const exportData = items.map(item => ({
@@ -120,7 +124,7 @@ const ActionList = ({
       <div className={`p-5 border-b border-slate-50 flex justify-between items-center ${color}`}>
         <div className="flex flex-col gap-0.5">
           <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">{title}</h3>
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70">{monthLabel} Only</span>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70">{monthLabel} {t.actionCenter.only}</span>
         </div>
         <div className="flex items-center gap-2">
             {items.length > 0 && (
@@ -133,7 +137,7 @@ const ActionList = ({
                 </button>
             )}
             <span className="text-[10px] font-black bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-500 shadow-sm border border-slate-100">
-                {items.length} Pending
+                {items.length} {t.actionCenter.pending}
             </span>
         </div>
       </div>
@@ -159,9 +163,11 @@ const ActionList = ({
                       </span>
                     </div>
                     <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-tight">
-                        {item.phone || <span className="text-rose-400 opacity-60">No Contact</span>}
+                        {item.phone || <span className="text-rose-400 opacity-60">{t.actionCenter.noContact}</span>}
                     </span>
                   </div>
+//... skipping middle to next replacement inside same chunk
+					// Actually, let's keep chunks small.
                 </div>
                 <div className="flex items-center gap-3">
                    <span className="text-sm font-black text-slate-800">${item.amount.toLocaleString()}</span>
@@ -181,8 +187,8 @@ const ActionList = ({
             <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-3">
               <CheckCircle2 size={24} />
             </div>
-            <p className="text-sm font-bold text-slate-800">All Settled</p>
-            <p className="text-[11px] text-slate-400 font-medium px-4">No pending payments for this month.</p>
+            <p className="text-sm font-bold text-slate-800">{t.actionCenter.allSettled}</p>
+            <p className="text-[11px] text-slate-400 font-medium px-4">{t.actionCenter.noPending}</p>
           </div>
         )}
       </div>
@@ -196,7 +202,7 @@ const ActionList = ({
         {showSmsAction && items.length > 0 && <SendSmsButton listType={title.toLowerCase().replace(' ', '_')} />}
         
         <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-indigo-500 cursor-pointer transition-colors uppercase tracking-widest">
-          <span>View full history</span>
+          <span>{t.actionCenter.viewHistory}</span>
           <ExternalLink size={10} />
         </Link>
       </div>
@@ -205,6 +211,7 @@ const ActionList = ({
 };
 
 const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: ActionCenterProps) => {
+  const { t } = useLanguage();
   // 1. Calculations
   const calculatedUnpaidEmployeesTotal = (unpaidEmployees || []).reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const calculatedUncollectedFeesTotal = (unpaidFees || []).reduce((acc, curr) => acc + (curr.amount || 0), 0);
@@ -219,7 +226,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
              <Wallet size={80} strokeWidth={1} />
           </div>
           <div className="relative z-10">
-            <p className="text-indigo-100/70 text-[9px] font-black uppercase tracking-wider mb-1">Unpaid Employees</p>
+            <p className="text-indigo-100/70 text-[9px] font-black uppercase tracking-wider mb-1">{t.actionCenter.unpaidEmployees}</p>
             <h2 className="text-2xl font-black tracking-tight">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
           </div>
           <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
@@ -232,7 +239,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
              <HandCoins size={80} strokeWidth={1} />
           </div>
           <div className="relative z-10">
-            <p className="text-amber-50/70 text-[9px] font-black uppercase tracking-wider mb-1">Uncollected Fees</p>
+            <p className="text-amber-50/70 text-[9px] font-black uppercase tracking-wider mb-1">{t.actionCenter.uncollectedFees}</p>
             <h2 className="text-2xl font-black tracking-tight">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
           </div>
           <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
@@ -243,18 +250,18 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
       <ActionList 
-        title="Unpaid Employees" 
+        title={t.actionCenter.unpaidEmployees} 
         items={unpaidEmployees} 
         color="bg-indigo-500/5 text-indigo-600" 
-        ctaLabel="Process Salaries & Payouts" 
+        ctaLabel={t.actionCenter.processSalaries} 
         ctaIcon={HandCoins}
         monthLabel={monthLabel}
       />
       <ActionList 
-        title="Uncollected Fees" 
+        title={t.actionCenter.uncollectedFees} 
         items={unpaidFees} 
         color="bg-amber-500/5 text-amber-600" 
-        ctaLabel="Collect Student Payments" 
+        ctaLabel={t.actionCenter.collectPayments} 
         ctaIcon={Calendar}
         showSmsAction={true}
         monthLabel={monthLabel}

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/translations/LanguageContext';
 import FiscalBarChart from './FiscalBarChart';
 import FinancialBreakdown from './FinancialBreakdown';
 
@@ -25,14 +26,15 @@ const FiscalDistribution: React.FC<FiscalDistributionProps> = ({
   timeFilter
 }) => {
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
+  const { t } = useLanguage();
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden h-[480px]">
       {/* Header with Integrated Toggle */}
       <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Fiscal Intelligence</h2>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Unified Income & Operational Expenses</p>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">{t.fiscalDistribution.title}</h2>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{t.fiscalDistribution.subtitle}</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -46,7 +48,7 @@ const FiscalDistribution: React.FC<FiscalDistributionProps> = ({
                 : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              Visual
+              {t.fiscalDistribution.visual}
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -56,7 +58,7 @@ const FiscalDistribution: React.FC<FiscalDistributionProps> = ({
                 : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              Detailed
+              {t.fiscalDistribution.detailed}
             </button>
           </div>
         </div>

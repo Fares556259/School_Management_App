@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 import {
   Area,
   CartesianGrid,
@@ -29,6 +30,7 @@ const SummaryItem = ({ label, value, color }: { label: string, value: number, co
 
 const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
   const [view, setView] = useState<"all" | "income" | "expense" | "profit">("all");
+  const { t } = useLanguage();
 
   const lastIndex = data.length - 1;
   const lastIncome = data[lastIndex].income;
@@ -64,15 +66,15 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
     predictiveProfit: index === lastIndex ? (d.income - d.expense) : null,
   }));
 
-  // Month handling
-  const months = [
+  // Month handling (Data from backend uses English)
+  const englishMonths = [
     "January","February","March","April","May","June",
     "July","August","September","October","November","December"
   ];
 
-  let lastMonthIndex = months.indexOf(data[lastIndex].month);
+  let lastMonthIndex = englishMonths.indexOf(data[lastIndex].month);
   if (lastMonthIndex === -1) {
-    lastMonthIndex = months.findIndex(m =>
+    lastMonthIndex = englishMonths.findIndex(m =>
       m.startsWith(data[lastIndex].month) ||
       data[lastIndex].month.startsWith(m)
     );
@@ -81,7 +83,7 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
   // 🔮 Forecast next 3 months
   for (let i = 1; i <= 3; i++) {
     const nextMonthIndex = (lastMonthIndex + i) % 12;
-    const newMonth = months[nextMonthIndex];
+    const newMonth = englishMonths[nextMonthIndex];
 
     const income = Math.max(0, lastIncome + incomeGrowth * i);
     const expense = Math.max(0, lastExpense + expenseGrowth * i);
@@ -104,13 +106,16 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
   // 📊 Insight
   const trend =
     incomeGrowth > expenseGrowth
-      ? "Healthy growth 📈"
-      : "Expenses growing faster ⚠️";
+      ? `${t.analyticsChart.healthyGrowth} 📈`
+      : `${t.analyticsChart.expensesGrowing} ⚠️`;
 
   // 🎯 Break-even
   const breakEvenPoint = forecastData.find((d) => d.profit >= 0);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
+    const mIdx = englishMonths.indexOf(label);
+    const localizedMonth = mIdx !== -1 ? t.months[mIdx] : label;
+
     if (active && payload && payload.length) {
       const isPredictive = payload[0].payload.isPredictive;
       const income = payload.find((p: any) => p.dataKey === "historicalIncome" || p.dataKey === "predictiveIncome")?.value || 0;
@@ -120,16 +125,16 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
       return (
         <div className="bg-white/95 p-4 rounded-2xl shadow-2xl border border-slate-100 backdrop-blur-xl">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between gap-4">
-            <span>{label}</span>
+            <span>{localizedMonth}</span>
             {isPredictive && (
-                <span className="bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-lg text-[8px] border border-indigo-100 font-black">AI PROJECTION</span>
+                <span className="bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-lg text-[8px] border border-indigo-100 font-black">{t.analyticsChart.aiProjection}</span>
             )}
           </p>
           <div className="flex flex-col gap-2">
             {[
-              { label: "Revenue", value: income, color: "#10B981" },
-              { label: "Expense", value: expense, color: "#F43F5E" },
-              { label: "Net Profit", value: profit, color: "#6366F1", isBold: true }
+              { label: t.analyticsChart.revenue, value: income, color: "#10B981" },
+              { label: t.analyticsChart.expenses, value: expense, color: "#F43F5E" },
+              { label: t.analyticsChart.netProfit, value: profit, color: "#6366F1", isBold: true }
             ].map((entry, idx) => (
               <div key={idx} className={`flex items-center justify-between gap-8 ${entry.isBold ? 'mt-2 pt-2 border-t border-slate-100' : ''}`}>
                 <div className="flex items-center gap-2">
@@ -153,9 +158,9 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
       {/* 🔝 Summary & Insights */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex gap-8">
-          <SummaryItem label="Revenue" value={lastIncome} color="text-emerald-500" />
-          <SummaryItem label="Expenses" value={lastExpense} color="text-rose-500" />
-          <SummaryItem label="Net Profit" value={lastIncome - lastExpense} color="text-indigo-600" />
+          <SummaryItem label={t.analyticsChart.revenue} value={lastIncome} color="text-emerald-500" />
+          <SummaryItem label={t.analyticsChart.expenses} value={lastExpense} color="text-rose-500" />
+          <SummaryItem label={t.analyticsChart.netProfit} value={lastIncome - lastExpense} color="text-indigo-600" />
         </div>
         
         <div className="flex flex-col items-end gap-3">
@@ -167,7 +172,14 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
            </div>
            
            <div className="bg-slate-100/50 p-1 rounded-xl flex gap-1 border border-slate-100">
-              {["all", "income", "expense", "profit"].map((v) => (
+              {["all", "income", "expense", "profit"].map((v) => {
+                const labelMap: Record<string, string> = {
+                  "all": t.analyticsChart.filterAll,
+                  "income": t.analyticsChart.filterIncome,
+                  "expense": t.analyticsChart.filterExpense,
+                  "profit": t.analyticsChart.filterProfit
+                };
+                return (
                 <button
                   key={v}
                   onClick={() => setView(v as any)}
@@ -177,9 +189,9 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
                       : "text-slate-400 hover:text-slate-600"
                   }`}
                 >
-                  {v}
+                  {labelMap[v]}
                 </button>
-              ))}
+              )})}
            </div>
         </div>
       </div>
@@ -209,6 +221,10 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
               axisLine={false} 
               tickLine={false} 
               tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
+              tickFormatter={(v) => {
+                const idx = englishMonths.indexOf(v);
+                return idx !== -1 ? t.months[idx] : v;
+              }}
               dy={10}
             />
             <YAxis 
