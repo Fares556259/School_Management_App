@@ -3,6 +3,30 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+
+const labelToKey: Record<string, any> = {
+  "Home": "home",
+  "Expenses": "expenses",
+  "Incomes": "incomes",
+  "Audit Log": "auditLog",
+  "Results": "results",
+  "Grades": "grades",
+  "Timetable": "timetable",
+  "Teachers": "teachers",
+  "Staff": "staff",
+  "Students": "students",
+  "Parents": "parents",
+  "Subjects": "subjects",
+  "Classes": "classes",
+  "Lessons": "lessons",
+  "Exams": "exams",
+  "Assignments": "assignments",
+  "Daily Reports": "dailyReports",
+  "Profile": "profile",
+  "Settings": "settings",
+  "Logout": "logout"
+};
 
 interface MenuItem {
   icon: string;
@@ -151,13 +175,14 @@ const menuItems: MenuSection[] = [
 
 const Menu = ({ role }: { role: string }) => {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
     <div className="mt-6 text-sm px-4">
       {menuItems.map((section) => (
         <div className="flex flex-col gap-2 mb-6" key={section.title}>
           <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
-            {section.title}
+            {section.title === "MENU" ? t.menu.home : t.menu.other}
           </span>
           {section.items.map((item) => {
             if (item.visible.includes(role)) {
@@ -191,7 +216,7 @@ const Menu = ({ role }: { role: string }) => {
                     } group-hover:scale-110`}
                   />
                   <span className={`hidden lg:block font-bold tracking-tight ${isActive ? "translate-x-1" : ""} transition-transform duration-300`}>
-                    {item.label}
+                    {(t.menu as any)[labelToKey[item.label]] || item.label}
                   </span>
                 </Link>
               );
