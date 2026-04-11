@@ -38,5 +38,15 @@ export const fr = {
     activeRecipients: "Destinataires actifs",
     noSubscribers: "Aucun destinataire ajouté.",
     noSubscribersDesc: "Le rapport ne sera envoyé à personne tant que des e-mails n'auront pas été ajoutés."
+  },
+  adminDashboard: {
+    commandCenter: "Centre de Commandement",
+    commandCenterDesc: "Supervision financière et opérationnelle en temps réel",
+    growthAnalytics: "Analytiques de Croissance",
+    growthAnalyticsDesc: "Performance sur 12 mois + Projection IA",
+    revenue: "Revenus",
+    expense: "Dépenses",
+    criticalActions: "Actions Critiques",
+    criticalActionsDesc: "Registre des impayés - nécessite une attention immédiate"
   }
 };

@@ -22,7 +22,8 @@ import MonthYearFilter from "./components/MonthYearFilter";
 import FiscalDistribution from "./components/FiscalDistribution";
 import SnapAssistant from "./components/SnapAssistant";
 import PrintReportAction from "./components/PrintReportAction";
-// import { checkModels } from "./actions/aiActions";
+import { cookies } from "next/headers";
+import { translations, Locale } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,10 @@ const AdminPage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
+  const cookieStore = cookies();
+  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
+  const t = translations[locale];
+
   const { 
     timeFilter = "thisMonth", 
     month: queryMonth, 
@@ -492,8 +497,8 @@ const AdminPage = async ({
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tighter">Command Center</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1">Real-time school financial & operational oversight</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tighter">{t.adminDashboard.commandCenter}</h1>
+          <p className="text-slate-400 text-sm font-medium mt-1">{t.adminDashboard.commandCenterDesc}</p>
         </div>
         <div className="flex items-center gap-4">
            <PrintReportAction month={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`} />
@@ -528,17 +533,17 @@ const AdminPage = async ({
         <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm h-[480px] flex flex-col overflow-hidden">
            <div className="flex items-center justify-between mb-8 flex-shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Growth Analytics</h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">12-Month Performance + AI Projection</p>
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">{t.adminDashboard.growthAnalytics}</h2>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{t.adminDashboard.growthAnalyticsDesc}</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.adminDashboard.revenue}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expense</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.adminDashboard.expense}</span>
                 </div>
               </div>
            </div>
@@ -575,8 +580,8 @@ const AdminPage = async ({
         <div className="flex items-center gap-3 mb-6">
           <span className="text-lg">🚨</span>
           <div>
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Critical Actions</h2>
-            <p className="text-sm text-slate-400 font-medium">Unpaid ledger — requires immediate attention</p>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">{t.adminDashboard.criticalActions}</h2>
+            <p className="text-sm text-slate-400 font-medium">{t.adminDashboard.criticalActionsDesc}</p>
           </div>
         </div>
         <ActionCenter 

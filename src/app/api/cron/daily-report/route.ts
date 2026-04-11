@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { aggregateDailyData } from "@/lib/reports/aggregator";
 import { generateSmartInsights } from "@/lib/reports/generator";
 import { DailyReportEmail } from "@/components/emails/DailyReportEmail";
+import { cookies } from "next/headers";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -14,11 +15,14 @@ export async function GET(request: Request) {
   // }
 
   try {
+    const cookieStore = cookies();
+    const locale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+
     // 1. Aggregate Data
     const data = await aggregateDailyData();
 
     // 2. Generate Smart Insights using Gemini
-    const insights = await generateSmartInsights(data);
+    const insights = await generateSmartInsights(data, locale);
 
     // 3. Render Email Template
     const dateString = new Date().toLocaleDateString("en-US", {

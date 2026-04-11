@@ -38,5 +38,15 @@ export const en = {
     activeRecipients: "Active Recipients",
     noSubscribers: "No stakeholders added yet.",
     noSubscribersDesc: "The report will not be sent to anyone until emails are added."
+  },
+  adminDashboard: {
+    commandCenter: "Command Center",
+    commandCenterDesc: "Real-time school financial & operational oversight",
+    growthAnalytics: "Growth Analytics",
+    growthAnalyticsDesc: "12-Month Performance + AI Projection",
+    revenue: "Revenue",
+    expense: "Expense",
+    criticalActions: "Critical Actions",
+    criticalActionsDesc: "Unpaid ledger — requires immediate attention",
   }
 };
