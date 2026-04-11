@@ -67,5 +67,54 @@ export const ar = {
     printReport: "طباعة المراجعة المالية",
     addIncome: "إضافة مدخول",
     addExpense: "إضافة مصروف"
+  },
+  analyticsChart: {
+    revenue: "الإيرادات",
+    expenses: "المصاريف",
+    netProfit: "صافي الربح",
+    healthyGrowth: "نمو صحي",
+    expensesGrowing: "المصاريف تنمو بشكل أسرع",
+    filterAll: "الكل",
+    filterIncome: "مداخيل",
+    filterExpense: "مصاريف",
+    filterProfit: "أرباح",
+    aiProjection: "توقعات الذكاء الاصطناعي"
+  },
+  months: [
+    "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", 
+    "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  ],
+  fiscalDistribution: {
+    title: "الذكاء المالي",
+    subtitle: "المداخيل الموحدة والمصاريف التشغيلية",
+    visual: "مرئي",
+    detailed: "مفصل"
+  },
+  smartInsights: {
+    title: "رؤى ذكية",
+    aiPowered: "مدعوم بالذكاء الاصطناعي",
+    analyzing: "يحلل المحلل المالي الذكي الاتجاهات...",
+    performance: "أداء",
+    risks: "مخاطر",
+    opportunities: "فرص",
+    trends: "اتجاهات",
+    actionableSteps: "خطوات قابلة للتنفيذ",
+    noExt: "لا يوجد",
+    detected: "مكتشف"
+  },
+  actionCenter: {
+    smsLocked: "تم إرسال رسائل قصيرة (مقفل لمدة",
+    sendingReminders: "جاري إرسال التذكيرات...",
+    sendReminders: "إرسال تذكيرات الدفع عبر SMS",
+    pending: "قيد الانتظار",
+    noContact: "لا يوجد اتصال",
+    allSettled: "تمت التسوية",
+    noPending: "لا توجد مدفوعات معلقة لهذا الشهر.",
+    viewHistory: "عرض السجل الكامل",
+    unpaidEmployees: "الموظفون غير المدفوع لهم",
+    uncollectedFees: "الرسوم غير المحصلة",
+    processSalaries: "معالجة الرواتب والمدفوعات",
+    collectPayments: "تحصيل مدفوعات الطلاب",
+    only: "فقط"
   }
 };

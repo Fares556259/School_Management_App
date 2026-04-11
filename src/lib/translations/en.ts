@@ -67,5 +67,54 @@ export const en = {
     printReport: "Print Full Fiscal Review",
     addIncome: "Add Income",
     addExpense: "Add Expense"
+  },
+  analyticsChart: {
+    revenue: "Revenue",
+    expenses: "Expenses",
+    netProfit: "Net Profit",
+    healthyGrowth: "Healthy growth",
+    expensesGrowing: "Expenses growing faster",
+    filterAll: "ALL",
+    filterIncome: "INCOME",
+    filterExpense: "EXPENSE",
+    filterProfit: "PROFIT",
+    aiProjection: "AI PROJECTION"
+  },
+  months: [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ],
+  fiscalDistribution: {
+    title: "Fiscal Intelligence",
+    subtitle: "Unified Income & Operational Expenses",
+    visual: "Visual",
+    detailed: "Detailed"
+  },
+  smartInsights: {
+    title: "Smart Insights",
+    aiPowered: "AI Powered",
+    analyzing: "AI Financial Analyst is analyzing trends...",
+    performance: "Performance",
+    risks: "Risks",
+    opportunities: "Opportunities",
+    trends: "Trends",
+    actionableSteps: "Actionable Steps",
+    noExt: "No",
+    detected: "Detected"
+  },
+  actionCenter: {
+    smsLocked: "SMS Sent (Locked for",
+    sendingReminders: "Sending Reminders...",
+    sendReminders: "Send Payment SMS Reminders",
+    pending: "Pending",
+    noContact: "No Contact",
+    allSettled: "All Settled",
+    noPending: "No pending payments for this month.",
+    viewHistory: "View full history",
+    unpaidEmployees: "Unpaid Employees",
+    uncollectedFees: "Uncollected Fees",
+    processSalaries: "Process Salaries & Payouts",
+    collectPayments: "Collect Student Payments",
+    only: "Only"
   }
 };

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/translations/LanguageContext';
 import { getFinancialInsights } from '../actions/aiActions';
 
 interface Insight {
@@ -30,6 +31,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   dailyData,
   className
 }) => {
+  const { t } = useLanguage();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -92,11 +94,11 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
     <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 ${className || ''}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-            <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
-            Smart Insights
+          <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
+            {t.smartInsights.title}
             </h2>
             <div className="px-2 py-0.5 bg-indigo-50 rounded-md">
-                <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">AI Powered</span>
+                <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">{t.smartInsights.aiPowered}</span>
             </div>
         </div>
         <span className={`flex h-2 w-2 rounded-full ${isLoading ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`} />
@@ -117,7 +119,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               ))}
               <div className="col-span-full">
                   <p className="text-[10px] text-center font-bold text-slate-400 mt-4 uppercase italic animate-bounce">
-                    AI Financial Analyst is analyzing trends...
+                    {t.smartInsights.analyzing}
                   </p>
               </div>
             </motion.div>
@@ -129,11 +131,11 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start w-full"
             >
               {[
-                { type: 'performance', label: 'Performance', icon: '🟢', color: 'emerald' },
-                { type: 'risk', label: 'Risks', icon: '🔴', color: 'rose' },
-                { type: 'opportunity', label: 'Opportunities', icon: '🟡', color: 'amber' },
-                { type: 'trend', label: 'Trends', icon: '🔵', color: 'indigo' },
-                { type: 'action', label: 'Actionable Steps', icon: '⚡', color: 'orange' }
+                { type: 'performance', label: t.smartInsights.performance, icon: '🟢', color: 'emerald' },
+                { type: 'risk', label: t.smartInsights.risks, icon: '🔴', color: 'rose' },
+                { type: 'opportunity', label: t.smartInsights.opportunities, icon: '🟡', color: 'amber' },
+                { type: 'trend', label: t.smartInsights.trends, icon: '🔵', color: 'indigo' },
+                { type: 'action', label: t.smartInsights.actionableSteps, icon: '⚡', color: 'orange' }
               ].map((category) => {
                 const categoryInsights = insights.filter(i => i.type === category.type);
                 
@@ -188,7 +190,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
                       ))
                     ) : (
                        <div className="p-4 rounded-[20px] border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center h-24">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50">No {category.label} Detected</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50">{t.smartInsights.noExt} {category.label} {t.smartInsights.detected}</span>
                        </div>
                     )}
                   </div>
