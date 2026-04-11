@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { getChatResponse } from '../actions/aiActions';
 import { executeAICommand } from '../actions/crudActions';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,10 +21,11 @@ interface SnapAssistantProps {
 
 const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
   const router = useRouter();
+  const { locale, t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Hi! I'm **zbiba**. I now have **AI-Vision**: you can upload receipts or tuition slips and I will automatically process them for you. How can I help today?" }
+    { role: 'assistant', content: t.zbiba.welcome }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -98,14 +100,14 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
 
     let imageUrl = undefined;
     try {
-      const result = await getChatResponse(userMessage, context, imageBase64);
+      const result = await getChatResponse(userMessage, context, imageBase64, locale);
 
       if (result.response) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
         
         // HANDLE AI COMMANDS
         if (result.command) {
-          setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *Processing Action: ${result.command.type}...*` }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *${t.zbiba.processing}: ${result.command.type}...*` }]);
           
           // IF an image is present, UPLOAD IT NOW (when AI decides to act)
           if (currentImage) {
@@ -130,10 +132,10 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
 
           const cmdResult = await executeAICommand(result.command);
           if (cmdResult.success) {
-            setMessages(prev => [...prev, { role: 'assistant', content: `✅ **Success**: ${cmdResult.message}` }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: `✅ **${t.zbiba.success}**: ${cmdResult.message}` }]);
             router.refresh();
           } else {
-            setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: ${cmdResult.error}` }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: `❌ **${t.zbiba.error}**: ${cmdResult.error}` }]);
           }
         }
       } else {
@@ -262,7 +264,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={selectedImage ? "Describe this image..." : "Ask zbiba..."}
+                  placeholder={selectedImage ? t.zbiba.describeImage : t.zbiba.askZbiba}
                   className="w-full p-4 pr-12 bg-slate-50 border-2 border-transparent focus:border-indigo-500/20 rounded-[22px] text-sm focus:ring-4 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-medium"
                 />
                 <button
@@ -275,7 +277,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
               </div>
             </div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-3 text-center">
-                Powered by Gemini 1.5 Flash • Context Aware
+                {t.zbiba.poweredBy}
               </p>
             </div>
           </motion.div>
@@ -320,7 +322,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
         {/* Sleek Tooltip */}
         {!isOpen && (
           <div className="absolute right-full mr-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap uppercase tracking-widest shadow-xl">
-            Ask zbiba
+            {t.zbiba.askZbiba}
             <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45" />
           </div>
         )}

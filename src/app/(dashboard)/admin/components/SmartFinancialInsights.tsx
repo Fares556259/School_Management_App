@@ -31,7 +31,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   dailyData,
   className
 }) => {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +46,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         prevIncome,
         month,
         dailyData
-      });
+      }, locale);
 
       if (Array.isArray(result)) {
         setInsights(result);
