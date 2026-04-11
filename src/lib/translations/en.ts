@@ -116,5 +116,14 @@ export const en = {
     processSalaries: "Process Salaries & Payouts",
     collectPayments: "Collect Student Payments",
     only: "Only"
+  },
+  zbiba: {
+    welcome: "Hi! I'm **zbiba**. I now have **AI-Vision**: you can upload receipts or tuition slips and I will automatically process them for you. How can I help today?",
+    processing: "Processing Action",
+    success: "Success",
+    error: "Error",
+    describeImage: "Describe this image...",
+    askZbiba: "Ask zbiba...",
+    poweredBy: "Powered by Gemini 1.5 Flash • Context Aware"
   }
 };

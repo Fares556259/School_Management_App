@@ -126,14 +126,17 @@ export async function getFinancialInsights(data: {
     prevIncome: number;
     month: string;
     dailyData?: { date: string, income: number, expense: number }[];
-}) {
+}, locale: string = "en") {
     if (!apiKey) {
         return { error: "Missing API Key", fallback: true };
     }
 
     try {
+        const langIns = locale === 'ar' ? 'Generate the insights exclusively in Arabic.' : locale === 'fr' ? 'Generate the insights exclusively in French.' : 'Generate the insights exclusively in English.';
+
         const prompt = `
             You are an advanced financial analyst AI embedded inside a dashboard.
+            ${langIns}
 
             Your role is to analyze financial data and generate high-quality "Smart Insights" that are:
             * Specific
@@ -238,14 +241,17 @@ export async function getFinancialInsights(data: {
     }
 }
 
-export async function getChatResponse(message: string, context: any, base64Image?: string) {
+export async function getChatResponse(message: string, context: any, base64Image?: string, locale: string = "en") {
     if (!apiKey) {
         return { error: "Missing API Key" };
     }
 
     try {
+        const langIns = locale === 'ar' ? 'Always respond exclusively in Arabic.' : locale === 'fr' ? 'Always respond exclusively in French.' : 'Always respond exclusively in English.';
+
         const prompt = `
             You are "zbiba", a highly sophisticated Senior Business Consultant and AI-Vision Financial Analyst for SnapSchool.
+            ${langIns}
 
             YOUR CORE PHILOSOPHY:
             - You help School Directors manage operations and financials directly from this chat.

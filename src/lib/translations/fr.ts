@@ -116,5 +116,14 @@ export const fr = {
     processSalaries: "Traiter les Salaires",
     collectPayments: "Collecter les Paiements",
     only: "Seulement"
+  },
+  zbiba: {
+    welcome: "Salut! Je suis **zbiba**. J'ai maintenant **AI-Vision**: vous pouvez télécharger des reçus ou des bordereaux de scolarité et je les traiterai automatiquement pour vous. Comment puis-je vous aider aujourd'hui?",
+    processing: "Traitement de l'Action",
+    success: "Succès",
+    error: "Erreur",
+    describeImage: "Décrivez cette image...",
+    askZbiba: "Demander à zbiba...",
+    poweredBy: "Propulsé par Gemini 1.5 Flash • Sensible au Contexte"
   }
 };
