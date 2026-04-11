@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Locale, TranslationType, translations } from "./index";
 
 interface LanguageContextType {
@@ -15,6 +16,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [locale, setLocaleState] = useState<Locale>("en");
+  const router = useRouter();
 
   useEffect(() => {
     const savedLocale = document.cookie
@@ -46,8 +48,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       document.documentElement.lang = newLocale;
     }
     
-    // Optional: refresh if needed for server components to sync, 
-    // but React context handles client components immediately.
+    // Refresh for server components to sync
+    router.refresh();
   };
 
   useEffect(() => {
