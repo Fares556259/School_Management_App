@@ -6,6 +6,8 @@ import NextTopLoader from "nextjs-toploader";
 import NavigationLoader from "@/components/NavigationLoader";
 import { Suspense } from "react";
 
+import { LanguageProvider } from "@/lib/translations/LanguageContext";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -22,11 +24,13 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <NextTopLoader color="#4f46e5" showSpinner={true} />
-          <Suspense fallback={null}>
-            <NavigationLoader />
-          </Suspense>
-          {children}
+          <LanguageProvider>
+            <NextTopLoader color="#4f46e5" showSpinner={true} />
+            <Suspense fallback={null}>
+              <NavigationLoader />
+            </Suspense>
+            {children}
+          </LanguageProvider>
         </body>
       </html>
     </ClerkProvider>

@@ -1,48 +1,32 @@
-import { UserButton } from "@clerk/nextjs";
-import { auth, currentUser } from "@clerk/nextjs/server";
+"use client";
+
+import { UserButton, useUser } from "@clerk/nextjs";
 import Image from "next/image"
 import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { useEffect, useState } from "react";
 
-const Navbar = async () => {
-  const { userId, sessionClaims } = auth();
-  
-  // 1. EXTRACTION: Try fast claims first
-  let role = (sessionClaims as any)?.metadata?.role as string | undefined;
-  let fullName = (sessionClaims as any)?.fullName as string | undefined;
+const Navbar = () => {
+  const { user } = useUser();
+  const { t } = useLanguage();
+  const [adminData, setAdminData] = useState<any>(null);
 
-  // 2. FALLBACK: Fetch only if data is missing from session
-  if (!fullName || !role) {
-    try {
-      const user = await currentUser();
-      if (user) {
-        fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-        role = role || (user.publicMetadata?.role as string | undefined);
-      }
-    } catch (err) {
-      console.error("Clerk Navbar Fallback Error:", err);
-    }
-  }
+  const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
+  const role = (user?.publicMetadata?.role as string) || "User";
 
-  // Final defaults
-  fullName = fullName || "User";
-  
-  let adminData = null;
-  
-  try {
+  useEffect(() => {
     if (role === "admin") {
-      const resp = await getAdminProfile();
-      adminData = resp?.data;
+      getAdminProfile().then(resp => setAdminData(resp?.data)).catch(console.error);
     }
-  } catch (err) {
-    console.error("Error fetching admin data in Navbar:", err);
-  }
+  }, [role]);
 
   return (
     <div className='flex items-center justify-between p-6 bg-white/50 backdrop-blur-sm sticky top-0 z-50'>
       {/* SEARCH BAR */}
       <div className='hidden md:flex items-center gap-3 text-xs rounded-2xl bg-slate-100/80 border border-slate-200 px-4 py-2 hover:bg-white hover:border-indigo-200 hover:shadow-sm transition-all group'>
         <Image src="/search.png" alt="" width={16} height={16} className="opacity-40 group-hover:opacity-100 transition-opacity"/>
-        <input type="text" placeholder="Search for anything..." className="w-[240px] bg-transparent outline-none text-slate-600 placeholder:text-slate-400 font-medium"/>
+        <input type="text" placeholder={t.navbar.search} className="w-[240px] bg-transparent outline-none text-slate-600 placeholder:text-slate-400 font-medium"/>
       </div>
       {/* ICONS AND USER */}
       <div className='flex items-center gap-5 justify-end w-full'>
@@ -53,6 +37,10 @@ const Navbar = async () => {
           <Image src="/announcement.png" alt="" width={20} height={20} className="group-hover:scale-110 transition-transform"/>
           <div className='absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center bg-indigo-500 text-white rounded-full text-[10px] font-bold border-2 border-white shadow-sm'>1</div>
         </div>
+        
+        {/* LANGUAGE SWITCHER */}
+        <LanguageSwitcher />
+
         <div className='h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block'></div>
         <div className='flex items-center gap-3 pl-2'>
           <div className='flex flex-col text-right hidden sm:flex leading-tight'>
