@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface KpiCardProps {
   title: string;
@@ -108,34 +109,36 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
   prevBalance,
   isCustomRange = false
 }) => {
+  const { t } = useLanguage();
+  
   const currentMargin = currentIncome === 0 ? 0 : (currentBalance / currentIncome) * 100;
   const prevMargin = prevIncome === 0 ? 0 : (prevBalance / prevIncome) * 100;
 
-  const compareLabel = isCustomRange ? "vs prev. month" : "vs last period";
+  const compareLabel = isCustomRange ? t.adminWidgets.vsPrevMonth : t.adminWidgets.vsLastPeriod;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <KpiCard 
-        title="Net Balance" 
+        title={t.adminWidgets.netBalance}
         value={currentBalance} 
         prevValue={prevBalance} 
         compareLabel={compareLabel}
       />
       <KpiCard 
-        title="Total Revenue" 
+        title={t.adminWidgets.totalRevenue}
         value={currentIncome} 
         prevValue={prevIncome} 
         compareLabel={compareLabel}
       />
       <KpiCard 
-        title="Total Expenses" 
+        title={t.adminWidgets.totalExpenses}
         value={currentExpense} 
         prevValue={prevExpense} 
         inverseColors 
         compareLabel={compareLabel}
       />
       <KpiCard 
-        title="Profit Margin" 
+        title={t.adminWidgets.profitMargin}
         value={currentMargin} 
         prevValue={prevMargin} 
         isCurrency={false} 

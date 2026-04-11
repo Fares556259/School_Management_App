@@ -48,5 +48,24 @@ export const en = {
     expense: "Expense",
     criticalActions: "Critical Actions",
     criticalActionsDesc: "Unpaid ledger — requires immediate attention",
+  },
+  adminWidgets: {
+    netBalance: "Net Balance",
+    totalRevenue: "Total Revenue",
+    totalExpenses: "Total Expenses",
+    profitMargin: "Profit Margin",
+    vsLastPeriod: "vs last period",
+    vsPrevMonth: "vs prev. month",
+    operationalSnapshot: "Operational Snapshot",
+    studentsEnrolled: "Students Enrolled",
+    activeTeachers: "Active Teachers",
+    supportStaff: "Support Staff",
+    activeClasses: "Active Classes",
+    selectPeriod: "Select Period",
+    pickMonthYear: "Pick Month & Year",
+    reset: "Reset",
+    printReport: "Print Full Fiscal Review",
+    addIncome: "Add Income",
+    addExpense: "Add Expense"
   }
 };

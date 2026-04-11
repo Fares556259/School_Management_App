@@ -48,5 +48,24 @@ export const fr = {
     expense: "Dépenses",
     criticalActions: "Actions Critiques",
     criticalActionsDesc: "Registre des impayés - nécessite une attention immédiate"
+  },
+  adminWidgets: {
+    netBalance: "Solde Net",
+    totalRevenue: "Revenu Total",
+    totalExpenses: "Dépenses Totales",
+    profitMargin: "Marge Bénéficiaire",
+    vsLastPeriod: "vs période préc.",
+    vsPrevMonth: "vs mois préc.",
+    operationalSnapshot: "Aperçu Opérationnel",
+    studentsEnrolled: "Étudiants Inscrits",
+    activeTeachers: "Enseignants Actifs",
+    supportStaff: "Personnel de Soutien",
+    activeClasses: "Classes Actives",
+    selectPeriod: "Sélectionner la période",
+    pickMonthYear: "Choisir Mois & Année",
+    reset: "Réinitialiser",
+    printReport: "Imprimer Bilan Fiscal",
+    addIncome: "Ajouter Revenu",
+    addExpense: "Ajouter Dépense"
   }
 };

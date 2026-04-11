@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, Calendar, X } from 'lucide-react';
 import { MONTHS } from "@/lib/dateUtils";
+import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface MonthYearFilterProps {
   activeMonth?: string;
@@ -14,6 +15,7 @@ const MonthYearFilter: React.FC<MonthYearFilterProps> = ({ activeMonth, activeYe
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useLanguage();
 
   const currentMonth = activeMonth ? parseInt(activeMonth) : new Date().getMonth();
   const currentYear = activeYear ? parseInt(activeYear) : new Date().getFullYear();
@@ -48,7 +50,7 @@ const MonthYearFilter: React.FC<MonthYearFilterProps> = ({ activeMonth, activeYe
       >
         <Calendar size={16} className={isFiltered ? 'text-indigo-500' : 'text-slate-400'} />
         <span className="text-sm font-black text-slate-700 italic tracking-tight">
-          {isFiltered ? `${MONTHS[currentMonth]} ${currentYear}` : "Select Period"}
+          {isFiltered ? `${MONTHS[currentMonth]} ${currentYear}` : t.adminWidgets.selectPeriod}
         </span>
         <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -56,13 +58,13 @@ const MonthYearFilter: React.FC<MonthYearFilterProps> = ({ activeMonth, activeYe
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-4 z-50 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-50">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pick Month & Year</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.adminWidgets.pickMonthYear}</span>
             {isFiltered && (
               <button 
                 onClick={clearFilter}
                 className="text-[10px] font-black text-rose-500 uppercase flex items-center gap-1 hover:bg-rose-50 px-2 py-1 rounded-md"
               >
-                <X size={10} /> Reset
+                <X size={10} /> {t.adminWidgets.reset}
               </button>
             )}
           </div>
