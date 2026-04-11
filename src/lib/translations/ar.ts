@@ -48,5 +48,24 @@ export const ar = {
     expense: "مصاريف",
     criticalActions: "إجراءات حاسمة",
     criticalActionsDesc: "السجل غير المدفوع - يتطلب اهتمامًا فوريًا"
+  },
+  adminWidgets: {
+    netBalance: "الرصيد الصافي",
+    totalRevenue: "إجمالي المداخيل",
+    totalExpenses: "إجمالي المصاريف",
+    profitMargin: "هامش الربح",
+    vsLastPeriod: "مقارنة بالفترة الماضية",
+    vsPrevMonth: "مقارنة بالشهر الماضي",
+    operationalSnapshot: "لمحة تشغيلية",
+    studentsEnrolled: "الطلاب المسجلين",
+    activeTeachers: "الأساتذة النشطين",
+    supportStaff: "طاقم الدعم",
+    activeClasses: "الأقسام النشطة",
+    selectPeriod: "اختر الفترة",
+    pickMonthYear: "اختر الشهر والسنة",
+    reset: "إعادة تعيين",
+    printReport: "طباعة المراجعة المالية",
+    addIncome: "إضافة مدخول",
+    addExpense: "إضافة مصروف"
   }
 };

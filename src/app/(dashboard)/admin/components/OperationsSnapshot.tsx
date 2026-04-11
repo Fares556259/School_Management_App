@@ -3,6 +3,7 @@
 import { GraduationCap, Users, UserRound, LayoutDashboard, ArrowRight, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface OperationsSnapshotProps {
   students: number;
@@ -40,13 +41,14 @@ const StatItem = ({ label, value, icon: Icon, theme }: { label: string, value: n
 
 const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSnapshotProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className="w-full flex flex-col mt-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-slate-400">
             <Activity size={12} />
-            <h2 className="text-[10px] font-black uppercase tracking-widest">Operational Snapshot</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-widest">{t.adminWidgets.operationalSnapshot}</h2>
         </div>
         <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -66,25 +68,25 @@ const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSn
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
       <StatItem 
-        label="Students Enrolled" 
+        label={t.adminWidgets.studentsEnrolled}
         value={students} 
         icon={GraduationCap} 
         theme={{ bg: "bg-indigo-50", text: "text-indigo-600", bar: "bg-indigo-500" }} 
       />
       <StatItem 
-        label="Active Teachers" 
+        label={t.adminWidgets.activeTeachers}
         value={teachers} 
         icon={Users} 
         theme={{ bg: "bg-emerald-50", text: "text-emerald-600", bar: "bg-emerald-500" }} 
       />
       <StatItem 
-        label="Support Staff" 
+        label={t.adminWidgets.supportStaff}
         value={staff} 
         icon={UserRound} 
         theme={{ bg: "bg-amber-50", text: "text-amber-600", bar: "bg-amber-500" }} 
       />
       <StatItem 
-        label="Active Classes" 
+        label={t.adminWidgets.activeClasses}
         value={classes} 
         icon={LayoutDashboard} 
         theme={{ bg: "bg-rose-50", text: "text-rose-600", bar: "bg-rose-500" }} 
