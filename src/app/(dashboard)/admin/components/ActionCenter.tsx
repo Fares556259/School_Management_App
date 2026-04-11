@@ -166,8 +166,6 @@ const ActionList = ({
                         {item.phone || <span className="text-rose-400 opacity-60">{t.actionCenter.noContact}</span>}
                     </span>
                   </div>
-//... skipping middle to next replacement inside same chunk
-					// Actually, let's keep chunks small.
                 </div>
                 <div className="flex items-center gap-3">
                    <span className="text-sm font-black text-slate-800">${item.amount.toLocaleString()}</span>
