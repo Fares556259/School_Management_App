@@ -38,5 +38,15 @@ export const ar = {
     activeRecipients: "المستلمون النشطون",
     noSubscribers: "لم يتم إضافة أي أصحاب مصلحة بعد.",
     noSubscribersDesc: "لن يتم إرسال التقرير إلى أي شخص حتى يتم إضافة رسائل بريد إلكتروني."
+  },
+  adminDashboard: {
+    commandCenter: "مركز القيادة",
+    commandCenterDesc: "الإشراف المالي والتشغيلي في الوقت الفعلي",
+    growthAnalytics: "تحليلات النمو",
+    growthAnalyticsDesc: "أداء 12 شهرًا + توقعات الذكاء الاصطناعي",
+    revenue: "مداخيل",
+    expense: "مصاريف",
+    criticalActions: "إجراءات حاسمة",
+    criticalActionsDesc: "السجل غير المدفوع - يتطلب اهتمامًا فوريًا"
   }
 };

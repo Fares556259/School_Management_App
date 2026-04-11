@@ -1,9 +1,15 @@
 import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
 
-export async function generateSmartInsights(aggregatedData: any) {
+export async function generateSmartInsights(aggregatedData: any, locale: string = "en") {
   try {
+    const languageInstruction = 
+      locale === 'ar' ? 'Generate the insights exclusively in the Arabic language.' : 
+      locale === 'fr' ? 'Generate the insights exclusively in the French language.' : 
+      'Generate the insights in the English language.';
+
     const prompt = `
       You are an expert school administrator. Analyze the following daily aggregated data for the school and provide 2-3 short, actionable, and smart insights.
+      ${languageInstruction}
       Provide the output as a simple JSON array of strings. Do not include markdown formatting.
       
       Data:
