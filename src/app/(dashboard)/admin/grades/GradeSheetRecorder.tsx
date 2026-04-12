@@ -473,24 +473,7 @@ export default function GradeSheetRecorder({
           <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
 
           {proofPreviewUrl && (
-            <div className="p-3 bg-white border-t border-slate-100 flex gap-2 relative">
-              {isAiLocked && (
-                <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-md flex items-center justify-between px-4 animate-in fade-in duration-500">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-100">
-                      <Lock size={14} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Limite AI</p>
-                      <p className="text-[8px] font-bold text-slate-500 truncate max-w-[100px]">Quota 10/10 atteint</p>
-                    </div>
-                  </div>
-                  <button className="px-4 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center gap-2">
-                    <Sparkles size={12} />
-                    Premium
-                  </button>
-                </div>
-              )}
+            <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
               <button
                 onClick={handleAiScan}
                 disabled={isScanning || isPdf || isAiLocked}
@@ -498,7 +481,7 @@ export default function GradeSheetRecorder({
                   isScanning 
                     ? "bg-slate-100 text-slate-400" 
                     : isAiLocked
-                    ? "bg-slate-100 text-slate-300 cursor-not-allowed opacity-50"
+                    ? "bg-slate-50 text-slate-400 border border-slate-200"
                     : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
                 }`}
               >
@@ -507,6 +490,11 @@ export default function GradeSheetRecorder({
                     <div className="w-3 h-3 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
                     Scanning...
                   </>
+                ) : isAiLocked ? (
+                  <>
+                    <Lock size={12} className="opacity-60" />
+                    AI Scan & Fill
+                  </>
                 ) : (
                   <>✨ AI Scan & Fill</>
                 )}
@@ -514,7 +502,7 @@ export default function GradeSheetRecorder({
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={isScanning || isAiLocked}
-                className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100 disabled:opacity-50"
+                className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100 disabled:opacity-30"
               >
                 Replace
               </button>
@@ -558,9 +546,24 @@ export default function GradeSheetRecorder({
 
         {/* RIGHT: Editable Grades Table */}
         <div 
-          className="flex flex-col overflow-hidden transition-all"
+          className="flex flex-col overflow-hidden transition-all relative"
           style={{ width: `${100 - leftWidth}%` }}
         >
+          {isAiLocked && (
+            <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-6 shadow-2xl shadow-indigo-200 ring-8 ring-indigo-50">
+                  <Lock size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-4">Fonctionnalité Premium</h3>
+              <p className="text-xs font-bold text-slate-500 leading-relaxed mb-8 max-w-[280px]">
+                  Le remplissage automatique par IA est réservé aux membres **Premium** après votre quota de **10/10**.
+              </p>
+              <button className="px-8 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 font-black flex items-center gap-3">
+                  <Sparkles size={16} />
+                  Débloquer Premium
+              </button>
+            </div>
+          )}
           <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">✏️ Grade Entry</span>
             <button
