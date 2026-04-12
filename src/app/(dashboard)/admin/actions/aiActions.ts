@@ -17,7 +17,7 @@ export async function callGeminiDirect(prompt: string, imageBase64?: string) {
         "X-Title": "SnapSchool AI", 
       },
       body: JSON.stringify({
-        model: "google/gemini-flash-1.5",
+        model: "google/gemini-flash-1.5-8b",
         messages: [
           {
             role: "user",
@@ -81,7 +81,7 @@ export async function getChatResponse(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-flash-1.5",
+        model: "google/gemini-flash-1.5-8b",
         messages: [
           { role: "system", content: systemPrompt },
           ...history.map(m => ({ role: m.role, content: m.content })),
