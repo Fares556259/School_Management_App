@@ -112,7 +112,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         <span className={`flex h-2 w-2 rounded-full ${isLoading ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`} />
       </div>
 
-      <div className="relative flex-1 min-h-0 w-full">
+      <div className={`relative flex-1 min-h-0 w-full ${isLocked ? 'blur-[6px] pointer-events-none select-none grayscale-[0.5]' : ''}`}>
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 

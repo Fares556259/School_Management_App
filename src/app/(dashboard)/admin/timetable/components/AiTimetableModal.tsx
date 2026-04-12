@@ -1,10 +1,9 @@
-"use client";
-
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateTimetableFromPrompt } from "../../actions/timetableAiActions";
+import { isAIQuotaReached } from "../../actions/aiActions";
 import { bulkUpdateTimetableSlots } from "@/lib/crudActions";
-import { X, Sparkles, Loader2, AlertCircle, Check, Calendar, ArrowRight, User, BookOpen, MapPin } from "lucide-react";
+import { X, Sparkles, Loader2, AlertCircle, Check, Calendar, ArrowRight, User, BookOpen, MapPin, Lock } from "lucide-react";
 
 interface Props {
   onClose: () => void;
@@ -20,9 +19,19 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
   const [generatedSlots, setGeneratedSlots] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isLocked, setIsLocked] = useState(false);
+  const [quota, setQuota] = useState(10);
+
+  useEffect(() => {
+    isAIQuotaReached().then(reached => {
+      if (reached) setIsLocked(true);
+    });
+  }, []);
 
   const handleGenerate = async () => {
+    if (isLocked) return;
     if (!prompt.trim()) return;
+// ... (rest of logic)
     setStep("generating");
     setError(null);
 
@@ -76,7 +85,22 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
         </div>
 
         {/* CONTENT */}
-        <div className="flex-1 overflow-auto p-8 bg-slate-50/50">
+        <div className="flex-1 overflow-auto p-8 bg-slate-50/50 relative">
+          {isLocked && (
+            <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+               <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
+                  <Lock size={24} />
+               </div>
+               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter mb-2">Limite AI Atteinte</h3>
+               <p className="text-sm font-bold text-slate-500 leading-relaxed mb-6 max-w-xs">
+                  Vous avez utilisé vos {quota} analyses quotidiennes. Passez à **Premium** pour débloquer la génération magique illimitée.
+               </p>
+               <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-black">
+                  Débloquer Premium
+               </button>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {step === "input" && (
               <motion.div 
@@ -84,7 +108,7 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex flex-col gap-6"
+                className={`flex flex-col gap-6 ${isLocked ? 'blur-md select-none pointer-events-none grayscale-[0.5]' : ''}`}
               >
                 <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
                    <AlertCircle size={18} className="text-indigo-600 mt-0.5" />

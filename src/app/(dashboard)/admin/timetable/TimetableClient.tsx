@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Clock, Check, Edit2, Sparkles } from "lucide-react";
+import { Clock, Check, Edit2, Sparkles, Lock } from "lucide-react";
 import TimetableGrid from "./components/TimetableGrid";
 import AiTimetableModal from "./components/AiTimetableModal";
+import { isAIQuotaReached } from "../actions/aiActions";
+import { useEffect } from "react";
 
 const TimetablePage = ({
   classes,
@@ -20,6 +22,11 @@ const TimetablePage = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isAiLocked, setIsAiLocked] = useState(false);
+
+  useEffect(() => {
+    isAIQuotaReached().then(setIsAiLocked);
+  }, []);
   const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
 
   const handleAiSuccess = () => {
@@ -53,10 +60,14 @@ const TimetablePage = ({
           {/* AI GENERATE BUTTON */}
           <button 
             onClick={() => setIsAiOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group"
+            className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg group ${
+              isAiLocked 
+              ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-100'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+            }`}
           >
-            <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
-            AI Magic Generate
+            {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
+            {isAiLocked ? 'Limite AI Atteinte' : 'AI Magic Generate'}
           </button>
 
           <div className="h-10 w-px bg-slate-100 mx-2"></div>

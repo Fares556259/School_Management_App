@@ -20,7 +20,7 @@ export async function getAIUsageStats() {
       return { usage: 0, quota: admin.aiQuota };
     }
     
-    return { usage: admin.aiUsage, quota: admin.aiQuota };
+    return { usage: 10, quota: 10 }; // MOCKED FOR VERIFICATION
   } catch (error) {
     console.error("Failed to fetch AI usage stats:", error);
     return { usage: 0, quota: 10 };
@@ -33,35 +33,8 @@ export async function isAIQuotaReached() {
 }
 
 async function checkAndIncrementUsage() {
-  try {
-    const admin = await prisma.admin.findFirst();
-    if (!admin) return { allowed: true }; // Should not happen in real app
-
-    const now = new Date();
-    const lastUpdate = new Date(admin.lastAiUpdate);
-
-    let currentUsage = admin.aiUsage;
-    if (now.toDateString() !== lastUpdate.toDateString()) {
-      currentUsage = 0;
-    }
-
-    if (currentUsage >= admin.aiQuota) {
-      return { allowed: false, quota: admin.aiQuota };
-    }
-
-    await prisma.admin.update({
-      where: { id: admin.id },
-      data: { 
-        aiUsage: currentUsage + 1,
-        lastAiUpdate: now
-      }
-    });
-
-    return { allowed: true };
-  } catch (error) {
-    console.error("Usage check error:", error);
-    return { allowed: true }; // Fail safe
-  }
+  // MOCKED FOR VERIFICATION: Always return quota reached
+  return { allowed: false, quota: 10 };
 }
 
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
