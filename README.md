@@ -5,7 +5,7 @@
 ## 🚀 Key Features
 
 - **AI-Powered Insights**: Integrated Gemini API for financial analysis and automated data extraction.
-- **SnapAssistant (zbiba)**: A Vision-AI tool for processing receipts and executing database actions from images.
+- **SnapAssistant (zbiba)**: A Vision-AI tool for processing receipts, autonomous grade recording, and partial payment management.
 - **Comprehensive Audit Logs**: Immutable tracking of all administrative modifications.
 - **Finance Management**: Streamlined tuition, salary, and expense tracking.
 - **Role-Based Access**: Tailored dashboards for Admins, Teachers, Students, and Parents.
