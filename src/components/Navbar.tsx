@@ -14,7 +14,7 @@ const Navbar = () => {
   const { user } = useUser();
   const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(null);
-  const [aiStats, setAiStats] = useState({ usage: 10, quota: 10 }); // HARDCODED FOR VERIFICATION
+  const [aiStats, setAiStats] = useState({ usage: 0, quota: 10 });
 
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
   const role = (user?.publicMetadata?.role as string) || "User";
@@ -22,8 +22,7 @@ const Navbar = () => {
   useEffect(() => {
     if (role === "admin") {
       getAdminProfile().then(resp => setAdminData(resp?.data)).catch(console.error);
-      // Forced for verification:
-      setAiStats({ usage: 10, quota: 10 });
+      getAIUsageStats().then(setAiStats).catch(console.error);
     }
   }, [role]);
 
