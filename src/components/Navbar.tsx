@@ -82,7 +82,7 @@ const Navbar = () => {
                             usage: result.newUsage ?? 0, 
                             quota: result.quota ?? 10 
                         });
-                        router.refresh();
+                        window.location.reload();
                     }
                    } catch (err) {
                     console.error("Toggle Error:", err);
