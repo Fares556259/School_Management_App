@@ -1,3 +1,8 @@
+"use server";
+
+import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("API key missing");
