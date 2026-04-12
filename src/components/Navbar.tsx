@@ -14,7 +14,7 @@ const Navbar = () => {
   const { user } = useUser();
   const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(null);
-  const [aiStats, setAiStats] = useState({ usage: 0, quota: 0 });
+  const [aiStats, setAiStats] = useState<{usage: number, quota: number} | null>(null);
 
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
   const role = (user?.publicMetadata?.role as string) || "User";
@@ -47,7 +47,7 @@ const Navbar = () => {
         <LanguageSwitcher />
 
         {/* AI USAGE TRACKER (Admin Only) */}
-        {role === "admin" && (
+        {role === "admin" && aiStats && (
           <div className='hidden lg:flex items-center gap-2 bg-indigo-50/50 px-3 py-1.5 rounded-2xl border border-indigo-100/50 hover:bg-white transition-all group cursor-help ml-2' title="Quota AI Quotidien">
              <div className="p-1 rounded-lg bg-indigo-600 text-white shadow-sm ring-4 ring-indigo-500/10 group-hover:scale-110 transition-transform">
                 <Sparkles size={10} />
@@ -59,7 +59,7 @@ const Navbar = () => {
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${(aiStats.usage / (aiStats.quota || 10)) * 100}%` }}
-                        className={`h-full rounded-full ${aiStats.usage / aiStats.quota > 0.8 ? 'bg-amber-400' : 'bg-indigo-500'}`}
+                        className={`h-full rounded-full ${aiStats.usage / (aiStats.quota || 10) > 0.8 ? 'bg-amber-400' : 'bg-indigo-500'}`}
                       />
                    </div>
                    <span className="text-[9px] font-black text-slate-500">{aiStats.usage}/{aiStats.quota}</span>
