@@ -472,6 +472,8 @@ export default function GradeSheetRecorder({
                 className={`flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm ${
                   isScanning 
                     ? "bg-slate-100 text-slate-400" 
+                    : scanError?.includes("DAILY_QUOTA_REACHED")
+                    ? "bg-amber-500 text-white hover:bg-amber-600 shadow-amber-100"
                     : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
                 }`}
               >
@@ -480,6 +482,8 @@ export default function GradeSheetRecorder({
                     <div className="w-3 h-3 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
                     Scanning...
                   </>
+                ) : scanError?.includes("DAILY_QUOTA_REACHED") ? (
+                  <>🔒 Limite AI Atteinte (Upgrade)</>
                 ) : (
                   <>✨ AI Scan & Fill</>
                 )}

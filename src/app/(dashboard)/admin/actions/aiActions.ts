@@ -27,6 +27,11 @@ export async function getAIUsageStats() {
   }
 }
 
+export async function isAIQuotaReached() {
+  const stats = await getAIUsageStats();
+  return stats.usage >= stats.quota;
+}
+
 async function checkAndIncrementUsage() {
   try {
     const admin = await prisma.admin.findFirst();
@@ -169,6 +174,33 @@ export async function getChatResponse(
   } catch (error: any) {
     console.error("OpenRouter Assistant Error:", error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function getFinancialInsights(data: any, locale = "fr") {
+  const usage = await checkAndIncrementUsage();
+  if (!usage.allowed) return { error: `DAILY_QUOTA_REACHED|${usage.quota}` };
+
+  const prompt = `
+    You are an expert school financial analyst. Analyze the following data and provide exactly 5 concise, strategic insights.
+    
+    DATA: ${JSON.stringify(data)}
+    
+    RETURN ONLY a JSON array of objects with this schema:
+    [
+      { "text": "...", "type": "performance" | "risk" | "opportunity" | "trend" | "action", "icon": "...", "confidence": "..." }
+    ]
+  `;
+
+  try {
+    const text = await callGeminiDirect(prompt);
+    // Find JSON array in text
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error("Invalid AI response");
+    return JSON.parse(match[0]);
+  } catch (error: any) {
+    console.error("Financial Insight Error:", error);
+    return { error: error.message };
   }
 }
 

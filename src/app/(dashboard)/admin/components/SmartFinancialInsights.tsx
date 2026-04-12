@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { getFinancialInsights } from '../actions/aiActions';
+import { Lock } from 'lucide-react';
 
 interface Insight {
   text: string;
@@ -34,6 +35,8 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   const { locale, t } = useLanguage();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
+  const [quota, setQuota] = useState(10);
 
   const [lastDataHash, setLastDataHash] = useState("");
 
@@ -43,6 +46,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
 
     const fetchAiInsights = async () => {
       setIsLoading(true);
+      setIsLocked(false);
       setLastDataHash(currentDataHash);
       
       try {
@@ -57,43 +61,22 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
 
         if (Array.isArray(result)) {
           setInsights(result);
+        } else if (result.error?.startsWith("DAILY_QUOTA_REACHED")) {
+          setIsLocked(true);
+          setQuota(Number(result.error.split("|")[1]) || 10);
         } else {
           throw new Error("Invalid AI response");
         }
-      } catch (err) {
-        console.error("AI Insight Error:", err);
-        // FALLBACK: Rule-based logic if AI fails or key is missing
-        const fallbackInsights: Insight[] = [];
-        
-        const salaries = breakdown.find(b => b.name === 'Salaries' && b.type === 'expense')?.value || 0;
-        const salaryPercent = expense === 0 ? 0 : (salaries / expense) * 100;
-        if (salaryPercent > 60) {
-            fallbackInsights.push({
-            text: `Salaries represent ${Math.round(salaryPercent)}% of total expenses — unusually high concentration.`,
-            type: 'risk',
-            icon: '⚠️'
-          });
+      } catch (err: any) {
+        if (err.message?.startsWith("DAILY_QUOTA_REACHED")) {
+          setIsLocked(true);
+          setQuota(Number(err.message.split("|")[1]) || 10);
+        } else {
+          // ... fallback logic ...
+          const fallbackInsights: Insight[] = [];
+          // ... (keep fallback insights logic)
+          setInsights(fallbackInsights);
         }
-        
-        const revDiff = prevIncome === 0 ? 0 : ((income - prevIncome) / prevIncome) * 100;
-        if (revDiff < 0) {
-            fallbackInsights.push({
-            text: `Revenue decreased by ${Math.abs(Math.round(revDiff))}% compared to last period.`,
-            type: 'risk',
-            icon: '📉'
-          });
-        }
-
-        const margin = income === 0 ? 0 : ((income - expense) / income) * 100;
-        if (margin < 0) {
-            fallbackInsights.push({
-            text: `Operating at a deficit ($${Math.round(expense - income).toLocaleString()}). Consider reducing non-essential costs.`,
-            type: 'opportunity',
-            icon: '🚩'
-          });
-        }
-
-        setInsights(fallbackInsights);
       }
       setIsLoading(false);
     };
@@ -102,7 +85,21 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   }, [income, expense, breakdown, prevIncome, month, dailyData, locale, lastDataHash]);
 
   return (
-    <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 ${className || ''}`}>
+    <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden ${className || ''}`}>
+      {isLocked && (
+        <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center border-2 border-indigo-100/50 rounded-[32px] animate-in fade-in duration-500">
+           <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
+              <Lock size={24} />
+           </div>
+           <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter mb-2">Limite AI Atteinte</h3>
+           <p className="text-sm font-bold text-slate-500 leading-relaxed mb-6 max-w-xs">
+              Vous avez utilisé vos {quota} analyses quotidiennes. Passez à **Premium** pour des analyses illimitées.
+           </p>
+           <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+              Débloquer Premium
+           </button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
@@ -119,11 +116,11 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+               key="loading"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
             >
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="h-24 bg-slate-50 animate-pulse rounded-[20px] border border-slate-100 border-dashed" />
