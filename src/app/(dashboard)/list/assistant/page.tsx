@@ -20,7 +20,8 @@ export default async function AssistantPage() {
     allLessons,
     schoolClasses,
     gradeSheets,
-    revenueGapThisPeriod
+    revenueGapThisPeriod,
+    aiLogs
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -35,8 +36,20 @@ export default async function AssistantPage() {
     prisma.payment.aggregate({
       where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
       _sum: { deferredAmount: true }
+    }),
+    prisma.auditLog.findMany({
+      where: { performedBy: "zbiba (AI)" },
+      orderBy: { timestamp: "desc" },
+      take: 10
     })
   ]);
+
+  const aiActivities = aiLogs.map(log => ({
+    id: log.id.toString(),
+    title: log.description.length > 40 ? log.description.substring(0, 37) + "..." : log.description,
+    fullDesc: log.description,
+    date: log.timestamp.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase()
+  }));
 
   const dashboardContext = {
     month: MONTHS[startDate.getMonth()],
@@ -47,5 +60,5 @@ export default async function AssistantPage() {
     operations: { notices: allNotices.map(n => ({ title: n.title, message: n.message, date: n.date })) }
   };
 
-  return <AssistantClient dashboardContext={dashboardContext} />;
+  return <AssistantClient dashboardContext={dashboardContext} activities={aiActivities} />;
 }
