@@ -237,11 +237,6 @@ export default function GradeSheetRecorder({
   };
 
   const handleSave = () => {
-    if (!proofPreviewUrl && !proofFile) {
-      alert("Please upload a proof document before saving.");
-      return;
-    }
-
     const gradeEntries: GradeEntry[] = students.map((s) => ({
       studentId: s.id,
       score: grades[s.id] !== undefined && grades[s.id] !== "" ? parseFloat(grades[s.id]) : null,

@@ -98,9 +98,41 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
     setInput('');
     setIsLoading(true);
 
-    let imageUrl = undefined;
+    let uploadedUrl: string | undefined = undefined;
+    if (currentImage) {
+      try {
+        const fetchRes = await fetch(currentImage);
+        const blob = await fetchRes.blob();
+        const formData = new FormData();
+        formData.append('file', blob);
+        formData.append('upload_preset', 'school');
+        const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          uploadedUrl = uploadData.secure_url;
+          
+          // Update the message we just added with the Cloudinary URL
+          setMessages(prev => {
+            const newMsgs = [...prev];
+            if (newMsgs.length > 0) {
+              const last = newMsgs[newMsgs.length - 1];
+              if (last.role === 'user' && last.image?.startsWith('data:')) {
+                last.image = uploadedUrl;
+              }
+            }
+            return newMsgs;
+          });
+        }
+      } catch (err) {
+        console.error("Cloudinary upload failed:", err);
+      }
+    }
+
     try {
-      const result = await getChatResponse(userMessage, context, imageBase64, locale);
+      const result = await getChatResponse(userMessage, context, imageBase64, locale, messages);
 
       if (result.response) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
@@ -109,24 +141,14 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({ context }) => {
         if (result.command) {
           setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *${t.zbiba.processing}: ${result.command.type}...*` }]);
           
-          // IF an image is present, UPLOAD IT NOW (when AI decides to act)
-          if (currentImage) {
-            try {
-              const fetchRes = await fetch(currentImage);
-              const blob = await fetchRes.blob();
-              const formData = new FormData();
-              formData.append('file', blob);
-              formData.append('upload_preset', 'school');
-              const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
-                method: 'POST',
-                body: formData,
-              });
-              if (uploadRes.ok) {
-                const uploadData = await uploadRes.json();
-                result.command.data.img = uploadData.secure_url;
-              }
-            } catch (err) {
-              console.error("Cloudinary upload failed:", err);
+          // Attach image if we have one (either from this turn or inferred)
+          if (uploadedUrl) {
+            result.command.data.img = uploadedUrl;
+          } else {
+            // Check history for the most recent image URL if this is a confirmation turn
+            const lastImageMsg = [...messages].reverse().find(m => m.image);
+            if (lastImageMsg && lastImageMsg.image?.startsWith('http')) {
+               result.command.data.img = lastImageMsg.image;
             }
           }
 

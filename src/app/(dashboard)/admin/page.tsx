@@ -124,8 +124,9 @@ const AdminPage = async ({
     allLessons,
     allSubjects,
     teacherTimetables,
-    maleStudents,
-    femaleStudents
+    maleStudentCount,
+    femaleStudentCount,
+    gradeSheets
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -257,7 +258,8 @@ const AdminPage = async ({
       select: { teacherId: true, classId: true, day: true, slotNumber: true }
     }),
     prisma.student.count({ where: { sex: "MALE" } }),
-    prisma.student.count({ where: { sex: "FEMALE" } })
+    prisma.student.count({ where: { sex: "FEMALE" } }),
+    prisma.gradeSheet.findMany({ select: { classId: true, subjectId: true, term: true } })
   ]);
 
   // Map Personnel Payments for AI
@@ -457,10 +459,11 @@ const AdminPage = async ({
         notices: allNotices.map(n => ({ title: n.title, message: n.message, date: n.date }))
       },
       demographics: {
-        male: maleStudents,
-        female: femaleStudents,
+        male: maleStudentCount,
+        female: femaleStudentCount,
         total: studentCount
-      }
+      },
+      gradeSheets: gradeSheets
     }
   };
 
