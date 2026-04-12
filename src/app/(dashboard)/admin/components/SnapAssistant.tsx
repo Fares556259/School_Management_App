@@ -118,7 +118,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   };
 
   const handleSend = async () => {
-    if ((!input.trim() && !selectedImage) || isLoading) return;
+    if (isLocked || (!input.trim() && !selectedImage) || isLoading) return;
 
     const userMessage = input.trim();
     const currentImage = selectedImage; // Store locally for this async operation
@@ -244,7 +244,23 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
 
   if (fullPage) {
     return (
-      <div className="w-full h-full bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+      <div className="w-full h-full bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
+        {isLocked && (
+          <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+             <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-6 shadow-2xl shadow-indigo-200 ring-8 ring-indigo-50">
+                <Lock size={32} />
+             </div>
+             <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">Intelligence Limitée</h3>
+             <p className="text-base font-bold text-slate-500 leading-relaxed mb-8 max-w-sm">
+                Vous avez utilisé vos **{quota} messages** quotidiens. <br/>
+                Débloquez la puissance illimitée de Zbiba avec le plan **Premium**.
+             </p>
+             <button className="px-10 py-5 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-3xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 font-black flex items-center gap-3 active:scale-95">
+                <Sparkles size={20} />
+                Passer à Premium
+             </button>
+          </div>
+        )}
         {/* Header - Clean & Minimal */}
         <div className="bg-white p-6 border-b border-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -270,20 +286,6 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
 
         {/* Chat Area - Immersive Slate BG */}
         <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 scroll-smooth bg-slate-50/20 relative">
-          {isLocked && (
-            <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
-               <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
-                  <Lock size={24} />
-               </div>
-               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter mb-2">Limite AI Atteinte</h3>
-               <p className="text-sm font-bold text-slate-500 leading-relaxed mb-6 max-w-xs">
-                  Vous avez atteint votre quota de {quota} messages quotidiens. Passez à **Premium** pour des conversations illimitées.
-               </p>
-               <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-black">
-                  Débloquer Premium
-               </button>
-            </div>
-          )}
           <div className={isLocked ? 'blur-md select-none pointer-events-none grayscale-[0.5]' : ''}>
             {messages.map((m, i) => (
               <motion.div
@@ -362,8 +364,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={selectedImage ? t.zbiba.describeImage : t.zbiba.askZbiba}
-                  className="w-full p-5 pr-20 bg-slate-50/50 border-2 border-transparent focus:border-indigo-500/10 focus:bg-white rounded-[30px] text-lg focus:ring-8 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-bold"
+                  disabled={isLocked}
+                  placeholder={isLocked ? "Limite atteinte..." : selectedImage ? t.zbiba.describeImage : t.zbiba.askZbiba}
+                  className="w-full p-5 pr-20 bg-slate-50/50 border-2 border-transparent focus:border-indigo-500/10 focus:bg-white rounded-[30px] text-lg focus:ring-8 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-bold disabled:opacity-50"
                 />
                 <button
                   onClick={handleSend}
@@ -391,8 +394,22 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="mb-4 w-[380px] h-[550px] bg-white/90 backdrop-blur-xl rounded-[32px] shadow-2xl border border-white/20 overflow-hidden flex flex-col"
+            className="mb-4 w-[380px] h-[550px] bg-white/90 backdrop-blur-xl rounded-[32px] shadow-2xl border border-white/20 overflow-hidden flex flex-col relative"
           >
+            {isLocked && (
+              <div className="absolute inset-x-0 bottom-0 top-[88px] z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                <div className="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
+                    <Lock size={20} />
+                </div>
+                <h3 className="text-base font-black text-slate-800 uppercase tracking-tighter mb-2">Limite Atteinte</h3>
+                <p className="text-[11px] font-bold text-slate-500 leading-relaxed mb-6 max-w-[220px]">
+                    Vous avez utilisé vos **{quota} messages**. <br/> Passez à **Premium** pour continuer.
+                </p>
+                <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-black active:scale-95">
+                    Mode Premium
+                </button>
+              </div>
+            )}
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -421,20 +438,6 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
 
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scroll-smooth relative">
-              {isLocked && (
-                <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500 rounded-b-[32px]">
-                  <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-indigo-100 ring-4 ring-indigo-50">
-                      <Lock size={18} />
-                  </div>
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tighter mb-1">Limite Atteinte</h3>
-                  <p className="text-[10px] font-bold text-slate-500 leading-relaxed mb-4 max-w-[200px]">
-                      {quota}/{quota} messages. Passez à **Premium** pour continuer.
-                  </p>
-                  <button className="px-4 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100">
-                      Premium
-                  </button>
-                </div>
-              )}
               <div className={isLocked ? 'blur-sm select-none pointer-events-none grayscale-[0.5]' : ''}>
                 {messages.map((m, i) => (
                   <motion.div
