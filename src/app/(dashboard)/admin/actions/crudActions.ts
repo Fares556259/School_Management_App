@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export type AICommand = {
-  type: "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE";
+  type: "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE" | "RECORD_GRADES";
   data: any;
 };
 
@@ -160,6 +160,95 @@ export async function executeAICommand(command: AICommand) {
 
         revalidatePath("/admin");
         return { success: true, message: `Notice '${title}' has been posted to the board.` };
+      }
+
+      case "RECORD_GRADES": {
+        const { className, subjectName, term, grades } = command.data;
+        if (!className || !subjectName || !term || !grades) {
+          throw new Error("Missing grade recording data (Class, Subject, Term, or Grades)");
+        }
+
+        // 1. Resolve Class
+        const cls = await prisma.class.findFirst({
+          where: { name: { contains: className, mode: 'insensitive' } },
+        });
+        if (!cls) throw new Error(`Could not find class matching "${className}"`);
+
+        // 2. Resolve Subject
+        const subject = await prisma.subject.findFirst({
+          where: { name: { contains: subjectName, mode: 'insensitive' } },
+        });
+        if (!subject) throw new Error(`Could not find subject matching "${subjectName}"`);
+
+        // 3. Resolve Students in that class for fuzzy matching
+        const classStudents = await prisma.student.findMany({
+          where: { classId: cls.id },
+          select: { id: true, name: true, surname: true }
+        });
+
+        // 4. Map Grades to Student IDs
+        const marksToCreate: { studentId: string; score: number }[] = [];
+        const unmappedNames: string[] = [];
+
+        for (const item of grades) {
+          const student = classStudents.find(s => 
+            `${s.name} ${s.surname}`.toLowerCase().includes(item.studentName.toLowerCase()) ||
+            item.studentName.toLowerCase().includes(`${s.name} ${s.surname}`.toLowerCase())
+          );
+          
+          if (student) {
+            marksToCreate.push({ studentId: student.id, score: item.score });
+          } else {
+            unmappedNames.push(item.studentName);
+          }
+        }
+
+        if (marksToCreate.length === 0) {
+          throw new Error("Could not match any students from the provided list to the class roster.");
+        }
+
+        // 5. Create GradeSheet and Grades in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+          const sheet = await tx.gradeSheet.create({
+            data: {
+              classId: cls.id,
+              subjectId: subject.id,
+              term: parseInt(term),
+              proofUrl: command.data.img || "AI_CHAT_UPLOAD",
+              grades: {
+                createMany: {
+                  data: marksToCreate.map(m => ({
+                    studentId: m.studentId,
+                    score: m.score,
+                    subjectId: subject.id,
+                    term: parseInt(term)
+                  }))
+                }
+              }
+            }
+          });
+
+          await tx.auditLog.create({
+            data: {
+              action: "CREATE",
+              performedBy: "zbiba (AI)",
+              entityType: "GradeSheet",
+              entityId: sheet.id.toString(),
+              description: `AI recorded grade sheet for ${cls.name} - ${subject.name} (${marksToCreate.length} students)`,
+              newValues: sheet as any
+            }
+          });
+
+          return sheet;
+        });
+
+        revalidatePath("/admin/grades");
+        revalidatePath("/list/results");
+
+        return { 
+          success: true, 
+          message: `Successfully recorded grades for ${cls.name} (${subject.name}). ${marksToCreate.length} marks saved. ${unmappedNames.length > 0 ? `Unmatched: ${unmappedNames.join(", ")}` : ""}` 
+        };
       }
 
       default:
