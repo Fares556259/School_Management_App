@@ -207,35 +207,63 @@ export async function executeAICommand(command: AICommand) {
           throw new Error("Could not match any students from the provided list to the class roster.");
         }
 
-        // 5. Create GradeSheet and Grades in a transaction
+        // 5. Use Idempotent Upsert for GradeSheet and Grades
         const result = await prisma.$transaction(async (tx) => {
-          const sheet = await tx.gradeSheet.create({
-            data: {
+          const sheet = await tx.gradeSheet.upsert({
+            where: {
+              classId_subjectId_term: {
+                classId: cls.id,
+                subjectId: subject.id,
+                term: parseInt(term)
+              }
+            },
+            update: {
+              proofUrl: command.data.img || "AI_CHAT_UPLOAD",
+              notes: "AI_PROCESSED",
+              updatedAt: new Date()
+            },
+            create: {
               classId: cls.id,
               subjectId: subject.id,
               term: parseInt(term),
               proofUrl: command.data.img || "AI_CHAT_UPLOAD",
-              grades: {
-                createMany: {
-                  data: marksToCreate.map(m => ({
-                    studentId: m.studentId,
-                    score: m.score,
-                    subjectId: subject.id,
-                    term: parseInt(term)
-                  }))
-                }
-              }
+              notes: "AI_PROCESSED"
             }
           });
 
+          // Sequential upserts for each grade to handle the unique constraint on (studentId, subjectId, term)
+          for (const m of marksToCreate) {
+             await tx.grade.upsert({
+                where: {
+                  studentId_subjectId_term: {
+                    studentId: m.studentId,
+                    subjectId: subject.id,
+                    term: parseInt(term)
+                  }
+                },
+                update: {
+                  score: m.score,
+                  sheetId: sheet.id,
+                  updatedAt: new Date()
+                },
+                create: {
+                  studentId: m.studentId,
+                  subjectId: subject.id,
+                  term: parseInt(term),
+                  score: m.score,
+                  sheetId: sheet.id
+                }
+             });
+          }
+
           await tx.auditLog.create({
             data: {
-              action: "CREATE",
+              action: "UPDATE",
               performedBy: "zbiba (AI)",
               entityType: "GradeSheet",
               entityId: sheet.id.toString(),
-              description: `AI recorded grade sheet for ${cls.name} - ${subject.name} (${marksToCreate.length} students)`,
-              newValues: sheet as any
+              description: `AI recorded/updated grade sheet for ${cls.name} - ${subject.name} (Term: ${term}, ${marksToCreate.length} students)`,
+              newValues: { ...sheet, marksCount: marksToCreate.length } as any
             }
           });
 

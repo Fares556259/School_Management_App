@@ -156,10 +156,32 @@ export default function ResultsPageClient({
             key={sheet.id} 
             className="group bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all flex flex-col gap-6 relative"
           >
-            {/* TERM TAG */}
-            <div className="absolute top-6 right-6 px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest">
-               Term {sheet.term}
-            </div>
+             {/* TERM TAG & BADGES */}
+             <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
+                <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                  Term {sheet.term}
+                </div>
+                {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
+                   <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                      Proof Attached
+                   </div>
+                ) : (
+                   <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-lg text-[8px] font-black text-amber-600 uppercase tracking-widest leading-none flex items-center gap-1">
+                      ⚠️ Missing Proof
+                   </div>
+                )}
+                {sheet.grades.length < 18 && (
+                   <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
+                      🕒 Incomplete
+                   </div>
+                )}
+                {sheet.notes === "AI_PROCESSED" && (
+                   <div className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-[8px] font-black text-indigo-600 uppercase tracking-widest leading-none flex items-center gap-1">
+                      ✨ AI Mode
+                   </div>
+                )}
+             </div>
 
             <div className="flex flex-col gap-1">
               <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{sheet.subject.name}</span>
@@ -171,12 +193,14 @@ export default function ResultsPageClient({
                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <div className="flex items-center justify-between mb-2">
                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recording Progress</span>
-                     <span className="text-[10px] font-black text-slate-800">{sheet.grades.length} Graded</span>
+                     <span className={`text-[10px] font-black ${sheet.grades.length >= 18 ? 'text-emerald-600' : 'text-slate-800'}`}>
+                        {sheet.grades.length} Graded
+                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                      <div 
-                       className="h-full bg-indigo-500 rounded-full" 
-                       style={{ width: `${Math.min(100, (sheet.grades.length / 20) * 100)}%` }}
+                       className={`h-full rounded-full transition-all duration-1000 ${sheet.grades.length >= 18 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                       style={{ width: `${Math.min(100, (sheet.grades.length / 18) * 100)}%` }}
                      ></div>
                   </div>
                </div>
@@ -198,23 +222,29 @@ export default function ResultsPageClient({
                >
                  Edit Recording
                </button>
-                <button 
-                  onClick={() => {
-                    setPreviewUrl(sheet.proofUrl);
-                    setIsPreviewOpen(true);
-                  }}
-                  className="w-12 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-100 transition-all border border-indigo-100 group"
-                  title="Quick Preview"
-                >
-                  <span className="group-hover:scale-125 transition-transform text-lg">👁️</span>
-                </button>
+                 <button 
+                   onClick={() => {
+                     setPreviewUrl(sheet.proofUrl);
+                     setIsPreviewOpen(true);
+                   }}
+                   className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border group ${
+                     sheet.proofUrl?.startsWith('http') 
+                       ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm shadow-emerald-50' 
+                       : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                   }`}
+                   title={sheet.proofUrl?.startsWith('http') ? "View Original Proof" : "No Proof Available"}
+                 >
+                   <span className={`group-hover:scale-125 transition-transform text-lg ${sheet.proofUrl?.startsWith('http') ? 'animate-bounce-subtle' : ''}`}>
+                     👁️
+                   </span>
+                 </button>
             </div>
           </div>
         ))}
       </div>
       {/* PREVIEW MODAL */}
       <AnimatePresence>
-        {isPreviewOpen && previewUrl && (
+        {isPreviewOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -231,11 +261,27 @@ export default function ResultsPageClient({
               </button>
             </div>
             <div className="flex-1 overflow-auto p-12 flex items-center justify-center">
-              <img 
-                src={previewUrl} 
-                alt="Document Preview" 
-                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl shadow-black"
-              />
+              {previewUrl && previewUrl.startsWith("http") ? (
+                <img 
+                  src={previewUrl} 
+                  alt="Document Preview" 
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl shadow-black"
+                />
+              ) : (
+                <div className="bg-white/5 p-12 rounded-[40px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">
+                   <div className="text-6xl">📭</div>
+                   <div>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight">No Proof Available</h3>
+                      <p className="text-sm text-white/40 font-medium mt-2">The original grade sheet document hasn&apos;t been uploaded to the cloud for this entry yet.</p>
+                   </div>
+                   <button 
+                     onClick={() => setIsPreviewOpen(false)}
+                     className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                   >
+                     Close Preview
+                   </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

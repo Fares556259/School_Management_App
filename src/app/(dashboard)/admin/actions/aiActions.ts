@@ -241,7 +241,7 @@ export async function getFinancialInsights(data: {
     }
 }
 
-export async function getChatResponse(message: string, context: any, base64Image?: string, locale: string = "en") {
+export async function getChatResponse(message: string, context: any, base64Image?: string, locale: string = "en", history: any[] = []) {
     if (!apiKey) {
         return { error: "Missing API Key" };
     }
@@ -270,6 +270,9 @@ export async function getChatResponse(message: string, context: any, base64Image
             5. **RECORD_GRADES**: To record student grades from a grade sheet document.
                - Data: { "className": string, "subjectName": string, "term": number, "grades": [{ "studentName": string, "score": number }] }
 
+            CONVERSATION HISTORY:
+            ${JSON.stringify(history.slice(-10), null, 2)}
+
             OFFICIAL SCHOOL DATA (CONTEXT):
             ${JSON.stringify(context, null, 2)}
             
@@ -277,15 +280,13 @@ export async function getChatResponse(message: string, context: any, base64Image
             "${message || "Please analyze this image and extract financial or academic data."}"
             
             GUIDELINES:
-            1. If the image is a GRADE SHEET, extract the Classroom name, Subject name, and Term. Then extract each student's name and their score. Return a RECORD_GRADES command.
-            2. If it is a financial document (receipt, invoice, tuition slip), extract the data and return ADD_EXPENSE, ADD_INCOME, or MARK_PAID.
-            3. If it is a tuition slip, look for the student name in studentLedger and return MARK_PAID.
-            4. If it's a general revenue source (donation, event gift), return ADD_INCOME.
-            5. If it's a general expense receipt (electricity, supplies), return ADD_EXPENSE.
-            6. If you see a document but cannot clearly read the Amount, Title, or Class/Subject, ask the user for clarification.
-            7. If you generate a command, provide a brief summary of the extraction.
-            8. If an image was processed and a command returned, start your response with "✅ [Document Verified]".
-            9. Be professional and context-aware.
+            1. BEFORE recording grades, check if a sheet already exists for that Class/Subject/Term in the "gradeSheets" context.
+            2. If it exists and the user has NOT explicitly said "Yes" or "Replace" in the conversation history after being warned, YOU MUST WARN THEM: "There are already grades recorded for this period. Should I replace them?" and DO NOT return the RECORD_GRADES command yet.
+            3. If the image is a NEW GRADE SHEET (or the user confirmed replacement), extract Classroom, Subject, Term, and student scores. Return a RECORD_GRADES command.
+            4. For financial documents (receipts/invoices), return ADD_EXPENSE, ADD_INCOME, or MARK_PAID.
+            5. If you generate a command, provide a brief summary.
+            6. If an image was processed and a command returned, start with "✅ [Document Verified]".
+            7. Be professional and context-aware.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 
