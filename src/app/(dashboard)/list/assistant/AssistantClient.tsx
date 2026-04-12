@@ -11,7 +11,7 @@ const AssistantClient = ({
   chatHistory,
   month,
   year,
-  usageStats
+  usageStats = { usage: 0, quota: 10 }
 }: {
   dashboardContext: any;
   activities: any[];
@@ -24,7 +24,7 @@ const AssistantClient = ({
   const [chatKey, setChatKey] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [initialMessages, setInitialMessages] = useState<any[]>([]);
-  const [currentUsage, setCurrentUsage] = useState(usageStats);
+  const [currentUsage, setCurrentUsage] = useState(usageStats || { usage: 0, quota: 10 });
 
   const handleNewChat = () => {
     setChatKey(prev => prev + 1);

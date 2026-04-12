@@ -17,10 +17,10 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   activeId,
   onSelect,
   onNewChat,
-  usage,
-  quota
+  usage = 0,
+  quota = 10
 }) => {
-  const usagePercentage = Math.min((usage / quota) * 100, 100);
+  const usagePercentage = Math.min((usage / (quota || 10)) * 100, 100);
   const isCloseToLimit = usagePercentage > 80;
 
   return (
