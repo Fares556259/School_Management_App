@@ -642,9 +642,54 @@ export default function GradeSheetRecorder({
               rows={2}
               className="w-full text-sm text-slate-700 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
             />
-          </div>
         </div>
       </div>
+    </div>
+
+    {/* ─── FULLSCREEN PREVIEW MODAL ─── */}
+    <AnimatePresence>
+      {isFullscreen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-xl flex flex-col p-8"
+        >
+          <div className="flex items-center justify-between mb-6 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                <span className="font-black text-xs text-white">PDF</span>
+              </div>
+              <div>
+                <h2 className="text-white font-black uppercase tracking-tight text-sm">Document Preview</h2>
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">High Resolution Inspection</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setIsFullscreen(false)}
+              className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 transition-all text-white flex items-center justify-center border border-white/10"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 bg-white/5 rounded-[40px] border border-white/10 overflow-hidden flex items-center justify-center p-4 relative">
+            {isPdf ? (
+              <iframe src={proofPreviewUrl!} className="w-full h-full rounded-3xl border-none" title="Fullscreen Proof PDF" />
+            ) : (
+              <div className="w-full h-full overflow-auto flex items-center justify-center p-12 scrollbar-none">
+                <img 
+                  src={proofPreviewUrl!} 
+                  alt="Fullscreen preview" 
+                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                  />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
