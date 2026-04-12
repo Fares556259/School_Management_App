@@ -1,30 +1,48 @@
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
+import { auth } from "@clerk/nextjs/server";
+import { getRole } from "@/lib/role";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import PageTransition from "@/components/PageTransition";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { userId } = auth();
+
+  if (!userId) {
+    return redirect("/sign-in");
+  }
+
+  const role = await getRole();
+
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex text-slate-900 print:h-auto print:block">
       {/* LEFT */}
-      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
+      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4 print:hidden border-r border-slate-100 bg-white shadow-sm z-10">
         <Link
           href="/"
-          className="flex items-center justify-center lg:justify-start gap-2"
+          className="flex items-center justify-center lg:justify-start gap-2 px-2"
         >
           <Image src="/logo.png" alt="logo" width={32} height={32} />
-          <span className="hidden lg:block font-bold">SchooLama</span>
+          <span className="hidden lg:block font-black text-xl tracking-tighter text-indigo-600">SnapSchool</span>
         </Link>
-        <Menu />
+        <Menu role={role!} />
       </div>
       {/* RIGHT */}
-      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] overflow-scroll flex flex-col">
-        <Navbar />
-        {children}
+      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] overflow-scroll flex flex-col print:w-full print:p-0 print:bg-white print:overflow-visible print:h-auto print:block relative">
+        <div className="print:hidden sticky top-0 bg-[#F7F8FA]/80 backdrop-blur-md z-20">
+          <Navbar />
+        </div>
+        <PageTransition>
+          <div className="p-4 md:p-6 lg:p-8 print:p-0 print:m-0">
+            {children}
+          </div>
+        </PageTransition>
       </div>
     </div>
   );

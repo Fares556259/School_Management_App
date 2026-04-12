@@ -44,7 +44,7 @@ const FormModal = ({
     | "announcement";
   type: "create" | "update" | "delete";
   data?: any;
-  id?: number;
+  id?: string | number;
 }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
@@ -67,7 +67,13 @@ const FormModal = ({
         </button>
       </form>
     ) : type === "create" || type === "update" ? (
-      forms[table](type, data)
+      forms[table] ? (
+        forms[table](type, data)
+      ) : (
+        <div className="p-8 text-center text-slate-400 font-bold">
+          Form for &quot;{table}&quot; is not implemented yet.
+        </div>
+      )
     ) : (
       "Form not found!"
     );

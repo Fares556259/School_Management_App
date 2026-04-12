@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
+import NextTopLoader from "nextjs-toploader";
+import NavigationLoader from "@/components/NavigationLoader";
+import { Suspense } from "react";
+
+import { LanguageProvider } from "@/lib/translations/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Lama Dev School Management Dashboard",
+  title: "SnapSchool - School Management Dashboard",
   description: "Next.js School Management System",
 };
 
@@ -15,8 +21,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={inter.className}>
+          <LanguageProvider>
+            <NextTopLoader color="#4f46e5" showSpinner={true} />
+            <Suspense fallback={null}>
+              <NavigationLoader />
+            </Suspense>
+            {children}
+          </LanguageProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

@@ -1,0 +1,129 @@
+export const ar = {
+  menu: {
+    home: "الرئيسية",
+    expenses: "المصاريف",
+    incomes: "المداخيل",
+    auditLog: "سجل التدقيق",
+    results: "النتائج",
+    grades: "الدرجات",
+    timetable: "جدول الأوقات",
+    teachers: "الأساتذة",
+    staff: "الموظفين",
+    students: "الطلاب",
+    parents: "الأولياء",
+    subjects: "المواد",
+    classes: "الأقسام",
+    lessons: "الدروس",
+    exams: "الامتحانات",
+    assignments: "الواجبات",
+    dailyReports: "التقارير اليومية",
+    profile: "الملف الشخصي",
+    settings: "الإعدادات",
+    logout: "تسجيل الخروج",
+    other: "أخرى"
+  },
+  navbar: {
+    search: "ابحث عن أي شيء...",
+    user: "مستخدم",
+    admin: "مدير"
+  },
+  dailyReports: {
+    title: "التقارير الليلية اليومية",
+    subtitle: "إدارة أصحاب المصلحة الذين يتلقون تقرير الذكاء الاصطناعي المؤتمت في منتصف الليل.",
+    sendButton: "إرسال التقرير الآن",
+    addStakeholder: "إضافة صاحب مصلحة",
+    fullName: "الاسم الكامل (اختياري)",
+    email: "البريد الإلكتروني *",
+    addToList: "إضافة إلى القائمة",
+    activeRecipients: "المستلمون النشطون",
+    noSubscribers: "لم يتم إضافة أي أصحاب مصلحة بعد.",
+    noSubscribersDesc: "لن يتم إرسال التقرير إلى أي شخص حتى يتم إضافة رسائل بريد إلكتروني."
+  },
+  adminDashboard: {
+    commandCenter: "مركز القيادة",
+    commandCenterDesc: "الإشراف المالي والتشغيلي في الوقت الفعلي",
+    growthAnalytics: "تحليلات النمو",
+    growthAnalyticsDesc: "أداء 12 شهرًا + توقعات الذكاء الاصطناعي",
+    revenue: "مداخيل",
+    expense: "مصاريف",
+    criticalActions: "إجراءات حاسمة",
+    criticalActionsDesc: "السجل غير المدفوع - يتطلب اهتمامًا فوريًا"
+  },
+  adminWidgets: {
+    netBalance: "الرصيد الصافي",
+    totalRevenue: "إجمالي المداخيل",
+    totalExpenses: "إجمالي المصاريف",
+    profitMargin: "هامش الربح",
+    vsLastPeriod: "مقارنة بالفترة الماضية",
+    vsPrevMonth: "مقارنة بالشهر الماضي",
+    operationalSnapshot: "لمحة تشغيلية",
+    studentsEnrolled: "الطلاب المسجلين",
+    activeTeachers: "الأساتذة النشطين",
+    supportStaff: "طاقم الدعم",
+    activeClasses: "الأقسام النشطة",
+    selectPeriod: "اختر الفترة",
+    pickMonthYear: "اختر الشهر والسنة",
+    reset: "إعادة تعيين",
+    printReport: "طباعة المراجعة المالية",
+    addIncome: "إضافة مدخول",
+    addExpense: "إضافة مصروف"
+  },
+  analyticsChart: {
+    revenue: "الإيرادات",
+    expenses: "المصاريف",
+    netProfit: "صافي الربح",
+    healthyGrowth: "نمو صحي",
+    expensesGrowing: "المصاريف تنمو بشكل أسرع",
+    filterAll: "الكل",
+    filterIncome: "مداخيل",
+    filterExpense: "مصاريف",
+    filterProfit: "أرباح",
+    aiProjection: "توقعات الذكاء الاصطناعي"
+  },
+  months: [
+    "جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", 
+    "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  ],
+  fiscalDistribution: {
+    title: "الذكاء المالي",
+    subtitle: "المداخيل الموحدة والمصاريف التشغيلية",
+    visual: "مرئي",
+    detailed: "مفصل"
+  },
+  smartInsights: {
+    title: "رؤى ذكية",
+    aiPowered: "مدعوم بالذكاء الاصطناعي",
+    analyzing: "يحلل المحلل المالي الذكي الاتجاهات...",
+    performance: "أداء",
+    risks: "مخاطر",
+    opportunities: "فرص",
+    trends: "اتجاهات",
+    actionableSteps: "خطوات قابلة للتنفيذ",
+    noExt: "لا يوجد",
+    detected: "مكتشف"
+  },
+  actionCenter: {
+    smsLocked: "تم إرسال رسائل قصيرة (مقفل لمدة",
+    sendingReminders: "جاري إرسال التذكيرات...",
+    sendReminders: "إرسال تذكيرات الدفع عبر SMS",
+    pending: "قيد الانتظار",
+    noContact: "لا يوجد اتصال",
+    allSettled: "تمت التسوية",
+    noPending: "لا توجد مدفوعات معلقة لهذا الشهر.",
+    viewHistory: "عرض السجل الكامل",
+    unpaidEmployees: "الموظفون غير المدفوع لهم",
+    uncollectedFees: "الرسوم غير المحصلة",
+    processSalaries: "معالجة الرواتب والمدفوعات",
+    collectPayments: "تحصيل مدفوعات الطلاب",
+    only: "فقط"
+  },
+  zbiba: {
+    welcome: "أهلاً! أنا **زبيبة**. لدي الآن خاصية **AI-Vision**: يمكنك تحميل الإيصالات أو وصولات الدفع وسأقوم بمعالجتها تلقائيًا من أجلك. كيف يمكنني مساعدتك اليوم؟",
+    processing: "جاري معالجة الإجراء",
+    success: "نجاح",
+    error: "خطأ",
+    describeImage: "صف هذه الصورة...",
+    askZbiba: "اسأل زبيبة...",
+    poweredBy: "مدعوم من Gemini 1.5 Flash • مدرك للسياق"
+  }
+};

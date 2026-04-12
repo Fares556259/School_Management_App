@@ -1,0 +1,129 @@
+export const fr = {
+  menu: {
+    home: "Accueil",
+    expenses: "Dépenses",
+    incomes: "Revenus",
+    auditLog: "Journal d'audit",
+    results: "Résultats",
+    grades: "Notes",
+    timetable: "Emploi du temps",
+    teachers: "Enseignants",
+    staff: "Personnel",
+    students: "Étudiants",
+    parents: "Parents",
+    subjects: "Matières",
+    classes: "Classes",
+    lessons: "Leçons",
+    exams: "Examens",
+    assignments: "Devoirs",
+    dailyReports: "Rapports Journaliers",
+    profile: "Profil",
+    settings: "Paramètres",
+    logout: "Déconnexion",
+    other: "AUTRE"
+  },
+  navbar: {
+    search: "Rechercher...",
+    user: "Utilisateur",
+    admin: "Admin"
+  },
+  dailyReports: {
+    title: "Rapports de Minuit AI",
+    subtitle: "Gérez les parties prenantes qui reçoivent le rapport AI automatisé de minuit.",
+    sendButton: "Envoyer le rapport maintenant",
+    addStakeholder: "Ajouter un destinataire",
+    fullName: "Nom complet (Optionnel)",
+    email: "Adresse e-mail *",
+    addToList: "Ajouter à la liste",
+    activeRecipients: "Destinataires actifs",
+    noSubscribers: "Aucun destinataire ajouté.",
+    noSubscribersDesc: "Le rapport ne sera envoyé à personne tant que des e-mails n'auront pas été ajoutés."
+  },
+  adminDashboard: {
+    commandCenter: "Centre de Commandement",
+    commandCenterDesc: "Supervision financière et opérationnelle en temps réel",
+    growthAnalytics: "Analytiques de Croissance",
+    growthAnalyticsDesc: "Performance sur 12 mois + Projection IA",
+    revenue: "Revenus",
+    expense: "Dépenses",
+    criticalActions: "Actions Critiques",
+    criticalActionsDesc: "Registre des impayés - nécessite une attention immédiate"
+  },
+  adminWidgets: {
+    netBalance: "Solde Net",
+    totalRevenue: "Revenu Total",
+    totalExpenses: "Dépenses Totales",
+    profitMargin: "Marge Bénéficiaire",
+    vsLastPeriod: "vs période préc.",
+    vsPrevMonth: "vs mois préc.",
+    operationalSnapshot: "Aperçu Opérationnel",
+    studentsEnrolled: "Étudiants Inscrits",
+    activeTeachers: "Enseignants Actifs",
+    supportStaff: "Personnel de Soutien",
+    activeClasses: "Classes Actives",
+    selectPeriod: "Sélectionner la période",
+    pickMonthYear: "Choisir Mois & Année",
+    reset: "Réinitialiser",
+    printReport: "Imprimer Bilan Fiscal",
+    addIncome: "Ajouter Revenu",
+    addExpense: "Ajouter Dépense"
+  },
+  analyticsChart: {
+    revenue: "Revenus",
+    expenses: "Dépenses",
+    netProfit: "Bénéfice Net",
+    healthyGrowth: "Croissance saine",
+    expensesGrowing: "Les dépenses augmentent plus vite",
+    filterAll: "TOUT",
+    filterIncome: "REVENU",
+    filterExpense: "DÉPENSE",
+    filterProfit: "BÉNÉFICE",
+    aiProjection: "PROJECTION IA"
+  },
+  months: [
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+  ],
+  fiscalDistribution: {
+    title: "Intelligence Fiscale",
+    subtitle: "Revenus Unifiés & Dépenses Opérationnelles",
+    visual: "Visuel",
+    detailed: "Détaillé"
+  },
+  smartInsights: {
+    title: "Aperçus Intelligents",
+    aiPowered: "Propulsé par l'IA",
+    analyzing: "L'analyste financier IA analyse les tendances...",
+    performance: "Performance",
+    risks: "Risques",
+    opportunities: "Opportunités",
+    trends: "Tendances",
+    actionableSteps: "Mesures Actionnables",
+    noExt: "Aucun",
+    detected: "Détecté"
+  },
+  actionCenter: {
+    smsLocked: "SMS Envoyé (Verrouillé pour",
+    sendingReminders: "Envoi des rappels...",
+    sendReminders: "Envoyer SMS de Rappel",
+    pending: "En attente",
+    noContact: "Sans Contact",
+    allSettled: "Tout Décaissé",
+    noPending: "Aucun paiement en attente pour ce mois.",
+    viewHistory: "Voir l'historique complet",
+    unpaidEmployees: "Employés Non Payés",
+    uncollectedFees: "Frais Non Perçus",
+    processSalaries: "Traiter les Salaires",
+    collectPayments: "Collecter les Paiements",
+    only: "Seulement"
+  },
+  zbiba: {
+    welcome: "Salut! Je suis **zbiba**. J'ai maintenant **AI-Vision**: vous pouvez télécharger des reçus ou des bordereaux de scolarité et je les traiterai automatiquement pour vous. Comment puis-je vous aider aujourd'hui?",
+    processing: "Traitement de l'Action",
+    success: "Succès",
+    error: "Erreur",
+    describeImage: "Décrivez cette image...",
+    askZbiba: "Demander à zbiba...",
+    poweredBy: "Propulsé par Gemini 1.5 Flash • Sensible au Contexte"
+  }
+};

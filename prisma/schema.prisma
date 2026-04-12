@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id       String @id
+  username String @unique
+  email    String? @unique
+  name     String?
+  surname  String?
+  phone    String?
+  img      String?
+}
+
+model Staff {
+  id        String    @id
+  username  String    @unique
+  name      String
+  surname   String
+  email     String?   @unique
+  phone     String?   @unique
+  role      String    @default("General")
+  address   String
+  img       String?
+  bloodType String
+  salary    Float     @default(1500)
+  createdAt DateTime  @default(now())
+  birthday  DateTime
+  payments  Payment[]
+}
+
+model Student {
+  id        String    @id
+  username  String    @unique
+  name      String
+  surname   String
+  email     String?   @unique
+  phone     String?   @unique
+  address   String
+  img       String?
+  bloodType String
+  sex       UserSex
+  createdAt DateTime  @default(now())
+  parentId  String
+  classId   Int
+  birthday  DateTime
+  levelId   Int
+  grades    Grade[]
+  payments  Payment[]
+  results   Result[]
+  class     Class     @relation(fields: [classId], references: [id])
+  level     Level     @relation(fields: [levelId], references: [id])
+  parent    Parent    @relation(fields: [parentId], references: [id])
+}
+
+model Teacher {
+  id          String         @id
+  username    String         @unique
+  name        String
+  surname     String
+  email       String?        @unique
+  phone       String?        @unique
+  address     String
+  img         String?
+  bloodType   String
+  sex         UserSex
+  createdAt   DateTime       @default(now())
+  birthday    DateTime
+  salary      Float          @default(3000)
+  classes     Class[]
+  lessons     Lesson[]
+  payments    Payment[]
+  subjects    Subject[]      @relation("SubjectToTeacher")
+  timetable   TimetableSlot[]
+  gradeSheets GradeSheet[]
+}
+
+model Parent {
+  id        String    @id
+  username  String    @unique
+  name      String
+  surname   String
+  email     String?   @unique
+  phone     String    @unique
+  address   String
+  createdAt DateTime  @default(now())
+  students  Student[]
+}
+
+model Level {
+  id       Int       @id @default(autoincrement())
+  level    Int       @unique
+  classes  Class[]
+  students Student[]
+}
+
+model Class {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  capacity     Int
+  supervisorId String?
+  levelId      Int
+  level        Level          @relation(fields: [levelId], references: [id])
+  supervisor   Teacher?       @relation(fields: [supervisorId], references: [id])
+  lessons      Lesson[]
+  students     Student[]
+  timetable    TimetableSlot[]
+  gradeSheets  GradeSheet[]
+}
+
+model Subject {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  domain      String       @default("General")
+  grades      Grade[]
+  lessons     Lesson[]
+  teachers    Teacher[]    @relation("SubjectToTeacher")
+  timetable   TimetableSlot[]
+  gradeSheets GradeSheet[]
+}
+
+model Grade {
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  score     Float
+  studentId String
+  subjectId Int
+  term      Int
+  updatedAt DateTime    @updatedAt
+  sheetId   Int?
+  sheet     GradeSheet? @relation(fields: [sheetId], references: [id], onDelete: SetNull)
+  student   Student     @relation(fields: [studentId], references: [id])
+  subject   Subject     @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, subjectId, term])
+}
+
+model GradeSheet {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  subjectId   Int
+  term        Int
+  proofUrl    String
+  notes       String?  @default("")
+  teacherId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  grades      Grade[]
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+
+  @@unique([classId, subjectId, term])
+}
+
+model Lesson {
+  id          Int          @id @default(autoincrement())
+  name        String
+  day         Day
+  startTime   DateTime
+  endTime     DateTime
+  subjectId   Int
+  classId     Int
+  teacherId   String
+  assignments Assignment[]
+  exams       Exam[]
+  class       Class        @relation(fields: [classId], references: [id])
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  lessonId  Int
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  results   Result[]
+}
+
+model Assignment {
+  id        Int      @id @default(autoincrement())
+  title     String
+  startDate DateTime
+  dueDate   DateTime
+  lessonId  Int
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  results   Result[]
+}
+
+model Result {
+  id           Int         @id @default(autoincrement())
+  score        Int
+  examId       Int?
+  assignmentId Int?
+  studentId    String
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+  exam         Exam?       @relation(fields: [examId], references: [id])
+  student      Student     @relation(fields: [studentId], references: [id])
+}
+
+model Expense {
+  id            Int      @id @default(autoincrement())
+  title         String
+  amount        Float
+  date          DateTime @default(now())
+  category      String
+  referenceType String?
+  referenceId   String?
+  img           String?
+}
+
+model Income {
+  id            Int      @id @default(autoincrement())
+  title         String
+  amount        Float
+  date          DateTime @default(now())
+  category      String
+  referenceType String?
+  referenceId   String?
+  img           String?
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  amount    Float
+  month     Int
+  year      Int
+  status    PaymentStatus @default(PENDING)
+  userType  String
+  paidAt    DateTime?
+  studentId String?
+  teacherId String?
+  staffId   String?
+  img       String?
+  staff     Staff?        @relation(fields: [staffId], references: [id])
+  student   Student?      @relation(fields: [studentId], references: [id])
+  teacher   Teacher?      @relation(fields: [teacherId], references: [id])
+
+  @@unique([studentId, month, year])
+  @@unique([teacherId, month, year])
+  @@unique([staffId, month, year])
+}
+
+model AuditLog {
+  id            Int      @id @default(autoincrement())
+  action        String
+  performedBy   String
+  entityType    String
+  entityId      String?
+  description   String
+  oldValues     Json?
+  newValues     Json?
+  amount        Float?
+  type          String?
+  effectiveDate DateTime?
+  timestamp     DateTime @default(now())
+}
+
+enum UserSex {
+  MALE
+  FEMALE
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model Notice {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String
+  date      DateTime @default(now())
+  important Boolean  @default(false)
+}
+
+model TimetableSlot {
+  id          Int      @id @default(autoincrement())
+  day         Day
+  startTime   String   // e.g. "08:00 AM"
+  endTime     String   // e.g. "09:00 AM"
+  slotNumber  Int      // 1 to 3 (Session 1, 2, 3)
+  room        String?
+  subjectId   Int?
+  teacherId   String?
+  classId     Int
+  
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  teacher     Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, day, slotNumber])
+}
+
+model DailyReportLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    String
+  schoolId  String
+}
+
+model ReportSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}

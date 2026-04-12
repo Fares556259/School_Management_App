@@ -1,8 +1,46 @@
-import { role } from "@/lib/data";
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
-const menuItems = [
+const labelToKey: Record<string, any> = {
+  "Home": "home",
+  "Expenses": "expenses",
+  "Incomes": "incomes",
+  "Audit Log": "auditLog",
+  "Results": "results",
+  "Grades": "grades",
+  "Timetable": "timetable",
+  "Teachers": "teachers",
+  "Staff": "staff",
+  "Students": "students",
+  "Parents": "parents",
+  "Subjects": "subjects",
+  "Classes": "classes",
+  "Lessons": "lessons",
+  "Exams": "exams",
+  "Assignments": "assignments",
+  "Daily Reports": "dailyReports",
+  "Profile": "profile",
+  "Settings": "settings",
+  "Logout": "logout"
+};
+
+interface MenuItem {
+  icon: string;
+  label: string;
+  href: string;
+  visible: string[];
+}
+
+interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
+
+const menuItems: MenuSection[] = [
   {
     title: "MENU",
     items: [
@@ -13,10 +51,52 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
+        icon: "/finance.png",
+        label: "Expenses",
+        href: "/list/expenses",
+        visible: ["admin"],
+      },
+      {
+        icon: "/finance.png",
+        label: "Incomes",
+        href: "/list/incomes",
+        visible: ["admin"],
+      },
+      {
+        icon: "/setting.png",
+        label: "Audit Log",
+        href: "/admin/audit",
+        visible: ["admin"],
+      },
+      {
+        icon: "/result.png",
+        label: "Results",
+        href: "/list/results",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/result.png",
+        label: "Grades",
+        href: "/admin/grades",
+        visible: ["admin"],
+      },
+      {
+        icon: "/calendar.png",
+        label: "Timetable",
+        href: "/admin/timetable",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
         icon: "/teacher.png",
         label: "Teachers",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
+      },
+      {
+        icon: "/parent.png",
+        label: "Staff",
+        href: "/list/staff",
+        visible: ["admin"],
       },
       {
         icon: "/student.png",
@@ -60,36 +140,6 @@ const menuItems = [
         href: "/list/assignments",
         visible: ["admin", "teacher", "student", "parent"],
       },
-      {
-        icon: "/result.png",
-        label: "Results",
-        href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/attendance.png",
-        label: "Attendance",
-        href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/calendar.png",
-        label: "Events",
-        href: "/list/events",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/message.png",
-        label: "Messages",
-        href: "/list/messages",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/announcement.png",
-        label: "Announcements",
-        href: "/list/announcements",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
     ],
   },
   {
@@ -100,6 +150,12 @@ const menuItems = [
         label: "Profile",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/setting.png",
+        label: "Daily Reports",
+        href: "/admin/reports",
+        visible: ["admin"],
       },
       {
         icon: "/setting.png",
@@ -117,24 +173,51 @@ const menuItems = [
   },
 ];
 
-const Menu = () => {
+const Menu = ({ role }: { role: string }) => {
+  const pathname = usePathname();
+  const { t } = useLanguage();
+
   return (
-    <div className="mt-4 text-sm">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
-            {i.title}
+    <div className="mt-6 text-sm px-4">
+      {menuItems.map((section) => (
+        <div className="flex flex-col gap-2 mb-6" key={section.title}>
+          <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
+            {section.title === "MENU" ? t.menu.home : t.menu.other}
           </span>
-          {i.items.map((item) => {
+          {section.items.map((item) => {
             if (item.visible.includes(role)) {
+              const isActive = 
+                pathname === item.href || 
+                (item.href === "/" && pathname === "/admin") ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              
               return (
                 <Link
                   href={item.href}
                   key={item.label}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
+                  className={`flex items-center justify-center lg:justify-start gap-4 py-3 px-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
+                    isActive 
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                      : "text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"
+                  }`}
                 >
-                  <Image src={item.icon} alt="" width={20} height={20} />
-                  <span className="hidden lg:block">{item.label}</span>
+                  {/* Active Indicator */}
+                  <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 bg-white rounded-r-full transition-transform duration-300 ${
+                    isActive ? "scale-y-100" : "scale-y-0 group-hover:scale-y-100 group-hover:bg-indigo-400"
+                  }`} />
+                  
+                  <Image
+                    src={item.icon}
+                    alt=""
+                    width={22}
+                    height={22}
+                    className={`transition-all duration-300 ${
+                      isActive ? "opacity-100 brightness-200" : "opacity-60 group-hover:opacity-100"
+                    } group-hover:scale-110`}
+                  />
+                  <span className={`hidden lg:block font-bold tracking-tight ${isActive ? "translate-x-1" : ""} transition-transform duration-300`}>
+                    {(t.menu as any)[labelToKey[item.label]] || item.label}
+                  </span>
                 </Link>
               );
             }

@@ -1,123 +1,68 @@
-"use client";
+import prisma from "@/lib/prisma";
+import FinanceChartClient from "./FinanceChartClient";
 
-import Image from "next/image";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+const FinanceChart = async ({ filter = "1Y" }: { filter?: string }) => {
+  const now = new Date();
+  let startDate = new Date();
 
-const data = [
-  {
-    name: "Jan",
-    income: 4000,
-    expense: 2400,
-  },
-  {
-    name: "Feb",
-    income: 3000,
-    expense: 1398,
-  },
-  {
-    name: "Mar",
-    income: 2000,
-    expense: 9800,
-  },
-  {
-    name: "Apr",
-    income: 2780,
-    expense: 3908,
-  },
-  {
-    name: "May",
-    income: 1890,
-    expense: 4800,
-  },
-  {
-    name: "Jun",
-    income: 2390,
-    expense: 3800,
-  },
-  {
-    name: "Jul",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Aug",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Sep",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Oct",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Nov",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Dec",
-    income: 3490,
-    expense: 4300,
-  },
-];
+  if (filter === "1M") startDate.setMonth(now.getMonth() - 1);
+  else if (filter === "6M") startDate.setMonth(now.getMonth() - 6);
+  else startDate.setFullYear(now.getFullYear() - 1);
 
-const FinanceChart = () => {
+  const [incomes, expenses] = await Promise.all([
+    prisma.income.findMany({ 
+      where: { date: { gte: startDate } },
+      select: { amount: true, date: true } 
+    }),
+    prisma.expense.findMany({ 
+      where: { date: { gte: startDate } },
+      select: { amount: true, date: true } 
+    }),
+  ]);
+
+  // Totals for Summary Header
+  const totalIncome = incomes.reduce((sum, item) => sum + item.amount, 0);
+  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const netResult = totalIncome - totalExpense;
+
+  // Group by month
+  const incomeMap: Record<string, number> = {};
+  const expenseMap: Record<string, number> = {};
+
+  for (const r of incomes) {
+    const key = r.date.toLocaleString("en-US", { month: "short", year: "numeric" });
+    incomeMap[key] = (incomeMap[key] || 0) + r.amount;
+  }
+  for (const r of expenses) {
+    const key = r.date.toLocaleString("en-US", { month: "short", year: "numeric" });
+    expenseMap[key] = (expenseMap[key] || 0) + r.amount;
+  }
+
+  // Build labels based on filter
+  const months: string[] = [];
+  const d = new Date(startDate);
+  const count = filter === "1M" ? 1 : filter === "6M" ? 6 : 12;
+  
+  for (let i = 0; i <= count; i++) {
+    months.push(d.toLocaleString("en-US", { month: "short", year: "numeric" }));
+    d.setMonth(d.getMonth() + 1);
+  }
+
+  const data = months.map((m) => ({
+    name: m,
+    income: Math.round(incomeMap[m] || 0),
+    expense: Math.round(expenseMap[m] || 0),
+  }));
+
   return (
-    <div className="bg-white rounded-xl w-full h-full p-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Finance</h1>
-        <Image src="/moreDark.png" alt="" width={20} height={20} />
-      </div>
-      <ResponsiveContainer width="100%" height="90%">
-        <LineChart
-          width={500}
-          height={300}
-          data={data}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-          <XAxis
-            dataKey="name"
-            axisLine={false}
-            tick={{ fill: "#d1d5db" }}
-            tickLine={false}
-            tickMargin={10}
-          />
-          <YAxis axisLine={false} tick={{ fill: "#d1d5db" }} tickLine={false}  tickMargin={20}/>
-          <Tooltip />
-          <Legend
-            align="center"
-            verticalAlign="top"
-            wrapperStyle={{ paddingTop: "10px", paddingBottom: "30px" }}
-          />
-          <Line
-            type="monotone"
-            dataKey="income"
-            stroke="#C3EBFA"
-            strokeWidth={5}
-          />
-          <Line type="monotone" dataKey="expense" stroke="#CFCEFF" strokeWidth={5}/>
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full">
+      <FinanceChartClient 
+        data={data} 
+        totalIncome={totalIncome}
+        totalExpense={totalExpense}
+        netResult={netResult}
+        currentFilter={filter}
+      />
     </div>
   );
 };
