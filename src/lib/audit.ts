@@ -16,6 +16,8 @@ export async function createAuditLog({
   amount,
   type,
   effectiveDate,
+  oldValues,
+  newValues,
 }: {
   action: string;
   entityType: string;
@@ -24,6 +26,8 @@ export async function createAuditLog({
   amount?: number;
   type?: 'income' | 'expense';
   effectiveDate?: Date;
+  oldValues?: any;
+  newValues?: any;
 }) {
   try {
     const authData = await auth();
@@ -41,6 +45,8 @@ export async function createAuditLog({
         amount,
         type,
         effectiveDate,
+        oldValues,
+        newValues,
       },
     });
   } catch (error) {

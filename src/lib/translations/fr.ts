@@ -19,7 +19,8 @@ export const fr = {
     dailyReports: "Rapports Journaliers",
     profile: "Profil",
     settings: "Paramètres",
-    logout: "Déconnexion",
+    logout: "Se déconnecter",
+    partialPayments: "Paiements Partiels",
     other: "AUTRE"
   },
   navbar: {

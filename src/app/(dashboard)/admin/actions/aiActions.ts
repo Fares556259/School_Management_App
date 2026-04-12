@@ -259,8 +259,9 @@ export async function getChatResponse(message: string, context: any, base64Image
             - If an IMAGE is provided (receipt, invoice, tuition slip, or grade sheet), extract the data and return a corresponding command.
             
             AVAILABLE TOOLS (COMMANDS):
-            1. **MARK_PAID**: To mark a Student, Teacher, or Staff pending payment as PAID.
-               - Data: { "studentId"?: string, "teacherId"?: string, "staffId"?: string, "month": number, "year": number }
+            1. **MARK_PAID**: To mark a Student, Teacher, or Staff pending payment as PAID or PARTIAL.
+               - Data: { "studentId"?: string, "teacherId"?: string, "staffId"?: string, "month": number, "year": number, "amount"?: number, "deferredUntil"?: string }
+               - Note: If 'amount' is less than the total monthly tuition, the system logs it as a 'PARTIAL' payment and records a 'Revenue Gap loss' for this month.
             2. **ADD_EXPENSE**: To record a new school expense.
                - Data: { "title": string, "amount": number, "category": string, "date"?: string }
             3. **ADD_INCOME**: To record new non-student income (donations, grants, etc.).
@@ -284,9 +285,12 @@ export async function getChatResponse(message: string, context: any, base64Image
             2. If it exists and the user has NOT explicitly said "Yes" or "Replace" in the conversation history after being warned, YOU MUST WARN THEM: "There are already grades recorded for this period. Should I replace them?" and DO NOT return the RECORD_GRADES command yet.
             3. If the image is a NEW GRADE SHEET (or the user confirmed replacement), extract Classroom, Subject, Term, and student scores. Return a RECORD_GRADES command.
             4. For financial documents (receipts/invoices), return ADD_EXPENSE, ADD_INCOME, or MARK_PAID.
-            5. If you generate a command, provide a brief summary.
-            6. If an image was processed and a command returned, start with "✅ [Document Verified]".
-            7. Be professional and context-aware.
+            5. If a user states they are paying only a PART OF THE TUITION (e.g. "Amine paid half"), ask them when they plan to pay the rest (the recovery date).
+            6. If they provide a recovery date (e.g. "rest in June"), set 'deferredUntil' to that date (e.g. "2026-06-01").
+            7. Explain that the missing portion will be tracked as a "Revenue Gap Loss" for this month to help with financial tracking.
+            8. If you generate a command, provide a brief summary.
+            9. If an image was processed and a command returned, start with "✅ [Document Verified]".
+            10. Be professional and context-aware.
             
             FORMAT YOUR RESPONSE AS THIS JSON OBJECT:
             { 

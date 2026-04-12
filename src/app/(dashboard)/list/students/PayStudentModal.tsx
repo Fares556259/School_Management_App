@@ -9,6 +9,7 @@ export default function PayStudentModal({
   studentName,
   gradeLevel,
   isPaid,
+  isPartial,
   isAdmin,
   monthName,
   paidMonths = [],
@@ -17,6 +18,7 @@ export default function PayStudentModal({
   studentName: string;
   gradeLevel: number;
   isPaid: boolean;
+  isPartial?: boolean;
   isAdmin: boolean;
   monthName?: string;
   paidMonths?: string[];
@@ -26,6 +28,8 @@ export default function PayStudentModal({
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
+  const [paidAmount, setPaidAmount] = useState(80 + gradeLevel * 20);
+  const [recoveryMonth, setRecoveryMonth] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // "1 to 6 the monthly paiment change" mapping logic
@@ -44,11 +48,18 @@ export default function PayStudentModal({
     if (!isAdmin || !selectedMonth || isSkipping) return;
 
     startTransition(async () => {
+      const recoveryMonthIdx = allMonths.indexOf(recoveryMonth);
+      const recoveryDate = (paidAmount < tuitionAmount && recoveryMonthIdx !== -1) 
+        ? `2026-${String(recoveryMonthIdx + 1).padStart(2, '0')}-01`
+        : undefined;
+
       const result = await receiveStudentPayment(
         studentId,
         studentName,
-        tuitionAmount,
-        selectedMonth
+        tuitionAmount, 
+        selectedMonth,
+        paidAmount,
+        recoveryDate
       );
       if (result.success) {
         setIsOpen(false);
@@ -67,10 +78,12 @@ export default function PayStudentModal({
         className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors w-24 ${
           isPaid
             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-            : "bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 cursor-pointer"
+            : isPartial
+              ? "bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 cursor-pointer"
+              : "bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 cursor-pointer"
         }`}
       >
-        {isPaid ? "Paid" : "Receive Fee"}
+        {isPaid ? "Paid" : isPartial ? "Partial" : "Receive Fee"}
       </button>
 
       {isOpen && (
@@ -105,6 +118,44 @@ export default function PayStudentModal({
                 ))}
               </select>
             </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Amount Paid ($)
+              </label>
+              <input
+                type="number"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(Number(e.target.value))}
+                max={tuitionAmount}
+                min={1}
+                className="w-full border border-slate-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-lamaSky"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Full tuition for Grade {gradeLevel}: <strong>${tuitionAmount}</strong>
+              </p>
+            </div>
+
+            {paidAmount < tuitionAmount && (
+              <div className="mb-6 animate-in slide-in-from-top-2 duration-300">
+                <label className="block text-sm font-medium text-orange-700 mb-2">
+                  Recovery Month (Rest of Fee)
+                </label>
+                <select
+                  value={recoveryMonth}
+                  onChange={(e) => setRecoveryMonth(e.target.value)}
+                  className="w-full border border-orange-200 bg-orange-50 rounded-md p-2 outline-none focus:ring-2 focus:ring-orange-400"
+                >
+                  <option value="" disabled>-- Select Recovery Month --</option>
+                  {allMonths.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-orange-600 mt-1 italic">
+                  * Scheduling the remaining balance for future recovery.
+                </p>
+              </div>
+            )}
 
             {isSkipping && (
               <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">

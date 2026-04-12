@@ -12,7 +12,7 @@ export async function executeAICommand(command: AICommand) {
   try {
     switch (command.type) {
       case "MARK_PAID": {
-        const { studentId, teacherId, staffId, month, year } = command.data;
+        const { studentId, teacherId, staffId, month, year, amount: paidAmount, deferredUntil, img } = command.data;
         if (!month || !year) throw new Error("Missing month/year data");
         if (!studentId && !teacherId && !staffId) throw new Error("Missing recipient ID");
 
@@ -35,6 +35,11 @@ export async function executeAICommand(command: AICommand) {
 
         if (!payment) throw new Error("No pending payment found for this period");
 
+        const targetAmount = payment.amount;
+        const actualPaid = paidAmount ? parseFloat(paidAmount) : targetAmount;
+        const isPartial = actualPaid < targetAmount;
+        const gap = targetAmount - actualPaid;
+
         const recipient = payment.student 
           ? `${payment.student.name} ${payment.student.surname}`
           : payment.teacher
@@ -43,32 +48,59 @@ export async function executeAICommand(command: AICommand) {
               ? `${payment.staff.name} ${payment.staff.surname}`
               : "Unknown Recipient";
 
-        await prisma.$transaction([
-          prisma.payment.update({
+        const finalStatus = isPartial ? "PARTIAL" : "PAID";
+
+        await prisma.$transaction(async (tx) => {
+          // 1. Update the Payment record
+          await tx.payment.update({
             where: { id: payment.id },
             data: {
-              status: "PAID",
+              status: finalStatus as any,
+              amount: actualPaid, 
+              deferredAmount: isPartial ? gap : 0,
+              deferredUntil: deferredUntil ? new Date(deferredUntil) : null,
               paidAt: new Date(),
-              img: command.data.img || undefined
+              img: img || undefined
             }
-          }),
-          prisma.auditLog.create({
+          });
+
+          // 2. If partial, record the "Loss" as an Expense
+          if (isPartial) {
+            await tx.expense.create({
+              data: {
+                title: `Revenue Gap: ${recipient} (${month}/${year})`,
+                amount: gap,
+                category: "Deferred Revenue Gap",
+                date: new Date()
+              } as any
+            });
+          }
+
+          // 3. Log the action
+          await tx.auditLog.create({
             data: {
               action: "UPDATE",
               performedBy: "zbiba (AI)",
               entityType: "Payment",
               entityId: payment.id.toString(),
-              description: `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
+              description: isPartial 
+                ? `AI marked PARTIAL payment for ${recipient}. Paid ${actualPaid} DT, gap of ${gap} DT recorded as loss.`
+                : `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
               oldValues: payment as any,
-              newValues: { status: "PAID", paidAt: new Date() } as any,
-              amount: payment.amount,
+              newValues: { status: finalStatus, paidAmount: actualPaid, gap } as any,
+              amount: actualPaid,
               type: payment.student ? "income" : "expense"
             }
-          })
-        ]);
+          });
+        });
         
         revalidatePath("/admin");
-        return { success: true, message: `Payment for ${recipient} (${month}/${year}) has been marked as PAID.` };
+        return { 
+          success: true, 
+          message: isPartial 
+            ? `Partial payment recorded for ${recipient}. ${actualPaid} DT collected, remaining ${gap} DT logged as deferral loss.`
+            : `Payment for ${recipient} (${month}/${year}) has been marked as PAID.` 
+        };
       }
 
       case "ADD_EXPENSE": {

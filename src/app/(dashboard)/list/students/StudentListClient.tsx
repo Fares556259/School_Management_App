@@ -46,9 +46,12 @@ export default function StudentListClient({
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
-    const isPaidThisMonth = item.payments.some(
-      (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
+    const currentPayment = item.payments.find(
+      (p) => p.month === monthIdx && p.year === yearVal
     );
+
+    const isPaidThisMonth = currentPayment?.status === "PAID";
+    const isPartialThisMonth = currentPayment?.status === "PARTIAL";
 
     return (
       <tr
@@ -78,10 +81,11 @@ export default function StudentListClient({
             studentName={item.name + " " + item.surname}
             gradeLevel={item.level.level}
             isPaid={isPaidThisMonth}
+            isPartial={isPartialThisMonth}
             isAdmin={role === "admin"}
             monthName={selectedMonthKey}
             paidMonths={item.payments
-              .filter(p => p.status === "PAID")
+              .filter(p => p.status === "PAID" || p.status === "PARTIAL")
               .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
           />
         </td>

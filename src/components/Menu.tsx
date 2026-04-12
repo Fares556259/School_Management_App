@@ -16,6 +16,7 @@ const labelToKey: Record<string, any> = {
   "Teachers": "teachers",
   "Staff": "staff",
   "Students": "students",
+  "Partial Payments": "partialPayments",
   "Parents": "parents",
   "Subjects": "subjects",
   "Classes": "classes",
@@ -103,6 +104,12 @@ const menuItems: MenuSection[] = [
         label: "Students",
         href: "/list/students",
         visible: ["admin", "teacher"],
+      },
+      {
+        icon: "/finance.png",
+        label: "Partial Payments",
+        href: "/list/payments-partial",
+        visible: ["admin"],
       },
       {
         icon: "/parent.png",

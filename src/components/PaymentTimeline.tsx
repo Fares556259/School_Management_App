@@ -14,39 +14,30 @@ export default function PaymentTimeline({
 }) {
   const now = new Date();
   // Build a set of paid months dynamically from structured Payment records
-  const paidMonths = new Set<string>();
+  const paidMonths = new Map<string, "PAID" | "PARTIAL">();
   payments.forEach((p) => {
-    if (p.status === "PAID" && p.month > 0 && p.month <= 12) {
-      paidMonths.add(`${MONTHS[p.month - 1] || "Unknown"} ${p.year}`);
+    if ((p.status === "PAID" || p.status === "PARTIAL") && p.month > 0 && p.month <= 12) {
+      paidMonths.set(`${MONTHS[p.month - 1] || "Unknown"} ${p.year}`, p.status as any);
     }
   });
 
   const schoolMonths = getSchoolYearMonths(now);
   const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 
-  // Generate only unpaid past/current months and paid future months
-  const months: { key: string; short: string; status: "paid" | "unpaid" }[] = [];
+  // Generate status for all school months
+  const months: { key: string; short: string; status: "paid" | "partial" | "unpaid" }[] = [];
   
   schoolMonths.forEach((monthKey: string) => {
     const isPastOrCurrent = monthKey === currentMonthKey || isMonthBefore(monthKey, currentMonthKey);
-    const isPaid = paidMonths.has(monthKey);
+    const paymentStatus = paidMonths.get(monthKey);
 
-    if (isPastOrCurrent && !isPaid) {
-      // Show unpaid past/current in Red
-      const [mName] = monthKey.split(" ");
-      months.push({ 
-        key: monthKey, 
-        short: mName.substring(0, 3),
-        status: "unpaid"
-      });
-    } else if (!isPastOrCurrent && isPaid) {
-      // Show paid future in Green
-      const [mName] = monthKey.split(" ");
-      months.push({ 
-        key: monthKey, 
-        short: mName.substring(0, 3),
-        status: "paid"
-      });
+    const [mName] = monthKey.split(" ");
+    const short = mName.substring(0, 3);
+
+    if (paymentStatus === "PARTIAL") {
+      months.push({ key: monthKey, short, status: "partial" });
+    } else if (!paymentStatus) {
+      months.push({ key: monthKey, short, status: "unpaid" });
     }
   });
 
@@ -57,14 +48,16 @@ export default function PaymentTimeline({
         return (
           <div
             key={m.key}
-            title={`${m.key}: ${isPaid ? "Paid" : "Unpaid"}`}
+            title={`${m.key}: ${m.status.charAt(0).toUpperCase() + m.status.slice(1)}`}
             className="relative group"
           >
             <div
               className={`w-5 h-5 rounded-full text-[8px] font-bold flex items-center justify-center transition-transform hover:scale-125 cursor-default ${
-                isPaid
+                m.status === "paid"
                   ? "bg-emerald-400 text-white"
-                  : "bg-rose-300 text-white"
+                  : m.status === "partial"
+                    ? "bg-orange-400 text-white"
+                    : "bg-rose-300 text-white"
               }`}
             >
               {m.short.charAt(0)}
@@ -72,7 +65,7 @@ export default function PaymentTimeline({
             {/* Tooltip */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-50">
               <div className="bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap">
-                {m.key}: {isPaid ? "✅ Paid" : "❌ Unpaid"}
+                {m.key}: {m.status === "paid" ? "✅ Paid" : m.status === "partial" ? "⚠️ Partial" : "❌ Unpaid"}
               </div>
             </div>
           </div>

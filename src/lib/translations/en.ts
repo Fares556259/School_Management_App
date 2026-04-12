@@ -20,6 +20,7 @@ export const en = {
     profile: "Profile",
     settings: "Settings",
     logout: "Logout",
+    partialPayments: "Partial Payments",
     other: "OTHER"
   },
   navbar: {

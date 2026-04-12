@@ -20,6 +20,7 @@ export const ar = {
     profile: "الملف الشخصي",
     settings: "الإعدادات",
     logout: "تسجيل الخروج",
+    partialPayments: "الدفعات الجزئية",
     other: "أخرى"
   },
   navbar: {

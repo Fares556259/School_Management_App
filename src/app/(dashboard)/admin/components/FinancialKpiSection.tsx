@@ -97,6 +97,7 @@ interface FinancialKpiSectionProps {
   prevExpense: number;
   currentBalance: number;
   prevBalance: number;
+  revenueGap: number;
   isCustomRange?: boolean;
 }
 
@@ -107,6 +108,7 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
   prevExpense,
   currentBalance,
   prevBalance,
+  revenueGap,
   isCustomRange = false
 }) => {
   const { t } = useLanguage();
@@ -117,7 +119,7 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
   const compareLabel = isCustomRange ? t.adminWidgets.vsPrevMonth : t.adminWidgets.vsLastPeriod;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
       <KpiCard 
         title={t.adminWidgets.netBalance}
         value={currentBalance} 
@@ -144,6 +146,13 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
         isCurrency={false} 
         isPercentage 
         compareLabel={compareLabel}
+      />
+      <KpiCard 
+        title="Revenue Gap (Lost)"
+        value={revenueGap} 
+        prevValue={0} 
+        inverseColors
+        compareLabel="Allocated to June"
       />
     </div>
   );
