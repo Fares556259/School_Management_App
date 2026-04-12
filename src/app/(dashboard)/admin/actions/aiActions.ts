@@ -65,7 +65,10 @@ export async function toggleTestAIQuota() {
     
     await prisma.admin.update({
       where: { id: "admin" },
-      data: { aiUsage: newUsage }
+      data: { 
+        aiUsage: newUsage,
+        lastAiUpdate: new Date()
+      }
     });
     
     revalidatePath("/");
