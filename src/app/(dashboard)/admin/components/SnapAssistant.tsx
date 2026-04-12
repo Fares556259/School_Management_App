@@ -4,10 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Minus, Maximize2, Camera } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { getChatResponse, upsertConversation } from '../actions/aiActions';
+import { getChatResponse, upsertConversation, isAIQuotaReached } from '../actions/aiActions';
 import { executeAICommand } from '../actions/crudActions';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/translations/LanguageContext';
+import { Lock } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,6 +43,16 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   const { locale, t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(initialOpen || fullPage);
+  const [isLocked, setIsLocked] = useState(false);
+  const [quota, setQuota] = useState(10);
+
+  useEffect(() => {
+    isAIQuotaReached().then(reached => {
+      if (reached) {
+        setIsLocked(true);
+      }
+    });
+  }, []);
   
   // Initialize with initialMessages if provided, otherwise the welcome message
   const [messages, setMessages] = useState<Message[]>(
@@ -258,44 +269,60 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         </div>
 
         {/* Chat Area - Immersive Slate BG */}
-        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 scroll-smooth bg-slate-50/20">
-          {messages.map((m, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div 
-                className={`max-w-[75%] p-5 rounded-[28px] text-base leading-relaxed ${
-                  m.role === 'user' 
-                    ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100' 
-                    : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm shadow-slate-200/50'
-                }`}
-              >
-                <div className="prose prose-indigo prose-sm max-w-none font-medium">
-                    <ReactMarkdown>
-                        {m.content}
-                    </ReactMarkdown>
-                    {m.image && (
-                      <div className="mt-4 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
-                        <img src={m.image} alt="Uploaded" className="w-full max-h-[500px] object-contain bg-slate-50" />
-                      </div>
-                    )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-          <div ref={messagesEndRef} />
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white p-5 rounded-[28px] rounded-tl-none border border-slate-100 shadow-sm flex gap-1.5 items-center">
-                <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" />
-              </div>
+        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 scroll-smooth bg-slate-50/20 relative">
+          {isLocked && (
+            <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+               <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
+                  <Lock size={24} />
+               </div>
+               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter mb-2">Limite AI Atteinte</h3>
+               <p className="text-sm font-bold text-slate-500 leading-relaxed mb-6 max-w-xs">
+                  Vous avez atteint votre quota de {quota} messages quotidiens. Passez à **Premium** pour des conversations illimitées.
+               </p>
+               <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-black">
+                  Débloquer Premium
+               </button>
             </div>
           )}
+          <div className={isLocked ? 'blur-md select-none pointer-events-none grayscale-[0.5]' : ''}>
+            {messages.map((m, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div 
+                  className={`max-w-[75%] p-5 rounded-[28px] text-base leading-relaxed ${
+                    m.role === 'user' 
+                      ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100' 
+                      : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm shadow-slate-200/50'
+                  }`}
+                >
+                  <div className="prose prose-indigo prose-sm max-w-none font-medium">
+                      <ReactMarkdown>
+                          {m.content}
+                      </ReactMarkdown>
+                      {m.image && (
+                        <div className="mt-4 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                          <img src={m.image} alt="Uploaded" className="w-full max-h-[500px] object-contain bg-slate-50" />
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+            <div ref={messagesEndRef} />
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white p-5 rounded-[28px] rounded-tl-none border border-slate-100 shadow-sm flex gap-1.5 items-center">
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Input Area - Centered & Premium */}
@@ -393,44 +420,60 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scroll-smooth">
-              {messages.map((m, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: m.role === 'user' ? 10 : -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`max-w-[85%] p-4 rounded-[24px] text-sm leading-relaxed ${
-                      m.role === 'user' 
-                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-lg shadow-indigo-100' 
-                        : 'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none'
-                    }`}
-                  >
-                    <div className="prose prose-sm font-medium">
-                        <ReactMarkdown>
-                            {m.content}
-                        </ReactMarkdown>
-                        {m.image && (
-                          <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-                            <img src={m.image} alt="Uploaded" className="w-full max-h-48 object-cover" />
-                          </div>
-                        )}
-                    </div>
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scroll-smooth relative">
+              {isLocked && (
+                <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500 rounded-b-[32px]">
+                  <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-indigo-100 ring-4 ring-indigo-50">
+                      <Lock size={18} />
                   </div>
-                </motion.div>
-              ))}
-              <div ref={messagesEndRef} />
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-indigo-50 p-4 rounded-[24px] rounded-tl-none flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" />
-                  </div>
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tighter mb-1">Limite Atteinte</h3>
+                  <p className="text-[10px] font-bold text-slate-500 leading-relaxed mb-4 max-w-[200px]">
+                      {quota}/{quota} messages. Passez à **Premium** pour continuer.
+                  </p>
+                  <button className="px-4 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100">
+                      Premium
+                  </button>
                 </div>
               )}
+              <div className={isLocked ? 'blur-sm select-none pointer-events-none grayscale-[0.5]' : ''}>
+                {messages.map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: m.role === 'user' ? 10 : -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`max-w-[85%] p-4 rounded-[24px] text-sm leading-relaxed ${
+                        m.role === 'user' 
+                          ? 'bg-indigo-600 text-white rounded-tr-none shadow-lg shadow-indigo-100' 
+                          : 'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none'
+                      }`}
+                    >
+                      <div className="prose prose-sm font-medium">
+                          <ReactMarkdown>
+                              {m.content}
+                          </ReactMarkdown>
+                          {m.image && (
+                            <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                              <img src={m.image} alt="Uploaded" className="w-full max-h-48 object-cover" />
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                <div ref={messagesEndRef} />
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-indigo-50 p-4 rounded-[24px] rounded-tl-none flex gap-1 items-center">
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Input Area */}
