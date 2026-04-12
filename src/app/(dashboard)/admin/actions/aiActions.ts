@@ -3,7 +3,66 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+export async function getAIUsageStats() {
+  try {
+    const admin = await prisma.admin.findFirst();
+    if (!admin) return { usage: 0, quota: 10 };
+    
+    // Check for daily reset
+    const now = new Date();
+    const lastUpdate = new Date(admin.lastAiUpdate);
+    
+    if (now.toDateString() !== lastUpdate.toDateString()) {
+      await prisma.admin.update({
+        where: { id: admin.id },
+        data: { aiUsage: 0, lastAiUpdate: now }
+      });
+      return { usage: 0, quota: admin.aiQuota };
+    }
+    
+    return { usage: admin.aiUsage, quota: admin.aiQuota };
+  } catch (error) {
+    console.error("Failed to fetch AI usage stats:", error);
+    return { usage: 0, quota: 10 };
+  }
+}
+
+async function checkAndIncrementUsage() {
+  try {
+    const admin = await prisma.admin.findFirst();
+    if (!admin) return { allowed: true }; // Should not happen in real app
+
+    const now = new Date();
+    const lastUpdate = new Date(admin.lastAiUpdate);
+
+    let currentUsage = admin.aiUsage;
+    if (now.toDateString() !== lastUpdate.toDateString()) {
+      currentUsage = 0;
+    }
+
+    if (currentUsage >= admin.aiQuota) {
+      return { allowed: false, quota: admin.aiQuota };
+    }
+
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: { 
+        aiUsage: currentUsage + 1,
+        lastAiUpdate: now
+      }
+    });
+
+    return { allowed: true };
+  } catch (error) {
+    console.error("Usage check error:", error);
+    return { allowed: true }; // Fail safe
+  }
+}
+
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
+  const usage = await checkAndIncrementUsage();
+  if (!usage.allowed) throw new Error(`DAILY_QUOTA_REACHED|${usage.quota}`);
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("API key missing");
 
@@ -48,6 +107,9 @@ export async function getChatResponse(
   locale = "fr",
   history: any[] = []
 ) {
+  const usage = await checkAndIncrementUsage();
+  if (!usage.allowed) return { success: false, error: `DAILY_QUOTA_REACHED|${usage.quota}` };
+
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) return { success: false, error: "API key missing" };
 

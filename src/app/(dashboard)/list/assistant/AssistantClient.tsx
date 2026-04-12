@@ -10,18 +10,21 @@ const AssistantClient = ({
   activities,
   chatHistory,
   month,
-  year
+  year,
+  usageStats
 }: {
   dashboardContext: any;
   activities: any[];
   chatHistory: any[];
   month: number;
   year: number;
+  usageStats: { usage: number; quota: number };
 }) => {
   const [activeSession, setActiveSession] = useState("new");
   const [chatKey, setChatKey] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [initialMessages, setInitialMessages] = useState<any[]>([]);
+  const [currentUsage, setCurrentUsage] = useState(usageStats);
 
   const handleNewChat = () => {
     setChatKey(prev => prev + 1);
@@ -121,6 +124,8 @@ const AssistantClient = ({
         activeId={activeSession}
         onSelect={handleSelectActivity}
         onNewChat={handleNewChat}
+        usage={currentUsage.usage}
+        quota={currentUsage.quota}
       />
 
       {/* 2. Main Chat Area */}
@@ -131,6 +136,9 @@ const AssistantClient = ({
             context={dashboardContext} 
             fullPage={true} 
             onNewChat={handleNewChat}
+            onUsageUpdate={() => {
+              setCurrentUsage(prev => ({ ...prev, usage: prev.usage + 1 }));
+            }}
             initialMessages={initialMessages}
             activeSessionId={activeSession}
             month={month}

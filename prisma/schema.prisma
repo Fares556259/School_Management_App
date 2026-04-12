@@ -7,13 +7,16 @@ datasource db {
 }
 
 model Admin {
-  id       String @id
-  username String @unique
-  email    String? @unique
-  name     String?
-  surname  String?
-  phone    String?
-  img      String?
+  id           String    @id
+  username     String    @unique
+  email        String?   @unique
+  name         String?
+  surname      String?
+  phone        String?
+  img          String?
+  aiUsage      Int       @default(0)
+  aiQuota      Int       @default(10)
+  lastAiUpdate DateTime  @default(now())
 }
 
 model Staff {

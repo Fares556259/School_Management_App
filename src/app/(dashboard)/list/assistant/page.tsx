@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
 import AssistantClient from "./AssistantClient";
+import { getAIUsageStats } from "../../admin/actions/aiActions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,8 @@ export default async function AssistantPage() {
     gradeSheets,
     revenueGapThisPeriod,
     aiLogs,
-    dbConversations
+    dbConversations,
+    usageStats
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -46,7 +48,8 @@ export default async function AssistantPage() {
     (prisma as any).conversation ? (prisma as any).conversation.findMany({
       where: { month: startDate.getMonth() + 1, year: startDate.getFullYear() },
       orderBy: { updatedAt: "desc" }
-    }) : Promise.resolve([])
+    }) : Promise.resolve([]),
+    getAIUsageStats()
   ]);
 
   const aiActivities = aiLogs.map(log => ({
@@ -81,6 +84,7 @@ export default async function AssistantPage() {
       chatHistory={chatHistory}
       month={startDate.getMonth() + 1}
       year={startDate.getFullYear()}
+      usageStats={usageStats}
     />
   );
 }

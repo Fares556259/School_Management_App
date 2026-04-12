@@ -1,20 +1,28 @@
 "use client";
 import React from 'react';
 import { Plus, Search, MessageSquare, History, Sparkles, LogOut } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface AssistantSidebarProps {
   conversations: { id: string; title: string; date: string; fullDesc?: string; type?: 'CHAT' | 'LOG'; messages?: any[] }[];
   activeId: string;
   onSelect: (item: any) => void;
   onNewChat: () => void;
+  usage: number;
+  quota: number;
 }
 
 const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   conversations,
   activeId,
   onSelect,
-  onNewChat
+  onNewChat,
+  usage,
+  quota
 }) => {
+  const usagePercentage = Math.min((usage / quota) * 100, 100);
+  const isCloseToLimit = usagePercentage > 80;
+
   return (
     <div className="w-[300px] bg-slate-50/50 border-r border-slate-100 h-full flex flex-col p-6 text-slate-600">
       {/* New Chat Button - SnapSchool Style */}
@@ -100,6 +108,36 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
         </div>
       </div>
 
+      {/* AI Usage Limits & Monetization Section */}
+      <div className="mt-8 mb-6 bg-white rounded-3xl p-5 border border-slate-100 shadow-sm border-b-2 border-b-indigo-100">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-500">
+              <Sparkles size={12} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tight text-slate-500">Quota AI Quotidien</span>
+          </div>
+          <span className={`text-[10px] font-black ${isCloseToLimit ? 'text-amber-500' : 'text-slate-400'}`}>
+            {usage}/{quota}
+          </span>
+        </div>
+        
+        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mb-4">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${usagePercentage}%` }}
+            className={`h-full rounded-full transition-colors duration-500 ${
+              isCloseToLimit ? 'bg-amber-400' : 'bg-indigo-500'
+            }`}
+          />
+        </div>
+
+        <button className="w-full py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group border border-amber-100">
+          <Sparkles size={12} className="group-hover:scale-125 transition-transform" />
+          <span>Passer à Premium</span>
+        </button>
+      </div>
+
       {/* Footer / User - SnapSchool Style */}
       <div className="mt-auto pt-6 border-t border-slate-100">
         <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
@@ -111,7 +149,7 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                     <p className="text-xs font-black text-slate-900">Admin Fares</p>
                     <div className="flex items-center gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Plan Enterprise</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Plan Freemium</p>
                     </div>
                 </div>
             </div>

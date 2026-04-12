@@ -20,6 +20,7 @@ interface SnapAssistantProps {
   fullPage?: boolean;
   initialOpen?: boolean;
   onNewChat?: () => void;
+  onUsageUpdate?: () => void;
   initialMessages?: Message[];
   activeSessionId?: string;
   month?: number;
@@ -31,6 +32,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   fullPage = false,
   initialOpen = false,
   onNewChat,
+  onUsageUpdate,
   initialMessages = [],
   activeSessionId = "new",
   month = new Date().getMonth() + 1,
@@ -157,6 +159,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
       const result = await getChatResponse(userMessage, context, imageBase64, locale, messages);
 
       if (result.response) {
+        // ... success logic ...
+        if (onUsageUpdate) onUsageUpdate();
         const userMsgObj: Message = { 
           role: 'user', 
           content: userMessage || "Sent an image for analysis.",
@@ -189,14 +193,11 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         
         // HANDLE AI COMMANDS
         if (result.command) {
-          // ... existing command logic remains below ...
           setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *${t.zbiba.processing}: ${result.command.type}...*` }]);
           
-          // Attach image if we have one (either from this turn or inferred)
           if (uploadedUrl) {
             result.command.data.img = uploadedUrl;
           } else {
-            // Check history for the most recent image URL if this is a confirmation turn
             const lastImageMsg = [...messages].reverse().find(m => m.image);
             if (lastImageMsg && lastImageMsg.image?.startsWith('http')) {
                result.command.data.img = lastImageMsg.image;
@@ -212,7 +213,15 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           }
         }
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.error || "I'm sorry, I'm having trouble connecting right now." }]);
+        if (result.error?.startsWith("DAILY_QUOTA_REACHED")) {
+          const quota = result.error.split("|")[1] || "10";
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `✨ **Limite Quotidienne Atteinte** (${quota}/${quota})\n\nZbiba a besoin de plus d'énergie pour continuer ses analyses stratégiques aujourd'hui. \n\n🚀 **Passez à SnapSchool Premium** pour débloquer :\n- ⚡️ Analyses illimitées 24/7\n- 📊 Rapports financiers avancés\n- 🛡️ Support Prioritaire\n\n[Cliquez sur "Passer à Premium" dans la barre latérale pour continuer !]` 
+          }]);
+        } else {
+          setMessages(prev => [...prev, { role: 'assistant', content: result.error || "I'm sorry, I'm having trouble connecting right now." }]);
+        }
       }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: "❌ **Error**: Connection failed." }]);
