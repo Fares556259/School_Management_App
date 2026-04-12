@@ -3,7 +3,7 @@ import React from 'react';
 import { Plus, Search, MessageSquare, History, Sparkles, LogOut } from 'lucide-react';
 
 interface AssistantSidebarProps {
-  conversations: { id: string; title: string; date: string; fullDesc?: string }[];
+  conversations: { id: string; title: string; date: string; fullDesc?: string; type?: 'CHAT' | 'LOG'; messages?: any[] }[];
   activeId: string;
   onSelect: (item: any) => void;
   onNewChat: () => void;
@@ -38,12 +38,46 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
 
       {/* Categories */}
       <div className="flex-1 overflow-y-auto space-y-8 scrollbar-hide">
+        {/* 1. Chat History */}
         <div>
           <div className="flex items-center justify-between mb-4 px-2">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Récents</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Récents (Chats)</h4>
           </div>
           <div className="space-y-1.5">
-            {conversations.map((conv) => (
+            {conversations.filter(c => c.type === 'CHAT').length > 0 ? (
+              conversations.filter(c => c.type === 'CHAT').map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => onSelect(conv)}
+                  className={`flex items-center gap-3 w-full p-3.5 rounded-2xl transition-all text-left group ${
+                    activeId === conv.id 
+                      ? 'bg-white shadow-sm border border-slate-100 text-indigo-600 ring-2 ring-indigo-500/5' 
+                      : 'hover:bg-white/60 text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <div className={`p-2 rounded-xl ${activeId === conv.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100/50 text-slate-400'} group-hover:scale-110 transition-transform`}>
+                      <MessageSquare size={14} />
+                  </div>
+                  <div className="overflow-hidden flex-1">
+                    <p className="text-xs font-black truncate leading-none">{conv.title}</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter mt-1">{conv.date}</p>
+                  </div>
+                </button>
+              ))
+            ) : (
+                <p className="text-[10px] text-slate-300 font-bold px-4 italic">Aucun chat enregistré</p>
+            )}
+          </div>
+        </div>
+
+        {/* 2. Intelligence / Memory Log */}
+        <div>
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 px-2 flex items-center gap-2">
+            <Sparkles size={10} className="text-indigo-400" />
+            Memory Log (Actions)
+          </h4>
+          <div className="space-y-1.5">
+            {conversations.filter(c => c.type === 'LOG').map((conv) => (
               <button
                 key={conv.id}
                 onClick={() => onSelect(conv)}
@@ -53,8 +87,8 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                     : 'hover:bg-white/60 text-slate-500 hover:text-slate-900'
                 }`}
               >
-                <div className={`p-2 rounded-xl ${activeId === conv.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100/50 text-slate-400'} group-hover:scale-110 transition-transform`}>
-                    <MessageSquare size={14} />
+                <div className={`p-2 rounded-xl ${activeId === conv.id ? 'bg-amber-50 text-amber-600' : 'bg-slate-100/50 text-slate-400'} group-hover:scale-110 transition-transform`}>
+                    <History size={14} />
                 </div>
                 <div className="overflow-hidden flex-1">
                   <p className="text-xs font-black truncate leading-none">{conv.title}</p>
@@ -62,24 +96,6 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                 </div>
               </button>
             ))}
-          </div>
-        </div>
-
-        <div>
-          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 px-2">Intelligence</h4>
-          <div className="space-y-1.5">
-            <button className="flex items-center gap-3 w-full p-3.5 rounded-2xl hover:bg-white/60 transition-all text-left group">
-              <div className="p-2 rounded-xl bg-amber-50 text-amber-500 group-hover:scale-110 transition-transform">
-                <Sparkles size={14} />
-              </div>
-              <span className="text-xs font-black">AI Models Beta</span>
-            </button>
-            <button className="flex items-center gap-3 w-full p-3.5 rounded-2xl hover:bg-white/60 transition-all text-left group">
-              <div className="p-2 rounded-xl bg-sky-50 text-sky-500 group-hover:scale-110 transition-transform">
-                <History size={14} />
-              </div>
-              <span className="text-xs font-black">Memory Log</span>
-            </button>
           </div>
         </div>
       </div>

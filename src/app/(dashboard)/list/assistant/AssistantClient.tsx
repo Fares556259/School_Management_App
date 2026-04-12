@@ -7,24 +7,37 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const AssistantClient = ({
   dashboardContext,
-  activities
+  activities,
+  chatHistory,
+  month,
+  year
 }: {
   dashboardContext: any;
   activities: any[];
+  chatHistory: any[];
+  month: number;
+  year: number;
 }) => {
   const [activeSession, setActiveSession] = useState("new");
   const [chatKey, setChatKey] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const [initialMessages, setInitialMessages] = useState<any[]>([]);
 
   const handleNewChat = () => {
     setChatKey(prev => prev + 1);
     setActiveSession("new");
     setSelectedActivity(null);
+    setInitialMessages([]);
   };
 
   const handleSelectActivity = (item: any) => {
     setActiveSession(item.id);
-    setSelectedActivity(item);
+    if (item.type === "LOG") {
+      setSelectedActivity(item);
+    } else if (item.type === "CHAT") {
+      setInitialMessages(item.messages || []);
+      setChatKey(prev => prev + 1);
+    }
   };
 
   return (
@@ -104,7 +117,7 @@ const AssistantClient = ({
 
       {/* 1. ChatGPT-Style Sidebar */}
       <AssistantSidebar 
-        conversations={activities}
+        conversations={[...chatHistory, ...activities]}
         activeId={activeSession}
         onSelect={handleSelectActivity}
         onNewChat={handleNewChat}
@@ -118,6 +131,10 @@ const AssistantClient = ({
             context={dashboardContext} 
             fullPage={true} 
             onNewChat={handleNewChat}
+            initialMessages={initialMessages}
+            activeSessionId={activeSession}
+            month={month}
+            year={year}
           />
         </div>
       </div>

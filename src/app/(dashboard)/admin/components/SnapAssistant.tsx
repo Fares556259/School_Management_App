@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Minus, Maximize2, Camera } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { getChatResponse } from '../actions/aiActions';
+import { getChatResponse, upsertConversation } from '../actions/aiActions';
 import { executeAICommand } from '../actions/crudActions';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/translations/LanguageContext';
@@ -20,21 +20,35 @@ interface SnapAssistantProps {
   fullPage?: boolean;
   initialOpen?: boolean;
   onNewChat?: () => void;
+  initialMessages?: Message[];
+  activeSessionId?: string;
+  month?: number;
+  year?: number;
 }
 
 const SnapAssistant: React.FC<SnapAssistantProps> = ({ 
   context, 
   fullPage = false,
   initialOpen = false,
-  onNewChat
+  onNewChat,
+  initialMessages = [],
+  activeSessionId = "new",
+  month = new Date().getMonth() + 1,
+  year = new Date().getFullYear()
 }) => {
   const router = useRouter();
   const { locale, t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(initialOpen || fullPage);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: t.zbiba.welcome }
-  ]);
+  
+  // Initialize with initialMessages if provided, otherwise the welcome message
+  const [messages, setMessages] = useState<Message[]>(
+    initialMessages.length > 0 
+      ? initialMessages 
+      : [{ role: 'assistant', content: t.zbiba.welcome }]
+  );
+  
+  const [currentSessionId, setCurrentSessionId] = useState(activeSessionId);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -143,10 +157,39 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
       const result = await getChatResponse(userMessage, context, imageBase64, locale, messages);
 
       if (result.response) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
+        const userMsgObj: Message = { 
+          role: 'user', 
+          content: userMessage || "Sent an image for analysis.",
+          image: uploadedUrl || undefined 
+        };
+        const assistantMsgObj: Message = { 
+          role: 'assistant', 
+          content: result.response 
+        };
+        
+        const newMessages = [...messages, userMsgObj, assistantMsgObj];
+
+        setMessages(newMessages);
+
+        // PERSIST TO DATABASE
+        const saveRes = await upsertConversation({
+          id: currentSessionId === "new" ? undefined : currentSessionId,
+          title: currentSessionId === "new" ? (userMessage.substring(0, 30) + "...") : "Continued Conversation",
+          messages: newMessages,
+          month,
+          year
+        });
+
+        if (saveRes.success && saveRes.conversation) {
+          if (currentSessionId === "new") {
+            setCurrentSessionId(saveRes.conversation.id);
+            if (!fullPage) router.refresh(); // Refresh sidebar in mini-mode
+          }
+        }
         
         // HANDLE AI COMMANDS
         if (result.command) {
+          // ... existing command logic remains below ...
           setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *${t.zbiba.processing}: ${result.command.type}...*` }]);
           
           // Attach image if we have one (either from this turn or inferred)

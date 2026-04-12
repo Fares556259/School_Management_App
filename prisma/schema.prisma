@@ -324,3 +324,16 @@ model ReportSubscriber {
   name      String?
   createdAt DateTime @default(now())
 }
+
+model Conversation {
+  id        String   @id @default(cuid())
+  title     String
+  messages  Json     // Array of { role: string, content: string, timestamp: string }
+  userId    String?  // Optional for now or link to Admin
+  month     Int
+  year      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([month, year])
+}

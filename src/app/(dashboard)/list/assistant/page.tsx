@@ -21,7 +21,8 @@ export default async function AssistantPage() {
     schoolClasses,
     gradeSheets,
     revenueGapThisPeriod,
-    aiLogs
+    aiLogs,
+    dbConversations
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -41,14 +42,27 @@ export default async function AssistantPage() {
       where: { performedBy: "zbiba (AI)" },
       orderBy: { timestamp: "desc" },
       take: 10
+    }),
+    prisma.conversation.findMany({
+      where: { month: startDate.getMonth() + 1, year: startDate.getFullYear() },
+      orderBy: { updatedAt: "desc" }
     })
   ]);
 
   const aiActivities = aiLogs.map(log => ({
-    id: log.id.toString(),
+    id: `log-${log.id}`,
+    type: "LOG",
     title: log.description.length > 40 ? log.description.substring(0, 37) + "..." : log.description,
     fullDesc: log.description,
     date: log.timestamp.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase()
+  }));
+
+  const chatHistory = dbConversations.map(conv => ({
+    id: conv.id,
+    type: "CHAT",
+    title: conv.title,
+    messages: conv.messages,
+    date: conv.updatedAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase()
   }));
 
   const dashboardContext = {
@@ -60,5 +74,13 @@ export default async function AssistantPage() {
     operations: { notices: allNotices.map(n => ({ title: n.title, message: n.message, date: n.date })) }
   };
 
-  return <AssistantClient dashboardContext={dashboardContext} activities={aiActivities} />;
+  return (
+    <AssistantClient 
+      dashboardContext={dashboardContext} 
+      activities={aiActivities} 
+      chatHistory={chatHistory}
+      month={startDate.getMonth() + 1}
+      year={startDate.getFullYear()}
+    />
+  );
 }
