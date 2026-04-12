@@ -19,12 +19,14 @@ interface SnapAssistantProps {
   context: any;
   fullPage?: boolean;
   initialOpen?: boolean;
+  onNewChat?: () => void;
 }
 
 const SnapAssistant: React.FC<SnapAssistantProps> = ({ 
   context, 
   fullPage = false,
-  initialOpen = false
+  initialOpen = false,
+  onNewChat
 }) => {
   const router = useRouter();
   const { locale, t } = useLanguage();
