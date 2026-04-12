@@ -4,7 +4,34 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function getAIUsageStats() {
-  return { usage: 10, quota: 10 };
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const admin = await prisma.admin.findUnique({
+      where: { id: "admin" }, // Static for now as requested
+      select: { aiUsage: true, aiLimit: true, lastAIUsageReset: true }
+    });
+
+    if (!admin) return { usage: 0, quota: 10 };
+
+    // Reset if it's a new day
+    const lastReset = admin.lastAIUsageReset ? new Date(admin.lastAIUsageReset) : new Date(0);
+    lastReset.setHours(0, 0, 0, 0);
+
+    if (today > lastReset) {
+      await prisma.admin.update({
+        where: { id: "admin" },
+        data: { aiUsage: 0, lastAIUsageReset: today }
+      });
+      return { usage: 0, quota: admin.aiLimit || 10 };
+    }
+
+    return { usage: admin.aiUsage || 0, quota: admin.aiLimit || 10 };
+  } catch (error) {
+    console.error("Failed to fetch AI usage:", error);
+    return { usage: 0, quota: 10 };
+  }
 }
 
 export async function isAIQuotaReached() {
@@ -13,7 +40,22 @@ export async function isAIQuotaReached() {
 }
 
 async function checkAndIncrementUsage() {
-  return { allowed: false, quota: 10 };
+  try {
+    const stats = await getAIUsageStats();
+    if (stats.usage >= stats.quota) {
+      return { allowed: false, quota: stats.quota };
+    }
+
+    await prisma.admin.update({
+      where: { id: "admin" },
+      data: { aiUsage: { increment: 1 } }
+    });
+
+    return { allowed: true, quota: stats.quota };
+  } catch (error) {
+    console.error("Failed to increment AI usage:", error);
+    return { allowed: true, quota: 10 }; // Graceful fallback
+  }
 }
 
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
