@@ -479,9 +479,9 @@ export default function GradeSheetRecorder({
                   <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-2 shadow-lg shadow-indigo-200 ring-4 ring-indigo-50">
                     <Lock size={16} />
                   </div>
-                  <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-tighter mb-1">Fonctionnalité Premium</h3>
+                  <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-tighter mb-1">Premium Feature</h3>
                   <p className="text-[8px] font-bold text-slate-500 leading-tight mb-3">
-                      Scan IA limité à 10/10. Passez à **Premium** pour débloquer.
+                      AI Scanning limited to 10/10. Upgrade to **Premium** to unlock.
                   </p>
                   <button className="px-5 py-2 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center gap-2">
                     <Sparkles size={12} />

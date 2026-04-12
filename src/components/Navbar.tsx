@@ -87,7 +87,7 @@ const Navbar = () => {
                    ? 'bg-amber-100 border-amber-200 text-amber-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200' 
                    : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200'
                 }`}
-                title={aiStats.usage >= aiStats.quota ? "Cliquez pour DÉBLOQUER (Test)" : "Cliquez pour BLOQUER (Test)"}
+                title={aiStats.usage >= aiStats.quota ? "Click to UNLOCK (Test)" : "Click to LOCK (Test)"}
              >
                 {isToggling ? (
                    <RefreshCw size={12} className="animate-spin" />
