@@ -3,9 +3,9 @@ import React from 'react';
 import { Plus, Search, MessageSquare, History, Sparkles, LogOut } from 'lucide-react';
 
 interface AssistantSidebarProps {
-  conversations: { id: string; title: string; date: string }[];
+  conversations: { id: string; title: string; date: string; fullDesc?: string }[];
   activeId: string;
-  onSelect: (id: string) => void;
+  onSelect: (item: any) => void;
   onNewChat: () => void;
 }
 
@@ -46,7 +46,7 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
             {conversations.map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => onSelect(conv.id)}
+                onClick={() => onSelect(conv)}
                 className={`flex items-center gap-3 w-full p-3.5 rounded-2xl transition-all text-left group ${
                   activeId === conv.id 
                     ? 'bg-white shadow-sm border border-slate-100 text-indigo-600 ring-2 ring-indigo-500/5' 
