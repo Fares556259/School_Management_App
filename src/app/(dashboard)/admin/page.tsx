@@ -126,7 +126,10 @@ const AdminPage = async ({
     teacherTimetables,
     maleStudentCount,
     femaleStudentCount,
-    gradeSheets
+    gradeSheets,
+    // DEFERRAL DATA
+    deferredPaymentsThisPeriod,
+    revenueGapThisPeriod
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -259,7 +262,10 @@ const AdminPage = async ({
     }),
     prisma.student.count({ where: { sex: "MALE" } }),
     prisma.student.count({ where: { sex: "FEMALE" } }),
-    prisma.gradeSheet.findMany({ select: { classId: true, subjectId: true, term: true } })
+    prisma.gradeSheet.findMany({ select: { classId: true, subjectId: true, term: true } }),
+    // NEW DEFERRAL TRACKING (PHASE 4)
+    prisma.payment.aggregate({ _sum: { deferredAmount: true }, where: { month: startDate.getMonth() + 1, year: startDate.getFullYear() } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "Deferred Revenue Gap", date: { gte: startDate, lt: endDate } } })
   ]);
 
   // Map Personnel Payments for AI
@@ -314,6 +320,7 @@ const AdminPage = async ({
   const prevIncome = (incomePrevPeriod._sum.amount || 0) + (studentPaymentsPrevPeriod._sum.amount || 0);
   const prevExpense = (expensePrevPeriod._sum.amount || 0) + (salaryPaymentsPrevPeriod._sum.amount || 0);
   const prevBalance = prevIncome - prevExpense;
+  const revenueGap = revenueGapThisPeriod._sum.amount || 0;
 
   // Process Historical Data (Last 12 Months)
   const trendData = [];
@@ -520,6 +527,7 @@ const AdminPage = async ({
           prevExpense={prevExpense}
           currentBalance={currentBalance}
           prevBalance={prevBalance}
+          revenueGap={revenueGap}
           isCustomRange={!!(queryMonth && queryYear)}
         />
 

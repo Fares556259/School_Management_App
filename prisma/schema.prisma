@@ -238,6 +238,8 @@ model Payment {
   teacherId String?
   staffId   String?
   img       String?
+  deferredAmount Float?    @default(0)
+  deferredUntil  DateTime?
   staff     Staff?        @relation(fields: [staffId], references: [id])
   student   Student?      @relation(fields: [studentId], references: [id])
   teacher   Teacher?      @relation(fields: [teacherId], references: [id])
@@ -280,6 +282,7 @@ enum PaymentStatus {
   PENDING
   PAID
   OVERDUE
+  PARTIAL
 }
 
 model Notice {
