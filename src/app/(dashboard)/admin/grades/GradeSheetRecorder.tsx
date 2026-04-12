@@ -70,6 +70,8 @@ export default function GradeSheetRecorder({
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanWarnings, setScanWarnings] = useState<string[]>([]);
+  const [aiFilledIds, setAiFilledIds] = useState<Set<string>>(new Set());
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [leftWidth, setLeftWidth] = useState(50); // Percentage for the left panel
@@ -168,6 +170,8 @@ export default function GradeSheetRecorder({
     
     setIsScanning(true);
     setScanError(null);
+    setScanWarnings([]);
+    setAiFilledIds(new Set());
 
     try {
       let imageInput: string;
@@ -197,13 +201,32 @@ export default function GradeSheetRecorder({
         imageInput = proofPreviewUrl!;
       }
 
-      // 2. Call AI Action
-      const result = await extractGradesFromImage(imageInput, students);
+      // 2. Call AI Action with full context (using single object signature for stability)
+      const currentClassName = classes.find(c => c.id === classId)?.name || "Unknown";
+      const currentSubjectName = subjects.find(s => s.id === subjectId)?.name || "Unknown";
+      
+      const result = await extractGradesFromImage({
+        imageInput,
+        students,
+        context: {
+          subject: currentSubjectName,
+          term: `Term ${term}`,
+          className: currentClassName
+        }
+      });
 
       if (result.error) {
         setScanError(result.error);
-      } else if (result.data) {
-        setGrades(prev => ({ ...prev, ...result.data }));
+      } else {
+        if (result.data) {
+          setGrades(prev => ({ ...prev, ...result.data }));
+          setAiFilledIds(new Set(Object.keys(result.data)));
+          // Clear highlighter after a few seconds
+          setTimeout(() => setAiFilledIds(new Set()), 5000);
+        }
+        if (result.warnings) {
+          setScanWarnings(result.warnings);
+        }
       }
     } catch (err: any) {
       console.error("Scan failed:", err);
@@ -476,9 +499,30 @@ export default function GradeSheetRecorder({
             </div>
           )}
           {scanError && (
-            <div className="px-4 py-2 bg-rose-50 border-t border-rose-100 text-[10px] font-bold text-rose-500 text-center">
+            <div className="px-4 py-3 bg-rose-50 border-t border-rose-100 text-[10px] font-black text-rose-500 text-center animate-shake">
               ⚠️ {scanError}
             </div>
+          )}
+          {scanWarnings.length > 0 && !isScanning && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              className="px-4 py-3 bg-amber-50 border-t border-amber-200 flex flex-col gap-1"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs">⚠️</span>
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">AI Validation Warnings</span>
+              </div>
+              {scanWarnings.map((w, i) => (
+                <p key={i} className="text-[10px] font-bold text-amber-700 leading-tight">• {w}</p>
+              ))}
+              <button 
+                onClick={() => setScanWarnings([])}
+                className="text-[9px] font-black text-amber-500 uppercase tracking-tight mt-1 hover:text-amber-600 self-end"
+              >
+                Dismiss
+              </button>
+            </motion.div>
           )}
         </div>
 
@@ -530,8 +574,10 @@ export default function GradeSheetRecorder({
                     pct >= 50 ? "text-amber-500" :
                     "text-rose-500";
 
+                  const isAiFilled = aiFilledIds.has(student.id);
+
                   return (
-                    <tr key={student.id} className={`border-b border-slate-50 ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"} hover:bg-indigo-50/30 transition-colors group`}>
+                    <tr key={student.id} className={`border-b border-slate-50 ${isAiFilled ? "bg-indigo-50/50" : idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"} hover:bg-indigo-50/30 transition-all group`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">

@@ -35,22 +35,33 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [lastDataHash, setLastDataHash] = useState("");
+
   useEffect(() => {
+    const currentDataHash = JSON.stringify({ income, expense, breakdown, prevIncome, month, dailyData, locale });
+    if (currentDataHash === lastDataHash) return;
+
     const fetchAiInsights = async () => {
       setIsLoading(true);
+      setLastDataHash(currentDataHash);
       
-      const result = await getFinancialInsights({
-        income,
-        expense,
-        breakdown,
-        prevIncome,
-        month,
-        dailyData
-      }, locale);
+      try {
+        const result = await getFinancialInsights({
+          income,
+          expense,
+          breakdown,
+          prevIncome,
+          month,
+          dailyData
+        }, locale);
 
-      if (Array.isArray(result)) {
-        setInsights(result);
-      } else {
+        if (Array.isArray(result)) {
+          setInsights(result);
+        } else {
+          throw new Error("Invalid AI response");
+        }
+      } catch (err) {
+        console.error("AI Insight Error:", err);
         // FALLBACK: Rule-based logic if AI fails or key is missing
         const fallbackInsights: Insight[] = [];
         
@@ -88,7 +99,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
     };
 
     fetchAiInsights();
-  }, [income, expense, breakdown, prevIncome, month, dailyData]);
+  }, [income, expense, breakdown, prevIncome, month, dailyData, locale, lastDataHash]);
 
   return (
     <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 ${className || ''}`}>
