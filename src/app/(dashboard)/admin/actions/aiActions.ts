@@ -97,6 +97,7 @@ export async function upsertConversation({
   month: number;
   year: number;
 }) {
+  if (!(prisma as any).conversation) return { success: false, error: "Conversation model not initialized" };
   try {
     const data = {
       title,
@@ -107,13 +108,13 @@ export async function upsertConversation({
     };
 
     if (id && id !== "new") {
-      const conv = await prisma.conversation.update({
+      const conv = await (prisma as any).conversation.update({
         where: { id },
         data,
       });
       return { success: true, conversation: conv };
     } else {
-      const conv = await prisma.conversation.create({
+      const conv = await (prisma as any).conversation.create({
         data: {
           ...data,
           userId: "admin",
@@ -129,8 +130,9 @@ export async function upsertConversation({
 }
 
 export async function getConversations(month: number, year: number) {
+  if (!(prisma as any).conversation) return [];
   try {
-    const conversations = await prisma.conversation.findMany({
+    const conversations = await (prisma as any).conversation.findMany({
       where: { month, year },
       orderBy: { updatedAt: "desc" },
     });

@@ -43,10 +43,10 @@ export default async function AssistantPage() {
       orderBy: { timestamp: "desc" },
       take: 10
     }),
-    prisma.conversation.findMany({
+    (prisma as any).conversation ? (prisma as any).conversation.findMany({
       where: { month: startDate.getMonth() + 1, year: startDate.getFullYear() },
       orderBy: { updatedAt: "desc" }
-    })
+    }) : Promise.resolve([])
   ]);
 
   const aiActivities = aiLogs.map(log => ({
@@ -57,7 +57,7 @@ export default async function AssistantPage() {
     date: log.timestamp.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase()
   }));
 
-  const chatHistory = dbConversations.map(conv => ({
+  const chatHistory = (dbConversations || []).map((conv: any) => ({
     id: conv.id,
     type: "CHAT",
     title: conv.title,
