@@ -1,31 +1,37 @@
-"use server";
-
-import prisma from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "");
-
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) throw new Error("API key missing");
+
   try {
-    const modelName = imageBase64 ? "gemini-1.5-flash" : "gemini-1.5-flash";
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://snapschool.ai", // Optional
+        "X-Title": "SnapSchool AI", 
+      },
+      body: JSON.stringify({
+        model: "google/gemini-flash-1.5",
+        messages: [
+          {
+            role: "user",
+            content: imageBase64 
+              ? [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+                ]
+              : prompt
+          }
+        ]
+      })
+    });
 
-    const parts: any[] = [{ text: prompt }];
-    if (imageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: imageBase64,
-        },
-      });
-    }
-
-    const result = await model.generateContent(parts);
-    const response = await result.response;
-    return response.text();
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.choices[0].message.content;
   } catch (error) {
-    console.error("Gemini Direct Error:", error);
+    console.error("OpenRouter Direct Error:", error);
     throw error;
   }
 }
@@ -37,14 +43,10 @@ export async function getChatResponse(
   locale = "fr",
   history: any[] = []
 ) {
-  try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-      }
-    });
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) return { success: false, error: "API key missing" };
 
+  try {
     const systemPrompt = `
       You are Zbiba (pronounced "Zbeeba"), an expert AI school administrator for "SnapSchool".
       Your tone: Strategic, professional, and helpful. Language: ${locale === "fr" ? "French" : "English"}.
@@ -67,19 +69,38 @@ export async function getChatResponse(
       }
     `;
 
-    const prompt = `System Instructions: ${systemPrompt}\n\nUser Message: ${userMessage}`;
-    
-    const parts: any[] = [{ text: prompt }];
-    if (imageBase64) {
-      parts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64 } });
-    }
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-flash-1.5",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history.map(m => ({ role: m.role, content: m.content })),
+          {
+            role: "user",
+            content: imageBase64 
+              ? [
+                  { type: "text", text: userMessage },
+                  { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+                ]
+              : userMessage
+          }
+        ],
+        response_format: { type: "json_object" }
+      })
+    });
 
-    const result = await model.generateContent(parts);
-    const responseText = result.response.text();
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
     
-    return JSON.parse(responseText);
+    const content = data.choices[0].message.content;
+    return JSON.parse(content);
   } catch (error: any) {
-    console.error("Assistant AI Error:", error);
+    console.error("OpenRouter Assistant Error:", error);
     return { success: false, error: error.message };
   }
 }
