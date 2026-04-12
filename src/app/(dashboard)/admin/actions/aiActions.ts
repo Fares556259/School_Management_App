@@ -8,10 +8,18 @@ export async function getAIUsageStats() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const admin = await prisma.admin.findUnique({
-      where: { id: "admin" }, // Static for now as requested
-      select: { aiUsage: true, aiQuota: true, lastAiUpdate: true }
+    let admin = await prisma.admin.findUnique({
+      where: { id: "admin" }, 
+      select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
     });
+
+    if (!admin) {
+      admin = await prisma.admin.findFirst({
+        select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
+      }) as any;
+    }
+
+    console.log(`[AI-STATS] Admin Found: ${admin?.id || 'NONE'}, Usage: ${admin?.aiUsage}/${admin?.aiQuota}`);
 
     if (!admin) return { usage: 0, quota: 10 };
 
@@ -60,13 +68,19 @@ async function checkAndIncrementUsage() {
 
 export async function toggleTestAIQuota() {
   try {
-    const current = await getAIUsageStats();
-    const newUsage = current.usage >= current.quota ? 0 : current.quota;
-    
-    console.log(`[AI-TOGGLE] Switching to ${newUsage}/10`);
+    const adminToUpdate = await prisma.admin.findUnique({ where: { id: "admin" } }) 
+      ? "admin" 
+      : (await prisma.admin.findFirst({ select: { id: true } }))?.id;
+
+    if (!adminToUpdate) {
+      console.error("[AI-TOGGLE] No Admin found to update");
+      return { success: false };
+    }
+
+    console.log(`[AI-TOGGLE] Updating Admin ${adminToUpdate} to ${newUsage}/10`);
     
     await prisma.admin.update({
-      where: { id: "admin" },
+      where: { id: adminToUpdate },
       data: { 
         aiUsage: newUsage,
         lastAiUpdate: new Date()
