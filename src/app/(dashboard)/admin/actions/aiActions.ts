@@ -63,6 +63,8 @@ export async function toggleTestAIQuota() {
     const current = await getAIUsageStats();
     const newUsage = current.usage >= current.quota ? 0 : current.quota;
     
+    console.log(`[AI-TOGGLE] Switching to ${newUsage}/10`);
+    
     await prisma.admin.update({
       where: { id: "admin" },
       data: { 
@@ -72,7 +74,7 @@ export async function toggleTestAIQuota() {
     });
     
     revalidatePath("/");
-    return { success: true, newUsage };
+    return { success: true, newUsage, quota: current.quota };
   } catch (error) {
     console.error("Toggle Test Quota Error:", error);
     return { success: false };

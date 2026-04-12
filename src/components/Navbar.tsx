@@ -75,11 +75,17 @@ const Navbar = () => {
              <button 
                 onClick={async () => {
                    setIsToggling(true);
-                   await toggleTestAIQuota();
-                   const newStats = await getAIUsageStats();
-                   setAiStats(newStats);
-                   setIsToggling(false);
-                   router.refresh();
+                   try {
+                    const result = await toggleTestAIQuota();
+                    if (result?.success) {
+                        setAiStats({ usage: result.newUsage, quota: result.quota });
+                        router.refresh();
+                    }
+                   } catch (err) {
+                    console.error("Toggle Error:", err);
+                   } finally {
+                    setIsToggling(false);
+                   }
                 }}
                 disabled={isToggling}
                 className={`p-1.5 rounded-lg border transition-all ${
