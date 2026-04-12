@@ -78,7 +78,10 @@ const Navbar = () => {
                    try {
                     const result = await toggleTestAIQuota();
                     if (result?.success) {
-                        setAiStats({ usage: result.newUsage, quota: result.quota });
+                        setAiStats({ 
+                            usage: result.newUsage ?? 0, 
+                            quota: result.quota ?? 10 
+                        });
                         router.refresh();
                     }
                    } catch (err) {

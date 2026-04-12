@@ -68,6 +68,9 @@ async function checkAndIncrementUsage() {
 
 export async function toggleTestAIQuota() {
   try {
+    const current = await getAIUsageStats();
+    const newUsage = current.usage >= current.quota ? 0 : current.quota;
+
     const adminToUpdate = await prisma.admin.findUnique({ where: { id: "admin" } }) 
       ? "admin" 
       : (await prisma.admin.findFirst({ select: { id: true } }))?.id;
