@@ -23,7 +23,7 @@ export async function callGeminiDirect(prompt: string, base64Image?: string) {
         for (const modelId of orModels) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for OpenRouter
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for OpenRouter
 
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
@@ -76,7 +76,7 @@ export async function callGeminiDirect(prompt: string, base64Image?: string) {
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s per model (36s total max)
 
             const response = await fetch(endpoint, {
                 method: "POST",
