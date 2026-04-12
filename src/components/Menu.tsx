@@ -112,7 +112,7 @@ const menuItems: MenuSection[] = [
         visible: ["admin"],
       },
       {
-        icon: "/ai.png",
+        icon: "/zbiba.png",
         label: "Zbiba AI",
         href: "/list/assistant",
         visible: ["admin"],
