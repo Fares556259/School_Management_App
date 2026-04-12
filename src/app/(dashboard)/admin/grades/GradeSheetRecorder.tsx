@@ -418,6 +418,23 @@ export default function GradeSheetRecorder({
             </div>
           </div>
 
+          {/* ADDED: GLOBAL LEFT PANEL LOCK */}
+          {isAiLocked && (
+            <div className="absolute inset-0 z-50 bg-white/20 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-6 shadow-2xl shadow-indigo-200 ring-8 ring-indigo-50">
+                  <Lock size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-4">Fonctionnalité Premium</h3>
+              <p className="text-xs font-bold text-slate-500 leading-relaxed mb-8 max-w-[280px]">
+                  Le scan et remplissage automatique est réservé aux membres **Premium** après votre quota de **10/10**.
+              </p>
+              <button className="px-8 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 font-black flex items-center gap-3">
+                  <Sparkles size={16} />
+                  Débloquer Premium
+              </button>
+            </div>
+          )}
+
           <div
             className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative scrollbar-thin scrollbar-thumb-slate-300 ${zoom === 1 ? 'items-center' : ''}`}
             onDragOver={(e) => e.preventDefault()}
@@ -473,51 +490,39 @@ export default function GradeSheetRecorder({
           <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelect} />
 
           {proofPreviewUrl && (
-            <div className="p-4 bg-white border-t border-slate-100 flex gap-2 relative">
-              {isAiLocked && (
-                <div className="absolute inset-0 z-50 bg-white/10 backdrop-blur-md flex items-center justify-between px-6 animate-in fade-in duration-500 rounded-b-xl border border-indigo-100/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200 ring-4 ring-indigo-50">
-                      <Lock size={16} />
-                    </div>
-                    <div className="flex flex-col">
-                      <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">AI Limitation</p>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest truncate max-w-[120px]">Quota 10/10 atteint</p>
-                    </div>
-                  </div>
-                  <button className="px-6 py-2.5 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 active:scale-95">
-                    <Sparkles size={12} />
-                    Devenir Premium
-                  </button>
-                </div>
-              )}
-              <div className={`flex-1 flex gap-2 ${isAiLocked ? 'blur-sm select-none pointer-events-none grayscale-[0.5]' : ''}`}>
-                <button
-                  onClick={handleAiScan}
-                  disabled={isScanning || isPdf}
-                  className={`flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm ${
-                    isScanning 
-                      ? "bg-slate-100 text-slate-400" 
-                      : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100 font-black"
-                  }`}
-                >
-                  {isScanning ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
-                      Scanning...
-                    </>
-                  ) : (
-                    <>✨ AI Scan & Fill</>
-                  )}
-                </button>
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  disabled={isScanning}
-                  className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100"
-                >
-                  Replace
-                </button>
-              </div>
+            <div className="p-4 bg-white border-t border-slate-100 flex gap-2">
+              <button
+                onClick={handleAiScan}
+                disabled={isScanning || isPdf || isAiLocked}
+                className={`flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm ${
+                  isScanning 
+                    ? "bg-slate-100 text-slate-400" 
+                    : isAiLocked
+                    ? "bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed opacity-50"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100 font-black"
+                }`}
+              >
+                {isScanning ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-indigo-200 border-t-white rounded-full animate-spin"></div>
+                    Scanning...
+                  </>
+                ) : isAiLocked ? (
+                  <>
+                    <Lock size={12} />
+                    AI Scan Locked
+                  </>
+                ) : (
+                  <>✨ AI Scan & Fill</>
+                )}
+              </button>
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={isScanning || isAiLocked}
+                className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100 disabled:opacity-30"
+              >
+                Replace
+              </button>
             </div>
           )}
           {scanError && (
