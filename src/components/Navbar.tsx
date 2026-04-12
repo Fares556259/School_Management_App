@@ -14,7 +14,7 @@ const Navbar = () => {
   const { user } = useUser();
   const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(null);
-  const [aiStats, setAiStats] = useState({ usage: 0, quota: 10 });
+  const [aiStats, setAiStats] = useState({ usage: 0, quota: 0 });
 
   const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
   const role = (user?.publicMetadata?.role as string) || "User";
