@@ -10,24 +10,24 @@ export async function getAIUsageStats() {
 
     const admin = await prisma.admin.findUnique({
       where: { id: "admin" }, // Static for now as requested
-      select: { aiUsage: true, aiLimit: true, lastAIUsageReset: true }
+      select: { aiUsage: true, aiQuota: true, lastAiUpdate: true }
     });
 
     if (!admin) return { usage: 0, quota: 10 };
 
     // Reset if it's a new day
-    const lastReset = admin.lastAIUsageReset ? new Date(admin.lastAIUsageReset) : new Date(0);
+    const lastReset = admin.lastAiUpdate ? new Date(admin.lastAiUpdate) : new Date(0);
     lastReset.setHours(0, 0, 0, 0);
 
     if (today > lastReset) {
       await prisma.admin.update({
         where: { id: "admin" },
-        data: { aiUsage: 0, lastAIUsageReset: today }
+        data: { aiUsage: 0, lastAiUpdate: today }
       });
-      return { usage: 0, quota: admin.aiLimit || 10 };
+      return { usage: 0, quota: admin.aiQuota || 10 };
     }
 
-    return { usage: admin.aiUsage || 0, quota: admin.aiLimit || 10 };
+    return { usage: admin.aiUsage || 0, quota: admin.aiQuota || 10 };
   } catch (error) {
     console.error("Failed to fetch AI usage:", error);
     return { usage: 0, quota: 10 };
@@ -55,6 +55,24 @@ async function checkAndIncrementUsage() {
   } catch (error) {
     console.error("Failed to increment AI usage:", error);
     return { allowed: true, quota: 10 }; // Graceful fallback
+  }
+}
+
+export async function toggleTestAIQuota() {
+  try {
+    const current = await getAIUsageStats();
+    const newUsage = current.usage >= current.quota ? 0 : current.quota;
+    
+    await prisma.admin.update({
+      where: { id: "admin" },
+      data: { aiUsage: newUsage }
+    });
+    
+    revalidatePath("/");
+    return { success: true, newUsage };
+  } catch (error) {
+    console.error("Toggle Test Quota Error:", error);
+    return { success: false };
   }
 }
 
