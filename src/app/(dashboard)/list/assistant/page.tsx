@@ -1,63 +1,10 @@
-"use client";
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
-import SnapAssistant from "../../admin/components/SnapAssistant";
-import AssistantSidebar from "../../admin/components/AssistantSidebar";
-import { useState, useEffect } from "react";
+import AssistantClient from "./AssistantClient";
 
-const AssistantPage = ({
-  dashboardContext
-}: {
-  dashboardContext: any;
-}) => {
-  const [activeSession, setActiveSession] = useState("1");
-  const [chatKey, setChatKey] = useState(0); // To force re-render on new chat
+export const dynamic = "force-dynamic";
 
-  const mockConversations = [
-    { id: "1", title: "Analyse des revenus de Juin", date: "AUJOURD'HUI" },
-    { id: "2", title: "Gap de paiement Amine Student", date: "HIER" },
-    { id: "3", title: "Mise à jour des notes 2C", date: "10 AVRIL" },
-  ];
-
-  const handleNewChat = () => {
-    setChatKey(prev => prev + 1);
-    setActiveSession("new");
-  };
-
-  return (
-    <div className="h-[calc(100vh-100px)] -m-6 flex overflow-hidden bg-white">
-      {/* 1. ChatGPT-Style Sidebar */}
-      <AssistantSidebar 
-        conversations={mockConversations}
-        activeId={activeSession}
-        onSelect={setActiveSession}
-        onNewChat={handleNewChat}
-      />
-
-      {/* 2. Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
-        <div className="flex-1 p-6 overflow-hidden">
-          <SnapAssistant 
-            key={chatKey}
-            context={dashboardContext} 
-            fullPage={true} 
-            onNewChat={handleNewChat}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Server component wrapper to fetch data
-export default function AssistantPageWrapper() {
-  // We'll need a way to pass data to the client component. 
-  // For now, I'll move the data fetching to a separate action or use a layout-based approach.
-  // Actually, I'll keep the server side logic and just pass it down.
-  return <AssistantServerData />;
-}
-
-async function AssistantServerData() {
+export default async function AssistantPage() {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
   const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -100,5 +47,5 @@ async function AssistantServerData() {
     operations: { notices: allNotices.map(n => ({ title: n.title, message: n.message, date: n.date })) }
   };
 
-  return <AssistantPage dashboardContext={dashboardContext} />;
+  return <AssistantClient dashboardContext={dashboardContext} />;
 }
