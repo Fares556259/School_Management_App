@@ -125,6 +125,8 @@ export const fr = {
     error: "Erreur",
     describeImage: "Décrivez cette image...",
     askZbiba: "Demander à zbiba...",
-    poweredBy: "Propulsé par Gemini 1.5 Flash • Sensible au Contexte"
+    poweredBy: "Propulsé par Gemini 1.5 Flash",
+    contextAware: "Sensible au Contexte",
+    operationalIntelligence: "Intelligence Opérationnelle"
   }
 };

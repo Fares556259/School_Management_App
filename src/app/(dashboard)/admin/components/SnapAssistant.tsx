@@ -181,11 +181,11 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
 
   if (fullPage) {
     return (
-      <div className="w-full h-[calc(100vh-140px)] bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-        {/* Header - Fixed in Full Page */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 flex items-center justify-between">
+      <div className="w-full h-full bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+        {/* Header - Clean & Minimal */}
+        <div className="bg-white p-6 border-b border-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden border border-white/50">
+            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100">
               <img 
                 src={isLoading ? "/zbiba-thinking.png" : selectedImage ? "/zbiba-reports.png" : "/zbiba.png"} 
                 alt="zbiba" 
@@ -193,14 +193,20 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
               />
             </div>
             <div>
-              <h3 className="text-white font-black tracking-tight text-2xl leading-none">zbiba</h3>
-              <p className="text-indigo-100/70 text-xs font-black uppercase tracking-widest mt-1">Strategic AI Control Center</p>
+              <h3 className="text-slate-900 font-black tracking-tight text-2xl leading-none">zbiba</h3>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Intelligence Opérationnelle</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100/50">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">En Ligne</span>
+              </div>
           </div>
         </div>
 
-        {/* Chat Area - Flex Grow */}
-        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 scroll-smooth bg-slate-50/30">
+        {/* Chat Area - Immersive Slate BG */}
+        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 scroll-smooth bg-slate-50/20">
           {messages.map((m, i) => (
             <motion.div
               key={i}
@@ -209,10 +215,10 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
               className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div 
-                className={`max-w-[70%] p-5 rounded-[28px] text-base leading-relaxed ${
+                className={`max-w-[75%] p-5 rounded-[28px] text-base leading-relaxed ${
                   m.role === 'user' 
                     ? 'bg-indigo-600 text-white rounded-tr-none shadow-xl shadow-indigo-100' 
-                    : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm'
+                    : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm shadow-slate-200/50'
                 }`}
               >
                 <div className="prose prose-indigo prose-sm max-w-none font-medium">
@@ -220,8 +226,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                         {m.content}
                     </ReactMarkdown>
                     {m.image && (
-                      <div className="mt-3 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                        <img src={m.image} alt="Uploaded" className="w-full max-h-[400px] object-contain bg-slate-100" />
+                      <div className="mt-4 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                        <img src={m.image} alt="Uploaded" className="w-full max-h-[500px] object-contain bg-slate-50" />
                       </div>
                     )}
                 </div>
@@ -240,58 +246,58 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           )}
         </div>
 
-        {/* Input Area - Padded */}
-        <div className="p-6 border-t border-slate-100 bg-white">
-          {selectedImage && (
-            <div className="mb-4 relative inline-block group">
-              <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl">
-                <img src={selectedImage} alt="Preview" className="h-32 w-32 object-cover" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+        {/* Input Area - Centered & Premium */}
+        <div className="p-8 bg-white border-t border-slate-50">
+          <div className="max-w-4xl mx-auto">
+            {selectedImage && (
+              <div className="mb-4 relative inline-block group">
+                <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl">
+                  <img src={selectedImage} alt="Preview" className="h-32 w-32 object-cover" />
+                </div>
+                <button 
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute -top-3 -right-3 bg-rose-500 text-white rounded-full p-2 shadow-xl hover:bg-rose-600 transition-colors z-10"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <button 
-                onClick={() => setSelectedImage(null)}
-                className="absolute -top-3 -right-3 bg-rose-500 text-white rounded-full p-1.5 shadow-xl hover:bg-rose-600 transition-colors z-10"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          )}
-          
-          <div className="max-w-4xl mx-auto relative flex items-center gap-4">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageSelect}
-              accept="image/*"
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-4 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl transition-all shadow-md border border-indigo-100 flex items-center justify-center shrink-0 group"
-              title="Upload Report/Grade Sheet"
-            >
-              <Camera size={26} className="group-hover:scale-110 transition-transform" />
-            </button>
-            <div className="relative flex-1">
+            )}
+            
+            <div className="relative flex items-center gap-4">
               <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={selectedImage ? t.zbiba.describeImage : t.zbiba.askZbiba}
-                className="w-full p-5 pr-16 bg-slate-50 border-2 border-transparent focus:border-indigo-500/20 rounded-[26px] text-lg focus:ring-8 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-medium"
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                accept="image/*"
+                className="hidden"
               />
               <button
-                onClick={handleSend}
-                disabled={isLoading || (!input.trim() && !selectedImage)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-3.5 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:scale-100 active:scale-95 transition-all"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-5 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all border border-slate-100 flex items-center justify-center shrink-0 group active:scale-90"
               >
-                <Send size={22} />
+                <Camera size={28} className="group-hover:scale-110 transition-transform" />
               </button>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder={selectedImage ? t.zbiba.describeImage : t.zbiba.askZbiba}
+                  className="w-full p-5 pr-20 bg-slate-50/50 border-2 border-transparent focus:border-indigo-500/10 focus:bg-white rounded-[30px] text-lg focus:ring-8 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-bold"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={isLoading || (!input.trim() && !selectedImage)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-4 bg-indigo-600 text-white rounded-[22px] shadow-lg shadow-indigo-100 hover:bg-indigo-700 hover:shadow-indigo-200 disabled:opacity-50 disabled:scale-100 active:scale-95 transition-all"
+                >
+                  <Send size={24} />
+                </button>
+              </div>
             </div>
           </div>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-4 text-center">
-            {t.zbiba.poweredBy}
+          <p className="text-[10px] text-slate-300 font-black uppercase tracking-[0.2em] mt-6 text-center">
+            {t.zbiba.poweredBy} • {t.zbiba.contextAware}
           </p>
         </div>
       </div>

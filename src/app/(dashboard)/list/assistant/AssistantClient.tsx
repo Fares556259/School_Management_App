@@ -23,7 +23,7 @@ const AssistantClient = ({
   };
 
   return (
-    <div className="h-[calc(100vh-100px)] -m-6 flex overflow-hidden bg-white">
+    <div className="h-[calc(100vh-100px)] -m-6 flex overflow-hidden bg-slate-50/30">
       {/* 1. ChatGPT-Style Sidebar */}
       <AssistantSidebar 
         conversations={mockConversations}
@@ -33,8 +33,8 @@ const AssistantClient = ({
       />
 
       {/* 2. Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
-        <div className="flex-1 p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 p-8 overflow-hidden">
           <SnapAssistant 
             key={chatKey}
             context={dashboardContext} 

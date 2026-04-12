@@ -125,6 +125,8 @@ export const en = {
     error: "Error",
     describeImage: "Describe this image...",
     askZbiba: "Ask zbiba...",
-    poweredBy: "Powered by Gemini 1.5 Flash • Context Aware"
+    poweredBy: "Powered by Gemini 1.5 Flash",
+    contextAware: "Context Aware",
+    operationalIntelligence: "Operational Intelligence"
   }
 };
