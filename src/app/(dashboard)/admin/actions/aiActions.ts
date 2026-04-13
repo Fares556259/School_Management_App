@@ -102,7 +102,7 @@ export async function callGeminiDirect(prompt: string, imageBase64?: string) {
   const usage = await checkAndIncrementUsage();
   if (!usage.allowed) throw new Error(`DAILY_QUOTA_REACHED|${usage.quota}`);
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("API key missing");
 
   try {
@@ -111,11 +111,11 @@ export async function callGeminiDirect(prompt: string, imageBase64?: string) {
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://snapschool.ai", // Optional
+        "HTTP-Referer": "https://snapschool.ai", 
         "X-Title": "SnapSchool AI", 
       },
       body: JSON.stringify({
-        model: "google/gemini-flash-1.5:free",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           {
             role: "user",
@@ -131,7 +131,10 @@ export async function callGeminiDirect(prompt: string, imageBase64?: string) {
     });
 
     const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) {
+      console.error("[OpenRouter Error]", data.error);
+      throw new Error(data.error.message || "OpenRouter Error");
+    }
     return data.choices[0].message.content;
   } catch (error) {
     console.error("OpenRouter Direct Error:", error);
@@ -149,7 +152,7 @@ export async function getChatResponse(
   const usage = await checkAndIncrementUsage();
   if (!usage.allowed) return { success: false, error: `DAILY_QUOTA_REACHED|${usage.quota}` };
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) return { success: false, error: "API key missing" };
 
   try {
@@ -180,9 +183,11 @@ export async function getChatResponse(
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://snapschool.ai",
+        "X-Title": "SnapSchool AI",
       },
       body: JSON.stringify({
-        model: "google/gemini-flash-1.5:free",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           { role: "system", content: systemPrompt },
           ...history.map(m => ({ role: m.role, content: m.content })),
@@ -201,7 +206,10 @@ export async function getChatResponse(
     });
 
     const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) {
+      console.error("[OpenRouter Assistant Error]", data.error);
+      throw new Error(data.error.message || "Assistant Error");
+    }
     
     const content = data.choices[0].message.content;
     return JSON.parse(content);
@@ -222,7 +230,12 @@ export async function getFinancialInsights(data: any, locale = "fr") {
     
     RETURN ONLY a JSON array of objects with this schema:
     [
-      { "text": "...", "type": "performance" | "risk" | "opportunity" | "trend" | "action", "icon": "...", "confidence": "..." }
+      { 
+        "text": "...", 
+        "type": "performance" | "risk" | "opportunity" | "trend" | "action", 
+        "icon": "A single representative emoji (e.g. 📈, ⚠️, 💡, 🔍, ⚡...)", 
+        "confidence": "HIGH" | "MEDIUM" | "LOW" 
+      }
     ]
   `;
 

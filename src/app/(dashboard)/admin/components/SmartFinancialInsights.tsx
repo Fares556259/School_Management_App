@@ -23,6 +23,29 @@ interface SmartFinancialInsightsProps {
   className?: string;
 }
 
+const getEmoji = (icon: string) => {
+  const mapping: Record<string, string> = {
+    'bar-chart': '📈',
+    'warning': '⚠️',
+    'alert': '🚨',
+    'lightbulb': '💡',
+    'search': '🔍',
+    'trending-up': '↗️',
+    'trending-down': '↘️',
+    'dollar-sign': '💰',
+    'pie-chart': '📊',
+    'check': '✅',
+    'x': '❌',
+    'info': 'ℹ️',
+    'clock': '🕒',
+    'user': '👤',
+    'users': '👥',
+    'calendar': '📅',
+    'zap': '⚡',
+  };
+  return mapping[icon.toLowerCase()] || icon;
+};
+
 const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   income,
   expense,
@@ -178,7 +201,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
                            }`}
                         >
                           <div className="flex items-start justify-between gap-2">
-                             <span className="text-xl leading-none">{insight.icon}</span>
+                             <span className="text-xl leading-none">{getEmoji(insight.icon)}</span>
                              {insight.confidence && (
                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">
                                     {insight.confidence}
