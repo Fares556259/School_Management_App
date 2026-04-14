@@ -80,62 +80,19 @@ const AdminPage = async ({
 
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
-  // 1. DATA FETCHING (Using dynamic date ranges)
+  // 1. DATA FETCHING (Tiered Batches to protect DB Connection Pool)
+  
+  // TIER 1: Core Census & Current Period Totals
   const [
-    studentCount,
-    teacherCount,
-    staffCount,
-    classCount,
-    // Current Period Aggregations
-    incomeThisPeriod,
-    expenseThisPeriod,
-    incomeCategoriesThisPeriod,
-    expenseCategoriesThisPeriod,
-    studentPaymentsThisPeriod,
-    salaryPaymentsThisPeriod,
-    // Previous Period Trends
-    incomePrevPeriod,
-    expensePrevPeriod,
-    studentPaymentsPrevPeriod,
-    salaryPaymentsPrevPeriod,
-    // Action Center (Unpaids)
-    unpaidPayments,
-    // Historical Trends (6 Months) - Static for context
-    histIncome,
-    histExpense,
-    histStudPayments,
-    histSalPayments,
-    // AI ENRICHMENT DATA
-    recentPaidPayments,
-    recentGeneralExpenses,
-    recentGeneralIncomes,
-    schoolClasses,
-    yearPaymentStatus,
-    yearIncomeByCategory,
-    yearExpenseByCategory,
-    recentAuditLogs,
-    allTeachers,
-    allStaffMemberData,
-    allPaymentsThisYear,
-    allStudents,
-    // TOTAL INTELLIGENCE (NEW)
-    allGrades,
-    allNotices,
-    allLessons,
-    allSubjects,
-    teacherTimetables,
-    maleStudentCount,
-    femaleStudentCount,
-    gradeSheets,
-    // DEFERRAL DATA
-    deferredPaymentsThisPeriod,
-    revenueGapThisPeriod
+    studentCount, teacherCount, staffCount, classCount,
+    incomeThisPeriod, expenseThisPeriod, incomeCategoriesThisPeriod, expenseCategoriesThisPeriod,
+    studentPaymentsThisPeriod, salaryPaymentsThisPeriod,
+    maleStudentCount, femaleStudentCount
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
     prisma.staff.count(),
     prisma.class.count(),
-    // Current Period Aggregations
     prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } } }),
     prisma.income.groupBy({
@@ -156,7 +113,17 @@ const AdminPage = async ({
       _sum: { amount: true }, 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate, lt: endDate } } 
     }),
-    // Previous Period Trends
+    prisma.student.count({ where: { sex: "MALE" } }),
+    prisma.student.count({ where: { sex: "FEMALE" } }),
+  ]);
+
+  // TIER 2: Previous Trends, Action Center & Historical Summaries
+  const [
+    incomePrevPeriod, expensePrevPeriod, studentPaymentsPrevPeriod, salaryPaymentsPrevPeriod,
+    unpaidPayments,
+    histIncome, histExpense, histStudPayments, histSalPayments,
+    deferredPaymentsThisPeriod, revenueGapThisPeriod
+  ] = await Promise.all([
     prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Tuition" } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Salary" } } }),
     prisma.payment.aggregate({ 
@@ -167,20 +134,14 @@ const AdminPage = async ({
       _sum: { amount: true }, 
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: prevEndDate } } 
     }),
-    // Action Center Fetching (Always current logical context)
     prisma.payment.findMany({
-      where: { 
-        status: "PENDING",
-        month: startDate.getMonth() + 1,
-        year: startDate.getFullYear()
-      },
+      where: { status: "PENDING", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
       include: {
         student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
         teacher: { select: { id: true, name: true, surname: true, phone: true } },
         staff: { select: { id: true, name: true, surname: true, phone: true } },
       }
     }),
-    // Historical Trends (12 Months)
     prisma.income.findMany({ where: { date: { gte: twelveMonthsAgo }, NOT: { category: "Tuition" } }, select: { date: true, amount: true } }),
     prisma.expense.findMany({ where: { date: { gte: twelveMonthsAgo }, NOT: { category: "Salary" } }, select: { date: true, amount: true } }),
     prisma.payment.findMany({ 
@@ -191,96 +152,49 @@ const AdminPage = async ({
       where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: twelveMonthsAgo } }, 
       select: { paidAt: true, amount: true } 
     }),
-    // AI ENRICHMENT DATA FETCH
+    prisma.payment.findMany({
+      where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() }
+    }),
+    prisma.payment.aggregate({
+      where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
+      _sum: { deferredAmount: true }
+    })
+  ]);
+
+  // TIER 3: Heavy AI Context & Personnels (The most demanding queries)
+  const [
+    recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses,
+    yearPaymentStatus, yearIncomeByCategory, yearExpenseByCategory,
+    recentAuditLogs, allTeachers, allStaffMemberData, allPaymentsThisYear, allStudents,
+    allGrades, allNotices, allLessons, allSubjects, teacherTimetables, gradeSheets
+  ] = await Promise.all([
     prisma.payment.findMany({ 
-      take: 15, 
-      orderBy: { paidAt: 'desc' }, 
-      where: { status: 'PAID' }, 
-      include: { 
-        student: { select: { name: true, surname: true } }, 
-        teacher: { select: { name: true, surname: true } }, 
-        staff: { select: { name: true, surname: true } } 
-      } 
+      take: 15, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
+      include: { student: { select: { name: true, surname: true } }, teacher: { select: { name: true, surname: true } }, staff: { select: { name: true, surname: true } } } 
     }),
     prisma.expense.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.income.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.class.findMany({ select: { id: true, name: true, _count: { select: { students: true } } } }),
-    // FULL YEAR FINANCIAL INTELLIGENCE
-    prisma.payment.groupBy({
-      by: ['month', 'status', 'userType'],
-      _sum: { amount: true },
-      _count: { _all: true },
-      where: { year: now.getFullYear() }
-    }),
-    prisma.income.groupBy({
-      by: ['category'],
-      _sum: { amount: true },
-      where: { date: { gte: new Date(now.getFullYear(), 0, 1) } }
-    }),
-    prisma.expense.groupBy({
-      by: ['category'],
-      _sum: { amount: true },
-      where: { date: { gte: new Date(now.getFullYear(), 0, 1) } }
-    }),
+    prisma.payment.groupBy({ by: ['month', 'status', 'userType'], _sum: { amount: true }, _count: { _all: true }, where: { year: now.getFullYear() } }),
+    prisma.income.groupBy({ by: ['category'], _sum: { amount: true }, where: { date: { gte: new Date(now.getFullYear(), 0, 1) } } }),
+    prisma.expense.groupBy({ by: ['category'], _sum: { amount: true }, where: { date: { gte: new Date(now.getFullYear(), 0, 1) } } }),
     prisma.auditLog.findMany({ take: 20, orderBy: { timestamp: 'desc' } }),
-    // FULL PERSONNEL STATUS
     prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
     prisma.staff.findMany({ select: { id: true, name: true, surname: true } }),
-    prisma.payment.findMany({ 
-      where: { 
-        year: now.getFullYear(),
-        userType: { in: ["TEACHER", "STAFF"] }
-      },
-      select: { month: true, status: true, userType: true, teacherId: true, staffId: true }
-    }),
-    // FULL STUDENT LEDGER FOR AI
+    prisma.payment.findMany({ where: { year: now.getFullYear(), userType: { in: ["TEACHER", "STAFF"] } }, select: { month: true, status: true, userType: true, teacherId: true, staffId: true } }),
     prisma.student.findMany({
       select: {
-        id: true,
-        name: true,
-        surname: true,
-        payments: {
-          where: { year: now.getFullYear() },
-          select: { status: true, month: true }
-        },
-        parent: {
-          select: { name: true, surname: true, phone: true }
-        }
+        id: true, name: true, surname: true,
+        payments: { where: { year: now.getFullYear() }, select: { status: true, month: true } },
+        parent: { select: { name: true, surname: true, phone: true } }
       }
     }),
-    // TOTAL INTELLIGENCE FETCH
-    prisma.grade.findMany({
-      select: { score: true, student: { select: { classId: true } }, subjectId: true }
-    }),
+    prisma.grade.findMany({ select: { score: true, student: { select: { classId: true } }, subjectId: true } }),
     prisma.notice.findMany({ take: 10, orderBy: { date: 'desc' } }),
-    prisma.lesson.findMany({
-      select: { classId: true, teacherId: true, subjectId: true, day: true }
-    }),
+    prisma.lesson.findMany({ select: { classId: true, teacherId: true, subjectId: true, day: true } }),
     prisma.subject.findMany({ select: { id: true, name: true } }),
-    prisma.timetableSlot.findMany({
-      select: { teacherId: true, classId: true, day: true, slotNumber: true }
-    }),
-    prisma.student.count({ where: { sex: "MALE" } }),
-    prisma.student.count({ where: { sex: "FEMALE" } }),
+    prisma.timetableSlot.findMany({ select: { teacherId: true, classId: true, day: true, slotNumber: true } }),
     prisma.gradeSheet.findMany({ select: { classId: true, subjectId: true, term: true } }),
-    // 10. DEFERRAL DATA
-    prisma.payment.findMany({
-      where: {
-        status: "PARTIAL",
-        month: startDate.getMonth() + 1,
-        year: startDate.getFullYear()
-      }
-    }),
-    prisma.payment.aggregate({
-      where: {
-        status: "PARTIAL",
-        month: startDate.getMonth() + 1,
-        year: startDate.getFullYear()
-      },
-      _sum: {
-        deferredAmount: true
-      }
-    })
   ]);
 
   // Map Personnel Payments for AI
