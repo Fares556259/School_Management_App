@@ -38,7 +38,6 @@ const ExamTimetableClient = ({
   const [selectedPeriod, setSelectedPeriod] = useState(1);
   const [periodConfigs, setPeriodConfigs] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
-  const [isDateEditMode, setIsDateEditMode] = useState(false);
 
   // PDF Export Ref
   const gridRef = useRef<HTMLDivElement>(null);
@@ -217,8 +216,8 @@ const ExamTimetableClient = ({
                     type="date" 
                     value={toLocalISO(currentStartDate)}
                     onChange={(e) => handleDateChange('startDate', e.target.value)}
-                    disabled={!isDateEditMode}
-                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isDateEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
+                    disabled={!isEditMode}
+                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
                   />
                 </div>
                 <div className="w-px h-4 bg-slate-200"></div>
@@ -228,27 +227,13 @@ const ExamTimetableClient = ({
                     type="date" 
                     value={toLocalISO(currentEndDate)}
                     onChange={(e) => handleDateChange('endDate', e.target.value)}
-                    disabled={!isDateEditMode}
-                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isDateEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
+                    disabled={!isEditMode}
+                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
                   />
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setIsDateEditMode(!isDateEditMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                isDateEditMode
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600'
-                  : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
-              }`}
-            >
-              {isDateEditMode ? (
-                <><Check size={14} /> Save Dates</>
-              ) : (
-                <><Edit2 size={14} /> Edit Dates</>
-              )}
-            </button>
-         </div>
+          </div>
       </div>
 
       {/* TIMETABLE GRID */}
