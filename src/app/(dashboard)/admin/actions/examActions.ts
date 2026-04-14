@@ -227,6 +227,19 @@ export async function moveExam(examId: number, targetDay: Day, targetSlotNumber:
     }
 }
 
+export async function deleteExam(id: number) {
+  try {
+    await prisma.exam.delete({
+      where: { id }
+    });
+    revalidatePath("/list/exams");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting exam:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function bulkUpdateExams(classId: number, period: number, slots: any[]) {
     try {
         await prisma.$transaction(async (tx) => {

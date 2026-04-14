@@ -10,7 +10,8 @@ import { isAIQuotaReached } from "../actions/aiActions";
 import { 
   getTimetableByClass, 
   moveTimetableSlot, 
-  updateTimetableSlot 
+  updateTimetableSlot,
+  deleteTimetableSlot
 } from "../actions/timetableActions";
 import { generateTimetableFromPrompt } from "../actions/timetableAiActions";
 
@@ -145,6 +146,7 @@ const TimetablePage = ({
           fetchDataAction={getTimetableByClass}
           onMoveAction={moveTimetableSlot}
           onUpdateAction={updateTimetableSlot}
+          onDeleteAction={deleteTimetableSlot}
         />
       )}
 

@@ -173,3 +173,24 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteTimetableSlot(id: number) {
+  try {
+    const slot = await prisma.timetableSlot.findUnique({
+      where: { id },
+      select: { classId: true }
+    });
+    
+    await prisma.timetableSlot.delete({
+      where: { id }
+    });
+    
+    if (slot) {
+      revalidatePath(`/admin/timetable`);
+    }
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting timetable slot:", error);
+    return { success: false, error: error.message };
+  }
+}

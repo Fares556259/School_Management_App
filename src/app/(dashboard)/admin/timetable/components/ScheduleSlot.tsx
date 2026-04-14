@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Day } from "@prisma/client";
-import { Edit2, BookOpen, X, Check } from "lucide-react";
+import { Edit2, BookOpen, X, Check, Trash2 } from "lucide-react";
 
 interface SlotProps {
   slot: any;
@@ -14,6 +14,7 @@ interface SlotProps {
   subjects: any[];
   teachers: any[];
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
+  onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
   isEditMode: boolean;
   type: "timetable" | "exam";
@@ -32,6 +33,7 @@ const ScheduleSlot = ({
   subjects, 
   teachers, 
   onUpdateAction,
+  onDeleteAction,
   onRefresh,
   isEditMode,
   type,
@@ -85,6 +87,27 @@ const ScheduleSlot = ({
         console.error("Update error:", err);
     } finally {
         setLoading(false);
+    }
+  };
+ 
+  const handleDelete = async () => {
+    if (!onDeleteAction || !slot?.id) return;
+    
+    if (window.confirm("Are you sure you want to delete this session?")) {
+      setLoading(true);
+      try {
+        const res = await onDeleteAction(slot.id);
+        if (res.success) {
+          setIsEditing(false);
+          onRefresh();
+        } else {
+          console.error("Delete failed:", res.error);
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -144,10 +167,21 @@ const ScheduleSlot = ({
           </button>
           <button 
             onClick={() => setIsEditing(false)}
-            className="px-3 bg-slate-100 text-slate-600 py-2 rounded-xl hover:bg-slate-200 transition-all"
+            className="px-3 bg-slate-100 text-slate-600 py-2 rounded-xl hover:bg-slate-200 transition-all border border-slate-200"
           >
             <X size={14} className="stroke-[3px]"/>
           </button>
+          
+          {slot?.id && slot.id !== -1 && onDeleteAction && (
+            <button 
+              disabled={loading}
+              onClick={handleDelete}
+              className="px-3 bg-rose-50 text-rose-600 py-2 rounded-xl hover:bg-rose-100 transition-all border border-rose-100 ml-auto"
+              title="Delete session"
+            >
+              <Trash2 size={14} className="stroke-[2px]"/>
+            </button>
+          )}
         </div>
       </div>
     );

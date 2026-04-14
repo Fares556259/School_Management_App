@@ -23,6 +23,7 @@ interface ScheduleGridProps {
   fetchDataAction: (classId: number, examPeriod?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
   onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
+  onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
@@ -37,7 +38,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   endDate,
   fetchDataAction,
   onMoveAction,
-  onUpdateAction
+  onUpdateAction,
+  onDeleteAction
 }, ref) => {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,6 +217,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         teachers={teachers}
                         usedSubjectIds={usedSubjectIds}
                         onUpdateAction={onUpdateAction}
+                        onDeleteAction={onDeleteAction}
                         onRefresh={fetchSlots}
                         isEditMode={isEditMode}
                         type={type}

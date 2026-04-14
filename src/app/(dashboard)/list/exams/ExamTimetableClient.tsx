@@ -11,6 +11,7 @@ import {
   getExamsByClass, 
   moveExam, 
   updateExamSlot,
+  deleteExam,
   bulkUpdateExams,
   getExamPeriodConfigs,
   upsertExamPeriodConfig
@@ -253,6 +254,7 @@ const ExamTimetableClient = ({
             fetchDataAction={getExamsByClass}
             onMoveAction={moveExam}
             onUpdateAction={updateExamSlot}
+            onDeleteAction={deleteExam}
           />
         </div>
       )}
