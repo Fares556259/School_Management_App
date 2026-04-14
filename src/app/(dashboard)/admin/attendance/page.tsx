@@ -29,6 +29,8 @@ export default function AttendancePage() {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [students, setStudents] = useState<StudentRow[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<string>("ALL");
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [authors, setAuthors] = useState<Record<string, string>>({});
@@ -48,19 +50,31 @@ export default function AttendancePage() {
       });
   }, []);
 
-  // Load students when class or date changes
+  // Load students when class, date, or lesson changes
   const loadStudents = useCallback(async () => {
     if (!selectedClass) return;
     setLoading(true);
-    const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}`);
-    const data: StudentRow[] = await res.json();
-    setStudents(data);
+    const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}&lessonId=${selectedLesson}`);
+    const data = await res.json();
+    const fetchedLessons = data.lessons || [];
+    setLessons(fetchedLessons);
+
+    // Force selection of the very first lesson seamlessly if currently unset or invalid
+    if (fetchedLessons.length > 0) {
+      if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => l.id === selectedLesson)) {
+        setSelectedLesson(fetchedLessons[0].id);
+      }
+    } else {
+      setSelectedLesson("");
+    }
+
+    setStudents(data.students || []);
 
     const initialStatuses: Record<string, Status> = {};
     const initialNotes: Record<string, string> = {};
     const initialAuthors: Record<string, string> = {};
     
-    data.forEach((s) => {
+    (data.students || []).forEach((s: any) => {
       initialStatuses[s.id] = (s.attendance[0]?.status as Status) ?? null;
       let note = s.attendance[0]?.note ?? "";
       let author = "Admin";
@@ -75,7 +89,7 @@ export default function AttendancePage() {
     setNotes(initialNotes);
     setAuthors(initialAuthors);
     setLoading(false);
-  }, [selectedClass, date]);
+  }, [selectedClass, date, selectedLesson]);
 
   useEffect(() => {
     loadStudents();
@@ -101,7 +115,7 @@ export default function AttendancePage() {
     await fetch("/api/attendance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ records, date }),
+      body: JSON.stringify({ records, date, lessonId: selectedLesson }),
     });
     setSaving(false);
     setSaved(true);
@@ -162,6 +176,22 @@ export default function AttendancePage() {
             onChange={(e) => setDate(e.target.value)}
             className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
           />
+        </div>
+        <div className="flex-1 min-w-[180px]">
+          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Session</label>
+          <select
+            value={selectedLesson}
+            onChange={(e) => setSelectedLesson(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
+            disabled={lessons.length === 0}
+          >
+            {lessons.length === 0 && <option value="">No sessions today</option>}
+            {lessons.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.subject?.name || l.name} ({new Date(l.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex-1 min-w-[180px]">
           <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Search</label>

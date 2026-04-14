@@ -166,8 +166,14 @@ export async function GET(request: NextRequest) {
 
     // Build session list with attendance status
     const sessions = slots.map((slot) => {
-      // Match attendance by lessonId or fallback to first attendance of day
-      const att = attendance.find((a) => a.lessonId === null) || attendance[0];
+      // Bridge the gap between TimetableSlot and Lesson by matching the subjectId
+      const lessonObj = todayLessons.find(l => l.subjectId === slot.subjectId);
+      
+      // Match attendance by explicit lessonId, or fallback to full-day attendance
+      const att = attendance.find((a) => a.lessonId === lessonObj?.id) || 
+                  attendance.find((a) => a.lessonId === null) || 
+                  attendance[0];
+                  
       return {
         id: slot.id,
         slotNumber: slot.slotNumber,
