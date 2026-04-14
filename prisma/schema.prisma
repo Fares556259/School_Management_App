@@ -52,10 +52,11 @@ model Student {
   classId   Int
   birthday  DateTime
   levelId   Int
-  grades    Grade[]
-  payments  Payment[]
-  results   Result[]
-  class     Class     @relation(fields: [classId], references: [id])
+  grades      Grade[]
+  payments    Payment[]
+  results     Result[]
+  attendance  Attendance[]
+  class       Class     @relation(fields: [classId], references: [id])
   level     Level     @relation(fields: [levelId], references: [id])
   parent    Parent    @relation(fields: [parentId], references: [id])
 }
@@ -171,6 +172,7 @@ model Lesson {
   teacherId   String
   assignments Assignment[]
   exams       Exam[]
+  attendance  Attendance[]
   class       Class        @relation(fields: [classId], references: [id])
   subject     Subject      @relation(fields: [subjectId], references: [id])
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
@@ -339,4 +341,23 @@ model Conversation {
   updatedAt DateTime @updatedAt
 
   @@index([month, year])
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  date      DateTime         @default(now())
+  status    AttendanceStatus @default(PRESENT)
+  studentId String
+  lessonId  Int?
+  note      String?
+  student   Student          @relation(fields: [studentId], references: [id])
+  lesson    Lesson?          @relation(fields: [lessonId], references: [id])
+
+  @@unique([studentId, date, lessonId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
 }
