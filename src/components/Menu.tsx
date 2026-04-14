@@ -198,14 +198,14 @@ const Menu = ({ role }: { role: string }) => {
   const { t } = useLanguage();
 
   return (
-    <div className="mt-6 text-sm px-4">
+    <div className="text-sm">
       {menuItems.map((section) => (
         <div className="flex flex-col gap-2 mb-6" key={section.title}>
           <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
             {section.title === "MENU" ? t.menu.home : t.menu.other}
           </span>
-          {section.items.map((item) => {
-            if (item.visible.includes(role)) {
+          <div className="flex flex-col gap-1">
+            {section.items.filter(item => item.visible.includes(role)).map((item) => {
               const isActive = 
                 pathname === item.href || 
                 (item.href === "/" && pathname === "/admin") ||
@@ -215,7 +215,7 @@ const Menu = ({ role }: { role: string }) => {
                 <Link
                   href={item.href}
                   key={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-4 py-3 px-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
+                  className={`flex items-center justify-center lg:justify-start gap-4 py-2.5 px-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
                     isActive 
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
                       : "text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"
@@ -240,8 +240,8 @@ const Menu = ({ role }: { role: string }) => {
                   </span>
                 </Link>
               );
-            }
-          })}
+            })}
+          </div>
         </div>
       ))}
     </div>
