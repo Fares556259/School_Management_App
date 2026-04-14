@@ -36,8 +36,24 @@ export async function GET(request: NextRequest) {
     let now = new Date();
     const dateStr = searchParams.get("date");
     if (dateStr) {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      now = new Date(year, month - 1, day);
+      if (dateStr.includes("-")) {
+        const parts = dateStr.split("-").map(Number);
+        if (parts.length === 3 && !parts.some(isNaN)) {
+          const [year, month, day] = parts;
+          now = new Date(year, month - 1, day);
+        }
+      } else {
+        // Handle legacy format (just a day number)
+        const dayNum = parseInt(dateStr);
+        if (!isNaN(dayNum)) {
+          now.setDate(dayNum);
+        }
+      }
+    }
+
+    // Defensive check to ensure 'now' is a valid date
+    if (isNaN(now.getTime())) {
+      now = new Date();
     }
 
     const dayNum = now.getDay();

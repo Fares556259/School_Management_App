@@ -138,7 +138,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
         const hour = sDate.getHours();
         const session = sessions.find(sess => sess.id === sessionId);
         const hStart = parseInt(session!.time.split(":")[0]);
-        const isCorrectSession = Math.abs(hour - hStart) < 3;
+        const isCorrectSession = Math.abs(hour - hStart) < 1;
 
         if (targetDate) {
           return sDate.getFullYear() === targetDate.getFullYear() &&
