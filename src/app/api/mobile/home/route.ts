@@ -136,22 +136,44 @@ export async function GET(request: NextRequest) {
       take: 5,
     });
 
-    const attendanceRemarks = attendance
+    const attendanceRemarks: any[] = [];
+    attendance
       .filter((a) => a.note && a.note.trim() !== "")
-      .map((a) => {
+      .forEach((a) => {
+        const rawText = a.note!;
+        try {
+          const parsed = JSON.parse(rawText);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((p, idx) => {
+              if (p.text?.trim()) {
+                attendanceRemarks.push({
+                  id: `att-${a.id}-${idx}`,
+                  note: p.text,
+                  subject: p.author || "Admin",
+                  teacher: null,
+                  date: a.date,
+                });
+              }
+            });
+            return;
+          }
+        } catch (e) {}
+
+        // Fallback for isolated legacy strings
         let author = "Admin";
-        let text = a.note!;
+        let text = rawText;
         if (text.startsWith("[") && text.includes("] ")) {
           author = text.substring(1, text.indexOf("]"));
           text = text.substring(text.indexOf("] ") + 2);
         }
-        return {
+        
+        attendanceRemarks.push({
           id: `att-${a.id}`,
           note: text,
           subject: author,
           teacher: null,
           date: a.date,
-        };
+        });
       });
 
     const mappedGradeSheets = gradeSheetRemarks.map((r) => ({

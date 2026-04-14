@@ -32,8 +32,7 @@ export default function AttendancePage() {
   const [lessons, setLessons] = useState<any[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<string>("ALL");
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [authors, setAuthors] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, { author: string; text: string }[]>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,7 +58,6 @@ export default function AttendancePage() {
     const fetchedLessons = data.lessons || [];
     setLessons(fetchedLessons);
 
-    // Force selection of the very first lesson seamlessly if currently unset or invalid
     if (fetchedLessons.length > 0) {
       if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => l.id === selectedLesson)) {
         setSelectedLesson(fetchedLessons[0].id);
@@ -71,23 +69,34 @@ export default function AttendancePage() {
     setStudents(data.students || []);
 
     const initialStatuses: Record<string, Status> = {};
-    const initialNotes: Record<string, string> = {};
-    const initialAuthors: Record<string, string> = {};
+    const initialNotes: Record<string, { author: string; text: string }[]> = {};
     
     (data.students || []).forEach((s: any) => {
       initialStatuses[s.id] = (s.attendance[0]?.status as Status) ?? null;
-      let note = s.attendance[0]?.note ?? "";
-      let author = "Admin";
-      if (note.startsWith("[") && note.includes("] ")) {
-        author = note.substring(1, note.indexOf("]"));
-        note = note.substring(note.indexOf("] ") + 2);
+      let rawText = s.attendance[0]?.note ?? "";
+      
+      let parsedNotes: { author: string; text: string }[] = [];
+      try {
+        const p = JSON.parse(rawText);
+        if (Array.isArray(p)) parsedNotes = p;
+      } catch (e) {
+        if (rawText) {
+          let author = "Admin";
+          let text = rawText;
+          if (text.startsWith("[") && text.includes("] ")) {
+            author = text.substring(1, text.indexOf("]"));
+            text = text.substring(text.indexOf("] ") + 2);
+          }
+          parsedNotes = [{ author, text }];
+        }
       }
-      initialNotes[s.id] = note;
-      initialAuthors[s.id] = author;
+      
+      // Always append an empty one for the UI to type into immediately
+      parsedNotes.push({ author: "Admin", text: "" });
+      initialNotes[s.id] = parsedNotes;
     });
     setStatuses(initialStatuses);
     setNotes(initialNotes);
-    setAuthors(initialAuthors);
     setLoading(false);
   }, [selectedClass, date, selectedLesson]);
 
@@ -106,11 +115,14 @@ export default function AttendancePage() {
     setSaved(false);
     const records = students
       .filter((s) => statuses[s.id])
-      .map((s) => ({ 
-        studentId: s.id, 
-        status: statuses[s.id]!, 
-        note: notes[s.id] ? `[${authors[s.id] || "Admin"}] ${notes[s.id]}` : "" 
-      }));
+      .map((s) => {
+        const studentNotes = (notes[s.id] || []).filter(n => n.text.trim() !== "");
+        return { 
+          studentId: s.id, 
+          status: statuses[s.id]!, 
+          note: studentNotes.length > 0 ? JSON.stringify(studentNotes) : null
+        };
+      });
 
     await fetch("/api/attendance", {
       method: "POST",
@@ -354,24 +366,46 @@ export default function AttendancePage() {
 
                     {/* Note */}
                     <td className="px-4 py-4 hidden lg:table-cell">
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={authors[student.id] || "Admin"}
-                          onChange={(e) => setAuthors((prev) => ({ ...prev, [student.id]: e.target.value }))}
-                          className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
-                        >
-                          <option value="Admin">Admin (Fares)</option>
-                          <option value="Tarek Ben Ali">T. Ben Ali (Math)</option>
-                          <option value="Sarah Mabrouk">S. Mabrouk (French)</option>
-                          <option value="Supervisor">Supervisor</option>
-                        </select>
-                        <input
-                          type="text"
-                          placeholder="Add note..."
-                          value={notes[student.id] ?? ""}
-                          onChange={(e) => setNotes((prev) => ({ ...prev, [student.id]: e.target.value }))}
-                          className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
-                        />
+                      <div className="flex flex-col gap-2">
+                        {(notes[student.id] || []).map((noteObj, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <select
+                              value={noteObj.author}
+                              onChange={(e) => {
+                                const newNotes = [...(notes[student.id] || [])];
+                                newNotes[idx].author = e.target.value;
+                                setNotes(prev => ({ ...prev, [student.id]: newNotes }));
+                              }}
+                              className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
+                            >
+                              <option value="Admin">Admin (Fares)</option>
+                              <option value="Tarek Ben Ali">T. Ben Ali (Math)</option>
+                              <option value="Sarah Mabrouk">S. Mabrouk (French)</option>
+                              <option value="Supervisor">Supervisor</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder={idx === (notes[student.id]?.length || 0) - 1 ? "Add note..." : "Note content..."}
+                              value={noteObj.text}
+                              onChange={(e) => {
+                                const newNotes = [...(notes[student.id] || [])];
+                                newNotes[idx].text = e.target.value;
+                                setNotes(prev => ({ ...prev, [student.id]: newNotes }));
+                              }}
+                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
+                            />
+                            {idx === (notes[student.id]?.length || 0) - 1 && (
+                              <button
+                                onClick={() => {
+                                  setNotes(prev => ({ ...prev, [student.id]: [...(notes[student.id] || []), { author: "Admin", text: "" }] }))
+                                }}
+                                className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center shrink-0 border border-indigo-100 border-b-2 transition-all active:translate-y-[1px] active:border-b font-black"
+                              >
+                                +
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </td>
                   </tr>
