@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { updateTimetableSlot } from "../../actions/timetableActions";
 import { Day } from "@prisma/client";
 import { Edit2, BookOpen, X, Check } from "lucide-react";
 
@@ -14,11 +13,14 @@ interface SlotProps {
   endTime: string;
   subjects: any[];
   teachers: any[];
-  onUpdate: () => void;
+  onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
+  onRefresh: () => void;
   isEditMode: boolean;
+  type: "timetable" | "exam";
+  usedSubjectIds: number[];
 }
 
-const TimetableSlotItem = ({ 
+const ScheduleSlot = ({ 
   slot, 
   classId, 
   day, 
@@ -27,8 +29,11 @@ const TimetableSlotItem = ({
   endTime, 
   subjects, 
   teachers, 
-  onUpdate, 
-  isEditMode 
+  onUpdateAction,
+  onRefresh,
+  isEditMode,
+  type,
+  usedSubjectIds
 }: SlotProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,17 +43,22 @@ const TimetableSlotItem = ({
   const [teacherId, setTeacherId] = useState("");
   const [room, setRoom] = useState("");
 
-  // Sync state when slot prop changes (crucial for persistence display)
+  // Sync state when slot prop changes
   useEffect(() => {
-    setSubjectId(slot?.subjectId?.toString() || "");
-    setTeacherId(slot?.teacherId || "");
+    if (type === "timetable") {
+      setSubjectId(slot?.subjectId?.toString() || "");
+      setTeacherId(slot?.teacherId || "");
+    } else {
+      setSubjectId(slot?.lesson?.subjectId?.toString() || "");
+      setTeacherId(slot?.lesson?.teacherId || "");
+    }
     setRoom(slot?.room || "");
-  }, [slot]);
+  }, [slot, type]);
 
   const handleUpdate = async () => {
     setLoading(true);
     try {
-        const res = await updateTimetableSlot({
+        const res = await onUpdateAction({
           id: slot?.id ?? -1,
           subjectId: parseInt(subjectId) || null,
           teacherId: teacherId || null,
@@ -61,7 +71,7 @@ const TimetableSlotItem = ({
         });
         if (res.success) {
           setIsEditing(false);
-          onUpdate();
+          onRefresh();
         } else {
             console.error("Save failed:", res.error);
         }
@@ -72,7 +82,6 @@ const TimetableSlotItem = ({
     }
   };
 
-  // Logic for display
   if (!slot && !isEditMode) return null;
 
   if (!slot && isEditMode && !isEditing) return (
@@ -83,7 +92,7 @@ const TimetableSlotItem = ({
       <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
          <BookOpen size={16} className="opacity-40 group-hover:opacity-100 transition-opacity" />
       </div>
-      <span className="text-[9px] font-black uppercase tracking-widest mt-3">Add Session</span>
+      <span className="text-[9px] font-black uppercase tracking-widest mt-3">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
     </button>
   );
 
@@ -97,7 +106,12 @@ const TimetableSlotItem = ({
              onChange={(e) => setSubjectId(e.target.value)}
            >
              <option value="">Subject</option>
-             {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+             {subjects
+               .filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId)
+               .map(s => (
+                 <option key={s.id} value={s.id}>{s.name}</option>
+               ))
+             }
            </select>
            <select 
              className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
@@ -140,6 +154,11 @@ const TimetableSlotItem = ({
     }
   };
 
+  const subjectName = type === "timetable" ? slot.subject?.name : slot.lesson?.subject?.name;
+  const teacherName = type === "timetable" 
+    ? (slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "No Teacher Assigned")
+    : (slot.lesson?.teacher ? `${slot.lesson.teacher.name} ${slot.lesson.teacher.surname}` : "No Teacher Assigned");
+
   return (
     <div 
       draggable={isEditMode && !!slot}
@@ -148,7 +167,7 @@ const TimetableSlotItem = ({
     >
       <div className="flex items-start justify-between">
         <h3 className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
-          {slot.subject?.name}
+          {subjectName}
         </h3>
         {isEditMode && (
           <button 
@@ -162,7 +181,7 @@ const TimetableSlotItem = ({
       
       <div className="mt-2 flex flex-col gap-1">
         <p className="text-[10px] italic font-medium text-slate-500 tracking-tight">
-          {slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "No Teacher Assigned"}
+          {teacherName}
         </p>
       </div>
 
@@ -180,4 +199,4 @@ const TimetableSlotItem = ({
   );
 };
 
-export default TimetableSlotItem;
+export default ScheduleSlot;

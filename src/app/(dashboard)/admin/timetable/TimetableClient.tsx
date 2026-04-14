@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, Check, Edit2, Sparkles, Lock } from "lucide-react";
-import TimetableGrid from "./components/TimetableGrid";
-import AiTimetableModal from "./components/AiTimetableModal";
+import ScheduleGrid from "./components/ScheduleGrid";
+import AiScheduleModal from "./components/AiScheduleModal";
 import { isAIQuotaReached } from "../actions/aiActions";
-import { useEffect } from "react";
+import { 
+  getTimetableByClass, 
+  moveTimetableSlot, 
+  updateTimetableSlot 
+} from "../actions/timetableActions";
+import { generateTimetableFromPrompt } from "../actions/timetableAiActions";
 
 const TimetablePage = ({
   classes,
@@ -27,6 +32,7 @@ const TimetablePage = ({
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
   }, []);
+
   const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
 
   const handleAiSuccess = () => {
@@ -39,7 +45,6 @@ const TimetablePage = ({
 
   return (
     <div className="p-4 flex flex-col gap-6 flex-1">
-      {/* ... header contents ... */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
@@ -57,7 +62,6 @@ const TimetablePage = ({
         </div>
         
         <div className="flex items-center gap-3">
-          {/* AI GENERATE BUTTON */}
           <button 
             onClick={() => setIsAiOpen(true)}
             className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg group ${
@@ -72,7 +76,6 @@ const TimetablePage = ({
 
           <div className="h-10 w-px bg-slate-100 mx-2"></div>
 
-          {/* EDIT TOGGLE BUTTON */}
           <button 
             onClick={() => setIsEditMode(!isEditMode)}
             className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 ${
@@ -110,20 +113,24 @@ const TimetablePage = ({
       </div>
 
       {selectedClass && (
-        <TimetableGrid 
+        <ScheduleGrid 
           classId={selectedClass.id} 
-          className={selectedClass.name}
           subjects={subjects}
           teachers={teachers}
           isEditMode={isEditMode}
           refreshKey={refreshKey}
+          type="timetable"
+          fetchDataAction={getTimetableByClass}
+          onMoveAction={moveTimetableSlot}
+          onUpdateAction={updateTimetableSlot}
         />
       )}
 
       {isAiOpen && selectedClass && (
-        <AiTimetableModal 
+        <AiScheduleModal 
           onClose={() => setIsAiOpen(false)}
           onSuccess={handleAiSuccess}
+          title="AI Timetable Magic"
           classContext={{
             id: selectedClass.id,
             name: selectedClass.name,
@@ -131,6 +138,7 @@ const TimetablePage = ({
           }}
           subjects={subjects}
           teachers={teachers}
+          generateAction={generateTimetableFromPrompt}
         />
       )}
     </div>

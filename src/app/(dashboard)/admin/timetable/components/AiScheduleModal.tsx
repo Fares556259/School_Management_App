@@ -1,6 +1,7 @@
+"use client";
+
 import { useState, useTransition, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { generateTimetableFromPrompt } from "../../actions/timetableAiActions";
 import { isAIQuotaReached } from "../../actions/aiActions";
 import { bulkUpdateTimetableSlots } from "@/lib/crudActions";
 import { X, Sparkles, Loader2, AlertCircle, Check, Calendar, ArrowRight, User, BookOpen, MapPin, Lock } from "lucide-react";
@@ -11,9 +12,19 @@ interface Props {
   classContext: { id: number; name: string; level: number };
   subjects: any[];
   teachers: any[];
+  generateAction: (prompt: string, context: any, subjects: any[], teachers: any[]) => Promise<{ data?: any[]; error?: string }>;
+  title: string;
 }
 
-export default function AiTimetableModal({ onClose, onSuccess, classContext, subjects, teachers }: Props) {
+export default function AiScheduleModal({ 
+  onClose, 
+  onSuccess, 
+  classContext, 
+  subjects, 
+  teachers, 
+  generateAction,
+  title
+}: Props) {
   const [step, setStep] = useState<"input" | "generating" | "review" | "success">("input");
   const [prompt, setPrompt] = useState("");
   const [generatedSlots, setGeneratedSlots] = useState<any[]>([]);
@@ -31,11 +42,11 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
   const handleGenerate = async () => {
     if (isLocked) return;
     if (!prompt.trim()) return;
-// ... (rest of logic)
+
     setStep("generating");
     setError(null);
 
-    const res = await generateTimetableFromPrompt(prompt, classContext, subjects, teachers);
+    const res = await generateAction(prompt, classContext, subjects, teachers);
     
     if (res.error) {
       setError(res.error);
@@ -54,7 +65,7 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
         onSuccess?.();
         setTimeout(() => onClose(), 2000);
       } else {
-        setError(res.error || "Failed to save timetable.");
+        setError(res.error || "Failed to save schedule.");
       }
     });
   };
@@ -66,14 +77,13 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white w-full max-w-4xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
-        {/* HEADER */}
         <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
               <Sparkles size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">AI Timetable Magic</h2>
+              <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">{title}</h2>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
                 Prompt · Generate · Review · Apply
               </p>
@@ -84,7 +94,6 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
           </button>
         </div>
 
-        {/* CONTENT */}
         <div className="flex-1 overflow-auto p-8 bg-slate-50/50 relative">
           {isLocked && (
             <div className="absolute inset-0 z-50 bg-white/40 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
@@ -140,7 +149,7 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
                   className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                 >
                    <Sparkles size={16} />
-                   Generate Timetable
+                   Generate Schedule
                 </button>
               </motion.div>
             )}
@@ -174,7 +183,7 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-black text-slate-800 uppercase tracking-tight">Proposed Timetable</h3>
+                    <h3 className="font-black text-slate-800 uppercase tracking-tight">Proposed Schedule</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Review the generated slots for the week</p>
                   </div>
                   <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black">{generatedSlots.length} Slots Generated</span>
@@ -242,7 +251,7 @@ export default function AiTimetableModal({ onClose, onSuccess, classContext, sub
                 </div>
                 <div className="text-center">
                   <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">Schedule Live!</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">The AI-generated timetable is now active for this class</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">The AI-generated schedule is now active for this class</p>
                 </div>
               </motion.div>
             )}

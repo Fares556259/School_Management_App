@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTimetableByClass, moveTimetableSlot } from "../../actions/timetableActions";
-import TimetableSlotItem from "./TimetableSlot";
+import ScheduleSlot from "./ScheduleSlot";
 import { Day } from "@prisma/client";
 
 const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
@@ -13,20 +12,26 @@ const sessions = [
   { id: 3, label: "Session 3", time: "12:00 - 14:00" },
 ];
 
-const TimetableGrid = ({
+const ScheduleGrid = ({
   classId,
-  className,
   subjects,
   teachers,
   isEditMode,
   refreshKey,
+  type,
+  fetchDataAction,
+  onMoveAction,
+  onUpdateAction
 }: {
   classId: number;
-  className: string;
   subjects: any[];
   teachers: any[];
   isEditMode: boolean;
   refreshKey: number;
+  type: "timetable" | "exam";
+  fetchDataAction: (classId: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+  onMoveAction: (id: number, day: Day, period: number) => Promise<{ success: boolean; error?: string }>;
+  onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
 }) => {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +39,7 @@ const TimetableGrid = ({
 
   const fetchSlots = async () => {
     setLoading(true);
-    const res = await getTimetableByClass(classId);
+    const res = await fetchDataAction(classId);
     if (res.success && res.data) {
       setSlots(res.data as any[]);
     }
@@ -55,7 +60,7 @@ const TimetableGrid = ({
     if (!slotIdStr) return;
 
     const slotId = parseInt(slotIdStr);
-    const res = await moveTimetableSlot(slotId, targetDay, targetPeriod);
+    const res = await onMoveAction(slotId, targetDay, targetPeriod);
     if (res.success) {
       fetchSlots();
     }
@@ -69,7 +74,9 @@ const TimetableGrid = ({
     return (
       <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[40px] border border-slate-100 animate-pulse">
         <div className="w-16 h-16 border-[6px] border-slate-50 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Synchronizing Academic Schedule...</p>
+        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
+           Synchronizing {type === 'exam' ? 'Exam' : 'Academic'} Schedule...
+        </p>
       </div>
     );
   }
@@ -82,6 +89,30 @@ const TimetableGrid = ({
     [Day.FRIDAY]: "Vendredi",
     [Day.SATURDAY]: "Samedi",
   };
+
+  // Helper to find slot in array based on type
+  const findSlot = (day: Day, sessionId: number) => {
+    return slots.find(s => {
+      if (type === "timetable") {
+        return s.day === day && s.slotNumber === sessionId;
+      } else {
+        // For exams, we map DateTime to Day
+        const date = new Date(s.startTime);
+        const examDay = days[date.getDay() - 1]; 
+        const hour = date.getHours();
+        const session = sessions.find(sess => sess.id === sessionId);
+        const hStart = parseInt(session!.time.split(":")[0]);
+        
+        // Exact mapping or range? Let's use 2-hour window
+        return examDay === day && Math.abs(hour - hStart) < 2;
+      }
+    });
+  };
+
+  // Calculate used subject IDs for validation (only for exams)
+  const usedSubjectIds = type === "exam" 
+    ? slots.map(s => s.lesson?.subjectId).filter(Boolean)
+    : [];
 
   return (
     <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
@@ -110,9 +141,7 @@ const TimetableGrid = ({
                 </div>
 
                 {days.map((day) => {
-                  const slot = slots.find(
-                    (s) => s.day === day && s.slotNumber === session.id
-                  );
+                  const s = findSlot(day, session.id);
                   const isDraggedOver = draggedOver === `${day}-${session.id}`;
                   return (
                     <div 
@@ -122,8 +151,8 @@ const TimetableGrid = ({
                       onDragLeave={() => setDraggedOver(null)}
                       onDrop={(e) => handleDrop(e, day, session.id)}
                     >
-                      <TimetableSlotItem 
-                        slot={slot} 
+                      <ScheduleSlot 
+                        slot={s} 
                         classId={classId}
                         day={day}
                         period={session.id}
@@ -131,8 +160,11 @@ const TimetableGrid = ({
                         endTime={session.time.split(" - ")[1]}
                         subjects={subjects}
                         teachers={teachers}
-                        onUpdate={fetchSlots}
+                        usedSubjectIds={usedSubjectIds}
+                        onUpdateAction={onUpdateAction}
+                        onRefresh={fetchSlots}
                         isEditMode={isEditMode}
+                        type={type}
                       />
                     </div>
                   );
@@ -146,4 +178,4 @@ const TimetableGrid = ({
   );
 };
 
-export default TimetableGrid;
+export default ScheduleGrid;
