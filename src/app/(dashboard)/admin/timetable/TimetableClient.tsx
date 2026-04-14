@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Clock, Check, Edit2, Sparkles, Lock } from "lucide-react";
+import { Clock, Check, Edit2, Sparkles, Lock, FileDown } from "lucide-react";
+import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "./components/ScheduleGrid";
 import AiScheduleModal from "./components/AiScheduleModal";
 import { isAIQuotaReached } from "../actions/aiActions";
@@ -29,6 +30,13 @@ const TimetablePage = ({
   const [refreshKey, setRefreshKey] = useState(0);
   const [isAiLocked, setIsAiLocked] = useState(false);
 
+  // PDF Export Ref
+  const gridRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    contentRef: gridRef,
+    documentTitle: `Timetable_${new Date().toLocaleDateString()}`,
+  });
+
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
   }, []);
@@ -51,9 +59,9 @@ const TimetablePage = ({
              <Clock size={24} className="stroke-[2.5px]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2 uppercase">
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3 uppercase">
               Academic Timetable
-              <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest font-black border ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+              <span className={`text-[9px] px-3 py-1 rounded-full uppercase tracking-widest font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                 {isEditMode ? 'Edit Mode' : 'View Mode'}
               </span>
             </h1>
@@ -62,6 +70,17 @@ const TimetablePage = ({
         </div>
         
         <div className="flex items-center gap-3">
+          {/* DOWNLOAD PDF BUTTON */}
+          <button 
+            onClick={() => handlePrint()}
+            className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg bg-slate-800 text-white hover:bg-slate-900 shadow-slate-100"
+          >
+            <FileDown size={14} />
+            Download PDF
+          </button>
+
+          <div className="h-10 w-px bg-slate-100 mx-2"></div>
+
           <button 
             onClick={() => setIsAiOpen(true)}
             className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg group ${
@@ -85,7 +104,7 @@ const TimetablePage = ({
             }`}
           >
             {isEditMode ? (
-              <><Check size={14} className="stroke-[3px]"/> Save Changes</>
+              <><><Check size={14} className="stroke-[3px]"/> Save Changes</></>
             ) : (
               <><Edit2 size={14} className="stroke-[3px]"/> Edit Schedule</>
             )}
@@ -114,6 +133,7 @@ const TimetablePage = ({
 
       {selectedClass && (
         <ScheduleGrid 
+          ref={gridRef}
           classId={selectedClass.id} 
           subjects={subjects}
           teachers={teachers}

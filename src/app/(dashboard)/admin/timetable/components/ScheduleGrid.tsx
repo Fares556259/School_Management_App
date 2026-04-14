@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, forwardRef } from "react";
 import ScheduleSlot from "./ScheduleSlot";
 import { Day } from "@prisma/client";
 
@@ -12,17 +10,7 @@ const sessions = [
   { id: 3, label: "Session 3", time: "12:00 - 14:00" },
 ];
 
-const ScheduleGrid = ({
-  classId,
-  subjects,
-  teachers,
-  isEditMode,
-  refreshKey,
-  type,
-  fetchDataAction,
-  onMoveAction,
-  onUpdateAction
-}: {
+interface ScheduleGridProps {
   classId: number;
   subjects: any[];
   teachers: any[];
@@ -32,7 +20,19 @@ const ScheduleGrid = ({
   fetchDataAction: (classId: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
   onMoveAction: (id: number, day: Day, period: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
-}) => {
+}
+
+const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
+  classId,
+  subjects,
+  teachers,
+  isEditMode,
+  refreshKey,
+  type,
+  fetchDataAction,
+  onMoveAction,
+  onUpdateAction
+}, ref) => {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
@@ -96,28 +96,24 @@ const ScheduleGrid = ({
       if (type === "timetable") {
         return s.day === day && s.slotNumber === sessionId;
       } else {
-        // For exams, we map DateTime to Day
         const date = new Date(s.startTime);
         const examDay = days[date.getDay() - 1]; 
         const hour = date.getHours();
         const session = sessions.find(sess => sess.id === sessionId);
         const hStart = parseInt(session!.time.split(":")[0]);
-        
-        // Exact mapping or range? Let's use 2-hour window
         return examDay === day && Math.abs(hour - hStart) < 2;
       }
     });
   };
 
-  // Calculate used subject IDs for validation (only for exams)
   const usedSubjectIds = type === "exam" 
     ? slots.map(s => s.lesson?.subjectId).filter(Boolean)
     : [];
 
   return (
-    <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+    <div ref={ref} className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden print:shadow-none print:border-none print:m-0 print:p-0">
       <div className="overflow-x-auto">
-        <div className="min-w-[1200px] p-6 lg:p-10">
+        <div className="min-w-[1200px] p-6 lg:p-10 print:min-w-0 print:p-4">
           <div className="grid grid-cols-[100px_repeat(6,1fr)] gap-4 mb-6">
             <div className="h-14 flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-100">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Heure</span>
@@ -176,6 +172,8 @@ const ScheduleGrid = ({
       </div>
     </div>
   );
-};
+});
+
+ScheduleGrid.displayName = "ScheduleGrid";
 
 export default ScheduleGrid;

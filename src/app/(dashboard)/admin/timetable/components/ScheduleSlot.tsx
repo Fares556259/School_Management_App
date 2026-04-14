@@ -87,7 +87,7 @@ const ScheduleSlot = ({
   if (!slot && isEditMode && !isEditing) return (
     <button 
         onClick={() => setIsEditing(true)}
-        className="w-full h-full border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-200 hover:border-indigo-100 hover:text-indigo-400 hover:bg-slate-50 transition-all group"
+        className="w-full h-full border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-200 hover:border-indigo-100 hover:text-indigo-400 hover:bg-slate-50 transition-all group print:hidden"
     >
       <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
          <BookOpen size={16} className="opacity-40 group-hover:opacity-100 transition-opacity" />
@@ -172,7 +172,7 @@ const ScheduleSlot = ({
         {isEditMode && (
           <button 
             onClick={() => setIsEditing(true)}
-            className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600"
+            className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600 print:hidden"
           >
             <Edit2 size={12} />
           </button>
