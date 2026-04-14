@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
     let now = new Date();
     const dateStr = searchParams.get("date");
     if (dateStr) {
-      // The app sends a day string like "25". We assume March 2026 for now as the app is hardcoded.
-      now = new Date(2026, 2, parseInt(dateStr));
+      // The app sends a full YYYY-MM-DD string
+      now = new Date(dateStr);
     }
 
     const dayNum = now.getDay(); // 0 = Sunday
