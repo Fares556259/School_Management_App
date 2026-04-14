@@ -55,8 +55,8 @@ export default function AttendancePage() {
     if (!selectedClass) return;
     setLoading(true);
     const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}&lessonId=${selectedLesson}`);
-    const data = await res.json();
-    const fetchedLessons = data.lessons || [];
+    const data = await res.json().catch(() => ({}));
+    const fetchedLessons = data?.lessons || [];
     setLessons(fetchedLessons);
 
     if (fetchedLessons.length > 0) {
@@ -67,12 +67,13 @@ export default function AttendancePage() {
       setSelectedLesson("");
     }
 
-    setStudents(data.students || []);
+    const studentsArray = Array.isArray(data?.students) ? data.students : Array.isArray(data) ? data : [];
+    setStudents(studentsArray);
 
     const initialStatuses: Record<string, Status> = {};
     const initialNotes: Record<string, { author: string; text: string }[]> = {};
     
-    (data.students || []).forEach((s: any) => {
+    studentsArray.forEach((s: any) => {
       initialStatuses[s.id] = (s.attendance[0]?.status as Status) ?? null;
       let rawText = s.attendance[0]?.note ?? "";
       
@@ -107,14 +108,16 @@ export default function AttendancePage() {
 
   const setAll = (status: Status) => {
     const next: Record<string, Status> = {};
-    students.forEach((s) => (next[s.id] = status));
+    if (Array.isArray(students)) {
+      students.forEach((s) => (next[s.id] = status));
+    }
     setStatuses((prev) => ({ ...prev, ...next }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
-    const records = students
+    const records = (Array.isArray(students) ? students : [])
       .filter((s) => statuses[s.id])
       .map((s) => {
         const studentNotes = (notes[s.id] || []).filter(n => n.text.trim() !== "");
@@ -136,13 +139,13 @@ export default function AttendancePage() {
   };
 
   // Stats
-  const total = students.length;
+  const total = Array.isArray(students) ? students.length : 0;
   const presentCount = Object.values(statuses).filter((s) => s === "PRESENT").length;
   const absentCount = Object.values(statuses).filter((s) => s === "ABSENT").length;
   const lateCount = Object.values(statuses).filter((s) => s === "LATE").length;
   const unmarked = total - presentCount - absentCount - lateCount;
 
-  const filtered = students.filter((s) => {
+  const filtered = (Array.isArray(students) ? students : []).filter((s) => {
     const matchSearch =
       !search ||
       `${s.name} ${s.surname}`.toLowerCase().includes(search.toLowerCase());
