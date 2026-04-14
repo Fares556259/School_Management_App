@@ -17,8 +17,11 @@ interface ScheduleGridProps {
   isEditMode: boolean;
   refreshKey: number;
   type: "timetable" | "exam";
-  fetchDataAction: (classId: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
-  onMoveAction: (id: number, day: Day, period: number) => Promise<{ success: boolean; error?: string }>;
+  examPeriod?: number;
+  startDate?: Date;
+  endDate?: Date;
+  fetchDataAction: (classId: number, examPeriod?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+  onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -29,6 +32,9 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   isEditMode,
   refreshKey,
   type,
+  examPeriod,
+  startDate,
+  endDate,
   fetchDataAction,
   onMoveAction,
   onUpdateAction
@@ -39,7 +45,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
   const fetchSlots = async () => {
     setLoading(true);
-    const res = await fetchDataAction(classId);
+    const res = await fetchDataAction(classId, examPeriod);
     if (res.success && res.data) {
       setSlots(res.data as any[]);
     }
@@ -60,7 +66,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     if (!slotIdStr) return;
 
     const slotId = parseInt(slotIdStr);
-    const res = await onMoveAction(slotId, targetDay, targetPeriod);
+    const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
     if (res.success) {
       fetchSlots();
     }
@@ -68,7 +74,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
   useEffect(() => {
     fetchSlots();
-  }, [classId, refreshKey]);
+  }, [classId, refreshKey, examPeriod]);
 
   if (loading) {
     return (
@@ -90,18 +96,59 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     [Day.SATURDAY]: "Samedi",
   };
 
+  // Determine which days to show
+  const getDisplayDays = () => {
+    if (type === 'timetable') return days;
+    
+    // If no dates at all, just return standard days
+    if (!startDate) return days;
+
+    // If we have a start date but no end date, default to a 6-day range
+    const end = endDate || new Date(new Date(startDate).setDate(startDate.getDate() + 5));
+    
+    const diffTime = Math.abs(end.getTime() - startDate.getTime());
+    const diffDays = Math.min(Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1, 14); // max 14 days
+    
+    // Create a list of day enums based on the start date + range
+    const result: { day: Day; date: Date }[] = [];
+    for (let i = 0; i < diffDays; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        // Map native day (0-6, Sun-Sat) to our Day enum
+        const dayNames = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
+        const nativeDay = d.getDay(); 
+        const mappedDay = nativeDay === 0 ? Day.SATURDAY : dayNames[nativeDay - 1] || Day.MONDAY;
+        
+        result.push({ day: mappedDay, date: d });
+    }
+    return result;
+  };
+
+  const displayDays = getDisplayDays();
+
   // Helper to find slot in array based on type
-  const findSlot = (day: Day, sessionId: number) => {
+  const findSlot = (day: Day, sessionId: number, targetDate?: Date) => {
     return slots.find(s => {
       if (type === "timetable") {
         return s.day === day && s.slotNumber === sessionId;
       } else {
-        const date = new Date(s.startTime);
-        const examDay = days[date.getDay() - 1]; 
-        const hour = date.getHours();
+        const sDate = new Date(s.startTime);
+        const hour = sDate.getHours();
         const session = sessions.find(sess => sess.id === sessionId);
         const hStart = parseInt(session!.time.split(":")[0]);
-        return examDay === day && Math.abs(hour - hStart) < 2;
+        const isCorrectSession = Math.abs(hour - hStart) < 3;
+
+        if (targetDate) {
+          return sDate.getFullYear() === targetDate.getFullYear() &&
+                 sDate.getMonth() === targetDate.getMonth() &&
+                 sDate.getDate() === targetDate.getDate() &&
+                 isCorrectSession;
+        } else {
+          const nativeDay = sDate.getDay();
+          const dayIdx = nativeDay === 0 ? 5 : nativeDay - 1;
+          const mappedDay = days[dayIdx];
+          return mappedDay === day && isCorrectSession;
+        }
       }
     });
   };
@@ -114,43 +161,53 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     <div ref={ref} className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden print:shadow-none print:border-none print:m-0 print:p-0">
       <div className="overflow-x-auto">
         <div className="min-w-[1200px] p-6 lg:p-10 print:min-w-0 print:p-4">
-          <div className="grid grid-cols-[100px_repeat(6,1fr)] gap-4 mb-6">
+          <div className={`grid gap-4 mb-6`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
             <div className="h-14 flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-100">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Heure</span>
             </div>
-            {days.map((day) => (
-              <div key={day} className="h-14 flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/50">
-                 <span className="text-sm font-black text-slate-700 tracking-tight leading-none uppercase whitespace-nowrap px-4 overflow-hidden text-ellipsis">
-                   {dayLabels[day]}
-                 </span>
-              </div>
-            ))}
+            {displayDays.map((item) => {
+              const d = typeof item === 'string' ? item : item.day;
+              const date = typeof item === 'string' ? null : item.date;
+              let label = dayLabels[d as Day];
+              if (date) {
+                label += ` ${date.getDate()}`;
+              }
+              return (
+                <div key={label} className="h-14 flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/50">
+                   <span className="text-sm font-black text-slate-700 tracking-tight leading-none uppercase whitespace-nowrap px-4 overflow-hidden text-ellipsis">
+                     {label}
+                   </span>
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex flex-col gap-4">
             {sessions.map((session) => (
-              <div key={session.id} className="grid grid-cols-[100px_repeat(6,1fr)] gap-4 items-stretch">
+              <div key={session.id} className={`grid gap-4 items-stretch`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
                 <div className="flex flex-col items-center justify-center bg-white p-4 rounded-3xl border border-slate-50 relative overflow-hidden group">
                    <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 group-hover:bg-indigo-300 transition-colors"></div>
                    <span className="text-xl font-black text-slate-800 leading-none">{session.id}</span>
                    <span className="text-[9px] font-bold text-slate-400 mt-2 whitespace-nowrap tracking-tighter">{session.time}</span>
                 </div>
 
-                {days.map((day) => {
-                  const s = findSlot(day, session.id);
-                  const isDraggedOver = draggedOver === `${day}-${session.id}`;
+                {displayDays.map((item) => {
+                  const d = typeof item === 'string' ? item : item.day;
+                  const dateObj = typeof item === 'string' ? undefined : item.date;
+                  const s = findSlot(d as Day, session.id, dateObj);
+                  const isDraggedOver = draggedOver === `${d}-${session.id}`;
                   return (
                     <div 
-                      key={`${day}-${session.id}`} 
+                      key={`${d}-${session.id}`} 
                       className={`min-h-[140px] flex items-stretch rounded-[30px] transition-all border-2 ${isDraggedOver ? 'border-indigo-400 bg-indigo-50/30 scale-[0.98]' : 'border-transparent'}`}
-                      onDragOver={(e) => handleDragOver(e, day, session.id)}
+                      onDragOver={(e) => handleDragOver(e, d as Day, session.id)}
                       onDragLeave={() => setDraggedOver(null)}
-                      onDrop={(e) => handleDrop(e, day, session.id)}
+                      onDrop={(e) => handleDrop(e, d as Day, session.id)}
                     >
                       <ScheduleSlot 
                         slot={s} 
                         classId={classId}
-                        day={day}
+                        day={d as Day}
                         period={session.id}
                         startTime={session.time.split(" - ")[0]}
                         endTime={session.time.split(" - ")[1]}

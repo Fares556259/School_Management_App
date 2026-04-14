@@ -59,13 +59,15 @@ const TimetablePage = ({
              <Clock size={24} className="stroke-[2.5px]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3 uppercase">
-              Academic Timetable
-              <span className={`text-[9px] px-3 py-1 rounded-full uppercase tracking-widest font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+            <div className="mb-1">
+              <span className={`text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                 {isEditMode ? 'Edit Mode' : 'View Mode'}
               </span>
+            </div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
+              Academic Timetable
             </h1>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">Manage weekly schedules for all grades.</p>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-60">Manage weekly schedules for all grades.</p>
           </div>
         </div>
         
@@ -159,6 +161,7 @@ const TimetablePage = ({
           subjects={subjects}
           teachers={teachers}
           generateAction={generateTimetableFromPrompt}
+          saveAction={(slots) => bulkUpdateTimetableSlots(selectedClass.id, slots)}
         />
       )}
     </div>

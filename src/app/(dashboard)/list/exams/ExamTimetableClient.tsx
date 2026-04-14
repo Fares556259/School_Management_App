@@ -10,9 +10,13 @@ import { isAIQuotaReached } from "../../admin/actions/aiActions";
 import { 
   getExamsByClass, 
   moveExam, 
-  updateExamSlot 
+  updateExamSlot,
+  bulkUpdateExams,
+  getExamPeriodConfigs,
+  upsertExamPeriodConfig
 } from "../../admin/actions/examActions";
 import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 const ExamTimetableClient = ({ 
   classes, 
@@ -31,7 +35,10 @@ const ExamTimetableClient = ({
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isAiLocked, setIsAiLocked] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState(1);
+  const [periodConfigs, setPeriodConfigs] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [isDateEditMode, setIsDateEditMode] = useState(false);
 
   // PDF Export Ref
   const gridRef = useRef<HTMLDivElement>(null);
@@ -39,10 +46,42 @@ const ExamTimetableClient = ({
     contentRef: gridRef,
     documentTitle: `ExamsSchedule_${new Date().toLocaleDateString()}`,
   });
-
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
+    getExamPeriodConfigs().then(res => {
+      if (res.success && res.data) setPeriodConfigs(res.data);
+    });
   }, []);
+
+  const handleDateChange = async (field: 'startDate' | 'endDate', dateStr: string) => {
+    if (!dateStr) return;
+    
+    // Parse local date carefully to avoid TZ shift
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const newDate = new Date(year, month - 1, day);
+
+    const currentConf = periodConfigs.find(c => c.period === selectedPeriod);
+    const updatedStart = field === 'startDate' ? newDate : (currentConf?.startDate ? new Date(currentConf.startDate) : newDate);
+    const updatedEnd = field === 'endDate' ? newDate : (currentConf?.endDate ? new Date(currentConf.endDate) : undefined);
+
+    const res = await upsertExamPeriodConfig(selectedPeriod, updatedStart, updatedEnd);
+    if (res.success) {
+      getExamPeriodConfigs().then(r => {
+        if (r.success && r.data) setPeriodConfigs(r.data);
+      });
+      setRefreshKey(prev => prev + 1);
+    }
+  };
+
+  const toLocalISO = (date?: Date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const currentPeriodConfig = periodConfigs.find(c => c.period === selectedPeriod);
+  const currentStartDate = currentPeriodConfig ? new Date(currentPeriodConfig.startDate) : undefined;
+  const currentEndDate = currentPeriodConfig?.endDate ? new Date(currentPeriodConfig.endDate) : undefined;
 
   const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
 
@@ -63,13 +102,15 @@ const ExamTimetableClient = ({
              <ClipboardCheck size={24} className="stroke-[2.5px]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3 uppercase">
-              Academic Exams
-              <span className={`text-[9px] px-3 py-1 rounded-full uppercase tracking-widest font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+            <div className="mb-1">
+              <span className={`text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                 {isEditMode ? 'Edit Mode' : 'View Mode'}
               </span>
+            </div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
+              Academic Exams
             </h1>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">Manage and monitor examination calendars.</p>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-60">Manage and monitor examination calendars.</p>
           </div>
         </div>
         
@@ -146,6 +187,70 @@ const ExamTimetableClient = ({
         </div>
       </div>
 
+      {/* PERIOD SELECTOR SECTION */}
+      <div className="flex items-center justify-between gap-4 bg-white px-8 py-4 rounded-[24px] shadow-sm border border-slate-100">
+        <div className="flex items-center gap-4">
+           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-6">Exam Period</div>
+           <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100 gap-1">
+              {[1, 2, 3].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setSelectedPeriod(p)}
+                  className={`px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    selectedPeriod === p 
+                    ? 'bg-white text-indigo-600 shadow-md shadow-indigo-100/50 border border-indigo-100' 
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'
+                  }`}
+                >
+                  Week {p}
+                </button>
+              ))}
+           </div>
+        </div>
+         <div className="flex items-center gap-6">
+            <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-3 items-center">
+              <div className="flex items-center gap-6 px-3">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon size={14} className="text-slate-400" />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Start</span>
+                  <input 
+                    type="date" 
+                    value={toLocalISO(currentStartDate)}
+                    onChange={(e) => handleDateChange('startDate', e.target.value)}
+                    disabled={!isDateEditMode}
+                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isDateEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
+                  />
+                </div>
+                <div className="w-px h-4 bg-slate-200"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">End</span>
+                  <input 
+                    type="date" 
+                    value={toLocalISO(currentEndDate)}
+                    onChange={(e) => handleDateChange('endDate', e.target.value)}
+                    disabled={!isDateEditMode}
+                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isDateEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsDateEditMode(!isDateEditMode)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                isDateEditMode
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600'
+                  : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
+              }`}
+            >
+              {isDateEditMode ? (
+                <><Check size={14} /> Save Dates</>
+              ) : (
+                <><Edit2 size={14} /> Edit Dates</>
+              )}
+            </button>
+         </div>
+      </div>
+
       {/* TIMETABLE GRID */}
       {selectedClass && (
         <div className={isPending ? "opacity-50 transition-opacity" : ""}>
@@ -157,6 +262,9 @@ const ExamTimetableClient = ({
             isEditMode={isEditMode}
             refreshKey={refreshKey}
             type="exam"
+            examPeriod={selectedPeriod}
+            startDate={currentStartDate}
+            endDate={currentEndDate}
             fetchDataAction={getExamsByClass}
             onMoveAction={moveExam}
             onUpdateAction={updateExamSlot}
@@ -176,7 +284,8 @@ const ExamTimetableClient = ({
           }}
           subjects={subjects}
           teachers={teachers}
-          generateAction={generateExamsFromPrompt}
+          generateAction={(p, c, s, t) => generateExamsFromPrompt(p, c, s, t, selectedPeriod)}
+          saveAction={(slots) => bulkUpdateExams(selectedClass.id, selectedPeriod, slots)}
         />
       )}
     </div>

@@ -179,13 +179,14 @@ model Lesson {
 }
 
 model Exam {
-  id        Int      @id @default(autoincrement())
-  title     String
-  startTime DateTime
-  endTime   DateTime
-  lessonId  Int
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
-  results   Result[]
+  id         Int      @id @default(autoincrement())
+  title      String
+  startTime  DateTime
+  endTime    DateTime
+  examPeriod Int      @default(1) // 1 to 3
+  lessonId   Int
+  lesson     Lesson   @relation(fields: [lessonId], references: [id])
+  results    Result[]
 }
 
 model Assignment {
@@ -196,6 +197,13 @@ model Assignment {
   lessonId  Int
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
   results   Result[]
+}
+
+model ExamPeriodConfig {
+  id        Int      @id @default(autoincrement())
+  period    Int      @unique // 1, 2, or 3
+  startDate DateTime
+  endDate   DateTime?
 }
 
 model Result {

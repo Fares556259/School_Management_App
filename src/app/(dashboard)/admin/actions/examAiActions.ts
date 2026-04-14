@@ -6,7 +6,8 @@ export async function generateExamsFromPrompt(
   prompt: string, 
   classContext: { id: number; name: string; level: number },
   availableSubjects: any[],
-  availableTeachers: any[]
+  availableTeachers: any[],
+  examPeriod: number = 1
 ) {
   if (!prompt || prompt.length < 5) {
     return { error: "Please provide more instructions for the exam schedule." };
@@ -15,6 +16,7 @@ export async function generateExamsFromPrompt(
   const systemPrompt = `
     You are an expert school scheduler.
     You will generate a weekly Exam schedule for a class based on a user's prompt.
+    The goal is to schedule exams for PERIOD ${examPeriod}.
     The school operates 6 days a week (MONDAY to SATURDAY).
     Each day has 3 slots (slotNumber 1, 2, 3).
     
@@ -37,7 +39,8 @@ export async function generateExamsFromPrompt(
       "slotNumber": number (1, 2 or 3),
       "subjectId": number (match ID from available subjects),
       "teacherId": "string (match ID from available teachers)",
-      "classId": ${classContext.id}
+      "classId": ${classContext.id},
+      "examPeriod": ${examPeriod}
     }
 
     USER INSTRUCTIONS:

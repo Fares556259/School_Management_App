@@ -13,6 +13,7 @@ interface Props {
   subjects: any[];
   teachers: any[];
   generateAction: (prompt: string, context: any, subjects: any[], teachers: any[]) => Promise<{ data?: any[]; error?: string }>;
+  saveAction: (slots: any[]) => Promise<{ success: boolean; error?: string }>;
   title: string;
 }
 
@@ -23,6 +24,7 @@ export default function AiScheduleModal({
   subjects, 
   teachers, 
   generateAction,
+  saveAction,
   title
 }: Props) {
   const [step, setStep] = useState<"input" | "generating" | "review" | "success">("input");
@@ -59,7 +61,7 @@ export default function AiScheduleModal({
 
   const handleSave = () => {
     startTransition(async () => {
-      const res = await bulkUpdateTimetableSlots(classContext.id, generatedSlots);
+      const res = await saveAction(generatedSlots);
       if (res.success) {
         setStep("success");
         onSuccess?.();
