@@ -138,6 +138,12 @@ export async function GET(request: NextRequest) {
     // 7. Recent teacher remarks (grade sheets with notes for this class)
     const [examPeriods, gradeSheetRemarks] = await Promise.all([
       prisma.examPeriodConfig.findMany({
+        select: {
+          period: true,
+          startDate: true,
+          endDate: true,
+          pdfUrl: true,
+        },
         orderBy: { period: 'asc' }
       }),
       prisma.gradeSheet.findMany({

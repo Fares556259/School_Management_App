@@ -204,6 +204,7 @@ model ExamPeriodConfig {
   period    Int      @unique // 1, 2, or 3
   startDate DateTime
   endDate   DateTime?
+  pdfUrl    String?
 }
 
 model Result {

@@ -80,7 +80,7 @@ const AdminPage = async ({
 
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
-  // 1. DATA FETCHING (Tiered Batches to protect DB Connection Pool)
+  // 1. DATA FETCHING (Sequential Batches for optimal Cloud performance)
   
   // TIER 1: Core Census & Current Period Totals
   const [

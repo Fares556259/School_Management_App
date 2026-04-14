@@ -25,6 +25,7 @@ async function main() {
   await prisma.subject.deleteMany();
   await prisma.level.deleteMany();
   await prisma.parent.deleteMany();
+  await prisma.examPeriodConfig.deleteMany();
   await prisma.staff.deleteMany();
   await prisma.admin.deleteMany();
 
@@ -142,7 +143,58 @@ async function main() {
     data: { amount: 120, month: 4, year: currentYear, status: "PAID", userType: "STUDENT", paidAt: new Date(), studentId: youssef.id }
   });
 
-  console.log("Seeding completed successfully: Fares Selmi (Parent), Amine & Youssef (Students).");
+  // EXAM PERIODS
+  const week1Start = new Date("2026-04-13T00:00:00Z");
+  const week1End = new Date("2026-04-19T23:59:59Z");
+  const week2Start = new Date("2026-04-20T00:00:00Z");
+  const week2End = new Date("2026-04-26T23:59:59Z");
+
+  await prisma.examPeriodConfig.createMany({
+    data: [
+      { 
+        period: 1, 
+        startDate: week1Start, 
+        endDate: week1End, 
+        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+      },
+      { 
+        period: 2, 
+        startDate: week2Start, 
+        endDate: week2End, 
+        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+      },
+    ]
+  });
+
+  // EXAMS
+  await prisma.exam.create({
+    data: {
+      title: "Midterm Mathematics",
+      startTime: new Date("2026-04-16T09:00:00Z"),
+      endTime: new Date("2026-04-16T11:00:00Z"),
+      lessonId: l1.id
+    }
+  });
+
+  await prisma.exam.create({
+    data: {
+      title: "French oral exam",
+      startTime: new Date("2026-04-17T14:00:00Z"),
+      endTime: new Date("2026-04-17T15:30:00Z"),
+      lessonId: l2.id
+    }
+  });
+  
+  await prisma.exam.create({
+    data: {
+      title: "Physics Mock Test",
+      startTime: new Date("2026-04-18T10:00:00Z"),
+      endTime: new Date("2026-04-18T12:00:00Z"),
+      lessonId: l1.id // Reusing l1 for simplicity
+    }
+  });
+
+  console.log("Seeding completed successfully: Fares Selmi (Parent), Amine & Youssef (Students), 2 Weeks of Exams.");
 }
 
 main()
