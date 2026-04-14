@@ -33,6 +33,7 @@ export default function AttendancePage() {
   const [selectedLesson, setSelectedLesson] = useState<string>("ALL");
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [notes, setNotes] = useState<Record<string, { author: string; text: string }[]>>({});
+  const [editNotes, setEditNotes] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -367,45 +368,82 @@ export default function AttendancePage() {
                     {/* Note */}
                     <td className="px-4 py-4 hidden lg:table-cell">
                       <div className="flex flex-col gap-2">
-                        {(notes[student.id] || []).map((noteObj, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <select
-                              value={noteObj.author}
-                              onChange={(e) => {
-                                const newNotes = [...(notes[student.id] || [])];
-                                newNotes[idx].author = e.target.value;
-                                setNotes(prev => ({ ...prev, [student.id]: newNotes }));
-                              }}
-                              className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
-                            >
-                              <option value="Admin">Admin (Fares)</option>
-                              <option value="Tarek Ben Ali">T. Ben Ali (Math)</option>
-                              <option value="Sarah Mabrouk">S. Mabrouk (French)</option>
-                              <option value="Supervisor">Supervisor</option>
-                            </select>
-                            <input
-                              type="text"
-                              placeholder={idx === (notes[student.id]?.length || 0) - 1 ? "Add note..." : "Note content..."}
-                              value={noteObj.text}
-                              onChange={(e) => {
-                                const newNotes = [...(notes[student.id] || [])];
-                                newNotes[idx].text = e.target.value;
-                                setNotes(prev => ({ ...prev, [student.id]: newNotes }));
-                              }}
-                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
-                            />
-                            {idx === (notes[student.id]?.length || 0) - 1 && (
-                              <button
-                                onClick={() => {
-                                  setNotes(prev => ({ ...prev, [student.id]: [...(notes[student.id] || []), { author: "Admin", text: "" }] }))
+                        {editNotes[student.id] ? (
+                          (notes[student.id] || []).map((noteObj, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <select
+                                value={noteObj.author}
+                                onChange={(e) => {
+                                  const newNotes = [...(notes[student.id] || [])];
+                                  newNotes[idx].author = e.target.value;
+                                  setNotes(prev => ({ ...prev, [student.id]: newNotes }));
                                 }}
-                                className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center shrink-0 border border-indigo-100 border-b-2 transition-all active:translate-y-[1px] active:border-b font-black"
+                                className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
                               >
-                                +
-                              </button>
-                            )}
+                                <option value="Admin">Admin (Fares)</option>
+                                <option value="Tarek Ben Ali">T. Ben Ali (Math)</option>
+                                <option value="Sarah Mabrouk">S. Mabrouk (French)</option>
+                                <option value="Supervisor">Supervisor</option>
+                              </select>
+                              <input
+                                type="text"
+                                placeholder={idx === (notes[student.id]?.length || 0) - 1 ? "Add note..." : "Note content..."}
+                                value={noteObj.text}
+                                onChange={(e) => {
+                                  const newNotes = [...(notes[student.id] || [])];
+                                  newNotes[idx].text = e.target.value;
+                                  setNotes(prev => ({ ...prev, [student.id]: newNotes }));
+                                }}
+                                className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
+                              />
+                              {idx === (notes[student.id]?.length || 0) - 1 && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      setNotes(prev => ({ ...prev, [student.id]: [...(notes[student.id] || []), { author: "Admin", text: "" }] }))
+                                    }}
+                                    className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center border border-indigo-100 border-b-2 transition-all active:translate-y-[1px] active:border-b font-black"
+                                  >
+                                    +
+                                  </button>
+                                  <button
+                                    onClick={() => setEditNotes(prev => ({ ...prev, [student.id]: false }))}
+                                    className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center border border-emerald-100 border-b-2 transition-all active:translate-y-[1px] active:border-b"
+                                    title="Done editing"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 min-h-[46px] group hover:border-indigo-100 transition-colors">
+                            <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                              {(() => {
+                                const validNotes = (notes[student.id] || []).filter(n => n.text.trim() !== "");
+                                if (validNotes.length === 0) return <span className="text-xs text-slate-400 font-medium italic">No notes</span>;
+                                return validNotes.map((n, i) => (
+                                  <div key={i} className="flex items-start gap-2 text-xs truncate">
+                                    <span className="font-bold text-slate-500 shrink-0">{n.author}:</span>
+                                    <span className="text-slate-600 truncate" title={n.text}>{n.text}</span>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                            <button
+                              onClick={() => setEditNotes(prev => ({ ...prev, [student.id]: true }))}
+                              className="w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-center shrink-0 border border-slate-200 hover:border-indigo-200 transition-all shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
+                              title="Edit Notes"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </td>
                   </tr>
