@@ -117,17 +117,14 @@ export async function updateExamSlot(data: {
   slotNumber: number;
   room?: string | null;
   examPeriod: number;
+  targetDate?: string; // Add ISO string for target date
 }) {
   try {
-    // For exams, we need to map day/slot to a specific DateTime. 
-    // Usually, we'd pick the "current" week or a target week.
-    // For simplicity, let's assume we are editing the current week.
-    // Use stored period start date instead of 'current' week
     const { startDate } = await getPeriodRange(data.examPeriod);
-    const monday = startDate;
-
-    const examDate = getDateForDay(data.day, monday);
-    const session = sessionTimes[data.slotNumber - 1];
+    
+    // Use targetDate if provided (most precise)
+    const examDate = data.targetDate ? new Date(data.targetDate) : getDateForDay(data.day, startDate);
+    const session = sessionTimes[data.slotNumber - 1] || sessionTimes[0];
 
     const startTime = new Date(examDate);
     const [hStart, mStart] = session.start.split(":").map(Number);
@@ -138,14 +135,16 @@ export async function updateExamSlot(data: {
     endTime.setHours(hEnd, mEnd, 0, 0);
 
     // If ID is -1, create a new Exam. 
-    // Exams need a lesson. We'll find or create a placeholder lesson for that subject/class/teacher if needed,
-    // or just pick the first existing lesson that matches.
     if (data.id === -1) {
+       if (!data.subjectId || !data.teacherId) {
+         return { success: false, error: "Subject and Teacher are required." };
+       }
+
        let lesson = await prisma.lesson.findFirst({
          where: {
             classId: data.classId,
-            subjectId: data.subjectId!,
-            teacherId: data.teacherId!
+            subjectId: data.subjectId,
+            teacherId: data.teacherId
          }
        });
 

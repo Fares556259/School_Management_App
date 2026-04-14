@@ -218,6 +218,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         onRefresh={fetchSlots}
                         isEditMode={isEditMode}
                         type={type}
+                        examPeriod={examPeriod}
+                        targetDate={dateObj}
                       />
                     </div>
                   );

@@ -120,21 +120,26 @@ export async function GET(request: NextRequest) {
     });
 
     // 7. Recent teacher remarks (grade sheets with notes for this class)
-    const gradeSheetRemarks = await prisma.gradeSheet.findMany({
-      where: {
-        classId: student.classId,
-        notes: { not: "" },
-        updatedAt: {
-          gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    const [examPeriods, gradeSheetRemarks] = await Promise.all([
+      prisma.examPeriodConfig.findMany({
+        orderBy: { period: 'asc' }
+      }),
+      prisma.gradeSheet.findMany({
+        where: {
+          classId: student.classId,
+          notes: { not: "" },
+          updatedAt: {
+            gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+          },
         },
-      },
-      include: {
-        subject: true,
-        teacher: true,
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-    });
+        include: {
+          subject: true,
+          teacher: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+      })
+    ]);
 
     const attendanceRemarks: any[] = [];
     attendance
@@ -211,6 +216,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       sessions,
+      examPeriods,
       tasksDue: tasksDue.map((a) => ({
         id: a.id,
         title: a.title,

@@ -19,6 +19,7 @@ interface SlotProps {
   type: "timetable" | "exam";
   usedSubjectIds: number[];
   examPeriod?: number;
+  targetDate?: Date;
 }
 
 const ScheduleSlot = ({ 
@@ -35,7 +36,8 @@ const ScheduleSlot = ({
   isEditMode,
   type,
   usedSubjectIds,
-  examPeriod
+  examPeriod,
+  targetDate
 }: SlotProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,7 @@ const ScheduleSlot = ({
           endTime,
           room: room || null,
           examPeriod: examPeriod,
+          targetDate: targetDate?.toISOString(),
         });
         if (res.success) {
           setIsEditing(false);
