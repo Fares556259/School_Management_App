@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // Map JS day number to Prisma Day enum
 const DAY_MAP: Record<number, string> = {
   1: "MONDAY",
@@ -9,6 +11,7 @@ const DAY_MAP: Record<number, string> = {
   4: "THURSDAY",
   5: "FRIDAY",
   6: "SATURDAY",
+  0: "SUNDAY",
 };
 
 export async function GET(request: NextRequest) {
@@ -20,23 +23,6 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing studentId", { status: 400 });
     }
 
-    // Determine today's day
-    let now = new Date();
-    const dateStr = searchParams.get("date");
-    if (dateStr) {
-      // The app sends a full YYYY-MM-DD string
-      now = new Date(dateStr);
-    }
-
-    const dayNum = now.getDay(); // 0 = Sunday
-    const todayEnum = DAY_MAP[dayNum];
-
-    // If it's Sunday (0) or unknown, return empty
-    if (!todayEnum) {
-      return NextResponse.json({ sessions: [], assignments: [], todayAttendance: [] });
-    }
-
-    // Get the student's class
     const student = await prisma.student.findUnique({
       where: { id: studentId },
       select: { classId: true },
@@ -44,6 +30,22 @@ export async function GET(request: NextRequest) {
 
     if (!student) {
       return new NextResponse("Student not found", { status: 404 });
+    }
+
+    // Determine today's day correctly ignoring timezone shifts
+    let now = new Date();
+    const dateStr = searchParams.get("date");
+    if (dateStr) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      now = new Date(year, month - 1, day);
+    }
+
+    const dayNum = now.getDay();
+    const todayEnum = DAY_MAP[dayNum] || "MONDAY";
+
+    // If it's Sunday (0) or unknown, return empty
+    if (todayEnum === "SUNDAY") {
+      return NextResponse.json({ sessions: [], assignments: [], todayAttendance: [] });
     }
 
     // 1. Today's timetable slots
@@ -68,6 +70,7 @@ export async function GET(request: NextRequest) {
         studentId,
         date: { gte: todayStart, lt: todayEnd },
       },
+      orderBy: { id: "desc" },
     });
 
     // 3. Today's lessons (for assignments)
@@ -117,7 +120,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 7. Recent teacher remarks (grade sheets with notes for this class)
-    const teacherRemarks = await prisma.gradeSheet.findMany({
+    const gradeSheetRemarks = await prisma.gradeSheet.findMany({
       where: {
         classId: student.classId,
         notes: { not: "" },
@@ -132,6 +135,34 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: "desc" },
       take: 5,
     });
+
+    const attendanceRemarks = attendance
+      .filter((a) => a.note && a.note.trim() !== "")
+      .map((a) => {
+        let author = "Admin";
+        let text = a.note!;
+        if (text.startsWith("[") && text.includes("] ")) {
+          author = text.substring(1, text.indexOf("]"));
+          text = text.substring(text.indexOf("] ") + 2);
+        }
+        return {
+          id: `att-${a.id}`,
+          note: text,
+          subject: author,
+          teacher: null,
+          date: a.date,
+        };
+      });
+
+    const mappedGradeSheets = gradeSheetRemarks.map((r) => ({
+      id: `gs-${r.id}`,
+      note: r.notes,
+      subject: r.subject?.name || "General",
+      teacher: r.teacher ? `${r.teacher.name} ${r.teacher.surname}` : "Teacher",
+      date: r.updatedAt,
+    }));
+
+    const teacherRemarks = [...mappedGradeSheets, ...attendanceRemarks];
 
     // Build session list with attendance status
     const sessions = slots.map((slot) => {
@@ -174,13 +205,7 @@ export async function GET(request: NextRequest) {
         startTime: e.startTime,
         endTime: e.endTime,
       })),
-      teacherRemarks: teacherRemarks.map((r) => ({
-        id: r.id,
-        subject: r.subject.name,
-        teacher: r.teacher ? `${r.teacher.name} ${r.teacher.surname}` : "Unknown",
-        note: r.notes,
-        date: r.updatedAt,
-      })),
+      teacherRemarks: teacherRemarks,
     });
   } catch (error: any) {
     console.error("[Mobile Home Error]", error);

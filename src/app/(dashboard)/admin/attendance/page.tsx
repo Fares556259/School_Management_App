@@ -31,6 +31,7 @@ export default function AttendancePage() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [authors, setAuthors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,12 +58,22 @@ export default function AttendancePage() {
 
     const initialStatuses: Record<string, Status> = {};
     const initialNotes: Record<string, string> = {};
+    const initialAuthors: Record<string, string> = {};
+    
     data.forEach((s) => {
       initialStatuses[s.id] = (s.attendance[0]?.status as Status) ?? null;
-      initialNotes[s.id] = s.attendance[0]?.note ?? "";
+      let note = s.attendance[0]?.note ?? "";
+      let author = "Admin";
+      if (note.startsWith("[") && note.includes("] ")) {
+        author = note.substring(1, note.indexOf("]"));
+        note = note.substring(note.indexOf("] ") + 2);
+      }
+      initialNotes[s.id] = note;
+      initialAuthors[s.id] = author;
     });
     setStatuses(initialStatuses);
     setNotes(initialNotes);
+    setAuthors(initialAuthors);
     setLoading(false);
   }, [selectedClass, date]);
 
@@ -81,7 +92,11 @@ export default function AttendancePage() {
     setSaved(false);
     const records = students
       .filter((s) => statuses[s.id])
-      .map((s) => ({ studentId: s.id, status: statuses[s.id]!, note: notes[s.id] ?? "" }));
+      .map((s) => ({ 
+        studentId: s.id, 
+        status: statuses[s.id]!, 
+        note: notes[s.id] ? `[${authors[s.id] || "Admin"}] ${notes[s.id]}` : "" 
+      }));
 
     await fetch("/api/attendance", {
       method: "POST",
@@ -309,13 +324,25 @@ export default function AttendancePage() {
 
                     {/* Note */}
                     <td className="px-4 py-4 hidden lg:table-cell">
-                      <input
-                        type="text"
-                        placeholder="Add note..."
-                        value={notes[student.id] ?? ""}
-                        onChange={(e) => setNotes((prev) => ({ ...prev, [student.id]: e.target.value }))}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
-                      />
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={authors[student.id] || "Admin"}
+                          onChange={(e) => setAuthors((prev) => ({ ...prev, [student.id]: e.target.value }))}
+                          className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
+                        >
+                          <option value="Admin">Admin (Fares)</option>
+                          <option value="Tarek Ben Ali">T. Ben Ali (Math)</option>
+                          <option value="Sarah Mabrouk">S. Mabrouk (French)</option>
+                          <option value="Supervisor">Supervisor</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Add note..."
+                          value={notes[student.id] ?? ""}
+                          onChange={(e) => setNotes((prev) => ({ ...prev, [student.id]: e.target.value }))}
+                          className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
