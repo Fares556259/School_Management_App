@@ -17,6 +17,9 @@ import {
   upsertExamPeriodConfig
 } from "../../admin/actions/examActions";
 import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
+import ExamTimetablePrint from "../../admin/timetable/components/ExamTimetablePrint";
+import { sessions as staticSessions, defaultSessions } from "../../admin/timetable/components/ScheduleGrid";
+import { getSchoolConfig } from "../../admin/actions/schoolActions";
 
 const ExamTimetableClient = ({ 
   classes, 
@@ -38,17 +41,55 @@ const ExamTimetableClient = ({
   const [selectedPeriod, setSelectedPeriod] = useState(1);
   const [periodConfigs, setPeriodConfigs] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [slots, setSlots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [schoolConfig, setSchoolConfig] = useState<any>(null);
+  const [dynamicSessions, setDynamicSessions] = useState<any[]>(defaultSessions);
 
   // PDF Export Ref
-  const gridRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
-    contentRef: gridRef,
+    contentRef: printRef,
     documentTitle: `ExamsSchedule_${new Date().toLocaleDateString()}`,
   });
+
+  const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
+
+  const selectedClass = classId 
+    ? classes.find(c => c.id === classId) 
+    : classes[0];
+
+  const fetchSlots = async () => {
+    if (!selectedClass) return;
+    setLoading(true);
+    const res = await getExamsByClass(selectedClass.id, selectedPeriod);
+    if (res.success && res.data) {
+      setSlots(res.data as any[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchSlots();
+  }, [selectedClass?.id, selectedPeriod, refreshKey]);
+
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
     getExamPeriodConfigs().then(res => {
       if (res.success && res.data) setPeriodConfigs(res.data);
+    });
+    getSchoolConfig().then(res => {
+      if (res.success && res.data) {
+        setSchoolConfig(res.data);
+        if (res.data.sessions) {
+          try {
+            const parsed = typeof res.data.sessions === 'string' ? JSON.parse(res.data.sessions) : res.data.sessions;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setDynamicSessions(parsed);
+            }
+          } catch (e) { console.error("Session parse error", e); }
+        }
+      }
     });
   }, []);
 
@@ -82,15 +123,13 @@ const ExamTimetableClient = ({
   const currentStartDate = currentPeriodConfig ? new Date(currentPeriodConfig.startDate) : undefined;
   const currentEndDate = currentPeriodConfig?.endDate ? new Date(currentPeriodConfig.endDate) : undefined;
 
-  const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
+
 
   const handleAiSuccess = () => {
     setRefreshKey(prev => prev + 1);
   };
 
-  const selectedClass = classId 
-    ? classes.find(c => c.id === classId) 
-    : classes[0];
+
 
   return (
     <div className="p-4 flex flex-col gap-6 flex-1 bg-[#F7F8FA]">
@@ -239,24 +278,53 @@ const ExamTimetableClient = ({
 
       {/* TIMETABLE GRID */}
       {selectedClass && (
-        <div className={isPending ? "opacity-50 transition-opacity" : ""}>
-          <ScheduleGrid 
-            ref={gridRef}
-            classId={selectedClass.id} 
-            subjects={subjects}
-            teachers={teachers}
-            isEditMode={isEditMode}
-            refreshKey={refreshKey}
-            type="exam"
-            examPeriod={selectedPeriod}
-            startDate={currentStartDate}
-            endDate={currentEndDate}
-            fetchDataAction={getExamsByClass}
-            onMoveAction={moveExam}
-            onUpdateAction={updateExamSlot}
-            onDeleteAction={deleteExam}
-          />
+        <div className={(isPending || loading) ? "opacity-50 transition-opacity" : ""}>
+          {loading ? (
+             <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[40px] border border-slate-100 animate-pulse">
+                <div className="w-16 h-16 border-[6px] border-slate-50 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
+                <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
+                   Synchronizing Exam Schedule...
+                </p>
+             </div>
+          ) : (
+            <ScheduleGrid 
+              slots={slots}
+              classId={selectedClass.id} 
+              subjects={subjects}
+              teachers={teachers}
+              isEditMode={isEditMode}
+              refreshKey={refreshKey}
+              type="exam"
+              examPeriod={selectedPeriod}
+              startDate={currentStartDate}
+              endDate={currentEndDate}
+              onMoveAction={moveExam}
+              onUpdateAction={updateExamSlot}
+              onDeleteAction={deleteExam}
+              onRefresh={fetchSlots}
+              sessions={dynamicSessions}
+            />
+          )}
         </div>
+      )}
+
+      {/* HIDDEN PRINT COMPONENT */}
+      {selectedClass && schoolConfig && (
+        <ExamTimetablePrint 
+          ref={printRef}
+          slots={slots}
+          schoolConfig={schoolConfig}
+          classInfo={{
+            name: selectedClass.name,
+            level: selectedClass.level.level
+          }}
+          examPeriod={selectedPeriod}
+          startDate={currentStartDate}
+          endDate={currentEndDate}
+          subjects={subjects}
+          teachers={teachers}
+          sessions={dynamicSessions}
+        />
       )}
 
       {isAiOpen && selectedClass && (

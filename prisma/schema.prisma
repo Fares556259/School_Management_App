@@ -208,6 +208,20 @@ model ExamPeriodConfig {
   pdfUrl    String?
 }
 
+model SchoolConfig {
+  id               Int      @id @default(1)
+  schoolName       String   @default("Ecole Supérieure de la Statistique et de l'Analyse de l'Information")
+  schoolLogo       String?
+  ministryName     String   @default("Ministère de l'Enseignement Supérieur et de la Recherche Scientifique")
+  ministryLogo     String?
+  universityName   String   @default("Université de Carthage")
+  universityLogo   String?
+  academicYear     String   @default("2025-2026")
+  currentSemester  Int      @default(2)
+  sessions         Json?    @default("[{\"id\": 1, \"label\": \"Session 1\", \"time\": \"08:00 - 10:00\"}, {\"id\": 2, \"label\": \"Session 2\", \"time\": \"10:00 - 12:00\"}, {\"id\": 3, \"label\": \"Session 3\", \"time\": \"12:00 - 14:00\"}]")
+  updatedAt        DateTime @updatedAt
+}
+
 model Result {
   id           Int         @id @default(autoincrement())
   score        Int

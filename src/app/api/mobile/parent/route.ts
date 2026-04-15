@@ -14,5 +14,12 @@ export async function GET(request: NextRequest) {
   const parent = await prisma.parent.findUnique({
     where: { id: parentId }
   });
-  return NextResponse.json({ name: parent?.name, surname: parent?.surname });
+
+  const schoolConfig = await prisma.schoolConfig.findFirst({ where: { id: 1 } });
+
+  return NextResponse.json({ 
+    name: parent?.name, 
+    surname: parent?.surname,
+    schoolInfo: schoolConfig 
+  });
 }

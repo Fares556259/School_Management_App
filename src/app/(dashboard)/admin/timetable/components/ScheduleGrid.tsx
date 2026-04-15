@@ -4,13 +4,14 @@ import { Day } from "@prisma/client";
 
 const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
 
-const sessions = [
+export const defaultSessions = [
   { id: 1, label: "Session 1", time: "08:00 - 10:00" },
   { id: 2, label: "Session 2", time: "10:00 - 12:00" },
   { id: 3, label: "Session 3", time: "12:00 - 14:00" },
 ];
 
 interface ScheduleGridProps {
+  slots: any[];
   classId: number;
   subjects: any[];
   teachers: any[];
@@ -20,39 +21,30 @@ interface ScheduleGridProps {
   examPeriod?: number;
   startDate?: Date;
   endDate?: Date;
-  fetchDataAction: (classId: number, examPeriod?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
   onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
+  onRefresh: () => void;
+  sessions: { id: number; label: string; time: string }[];
 }
 
 const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
+  slots,
   classId,
   subjects,
   teachers,
   isEditMode,
-  refreshKey,
   type,
   examPeriod,
   startDate,
   endDate,
-  fetchDataAction,
   onMoveAction,
   onUpdateAction,
-  onDeleteAction
+  onDeleteAction,
+  onRefresh,
+  sessions
 }, ref) => {
-  const [slots, setSlots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
-
-  const fetchSlots = async () => {
-    setLoading(true);
-    const res = await fetchDataAction(classId, examPeriod);
-    if (res.success && res.data) {
-      setSlots(res.data as any[]);
-    }
-    setLoading(false);
-  };
 
   const handleDragOver = (e: React.DragEvent, day: Day, period: number) => {
     if (!isEditMode) return;
@@ -70,24 +62,9 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     const slotId = parseInt(slotIdStr);
     const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
     if (res.success) {
-      fetchSlots();
+      onRefresh();
     }
   };
-
-  useEffect(() => {
-    fetchSlots();
-  }, [classId, refreshKey, examPeriod]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[40px] border border-slate-100 animate-pulse">
-        <div className="w-16 h-16 border-[6px] border-slate-50 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
-        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
-           Synchronizing {type === 'exam' ? 'Exam' : 'Academic'} Schedule...
-        </p>
-      </div>
-    );
-  }
 
   const dayLabels: { [key in Day]: string } = {
     [Day.MONDAY]: "Lundi",
@@ -232,7 +209,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         usedSubjectIds={usedSubjectIds}
                         onUpdateAction={onUpdateAction}
                         onDeleteAction={onDeleteAction}
-                        onRefresh={fetchSlots}
+                        onRefresh={onRefresh}
                         isEditMode={isEditMode}
                         type={type}
                         examPeriod={examPeriod}
