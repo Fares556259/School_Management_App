@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest) {
         ...(name && { name }),
         ...(surname && { surname }),
         ...(phone && { phone }),
-        ...(img && { img }),
+        img: img !== undefined ? (img || null) : undefined,
       },
     });
 

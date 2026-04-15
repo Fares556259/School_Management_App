@@ -52,7 +52,8 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
     { name: "parentId", label: "Parent", type: "select", required: true },
     { name: "classId", label: "Class", type: "select", required: true, parseAsNumber: true },
-    { name: "gradeId", label: "Grade", type: "select", required: true, parseAsNumber: true },
+    { name: "levelId", label: "Level", type: "select", required: true, parseAsNumber: true },
+    { name: "img", label: "Profile Photo", type: "image" },
   ],
   staff: [
     { name: "username", label: "Username", type: "text", required: true },
@@ -74,6 +75,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", type: "text", required: true },
     { name: "address", label: "Address", type: "text", required: true },
+    { name: "img", label: "Profile Photo", type: "image" },
   ],
   class: [
     { name: "name", label: "Class Name", type: "text", required: true, placeholder: "e.g. 1A, 2B" },
@@ -190,9 +192,8 @@ export default function CrudFormModal({
       }
     });
 
-    if (img) {
-      values.img = typeof img === "string" ? img : img.secure_url;
-    }
+    // Handle image state: ensure null is sent if photo was explicitly removed
+    values.img = img || null;
 
     startTransition(async () => {
       let result;
@@ -369,6 +370,14 @@ export default function CrudFormModal({
                                   } 
                                   alt="Proof" fill className="object-cover" 
                                 />
+                                <button
+                                  type="button"
+                                  onClick={() => setImg(null)}
+                                  className="absolute top-1 right-1 bg-rose-500 text-white p-1 rounded-full shadow-md hover:bg-rose-600 transition-colors"
+                                  title="Remove Photo"
+                                >
+                                  ✕
+                                </button>
                               </div>
                             )}
                           </div>

@@ -58,18 +58,58 @@ export async function PATCH(request: NextRequest) {
   try {
     const { id, img } = await request.json();
 
-    if (!id || !img) {
-      return new NextResponse("Missing id or img", { status: 400 });
+    if (!id) {
+      return new NextResponse("Missing id", { status: 400 });
     }
 
     const updatedStudent = await prisma.student.update({
       where: { id },
-      data: { img },
+      data: { img: img || null },
     });
 
     return NextResponse.json(updatedStudent);
   } catch (error: any) {
     console.error("[Mobile Student Update Error]", error);
+    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { studentId, parentId, birthday } = await request.json();
+
+    if (!studentId || !parentId || !birthday) {
+      return new NextResponse("Missing required fields", { status: 400 });
+    }
+
+    // Find the student
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student) {
+      return new NextResponse("Student not found", { status: 404 });
+    }
+
+    // Verify birthday (ignoring time component for robust comparison)
+    const providedDate = new Date(birthday).toISOString().split('T')[0];
+    const studentDate = new Date(student.birthday).toISOString().split('T')[0];
+
+    if (providedDate !== studentDate) {
+      console.warn(`[Verification Failed] Student ${studentId}: Provided ${providedDate}, Expected ${studentDate}`);
+      return new NextResponse("Verification failed: Birthday does not match records", { status: 403 });
+    }
+
+    // Update the parentId to link the student to the active parent account
+    const updatedStudent = await prisma.student.update({
+      where: { id: studentId },
+      data: { parentId },
+    });
+
+    console.log(`[Link Success] Student ${studentId} linked to Parent ${parentId}`);
+    return NextResponse.json({ success: true, student: updatedStudent });
+  } catch (error: any) {
+    console.error("[Mobile Student Link Error]", error);
     return new NextResponse(error.message || "Internal Server Error", { status: 500 });
   }
 }

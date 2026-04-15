@@ -105,6 +105,7 @@ export const updateTeacher = async (
     birthday: string;
     sex: "MALE" | "FEMALE";
     salary: number;
+    img: string | null;
   }>
 ) => {
   try {
@@ -125,6 +126,7 @@ export const updateTeacher = async (
     revalidatePath(`/list/teachers/${id}`);
     return { success: true };
   } catch (err: any) {
+    console.error("updateTeacher error:", err);
     return { success: false, error: err?.message || "Failed to update teacher." };
   }
 };
@@ -160,6 +162,7 @@ export const createStudent = async (data: {
   parentId: string;
   classId: number;
   levelId: number;
+  img?: string | null;
 }) => {
   try {
     const id = crypto.randomUUID();
@@ -178,6 +181,7 @@ export const createStudent = async (data: {
         parentId: data.parentId,
         classId: data.classId,
         levelId: data.levelId,
+        img: data.img || null,
       },
     });
     await createAuditLog({
@@ -276,6 +280,7 @@ export const updateStudent = async (
     parentId: string;
     classId: number;
     levelId: number;
+    img: string | null;
   }>
 ) => {
   try {
@@ -396,6 +401,7 @@ export const createParent = async (data: {
   email?: string;
   phone: string;
   address: string;
+  img?: string | null;
 }) => {
   try {
     await prisma.parent.create({
@@ -407,6 +413,7 @@ export const createParent = async (data: {
         email: data.email || null,
         phone: data.phone,
         address: data.address,
+        img: data.img || null,
       },
     });
     revalidatePath("/list/parents");
@@ -425,6 +432,7 @@ export const updateParent = async (
     email: string;
     phone: string;
     address: string;
+    img: string | null;
   }>
 ) => {
   try {

@@ -34,6 +34,7 @@ const SingleStudentPage = async ({
           },
         },
       },
+      parent: true,
       payments: true,
     },
   });
@@ -207,6 +208,29 @@ const SingleStudentPage = async ({
           payments={student.payments}
           isAdmin={role === "admin"}
         />
+
+        {/* PARENT INFO */}
+        {(student as any).parent && (
+          <div className="bg-white p-4 rounded-md">
+            <h1 className="text-xl font-semibold">Parent Info</h1>
+            <div className="flex items-center gap-4 mt-4">
+              <Image
+                src={(student as any).parent.img || "/noavatar.png"}
+                alt=""
+                width={70}
+                height={70}
+                className="w-16 h-16 rounded-full object-cover"
+              />
+              <div className="flex flex-col gap-1">
+                <span className="font-semibold">
+                  {(student as any).parent.name + " " + (student as any).parent.surname}
+                </span>
+                <span className="text-xs text-gray-500">{(student as any).parent.email || "No email"}</span>
+                <span className="text-xs text-gray-500">{(student as any).parent.phone}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Performance />
 
