@@ -11,7 +11,7 @@ export const defaultSessions = [
 ];
 
 interface ScheduleGridProps {
-  slots: any[];
+  slots?: any[];
   classId: number;
   subjects: any[];
   teachers: any[];
@@ -21,30 +21,58 @@ interface ScheduleGridProps {
   examPeriod?: number;
   startDate?: Date;
   endDate?: Date;
+  fetchDataAction?: (id: number) => Promise<{ success: boolean; data?: any[] }>;
   onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
-  sessions: { id: number; label: string; time: string }[];
+  sessions?: { id: number; label: string; time: string }[];
 }
 
 const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
-  slots,
+  slots: propSlots,
   classId,
   subjects,
   teachers,
   isEditMode,
+  refreshKey,
   type,
   examPeriod,
   startDate,
   endDate,
+  fetchDataAction,
   onMoveAction,
   onUpdateAction,
   onDeleteAction,
   onRefresh,
-  sessions
+  sessions: propSessions
 }, ref) => {
+  const [localSlots, setLocalSlots] = useState<any[]>(propSlots || []);
+  const [isLoading, setIsLoading] = useState(!propSlots && !!fetchDataAction);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
+
+  const displaySessions = propSessions || defaultSessions;
+  const displaySlots = propSlots || localSlots;
+
+  useEffect(() => {
+    if (fetchDataAction && classId) {
+      const loadData = async () => {
+        setIsLoading(true);
+        const res = await fetchDataAction(classId);
+        if (res.success && res.data) {
+          setLocalSlots(res.data);
+        }
+        setIsLoading(false);
+      };
+      loadData();
+    }
+  }, [classId, fetchDataAction, refreshKey]);
+
+  useEffect(() => {
+    if (propSlots) {
+      setLocalSlots(propSlots);
+    }
+  }, [propSlots]);
 
   const handleDragOver = (e: React.DragEvent, day: Day, period: number) => {
     if (!isEditMode) return;
@@ -107,7 +135,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
   // Helper to find slot in array based on type
   const findSlot = (day: Day, sessionId: number, targetDate?: Date) => {
-    return slots.find(s => {
+    return displaySlots.find(s => {
       if (!s || !s.startTime) return false;
       
       if (type === "timetable") {
@@ -125,7 +153,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
         // Session matching by hour range
         const hour = sDate.getHours();
-        const session = sessions.find(sess => sess.id === sessionId);
+        const session = displaySessions.find(sess => sess.id === sessionId);
         if (!session || !session.time) return false;
 
         const [hStart] = session.time.split(" - ")[0].split(":").map(Number);
@@ -147,7 +175,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   };
 
   const usedSubjectIds = type === "exam" 
-    ? slots.map(s => s.lesson?.subjectId).filter(Boolean)
+    ? displaySlots.map(s => s.lesson?.subjectId).filter(Boolean)
     : [];
 
   return (
@@ -175,8 +203,16 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             })}
           </div>
 
-          <div className="flex flex-col gap-4">
-            {sessions.map((session) => (
+          <div className="flex flex-col gap-4 relative">
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[40px]">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Loading...</span>
+                </div>
+              </div>
+            )}
+            {displaySessions.map((session) => (
               <div key={session.id} className={`grid gap-4 items-stretch`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
                 <div className="flex flex-col items-center justify-center bg-white p-4 rounded-3xl border border-slate-50 relative overflow-hidden group">
                    <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 group-hover:bg-indigo-300 transition-colors"></div>

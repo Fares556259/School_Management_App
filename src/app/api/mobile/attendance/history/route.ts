@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { parseTime } from "@/lib/timeUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -12,74 +13,144 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing studentId", { status: 400 });
     }
 
-    // Fetch all attendance records for the student
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { classId: true, createdAt: true },
+    });
+
+    if (!student) {
+      return new NextResponse("Student not found", { status: 404 });
+    }
+
+    // 1. Fetch the timetable for this class to know the sessions per day
+    let slots = await prisma.timetableSlot.findMany({
+      where: { classId: student.classId },
+      include: { subject: true },
+    });
+
+    // FALLBACK: If no slots defined for this class, assume a generic school schedule (Mon-Sat)
+    if (slots.length === 0) {
+       const DAYS_WITH_SCHOOL: Day[] = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+       slots = DAYS_WITH_SCHOOL.map(day => ({
+          id: 0,
+          day: day,
+          startTime: "08:00 AM",
+          endTime: "02:00 PM",
+          slotNumber: 1,
+          subjectId: 0,
+          teacherId: "",
+          classId: student.classId,
+          subject: { name: "General School Day" }
+       })) as any;
+    }
+
+    // 2. Fetch all existing attendance records
     const attendance = await prisma.attendance.findMany({
       where: { studentId },
       include: {
         lesson: {
-          include: {
-            subject: true,
-          },
+          include: { subject: true },
         },
       },
       orderBy: { date: "desc" },
     });
 
-    // Group by date (ignoring time)
-    const grouped: Record<string, any> = {};
-
-    attendance.forEach((a) => {
-      const dateKey = a.date.toISOString().split("T")[0];
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = {
-          date: dateKey,
-          status: "PRESENT", // Initial default
-          sessions: [],
-          notes: [],
-        };
-      }
-
-      // Add session detail
-      grouped[dateKey].sessions.push({
-        id: a.id,
-        lessonId: a.lessonId,
-        subject: a.lesson?.subject?.name || "Daily Report",
-        status: a.status,
-      });
-
-      // Update global status based on hierarchy: ABSENT > LATE > PRESENT
-      if (a.status === "ABSENT") {
-        grouped[dateKey].status = "ABSENT";
-      } else if (a.status === "LATE" && grouped[dateKey].status !== "ABSENT") {
-        grouped[dateKey].status = "LATE";
-      }
-
-      // Add notes if present
-      if (a.note) {
-        try {
-          const parsed = JSON.parse(a.note);
-          if (Array.isArray(parsed)) {
-            parsed.forEach((p) => {
-              if (p.text?.trim()) {
-                grouped[dateKey].notes.push({
-                  author: p.author || "Admin",
-                  text: p.text,
-                });
-              }
-            });
-          } else {
-            grouped[dateKey].notes.push({ author: "Admin", text: a.note });
-          }
-        } catch (e) {
-          grouped[dateKey].notes.push({ author: "Admin", text: a.note });
-        }
-      }
+    // 3. Map records for quick lookup
+    const attendanceMap: Record<string, any[]> = {};
+    attendance.forEach(a => {
+      const key = a.date.toISOString().split('T')[0];
+      if (!attendanceMap[key]) attendanceMap[key] = [];
+      attendanceMap[key].push(a);
     });
 
-    // Convert to sorted array
-    const history = Object.values(grouped).sort(
-      (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    // 4. Calculate history range (Last 90 days for 'All Time' feel)
+    const now = new Date();
+    const startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    startDate.setHours(0, 0, 0, 0);
+
+    const history: any[] = [];
+    const DAY_NAMES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+
+    // Iterate day by day from now backwards to startDate
+    let current = new Date(now);
+    current.setHours(0, 0, 0, 0);
+
+    while (current >= startDate) {
+      const dayNum = current.getDay();
+      const dayName = DAY_NAMES[dayNum];
+
+      // Skip Sundays
+      if (dayName !== "SUNDAY") {
+        const dateKey = current.toISOString().split('T')[0];
+        const daySlots = slots.filter(s => s.day === dayName);
+        const dayRecords = attendanceMap[dateKey] || [];
+        
+        const sessions: any[] = [];
+        const notes: any[] = [];
+        let dayStatus = "PRESENT";
+
+        // For each slot in the timetable, look for a record OR default to present if session passed
+        daySlots.forEach(slot => {
+          // Find record for this slot (by subject fallback or lessonId)
+          const record = dayRecords.find(r => 
+            r.lesson?.subjectId === slot.subjectId || 
+            (r.lessonId === null && dayRecords.length === 1) // Full day record fallback
+          );
+
+          // Only show "Presence" for past/completed sessions (logic handled by 'isPast' check)
+          let isPast = false;
+          if (slot.endTime) {
+            try {
+              const { hours, minutes } = parseTime(slot.endTime);
+              const sessionEnd = new Date(current);
+              sessionEnd.setHours(hours, minutes, 0, 0);
+              isPast = now > sessionEnd;
+            } catch (e) {
+              console.error("[Time Parse Error]", e);
+              isPast = now > current;
+            }
+          } else {
+            isPast = now > current; // whole day in past
+          }
+
+          if (record || isPast) {
+             const finalStatus = record?.status || "PRESENT";
+             
+             sessions.push({
+               id: record?.id || `v-${dateKey}-${slot.id}`,
+               subject: slot.subject?.name || "General",
+               status: finalStatus
+             });
+
+             if (finalStatus === "ABSENT") dayStatus = "ABSENT";
+             else if (finalStatus === "LATE" && dayStatus !== "ABSENT") dayStatus = "LATE";
+
+             if (record?.note) {
+               try {
+                 const parsed = JSON.parse(record.note);
+                 if (Array.isArray(parsed)) {
+                    parsed.forEach(p => p.text?.trim() && notes.push({ author: p.author || "Admin", text: p.text }));
+                 } else {
+                    notes.push({ author: "Admin", text: record.note });
+                 }
+               } catch (e) {
+                 notes.push({ author: "Admin", text: record.note });
+               }
+             }
+          }
+        });
+
+        if (sessions.length > 0) {
+          history.push({
+            date: dateKey,
+            status: dayStatus,
+            sessions,
+            notes: Array.from(new Set(notes.map(n => JSON.stringify(n)))).map(s => JSON.parse(s)) // Deduplicate
+          });
+        }
+      }
+      current.setDate(current.getDate() - 1);
+    }
 
     return NextResponse.json(history);
   } catch (error: any) {

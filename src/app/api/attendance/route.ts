@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -99,23 +100,26 @@ export async function GET(request: NextRequest) {
       const slotId = lessonIdParam.startsWith("slot-") ? parseInt(lessonIdParam.replace("slot-", "")) : null;
       const slot = slots.find(sl => sl.id === slotId);
       
-      let isPast = false;
-      if (slot) {
-        const [hour, min] = slot.endTime.split(":").map(Number);
-        const sessionEnd = new Date(dayStart);
-        sessionEnd.setHours(hour, min, 0, 0);
-        isPast = now > sessionEnd;
-      } else {
-        // Fallback for non-slot lesson types
-        isPast = now > dayEnd;
+      if (slot?.endTime) {
+        try {
+          const { hours, minutes } = parseTime(slot.endTime);
+          const sessionEnd = new Date(now);
+          sessionEnd.setHours(hours, minutes, 0, 0);
+          if (now > sessionEnd) {
+            return {
+              ...s,
+              attendance: [{ id: `v-${s.id}-${slot.id}`, status: "PRESENT", note: null }],
+            };
+          }
+        } catch (e) {
+          console.error("[Time Parse Error Web]", e);
+        }
       }
-
-      if (isPast) {
-        return {
-          ...s,
-          attendance: [{ id: -1, status: "PRESENT", note: null }]
-        };
-      }
+      
+      return {
+        ...s,
+        attendance: [{ id: -1, status: "PRESENT", note: null }]
+      };
     }
     return s;
   });

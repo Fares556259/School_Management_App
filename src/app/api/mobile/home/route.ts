@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { parseTime } from "@/lib/timeUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,14 @@ export async function GET(request: NextRequest) {
 
     // If it's Sunday (0) or unknown, return empty
     if (todayEnum === "SUNDAY") {
-      return NextResponse.json({ sessions: [], assignments: [], todayAttendance: [] });
+      return NextResponse.json({ 
+        sessions: [], 
+        upcomingExams: [], 
+        teacherRemarks: [], 
+        tasksDue: [], 
+        tasksGiven: [],
+        examPeriods: []
+      });
     }
 
     // 1. Today's timetable slots
@@ -225,12 +233,16 @@ export async function GET(request: NextRequest) {
       let finalStatus = att?.status || null;
 
       // New logic: Default to PRESENT if session is in the past and no record exists
-      if (!finalStatus) {
-        const [hour, min] = slot.endTime.split(":").map(Number);
-        const sessionEnd = new Date(now);
-        sessionEnd.setHours(hour, min, 0, 0);
-        if (new Date() > sessionEnd) {
-          finalStatus = "PRESENT";
+      if (!finalStatus && slot.endTime) {
+        try {
+          const { hours, minutes } = parseTime(slot.endTime);
+          const sessionEnd = new Date(now);
+          sessionEnd.setHours(hours, minutes, 0, 0);
+          if (new Date() > sessionEnd) {
+            finalStatus = "PRESENT";
+          }
+        } catch (e) {
+          console.error("[Time Parse Error Home]", e);
         }
       }
 
