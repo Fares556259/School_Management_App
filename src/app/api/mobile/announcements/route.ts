@@ -7,12 +7,23 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
+    const studentId = searchParams.get("studentId");
 
     const notices = await prisma.notice.findMany({
       where: {
         OR: [
           { classId: null }, // Global notices
-          classId ? { classId: parseInt(classId) } : {}, // Class-specific notices
+          {
+            AND: [
+              { classId: classId ? parseInt(classId) : undefined },
+              {
+                OR: [
+                  { targetStudentId: null }, // Class-wide, no specific student target
+                  studentId ? { targetStudentId: studentId } : { targetStudentId: 'NONE' }, // Specific student target (match or hide if no ID)
+                ],
+              },
+            ],
+          },
         ],
       },
       orderBy: { date: "desc" },

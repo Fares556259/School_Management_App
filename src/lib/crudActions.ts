@@ -733,6 +733,7 @@ export const createNotice = async (data: {
   message: string;
   important: boolean;
   classId?: number | null;
+  targetStudentId?: string | null;
   img?: string | null;
   pdfUrl?: string | null;
 }) => {
@@ -745,6 +746,7 @@ export const createNotice = async (data: {
         img: data.img || null,
         pdfUrl: data.pdfUrl || null,
         class: data.classId ? { connect: { id: data.classId } } : undefined,
+        targetStudent: data.targetStudentId ? { connect: { id: data.targetStudentId } } : undefined,
       },
     });
 
@@ -752,7 +754,13 @@ export const createNotice = async (data: {
       action: "CREATE_NOTICE",
       entityType: "Notice",
       entityId: notice.id.toString(),
-      description: `Published announcement: ${data.title}${data.classId ? ` for Class ID: ${data.classId}` : " (Global)"}`,
+      description: `Published announcement: ${data.title}${
+        data.targetStudentId 
+          ? ` (Targeted Student: ${data.targetStudentId})` 
+          : data.classId 
+            ? ` (Class ID: ${data.classId})` 
+            : " (Global)"
+      }`,
     });
 
     revalidatePath("/list/announcements");
@@ -770,12 +778,13 @@ export const updateNotice = async (
     message: string;
     important: boolean;
     classId: number | null;
+    targetStudentId: string | null;
     img: string | null;
     pdfUrl: string | null;
   }>
 ) => {
   try {
-    const { classId, ...otherData } = data;
+    const { classId, targetStudentId, ...otherData } = data;
     
     await prisma.notice.update({
       where: { id },
@@ -784,6 +793,11 @@ export const updateNotice = async (
         class: classId 
           ? { connect: { id: classId } } 
           : classId === null 
+            ? { disconnect: true } 
+            : undefined,
+        targetStudent: targetStudentId 
+          ? { connect: { id: targetStudentId } } 
+          : targetStudentId === null 
             ? { disconnect: true } 
             : undefined,
       },

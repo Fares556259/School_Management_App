@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { deleteNotice } from "@/lib/crudActions";
 
 // USE LAZY LOADING
 
@@ -59,17 +60,50 @@ const FormModal = ({
       : "bg-lamaPurple";
 
   const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = () => {
+    if (!id) return;
+    
+    startTransition(async () => {
+      let res;
+      if (table === "announcement") {
+        res = await deleteNotice(id as number);
+      }
+      // Add other table deletions here if needed
+      
+      if (res?.success) {
+        setOpen(false);
+        window.location.reload();
+      } else {
+        alert(res?.error || "Failed to delete item.");
+      }
+    });
+  };
 
   const Form = () => {
     return type === "delete" && id ? (
-      <form action="" className="p-4 flex flex-col gap-4">
+      <div className="p-4 flex flex-col gap-4">
         <span className="text-center font-medium">
           All data will be lost. Are you sure you want to delete this {table}?
         </span>
-        <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center">
-          Delete
-        </button>
-      </form>
+        <div className="flex gap-4 justify-center">
+          <button 
+            className="bg-slate-200 text-slate-700 py-2 px-4 rounded-md border-none w-max"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </button>
+          <button 
+            className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max disabled:opacity-50"
+            onClick={handleDelete}
+            disabled={isPending}
+          >
+            {isPending ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
     ) : type === "create" || type === "update" ? (
       forms[table] ? (
         forms[table](type, data)

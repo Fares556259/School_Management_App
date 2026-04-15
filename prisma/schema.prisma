@@ -59,6 +59,7 @@ model Student {
   class      Class        @relation(fields: [classId], references: [id])
   level      Level        @relation(fields: [levelId], references: [id])
   parent     Parent       @relation(fields: [parentId], references: [id])
+  notices    Notice[]
 }
 
 model Teacher {
@@ -294,15 +295,17 @@ model AuditLog {
 }
 
 model Notice {
-  id        Int      @id @default(autoincrement())
-  title     String
-  message   String
-  date      DateTime @default(now())
-  important Boolean  @default(false)
-  classId   Int?
-  img       String?
-  pdfUrl    String?
-  class     Class?   @relation(fields: [classId], references: [id])
+  id              Int      @id @default(autoincrement())
+  title           String
+  message         String
+  date            DateTime @default(now())
+  important       Boolean  @default(false)
+  classId         Int?
+  targetStudentId String?
+  img             String?
+  pdfUrl          String?
+  class           Class?   @relation(fields: [classId], references: [id])
+  targetStudent   Student? @relation(fields: [targetStudentId], references: [id])
 }
 
 model TimetableSlot {

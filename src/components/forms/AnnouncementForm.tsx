@@ -13,6 +13,7 @@ const schema = z.object({
   message: z.string().min(1, { message: "Content is required!" }),
   important: z.boolean().default(false),
   classId: z.coerce.number().optional().nullable(),
+  targetStudentId: z.string().optional().nullable(),
 });
 
 type Inputs = z.infer<typeof schema>;
@@ -28,11 +29,14 @@ const AnnouncementForm = ({
   const [img, setImg] = useState<string | null>(data?.img || null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(data?.pdfUrl || null);
   const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
+  const [students, setStudents] = useState<{ id: string; name: string; surname: string }[]>([]);
+  const [fetchingStudents, setFetchingStudents] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<Inputs>({
     resolver: zodResolver(schema),
@@ -41,11 +45,13 @@ const AnnouncementForm = ({
       message: data?.message || "",
       important: data?.important || false,
       classId: data?.classId || null,
+      targetStudentId: data?.targetStudentId || "",
     },
   });
 
+  const classId = watch("classId");
+
   useEffect(() => {
-    // Fetch classes for dropdown
     const fetchClasses = async () => {
       try {
         const response = await fetch('/api/classes');
@@ -58,11 +64,31 @@ const AnnouncementForm = ({
     fetchClasses();
   }, []);
 
+  useEffect(() => {
+    if (classId) {
+      setFetchingStudents(true);
+      fetch(`/api/students?classId=${classId}`)
+        .then(res => res.json())
+        .then(data => {
+          setStudents(data);
+          setFetchingStudents(false);
+        })
+        .catch(err => {
+          console.error("Error fetching students:", err);
+          setFetchingStudents(false);
+        });
+    } else {
+      setStudents([]);
+      setValue("targetStudentId", null);
+    }
+  }, [classId, setValue]);
+
   const onSubmit = handleSubmit((formData) => {
     startTransition(async () => {
       const payload = {
         ...formData,
         classId: formData.classId || null,
+        targetStudentId: formData.targetStudentId || null,
         img,
         pdfUrl,
       };
@@ -140,20 +166,41 @@ const AnnouncementForm = ({
         <div className="flex gap-4 flex-wrap">
           {/* Class Visibility */}
           <div className="flex flex-col gap-2 w-full md:w-[48%]">
-            <label className="text-xs text-gray-500 font-bold">Target Audience</label>
+            <label className="text-xs text-gray-500 font-bold">Class Scope</label>
             <select
-              className="ring-[1.5px] ring-gray-300 p-3 rounded-xl text-sm w-full focus:ring-indigo-500 outline-none"
+              className="ring-[1.5px] ring-gray-300 p-3 rounded-xl text-sm w-full focus:ring-indigo-500 outline-none bg-white transition-all appearance-none"
               {...register("classId")}
               defaultValue={data?.classId || ""}
             >
-              <option value="">Global (All Classes)</option>
+              <option value="">🌍 Global (All Classes)</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  Class {c.name}
+                  📚 Class {c.name}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Student Targeting (Conditional) */}
+          {classId && (
+            <div className="flex flex-col gap-2 w-full md:w-[48%] animate-in fade-in slide-in-from-left-2 duration-300">
+              <label className="text-xs text-gray-500 font-bold">Student Target (Optional)</label>
+              <select
+                className="ring-[1.5px] ring-gray-300 p-3 rounded-xl text-sm w-full focus:ring-indigo-500 outline-none bg-white transition-all appearance-none disabled:opacity-50"
+                {...register("targetStudentId")}
+                defaultValue={data?.targetStudentId || ""}
+                disabled={fetchingStudents}
+              >
+                <option value="">👤 All Students in Class</option>
+                {students.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    🎓 {s.name} {s.surname}
+                  </option>
+                ))}
+              </select>
+              {fetchingStudents && <p className="text-[10px] text-indigo-500 animate-pulse font-medium ml-1">Loading students...</p>}
+            </div>
+          )}
 
           {/* Important Toggle */}
           <div className="flex items-center gap-3 w-full md:w-[48%] mt-6 px-2">
