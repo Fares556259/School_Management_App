@@ -77,7 +77,7 @@ export default function PaySalaryModal({
               Pay Salary
             </h2>
             <p className="text-sm text-slate-500 mb-4">
-              Process a monthly salary payment of <strong>${salary}</strong> for{" "}
+              Process a monthly salary payment of <strong>{salary} DT</strong> for{" "}
               <strong>{teacherName}</strong> {selectedMonth ? <>for <strong>{selectedMonth}</strong></> : ""}. 
               This will log an Expense in the database.
             </p>

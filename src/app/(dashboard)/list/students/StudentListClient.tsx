@@ -82,6 +82,7 @@ export default function StudentListClient({
             gradeLevel={item.level.level}
             isPaid={isPaidThisMonth}
             isPartial={isPartialThisMonth}
+            initialPaidAmount={currentPayment?.amount || 0}
             isAdmin={role === "admin"}
             monthName={selectedMonthKey}
             paidMonths={item.payments

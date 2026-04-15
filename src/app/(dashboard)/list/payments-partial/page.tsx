@@ -43,11 +43,11 @@ export default async function PartialPaymentsPage() {
         </div>
         <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4">
           <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white font-bold text-xl hover:rotate-6 transition-transform">
-            $
+            DT
           </div>
           <div>
             <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">Total to Recover</p>
-            <p className="text-xl font-black text-orange-700 leading-none">${totalPending}</p>
+            <p className="text-xl font-black text-orange-700 leading-none">{totalPending} DT</p>
           </div>
         </div>
       </div>

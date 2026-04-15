@@ -90,7 +90,7 @@ export default function StudentPaymentTracker({
           <span className="text-sm font-medium text-slate-500 cursor-help" title={`Grade ${gradeLevel} base rate`}>
             Monthly Fee:
           </span>
-          <span className="text-sm font-bold text-slate-700">${tuitionAmount}</span>
+          <span className="text-sm font-bold text-slate-700">{tuitionAmount} DT</span>
         </div>
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
           <span className="text-sm font-medium text-slate-500">Status:</span>
@@ -127,7 +127,7 @@ export default function StudentPaymentTracker({
             disabled={isPending}
             className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-md transition-all disabled:opacity-50 shadow-sm hover:shadow-md"
           >
-            {isPending ? "Processing..." : `Receive $${tuitionAmount} for ${monthStr}`}
+            {isPending ? "Processing..." : `Receive ${tuitionAmount} DT for ${monthStr}`}
           </button>
         )}
       </div>
