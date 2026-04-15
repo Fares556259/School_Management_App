@@ -131,20 +131,34 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   // Helper to find slot in array based on type
   const findSlot = (day: Day, sessionId: number, targetDate?: Date) => {
     return slots.find(s => {
+      if (!s || !s.startTime) return false;
+      
       if (type === "timetable") {
         return s.day === day && s.slotNumber === sessionId;
       } else {
         const sDate = new Date(s.startTime);
+        if (isNaN(sDate.getTime())) return false; // Skip invalid dates
+        
+        // Exact date matching (YYYY-MM-DD)
+        const isSameDate = targetDate 
+          ? sDate.toLocaleDateString('en-CA') === targetDate.toLocaleDateString('en-CA')
+          : true;
+
+        if (!isSameDate) return false;
+
+        // Session matching by hour range
         const hour = sDate.getHours();
         const session = sessions.find(sess => sess.id === sessionId);
-        const hStart = parseInt(session!.time.split(":")[0]);
-        const isCorrectSession = Math.abs(hour - hStart) < 1;
+        if (!session || !session.time) return false;
+
+        const [hStart] = session.time.split(" - ")[0].split(":").map(Number);
+        const [hEnd] = session.time.split(" - ")[1].split(":").map(Number);
+        
+        // Match if the exam start hour falls within the session window
+        const isCorrectSession = hour >= hStart && hour < hEnd;
 
         if (targetDate) {
-          return sDate.getFullYear() === targetDate.getFullYear() &&
-                 sDate.getMonth() === targetDate.getMonth() &&
-                 sDate.getDate() === targetDate.getDate() &&
-                 isCorrectSession;
+          return isCorrectSession;
         } else {
           const nativeDay = sDate.getDay();
           const dayIdx = nativeDay === 0 ? 5 : nativeDay - 1;
@@ -170,7 +184,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             {displayDays.map((item) => {
               const d = typeof item === 'string' ? item : item.day;
               const date = typeof item === 'string' ? null : item.date;
-              let label = dayLabels[d as Day];
+              let label = dayLabels[d as Day] || String(d);
               if (date) {
                 label += ` ${date.getDate()}`;
               }

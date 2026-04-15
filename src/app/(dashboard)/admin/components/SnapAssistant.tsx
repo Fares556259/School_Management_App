@@ -138,18 +138,31 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
       try {
         const fetchRes = await fetch(currentImage);
         const blob = await fetchRes.blob();
-        const formData = new FormData();
-        formData.append('file', blob);
-        formData.append('upload_preset', 'school');
-        const uploadRes = await fetch('https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          uploadedUrl = uploadData.secure_url;
+        
+        // Supabase Storage Upload
+        const supabase = (await import('@/utils/supabase/client')).createClient();
+        const fileExt = 'jpg';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `assistant/${fileName}`;
+
+        const { data, error: uploadError } = await supabase.storage
+          .from('uploads')
+          .upload(filePath, blob, {
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        if (data) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('uploads')
+            .getPublicUrl(filePath);
+            
+          uploadedUrl = publicUrl;
           
-          // Update the message we just added with the Cloudinary URL
+          // Update the message we just added with the Supabase URL
           setMessages(prev => {
             const newMsgs = [...prev];
             if (newMsgs.length > 0) {
@@ -161,8 +174,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             return newMsgs;
           });
         }
-      } catch (err) {
-        console.error("Cloudinary upload failed:", err);
+      } catch (error: any) {
+        console.error("Supabase upload error:", error);
+        setError(error.message || "Upload failed. Please try again.");
       }
     }
 

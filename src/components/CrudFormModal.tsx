@@ -13,7 +13,7 @@ import {
   createIncome, updateIncome, deleteIncome,
 } from "@/lib/crudActions";
 
-import { CldUploadWidget } from "next-cloudinary";
+
 
 type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subject" | "expense" | "income";
 
@@ -322,23 +322,43 @@ export default function CrudFormModal({
                           </select>
                         ) : f.type === "image" ? (
                           <div className="flex flex-col gap-2">
-                            <CldUploadWidget
-                              uploadPreset="school"
-                              onSuccess={(result, { close }) => {
-                                setImg(result.info);
-                                close();
+                            <input
+                              type="file"
+                              id={`upload-${f.name}`}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                
+                                try {
+                                  const supabase = (await import('@/utils/supabase/client')).createClient();
+                                  const fileName = `${entity}-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+                                  const filePath = `uploads/${fileName}`;
+
+                                  const { data, error: uploadError } = await supabase.storage
+                                    .from('uploads')
+                                    .upload(filePath, file);
+
+                                  if (uploadError) throw uploadError;
+
+                                  const { data: { publicUrl } } = supabase.storage
+                                    .from('uploads')
+                                    .getPublicUrl(filePath);
+
+                                  setImg(publicUrl);
+                                } catch (err: any) {
+                                  console.error("Bulk upload failed:", err);
+                                  setError(err.message || "Failed to upload image.");
+                                }
                               }}
+                            />
+                            <div
+                              className="flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 transition-all p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50"
+                              onClick={() => document.getElementById(`upload-${f.name}`)?.click()}
                             >
-                              {({ open }) => (
-                                <div
-                                  className="flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 transition-all p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50"
-                                  onClick={() => open()}
-                                >
-                                  <Image src="/upload.png" alt="" width={24} height={24} />
-                                  <span className="text-sm">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
-                                </div>
-                              )}
-                            </CldUploadWidget>
+                              <Image src="/upload.png" alt="" width={24} height={24} />
+                              <span className="text-sm">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
+                            </div>
                             {img && (
                               <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1">
                                 <Image 

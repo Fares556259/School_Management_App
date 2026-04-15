@@ -161,12 +161,11 @@ const AdminPage = async ({
     })
   ]);
 
-  // TIER 3: Heavy AI Context & Personnels (The most demanding queries)
+  // TIER 3: Heavy AI Context & Personnels (Split into smaller chunks to avoid connection exhaustion)
+  
+  // Chunk 3a: Recent Items & Classes
   const [
-    recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses,
-    yearPaymentStatus, yearIncomeByCategory, yearExpenseByCategory,
-    recentAuditLogs, allTeachers, allStaffMemberData, allPaymentsThisYear, allStudents,
-    allGrades, allNotices, allLessons, allSubjects, teacherTimetables, gradeSheets
+    recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses
   ] = await Promise.all([
     prisma.payment.findMany({ 
       take: 15, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
@@ -175,10 +174,22 @@ const AdminPage = async ({
     prisma.expense.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.income.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.class.findMany({ select: { id: true, name: true, _count: { select: { students: true } } } }),
+  ]);
+
+  // Chunk 3b: Yearly Aggregates & Logs
+  const [
+    yearPaymentStatus, yearIncomeByCategory, yearExpenseByCategory, recentAuditLogs
+  ] = await Promise.all([
     prisma.payment.groupBy({ by: ['month', 'status', 'userType'], _sum: { amount: true }, _count: { _all: true }, where: { year: now.getFullYear() } }),
     prisma.income.groupBy({ by: ['category'], _sum: { amount: true }, where: { date: { gte: new Date(now.getFullYear(), 0, 1) } } }),
     prisma.expense.groupBy({ by: ['category'], _sum: { amount: true }, where: { date: { gte: new Date(now.getFullYear(), 0, 1) } } }),
     prisma.auditLog.findMany({ take: 20, orderBy: { timestamp: 'desc' } }),
+  ]);
+
+  // Chunk 3c: Personnel & Students
+  const [
+    allTeachers, allStaffMemberData, allPaymentsThisYear, allStudents
+  ] = await Promise.all([
     prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
     prisma.staff.findMany({ select: { id: true, name: true, surname: true } }),
     prisma.payment.findMany({ where: { year: now.getFullYear(), userType: { in: ["TEACHER", "STAFF"] } }, select: { month: true, status: true, userType: true, teacherId: true, staffId: true } }),
@@ -189,6 +200,12 @@ const AdminPage = async ({
         parent: { select: { name: true, surname: true, phone: true } }
       }
     }),
+  ]);
+
+  // Chunk 3d: Academics & Operations
+  const [
+    allGrades, allNotices, allLessons, allSubjects, teacherTimetables, gradeSheets
+  ] = await Promise.all([
     prisma.grade.findMany({ select: { score: true, student: { select: { classId: true } }, subjectId: true } }),
     prisma.notice.findMany({ take: 10, orderBy: { date: 'desc' } }),
     prisma.lesson.findMany({ select: { classId: true, teacherId: true, subjectId: true, day: true } }),

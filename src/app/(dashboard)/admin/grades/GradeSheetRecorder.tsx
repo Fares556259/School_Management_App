@@ -256,24 +256,24 @@ export default function GradeSheetRecorder({
 
         // If we have a NEW file to upload
         if (proofFile) {
-          const formData = new FormData();
-          formData.append("file", proofFile);
-          formData.append("upload_preset", "school"); // Using the school preset from SnapAssistant
+          const supabase = (await import('@/utils/supabase/client')).createClient();
+          const fileName = `${Date.now()}-${proofFile.name}`;
+          const filePath = `grades/${fileName}`;
 
-          const uploadRes = await fetch(
-            "https://api.cloudinary.com/v1_1/dwcyl8r0k/image/upload",
-            {
-              method: "POST",
-              body: formData,
-            }
-          );
+          const { data, error: uploadError } = await supabase.storage
+            .from('uploads')
+            .upload(filePath, proofFile, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
-          if (!uploadRes.ok) {
-            throw new Error("Failed to upload proof to Cloudinary");
-          }
+          if (uploadError) throw uploadError;
 
-          const uploadData = await uploadRes.json();
-          finalProofUrl = uploadData.secure_url;
+          const { data: { publicUrl } } = supabase.storage
+            .from('uploads')
+            .getPublicUrl(filePath);
+
+          finalProofUrl = publicUrl;
         }
 
         await createGradeSheet({

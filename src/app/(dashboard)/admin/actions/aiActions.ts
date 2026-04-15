@@ -9,7 +9,7 @@ export async function getAIUsageStats() {
     today.setHours(0, 0, 0, 0);
 
     let admin = await prisma.admin.findUnique({
-      where: { id: "admin" }, 
+      where: { id: "admin1" }, 
       select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
     });
 
@@ -29,7 +29,7 @@ export async function getAIUsageStats() {
 
     if (today > lastReset) {
       await prisma.admin.update({
-        where: { id: "admin" },
+        where: { id: admin.id },
         data: { aiUsage: 0, lastAiUpdate: today }
       });
       return { usage: 0, quota: admin.aiQuota || 10 };
@@ -50,12 +50,17 @@ export async function isAIQuotaReached() {
 async function checkAndIncrementUsage() {
   try {
     const stats = await getAIUsageStats();
+    
+    // Check if quota already reached before incrementing
     if (stats.usage >= stats.quota) {
       return { allowed: false, quota: stats.quota };
     }
 
+    const admin = await prisma.admin.findFirst({ select: { id: true } });
+    if (!admin) return { allowed: true, quota: 10 };
+
     await prisma.admin.update({
-      where: { id: "admin" },
+      where: { id: admin.id },
       data: { aiUsage: { increment: 1 } }
     });
 

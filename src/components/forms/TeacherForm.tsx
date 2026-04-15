@@ -7,7 +7,6 @@ import { useTransition } from "react";
 import InputField from "../InputField";
 import Image from "next/image";
 import { createTeacher, updateTeacher } from "@/lib/crudActions";
-import { CldUploadWidget } from "next-cloudinary";
 import { useState } from "react";
 
 const schema = z.object({
@@ -167,31 +166,51 @@ const TeacherForm = ({
         </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4 justify-center">
           <label className="text-xs text-gray-500 mb-1">Profile Photo</label>
-          <CldUploadWidget
-            uploadPreset="school_grade_sheets"
-            onSuccess={(result: any) => {
-              if (result.info && typeof result.info !== "string") {
-                 setImg(result.info.secure_url);
+          <input
+            type="file"
+            id="teacher-photo"
+            className="hidden"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              
+              try {
+                const supabase = (await import('@/utils/supabase/client')).createClient();
+                const fileName = `teacher-${Date.now()}`;
+                const filePath = `teachers/${fileName}`;
+
+                const { data, error: uploadError } = await supabase.storage
+                  .from('uploads')
+                  .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                  .from('uploads')
+                  .getPublicUrl(filePath);
+
+                setImg(publicUrl);
+              } catch (err: any) {
+                console.error("Teacher upload failed:", err);
+                alert(err.message || "Failed to upload teacher photo.");
               }
             }}
+          />
+          <button
+            type="button"
+            onClick={() => document.getElementById('teacher-photo')?.click()}
+            className="flex items-center gap-2 p-2 border border-dashed border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
-            {({ open }) => (
-              <button
-                type="button"
-                onClick={() => open()}
-                className="flex items-center gap-2 p-2 border border-dashed border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
-                  {img ? (
-                    <Image src={img} alt="Preview" width={40} height={40} className="object-cover" />
-                  ) : (
-                    <Image src="/upload.png" alt="" width={20} height={20} />
-                  )}
-                </div>
-                <span className="text-xs text-gray-500">{img ? "Change Photo" : "Upload Photo"}</span>
-              </button>
-            )}
-          </CldUploadWidget>
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+              {img ? (
+                <Image src={img} alt="Preview" width={40} height={40} className="object-cover" />
+              ) : (
+                <Image src="/upload.png" alt="" width={20} height={20} />
+              )}
+            </div>
+            <span className="text-xs text-gray-500">{img ? "Change Photo" : "Upload Photo"}</span>
+          </button>
         </div>
       </div>
       <button

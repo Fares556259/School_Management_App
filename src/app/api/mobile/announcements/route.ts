@@ -1,11 +1,22 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get("classId");
+
     const notices = await prisma.notice.findMany({
+      where: {
+        OR: [
+          { classId: null }, // Global notices
+          classId ? { classId: parseInt(classId) } : {}, // Class-specific notices
+        ],
+      },
       orderBy: { date: "desc" },
-      take: 10,
+      take: 15,
     });
 
     // Map Prisma Notice to Mobile Announcement type
@@ -16,6 +27,7 @@ export async function GET() {
       date: notice.date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       category: notice.important ? "Urgent" : "School News",
       image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=400&auto=format&fit=crop", // Fallback image
+      pdfUrl: notice.pdfUrl,
     }));
 
     return NextResponse.json(announcements);

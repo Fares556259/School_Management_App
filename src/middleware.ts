@@ -7,7 +7,16 @@ const matchers = Object.keys(routeAccessMap).map((route) => ({
   allowedRoles: routeAccessMap[route],
 }));
 
+const isPublicRoute = createRouteMatcher([
+  "/api/mobile(.*)", 
+  "/uploads(.*)", 
+  "/public(.*)",
+  "/api/public(.*)"
+]);
+
 export default clerkMiddleware(async (auth, req) => {
+  if (isPublicRoute(req)) return;
+  
   const { userId } = auth();
 
   if (!userId) return;
@@ -42,7 +51,8 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|pdf)).*)",
+    // Also explicitly skip /uploads-proxy to ensure mobile app can always access it
+    "/((?!_next|uploads-proxy|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|pdf)).*)",
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],

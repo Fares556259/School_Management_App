@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { parseStudentsFromText, parseStudentsFromImage } from "../../admin/actions/studentAiActions";
 import { bulkCreateStudents } from "@/lib/crudActions";
 import { X, Check, Loader2, AlertCircle, Rocket, FileText, UserPlus, Image as ImageIcon, Type, Users } from "lucide-react";
-import { CldUploadWidget } from "next-cloudinary";
+
 import Image from "next/image";
 
 export default function BulkStudentImport({ onClose }: { onClose: () => void }) {
@@ -134,29 +134,51 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                         </button>
                       </div>
                     ) : (
-                      <CldUploadWidget
-                        uploadPreset="school_grade_sheets"
-                        onSuccess={(result: any) => {
-                          if (result.info && typeof result.info !== "string") {
-                            setImageUrl(result.info.secure_url);
-                          }
-                        }}
-                      >
-                        {({ open }) => (
-                          <button
-                            onClick={() => open()}
-                            className="flex flex-col items-center gap-3"
-                          >
-                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
-                              <ImageIcon size={24} />
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Select Image</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PNG, JPG, OR PDF SCAN</p>
-                            </div>
-                          </button>
-                        )}
-                      </CldUploadWidget>
+                      <div className="flex flex-col items-center gap-3">
+                        <input
+                          type="file"
+                          id="bulk-import-upload"
+                          className="hidden"
+                          accept="image/*,.pdf"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            try {
+                              const supabase = (await import('@/utils/supabase/client')).createClient();
+                              const fileName = `bulk-import-${Date.now()}`;
+                              const filePath = `imports/${fileName}`;
+
+                              const { data, error: uploadError } = await supabase.storage
+                                .from('uploads')
+                                .upload(filePath, file);
+
+                              if (uploadError) throw uploadError;
+
+                              const { data: { publicUrl } } = supabase.storage
+                                .from('uploads')
+                                .getPublicUrl(filePath);
+
+                              setImageUrl(publicUrl);
+                            } catch (err: any) {
+                              console.error("Bulk upload failed:", err);
+                              setError(err.message || "Failed to upload image.");
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => document.getElementById('bulk-import-upload')?.click()}
+                          className="flex flex-col items-center gap-3"
+                        >
+                          <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                            <ImageIcon size={24} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Select Image</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PNG, JPG, OR PDF SCAN</p>
+                          </div>
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

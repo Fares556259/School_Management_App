@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CldUploadWidget } from "next-cloudinary";
 import { updateAdminProfile } from "../admin/actions/profileActions";
 import { User, Mail, Phone, Camera, Check, AlertCircle } from "lucide-react";
 
@@ -69,19 +68,43 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
                 />
               </div>
               
-              <CldUploadWidget 
-                uploadPreset="school" 
-                onSuccess={(result: any) => setImg(result.info.secure_url)}
+              <input
+                type="file"
+                id="avatar-upload"
+                className="hidden"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  try {
+                    const supabase = (await import('@/utils/supabase/client')).createClient();
+                    const fileName = `profile-${initialData?.id || 'admin'}-${Date.now()}`;
+                    const filePath = `profiles/${fileName}`;
+
+                    const { data, error: uploadError } = await supabase.storage
+                      .from('uploads')
+                      .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('uploads')
+                      .getPublicUrl(filePath);
+
+                    setImg(publicUrl);
+                  } catch (err: any) {
+                    console.error("Profile upload failed:", err);
+                    setError(err.message || "Failed to upload profile image.");
+                  }
+                }}
+              />
+              <button 
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+                className="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center border-4 border-white shadow-lg hover:bg-indigo-700 transition-all hover:scale-110 active:scale-95"
               >
-                {({ open }) => (
-                  <button 
-                    onClick={() => open()}
-                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center border-4 border-white shadow-lg hover:bg-indigo-700 transition-all hover:scale-110 active:scale-95"
-                  >
-                    <Camera size={18} />
-                  </button>
-                )}
-              </CldUploadWidget>
+                <Camera size={18} />
+              </button>
             </div>
 
             <h2 className="text-2xl font-black text-slate-800 tracking-tighter">

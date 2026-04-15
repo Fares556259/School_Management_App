@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // Fetch all students for a given parent (by parentId stored in mobile AsyncStorage)
 export async function GET(request: NextRequest) {
   try {
