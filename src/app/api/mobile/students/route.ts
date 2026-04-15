@@ -53,3 +53,23 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { id, img } = await request.json();
+
+    if (!id || !img) {
+      return new NextResponse("Missing id or img", { status: 400 });
+    }
+
+    const updatedStudent = await prisma.student.update({
+      where: { id },
+      data: { img },
+    });
+
+    return NextResponse.json(updatedStudent);
+  } catch (error: any) {
+    console.error("[Mobile Student Update Error]", error);
+    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+  }
+}

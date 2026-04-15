@@ -92,6 +92,7 @@ model Parent {
   email     String?   @unique
   phone     String    @unique
   address   String
+  img       String?
   createdAt DateTime  @default(now())
   students  Student[]
 }

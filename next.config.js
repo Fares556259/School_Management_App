@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Force reload: 2026-04-15T11:41
+// Force reload: 2026-04-15T19:37
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -10,7 +10,6 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "hvkqjfihjvnqvdmotdzo.supabase.co",
-        pathname: "/storage/v1/object/public/**",
       },
       {
         protocol: "https",

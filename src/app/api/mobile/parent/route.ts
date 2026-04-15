@@ -23,3 +23,28 @@ export async function GET(request: NextRequest) {
     schoolInfo: schoolConfig 
   });
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { id, name, surname, phone, img } = await request.json();
+
+    if (!id) {
+      return new NextResponse("Missing parent ID", { status: 400 });
+    }
+
+    const updatedParent = await prisma.parent.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(surname && { surname }),
+        ...(phone && { phone }),
+        ...(img && { img }),
+      },
+    });
+
+    return NextResponse.json(updatedParent);
+  } catch (error: any) {
+    console.error("[Mobile Parent Update Error]", error);
+    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+  }
+}
