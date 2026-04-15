@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const now = new Date();
+  
   const students = await prisma.student.findMany({
     where: { classId: parseInt(classId) },
     select: {
@@ -91,7 +93,34 @@ export async function GET(request: NextRequest) {
     orderBy: [{ name: "asc" }],
   });
 
-  return NextResponse.json({ students, lessons: lessonsForUI });
+  // Inject virtual "PRESENT" for sessions that are in the past
+  const mappedStudents = students.map((s) => {
+    if (s.attendance.length === 0 && lessonIdParam && lessonIdParam !== "ALL") {
+      const slotId = lessonIdParam.startsWith("slot-") ? parseInt(lessonIdParam.replace("slot-", "")) : null;
+      const slot = slots.find(sl => sl.id === slotId);
+      
+      let isPast = false;
+      if (slot) {
+        const [hour, min] = slot.endTime.split(":").map(Number);
+        const sessionEnd = new Date(dayStart);
+        sessionEnd.setHours(hour, min, 0, 0);
+        isPast = now > sessionEnd;
+      } else {
+        // Fallback for non-slot lesson types
+        isPast = now > dayEnd;
+      }
+
+      if (isPast) {
+        return {
+          ...s,
+          attendance: [{ id: -1, status: "PRESENT", note: null }]
+        };
+      }
+    }
+    return s;
+  });
+
+  return NextResponse.json({ students: mappedStudents, lessons: lessonsForUI });
 }
 
 // POST /api/attendance

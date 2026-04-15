@@ -220,9 +220,20 @@ export async function GET(request: NextRequest) {
       
       // Match attendance by explicit lessonId, or fallback to full-day attendance
       const att = attendance.find((a) => a.lessonId === lessonObj?.id) || 
-                  attendance.find((a) => a.lessonId === null) || 
-                  attendance[0];
-                  
+                  attendance.find((a) => a.lessonId === null);
+      
+      let finalStatus = att?.status || null;
+
+      // New logic: Default to PRESENT if session is in the past and no record exists
+      if (!finalStatus) {
+        const [hour, min] = slot.endTime.split(":").map(Number);
+        const sessionEnd = new Date(now);
+        sessionEnd.setHours(hour, min, 0, 0);
+        if (new Date() > sessionEnd) {
+          finalStatus = "PRESENT";
+        }
+      }
+
       return {
         id: slot.id,
         slotNumber: slot.slotNumber,
@@ -232,7 +243,7 @@ export async function GET(request: NextRequest) {
         room: slot.room || "TBD",
         startTime: slot.startTime,
         endTime: slot.endTime,
-        attendance: att?.status || null, // PRESENT | ABSENT | LATE | null (not marked yet)
+        attendance: finalStatus, // PRESENT | ABSENT | LATE | null (if future & not marked)
       };
     });
 
