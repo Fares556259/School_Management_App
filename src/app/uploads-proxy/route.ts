@@ -11,18 +11,50 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const filename = searchParams.get("filename");
+    const filename = searchParams.get("filename") || "document.pdf";
+    const remoteUrl = searchParams.get("url");
 
-    if (!filename) {
-      return new NextResponse("Missing filename", { status: 400 });
+    // ── CASE 1: PROXY REMOTE URL ─────────────────────────────────────────────
+    if (remoteUrl) {
+      console.log(`[FILE-PROXY] Proxying remote URL: ${remoteUrl}`);
+      
+      try {
+        // Simple security check: Ensure it's the known Supabase storage provider
+        const isAllowedHost = remoteUrl.includes("supabase.co");
+
+        if (!isAllowedHost) {
+          console.warn(`[FILE-PROXY-SECURITY] Blocked request to untrusted host: ${remoteUrl}`);
+          // We return a 403 for untrusted hosts to protect the server
+          return new NextResponse(`Access to this host is not allowed via proxy: ${new URL(remoteUrl).hostname}`, { status: 403 });
+        }
+
+        const response = await fetch(remoteUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Remote server responded with ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const contentType = response.headers.get("Content-Type") || "application/pdf";
+        const contentDisposition = response.headers.get("Content-Disposition") || `attachment; filename="${filename}"`;
+
+        return new NextResponse(blob, {
+          headers: {
+            "Content-Type": contentType,
+            "Content-Disposition": contentDisposition,
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      } catch (fetchErr: any) {
+        const urlObj = new URL(remoteUrl);
+        console.error(`[FILE-PROXY-FETCH-ERROR] ${fetchErr.message} for URL: ${remoteUrl}`);
+        return new NextResponse(`Failed to fetch remote file (${urlObj.hostname}): ${fetchErr.message}. URL was: ${remoteUrl}`, { status: 502 });
+      }
     }
 
-    // Security: Prevent path traversal
+    // ── CASE 2: LOCAL FILE LOOKUP ────────────────────────────────────────────
     const safeFilename = path.basename(filename);
-    
-    // Check locally in public/uploads first
     const filePath = path.join(process.cwd(), "public", "uploads", safeFilename);
-    const dummyPath = path.join(process.cwd(), "public", "dummy.pdf");
 
     if (fs.existsSync(filePath)) {
       const fileBuffer = fs.readFileSync(filePath);
@@ -34,8 +66,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fallback: If it's a specific dummy request or file not found, return a dummy if it exists
-    // or proxy to a well-known public PDF
+    // ── CASE 3: FALLBACK DUMMY ───────────────────────────────────────────────
     const fallbackUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
     console.log(`[FILE-PROXY] File not found local: ${safeFilename}. Proxying to fallback.`);
     

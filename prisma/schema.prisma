@@ -286,6 +286,7 @@ model Notice {
   date      DateTime @default(now())
   important Boolean  @default(false)
   classId   Int?
+  img       String?
   pdfUrl    String?
   class     Class?   @relation(fields: [classId], references: [id])
 }

@@ -23,10 +23,11 @@ export async function GET(request: Request) {
     const announcements = notices.map((notice) => ({
       id: notice.id,
       title: notice.title,
-      excerpt: notice.message,
+      excerpt: notice.message.length > 100 ? notice.message.substring(0, 100) + "..." : notice.message,
+      content: notice.message,
       date: notice.date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      category: notice.important ? "Urgent" : "School News",
-      image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=400&auto=format&fit=crop", // Fallback image
+      category: notice.important ? "URGENT" : "School News",
+      image: notice.img || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=400&auto=format&fit=crop", 
       pdfUrl: notice.pdfUrl,
     }));
 

@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Force reload: 2026-04-15T11:41
 const nextConfig = {
   images: {
     remotePatterns: [

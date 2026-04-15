@@ -160,6 +160,12 @@ const menuItems: MenuSection[] = [
         href: "/list/assignments",
         visible: ["admin", "teacher", "student", "parent"],
       },
+      {
+        icon: "/announcement.png",
+        label: "Announcements",
+        href: "/list/announcements",
+        visible: ["admin", "teacher"],
+      },
     ],
   },
   {

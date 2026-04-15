@@ -727,6 +727,102 @@ export const deleteIncome = async (id: number) => {
   }
 };
 
+// ===================== NOTICE / ANNOUNCEMENT =====================
+export const createNotice = async (data: {
+  title: string;
+  message: string;
+  important: boolean;
+  classId?: number | null;
+  img?: string | null;
+  pdfUrl?: string | null;
+}) => {
+  try {
+    const notice = await prisma.notice.create({
+      data: {
+        title: data.title,
+        message: data.message,
+        important: data.important,
+        img: data.img || null,
+        pdfUrl: data.pdfUrl || null,
+        class: data.classId ? { connect: { id: data.classId } } : undefined,
+      },
+    });
+
+    await createAuditLog({
+      action: "CREATE_NOTICE",
+      entityType: "Notice",
+      entityId: notice.id.toString(),
+      description: `Published announcement: ${data.title}${data.classId ? ` for Class ID: ${data.classId}` : " (Global)"}`,
+    });
+
+    revalidatePath("/list/announcements");
+    return { success: true };
+  } catch (err: any) {
+    console.error("createNotice error:", err);
+    return { success: false, error: err?.message || "Failed to publish notice." };
+  }
+};
+
+export const updateNotice = async (
+  id: number,
+  data: Partial<{
+    title: string;
+    message: string;
+    important: boolean;
+    classId: number | null;
+    img: string | null;
+    pdfUrl: string | null;
+  }>
+) => {
+  try {
+    const { classId, ...otherData } = data;
+    
+    await prisma.notice.update({
+      where: { id },
+      data: {
+        ...otherData,
+        class: classId 
+          ? { connect: { id: classId } } 
+          : classId === null 
+            ? { disconnect: true } 
+            : undefined,
+      },
+    });
+
+    await createAuditLog({
+      action: "UPDATE_NOTICE",
+      entityType: "Notice",
+      entityId: id.toString(),
+      description: `Updated announcement: ${id}`,
+    });
+
+    revalidatePath("/list/announcements");
+    return { success: true };
+  } catch (err: any) {
+    console.error("updateNotice error:", err);
+    return { success: false, error: err?.message || "Failed to update notice." };
+  }
+};
+
+export const deleteNotice = async (id: number) => {
+  try {
+    const notice = await prisma.notice.findUnique({ where: { id } });
+    await prisma.notice.delete({ where: { id } });
+    
+    await createAuditLog({
+      action: "DELETE_NOTICE",
+      entityType: "Notice",
+      entityId: id.toString(),
+      description: `Removed announcement: ${notice?.title}`,
+    });
+
+    revalidatePath("/list/announcements");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete notice." };
+  }
+};
+
 // ===================== TIMETABLE =====================
 export const bulkUpdateTimetableSlots = async (classId: number, slots: any[]) => {
   try {
