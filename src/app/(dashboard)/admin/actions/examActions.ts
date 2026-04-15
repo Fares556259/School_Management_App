@@ -316,46 +316,4 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
         return { success: false, error: error.message };
     }
 }
-export async function broadcastExamSchedule({ classId, period, manualPdfUrl }: { classId: number, period: number, manualPdfUrl?: string }) {
-  console.log("--- Server Broadcast Request ---", { classId, period, manualPdfUrl });
-  
-  try {
-    // 1. Fetch period config
-    const config = await prisma.examPeriodConfig.findUnique({
-      where: { period }
-    });
 
-    if (!config) {
-      return { success: false, error: "Exam period configuration not found. Please set dates first." };
-    }
-
-    // 2. Fetch class name
-    const schoolClass = await prisma.class.findUnique({
-      where: { id: classId },
-      include: { level: true }
-    });
-
-    if (!schoolClass) {
-      return { success: false, error: "Class not found." };
-    }
-
-    const startDateStr = new Date(config.startDate).toLocaleDateString();
-    const endDateStr = config.endDate ? new Date(config.endDate).toLocaleDateString() : "TBD";
-
-    // 3. Create Notice
-    await prisma.notice.create({
-      data: {
-        title: `Term ${period} Exam Schedule: ${schoolClass.level.level}${schoolClass.name}`,
-        message: `The official exam schedule for Week ${period} is now available. Period: ${startDateStr} to ${endDateStr}. Please check the Examination Center in the app for details.`,
-        important: true,
-        class: { connect: { id: classId } },
-        pdfUrl: manualPdfUrl || config.pdfUrl || "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-      }
-    });
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Error broadcasting schedule:", error);
-    return { success: false, error: error.message };
-  }
-}

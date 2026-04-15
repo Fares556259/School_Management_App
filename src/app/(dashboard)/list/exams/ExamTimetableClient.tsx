@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown } from "lucide-react";
+import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "../../admin/timetable/components/ScheduleGrid";
 import AiScheduleModal from "../../admin/timetable/components/AiScheduleModal";
@@ -14,13 +14,9 @@ import {
   deleteExam,
   bulkUpdateExams,
   getExamPeriodConfigs,
-  upsertExamPeriodConfig,
-  broadcastExamSchedule
+  upsertExamPeriodConfig
 } from "../../admin/actions/examActions";
 import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
-import { Calendar as CalendarIcon } from "lucide-react";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 
 const ExamTimetableClient = ({ 
   classes, 
@@ -42,7 +38,6 @@ const ExamTimetableClient = ({
   const [selectedPeriod, setSelectedPeriod] = useState(1);
   const [periodConfigs, setPeriodConfigs] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // PDF Export Ref
   const gridRef = useRef<HTMLDivElement>(null);
@@ -212,87 +207,6 @@ const ExamTimetableClient = ({
            </div>
         </div>
         <div className="h-10 w-px bg-slate-100 mx-6"></div>
-        <button
-           disabled={isBroadcasting}
-           onClick={async () => {
-             if (!selectedClass) {
-               alert("Please select a class first");
-               return;
-             }
-             
-             setIsBroadcasting(true);
-             try {
-               // 1. Capture the Grid as PDF
-               if (!gridRef.current) throw new Error("Grid element not found");
-               
-               const canvas = await html2canvas(gridRef.current, {
-                 scale: 2,
-                 useCORS: true,
-                 logging: true,
-                 backgroundColor: "#ffffff"
-               });
-               
-               const imgData = canvas.toDataURL("image/png");
-               const pdf = new jsPDF({
-                 orientation: "landscape",
-                 unit: "px",
-                 format: [canvas.width, canvas.height]
-               });
-               
-               pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-               const pdfBlob = pdf.output("blob");
-               
-               // 2. Upload to Supabase Storage
-                const supabase = (await import('@/utils/supabase/client')).createClient();
-                const fileName = `ExamSchedule_${selectedClass.name}_${Date.now()}.pdf`;
-                const filePath = `exams/${fileName}`;
-
-                const { data, error: uploadError } = await supabase.storage
-                  .from('uploads')
-                  .upload(filePath, pdfBlob, {
-                    contentType: 'application/pdf',
-                    cacheControl: '3600',
-                    upsert: false
-                  });
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                  .from('uploads')
-                  .getPublicUrl(filePath);
-                
-                const manualUrl = publicUrl;
-                
-                if (!manualUrl) {
-                  throw new Error("Supabase responded, but no public URL was found.");
-                }
-
-               // 3. Broadcast with real URL
-               const res = await broadcastExamSchedule({ 
-                 classId: selectedClass.id, 
-                 period: selectedPeriod, 
-                 manualPdfUrl: manualUrl 
-               });
-               if (res.success) {
-                  alert("🚀 SUCCESS!\nReal PDF broadcasted to parents.");
-               } else {
-                  alert("❌ Database Error: " + res.error);
-               }
-             } catch (err: any) {
-               console.error("DEBUG BROADCAST ERROR:", err);
-               alert("⚠️ BROADCAST FAILED:\n" + err.message);
-             } finally {
-               setIsBroadcasting(false);
-             }
-           }}
-           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border ${
-             isBroadcasting 
-             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-wait'
-             : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-600 hover:text-white'
-           }`}
-        >
-           {isBroadcasting ? '⌛ Generating PDF...' : '📢 Broadcast to Parents'}
-        </button>
          <div className="flex items-center gap-6">
             <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-3 items-center">
               <div className="flex items-center gap-6 px-3">
