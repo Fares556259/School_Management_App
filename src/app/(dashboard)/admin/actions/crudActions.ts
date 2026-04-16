@@ -179,6 +179,9 @@ export async function executeAICommand(command: AICommand) {
           }
         });
 
+        // Trigger notifications for parents
+        import("@/lib/notifications").then(m => m.createAnnouncementNotifications(notice.id));
+
         await prisma.auditLog.create({
           data: {
             action: "CREATE",
