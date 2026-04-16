@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       parentId: parent.id,
       name: `${parent.name} ${parent.surname}`,
       email: parent.email,
+      img: parent.img,
       students: parent.students,
     });
   } catch (error) {

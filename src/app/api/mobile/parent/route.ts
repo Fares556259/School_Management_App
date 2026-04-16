@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ 
     name: parent?.name, 
     surname: parent?.surname,
+    img: parent?.img,
     schoolInfo: schoolConfig 
   });
 }
