@@ -114,7 +114,7 @@ const AnnouncementListPage = async ({
     </tr>
   );
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count] = await Promise.all([
     prisma.notice.findMany({
       where: query,
       include: {

@@ -104,7 +104,7 @@ const TeacherListPage = async ({
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count] = await Promise.all([
     prisma.teacher.findMany({
       where: query,
       include: {

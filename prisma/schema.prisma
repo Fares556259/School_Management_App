@@ -92,6 +92,7 @@ model Parent {
   surname   String
   email     String?   @unique
   phone     String    @unique
+  password  String?   // New field for mobile authentication
   address   String
   img       String?
   createdAt DateTime  @default(now())

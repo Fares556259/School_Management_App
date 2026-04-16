@@ -70,7 +70,7 @@ export async function getFinancialReportData(monthLabel: string): Promise<Report
     studentCount,
     staffCount,
     teacherCount
-  ] = await prisma.$transaction([
+  ] = await Promise.all([
     prisma.payment.findMany({
       where: { month: monthIdx, year: yearVal, status: "PAID", userType: { in: ["TEACHER", "STAFF"] } },
       include: { teacher: true, staff: true }

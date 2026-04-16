@@ -107,7 +107,7 @@ const AssignmentListPage = async ({
     </tr>
   );
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count] = await Promise.all([
     prisma.assignment.findMany({
       where: query,
       include: {

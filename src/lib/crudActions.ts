@@ -888,3 +888,35 @@ export const bulkUpdateTimetableSlots = async (classId: number, slots: any[]) =>
     return { success: false, error: err?.message || "Failed to update timetable." };
   }
 };
+
+// ===================== SECURITY =====================
+export const resetParentPassword = async (parentId: string) => {
+  try {
+    console.log(`[SECURITY] Initiating password reset for Parent ID: ${parentId}`);
+
+    // Direct update to clear the password
+    const parent = await prisma.parent.update({
+      where: { id: parentId },
+      data: { password: null }
+    });
+
+    await createAuditLog({
+      action: "RESET_PARENT_PASSWORD",
+      entityType: "Parent",
+      entityId: parentId,
+      description: `Administrative password reset for: ${parent.name} ${parent.surname} (${parent.phone})`,
+    });
+
+    revalidatePath("/list/parents");
+    return { success: true };
+  } catch (err: any) {
+    console.error("[SECURITY_ERROR] resetParentPassword failed:", err);
+    
+    // Return a more descriptive error if it's a Prisma record not found
+    if (err.code === 'P2025') {
+      return { success: false, error: "Account record not found in database." };
+    }
+    
+    return { success: false, error: err?.message || "Database connection error." };
+  }
+};

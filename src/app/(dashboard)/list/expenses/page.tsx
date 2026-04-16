@@ -66,7 +66,7 @@ const ExpenseListPage = async ({
     };
   }
 
-  const [data, count, allData] = await prisma.$transaction([
+  const [data, count, allData] = await Promise.all([
     prisma.expense.findMany({
       where: query,
       take: ITEM_PER_PAGE,

@@ -37,6 +37,8 @@ const columns = [
   },
 ];
 
+import ResetPasswordButton from "@/components/ResetPasswordButton";
+
 const ParentListPage = async ({
   searchParams,
 }: {
@@ -103,6 +105,7 @@ const ParentListPage = async ({
           {role === "admin" && (
             <>
               <CrudFormModal entity="parent" mode="update" data={item} id={item.id} />
+              <ResetPasswordButton parentId={item.id} />
               <CrudFormModal entity="parent" mode="delete" id={item.id} />
             </>
           )}
@@ -111,7 +114,7 @@ const ParentListPage = async ({
     </tr>
   );
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count] = await Promise.all([
     prisma.parent.findMany({
       where: query,
       include: {

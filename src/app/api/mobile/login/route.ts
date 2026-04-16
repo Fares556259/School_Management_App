@@ -16,30 +16,30 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { phone: phone.trim() },
-          { username: phone.trim() },
-          { name: { contains: phone.trim(), mode: 'insensitive' } } // Still allow name for easy dev-testing
+          { username: phone.trim() }
         ]
       },
-      include: {
-        students: {
-          include: {
-            class: true
-          }
-        },
-      },
+      orderBy: { id: 'asc' }
     });
+
+    if (parent) {
+      console.log(`[Mobile Login Status] ID: ${parent.id}, Name: ${parent.name}, HasPassword: ${!!parent.password}`);
+    }
 
     if (!parent) {
       return new NextResponse("No parent account found with that phone number.", { status: 404 });
     }
 
-    // Return parent info + their children's data
+    // New logic for multi-step auth - Strictly check for a valid hashed password
+    const hasPassword = !!parent.password && parent.password.length > 10; 
+
+    console.log(`[Mobile Login Status] ID: ${parent.id}, Name: ${parent.name}, HasPasswordDetected: ${hasPassword}, RawLen: ${parent.password?.length || 0}`);
     return NextResponse.json({
+      success: true,
+      status: hasPassword ? "NEEDS_PASSWORD" : "NEEDS_SETUP",
       parentId: parent.id,
       name: `${parent.name} ${parent.surname}`,
-      email: parent.email,
       img: parent.img,
-      students: parent.students,
     });
   } catch (error) {
     console.error("[Mobile Login Error]", error);

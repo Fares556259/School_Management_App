@@ -92,50 +92,75 @@ const AuditView = ({ initialAnalysis, monthLabel, totalIncome, totalExpense, pro
 
             <div className="max-w-[1100px] mx-auto overflow-hidden bg-white shadow-2xl print:shadow-none my-10 print:my-0 transition-all duration-500 font-inter" id="report-container">
                 
-                {/* --- PAGE 1: PREMIUM COVER PAGE --- */}
-                <div className="report-page h-[297mm] w-full relative flex flex-col justify-between p-[35mm] bg-[#0F172A] text-white">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black font-montserrat shadow-xl shadow-blue-500/20">S</div>
-                            <span className="text-2xl font-black tracking-tighter font-montserrat">SnapSchool</span>
+                {/* --- PAGE 1: ELITE CONSULTING COVER PAGE --- */}
+                <div className="report-page h-[297mm] w-full relative flex flex-col justify-between p-[35mm] bg-[#0F172A] text-white overflow-hidden">
+                    {/* Background Texture & Gradient */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,#1E293B_0%,#0F172A_100%)] opacity-100" />
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/asfalt-dark.png')]" />
+                    
+                    {/* Top Meta Navigation */}
+                    <div className="relative flex items-center justify-between z-10">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black font-montserrat shadow-[0_0_50px_rgba(37,99,235,0.4)] border border-blue-400/20">S</div>
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-black tracking-tighter font-montserrat leading-none">SnapSchool</span>
+                                <span className="text-[8pt] font-black uppercase tracking-[0.3em] text-blue-400/60 mt-1">Institutional Audit</span>
+                            </div>
                         </div>
-                        <div className="px-5 py-2 bg-white/5 rounded-full border border-white/10">
-                            <span className="text-[10pt] font-black uppercase tracking-widest text-blue-400 font-montserrat italic">Strategic Audit Division</span>
+                        <div className="flex flex-col items-end gap-2">
+                            <div className="px-6 py-2 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
+                                <span className="text-[10pt] font-black uppercase tracking-widest text-blue-400 font-montserrat italic">Strategic Audit Division</span>
+                            </div>
+                            <span className="text-[7pt] font-bold text-white/30 tracking-[0.2em] font-montserrat">COPY NO: 01-SS-${monthParam.toUpperCase()}</span>
                         </div>
                     </div>
                     
-                    <div className="space-y-12">
-                        <div className="h-2 w-32 bg-blue-600" />
-                        <div className="space-y-6">
-                            <p className="text-[14pt] font-semibold uppercase tracking-[0.5em] text-blue-400/60 font-montserrat">Confidential Executive Review</p>
-                            <h1 className="text-[44pt] font-montserrat font-black leading-[1.05] tracking-tight">
-                                Financial Audit & <br/>Operational Oversight 
+                    <div className="relative space-y-16 z-10">
+                        <div className="h-1.5 w-40 bg-gradient-to-r from-blue-600 to-transparent" />
+                        <div className="space-y-8">
+                            <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                                <p className="text-[11pt] font-bold uppercase tracking-[0.4em] text-blue-400 font-montserrat">Board Review: Confidential</p>
+                            </div>
+                            <h1 className="text-[52pt] font-montserrat font-black leading-[0.95] tracking-tighter drop-shadow-2xl">
+                                Financial Audit & <br/>
+                                <span className="text-blue-500">Operational Oversight</span>
                             </h1>
-                            <div className="pt-4 flex items-center gap-6">
-                                <span className="text-[22pt] font-montserrat font-light text-white/50">{monthLabel} Session</span>
-                                <div className="h-px bg-white/20 grow" />
+                            <div className="pt-6 flex items-center gap-8">
+                                <span className="text-[26pt] font-montserrat font-light text-white/40 italic">{monthLabel} <span className="font-bold text-white/60">Executive Session</span></span>
+                                <div className="h-px bg-white/10 grow" />
                             </div>
                         </div>
-                        <p className="text-[12pt] text-white/40 leading-relaxed max-w-2xl font-inter">
-                            This strategic deliverable evaluates institutional solvency, payroll efficiency, and revenue scaling. Prepared exclusively for SnapSchool leadership and the Board of Trustees.
+                        <p className="text-[13pt] text-white/50 leading-relaxed max-w-2xl font-inter font-medium leading-relaxed">
+                            This strategic deliverable evaluates institutional solvency, payroll efficiency, and revenue scaling. Prepared exclusively for the Office of the Director and the Senior Board of Trustees. Unauthorized duplication is strictly prohibited.
                         </p>
                     </div>
 
-                    <div className="flex justify-between items-end border-t border-white/10 pt-16">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                                    <TrendingUp size={20} />
+                    <div className="relative flex justify-between items-end border-t border-white/5 pt-16 z-10">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 backdrop-blur-sm shadow-inner">
+                                    <TrendingUp size={24} />
                                 </div>
                                 <div>
-                                    <p className="text-[10pt] font-bold uppercase tracking-widest font-montserrat text-white">SnapSchool Intelligence</p>
-                                    <p className="text-[9pt] text-white/40 font-inter italic">Report Ref: SN-Q2-${monthParam.toUpperCase()}</p>
+                                    <p className="text-[11pt] font-black uppercase tracking-widest font-montserrat text-white">SnapSchool Intelligence</p>
+                                    <p className="text-[10pt] text-white/30 font-inter italic">Audit Protocol: SN-FISCAL-v2.1</p>
                                 </div>
                             </div>
                         </div>
-                        <div className="text-right space-y-2">
-                             <p className="text-[12pt] font-black text-white">{new Date().getFullYear()} Annual Review</p>
-                             <p className="text-[10pt] text-white/40 font-inter">Generated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                        
+                        {/* Digital Strategic Seal */}
+                        <div className="absolute right-[20%] bottom-[50%] opacity-10 pointer-events-none">
+                             <div className="w-48 h-48 border-4 border-dashed border-white rounded-full flex items-center justify-center relative rotate-12">
+                                 <div className="absolute inset-4 border border-white rounded-full flex items-center justify-center text-center p-4">
+                                     <span className="text-[8pt] font-black uppercase tracking-tighter">SnapSchool <br/>Strategic <br/>Division</span>
+                                 </div>
+                             </div>
+                        </div>
+
+                        <div className="text-right space-y-3">
+                             <p className="text-[14pt] font-black text-white italic underline decoration-blue-600 underline-offset-8 decoration-4 font-montserrat">{new Date().getFullYear()} Annual Review</p>
+                             <p className="text-[11pt] text-white/30 font-inter">Verified Release: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                         </div>
                     </div>
                 </div>

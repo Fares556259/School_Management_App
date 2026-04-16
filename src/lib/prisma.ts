@@ -11,14 +11,17 @@ const getPrismaClient = () => {
   if (!globalThis.pgPoolGlobal) {
     globalThis.pgPoolGlobal = new Pool({
       connectionString: process.env.DATABASE_URL,
-      max: 10, // Slightly reduced to avoid overwhelming Supabase transaction modes
+      max: 10, // Optimized for Transaction Mode + Parallel Server Actions
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 20000, // Increased to 20s for better resilience
+      connectionTimeoutMillis: 40000, // Increased for serverless network jitter
     });
   }
   
   const adapter = new PrismaPg(globalThis.pgPoolGlobal);
-  return new PrismaClient({ adapter });
+  return new PrismaClient({ 
+    adapter,
+    log: ['error', 'warn'],
+  });
 };
 
 const prisma = globalThis.prismaGlobal ?? getPrismaClient();
