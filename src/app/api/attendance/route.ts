@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
+import { createAttendanceNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -203,6 +204,14 @@ export async function POST(request: NextRequest) {
     });
 
     await Promise.all(upserts);
+
+    // Trigger notifications asynchronously for ABSENT and LATE
+    records.forEach(r => {
+      if (r.status !== 'PRESENT') {
+        createAttendanceNotification(r.studentId, r.status, dayStart);
+      }
+    });
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[Attendance POST]", error);

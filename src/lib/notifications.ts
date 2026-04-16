@@ -139,3 +139,51 @@ export async function processPaymentReminders() {
     return { success: false, error };
   }
 }
+
+/**
+ * Creates a notification for a parent when a student is marked as ABSENT or LATE.
+ */
+export async function createAttendanceNotification(studentId: string, status: string, date: Date) {
+  try {
+    if (status === 'PRESENT') return;
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { name: true, parentId: true }
+    });
+    if (!student) return;
+
+    const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const statusLabel = status === 'ABSENT' ? 'absent' : 'late';
+    
+    // Deduplication: Don't send the same status alert twice in the same day for the same student
+    const START_OF_DAY = new Date();
+    START_OF_DAY.setHours(0, 0, 0, 0);
+
+    const existing = await prisma.notification.findFirst({
+      where: {
+        parentId: student.parentId,
+        studentId: studentId,
+        type: 'ATTENDANCE',
+        createdAt: { gte: START_OF_DAY },
+        message: { contains: statusLabel }
+      }
+    });
+
+    if (existing) return;
+
+    await prisma.notification.create({
+      data: {
+        parentId: student.parentId,
+        studentId: studentId,
+        type: "ATTENDANCE",
+        title: `Attendance Alert: ${status}`,
+        message: `${student.name} has been marked as ${statusLabel} on ${dateStr}.`,
+      }
+    });
+
+    console.log(`[NOTIFICATIONS] Created attendance alert for ${studentId} (${status})`);
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error creating attendance notification:", error);
+  }
+}
