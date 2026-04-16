@@ -4,46 +4,51 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const parentId = searchParams.get("parentId");
-  
-  if (!parentId) {
-    return NextResponse.json([]);
-  }
-
-  const notifications = await prisma.notification.findMany({
-    where: { parentId },
-    include: { student: true },
-    orderBy: { createdAt: "desc" },
-    take: 50
-  });
-
-  const formatted = notifications.map(n => {
-    // Determine icon and color based on type
-    let iconName = "Info";
-    let iconColor = "#0055d4";
-
-    if (n.type === "PAYMENT" || n.type === "REMINDER") {
-      iconName = "AlertTriangle";
-      iconColor = "#ef4444";
-    } else if (n.type === "ANNOUNCEMENT") {
-      iconName = "GraduationCap";
-      iconColor = "#0055d4";
+  try {
+    const { searchParams } = new URL(request.url);
+    const parentId = searchParams.get("parentId");
+    
+    if (!parentId) {
+      return NextResponse.json([]);
     }
 
-    return {
-      id: n.id,
-      type: n.type,
-      student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
-      message: n.message,
-      time: formatRelativeTime(n.createdAt),
-      iconName,
-      iconColor,
-      isNew: !n.isRead
-    };
-  });
+    const notifications = await prisma.notification.findMany({
+      where: { parentId },
+      include: { student: true },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    });
 
-  return NextResponse.json(formatted);
+    const formatted = notifications.map(n => {
+      // Determine icon and color based on type
+      let iconName = "Info";
+      let iconColor = "#0055d4";
+
+      if (n.type === "PAYMENT" || n.type === "REMINDER") {
+        iconName = "AlertTriangle";
+        iconColor = "#ef4444";
+      } else if (n.type === "ANNOUNCEMENT") {
+        iconName = "GraduationCap";
+        iconColor = "#0055d4";
+      }
+
+      return {
+        id: n.id,
+        type: n.type,
+        student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
+        message: n.message,
+        time: formatRelativeTime(n.createdAt),
+        iconName,
+        iconColor,
+        isNew: !n.isRead
+      };
+    });
+
+    return NextResponse.json(formatted);
+  } catch (error: any) {
+    console.error("[API] Notifications GET Error:", error);
+    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+  }
 }
 
 export async function PATCH(request: NextRequest) {
@@ -69,9 +74,12 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-function formatRelativeTime(date: Date) {
+function formatRelativeTime(date: Date | string | number) {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "recently";
+  
   const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const diff = now.getTime() - d.getTime();
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
