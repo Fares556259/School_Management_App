@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function getAIUsageStats() {
   try {
@@ -103,14 +104,71 @@ export async function toggleTestAIQuota() {
   }
 }
 
-export async function callGeminiDirect(prompt: string, imageBase64?: string) {
-  const usage = await checkAndIncrementUsage();
-  if (!usage.allowed) throw new Error(`DAILY_QUOTA_REACHED|${usage.quota}`);
-
+/**
+ * Unified AI Router
+ * Handles routing to Google SDK or OpenRouter based on API Key type
+ */
+async function unifiedAIRouter(params: {
+  systemPrompt?: string;
+  userPrompt: string;
+  history?: any[];
+  imageBase64?: string;
+  jsonMode?: boolean;
+}) {
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("API key missing");
 
+  const isGoogleKey = apiKey.startsWith("AIza");
+  
+  if (isGoogleKey) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+        generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
+      });
+      
+      const contents = [];
+      if (params.systemPrompt) {
+        contents.push({ role: "user", parts: [{ text: `SYSTEM_INSTRUCTION: ${params.systemPrompt}` }] });
+      }
+      if (params.history) {
+        contents.push(...params.history.map(m => ({ 
+          role: m.role === "assistant" ? "model" : "user", 
+          parts: [{ text: m.content }] 
+        })));
+      }
+      
+      const userParts: any[] = [{ text: params.userPrompt }];
+      if (params.imageBase64) {
+        userParts.push({ inlineData: { data: params.imageBase64, mimeType: "image/jpeg" } });
+      }
+      contents.push({ role: "user", parts: userParts });
+
+      const result = await model.generateContent({ contents });
+      return result.response.text();
+    } catch (error: any) {
+      console.error("[Google SDK Router Error]", error);
+      throw new Error(`Google SDK Error: ${error.message}`);
+    }
+  }
+
+  // OpenRouter Fallback
   try {
+    const messages = [];
+    if (params.systemPrompt) messages.push({ role: "system", content: params.systemPrompt });
+    if (params.history) messages.push(...params.history);
+    
+    messages.push({
+      role: "user",
+      content: params.imageBase64 
+        ? [
+            { type: "text", text: params.userPrompt },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${params.imageBase64}` } }
+          ]
+        : params.userPrompt
+    });
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -121,30 +179,30 @@ export async function callGeminiDirect(prompt: string, imageBase64?: string) {
       },
       body: JSON.stringify({
         model: "google/gemini-2.0-flash-001",
-        messages: [
-          {
-            role: "user",
-            content: imageBase64 
-              ? [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-                ]
-              : prompt
-          }
-        ]
+        messages,
+        response_format: params.jsonMode ? { type: "json_object" } : undefined
       })
     });
 
-    const data = await response.json();
-    if (data.error) {
-      console.error("[OpenRouter Error]", data.error);
-      throw new Error(data.error.message || "OpenRouter Error");
+    if (!response.ok) {
+       const errBody = await response.text();
+       throw new Error(`OpenRouter Fetch Failed: ${response.status} ${errBody}`);
     }
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || "OpenRouter Error");
     return data.choices[0].message.content;
-  } catch (error) {
-    console.error("OpenRouter Direct Error:", error);
-    throw error;
+  } catch (error: any) {
+    console.error("[OpenRouter Router Error]", error);
+    throw new Error(`Connectivity Issue: ${error.message}`);
   }
+}
+
+export async function callGeminiDirect(prompt: string, imageBase64?: string) {
+  const usage = await checkAndIncrementUsage();
+  if (!usage.allowed) throw new Error(`DAILY_QUOTA_REACHED|${usage.quota}`);
+
+  return await unifiedAIRouter({ userPrompt: prompt, imageBase64 });
 }
 
 export async function getChatResponse(
@@ -183,43 +241,17 @@ export async function getChatResponse(
       }
     `;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://snapschool.ai",
-        "X-Title": "SnapSchool AI",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.0-flash-001",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history.map(m => ({ role: m.role, content: m.content })),
-          {
-            role: "user",
-            content: imageBase64 
-              ? [
-                  { type: "text", text: userMessage },
-                  { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-                ]
-              : userMessage
-          }
-        ],
-        response_format: { type: "json_object" }
-      })
+    const content = await unifiedAIRouter({
+      systemPrompt,
+      userPrompt: userMessage,
+      history,
+      imageBase64,
+      jsonMode: true
     });
-
-    const data = await response.json();
-    if (data.error) {
-      console.error("[OpenRouter Assistant Error]", data.error);
-      throw new Error(data.error.message || "Assistant Error");
-    }
     
-    const content = data.choices[0].message.content;
     return JSON.parse(content);
   } catch (error: any) {
-    console.error("OpenRouter Assistant Error:", error);
+    console.error("AI Assistant Error:", error);
     return { success: false, error: error.message };
   }
 }

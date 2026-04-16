@@ -41,9 +41,9 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
     const profit = totalIncome - totalExpense;
 
     return (
-        <div className="bg-[#F1F5F9] min-h-screen text-[#1E293B] font-inter">
-            {/* Fonts: Modern & Professional */}
-            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <div className="bg-[#F8FAFC] min-h-screen text-[#1E293B] font-inter">
+            {/* Professional Consulting Typography */}
+            <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
             
             <AuditView 
                 initialAnalysis={aiAnalysis}
@@ -55,12 +55,23 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
             />
 
             <style dangerouslySetInnerHTML={{ __html: `
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
                 
-                .font-outfit { font-family: 'Outfit', sans-serif; }
+                .font-montserrat { font-family: 'Montserrat', sans-serif; }
                 .font-inter { font-family: 'Inter', sans-serif; }
                 
-                body { line-height: 1.6; letter-spacing: -0.01em; }
+                /* Precise Typography for PDF (Deloitte-Style) */
+                h1 { font-family: 'Montserrat'; font-size: 32pt; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+                h2 { font-family: 'Montserrat'; font-size: 18pt; font-weight: 600; margin-top: 24pt; margin-bottom: 12pt; }
+                h3 { font-family: 'Montserrat'; font-size: 14pt; font-weight: 600; margin-top: 18pt; margin-bottom: 8pt; }
+                p, li { font-family: 'Inter'; font-size: 11pt; line-height: 1.6; color: #1E293B; }
+                
+                body { line-height: 1.6; overflow-x: hidden; }
+                
+                @media print {
+                   body { background-color: white !important; -webkit-print-color-adjust: exact; }
+                   .no-print { display: none !important; }
+                }
             `}} />
         </div>
     );
