@@ -31,7 +31,7 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
       const lastSent = localStorage.getItem(storageKey);
       if (lastSent) {
         const elapsed = Date.now() - parseInt(lastSent);
-        const remaining = 24 * 60 * 60 * 1000 - elapsed;
+        const remaining = 4 * 60 * 60 * 1000 - elapsed;
         if (remaining > 0) {
           setCooldown(remaining);
         } else {
@@ -57,7 +57,7 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
       
       if (data.success) {
         localStorage.setItem(storageKey, Date.now().toString());
-        setCooldown(24 * 60 * 60 * 1000);
+        setCooldown(4 * 60 * 60 * 1000);
       }
     } catch (error) {
       console.error("Failed to send reminders:", error);
