@@ -37,6 +37,7 @@ export default function AttendancePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Status | "ALL">("ALL");
 
@@ -54,6 +55,7 @@ export default function AttendancePage() {
   const loadStudents = useCallback(async () => {
     if (!selectedClass) return;
     setLoading(true);
+    setIsDirty(false);
     const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}&lessonId=${selectedLesson}`);
     const data = await res.json().catch(() => ({}));
     const fetchedLessons = data?.lessons || [];
@@ -112,9 +114,11 @@ export default function AttendancePage() {
       students.forEach((s) => (next[s.id] = status));
     }
     setStatuses((prev) => ({ ...prev, ...next }));
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
+    if (!isDirty) return;
     setSaving(true);
     setSaved(false);
     const records = (Array.isArray(students) ? students : [])
@@ -135,6 +139,7 @@ export default function AttendancePage() {
     });
     setSaving(false);
     setSaved(true);
+    setIsDirty(false);
     setTimeout(() => setSaved(false), 3000);
   };
 
@@ -226,12 +231,12 @@ export default function AttendancePage() {
         </div>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !isDirty}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-indigo-200 transition-all disabled:opacity-60"
         >
           {saving ? (
             <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving...</>
-          ) : saved ? (
+          ) : (saved || !isDirty) ? (
             <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg> Saved!</>
           ) : (
             <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Attendance</>
@@ -355,7 +360,10 @@ export default function AttendancePage() {
                         {(["PRESENT", "LATE", "ABSENT"] as const).map((s) => (
                           <button
                             key={s}
-                            onClick={() => setStatuses((prev) => ({ ...prev, [student.id]: prev[student.id] === s ? null : s }))}
+                            onClick={() => {
+                              setStatuses((prev) => ({ ...prev, [student.id]: prev[student.id] === s ? null : s }));
+                              setIsDirty(true);
+                            }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 shadow-sm ${
                               statuses[student.id] === s
                                 ? STATUS_CONFIG[s].color + " shadow-md scale-105"
@@ -380,6 +388,7 @@ export default function AttendancePage() {
                                   const newNotes = [...(notes[student.id] || [])];
                                   newNotes[idx].author = e.target.value;
                                   setNotes(prev => ({ ...prev, [student.id]: newNotes }));
+                                  setIsDirty(true);
                                 }}
                                 className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
                               >
@@ -396,6 +405,7 @@ export default function AttendancePage() {
                                   const newNotes = [...(notes[student.id] || [])];
                                   newNotes[idx].text = e.target.value;
                                   setNotes(prev => ({ ...prev, [student.id]: newNotes }));
+                                  setIsDirty(true);
                                 }}
                                 className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
                               />
@@ -403,7 +413,8 @@ export default function AttendancePage() {
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button
                                     onClick={() => {
-                                      setNotes(prev => ({ ...prev, [student.id]: [...(notes[student.id] || []), { author: "Admin", text: "" }] }))
+                                      setNotes(prev => ({ ...prev, [student.id]: [...(notes[student.id] || []), { author: "Admin", text: "" }] }));
+                                      setIsDirty(true);
                                     }}
                                     className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center border border-indigo-100 border-b-2 transition-all active:translate-y-[1px] active:border-b font-black"
                                   >
@@ -434,7 +445,7 @@ export default function AttendancePage() {
                                     <span className="text-slate-600 truncate" title={n.text}>{n.text}</span>
                                   </div>
                                 ));
-                              })()}
+                               })()}
                             </div>
                             <button
                               onClick={() => setEditNotes(prev => ({ ...prev, [student.id]: true }))}
