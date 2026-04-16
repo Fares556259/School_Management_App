@@ -47,12 +47,22 @@ const SendSmsButton = ({ listType }: { listType: string }) => {
 
   const handleSendSms = async () => {
     setIsSending(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    localStorage.setItem(storageKey, Date.now().toString());
-    setCooldown(24 * 60 * 60 * 1000);
-    setIsSending(false);
+    try {
+      const res = await fetch("/api/finance/reminders", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        localStorage.setItem(storageKey, Date.now().toString());
+        setCooldown(24 * 60 * 60 * 1000);
+      }
+    } catch (error) {
+      console.error("Failed to send reminders:", error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const formatCooldown = (ms: number) => {
