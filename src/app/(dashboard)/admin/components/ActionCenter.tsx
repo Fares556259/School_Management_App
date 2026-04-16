@@ -20,7 +20,7 @@ interface ActionCenterProps {
   monthLabel: string;
 }
 
-const SendSmsButton = ({ listType }: { listType: string }) => {
+const SendSmsButton = ({ listType, disabled = false }: { listType: string; disabled?: boolean }) => {
   const { t } = useLanguage();
   const [cooldown, setCooldown] = useState<number>(0);
   const [isSending, setIsSending] = useState(false);
@@ -46,6 +46,7 @@ const SendSmsButton = ({ listType }: { listType: string }) => {
   }, [storageKey]);
 
   const handleSendSms = async () => {
+    if (disabled) return;
     setIsSending(true);
     try {
       const res = await fetch("/api/finance/reminders", { 
@@ -71,7 +72,7 @@ const SendSmsButton = ({ listType }: { listType: string }) => {
     return `${hours}h ${minutes}m`;
   };
 
-  if (cooldown > 0) {
+  if (cooldown > 0 && !disabled) {
     return (
       <button 
         disabled
@@ -86,13 +87,17 @@ const SendSmsButton = ({ listType }: { listType: string }) => {
   return (
     <button 
       onClick={handleSendSms}
-      disabled={isSending}
-      className="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-[#4F46E5] hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2 shadow-sm group/sms"
+      disabled={isSending || disabled}
+      className={`w-full py-3 border rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm group/sms transition-all ${
+        disabled 
+          ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" 
+          : "bg-white border-slate-200 text-[#4F46E5] hover:bg-indigo-50 hover:border-indigo-200"
+      }`}
     >
       {isSending ? (
         <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       ) : (
-        <MessageSquare size={14} className="text-indigo-400 group-hover/sms:scale-110 transition-transform" />
+        <MessageSquare size={14} className={disabled ? "text-slate-300" : "text-indigo-400 group-hover/sms:scale-110 transition-transform"} />
       )}
       {isSending ? t.actionCenter.sendingReminders : t.actionCenter.sendReminders}
     </button>
@@ -207,7 +212,7 @@ const ActionList = ({
           {ctaLabel}
         </button>
         
-        {showSmsAction && items.length > 0 && <SendSmsButton listType={title.toLowerCase().replace(' ', '_')} />}
+        {showSmsAction && <SendSmsButton listType={title.toLowerCase().replace(' ', '_')} disabled={items.length === 0} />}
         
         <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-indigo-500 cursor-pointer transition-colors uppercase tracking-widest">
           <span>{t.actionCenter.viewHistory}</span>
