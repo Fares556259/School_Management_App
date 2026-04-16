@@ -32,6 +32,11 @@ const columns = [
     className: "hidden lg:table-cell",
   },
   {
+    header: "Mobile Status",
+    accessor: "status",
+    className: "hidden xl:table-cell text-center",
+  },
+  {
     header: "Actions",
     accessor: "action",
   },
@@ -100,6 +105,17 @@ const ParentListPage = async ({
       </td>
       <td className="hidden md:table-cell">{item.phone}</td>
       <td className="hidden md:table-cell">{item.address}</td>
+      <td className="hidden xl:table-cell text-center">
+        {item.password && item.password.length > 10 ? (
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 border border-green-200 shadow-sm">
+            Activated
+          </span>
+        ) : (
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 border border-gray-200">
+            Pending
+          </span>
+        )}
+      </td>
       <td>
         <div className="flex items-center gap-2">
           {role === "admin" && (
