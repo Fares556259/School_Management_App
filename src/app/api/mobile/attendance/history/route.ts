@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     // 4. Calculate history range (Last 90 days for 'All Time' feel)
     const now = new Date();
-    const startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
     startDate.setHours(0, 0, 0, 0);
 
     const history: any[] = [];
@@ -78,26 +78,29 @@ export async function GET(request: NextRequest) {
     while (current >= startDate) {
       const dayNum = current.getDay();
       const dayName = DAY_NAMES[dayNum];
+      const dateKey = current.toISOString().split('T')[0];
 
       // Skip Sundays
       if (dayName !== "SUNDAY") {
-        const dateKey = current.toISOString().split('T')[0];
         const daySlots = slots.filter(s => s.day === dayName);
         const dayRecords = attendanceMap[dateKey] || [];
         
         const sessions: any[] = [];
         const notes: any[] = [];
         let dayStatus = "PRESENT";
+        const handledRecordIds = new Set<string>();
 
-        // For each slot in the timetable, look for a record OR default to present if session passed
+        // Phase 1: Process Timetable Slots (Match records or inject virtual presence)
         daySlots.forEach(slot => {
           // Find record for this slot (by subject fallback or lessonId)
           const record = dayRecords.find(r => 
-            r.lesson?.subjectId === slot.subjectId || 
-            (r.lessonId === null && dayRecords.length === 1) // Full day record fallback
+            (r.lesson?.subjectId === slot.subjectId || (r.lessonId === null && dayRecords.length === 1)) &&
+            !handledRecordIds.has(r.id)
           );
 
-          // Only show "Presence" for past/completed sessions (logic handled by 'isPast' check)
+          if (record) handledRecordIds.add(record.id);
+
+          // Only show "Presence" for past/completed sessions
           let isPast = false;
           if (slot.endTime) {
             try {
@@ -106,11 +109,10 @@ export async function GET(request: NextRequest) {
               sessionEnd.setHours(hours, minutes, 0, 0);
               isPast = now > sessionEnd;
             } catch (e) {
-              console.error("[Time Parse Error]", e);
               isPast = now > current;
             }
           } else {
-            isPast = now > current; // whole day in past
+            isPast = now > current;
           }
 
           if (record || isPast) {
@@ -137,6 +139,24 @@ export async function GET(request: NextRequest) {
                  notes.push({ author: "Admin", text: record.note });
                }
              }
+          }
+        });
+
+        // Phase 2: Process Orphan Records (Records that don't match any slot)
+        dayRecords.forEach(record => {
+          if (!handledRecordIds.has(record.id)) {
+            sessions.push({
+              id: record.id,
+              subject: record.lesson?.subject?.name || "Manual Record",
+              status: record.status
+            });
+
+            if (record.status === "ABSENT") dayStatus = "ABSENT";
+            else if (record.status === "LATE" && dayStatus !== "ABSENT") dayStatus = "LATE";
+            
+            if (record.note) {
+               notes.push({ author: "Admin", text: record.note });
+            }
           }
         });
 

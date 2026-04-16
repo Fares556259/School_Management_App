@@ -758,6 +758,9 @@ export const createNotice = async (data: {
       },
     });
 
+    // Trigger notifications for parents
+    import("@/lib/notifications").then(m => m.createAnnouncementNotifications(notice.id));
+
     await createAuditLog({
       action: "CREATE_NOTICE",
       entityType: "Notice",

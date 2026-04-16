@@ -60,6 +60,7 @@ model Student {
   level      Level        @relation(fields: [levelId], references: [id])
   parent     Parent       @relation(fields: [parentId], references: [id])
   notices    Notice[]
+  notifications Notification[]
 }
 
 model Teacher {
@@ -95,6 +96,7 @@ model Parent {
   img       String?
   createdAt DateTime  @default(now())
   students  Student[]
+  notifications Notification[]
 }
 
 model Level {
@@ -364,6 +366,22 @@ model Attendance {
   student   Student          @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, date, lessonId])
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  parentId    String
+  parent      Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  type        String   // 'ANNOUNCEMENT', 'PAYMENT', 'REMINDER'
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  studentId   String?  // Optional: Link to a specific student for context
+  student     Student? @relation(fields: [studentId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([parentId])
 }
 
 enum UserSex {
