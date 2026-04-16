@@ -7,13 +7,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
+    const studentId = searchParams.get("studentId");
     
     if (!parentId) {
       return NextResponse.json([]);
     }
 
     const notifications = await prisma.notification.findMany({
-      where: { parentId },
+      where: { 
+        parentId,
+        OR: [
+          { studentId: studentId || undefined },
+          { studentId: null }
+        ]
+      },
       include: { student: true },
       orderBy: { createdAt: "desc" },
       take: 50
