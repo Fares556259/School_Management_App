@@ -16,7 +16,9 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const fileName = `${type}-${id || 'unknown'}-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+    // Sanitize filename: remove special characters, spaces, and ensure unique timestamp
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${type}-${id || 'unknown'}-${Date.now()}-${sanitizedName}`;
     const filePath = `notices/${type}s/${fileName}`; 
 
     const { data, error } = await supabase.storage

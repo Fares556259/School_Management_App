@@ -11,9 +11,9 @@ const getPrismaClient = () => {
   if (!globalThis.pgPoolGlobal) {
     globalThis.pgPoolGlobal = new Pool({
       connectionString: process.env.DATABASE_URL,
-      max: 5, // Limit connections per node process to avoid hitting Supabase limits
+      max: 15, // Increased from 5 to handle concurrent mobile API bursts
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 15000, // Slightly increased timeout
     });
   }
   
