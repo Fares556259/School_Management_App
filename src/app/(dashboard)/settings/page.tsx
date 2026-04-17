@@ -3,11 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  School, 
   Building2, 
-  GraduationCap, 
   LayoutDashboard, 
-  Save, 
   Image as ImageIcon,
   Calendar,
   Clock,
@@ -34,13 +31,18 @@ const SettingsPage = () => {
         if (typeof sessions === 'string') {
           try { sessions = JSON.parse(sessions); } catch (e) { sessions = []; }
         }
-        const data = { ...res.data, sessions: sessions || [] };
+        const data = { 
+          ...res.data, 
+          sessions: sessions || []
+        };
         setConfig(data);
         setOriginalConfig(JSON.parse(JSON.stringify(data))); // Deep clone for comparison
       }
       setLoading(false);
     });
   }, []);
+
+
 
   const hasChanges = config && originalConfig && JSON.stringify(config) !== JSON.stringify(originalConfig);
 
@@ -89,10 +91,12 @@ const SettingsPage = () => {
   };
 
   const addHoliday = () => {
+    const today = new Date().toISOString().split('T')[0];
     const newHoliday = {
       id: Date.now(),
       name: "New Holiday",
-      date: new Date().toISOString().split('T')[0]
+      startDate: today,
+      endDate: today
     };
     const currentHolidays = Array.isArray(config.holidays) ? config.holidays : [];
     setConfig({ ...config, holidays: [...currentHolidays, newHoliday] });
@@ -103,7 +107,7 @@ const SettingsPage = () => {
     setConfig({ ...config, holidays: currentHolidays.filter((h: any) => h.id !== id) });
   };
 
-  const updateHoliday = (id: number, field: 'name' | 'date', value: string) => {
+  const updateHoliday = (id: number, field: string, value: string) => {
     const currentHolidays = Array.isArray(config.holidays) ? config.holidays : [];
     setConfig({
       ...config,
@@ -178,7 +182,7 @@ const SettingsPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
+        <form onSubmit={handleUpdate} className="flex flex-col gap-10 pb-20">
           
           {/* INSTITUTIONAL NAMES */}
           <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
@@ -222,43 +226,44 @@ const SettingsPage = () => {
                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Branding Assets</h2>
             </div>
             
-            <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { label: 'School Logo', field: 'schoolLogo' },
                 { label: 'Ministry Logo', field: 'ministryLogo' },
                 { label: 'University Logo', field: 'universityLogo' }
               ].map((logo) => (
-                <div key={logo.field} className="flex flex-col gap-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">{logo.label}</label>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
-                      {config[logo.field] ? (
-                        <img src={config[logo.field]} alt="Logo Preview" className="w-full h-full object-contain p-2" />
-                      ) : (
-                        <ImageIcon className="text-slate-300" size={24} />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <input 
-                        type="file" 
-                        id={`upload-${logo.field}`}
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, logo.field as any)}
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => document.getElementById(`upload-${logo.field}`)?.click()}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all text-center"
-                      >
-                        {config[logo.field] ? 'Change Logo' : 'Upload Logo'}
-                      </button>
-                    </div>
+                <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-slate-50 rounded-[28px] border border-slate-100/50 group hover:border-indigo-100 transition-all">
+                  <div className="w-24 h-24 rounded-2xl bg-white shadow-sm border border-slate-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    {config[logo.field] ? (
+                      <img src={config[logo.field]} alt="Logo Preview" className="w-full h-full object-contain p-3" />
+                    ) : (
+                      <ImageIcon className="text-slate-200" size={32} />
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{logo.label}</label>
+                    <input 
+                      type="file" 
+                      id={`upload-${logo.field}`}
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, logo.field as any)}
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => document.getElementById(`upload-${logo.field}`)?.click()}
+                      className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                    >
+                      {config[logo.field] ? 'Change Logo' : 'Upload Logo'}
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
+
 
           {/* ACADEMIC PERIOD */}
           <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
@@ -339,8 +344,8 @@ const SettingsPage = () => {
                       exit={{ opacity: 0, scale: 0.95 }}
                       className="group flex flex-col gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-rose-100 hover:bg-rose-50/10 transition-all relative overflow-hidden"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col gap-1.5 flex-[2]">
+                      <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="flex flex-col gap-1.5 flex-[2] w-full">
                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Name</label>
                            <input 
                               className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
@@ -349,19 +354,28 @@ const SettingsPage = () => {
                               placeholder="e.g. Independence Day"
                            />
                         </div>
-                        <div className="flex flex-col gap-1.5 flex-1">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
+                        <div className="flex flex-col gap-1.5 flex-1 w-full">
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
                            <input 
                               type="date"
                               className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
-                              value={holiday.date}
-                              onChange={e => updateHoliday(holiday.id, 'date', e.target.value)}
+                              value={holiday.startDate || holiday.date}
+                              onChange={e => updateHoliday(holiday.id, 'startDate', e.target.value)}
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1.5 flex-1 w-full">
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">End Date</label>
+                           <input 
+                              type="date"
+                              className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
+                              value={holiday.endDate || holiday.date}
+                              onChange={e => updateHoliday(holiday.id, 'endDate', e.target.value)}
                            />
                         </div>
                         <button 
                           type="button"
                           onClick={() => removeHoliday(holiday.id)}
-                          className="mt-5 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                          className="mt-4 p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -469,7 +483,7 @@ const SettingsPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="md:col-span-2 flex justify-end gap-4 mt-4"
+                className="flex justify-end gap-4 mt-4"
               >
                  <button 
                     type="submit"

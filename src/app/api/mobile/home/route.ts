@@ -72,7 +72,13 @@ export async function GET(request: NextRequest) {
       // Construct date string manually in YYYY-MM-DD format based on LOCAL date parts
       // to avoid .toISOString() timezone flipped date issues
       const dateStrIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const match = holidays.find((h: any) => h.date === dateStrIso);
+      
+      const match = holidays.find((h: any) => {
+        // Handle both new range format and legacy single-day format
+        const start = h.startDate || h.date;
+        const end = h.endDate || h.date;
+        return dateStrIso >= start && dateStrIso <= end;
+      });
       if (match) holidayName = match.name;
     }
 
