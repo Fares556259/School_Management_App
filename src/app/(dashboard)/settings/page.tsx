@@ -11,8 +11,11 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Plus,
+  Trash2
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getSchoolConfig, updateSchoolConfig } from "../admin/actions/schoolActions";
 
 const SettingsPage = () => {
@@ -54,6 +57,20 @@ const SettingsPage = () => {
   const updateSession = (index: number, field: 'label' | 'time', value: string) => {
     const newSessions = [...config.sessions];
     newSessions[index] = { ...newSessions[index], [field]: value };
+    setConfig({ ...config, sessions: newSessions });
+  };
+  
+  const addSession = () => {
+    const newSession = {
+      id: Date.now(),
+      label: `Session ${config.sessions.length + 1}`,
+      time: "08:00 - 10:00"
+    };
+    setConfig({ ...config, sessions: [...config.sessions, newSession] });
+  };
+
+  const removeSession = (index: number) => {
+    const newSessions = config.sessions.filter((_: any, i: number) => i !== index);
     setConfig({ ...config, sessions: newSessions });
   };
 
@@ -237,31 +254,75 @@ const SettingsPage = () => {
 
           {/* SESSIONS CONFIG */}
           <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
-             <div className="flex items-center gap-2 mb-2">
-               <Clock className="text-indigo-600" size={18} />
-               <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Daily Sessions</h2>
+             <div className="flex items-center justify-between mb-2">
+               <div className="flex items-center gap-2">
+                <Clock className="text-indigo-600" size={18} />
+                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Daily Sessions</h2>
+               </div>
+               <button 
+                type="button"
+                onClick={addSession}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+               >
+                 <Plus size={14} /> Add Session
+               </button>
             </div>
             <div className="flex flex-col gap-4">
-               {config.sessions.map((session: any, idx: number) => (
-                 <div key={idx} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
-                    <div className="flex flex-col gap-1.5 flex-1">
-                       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Label</label>
-                       <input 
-                        className="bg-white border border-slate-100 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
-                        value={session.label}
-                        onChange={e => updateSession(idx, 'label', e.target.value)}
-                       />
+               <AnimatePresence mode="popLayout">
+                {config.sessions.map((session: any, idx: number) => (
+                  <motion.div 
+                    key={session.id || idx}
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, x: -20 }}
+                    layout
+                    className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-slate-50 rounded-2xl border border-slate-100 group relative"
+                  >
+                      <div className="flex flex-col gap-1.5 flex-1 w-full">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Session Label</label>
+                        <input 
+                          className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                          value={session.label}
+                          placeholder="e.g. Session 1"
+                          onChange={e => updateSession(idx, 'label', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 flex-[1.5] w-full">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Time Window</label>
+                        <input 
+                          className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                          value={session.time}
+                          placeholder="08:00 - 10:00"
+                          onChange={e => updateSession(idx, 'time', e.target.value)}
+                        />
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => removeSession(idx)}
+                        className="p-2.5 bg-white border border-slate-100 rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm mb-0.5"
+                        title="Remove Session"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                  </motion.div>
+                ))}
+               </AnimatePresence>
+               
+               {config.sessions.length === 0 && (
+                 <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl gap-4 bg-slate-50/50">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200">
+                      <Clock size={24} />
                     </div>
-                    <div className="flex flex-col gap-1.5 flex-1">
-                       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Time Window</label>
-                       <input 
-                        className="bg-white border border-slate-100 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-600 focus:outline-none focus:border-indigo-500 transition-all"
-                        value={session.time}
-                        onChange={e => updateSession(idx, 'time', e.target.value)}
-                       />
-                    </div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No sessions defined</p>
+                    <button 
+                      type="button"
+                      onClick={addSession}
+                      className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-all"
+                    >
+                      Initialize first session
+                    </button>
                  </div>
-               ))}
+               )}
             </div>
           </div>
 
