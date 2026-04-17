@@ -13,6 +13,7 @@ interface SlotProps {
   endTime: string;
   subjects: any[];
   teachers: any[];
+  rooms: any[];
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
@@ -32,6 +33,7 @@ const ScheduleSlot = ({
   endTime, 
   subjects, 
   teachers, 
+  rooms,
   onUpdateAction,
   onDeleteAction,
   onRefresh,
@@ -47,7 +49,7 @@ const ScheduleSlot = ({
   // Form State
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
-  const [room, setRoom] = useState("");
+  const [roomId, setRoomId] = useState("");
 
   // Sync state when slot prop changes
   useEffect(() => {
@@ -58,7 +60,7 @@ const ScheduleSlot = ({
       setSubjectId(slot?.lesson?.subjectId?.toString() || "");
       setTeacherId(slot?.lesson?.teacherId || "");
     }
-    setRoom(slot?.room || "");
+    setRoomId(slot?.roomId?.toString() || "");
   }, [slot, type]);
 
   const handleUpdate = async () => {
@@ -73,7 +75,7 @@ const ScheduleSlot = ({
           slotNumber: period,
           startTime,
           endTime,
-          room: room || null,
+          roomId: parseInt(roomId) || null,
           examPeriod: examPeriod,
           targetDate: targetDate?.toISOString(),
         });
@@ -150,12 +152,14 @@ const ScheduleSlot = ({
              <option value="">Teacher</option>
              {teachers.map(t => <option key={t.id} value={t.id}>{t.name} {t.surname}</option>)}
            </select>
-           <input 
-             placeholder="Room (e.g. A1, Lab 5)"
-             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-800 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest placeholder:text-slate-300"
-             value={room}
-             onChange={(e) => setRoom(e.target.value)}
-           />
+           <select 
+             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
+             value={roomId}
+             onChange={(e) => setRoomId(e.target.value)}
+           >
+             <option value="">Room (TBA)</option>
+             {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+           </select>
         </div>
         <div className="flex gap-2 mt-auto">
           <button 
@@ -228,7 +232,7 @@ const ScheduleSlot = ({
       <div className="mt-auto flex items-center justify-between pt-3">
          <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{slot.room || "Room TBA"}</span>
+            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{slot.room?.name || "Room TBA"}</span>
          </div>
          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="w-5 h-5 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-emerald-100">TD</div>

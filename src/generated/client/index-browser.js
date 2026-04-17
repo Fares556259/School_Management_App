@@ -397,7 +397,7 @@ exports.Prisma.TimetableSlotScalarFieldEnum = {
   startTime: 'startTime',
   endTime: 'endTime',
   slotNumber: 'slotNumber',
-  room: 'room',
+  roomId: 'roomId',
   subjectId: 'subjectId',
   teacherId: 'teacherId',
   classId: 'classId',

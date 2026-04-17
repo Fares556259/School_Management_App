@@ -10,7 +10,7 @@ export type TimetableSlotUpdate = {
   teacherId?: string | null;
   startTime?: string;
   endTime?: string;
-  room?: string | null;
+  roomId?: number | null;
 };
 
 export async function getTimetableByClass(classId: number) {
@@ -20,6 +20,7 @@ export async function getTimetableByClass(classId: number) {
       include: {
         subject: true,
         teacher: true,
+        room: true,
       },
       orderBy: [
         { day: 'asc' },
@@ -46,7 +47,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
           classId: data.classId!,
           subjectId: data.subjectId,
           teacherId: data.teacherId,
-          room: data.room,
+          roomId: data.roomId,
         }
       });
       revalidatePath(`/admin/timetable`);
@@ -60,7 +61,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         teacherId: data.teacherId,
         startTime: data.startTime,
         endTime: data.endTime,
-        room: data.room,
+        roomId: data.roomId,
       },
     });
     
@@ -191,6 +192,19 @@ export async function deleteTimetableSlot(id: number) {
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting timetable slot:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getAllRooms() {
+  try {
+    const rooms = await prisma.room.findMany({
+      where: { schoolId: "default_school" },
+      orderBy: { name: 'asc' }
+    });
+    return { success: true, data: rooms };
+  } catch (error: any) {
+    console.error("Error fetching all rooms:", error);
     return { success: false, error: error.message };
   }
 }

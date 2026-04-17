@@ -271,7 +271,8 @@ model Room {
   id       Int    @id @default(autoincrement())
   name     String
   schoolId String @default("default_school")
-  School   School @relation(fields: [schoolId], references: [id])
+  School         School          @relation(fields: [schoolId], references: [id])
+  TimetableSlot  TimetableSlot[]
 
   @@unique([name, schoolId])
 }
@@ -381,7 +382,7 @@ model TimetableSlot {
   startTime  String
   endTime    String
   slotNumber Int
-  room       String?
+  roomId     Int?
   subjectId  Int?
   teacherId  String?
   classId    Int
@@ -390,6 +391,7 @@ model TimetableSlot {
   School     School   @relation(fields: [schoolId], references: [id])
   subject    Subject? @relation(fields: [subjectId], references: [id])
   teacher    Teacher? @relation(fields: [teacherId], references: [id])
+  room       Room?    @relation(fields: [roomId], references: [id])
 
   @@unique([classId, day, slotNumber])
 }

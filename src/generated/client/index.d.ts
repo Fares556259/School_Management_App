@@ -4009,6 +4009,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type RoomCountOutputType
+   */
+
+  export type RoomCountOutputType = {
+    TimetableSlot: number
+  }
+
+  export type RoomCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    TimetableSlot?: boolean | RoomCountOutputTypeCountTimetableSlotArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * RoomCountOutputType without action
+   */
+  export type RoomCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoomCountOutputType
+     */
+    select?: RoomCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * RoomCountOutputType without action
+   */
+  export type RoomCountOutputTypeCountTimetableSlotArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TimetableSlotWhereInput
+  }
+
+
+  /**
    * Count Type SchoolCountOutputType
    */
 
@@ -22920,6 +22951,8 @@ export namespace Prisma {
     name?: boolean
     schoolId?: boolean
     School?: boolean | SchoolDefaultArgs<ExtArgs>
+    TimetableSlot?: boolean | Room$TimetableSlotArgs<ExtArgs>
+    _count?: boolean | RoomCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["room"]>
 
   export type RoomSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -22945,6 +22978,8 @@ export namespace Prisma {
   export type RoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "schoolId", ExtArgs["result"]["room"]>
   export type RoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     School?: boolean | SchoolDefaultArgs<ExtArgs>
+    TimetableSlot?: boolean | Room$TimetableSlotArgs<ExtArgs>
+    _count?: boolean | RoomCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type RoomIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     School?: boolean | SchoolDefaultArgs<ExtArgs>
@@ -22957,6 +22992,7 @@ export namespace Prisma {
     name: "Room"
     objects: {
       School: Prisma.$SchoolPayload<ExtArgs>
+      TimetableSlot: Prisma.$TimetableSlotPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -23357,6 +23393,7 @@ export namespace Prisma {
   export interface Prisma__RoomClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     School<T extends SchoolDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SchoolDefaultArgs<ExtArgs>>): Prisma__SchoolClient<$Result.GetResult<Prisma.$SchoolPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    TimetableSlot<T extends Room$TimetableSlotArgs<ExtArgs> = {}>(args?: Subset<T, Room$TimetableSlotArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TimetableSlotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -23787,6 +23824,30 @@ export namespace Prisma {
      * Limit how many Rooms to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Room.TimetableSlot
+   */
+  export type Room$TimetableSlotArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TimetableSlot
+     */
+    select?: TimetableSlotSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TimetableSlot
+     */
+    omit?: TimetableSlotOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TimetableSlotInclude<ExtArgs> | null
+    where?: TimetableSlotWhereInput
+    orderBy?: TimetableSlotOrderByWithRelationInput | TimetableSlotOrderByWithRelationInput[]
+    cursor?: TimetableSlotWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TimetableSlotScalarFieldEnum | TimetableSlotScalarFieldEnum[]
   }
 
   /**
@@ -31041,6 +31102,7 @@ export namespace Prisma {
   export type TimetableSlotAvgAggregateOutputType = {
     id: number | null
     slotNumber: number | null
+    roomId: number | null
     subjectId: number | null
     classId: number | null
   }
@@ -31048,6 +31110,7 @@ export namespace Prisma {
   export type TimetableSlotSumAggregateOutputType = {
     id: number | null
     slotNumber: number | null
+    roomId: number | null
     subjectId: number | null
     classId: number | null
   }
@@ -31058,7 +31121,7 @@ export namespace Prisma {
     startTime: string | null
     endTime: string | null
     slotNumber: number | null
-    room: string | null
+    roomId: number | null
     subjectId: number | null
     teacherId: string | null
     classId: number | null
@@ -31071,7 +31134,7 @@ export namespace Prisma {
     startTime: string | null
     endTime: string | null
     slotNumber: number | null
-    room: string | null
+    roomId: number | null
     subjectId: number | null
     teacherId: string | null
     classId: number | null
@@ -31084,7 +31147,7 @@ export namespace Prisma {
     startTime: number
     endTime: number
     slotNumber: number
-    room: number
+    roomId: number
     subjectId: number
     teacherId: number
     classId: number
@@ -31096,6 +31159,7 @@ export namespace Prisma {
   export type TimetableSlotAvgAggregateInputType = {
     id?: true
     slotNumber?: true
+    roomId?: true
     subjectId?: true
     classId?: true
   }
@@ -31103,6 +31167,7 @@ export namespace Prisma {
   export type TimetableSlotSumAggregateInputType = {
     id?: true
     slotNumber?: true
+    roomId?: true
     subjectId?: true
     classId?: true
   }
@@ -31113,7 +31178,7 @@ export namespace Prisma {
     startTime?: true
     endTime?: true
     slotNumber?: true
-    room?: true
+    roomId?: true
     subjectId?: true
     teacherId?: true
     classId?: true
@@ -31126,7 +31191,7 @@ export namespace Prisma {
     startTime?: true
     endTime?: true
     slotNumber?: true
-    room?: true
+    roomId?: true
     subjectId?: true
     teacherId?: true
     classId?: true
@@ -31139,7 +31204,7 @@ export namespace Prisma {
     startTime?: true
     endTime?: true
     slotNumber?: true
-    room?: true
+    roomId?: true
     subjectId?: true
     teacherId?: true
     classId?: true
@@ -31239,7 +31304,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room: string | null
+    roomId: number | null
     subjectId: number | null
     teacherId: string | null
     classId: number
@@ -31271,7 +31336,7 @@ export namespace Prisma {
     startTime?: boolean
     endTime?: boolean
     slotNumber?: boolean
-    room?: boolean
+    roomId?: boolean
     subjectId?: boolean
     teacherId?: boolean
     classId?: boolean
@@ -31280,6 +31345,7 @@ export namespace Prisma {
     School?: boolean | SchoolDefaultArgs<ExtArgs>
     subject?: boolean | TimetableSlot$subjectArgs<ExtArgs>
     teacher?: boolean | TimetableSlot$teacherArgs<ExtArgs>
+    room?: boolean | TimetableSlot$roomArgs<ExtArgs>
   }, ExtArgs["result"]["timetableSlot"]>
 
   export type TimetableSlotSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -31288,7 +31354,7 @@ export namespace Prisma {
     startTime?: boolean
     endTime?: boolean
     slotNumber?: boolean
-    room?: boolean
+    roomId?: boolean
     subjectId?: boolean
     teacherId?: boolean
     classId?: boolean
@@ -31297,6 +31363,7 @@ export namespace Prisma {
     School?: boolean | SchoolDefaultArgs<ExtArgs>
     subject?: boolean | TimetableSlot$subjectArgs<ExtArgs>
     teacher?: boolean | TimetableSlot$teacherArgs<ExtArgs>
+    room?: boolean | TimetableSlot$roomArgs<ExtArgs>
   }, ExtArgs["result"]["timetableSlot"]>
 
   export type TimetableSlotSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -31305,7 +31372,7 @@ export namespace Prisma {
     startTime?: boolean
     endTime?: boolean
     slotNumber?: boolean
-    room?: boolean
+    roomId?: boolean
     subjectId?: boolean
     teacherId?: boolean
     classId?: boolean
@@ -31314,6 +31381,7 @@ export namespace Prisma {
     School?: boolean | SchoolDefaultArgs<ExtArgs>
     subject?: boolean | TimetableSlot$subjectArgs<ExtArgs>
     teacher?: boolean | TimetableSlot$teacherArgs<ExtArgs>
+    room?: boolean | TimetableSlot$roomArgs<ExtArgs>
   }, ExtArgs["result"]["timetableSlot"]>
 
   export type TimetableSlotSelectScalar = {
@@ -31322,31 +31390,34 @@ export namespace Prisma {
     startTime?: boolean
     endTime?: boolean
     slotNumber?: boolean
-    room?: boolean
+    roomId?: boolean
     subjectId?: boolean
     teacherId?: boolean
     classId?: boolean
     schoolId?: boolean
   }
 
-  export type TimetableSlotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "day" | "startTime" | "endTime" | "slotNumber" | "room" | "subjectId" | "teacherId" | "classId" | "schoolId", ExtArgs["result"]["timetableSlot"]>
+  export type TimetableSlotOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "day" | "startTime" | "endTime" | "slotNumber" | "roomId" | "subjectId" | "teacherId" | "classId" | "schoolId", ExtArgs["result"]["timetableSlot"]>
   export type TimetableSlotInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     class?: boolean | ClassDefaultArgs<ExtArgs>
     School?: boolean | SchoolDefaultArgs<ExtArgs>
     subject?: boolean | TimetableSlot$subjectArgs<ExtArgs>
     teacher?: boolean | TimetableSlot$teacherArgs<ExtArgs>
+    room?: boolean | TimetableSlot$roomArgs<ExtArgs>
   }
   export type TimetableSlotIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     class?: boolean | ClassDefaultArgs<ExtArgs>
     School?: boolean | SchoolDefaultArgs<ExtArgs>
     subject?: boolean | TimetableSlot$subjectArgs<ExtArgs>
     teacher?: boolean | TimetableSlot$teacherArgs<ExtArgs>
+    room?: boolean | TimetableSlot$roomArgs<ExtArgs>
   }
   export type TimetableSlotIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     class?: boolean | ClassDefaultArgs<ExtArgs>
     School?: boolean | SchoolDefaultArgs<ExtArgs>
     subject?: boolean | TimetableSlot$subjectArgs<ExtArgs>
     teacher?: boolean | TimetableSlot$teacherArgs<ExtArgs>
+    room?: boolean | TimetableSlot$roomArgs<ExtArgs>
   }
 
   export type $TimetableSlotPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -31356,6 +31427,7 @@ export namespace Prisma {
       School: Prisma.$SchoolPayload<ExtArgs>
       subject: Prisma.$SubjectPayload<ExtArgs> | null
       teacher: Prisma.$TeacherPayload<ExtArgs> | null
+      room: Prisma.$RoomPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -31363,7 +31435,7 @@ export namespace Prisma {
       startTime: string
       endTime: string
       slotNumber: number
-      room: string | null
+      roomId: number | null
       subjectId: number | null
       teacherId: string | null
       classId: number
@@ -31766,6 +31838,7 @@ export namespace Prisma {
     School<T extends SchoolDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SchoolDefaultArgs<ExtArgs>>): Prisma__SchoolClient<$Result.GetResult<Prisma.$SchoolPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     subject<T extends TimetableSlot$subjectArgs<ExtArgs> = {}>(args?: Subset<T, TimetableSlot$subjectArgs<ExtArgs>>): Prisma__SubjectClient<$Result.GetResult<Prisma.$SubjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     teacher<T extends TimetableSlot$teacherArgs<ExtArgs> = {}>(args?: Subset<T, TimetableSlot$teacherArgs<ExtArgs>>): Prisma__TeacherClient<$Result.GetResult<Prisma.$TeacherPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    room<T extends TimetableSlot$roomArgs<ExtArgs> = {}>(args?: Subset<T, TimetableSlot$roomArgs<ExtArgs>>): Prisma__RoomClient<$Result.GetResult<Prisma.$RoomPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -31800,7 +31873,7 @@ export namespace Prisma {
     readonly startTime: FieldRef<"TimetableSlot", 'String'>
     readonly endTime: FieldRef<"TimetableSlot", 'String'>
     readonly slotNumber: FieldRef<"TimetableSlot", 'Int'>
-    readonly room: FieldRef<"TimetableSlot", 'String'>
+    readonly roomId: FieldRef<"TimetableSlot", 'Int'>
     readonly subjectId: FieldRef<"TimetableSlot", 'Int'>
     readonly teacherId: FieldRef<"TimetableSlot", 'String'>
     readonly classId: FieldRef<"TimetableSlot", 'Int'>
@@ -32241,6 +32314,25 @@ export namespace Prisma {
      */
     include?: TeacherInclude<ExtArgs> | null
     where?: TeacherWhereInput
+  }
+
+  /**
+   * TimetableSlot.room
+   */
+  export type TimetableSlot$roomArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Room
+     */
+    select?: RoomSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Room
+     */
+    omit?: RoomOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoomInclude<ExtArgs> | null
+    where?: RoomWhereInput
   }
 
   /**
@@ -39923,7 +40015,7 @@ export namespace Prisma {
     startTime: 'startTime',
     endTime: 'endTime',
     slotNumber: 'slotNumber',
-    room: 'room',
+    roomId: 'roomId',
     subjectId: 'subjectId',
     teacherId: 'teacherId',
     classId: 'classId',
@@ -41544,6 +41636,7 @@ export namespace Prisma {
     name?: StringFilter<"Room"> | string
     schoolId?: StringFilter<"Room"> | string
     School?: XOR<SchoolScalarRelationFilter, SchoolWhereInput>
+    TimetableSlot?: TimetableSlotListRelationFilter
   }
 
   export type RoomOrderByWithRelationInput = {
@@ -41551,6 +41644,7 @@ export namespace Prisma {
     name?: SortOrder
     schoolId?: SortOrder
     School?: SchoolOrderByWithRelationInput
+    TimetableSlot?: TimetableSlotOrderByRelationAggregateInput
   }
 
   export type RoomWhereUniqueInput = Prisma.AtLeast<{
@@ -41562,6 +41656,7 @@ export namespace Prisma {
     name?: StringFilter<"Room"> | string
     schoolId?: StringFilter<"Room"> | string
     School?: XOR<SchoolScalarRelationFilter, SchoolWhereInput>
+    TimetableSlot?: TimetableSlotListRelationFilter
   }, "id" | "name_schoolId">
 
   export type RoomOrderByWithAggregationInput = {
@@ -42117,7 +42212,7 @@ export namespace Prisma {
     startTime?: StringFilter<"TimetableSlot"> | string
     endTime?: StringFilter<"TimetableSlot"> | string
     slotNumber?: IntFilter<"TimetableSlot"> | number
-    room?: StringNullableFilter<"TimetableSlot"> | string | null
+    roomId?: IntNullableFilter<"TimetableSlot"> | number | null
     subjectId?: IntNullableFilter<"TimetableSlot"> | number | null
     teacherId?: StringNullableFilter<"TimetableSlot"> | string | null
     classId?: IntFilter<"TimetableSlot"> | number
@@ -42126,6 +42221,7 @@ export namespace Prisma {
     School?: XOR<SchoolScalarRelationFilter, SchoolWhereInput>
     subject?: XOR<SubjectNullableScalarRelationFilter, SubjectWhereInput> | null
     teacher?: XOR<TeacherNullableScalarRelationFilter, TeacherWhereInput> | null
+    room?: XOR<RoomNullableScalarRelationFilter, RoomWhereInput> | null
   }
 
   export type TimetableSlotOrderByWithRelationInput = {
@@ -42134,7 +42230,7 @@ export namespace Prisma {
     startTime?: SortOrder
     endTime?: SortOrder
     slotNumber?: SortOrder
-    room?: SortOrderInput | SortOrder
+    roomId?: SortOrderInput | SortOrder
     subjectId?: SortOrderInput | SortOrder
     teacherId?: SortOrderInput | SortOrder
     classId?: SortOrder
@@ -42143,6 +42239,7 @@ export namespace Prisma {
     School?: SchoolOrderByWithRelationInput
     subject?: SubjectOrderByWithRelationInput
     teacher?: TeacherOrderByWithRelationInput
+    room?: RoomOrderByWithRelationInput
   }
 
   export type TimetableSlotWhereUniqueInput = Prisma.AtLeast<{
@@ -42155,7 +42252,7 @@ export namespace Prisma {
     startTime?: StringFilter<"TimetableSlot"> | string
     endTime?: StringFilter<"TimetableSlot"> | string
     slotNumber?: IntFilter<"TimetableSlot"> | number
-    room?: StringNullableFilter<"TimetableSlot"> | string | null
+    roomId?: IntNullableFilter<"TimetableSlot"> | number | null
     subjectId?: IntNullableFilter<"TimetableSlot"> | number | null
     teacherId?: StringNullableFilter<"TimetableSlot"> | string | null
     classId?: IntFilter<"TimetableSlot"> | number
@@ -42164,6 +42261,7 @@ export namespace Prisma {
     School?: XOR<SchoolScalarRelationFilter, SchoolWhereInput>
     subject?: XOR<SubjectNullableScalarRelationFilter, SubjectWhereInput> | null
     teacher?: XOR<TeacherNullableScalarRelationFilter, TeacherWhereInput> | null
+    room?: XOR<RoomNullableScalarRelationFilter, RoomWhereInput> | null
   }, "id" | "classId_day_slotNumber">
 
   export type TimetableSlotOrderByWithAggregationInput = {
@@ -42172,7 +42270,7 @@ export namespace Prisma {
     startTime?: SortOrder
     endTime?: SortOrder
     slotNumber?: SortOrder
-    room?: SortOrderInput | SortOrder
+    roomId?: SortOrderInput | SortOrder
     subjectId?: SortOrderInput | SortOrder
     teacherId?: SortOrderInput | SortOrder
     classId?: SortOrder
@@ -42193,7 +42291,7 @@ export namespace Prisma {
     startTime?: StringWithAggregatesFilter<"TimetableSlot"> | string
     endTime?: StringWithAggregatesFilter<"TimetableSlot"> | string
     slotNumber?: IntWithAggregatesFilter<"TimetableSlot"> | number
-    room?: StringNullableWithAggregatesFilter<"TimetableSlot"> | string | null
+    roomId?: IntNullableWithAggregatesFilter<"TimetableSlot"> | number | null
     subjectId?: IntNullableWithAggregatesFilter<"TimetableSlot"> | number | null
     teacherId?: StringNullableWithAggregatesFilter<"TimetableSlot"> | string | null
     classId?: IntWithAggregatesFilter<"TimetableSlot"> | number
@@ -44062,23 +44160,27 @@ export namespace Prisma {
   export type RoomCreateInput = {
     name: string
     School?: SchoolCreateNestedOneWithoutRoomInput
+    TimetableSlot?: TimetableSlotCreateNestedManyWithoutRoomInput
   }
 
   export type RoomUncheckedCreateInput = {
     id?: number
     name: string
     schoolId?: string
+    TimetableSlot?: TimetableSlotUncheckedCreateNestedManyWithoutRoomInput
   }
 
   export type RoomUpdateInput = {
     name?: StringFieldUpdateOperationsInput | string
     School?: SchoolUpdateOneRequiredWithoutRoomNestedInput
+    TimetableSlot?: TimetableSlotUpdateManyWithoutRoomNestedInput
   }
 
   export type RoomUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     schoolId?: StringFieldUpdateOperationsInput | string
+    TimetableSlot?: TimetableSlotUncheckedUpdateManyWithoutRoomNestedInput
   }
 
   export type RoomCreateManyInput = {
@@ -44623,11 +44725,11 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
     class: ClassCreateNestedOneWithoutTimetableInput
     School?: SchoolCreateNestedOneWithoutTimetableSlotInput
     subject?: SubjectCreateNestedOneWithoutTimetableInput
     teacher?: TeacherCreateNestedOneWithoutTimetableInput
+    room?: RoomCreateNestedOneWithoutTimetableSlotInput
   }
 
   export type TimetableSlotUncheckedCreateInput = {
@@ -44636,7 +44738,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     teacherId?: string | null
     classId: number
@@ -44648,11 +44750,11 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
     class?: ClassUpdateOneRequiredWithoutTimetableNestedInput
     School?: SchoolUpdateOneRequiredWithoutTimetableSlotNestedInput
     subject?: SubjectUpdateOneWithoutTimetableNestedInput
     teacher?: TeacherUpdateOneWithoutTimetableNestedInput
+    room?: RoomUpdateOneWithoutTimetableSlotNestedInput
   }
 
   export type TimetableSlotUncheckedUpdateInput = {
@@ -44661,7 +44763,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     classId?: IntFieldUpdateOperationsInput | number
@@ -44674,7 +44776,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     teacherId?: string | null
     classId: number
@@ -44686,7 +44788,6 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type TimetableSlotUncheckedUpdateManyInput = {
@@ -44695,7 +44796,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     classId?: IntFieldUpdateOperationsInput | number
@@ -46875,6 +46976,11 @@ export namespace Prisma {
     isNot?: SubjectWhereInput | null
   }
 
+  export type RoomNullableScalarRelationFilter = {
+    is?: RoomWhereInput | null
+    isNot?: RoomWhereInput | null
+  }
+
   export type TimetableSlotClassIdDaySlotNumberCompoundUniqueInput = {
     classId: number
     day: $Enums.Day
@@ -46887,7 +46993,7 @@ export namespace Prisma {
     startTime?: SortOrder
     endTime?: SortOrder
     slotNumber?: SortOrder
-    room?: SortOrder
+    roomId?: SortOrder
     subjectId?: SortOrder
     teacherId?: SortOrder
     classId?: SortOrder
@@ -46897,6 +47003,7 @@ export namespace Prisma {
   export type TimetableSlotAvgOrderByAggregateInput = {
     id?: SortOrder
     slotNumber?: SortOrder
+    roomId?: SortOrder
     subjectId?: SortOrder
     classId?: SortOrder
   }
@@ -46907,7 +47014,7 @@ export namespace Prisma {
     startTime?: SortOrder
     endTime?: SortOrder
     slotNumber?: SortOrder
-    room?: SortOrder
+    roomId?: SortOrder
     subjectId?: SortOrder
     teacherId?: SortOrder
     classId?: SortOrder
@@ -46920,7 +47027,7 @@ export namespace Prisma {
     startTime?: SortOrder
     endTime?: SortOrder
     slotNumber?: SortOrder
-    room?: SortOrder
+    roomId?: SortOrder
     subjectId?: SortOrder
     teacherId?: SortOrder
     classId?: SortOrder
@@ -46930,6 +47037,7 @@ export namespace Prisma {
   export type TimetableSlotSumOrderByAggregateInput = {
     id?: SortOrder
     slotNumber?: SortOrder
+    roomId?: SortOrder
     subjectId?: SortOrder
     classId?: SortOrder
   }
@@ -49197,12 +49305,54 @@ export namespace Prisma {
     connect?: SchoolWhereUniqueInput
   }
 
+  export type TimetableSlotCreateNestedManyWithoutRoomInput = {
+    create?: XOR<TimetableSlotCreateWithoutRoomInput, TimetableSlotUncheckedCreateWithoutRoomInput> | TimetableSlotCreateWithoutRoomInput[] | TimetableSlotUncheckedCreateWithoutRoomInput[]
+    connectOrCreate?: TimetableSlotCreateOrConnectWithoutRoomInput | TimetableSlotCreateOrConnectWithoutRoomInput[]
+    createMany?: TimetableSlotCreateManyRoomInputEnvelope
+    connect?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+  }
+
+  export type TimetableSlotUncheckedCreateNestedManyWithoutRoomInput = {
+    create?: XOR<TimetableSlotCreateWithoutRoomInput, TimetableSlotUncheckedCreateWithoutRoomInput> | TimetableSlotCreateWithoutRoomInput[] | TimetableSlotUncheckedCreateWithoutRoomInput[]
+    connectOrCreate?: TimetableSlotCreateOrConnectWithoutRoomInput | TimetableSlotCreateOrConnectWithoutRoomInput[]
+    createMany?: TimetableSlotCreateManyRoomInputEnvelope
+    connect?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+  }
+
   export type SchoolUpdateOneRequiredWithoutRoomNestedInput = {
     create?: XOR<SchoolCreateWithoutRoomInput, SchoolUncheckedCreateWithoutRoomInput>
     connectOrCreate?: SchoolCreateOrConnectWithoutRoomInput
     upsert?: SchoolUpsertWithoutRoomInput
     connect?: SchoolWhereUniqueInput
     update?: XOR<XOR<SchoolUpdateToOneWithWhereWithoutRoomInput, SchoolUpdateWithoutRoomInput>, SchoolUncheckedUpdateWithoutRoomInput>
+  }
+
+  export type TimetableSlotUpdateManyWithoutRoomNestedInput = {
+    create?: XOR<TimetableSlotCreateWithoutRoomInput, TimetableSlotUncheckedCreateWithoutRoomInput> | TimetableSlotCreateWithoutRoomInput[] | TimetableSlotUncheckedCreateWithoutRoomInput[]
+    connectOrCreate?: TimetableSlotCreateOrConnectWithoutRoomInput | TimetableSlotCreateOrConnectWithoutRoomInput[]
+    upsert?: TimetableSlotUpsertWithWhereUniqueWithoutRoomInput | TimetableSlotUpsertWithWhereUniqueWithoutRoomInput[]
+    createMany?: TimetableSlotCreateManyRoomInputEnvelope
+    set?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    disconnect?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    delete?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    connect?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    update?: TimetableSlotUpdateWithWhereUniqueWithoutRoomInput | TimetableSlotUpdateWithWhereUniqueWithoutRoomInput[]
+    updateMany?: TimetableSlotUpdateManyWithWhereWithoutRoomInput | TimetableSlotUpdateManyWithWhereWithoutRoomInput[]
+    deleteMany?: TimetableSlotScalarWhereInput | TimetableSlotScalarWhereInput[]
+  }
+
+  export type TimetableSlotUncheckedUpdateManyWithoutRoomNestedInput = {
+    create?: XOR<TimetableSlotCreateWithoutRoomInput, TimetableSlotUncheckedCreateWithoutRoomInput> | TimetableSlotCreateWithoutRoomInput[] | TimetableSlotUncheckedCreateWithoutRoomInput[]
+    connectOrCreate?: TimetableSlotCreateOrConnectWithoutRoomInput | TimetableSlotCreateOrConnectWithoutRoomInput[]
+    upsert?: TimetableSlotUpsertWithWhereUniqueWithoutRoomInput | TimetableSlotUpsertWithWhereUniqueWithoutRoomInput[]
+    createMany?: TimetableSlotCreateManyRoomInputEnvelope
+    set?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    disconnect?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    delete?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    connect?: TimetableSlotWhereUniqueInput | TimetableSlotWhereUniqueInput[]
+    update?: TimetableSlotUpdateWithWhereUniqueWithoutRoomInput | TimetableSlotUpdateWithWhereUniqueWithoutRoomInput[]
+    updateMany?: TimetableSlotUpdateManyWithWhereWithoutRoomInput | TimetableSlotUpdateManyWithWhereWithoutRoomInput[]
+    deleteMany?: TimetableSlotScalarWhereInput | TimetableSlotScalarWhereInput[]
   }
 
   export type AssignmentCreateNestedOneWithoutResultsInput = {
@@ -49455,6 +49605,12 @@ export namespace Prisma {
     connect?: TeacherWhereUniqueInput
   }
 
+  export type RoomCreateNestedOneWithoutTimetableSlotInput = {
+    create?: XOR<RoomCreateWithoutTimetableSlotInput, RoomUncheckedCreateWithoutTimetableSlotInput>
+    connectOrCreate?: RoomCreateOrConnectWithoutTimetableSlotInput
+    connect?: RoomWhereUniqueInput
+  }
+
   export type ClassUpdateOneRequiredWithoutTimetableNestedInput = {
     create?: XOR<ClassCreateWithoutTimetableInput, ClassUncheckedCreateWithoutTimetableInput>
     connectOrCreate?: ClassCreateOrConnectWithoutTimetableInput
@@ -49489,6 +49645,16 @@ export namespace Prisma {
     delete?: TeacherWhereInput | boolean
     connect?: TeacherWhereUniqueInput
     update?: XOR<XOR<TeacherUpdateToOneWithWhereWithoutTimetableInput, TeacherUpdateWithoutTimetableInput>, TeacherUncheckedUpdateWithoutTimetableInput>
+  }
+
+  export type RoomUpdateOneWithoutTimetableSlotNestedInput = {
+    create?: XOR<RoomCreateWithoutTimetableSlotInput, RoomUncheckedCreateWithoutTimetableSlotInput>
+    connectOrCreate?: RoomCreateOrConnectWithoutTimetableSlotInput
+    upsert?: RoomUpsertWithoutTimetableSlotInput
+    disconnect?: RoomWhereInput | boolean
+    delete?: RoomWhereInput | boolean
+    connect?: RoomWhereUniqueInput
+    update?: XOR<XOR<RoomUpdateToOneWithWhereWithoutTimetableSlotInput, RoomUpdateWithoutTimetableSlotInput>, RoomUncheckedUpdateWithoutTimetableSlotInput>
   }
 
   export type SchoolCreateNestedOneWithoutConversationInput = {
@@ -52336,10 +52502,10 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
     class: ClassCreateNestedOneWithoutTimetableInput
     School?: SchoolCreateNestedOneWithoutTimetableSlotInput
     subject?: SubjectCreateNestedOneWithoutTimetableInput
+    room?: RoomCreateNestedOneWithoutTimetableSlotInput
   }
 
   export type TimetableSlotUncheckedCreateWithoutTeacherInput = {
@@ -52348,7 +52514,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     classId: number
     schoolId?: string
@@ -52601,7 +52767,7 @@ export namespace Prisma {
     startTime?: StringFilter<"TimetableSlot"> | string
     endTime?: StringFilter<"TimetableSlot"> | string
     slotNumber?: IntFilter<"TimetableSlot"> | number
-    room?: StringNullableFilter<"TimetableSlot"> | string | null
+    roomId?: IntNullableFilter<"TimetableSlot"> | number | null
     subjectId?: IntNullableFilter<"TimetableSlot"> | number | null
     teacherId?: StringNullableFilter<"TimetableSlot"> | string | null
     classId?: IntFilter<"TimetableSlot"> | number
@@ -53516,10 +53682,10 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
     School?: SchoolCreateNestedOneWithoutTimetableSlotInput
     subject?: SubjectCreateNestedOneWithoutTimetableInput
     teacher?: TeacherCreateNestedOneWithoutTimetableInput
+    room?: RoomCreateNestedOneWithoutTimetableSlotInput
   }
 
   export type TimetableSlotUncheckedCreateWithoutClassInput = {
@@ -53528,7 +53694,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     teacherId?: string | null
     schoolId?: string
@@ -53963,10 +54129,10 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
     class: ClassCreateNestedOneWithoutTimetableInput
     School?: SchoolCreateNestedOneWithoutTimetableSlotInput
     teacher?: TeacherCreateNestedOneWithoutTimetableInput
+    room?: RoomCreateNestedOneWithoutTimetableSlotInput
   }
 
   export type TimetableSlotUncheckedCreateWithoutSubjectInput = {
@@ -53975,7 +54141,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     teacherId?: string | null
     classId: number
     schoolId?: string
@@ -56479,6 +56645,39 @@ export namespace Prisma {
     create: XOR<SchoolCreateWithoutRoomInput, SchoolUncheckedCreateWithoutRoomInput>
   }
 
+  export type TimetableSlotCreateWithoutRoomInput = {
+    day: $Enums.Day
+    startTime: string
+    endTime: string
+    slotNumber: number
+    class: ClassCreateNestedOneWithoutTimetableInput
+    School?: SchoolCreateNestedOneWithoutTimetableSlotInput
+    subject?: SubjectCreateNestedOneWithoutTimetableInput
+    teacher?: TeacherCreateNestedOneWithoutTimetableInput
+  }
+
+  export type TimetableSlotUncheckedCreateWithoutRoomInput = {
+    id?: number
+    day: $Enums.Day
+    startTime: string
+    endTime: string
+    slotNumber: number
+    subjectId?: number | null
+    teacherId?: string | null
+    classId: number
+    schoolId?: string
+  }
+
+  export type TimetableSlotCreateOrConnectWithoutRoomInput = {
+    where: TimetableSlotWhereUniqueInput
+    create: XOR<TimetableSlotCreateWithoutRoomInput, TimetableSlotUncheckedCreateWithoutRoomInput>
+  }
+
+  export type TimetableSlotCreateManyRoomInputEnvelope = {
+    data: TimetableSlotCreateManyRoomInput | TimetableSlotCreateManyRoomInput[]
+    skipDuplicates?: boolean
+  }
+
   export type SchoolUpsertWithoutRoomInput = {
     update: XOR<SchoolUpdateWithoutRoomInput, SchoolUncheckedUpdateWithoutRoomInput>
     create: XOR<SchoolCreateWithoutRoomInput, SchoolUncheckedCreateWithoutRoomInput>
@@ -56556,6 +56755,22 @@ export namespace Prisma {
     Subject?: SubjectUncheckedUpdateManyWithoutSchoolNestedInput
     Teacher?: TeacherUncheckedUpdateManyWithoutSchoolNestedInput
     TimetableSlot?: TimetableSlotUncheckedUpdateManyWithoutSchoolNestedInput
+  }
+
+  export type TimetableSlotUpsertWithWhereUniqueWithoutRoomInput = {
+    where: TimetableSlotWhereUniqueInput
+    update: XOR<TimetableSlotUpdateWithoutRoomInput, TimetableSlotUncheckedUpdateWithoutRoomInput>
+    create: XOR<TimetableSlotCreateWithoutRoomInput, TimetableSlotUncheckedCreateWithoutRoomInput>
+  }
+
+  export type TimetableSlotUpdateWithWhereUniqueWithoutRoomInput = {
+    where: TimetableSlotWhereUniqueInput
+    data: XOR<TimetableSlotUpdateWithoutRoomInput, TimetableSlotUncheckedUpdateWithoutRoomInput>
+  }
+
+  export type TimetableSlotUpdateManyWithWhereWithoutRoomInput = {
+    where: TimetableSlotScalarWhereInput
+    data: XOR<TimetableSlotUpdateManyMutationInput, TimetableSlotUncheckedUpdateManyWithoutRoomInput>
   }
 
   export type AssignmentCreateWithoutResultsInput = {
@@ -58342,6 +58557,22 @@ export namespace Prisma {
     create: XOR<TeacherCreateWithoutTimetableInput, TeacherUncheckedCreateWithoutTimetableInput>
   }
 
+  export type RoomCreateWithoutTimetableSlotInput = {
+    name: string
+    School?: SchoolCreateNestedOneWithoutRoomInput
+  }
+
+  export type RoomUncheckedCreateWithoutTimetableSlotInput = {
+    id?: number
+    name: string
+    schoolId?: string
+  }
+
+  export type RoomCreateOrConnectWithoutTimetableSlotInput = {
+    where: RoomWhereUniqueInput
+    create: XOR<RoomCreateWithoutTimetableSlotInput, RoomUncheckedCreateWithoutTimetableSlotInput>
+  }
+
   export type ClassUpsertWithoutTimetableInput = {
     update: XOR<ClassUpdateWithoutTimetableInput, ClassUncheckedUpdateWithoutTimetableInput>
     create: XOR<ClassCreateWithoutTimetableInput, ClassUncheckedCreateWithoutTimetableInput>
@@ -58542,6 +58773,28 @@ export namespace Prisma {
     lessons?: LessonUncheckedUpdateManyWithoutTeacherNestedInput
     payments?: PaymentUncheckedUpdateManyWithoutTeacherNestedInput
     subjects?: SubjectUncheckedUpdateManyWithoutTeachersNestedInput
+  }
+
+  export type RoomUpsertWithoutTimetableSlotInput = {
+    update: XOR<RoomUpdateWithoutTimetableSlotInput, RoomUncheckedUpdateWithoutTimetableSlotInput>
+    create: XOR<RoomCreateWithoutTimetableSlotInput, RoomUncheckedCreateWithoutTimetableSlotInput>
+    where?: RoomWhereInput
+  }
+
+  export type RoomUpdateToOneWithWhereWithoutTimetableSlotInput = {
+    where?: RoomWhereInput
+    data: XOR<RoomUpdateWithoutTimetableSlotInput, RoomUncheckedUpdateWithoutTimetableSlotInput>
+  }
+
+  export type RoomUpdateWithoutTimetableSlotInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    School?: SchoolUpdateOneRequiredWithoutRoomNestedInput
+  }
+
+  export type RoomUncheckedUpdateWithoutTimetableSlotInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    schoolId?: StringFieldUpdateOperationsInput | string
   }
 
   export type SchoolCreateWithoutConversationInput = {
@@ -60217,10 +60470,10 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
     class: ClassCreateNestedOneWithoutTimetableInput
     subject?: SubjectCreateNestedOneWithoutTimetableInput
     teacher?: TeacherCreateNestedOneWithoutTimetableInput
+    room?: RoomCreateNestedOneWithoutTimetableSlotInput
   }
 
   export type TimetableSlotUncheckedCreateWithoutSchoolInput = {
@@ -60229,7 +60482,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     teacherId?: string | null
     classId: number
@@ -60247,11 +60500,13 @@ export namespace Prisma {
 
   export type RoomCreateWithoutSchoolInput = {
     name: string
+    TimetableSlot?: TimetableSlotCreateNestedManyWithoutRoomInput
   }
 
   export type RoomUncheckedCreateWithoutSchoolInput = {
     id?: number
     name: string
+    TimetableSlot?: TimetableSlotUncheckedCreateNestedManyWithoutRoomInput
   }
 
   export type RoomCreateOrConnectWithoutSchoolInput = {
@@ -61251,7 +61506,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     classId: number
     schoolId?: string
@@ -61417,10 +61672,10 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
     class?: ClassUpdateOneRequiredWithoutTimetableNestedInput
     School?: SchoolUpdateOneRequiredWithoutTimetableSlotNestedInput
     subject?: SubjectUpdateOneWithoutTimetableNestedInput
+    room?: RoomUpdateOneWithoutTimetableSlotNestedInput
   }
 
   export type TimetableSlotUncheckedUpdateWithoutTeacherInput = {
@@ -61429,7 +61684,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     classId?: IntFieldUpdateOperationsInput | number
     schoolId?: StringFieldUpdateOperationsInput | string
@@ -61441,7 +61696,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     classId?: IntFieldUpdateOperationsInput | number
     schoolId?: StringFieldUpdateOperationsInput | string
@@ -61790,7 +62045,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     teacherId?: string | null
     schoolId?: string
@@ -61977,10 +62232,10 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
     School?: SchoolUpdateOneRequiredWithoutTimetableSlotNestedInput
     subject?: SubjectUpdateOneWithoutTimetableNestedInput
     teacher?: TeacherUpdateOneWithoutTimetableNestedInput
+    room?: RoomUpdateOneWithoutTimetableSlotNestedInput
   }
 
   export type TimetableSlotUncheckedUpdateWithoutClassInput = {
@@ -61989,7 +62244,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     schoolId?: StringFieldUpdateOperationsInput | string
@@ -62001,7 +62256,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     schoolId?: StringFieldUpdateOperationsInput | string
@@ -62047,7 +62302,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     teacherId?: string | null
     classId: number
     schoolId?: string
@@ -62165,10 +62420,10 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
     class?: ClassUpdateOneRequiredWithoutTimetableNestedInput
     School?: SchoolUpdateOneRequiredWithoutTimetableSlotNestedInput
     teacher?: TeacherUpdateOneWithoutTimetableNestedInput
+    room?: RoomUpdateOneWithoutTimetableSlotNestedInput
   }
 
   export type TimetableSlotUncheckedUpdateWithoutSubjectInput = {
@@ -62177,7 +62432,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     classId?: IntFieldUpdateOperationsInput | number
     schoolId?: StringFieldUpdateOperationsInput | string
@@ -62189,7 +62444,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     classId?: IntFieldUpdateOperationsInput | number
     schoolId?: StringFieldUpdateOperationsInput | string
@@ -62478,6 +62733,53 @@ export namespace Prisma {
     schoolId?: StringFieldUpdateOperationsInput | string
   }
 
+  export type TimetableSlotCreateManyRoomInput = {
+    id?: number
+    day: $Enums.Day
+    startTime: string
+    endTime: string
+    slotNumber: number
+    subjectId?: number | null
+    teacherId?: string | null
+    classId: number
+    schoolId?: string
+  }
+
+  export type TimetableSlotUpdateWithoutRoomInput = {
+    day?: EnumDayFieldUpdateOperationsInput | $Enums.Day
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    slotNumber?: IntFieldUpdateOperationsInput | number
+    class?: ClassUpdateOneRequiredWithoutTimetableNestedInput
+    School?: SchoolUpdateOneRequiredWithoutTimetableSlotNestedInput
+    subject?: SubjectUpdateOneWithoutTimetableNestedInput
+    teacher?: TeacherUpdateOneWithoutTimetableNestedInput
+  }
+
+  export type TimetableSlotUncheckedUpdateWithoutRoomInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    day?: EnumDayFieldUpdateOperationsInput | $Enums.Day
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    slotNumber?: IntFieldUpdateOperationsInput | number
+    subjectId?: NullableIntFieldUpdateOperationsInput | number | null
+    teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    classId?: IntFieldUpdateOperationsInput | number
+    schoolId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type TimetableSlotUncheckedUpdateManyWithoutRoomInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    day?: EnumDayFieldUpdateOperationsInput | $Enums.Day
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    slotNumber?: IntFieldUpdateOperationsInput | number
+    subjectId?: NullableIntFieldUpdateOperationsInput | number | null
+    teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    classId?: IntFieldUpdateOperationsInput | number
+    schoolId?: StringFieldUpdateOperationsInput | string
+  }
+
   export type AdminCreateManySchoolInput = {
     id: string
     username: string
@@ -62746,7 +63048,7 @@ export namespace Prisma {
     startTime: string
     endTime: string
     slotNumber: number
-    room?: string | null
+    roomId?: number | null
     subjectId?: number | null
     teacherId?: string | null
     classId: number
@@ -63597,10 +63899,10 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
     class?: ClassUpdateOneRequiredWithoutTimetableNestedInput
     subject?: SubjectUpdateOneWithoutTimetableNestedInput
     teacher?: TeacherUpdateOneWithoutTimetableNestedInput
+    room?: RoomUpdateOneWithoutTimetableSlotNestedInput
   }
 
   export type TimetableSlotUncheckedUpdateWithoutSchoolInput = {
@@ -63609,7 +63911,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     classId?: IntFieldUpdateOperationsInput | number
@@ -63621,7 +63923,7 @@ export namespace Prisma {
     startTime?: StringFieldUpdateOperationsInput | string
     endTime?: StringFieldUpdateOperationsInput | string
     slotNumber?: IntFieldUpdateOperationsInput | number
-    room?: NullableStringFieldUpdateOperationsInput | string | null
+    roomId?: NullableIntFieldUpdateOperationsInput | number | null
     subjectId?: NullableIntFieldUpdateOperationsInput | number | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
     classId?: IntFieldUpdateOperationsInput | number
@@ -63629,11 +63931,13 @@ export namespace Prisma {
 
   export type RoomUpdateWithoutSchoolInput = {
     name?: StringFieldUpdateOperationsInput | string
+    TimetableSlot?: TimetableSlotUpdateManyWithoutRoomNestedInput
   }
 
   export type RoomUncheckedUpdateWithoutSchoolInput = {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
+    TimetableSlot?: TimetableSlotUncheckedUpdateManyWithoutRoomNestedInput
   }
 
   export type RoomUncheckedUpdateManyWithoutSchoolInput = {

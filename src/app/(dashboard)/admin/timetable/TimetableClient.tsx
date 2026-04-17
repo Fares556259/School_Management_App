@@ -20,11 +20,13 @@ const TimetablePage = ({
   subjects,
   teachers,
   sessions,
+  rooms,
 }: {
   classes: any[];
   subjects: any[];
   teachers: any[];
   sessions?: any[];
+  rooms: any[];
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -142,6 +144,7 @@ const TimetablePage = ({
           classId={selectedClass.id} 
           subjects={subjects}
           teachers={teachers}
+          rooms={rooms}
           isEditMode={isEditMode}
           refreshKey={refreshKey}
           type="timetable"
