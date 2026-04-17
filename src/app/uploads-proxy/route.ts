@@ -28,10 +28,28 @@ export async function GET(request: NextRequest) {
           return new NextResponse(`Access to this host is not allowed via proxy: ${new URL(remoteUrl).hostname}`, { status: 403 });
         }
 
-        const response = await fetch(remoteUrl);
-        
-        if (!response.ok) {
-          throw new Error(`Remote server responded with ${response.status}`);
+        let response;
+        let lastError;
+        const MAX_RETRIES = 3;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            console.log(`[FILE-PROXY] Attempt ${attempt} to fetch: ${remoteUrl}`);
+            response = await fetch(remoteUrl);
+            if (response.ok) break;
+            lastError = new Error(`Remote server responded with ${response.status}`);
+          } catch (err: any) {
+            lastError = err;
+          }
+          
+          if (attempt < MAX_RETRIES) {
+             console.log(`[FILE-PROXY] Attempt ${attempt} failed. Retrying in 500ms...`);
+             await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+
+        if (!response || !response.ok) {
+          throw lastError || new Error("Failed after multiple attempts");
         }
 
         const blob = await response.blob();

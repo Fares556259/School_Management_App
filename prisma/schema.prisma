@@ -17,6 +17,8 @@ model Admin {
   aiUsage      Int      @default(0)
   aiQuota      Int      @default(10)
   lastAiUpdate DateTime @default(now())
+  schoolId     String   @default("default_school")
+  School       School   @relation(fields: [schoolId], references: [id])
 }
 
 model Staff {
@@ -33,34 +35,38 @@ model Staff {
   salary    Float     @default(1500)
   createdAt DateTime  @default(now())
   birthday  DateTime
+  schoolId  String    @default("default_school")
   payments  Payment[]
+  School    School    @relation(fields: [schoolId], references: [id])
 }
 
 model Student {
-  id         String       @id
-  username   String       @unique
-  name       String
-  surname    String
-  email      String?      @unique
-  phone      String?      @unique
-  address    String
-  img        String?
-  bloodType  String
-  sex        UserSex
-  createdAt  DateTime     @default(now())
-  parentId   String
-  classId    Int
-  birthday   DateTime
-  levelId    Int
-  attendance Attendance[]
-  grades     Grade[]
-  payments   Payment[]
-  results    Result[]
-  class      Class        @relation(fields: [classId], references: [id])
-  level      Level        @relation(fields: [levelId], references: [id])
-  parent     Parent       @relation(fields: [parentId], references: [id])
-  notices    Notice[]
+  id            String         @id
+  username      String         @unique
+  name          String
+  surname       String
+  email         String?        @unique
+  phone         String?        @unique
+  address       String
+  img           String?
+  bloodType     String
+  sex           UserSex
+  createdAt     DateTime       @default(now())
+  parentId      String
+  classId       Int
+  birthday      DateTime
+  levelId       Int
+  schoolId      String         @default("default_school")
+  attendance    Attendance[]
+  grades        Grade[]
+  notices       Notice[]
   notifications Notification[]
+  payments      Payment[]
+  results       Result[]
+  class         Class          @relation(fields: [classId], references: [id])
+  level         Level          @relation(fields: [levelId], references: [id])
+  parent        Parent         @relation(fields: [parentId], references: [id])
+  School        School         @relation(fields: [schoolId], references: [id])
 }
 
 model Teacher {
@@ -77,60 +83,76 @@ model Teacher {
   createdAt   DateTime        @default(now())
   birthday    DateTime
   salary      Float           @default(3000)
+  schoolId    String          @default("default_school")
   classes     Class[]
   gradeSheets GradeSheet[]
   lessons     Lesson[]
   payments    Payment[]
+  School      School          @relation(fields: [schoolId], references: [id])
   timetable   TimetableSlot[]
   subjects    Subject[]       @relation("SubjectToTeacher")
 }
 
 model Parent {
-  id        String    @id
-  username  String    @unique
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String    @unique
-  password  String?   // New field for mobile authentication
-  address   String
-  img       String?
-  createdAt DateTime  @default(now())
-  students  Student[]
+  id            String         @id
+  username      String         @unique
+  name          String
+  surname       String
+  email         String?        @unique
+  phone         String         @unique
+  address       String
+  createdAt     DateTime       @default(now())
+  img           String?
+  password      String?
+  schoolId      String         @default("default_school")
   notifications Notification[]
+  School        School         @relation(fields: [schoolId], references: [id])
+  students      Student[]
 }
 
 model Level {
   id       Int       @id @default(autoincrement())
-  level    Int       @unique
+  level    Int
+  schoolId String    @default("default_school")
   classes  Class[]
+  School   School    @relation(fields: [schoolId], references: [id])
   students Student[]
+
+  @@unique([level, schoolId])
 }
 
 model Class {
   id           Int             @id @default(autoincrement())
-  name         String          @unique
+  name         String
   capacity     Int
   supervisorId String?
   levelId      Int
+  schoolId     String          @default("default_school")
   level        Level           @relation(fields: [levelId], references: [id])
+  School       School          @relation(fields: [schoolId], references: [id])
   supervisor   Teacher?        @relation(fields: [supervisorId], references: [id])
   gradeSheets  GradeSheet[]
   lessons      Lesson[]
   notices      Notice[]
   students     Student[]
   timetable    TimetableSlot[]
+
+  @@unique([name, schoolId])
 }
 
 model Subject {
   id          Int             @id @default(autoincrement())
-  name        String          @unique
+  name        String
   domain      String          @default("General")
+  schoolId    String          @default("default_school")
   grades      Grade[]
   gradeSheets GradeSheet[]
   lessons     Lesson[]
+  School      School          @relation(fields: [schoolId], references: [id])
   timetable   TimetableSlot[]
   teachers    Teacher[]       @relation("SubjectToTeacher")
+
+  @@unique([name, schoolId])
 }
 
 model Grade {
@@ -142,6 +164,8 @@ model Grade {
   term      Int
   updatedAt DateTime    @updatedAt
   sheetId   Int?
+  schoolId  String      @default("default_school")
+  School    School      @relation(fields: [schoolId], references: [id])
   sheet     GradeSheet? @relation(fields: [sheetId], references: [id])
   student   Student     @relation(fields: [studentId], references: [id])
   subject   Subject     @relation(fields: [subjectId], references: [id])
@@ -159,8 +183,10 @@ model GradeSheet {
   teacherId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  schoolId  String   @default("default_school")
   grades    Grade[]
   class     Class    @relation(fields: [classId], references: [id])
+  School    School   @relation(fields: [schoolId], references: [id])
   subject   Subject  @relation(fields: [subjectId], references: [id])
   teacher   Teacher? @relation(fields: [teacherId], references: [id])
 
@@ -176,10 +202,12 @@ model Lesson {
   subjectId   Int
   classId     Int
   teacherId   String
+  schoolId    String       @default("default_school")
   assignments Assignment[]
   attendance  Attendance[]
   exams       Exam[]
   class       Class        @relation(fields: [classId], references: [id])
+  School      School       @relation(fields: [schoolId], references: [id])
   subject     Subject      @relation(fields: [subjectId], references: [id])
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
 }
@@ -191,7 +219,9 @@ model Exam {
   endTime    DateTime
   examPeriod Int      @default(1)
   lessonId   Int
+  schoolId   String   @default("default_school")
   lesson     Lesson   @relation(fields: [lessonId], references: [id])
+  School     School   @relation(fields: [schoolId], references: [id])
   results    Result[]
 }
 
@@ -201,7 +231,9 @@ model Assignment {
   startDate DateTime
   dueDate   DateTime
   lessonId  Int
+  schoolId  String   @default("default_school")
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  School    School   @relation(fields: [schoolId], references: [id])
   results   Result[]
 }
 
@@ -211,20 +243,24 @@ model ExamPeriodConfig {
   startDate DateTime
   endDate   DateTime?
   pdfUrl    String?
+  schoolId  String    @default("default_school")
+  School    School    @relation(fields: [schoolId], references: [id])
 }
 
 model SchoolConfig {
-  id               Int      @id @default(1)
-  schoolName       String   @default("Ecole Supérieure de la Statistique et de l'Analyse de l'Information")
-  schoolLogo       String?
-  ministryName     String   @default("Ministère de l'Enseignement Supérieur et de la Recherche Scientifique")
-  ministryLogo     String?
-  universityName   String   @default("Université de Carthage")
-  universityLogo   String?
-  academicYear     String   @default("2025-2026")
-  currentSemester  Int      @default(2)
-  sessions         Json?    @default("[{\"id\": 1, \"label\": \"Session 1\", \"time\": \"08:00 - 10:00\"}, {\"id\": 2, \"label\": \"Session 2\", \"time\": \"10:00 - 12:00\"}, {\"id\": 3, \"label\": \"Session 3\", \"time\": \"12:00 - 14:00\"}]")
-  updatedAt        DateTime @updatedAt
+  id              Int      @id @default(1)
+  schoolName      String   @default("Ecole Supérieure de la Statistique et de l'Analyse de l'Information")
+  schoolLogo      String?
+  ministryName    String   @default("Ministère de l'Enseignement Supérieur et de la Recherche Scientifique")
+  ministryLogo    String?
+  universityName  String   @default("Université de Carthage")
+  universityLogo  String?
+  academicYear    String   @default("2025-2026")
+  currentSemester Int      @default(2)
+  sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
+  updatedAt       DateTime @updatedAt
+  schoolId        String   @unique @default("default_school")
+  School          School   @relation(fields: [schoolId], references: [id])
 }
 
 model Result {
@@ -233,8 +269,10 @@ model Result {
   examId       Int?
   assignmentId Int?
   studentId    String
+  schoolId     String      @default("default_school")
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
   exam         Exam?       @relation(fields: [examId], references: [id])
+  School       School      @relation(fields: [schoolId], references: [id])
   student      Student     @relation(fields: [studentId], references: [id])
 }
 
@@ -247,6 +285,8 @@ model Expense {
   referenceType String?
   referenceId   String?
   img           String?
+  schoolId      String   @default("default_school")
+  School        School   @relation(fields: [schoolId], references: [id])
 }
 
 model Income {
@@ -258,6 +298,8 @@ model Income {
   referenceType String?
   referenceId   String?
   img           String?
+  schoolId      String   @default("default_school")
+  School        School   @relation(fields: [schoolId], references: [id])
 }
 
 model Payment {
@@ -274,6 +316,8 @@ model Payment {
   img            String?
   deferredAmount Float?
   deferredUntil  DateTime?
+  schoolId       String        @default("default_school")
+  School         School        @relation(fields: [schoolId], references: [id])
   staff          Staff?        @relation(fields: [staffId], references: [id])
   student        Student?      @relation(fields: [studentId], references: [id])
   teacher        Teacher?      @relation(fields: [teacherId], references: [id])
@@ -296,6 +340,8 @@ model AuditLog {
   type          String?
   effectiveDate DateTime?
   timestamp     DateTime  @default(now())
+  schoolId      String    @default("default_school")
+  School        School    @relation(fields: [schoolId], references: [id])
 }
 
 model Notice {
@@ -305,10 +351,12 @@ model Notice {
   date            DateTime @default(now())
   important       Boolean  @default(false)
   classId         Int?
-  targetStudentId String?
-  img             String?
   pdfUrl          String?
+  img             String?
+  targetStudentId String?
+  schoolId        String   @default("default_school")
   class           Class?   @relation(fields: [classId], references: [id])
+  School          School   @relation(fields: [schoolId], references: [id])
   targetStudent   Student? @relation(fields: [targetStudentId], references: [id])
 }
 
@@ -322,7 +370,9 @@ model TimetableSlot {
   subjectId  Int?
   teacherId  String?
   classId    Int
+  schoolId   String   @default("default_school")
   class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  School     School   @relation(fields: [schoolId], references: [id])
   subject    Subject? @relation(fields: [subjectId], references: [id])
   teacher    Teacher? @relation(fields: [teacherId], references: [id])
 
@@ -352,51 +402,81 @@ model Conversation {
   year      Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  schoolId  String   @default("default_school")
+  School    School   @relation(fields: [schoolId], references: [id])
 
   @@index([month, year])
 }
 
 model Attendance {
-  id        Int              @id @default(autoincrement())
-  date      DateTime         @default(now())
-  status    AttendanceStatus @default(PRESENT)
-  studentId String
-  lessonId  Int?
+  id                  Int              @id @default(autoincrement())
+  date                DateTime         @default(now())
+  status              AttendanceStatus @default(PRESENT)
+  studentId           String
+  lessonId            Int?
   note                String?
   justificationImg    String?
   justificationNote   String?
-  justificationStatus String @default("PENDING") // PENDING, APPROVED, REJECTED
+  justificationStatus String           @default("PENDING")
+  schoolId            String           @default("default_school")
   lesson              Lesson?          @relation(fields: [lessonId], references: [id])
-  student   Student          @relation(fields: [studentId], references: [id])
+  School              School           @relation(fields: [schoolId], references: [id])
+  student             Student          @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, date, lessonId])
 }
 
 model Notification {
-  id          Int      @id @default(autoincrement())
-  parentId    String
-  parent      Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
-  type        String   // 'ANNOUNCEMENT', 'PAYMENT', 'REMINDER'
-  title       String
-  message     String
-  isRead      Boolean  @default(false)
-  studentId   String?  // Optional: Link to a specific student for context
-  student     Student? @relation(fields: [studentId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  parentId  String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  studentId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  schoolId  String   @default("default_school")
+  parent    Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  School    School   @relation(fields: [schoolId], references: [id])
+  student   Student? @relation(fields: [studentId], references: [id])
 
   @@index([parentId])
+  @@index([schoolId])
 }
 
-model SetupRequest {
-  id          String   @id @default(cuid())
-  schoolName  String
-  ownerName   String
-  phoneNumber String
-  city        String
-  status      String   @default("PENDING") // PENDING, CONTACTED, COMPLETED
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model School {
+  id               String             @id
+  name             String
+  logo             String?
+  subdomain        String             @unique
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  Admin            Admin[]
+  Assignment       Assignment[]
+  Attendance       Attendance[]
+  AuditLog         AuditLog[]
+  Class            Class[]
+  Conversation     Conversation[]
+  Exam             Exam[]
+  ExamPeriodConfig ExamPeriodConfig[]
+  Expense          Expense[]
+  Grade            Grade[]
+  GradeSheet       GradeSheet[]
+  Income           Income[]
+  Lesson           Lesson[]
+  Level            Level[]
+  Notice           Notice[]
+  Notification     Notification[]
+  Parent           Parent[]
+  Payment          Payment[]
+  Result           Result[]
+  SchoolConfig     SchoolConfig?
+  Staff            Staff[]
+  Student          Student[]
+  Subject          Subject[]
+  Teacher          Teacher[]
+  TimetableSlot    TimetableSlot[]
 }
 
 enum UserSex {

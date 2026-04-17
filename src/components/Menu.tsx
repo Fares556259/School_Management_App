@@ -166,6 +166,12 @@ const menuItems: MenuSection[] = [
         href: "/list/announcements",
         visible: ["admin", "teacher"],
       },
+      {
+        icon: "/calendar.png",
+        label: "Setup Requests",
+        href: "/admin/setup-requests",
+        visible: ["superuser"],
+      },
     ],
   },
   {

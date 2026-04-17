@@ -20,22 +20,7 @@ export async function GET(request: NextRequest) {
           include: {
             class: {
               include: {
-                timetable: {
-                  include: {
-                    subject: true,
-                    teacher: true,
-                  },
-                },
-              },
-            },
-            payments: {
-              orderBy: { id: "desc" },
-            },
-            results: {
-              include: {
-                exam: {
-                  include: { lesson: { include: { subject: true } } },
-                },
+                level: true, // Needed for grade/level display
               },
             },
           },

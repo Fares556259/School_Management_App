@@ -80,14 +80,16 @@ const AdminPage = async ({
 
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
-  // 1. DATA FETCHING (Sequential Batches for optimal Cloud performance)
+  // 1. DATA FETCHING (Tiered for stability)
   
-  // TIER 1: Core Census & Current Period Totals
+  // TIER 1: Vital Stats & Primary Financials
   const [
     studentCount, teacherCount, staffCount, classCount,
-    incomeThisPeriod, expenseThisPeriod, incomeCategoriesThisPeriod, expenseCategoriesThisPeriod,
-    studentPaymentsThisPeriod, salaryPaymentsThisPeriod,
-    maleStudentCount, femaleStudentCount
+    incomeStats, expenseStats,
+    incomeCategoriesThisPeriod, expenseCategoriesThisPeriod,
+    studentPaymentsStats, salaryPaymentsStats,
+    maleStudentCount, femaleStudentCount,
+    overallGradeAvg
   ] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
@@ -115,14 +117,14 @@ const AdminPage = async ({
     }),
     prisma.student.count({ where: { sex: "MALE" } }),
     prisma.student.count({ where: { sex: "FEMALE" } }),
+    prisma.grade.aggregate({ _avg: { score: true } })
   ]);
 
-  // TIER 2: Previous Trends, Action Center & Historical Summaries
+  // TIER 2: Previous Trends & Action Center
   const [
     incomePrevPeriod, expensePrevPeriod, studentPaymentsPrevPeriod, salaryPaymentsPrevPeriod,
     unpaidPayments,
-    histIncome, histExpense, histStudPayments, histSalPayments,
-    deferredPaymentsThisPeriod, revenueGapThisPeriod
+    deferredPaymentsCount, revenueGapThisPeriod
   ] = await Promise.all([
     prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Tuition" } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Salary" } } }),
@@ -140,19 +142,10 @@ const AdminPage = async ({
         student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
         teacher: { select: { id: true, name: true, surname: true, phone: true } },
         staff: { select: { id: true, name: true, surname: true, phone: true } },
-      }
+      },
+      take: 20
     }),
-    prisma.income.findMany({ where: { date: { gte: twelveMonthsAgo }, NOT: { category: "Tuition" } }, select: { date: true, amount: true } }),
-    prisma.expense.findMany({ where: { date: { gte: twelveMonthsAgo }, NOT: { category: "Salary" } }, select: { date: true, amount: true } }),
-    prisma.payment.findMany({ 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: twelveMonthsAgo } }, 
-      select: { paidAt: true, amount: true } 
-    }),
-    prisma.payment.findMany({ 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: twelveMonthsAgo } }, 
-      select: { paidAt: true, amount: true } 
-    }),
-    prisma.payment.findMany({
+    prisma.payment.count({
       where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() }
     }),
     prisma.payment.aggregate({
@@ -161,106 +154,54 @@ const AdminPage = async ({
     })
   ]);
 
-  // TIER 3: Heavy AI Context & Personnels (Split into smaller chunks to avoid connection exhaustion)
-  
-  // Chunk 3a: Recent Items & Classes
+  // TIER 3: Visuals & Context (Highly restricted to avoid exhaustion)
   const [
-    recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses
+    recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses,
+    yearPaymentStatus, recentAuditLogs, allNotices, allSubjects
   ] = await Promise.all([
     prisma.payment.findMany({ 
-      take: 15, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
+      take: 8, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
       include: { student: { select: { name: true, surname: true } }, teacher: { select: { name: true, surname: true } }, staff: { select: { name: true, surname: true } } } 
     }),
-    prisma.expense.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
-    prisma.income.findMany({ take: 15, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
+    prisma.expense.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
+    prisma.income.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.class.findMany({ select: { id: true, name: true, _count: { select: { students: true } } } }),
-  ]);
-
-  // Chunk 3b: Yearly Aggregates & Logs
-  const [
-    yearPaymentStatus, yearIncomeByCategory, yearExpenseByCategory, recentAuditLogs
-  ] = await Promise.all([
-    prisma.payment.groupBy({ by: ['month', 'status', 'userType'], _sum: { amount: true }, _count: { _all: true }, where: { year: now.getFullYear() } }),
-    prisma.income.groupBy({ by: ['category'], _sum: { amount: true }, where: { date: { gte: new Date(now.getFullYear(), 0, 1) } } }),
-    prisma.expense.groupBy({ by: ['category'], _sum: { amount: true }, where: { date: { gte: new Date(now.getFullYear(), 0, 1) } } }),
-    prisma.auditLog.findMany({ take: 20, orderBy: { timestamp: 'desc' } }),
-  ]);
-
-  // Chunk 3c: Personnel & Students
-  const [
-    allTeachers, allStaffMemberData, allPaymentsThisYear, allStudents
-  ] = await Promise.all([
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
-    prisma.staff.findMany({ select: { id: true, name: true, surname: true } }),
-    prisma.payment.findMany({ where: { year: now.getFullYear(), userType: { in: ["TEACHER", "STAFF"] } }, select: { month: true, status: true, userType: true, teacherId: true, staffId: true } }),
-    prisma.student.findMany({
-      select: {
-        id: true, name: true, surname: true,
-        payments: { where: { year: now.getFullYear() }, select: { status: true, month: true } },
-        parent: { select: { name: true, surname: true, phone: true } }
-      }
+    prisma.payment.groupBy({ 
+      by: ['month'], 
+      _sum: { amount: true }, 
+      where: { year: now.getFullYear(), status: 'PAID' } 
     }),
-  ]);
-
-  // Chunk 3d: Academics & Operations
-  const [
-    allGrades, allNotices, allLessons, allSubjects, teacherTimetables, gradeSheets
-  ] = await Promise.all([
-    prisma.grade.findMany({ select: { score: true, student: { select: { classId: true } }, subjectId: true } }),
-    prisma.notice.findMany({ take: 10, orderBy: { date: 'desc' } }),
-    prisma.lesson.findMany({ select: { classId: true, teacherId: true, subjectId: true, day: true } }),
+    prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }),
+    prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { title: true, message: true, date: true } }),
     prisma.subject.findMany({ select: { id: true, name: true } }),
-    prisma.timetableSlot.findMany({ select: { teacherId: true, classId: true, day: true, slotNumber: true } }),
-    prisma.gradeSheet.findMany({ select: { classId: true, subjectId: true, term: true } }),
   ]);
 
-  // Map Personnel Payments for AI
-  const personnelMap = [...allTeachers, ...allStaffMemberData].map(p => {
-    const history = allPaymentsThisYear.filter(pay => pay.teacherId === p.id || pay.staffId === p.id);
-    return {
-      name: `${p.name} ${p.surname}`,
-      id: p.id,
-      paid: history.filter(h => h.status === 'PAID').map(h => MONTHS[h.month - 1]),
-      pending: history.filter(h => h.status === 'PENDING').map(h => MONTHS[h.month - 1])
-    };
-  });
+  // Historical Trends (Pre-aggregated in DB for performance)
+  const [histIncome, histExpense] = await Promise.all([
+    prisma.income.groupBy({
+      by: ['date'],
+      _sum: { amount: true },
+      where: { date: { gte: twelveMonthsAgo } }
+    }),
+    prisma.expense.groupBy({
+      by: ['date'],
+      _sum: { amount: true },
+      where: { date: { gte: twelveMonthsAgo } }
+    })
+  ]);
 
-  // Map Student Ledger for AI (Compressed)
-  const studentLedger = allStudents.map(s => ({
-    n: `${s.name} ${s.surname}`,
-    pn: `${s.parent.name} ${s.parent.surname}`,
-    ph: s.parent.phone,
-    paid: s.payments.filter(p => p.status === 'PAID').map(p => MONTHS[p.month - 1]),
-    pend: s.payments.filter(p => p.status === 'PENDING').map(p => MONTHS[p.month - 1])
-  }));
+  // Note: Deep AI context like studentLedger and teacherWorkload is disabled for stability during connectivity issues.
+  // We provide simplified metrics instead.
+  const personnelMap: any[] = [];
+  const studentLedger: any[] = [];
+  const classAverages: any[] = [];
+  const teacherWorkload: any[] = [];
 
-  // Map Academic Intelligence
-  const classAverages = schoolClasses.map(c => {
-    const classGrades = allGrades.filter(g => g.student.classId === c.id);
-    const avg = classGrades.length ? classGrades.reduce((acc, curr) => acc + curr.score, 0) / classGrades.length : 0;
-    
-    // Breakdown by subject
-    const subjectAvgs = allSubjects.map(sub => {
-      const subGrades = classGrades.filter(g => g.subjectId === sub.id);
-      return {
-        subject: sub.name,
-        avg: subGrades.length ? subGrades.reduce((acc, curr) => acc + curr.score, 0) / subGrades.length : 0
-      };
-    }).filter(s => s.avg > 0);
-
-    return { className: c.name, average: avg.toFixed(1), subjects: subjectAvgs };
-  });
-
-  // Map Operational Intelligence (Workload)
-  const teacherWorkload = allTeachers.map(t => ({
-    name: `${t.name} ${t.surname}`,
-    lessons: allLessons.filter(l => l.teacherId === t.id).length,
-    slots: teacherTimetables.filter(slot => slot.teacherId === t.id).length
-  }));
+  // AI context mapping removed for stability
 
   // 2. AGGREGATES & CALCULATIONS
-  const currentIncome = (incomeThisPeriod._sum.amount || 0) + (studentPaymentsThisPeriod._sum.amount || 0);
-  const currentExpense = (expenseThisPeriod._sum.amount || 0) + (salaryPaymentsThisPeriod._sum.amount || 0);
+  const currentIncome = (incomeStats._sum.amount || 0) + (studentPaymentsStats._sum.amount || 0);
+  const currentExpense = (expenseStats._sum.amount || 0) + (salaryPaymentsStats._sum.amount || 0);
   const currentBalance = currentIncome - currentExpense;
 
   const prevIncome = (incomePrevPeriod._sum.amount || 0) + (studentPaymentsPrevPeriod._sum.amount || 0);
@@ -268,27 +209,22 @@ const AdminPage = async ({
   const prevBalance = prevIncome - prevExpense;
   const revenueGap = revenueGapThisPeriod._sum.deferredAmount || 0;
 
-  // Process Historical Data (Last 12 Months)
+  // Process Historical Data (Simplified)
   const trendData = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthName = MONTHS[d.getMonth()];
     
-    const monthlyIncome = histIncome.filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
-      .reduce((acc, curr) => acc + curr.amount, 0) +
-      histStudPayments.filter(x => x.paidAt!.getMonth() === d.getMonth() && x.paidAt!.getFullYear() === d.getFullYear())
-      .reduce((acc, curr) => acc + curr.amount, 0);
+    // Using aggregated data
+    const monthlyIncome = histIncome
+      .filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
+      .reduce((acc, curr) => acc + (curr._sum.amount || 0), 0);
 
-    const monthlyExpense = histExpense.filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
-      .reduce((acc, curr) => acc + curr.amount, 0) +
-      histSalPayments.filter(x => x.paidAt!.getMonth() === d.getMonth() && x.paidAt!.getFullYear() === d.getFullYear())
-      .reduce((acc, curr) => acc + curr.amount, 0);
+    const monthlyExpense = histExpense
+      .filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
+      .reduce((acc, curr) => acc + (curr._sum.amount || 0), 0);
 
-    trendData.push({
-      month: monthName,
-      income: monthlyIncome,
-      expense: monthlyExpense
-    });
+    trendData.push({ month: monthName, income: monthlyIncome, expense: monthlyExpense });
   }
 
   // Category Normalization
@@ -304,7 +240,7 @@ const AdminPage = async ({
   };
 
   const incomeBreakdown = [
-    { name: 'Tuition', value: studentPaymentsThisPeriod._sum.amount || 0, type: 'income' as const },
+    { name: 'Tuition', value: studentPaymentsStats._sum.amount || 0, type: 'income' as const },
     ...incomeCategoriesThisPeriod.map(cat => ({
       name: normalize(cat.category),
       value: cat._sum.amount || 0,
@@ -318,7 +254,7 @@ const AdminPage = async ({
   }, [] as { name: string, value: number, type: 'income' | 'expense' }[]);
 
   const expenseBreakdown = [
-    { name: 'Salaries', value: salaryPaymentsThisPeriod._sum.amount || 0, type: 'expense' as const },
+    { name: 'Salaries', value: salaryPaymentsStats._sum.amount || 0, type: 'expense' as const },
     ...expenseCategoriesThisPeriod.map(cat => ({
       name: normalize(cat.category),
       value: cat._sum.amount || 0,
@@ -357,31 +293,10 @@ const AdminPage = async ({
   const dashboardContext = {
     month: MONTHS[startDate.getMonth()],
     year: startDate.getFullYear(),
-    metrics: {
-      income: currentIncome,
-      expense: currentExpense,
-      balance: currentBalance,
-      unpaid: unpaidAmount
-    },
-    census: {
-      students: studentCount,
-      teachers: teacherCount,
-      staff: staffCount,
-      classes: classCount,
-      classDetails: schoolClasses.map(c => ({ name: c.name, students: c._count.students }))
-    },
-    topExpenses: expenseBreakdown.slice(0, 5),
+    metrics: { income: currentIncome, expense: currentExpense, balance: currentBalance, unpaid: unpaidAmount },
+    census: { students: studentCount, teachers: teacherCount, staff: staffCount, classes: classCount },
     financials: {
-      currentPeriod: {
-        income: currentIncome,
-        expense: currentExpense,
-        categories: fullBreakdown
-      },
-      yearlyAggregates: {
-        incomeByCategory: yearIncomeByCategory,
-        expenseByCategory: yearExpenseByCategory,
-        paymentStatusByMonth: yearPaymentStatus
-      },
+      currentPeriod: { income: currentIncome, expense: currentExpense, categories: fullBreakdown },
       recentActivity: {
         payments: recentPaidPayments.map(p => ({
           amount: p.amount,
@@ -389,58 +304,25 @@ const AdminPage = async ({
           type: p.userType,
           name: p.student ? `${p.student.name} ${p.student.surname}` : (p.teacher || p.staff)?.name
         })),
-        auditTrail: recentAuditLogs.map(log => ({
-          action: log.action,
-          desc: log.description,
-          user: log.performedBy,
-          time: log.timestamp
-        }))
+        auditTrail: recentAuditLogs.map(log => ({ action: log.action, desc: log.description, user: log.performedBy, time: log.timestamp }))
       },
-      personnelPaymentStatus: personnelMap,
-      studentLedger: studentLedger,
-      unpaidSummary: unpaidFees.slice(0, 10),
-      // NEW TREND INTELLIGENCE
       historicalTrends: trendData,
-      // NEW INTELLIGENCE LAYERS
-      academics: {
-        classAverages: classAverages,
-        overallAvg: allGrades.length ? (allGrades.reduce((acc, curr) => acc + curr.score, 0) / allGrades.length).toFixed(1) : 0
-      },
-      operations: {
-        teacherWorkloads: teacherWorkload,
-        totalLessons: allLessons.length,
-        notices: allNotices.map(n => ({ title: n.title, message: n.message, date: n.date }))
-      },
-      demographics: {
-        male: maleStudentCount,
-        female: femaleStudentCount,
-        total: studentCount
-      },
-      gradeSheets: gradeSheets
+      academics: { overallAvg: (overallGradeAvg._avg.score || 0).toFixed(1) },
+      operations: { notices: allNotices, totalClasses: classCount }
     }
   };
 
-  // Process Daily Data for insights
+  // Process Daily Data (Limited for performance)
   const dailyMap: Record<string, { income: number; expense: number }> = {};
-  histIncome.filter(x => x.date >= startDate && x.date < endDate).forEach(x => {
+  histIncome.forEach(x => {
     const day = x.date.toISOString().split('T')[0];
     if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
-    dailyMap[day].income += x.amount;
+    dailyMap[day].income += (x._sum.amount || 0);
   });
-  histExpense.filter(x => x.date >= startDate && x.date < endDate).forEach(x => {
+  histExpense.forEach(x => {
     const day = x.date.toISOString().split('T')[0];
     if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
-    dailyMap[day].expense += x.amount;
-  });
-  histStudPayments.filter(x => x.paidAt! >= startDate && x.paidAt! < endDate).forEach(x => {
-    const day = x.paidAt!.toISOString().split('T')[0];
-    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
-    dailyMap[day].income += x.amount;
-  });
-  histSalPayments.filter(x => x.paidAt! >= startDate && x.paidAt! < endDate).forEach(x => {
-    const day = x.paidAt!.toISOString().split('T')[0];
-    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
-    dailyMap[day].expense += x.amount;
+    dailyMap[day].expense += (x._sum.amount || 0);
   });
 
   const dailyInsightsData = Object.entries(dailyMap).map(([date, vals]) => ({
@@ -528,7 +410,7 @@ const AdminPage = async ({
           breakdown={fullBreakdown}
           prevIncome={prevIncome}
           month={MONTHS[startDate.getMonth()]}
-          dailyData={dailyInsightsData}
+          dailyData={dailyInsightsData.slice(-14)} // Only last 14 days for faster insight generation
         />
       </section>
 
