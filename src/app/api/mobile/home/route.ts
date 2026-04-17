@@ -60,9 +60,26 @@ export async function GET(request: NextRequest) {
     const dayNum = now.getDay();
     const todayEnum = DAY_MAP[dayNum] || "MONDAY";
 
-    // If it's Sunday (0) or unknown, return empty
-    if (todayEnum === "SUNDAY") {
+    // 0. Fetch School Config for holidays and academic bounds
+    const schoolConfig = await prisma.schoolConfig.findFirst({ where: { id: 1 } });
+    
+    let holidayName = null;
+    if (schoolConfig?.holidays) {
+      const holidays = typeof schoolConfig.holidays === 'string' 
+        ? JSON.parse(schoolConfig.holidays) 
+        : (schoolConfig.holidays as any[]);
+      
+      // Construct date string manually in YYYY-MM-DD format based on LOCAL date parts
+      // to avoid .toISOString() timezone flipped date issues
+      const dateStrIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const match = holidays.find((h: any) => h.date === dateStrIso);
+      if (match) holidayName = match.name;
+    }
+
+    // If it's Sunday (0) or a defined holiday, return empty/special
+    if (todayEnum === "SUNDAY" || holidayName) {
       return NextResponse.json({ 
+        holidayName, // Pass the holiday name if any
         sessions: [], 
         upcomingExams: [], 
         teacherRemarks: [], 

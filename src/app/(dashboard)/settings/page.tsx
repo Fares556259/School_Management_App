@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   School, 
   Building2, 
@@ -19,7 +20,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getSchoolConfig, updateSchoolConfig } from "../admin/actions/schoolActions";
 
 const SettingsPage = () => {
+  const router = useRouter();
   const [config, setConfig] = useState<any>(null);
+  const [originalConfig, setOriginalConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -27,16 +30,19 @@ const SettingsPage = () => {
   useEffect(() => {
     getSchoolConfig().then(res => {
       if (res.success) {
-        // Ensure sessions is parsed if it's a string, or just use as is if it's already an object
         let sessions = res.data.sessions;
         if (typeof sessions === 'string') {
           try { sessions = JSON.parse(sessions); } catch (e) { sessions = []; }
         }
-        setConfig({ ...res.data, sessions: sessions || [] });
+        const data = { ...res.data, sessions: sessions || [] };
+        setConfig(data);
+        setOriginalConfig(JSON.parse(JSON.stringify(data))); // Deep clone for comparison
       }
       setLoading(false);
     });
   }, []);
+
+  const hasChanges = config && originalConfig && JSON.stringify(config) !== JSON.stringify(originalConfig);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +52,8 @@ const SettingsPage = () => {
     const res = await updateSchoolConfig(config);
     if (res.success) {
       setMessage({ type: 'success', text: 'Settings updated successfully!' });
+      setOriginalConfig(JSON.parse(JSON.stringify(config))); // Update original to current
+      router.refresh(); // Sync sidebar/layout immediately
     } else {
       setMessage({ type: 'error', text: 'Failed to update settings.' });
     }
@@ -70,8 +78,37 @@ const SettingsPage = () => {
   };
 
   const removeSession = (index: number) => {
-    const newSessions = config.sessions.filter((_: any, i: number) => i !== index);
+    const newSessions = config.sessions
+      .filter((_: any, i: number) => i !== index)
+      .map((s: any, i: number) => ({
+        ...s,
+        id: i + 1,
+        label: `Session ${i + 1}`
+      }));
     setConfig({ ...config, sessions: newSessions });
+  };
+
+  const addHoliday = () => {
+    const newHoliday = {
+      id: Date.now(),
+      name: "New Holiday",
+      date: new Date().toISOString().split('T')[0]
+    };
+    const currentHolidays = Array.isArray(config.holidays) ? config.holidays : [];
+    setConfig({ ...config, holidays: [...currentHolidays, newHoliday] });
+  };
+
+  const removeHoliday = (id: number) => {
+    const currentHolidays = Array.isArray(config.holidays) ? config.holidays : [];
+    setConfig({ ...config, holidays: currentHolidays.filter((h: any) => h.id !== id) });
+  };
+
+  const updateHoliday = (id: number, field: 'name' | 'date', value: string) => {
+    const currentHolidays = Array.isArray(config.holidays) ? config.holidays : [];
+    setConfig({
+      ...config,
+      holidays: currentHolidays.map((h: any) => h.id === id ? { ...h, [field]: value } : h)
+    });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'schoolLogo' | 'ministryLogo' | 'universityLogo') => {
@@ -229,15 +266,37 @@ const SettingsPage = () => {
                <Calendar className="text-indigo-600" size={18} />
                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Academic Period</h2>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-6">
                <div className="flex flex-col gap-1.5">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Academic Year</label>
-                 <input 
-                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
-                   value={config.academicYear}
-                   onChange={e => setConfig({...config, academicYear: e.target.value})}
-                 />
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Academic Year</label>
+                  <input 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+                    value={config.academicYear}
+                    onChange={e => setConfig({...config, academicYear: e.target.value})}
+                  />
                </div>
+               
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="flex flex-col gap-1.5">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Year Starts</label>
+                   <input 
+                     type="date"
+                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+                     value={config.yearStart ? new Date(config.yearStart).toISOString().split('T')[0] : ""}
+                     onChange={e => setConfig({...config, yearStart: e.target.value})}
+                   />
+                 </div>
+                 <div className="flex flex-col gap-1.5">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Year Ends</label>
+                   <input 
+                     type="date"
+                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+                     value={config.yearEnd ? new Date(config.yearEnd).toISOString().split('T')[0] : ""}
+                     onChange={e => setConfig({...config, yearEnd: e.target.value})}
+                   />
+                 </div>
+               </div>
+
                <div className="flex flex-col gap-1.5">
                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Current Semester</label>
                  <select 
@@ -252,6 +311,73 @@ const SettingsPage = () => {
             </div>
           </div>
 
+          {/* HOLIDAYS MANAGER */}
+          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+             <div className="flex items-center justify-between mb-2">
+               <div className="flex items-center gap-2">
+                 <Calendar className="text-rose-500" size={18} />
+                 <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Holidays & Closures</h2>
+               </div>
+               <button 
+                  type="button"
+                  onClick={addHoliday}
+                  className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} />
+                  <span>Add Holiday</span>
+               </button>
+            </div>
+
+            <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <AnimatePresence initial={false}>
+                {Array.isArray(config.holidays) && config.holidays.length > 0 ? (
+                  config.holidays.map((holiday: any) => (
+                    <motion.div 
+                      key={holiday.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="group flex flex-col gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-rose-100 hover:bg-rose-50/10 transition-all relative overflow-hidden"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col gap-1.5 flex-[2]">
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Name</label>
+                           <input 
+                              className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
+                              value={holiday.name}
+                              onChange={e => updateHoliday(holiday.id, 'name', e.target.value)}
+                              placeholder="e.g. Independence Day"
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1.5 flex-1">
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
+                           <input 
+                              type="date"
+                              className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
+                              value={holiday.date}
+                              onChange={e => updateHoliday(holiday.id, 'date', e.target.value)}
+                           />
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => removeHoliday(holiday.id)}
+                          className="mt-5 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                     <Calendar className="text-slate-200 mb-2" size={32} />
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No holidays scheduled yet</p>
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
           {/* SESSIONS CONFIG */}
           <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
              <div className="flex items-center justify-between mb-2">
@@ -259,16 +385,23 @@ const SettingsPage = () => {
                 <Clock className="text-indigo-600" size={18} />
                 <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Daily Sessions</h2>
                </div>
-               <div className="px-3 py-1 bg-slate-50 rounded-lg border border-slate-100 italic text-[10px] font-bold text-slate-400">
-                  Fixed 5-Slot Schedule
-               </div>
+               <button 
+                type="button"
+                onClick={addSession}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+               >
+                 <Plus size={14} /> Add Session
+               </button>
             </div>
             <div className="flex flex-col gap-4">
-               {[0,1,2,3,4].map((idx) => {
-                 const session = config.sessions[idx] || { id: idx + 1, label: `Session ${idx + 1}`, time: "08:00 - 10:00" };
-                 return (
-                  <div 
-                    key={idx}
+               <AnimatePresence mode="popLayout">
+                {config.sessions.map((session: any, idx: number) => (
+                  <motion.div 
+                    key={session.id || idx}
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, x: -20 }}
+                    layout
                     className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-slate-50 rounded-2xl border border-slate-100 group relative"
                   >
                       <div className="flex flex-col gap-1.5 flex-1 w-full">
@@ -299,26 +432,59 @@ const SettingsPage = () => {
                           <option value="16:00 - 18:00">16:00 - 18:00</option>
                         </select>
                       </div>
-                  </div>
-                 );
-               })}
+                      <button 
+                        type="button"
+                        onClick={() => removeSession(idx)}
+                        className="p-2.5 bg-white border border-slate-100 rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm mb-0.5"
+                        title="Remove Session"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                  </motion.div>
+                ))}
+               </AnimatePresence>
+
+               {config.sessions.length === 0 && (
+                 <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl gap-4 bg-slate-50/50">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200">
+                      <Clock size={24} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No sessions defined</p>
+                    <button 
+                      type="button"
+                      onClick={addSession}
+                      className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-all"
+                    >
+                      Initialize first session
+                    </button>
+                 </div>
+               )}
             </div>
           </div>
 
           {/* SAVE BUTTON */}
-          <div className="md:col-span-2 flex justify-end gap-4 mt-4">
-             <button 
-                type="submit"
-                disabled={saving}
-                className="flex items-center gap-2 px-10 py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 hover:shadow-slate-200 disabled:opacity-50 group overflow-hidden relative"
-             >
-                <span className="relative z-10 flex items-center gap-2">
-                   {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save size={18} />}
-                   {saving ? 'Synchronizing...' : 'Save Configuration'}
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-700 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-             </button>
-          </div>
+          <AnimatePresence>
+            {hasChanges && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="md:col-span-2 flex justify-end gap-4 mt-4"
+              >
+                 <button 
+                    type="submit"
+                    disabled={saving}
+                    className="flex items-center gap-2 px-10 py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 hover:shadow-slate-200 disabled:opacity-50 group overflow-hidden relative"
+                 >
+                    <span className="relative z-10 flex items-center gap-2">
+                       {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save size={18} />}
+                       {saving ? 'Synchronizing...' : 'Save Configuration'}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-700 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                 </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </form>
       </div>

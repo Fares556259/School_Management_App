@@ -2,7 +2,6 @@
 
 import { UserButton, useUser } from "@clerk/nextjs";
 import Image from "next/image"
-import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { useEffect, useState } from "react";
@@ -11,20 +10,27 @@ import { Sparkles, Lock, Unlock, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-const Navbar = () => {
+const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
   const { user } = useUser();
   const { t } = useLanguage();
-  const [adminData, setAdminData] = useState<any>(null);
+  const [adminData, setAdminData] = useState<any>(initialAdminData);
   const [aiStats, setAiStats] = useState<{usage: number, quota: number} | null>(null);
   const [isToggling, setIsToggling] = useState(false);
   const router = useRouter();
 
-  const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
+  const fullName = adminData?.name || adminData?.surname 
+    ? `${adminData.name || ""} ${adminData.surname || ""}`.trim() 
+    : user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
+    
   const role = (user?.publicMetadata?.role as string) || "User";
+
+  // Update effect for adminData if prop changes from layout refresh
+  useEffect(() => {
+    setAdminData(initialAdminData);
+  }, [initialAdminData]);
 
   useEffect(() => {
     if (role === "admin") {
-      getAdminProfile().then(resp => setAdminData(resp?.data)).catch(console.error);
       getAIUsageStats().then(setAiStats).catch(console.error);
     }
   }, [role]);

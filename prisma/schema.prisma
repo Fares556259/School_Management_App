@@ -257,6 +257,9 @@ model SchoolConfig {
   universityLogo  String?
   academicYear    String   @default("2025-2026")
   currentSemester Int      @default(2)
+  yearStart       DateTime @default("2025-09-01T00:00:00Z")
+  yearEnd         DateTime @default("2026-06-30T00:00:00Z")
+  holidays        Json?    @default("[]")
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
   updatedAt       DateTime @updatedAt
   schoolId        String   @unique @default("default_school")

@@ -2,23 +2,36 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { updateAdminProfile } from "../admin/actions/profileActions";
 import { User, Mail, Phone, Camera, Check, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ProfileClientProps {
   initialData: any;
 }
 
 const ProfileClient = ({ initialData }: ProfileClientProps) => {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   
+  // Track the data currently saved on server to detect changes
+  const [serverData, setServerData] = useState(initialData);
+
   const [name, setName] = useState(initialData?.name || "");
   const [surname, setSurname] = useState(initialData?.surname || "");
   const [email, setEmail] = useState(initialData?.email || "");
   const [phone, setPhone] = useState(initialData?.phone || "");
   const [img, setImg] = useState(initialData?.img || "/noAvatar.png");
+
+  const hasChanges = 
+    name !== (serverData?.name || "") ||
+    surname !== (serverData?.surname || "") ||
+    email !== (serverData?.email || "") ||
+    phone !== (serverData?.phone || "") ||
+    img !== (serverData?.img || "/noAvatar.png");
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,16 +40,20 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
     setSuccess(false);
 
     try {
-      const res = await updateAdminProfile({
+      const payload = {
         name,
         surname,
         email,
         phone,
         img: img !== "/noAvatar.png" ? img : null,
-      });
+      };
+      
+      const res = await updateAdminProfile(payload);
 
       if (res.success) {
         setSuccess(true);
+        setServerData({ ...serverData, ...payload });
+        router.refresh(); // Sync header and sidebar immediately
         setTimeout(() => setSuccess(false), 3000);
       } else {
         setError(res.error || "Failed to update profile.");
@@ -136,15 +153,23 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
           <div className="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100 h-full">
             <div className="flex items-center justify-between mb-8">
                <h1 className="text-3xl font-black text-slate-800 tracking-tighter">Edit Profile</h1>
-               {success && (
-                 <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                   <Check size={16} className="stroke-[3px]" />
-                   <span className="text-xs font-black uppercase tracking-wider">Changes Saved</span>
-                 </div>
-               )}
+               <AnimatePresence>
+                {success && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100"
+                  >
+                    <Check size={16} className="stroke-[3px]" />
+                    <span className="text-xs font-black uppercase tracking-wider">Changes Saved</span>
+                  </motion.div>
+                )}
+               </AnimatePresence>
             </div>
 
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* ... input fields stay the same ... */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
                 <div className="relative">
@@ -209,20 +234,27 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
                   </div>
                 )}
                 
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full md:w-auto min-w-[200px] bg-indigo-600 text-white font-black uppercase tracking-widest text-xs py-5 px-10 rounded-2xl hover:bg-slate-900 transition-all hover:shadow-2xl hover:shadow-indigo-200 active:scale-[0.98] disabled:opacity-50 disabled:hover:bg-indigo-600 flex items-center justify-center gap-3"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-4 border-white border-t-transparent animate-spin rounded-full"></div>
-                  ) : (
-                    <>
-                      <span>Save Changes</span>
-                      <Check size={18} className="stroke-[3px]" />
-                    </>
+                <AnimatePresence>
+                  {hasChanges && (
+                    <motion.button 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      type="submit"
+                      disabled={loading}
+                      className="w-full md:w-auto min-w-[200px] bg-indigo-600 text-white font-black uppercase tracking-widest text-xs py-5 px-10 rounded-2xl hover:bg-slate-900 transition-all hover:shadow-2xl hover:shadow-indigo-200 active:scale-[0.98] disabled:opacity-50 disabled:hover:bg-indigo-600 flex items-center justify-center gap-3"
+                    >
+                      {loading ? (
+                        <div className="w-5 h-5 border-4 border-white border-t-transparent animate-spin rounded-full"></div>
+                      ) : (
+                        <>
+                          <span>Save Changes</span>
+                          <Check size={18} className="stroke-[3px]" />
+                        </>
+                      )}
+                    </motion.button>
                   )}
-                </button>
+                </AnimatePresence>
               </div>
             </form>
           </div>
