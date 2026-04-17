@@ -212,32 +212,32 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 </div>
               </div>
             )}
-            {displaySessions.map((session) => (
-              <div key={session.id} className={`grid gap-4 items-stretch`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
+            {displaySessions.map((session, idx) => (
+              <div key={session.id || idx} className={`grid gap-4 items-stretch`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
                 <div className="flex flex-col items-center justify-center bg-white p-4 rounded-3xl border border-slate-50 relative overflow-hidden group">
                    <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 group-hover:bg-indigo-300 transition-colors"></div>
-                   <span className="text-xl font-black text-slate-800 leading-none">{session.id}</span>
+                   <span className="text-xl font-black text-slate-800 leading-none">{idx + 1}</span>
                    <span className="text-[9px] font-bold text-slate-400 mt-2 whitespace-nowrap tracking-tighter">{session.time}</span>
                 </div>
 
                 {displayDays.map((item) => {
                   const d = typeof item === 'string' ? item : item.day;
                   const dateObj = typeof item === 'string' ? undefined : item.date;
-                  const s = findSlot(d as Day, session.id, dateObj);
-                  const isDraggedOver = draggedOver === `${d}-${session.id}`;
+                  const s = findSlot(d as Day, idx + 1, dateObj);
+                  const isDraggedOver = draggedOver === `${d}-${idx + 1}`;
                   return (
                     <div 
-                      key={`${d}-${session.id}`} 
+                      key={`${d}-${idx + 1}`} 
                       className={`min-h-[140px] flex items-stretch rounded-[30px] transition-all border-2 ${isDraggedOver ? 'border-indigo-400 bg-indigo-50/30 scale-[0.98]' : 'border-transparent'}`}
-                      onDragOver={(e) => handleDragOver(e, d as Day, session.id)}
+                      onDragOver={(e) => handleDragOver(e, d as Day, idx + 1)}
                       onDragLeave={() => setDraggedOver(null)}
-                      onDrop={(e) => handleDrop(e, d as Day, session.id)}
+                      onDrop={(e) => handleDrop(e, d as Day, idx + 1)}
                     >
                       <ScheduleSlot 
                         slot={s} 
                         classId={classId}
                         day={d as Day}
-                        period={session.id}
+                        period={idx + 1}
                         startTime={session.time.split(" - ")[0]}
                         endTime={session.time.split(" - ")[1]}
                         subjects={subjects}

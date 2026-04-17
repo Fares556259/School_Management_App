@@ -31,6 +31,7 @@ export async function getSchoolConfig() {
 
 export async function updateSchoolConfig(data: any) {
   try {
+    // 1. Update the SchoolConfig
     const updated = await prisma.schoolConfig.upsert({
       where: { id: 1 },
       update: {
@@ -43,8 +44,27 @@ export async function updateSchoolConfig(data: any) {
       }
     });
 
+    // 2. Synchronize TimetableSlots if sessions were updated
+    if (data.sessions && Array.isArray(data.sessions)) {
+      await Promise.all(data.sessions.map(async (session: any, index: number) => {
+        if (session.time && session.time.includes(" - ")) {
+          const [start, end] = session.time.split(" - ");
+          const slotNumber = index + 1;
+
+          await prisma.timetableSlot.updateMany({
+            where: { slotNumber },
+            data: {
+              startTime: start.trim(),
+              endTime: end.trim()
+            }
+          });
+        }
+      }));
+    }
+
     revalidatePath("/settings");
     revalidatePath("/list/exams");
+    revalidatePath("/admin/timetable");
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Error updating school config:", error);

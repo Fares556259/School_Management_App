@@ -259,70 +259,49 @@ const SettingsPage = () => {
                 <Clock className="text-indigo-600" size={18} />
                 <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Daily Sessions</h2>
                </div>
-               <button 
-                type="button"
-                onClick={addSession}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-               >
-                 <Plus size={14} /> Add Session
-               </button>
+               <div className="px-3 py-1 bg-slate-50 rounded-lg border border-slate-100 italic text-[10px] font-bold text-slate-400">
+                  Fixed 5-Slot Schedule
+               </div>
             </div>
             <div className="flex flex-col gap-4">
-               <AnimatePresence mode="popLayout">
-                {config.sessions.map((session: any, idx: number) => (
-                  <motion.div 
-                    key={session.id || idx}
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, x: -20 }}
-                    layout
+               {[0,1,2,3,4].map((idx) => {
+                 const session = config.sessions[idx] || { id: idx + 1, label: `Session ${idx + 1}`, time: "08:00 - 10:00" };
+                 return (
+                  <div 
+                    key={idx}
                     className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-slate-50 rounded-2xl border border-slate-100 group relative"
                   >
                       <div className="flex flex-col gap-1.5 flex-1 w-full">
                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Session Label</label>
-                        <input 
-                          className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                          value={session.label}
-                          placeholder="e.g. Session 1"
-                          onChange={e => updateSession(idx, 'label', e.target.value)}
-                        />
+                        <div className="w-full bg-white/50 border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-black text-slate-400 cursor-not-allowed">
+                          {`Session ${idx + 1}`}
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-1.5 flex-[1.5] w-full">
+                      <div className="flex flex-col gap-1.5 flex-[2] w-full">
                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Time Window</label>
-                        <input 
-                          className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                        <select 
+                          className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
                           value={session.time}
-                          placeholder="08:00 - 10:00"
-                          onChange={e => updateSession(idx, 'time', e.target.value)}
-                        />
+                          onChange={e => {
+                            const newSessions = [...config.sessions];
+                            newSessions[idx] = { 
+                              id: idx + 1, 
+                              label: `Session ${idx + 1}`, 
+                              time: e.target.value 
+                            };
+                            setConfig({ ...config, sessions: newSessions });
+                          }}
+                        >
+                          <option value="08:00 - 10:00">08:00 - 10:00</option>
+                          <option value="10:00 - 12:00">10:00 - 12:00</option>
+                          <option value="12:00 - 14:00">12:00 - 14:00</option>
+                          <option value="14:00 - 16:00">14:00 - 16:00</option>
+                          <option value="16:00 - 18:00">16:00 - 18:00</option>
+                        </select>
                       </div>
-                      <button 
-                        type="button"
-                        onClick={() => removeSession(idx)}
-                        className="p-2.5 bg-white border border-slate-100 rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm mb-0.5"
-                        title="Remove Session"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                  </motion.div>
-                ))}
-               </AnimatePresence>
-               
-               {config.sessions.length === 0 && (
-                 <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl gap-4 bg-slate-50/50">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200">
-                      <Clock size={24} />
-                    </div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No sessions defined</p>
-                    <button 
-                      type="button"
-                      onClick={addSession}
-                      className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-all"
-                    >
-                      Initialize first session
-                    </button>
-                 </div>
-               )}
+                  </div>
+                 );
+               })}
             </div>
           </div>
 

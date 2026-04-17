@@ -19,10 +19,12 @@ const TimetablePage = ({
   classes,
   subjects,
   teachers,
+  sessions,
 }: {
   classes: any[];
   subjects: any[];
   teachers: any[];
+  sessions?: any[];
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -147,6 +149,8 @@ const TimetablePage = ({
           onMoveAction={moveTimetableSlot}
           onUpdateAction={updateTimetableSlot}
           onDeleteAction={deleteTimetableSlot}
+          onRefresh={() => setRefreshKey(prev => prev + 1)}
+          sessions={sessions}
         />
       )}
 
