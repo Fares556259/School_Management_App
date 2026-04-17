@@ -96,39 +96,87 @@ const Homepage = () => {
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
-        <div className="max-w-3xl mx-auto">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full mb-6 uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-            Private School Management System
+      {/* HERO / CHOICE SECTION */}
+      <section className="flex-1 flex flex-col items-center justify-center px-6 py-12 md:py-20">
+        <div className="max-w-5xl w-full mx-auto">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full mb-6 uppercase tracking-widest shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              Private School Management System
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+              Get started with <span className="text-indigo-600">SnapSchool.</span>
+            </h1>
+            <p className="text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
+              The all-in-one command center for your private school. Choose your entry point below.
+            </p>
           </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-6">
-            Run your school
-            <br />
-            <span className="text-indigo-600">with full control.</span>
-          </h1>
+          {/* Dual Paths */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+            {/* OPTION 1: EXISTING USERS */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 p-8 md:p-10 flex flex-col items-center text-center hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group">
+              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-50 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-indigo-600 transition-colors"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              </div>
+              <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">I already have an account</h2>
+              <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed max-w-[240px]">
+                Login using the credentials provided by your school admin
+              </p>
+              <button
+                onClick={handleLoginClick}
+                className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-lg hover:-translate-y-1 active:scale-95 text-base"
+              >
+                Sign In →
+              </button>
+              <p className="mt-4 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
+                Access provided by school administration
+              </p>
+            </div>
 
-          {/* Subheadline */}
-          <p className="text-lg text-slate-500 font-medium max-w-xl mx-auto mb-10 leading-relaxed">
-            SnapSchool gives private school directors a complete command center —
-            finances, staff, students, timetables, and AI-powered insights in one place.
-          </p>
+            {/* OPTION 2: NEW SCHOOLS (HIGHLIGHTED) */}
+            <div className="bg-white rounded-[2rem] border-2 border-indigo-600 p-8 md:p-10 flex flex-col items-center text-center shadow-2xl shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4">
+                <span className="bg-indigo-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter shadow-sm font-sans">
+                  Recommended
+                </span>
+              </div>
+              
+              <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </div>
+              <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Set up my school</h2>
+              <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed max-w-[240px]">
+                We’ll set everything up for you in minutes — no technical work needed
+              </p>
+              
+              <div className="w-full flex flex-col gap-3">
+                <button
+                  onClick={() => router.push("/request-setup")}
+                  className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:-translate-y-1 active:scale-95 text-base"
+                >
+                  Request Free Setup →
+                </button>
+                
+                <a
+                  href="https://wa.me/23889444?text=Hello%20I%20want%20to%20set%20up%20my%20school%20on%20SnapSchool"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-emerald-50 text-emerald-700 font-bold rounded-2xl hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 group/wa"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover/wa:scale-110 transition-transform"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Contact on WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
 
-          {/* CTA */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={handleLoginClick}
-              className="px-8 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:-translate-y-0.5 text-base"
-            >
-              Enter Dashboard →
-            </button>
-            <span className="text-sm text-slate-400 font-medium">
-              Admin access required
-            </span>
+          {/* Trust Line */}
+          <div className="mt-16 text-center">
+             <p className="text-sm font-bold text-slate-300 uppercase tracking-[0.2em]">
+               Helping private schools simplify management
+             </p>
           </div>
         </div>
       </section>
