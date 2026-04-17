@@ -11,38 +11,70 @@ import {
   CheckCircle2,
   AlertCircle,
   Plus,
-  Trash2
+  Trash2,
+  DoorOpen,
+  Hash,
+  Save
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getSchoolConfig, updateSchoolConfig } from "../admin/actions/schoolActions";
+import { 
+  getRooms, addRoom, deleteRoom, updateRoom
+} from "../admin/actions/infrastructureActions";
 
 const SettingsPage = () => {
   const router = useRouter();
   const [config, setConfig] = useState<any>(null);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [originalConfig, setOriginalConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    getSchoolConfig().then(res => {
-      if (res.success) {
-        let sessions = res.data.sessions;
+    Promise.all([
+      getSchoolConfig(),
+      getRooms()
+    ]).then(([configRes, roomsRes]) => {
+      if (configRes.success) {
+        let sessions = configRes.data.sessions;
         if (typeof sessions === 'string') {
           try { sessions = JSON.parse(sessions); } catch (e) { sessions = []; }
         }
         const data = { 
-          ...res.data, 
+          ...configRes.data, 
           sessions: sessions || []
         };
         setConfig(data);
-        setOriginalConfig(JSON.parse(JSON.stringify(data))); // Deep clone for comparison
+        setOriginalConfig(JSON.parse(JSON.stringify(data)));
       }
+      
+      if (roomsRes.success) setRooms(roomsRes.data);
+      
       setLoading(false);
     });
   }, []);
 
+  const handleAddRoom = async () => {
+    const nextNum = rooms.length + 1;
+    const res = await addRoom(`Salle ${nextNum}`);
+    if (res.success) {
+      setRooms([...rooms, res.data]);
+    }
+  };
 
+  const handleRemoveRoom = async (id: number) => {
+    const res = await deleteRoom(id);
+    if (res.success) {
+      setRooms(rooms.filter(r => r.id !== id));
+    }
+  };
+
+  const handleUpdateRoom = async (id: number, value: string) => {
+    // Optimistic update
+    setRooms(rooms.map(r => r.id === id ? { ...r, name: value } : r));
+    await updateRoom(id, value);
+  };
 
   const hasChanges = config && originalConfig && JSON.stringify(config) !== JSON.stringify(originalConfig);
 
@@ -57,7 +89,7 @@ const SettingsPage = () => {
       setOriginalConfig(JSON.parse(JSON.stringify(config))); // Update original to current
       router.refresh(); // Sync sidebar/layout immediately
     } else {
-      setMessage({ type: 'error', text: 'Failed to update settings.' });
+      setMessage({ type: 'error', text: res.error || 'Failed to update settings.' });
     }
     setSaving(false);
     
@@ -260,6 +292,61 @@ const SettingsPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* CLASSROOMS MANAGER */}
+          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <DoorOpen className="text-indigo-600" size={18} />
+                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Physical Classrooms</h2>
+              </div>
+              <button 
+                  type="button"
+                  onClick={handleAddRoom}
+                  className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} />
+                  <span>Add Room</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+              <AnimatePresence initial={false}>
+                {rooms.length > 0 ? (
+                  rooms.map((room: any) => (
+                    <motion.div 
+                      key={room.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl"
+                    >
+                      <div className="p-2 bg-white rounded-lg text-slate-400">
+                        <Hash size={14} />
+                      </div>
+                      <input 
+                        className="flex-1 bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none"
+                        value={room.name}
+                        onChange={e => handleUpdateRoom(room.id, e.target.value)}
+                        placeholder="e.g. Salle 1"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => handleRemoveRoom(room.id)}
+                        className="p-2 text-slate-300 hover:text-rose-500 transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No rooms defined</p>
+                  </div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 

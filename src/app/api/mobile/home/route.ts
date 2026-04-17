@@ -61,7 +61,23 @@ export async function GET(request: NextRequest) {
     const todayEnum = DAY_MAP[dayNum] || "MONDAY";
 
     // 0. Fetch School Config for holidays and academic bounds
-    const schoolConfig = await prisma.schoolConfig.findFirst({ where: { id: 1 } });
+    const schoolConfig = await prisma.institution.findFirst({ 
+      where: { id: 1 },
+      select: {
+        schoolName: true,
+        schoolLogo: true,
+        ministryName: true,
+        ministryLogo: true,
+        universityName: true,
+        universityLogo: true,
+        academicYear: true,
+        currentSemester: true,
+        sessions: true,
+        holidays: true,
+        yearStart: true,
+        yearEnd: true
+      }
+    });
     
     let holidayName = null;
     if (schoolConfig?.holidays) {

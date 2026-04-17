@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -247,8 +248,9 @@ model ExamPeriodConfig {
   School    School    @relation(fields: [schoolId], references: [id])
 }
 
-model SchoolConfig {
+model Institution {
   id              Int      @id @default(1)
+  schoolId        String   @unique @default("default_school")
   schoolName      String   @default("Ecole Supérieure de la Statistique et de l'Analyse de l'Information")
   schoolLogo      String?
   ministryName    String   @default("Ministère de l'Enseignement Supérieur et de la Recherche Scientifique")
@@ -257,14 +259,24 @@ model SchoolConfig {
   universityLogo  String?
   academicYear    String   @default("2025-2026")
   currentSemester Int      @default(2)
-  yearStart       DateTime @default("2025-09-01T00:00:00Z")
-  yearEnd         DateTime @default("2026-06-30T00:00:00Z")
-  holidays        Json?    @default("[]")
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
+  holidays        Json?    @default("[]")
+  yearStart       DateTime @default(dbgenerated("'2025-09-01 00:00:00'::timestamp without time zone"))
+  yearEnd         DateTime @default(dbgenerated("'2026-06-30 00:00:00'::timestamp without time zone"))
   updatedAt       DateTime @updatedAt
-  schoolId        String   @unique @default("default_school")
   School          School   @relation(fields: [schoolId], references: [id])
 }
+
+model Room {
+  id       Int    @id @default(autoincrement())
+  name     String
+  schoolId String @default("default_school")
+  School   School @relation(fields: [schoolId], references: [id])
+
+  @@unique([name, schoolId])
+}
+
+
 
 model Result {
   id           Int         @id @default(autoincrement())
@@ -474,12 +486,13 @@ model School {
   Parent           Parent[]
   Payment          Payment[]
   Result           Result[]
-  SchoolConfig     SchoolConfig?
+  Institution   Institution?
   Staff            Staff[]
   Student          Student[]
   Subject          Subject[]
   Teacher          Teacher[]
   TimetableSlot    TimetableSlot[]
+  Room             Room[]
 }
 
 enum UserSex {
