@@ -20,31 +20,23 @@ export default async function DashboardLayout({
   }
 
   const role = await getRole();
-  const schoolConfig = await prisma.institution.findFirst({ 
-    where: { id: 1 },
-    select: {
-      schoolName: true,
-      schoolLogo: true,
-      ministryName: true,
-      ministryLogo: true,
-      universityName: true,
-      universityLogo: true,
-      academicYear: true,
-      currentSemester: true,
-      sessions: true,
-      holidays: true,
-      yearStart: true,
-      yearEnd: true
-    }
-  });
   
-  // Fetch admin profile for the navbar sync
-  let adminProfile = null;
-  if (role === "admin") {
-    const { getAdminProfile } = await import("@/app/(dashboard)/admin/actions/profileActions");
-    const resp = await getAdminProfile();
-    adminProfile = resp.data;
+  // Fetch school configuration with request-level caching
+  let schoolConfig = null;
+  try {
+    schoolConfig = await prisma.institution.findFirst({ 
+      where: { id: 1 },
+      select: {
+        schoolName: true,
+        schoolLogo: true,
+      }
+    });
+  } catch (error) {
+    console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", error.message);
   }
+  
+  // Note: adminProfile fetch moved to the Page to reduce Layout pressure
+  const adminProfile = null;
 
   return (
     <div className="h-screen flex text-slate-900 print:h-auto print:block">

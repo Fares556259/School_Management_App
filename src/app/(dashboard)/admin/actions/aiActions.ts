@@ -4,41 +4,40 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+/**
+ * Efficiently fetch AI usage for an admin with caching-like behavior for the request.
+ */
 export async function getAIUsageStats() {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let admin = await prisma.admin.findUnique({
-      where: { id: "admin1" }, 
+    // DEFENSIBLY: Fetch with a short timeout hint if possible, but here we just catch
+    const admin = await prisma.admin.findFirst({
       select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
     });
 
-    if (!admin) {
-      admin = await prisma.admin.findFirst({
-        select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
-      }) as any;
-    }
-
-    console.log(`[AI-STATS] Admin Found: ${admin?.id || 'NONE'}, Usage: ${admin?.aiUsage}/${admin?.aiQuota}`);
-
     if (!admin) return { usage: 0, quota: 10 };
 
-    // Reset if it's a new day
     const lastReset = admin.lastAiUpdate ? new Date(admin.lastAiUpdate) : new Date(0);
     lastReset.setHours(0, 0, 0, 0);
 
     if (today > lastReset) {
-      await prisma.admin.update({
-        where: { id: admin.id },
-        data: { aiUsage: 0, lastAiUpdate: today }
-      });
-      return { usage: 0, quota: admin.aiQuota || 10 };
+      try {
+        const updated = await prisma.admin.update({
+          where: { id: admin.id },
+          data: { aiUsage: 0, lastAiUpdate: today },
+          select: { aiUsage: true, aiQuota: true }
+        });
+        return { usage: updated.aiUsage, quota: updated.aiQuota || 10 };
+      } catch (updateErr) {
+        return { usage: 0, quota: admin.aiQuota || 10 };
+      }
     }
 
     return { usage: admin.aiUsage || 0, quota: admin.aiQuota || 10 };
   } catch (error) {
-    console.error("Failed to fetch AI usage:", error);
+    console.warn("⚠️ [AI-STATS] Defaulting AI quota due to connection pressure.");
     return { usage: 0, quota: 10 };
   }
 }
@@ -48,27 +47,41 @@ export async function isAIQuotaReached() {
   return stats.usage >= stats.quota;
 }
 
+/**
+ * Unified guard that checks AND increments usage in as few DB trips as possible.
+ */
 async function checkAndIncrementUsage() {
   try {
-    const stats = await getAIUsageStats();
-    
-    // Check if quota already reached before incrementing
-    if (stats.usage >= stats.quota) {
-      return { allowed: false, quota: stats.quota };
-    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const admin = await prisma.admin.findFirst({ select: { id: true } });
-    if (!admin) return { allowed: true, quota: 10 };
-
-    await prisma.admin.update({
-      where: { id: admin.id },
-      data: { aiUsage: { increment: 1 } }
+    const admin = await prisma.admin.findFirst({ 
+      select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true } 
     });
 
-    return { allowed: true, quota: stats.quota };
+    if (!admin) return { allowed: true, quota: 10 };
+
+    // Handle Reset Logic
+    const lastReset = admin.lastAiUpdate ? new Date(admin.lastAiUpdate) : new Date(0);
+    lastReset.setHours(0, 0, 0, 0);
+
+    if (today > lastReset || admin.aiUsage < (admin.aiQuota || 10)) {
+       const newUsage = today > lastReset ? 1 : (admin.aiUsage + 1);
+       
+       await prisma.admin.update({
+         where: { id: admin.id },
+         data: { 
+           aiUsage: newUsage,
+           lastAiUpdate: today
+         }
+       });
+       return { allowed: true, quota: admin.aiQuota };
+    }
+
+    return { allowed: false, quota: admin.aiQuota };
   } catch (error) {
-    console.error("Failed to increment AI usage:", error);
-    return { allowed: true, quota: 10 }; // Graceful fallback
+    console.error("❌ [AI-GUARD] Error in guard:", error);
+    return { allowed: true, quota: 10 }; 
   }
 }
 

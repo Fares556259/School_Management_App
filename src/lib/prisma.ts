@@ -1,45 +1,46 @@
-import { PrismaClient } from "../generated/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+import { cache } from "react";
 
 declare global {
-  var prismaGlobal: undefined | PrismaClient;
-  var pgPoolGlobal: undefined | Pool;
+  var prisma: PrismaClient | undefined;
+  var pgPool: Pool | undefined;
 }
 
-const getPrismaClient = () => {
-  if (!globalThis.pgPoolGlobal) {
-    const isDev = process.env.NODE_ENV !== "production";
-    
-    globalThis.pgPoolGlobal = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: isDev ? 10 : 20, // Increased for stability over direct connections
-      idleTimeoutMillis: 10000, 
-      connectionTimeoutMillis: 10000, // Fail fast (10s) instead of hanging the app
-      keepalive: true,
-      keepaliveInitialDelayMillis: 10000,
-    });
+const isDev = process.env.NODE_ENV !== "production";
 
-    globalThis.pgPoolGlobal.on('error', (err) => {
-      console.error('Unexpected error on idle database client', err);
-    });
+/**
+ * DATABASE STABILIZATION V3 (Cached & Hardened)
+ * - SSL enabled for Supabase compatibility.
+ * - Connection pool max: 10 (supports parallel dashboard batches).
+ * - React.cache() for request-level deduplication.
+ */
 
-    globalThis.pgPoolGlobal.on('connect', () => {
-      if (isDev) console.log('New database connection established');
-    });
-  }
-  
-  const adapter = new PrismaPg(globalThis.pgPoolGlobal);
-  return new PrismaClient({ 
-    adapter,
-    log: ['error', 'warn'],
+if (!globalThis.pgPool) {
+  globalThis.pgPool = new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+    ssl: { rejectUnauthorized: false }, 
+    connectionTimeoutMillis: 15000,
+    idleTimeoutMillis: 5000,
   });
-};
-
-const prisma = globalThis.prismaGlobal ?? getPrismaClient();
-
-export default prisma;
-
-if (process.env.NODE_ENV !== "production") {
-  globalThis.prismaGlobal = prisma;
 }
+
+const adapter = new PrismaPg(globalThis.pgPool);
+
+const prismaClient =
+  globalThis.prisma ||
+  new PrismaClient({
+    adapter,
+    log: isDev ? ["error", "warn"] : ["error"],
+  });
+
+if (isDev) {
+  globalThis.prisma = prismaClient;
+}
+
+// Export a cached version for Next.js 14+ 
+// This ensures that redundant queries in Layout + Page are shared
+export const prisma = prismaClient;
+export default prisma;

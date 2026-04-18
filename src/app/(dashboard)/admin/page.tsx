@@ -82,60 +82,67 @@ const AdminPage = async ({
 
   // 1. DATA FETCHING (Tiered for stability)
   
-  // TIER 1: Vital Stats & Primary Financials
-  const [
-    studentCount, teacherCount, staffCount, classCount,
-    incomeStats, expenseStats,
-    incomeCategoriesThisPeriod, expenseCategoriesThisPeriod,
-    studentPaymentsStats, salaryPaymentsStats,
-    maleStudentCount, femaleStudentCount,
-    overallGradeAvg
-  ] = await Promise.all([
+  // 1. DATA FETCHING (Tiered Parallel Batches for Performance & Stability)
+  
+  // BATCH 1: Vital Census Stats
+  const [studentCount, teacherCount, staffCount, classCount] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
     prisma.staff.count(),
     prisma.class.count(),
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } } }),
+  ]);
+  
+  // BATCH 2: Primary Financial Period Performance
+  const [incomeStats, expenseStats, incomeCategoriesThisPeriod, expenseCategoriesThisPeriod] = await Promise.all([
+    prisma.income.aggregate({ 
+      _sum: { amount: true }, 
+      where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } } 
+    }),
+    prisma.expense.aggregate({ 
+      _sum: { amount: true }, 
+      where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } } 
+    }),
     prisma.income.groupBy({
-      by: ['category'],
-      _sum: { amount: true },
+      by: ['category'], _sum: { amount: true },
       where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } }
     }),
     prisma.expense.groupBy({
-      by: ['category'],
-      _sum: { amount: true },
+      by: ['category'], _sum: { amount: true },
       where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } }
     }),
+  ]);
+
+  // BATCH 3: Workforce & Demographic Metrics
+  const [studentPaymentsStats, salaryPaymentsStats, maleStudentCount, femaleStudentCount, overallGradeAvg] = await Promise.all([
     prisma.payment.aggregate({ 
-      _sum: { amount: true }, 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate, lt: endDate } } 
+      _sum: { amount: true }, where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate, lt: endDate } } 
     }),
     prisma.payment.aggregate({ 
-      _sum: { amount: true }, 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate, lt: endDate } } 
+      _sum: { amount: true }, where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate, lt: endDate } } 
     }),
     prisma.student.count({ where: { sex: "MALE" } }),
     prisma.student.count({ where: { sex: "FEMALE" } }),
-    prisma.grade.aggregate({ _avg: { score: true } })
+    prisma.grade.aggregate({ _avg: { score: true } }),
   ]);
 
-  // TIER 2: Previous Trends & Action Center
-  const [
-    incomePrevPeriod, expensePrevPeriod, studentPaymentsPrevPeriod, salaryPaymentsPrevPeriod,
-    unpaidPayments,
-    deferredPaymentsCount, revenueGapThisPeriod
-  ] = await Promise.all([
-    prisma.income.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Tuition" } } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Salary" } } }),
-    prisma.payment.aggregate({ 
-      _sum: { amount: true }, 
-      where: { status: "PAID", userType: "STUDENT", paidAt: { gte: prevStartDate, lt: prevEndDate } } 
+  // BATCH 4: Comparison Benchmarks
+  const [incomePrevPeriod, expensePrevPeriod, studentPaymentsPrevPeriod, salaryPaymentsPrevPeriod] = await Promise.all([
+    prisma.income.aggregate({ 
+      _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Tuition" } } 
+    }),
+    prisma.expense.aggregate({ 
+      _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Salary" } } 
     }),
     prisma.payment.aggregate({ 
-      _sum: { amount: true }, 
-      where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: prevEndDate } } 
+      _sum: { amount: true }, where: { status: "PAID", userType: "STUDENT", paidAt: { gte: prevStartDate, lt: prevEndDate } } 
     }),
+    prisma.payment.aggregate({ 
+      _sum: { amount: true }, where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: prevStartDate, lt: prevEndDate } } 
+    }),
+  ]);
+
+  // BATCH 5: Action Items & Critical Ledger
+  const [unpaidPayments, deferredPaymentsCount, revenueGapThisPeriod] = await Promise.all([
     prisma.payment.findMany({
       where: { status: "PENDING", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
       include: {
@@ -151,14 +158,11 @@ const AdminPage = async ({
     prisma.payment.aggregate({
       where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
       _sum: { deferredAmount: true }
-    })
+    }),
   ]);
 
-  // TIER 3: Visuals & Context (Highly restricted to avoid exhaustion)
-  const [
-    recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses,
-    yearPaymentStatus, recentAuditLogs, allNotices, allSubjects
-  ] = await Promise.all([
+  // BATCH 6: Visual Context & History
+  const [recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses, yearPaymentStatus, recentAuditLogs, allNotices, allSubjects, histIncome, histExpense] = await Promise.all([
     prisma.payment.findMany({ 
       take: 8, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
       include: { student: { select: { name: true, surname: true } }, teacher: { select: { name: true, surname: true } }, staff: { select: { name: true, surname: true } } } 
@@ -167,27 +171,20 @@ const AdminPage = async ({
     prisma.income.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.class.findMany({ select: { id: true, name: true, _count: { select: { students: true } } } }),
     prisma.payment.groupBy({ 
-      by: ['month'], 
-      _sum: { amount: true }, 
+      by: ['month'], _sum: { amount: true }, 
       where: { year: now.getFullYear(), status: 'PAID' } 
     }),
     prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }),
     prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { title: true, message: true, date: true } }),
     prisma.subject.findMany({ select: { id: true, name: true } }),
-  ]);
-
-  // Historical Trends (Pre-aggregated in DB for performance)
-  const [histIncome, histExpense] = await Promise.all([
     prisma.income.groupBy({
-      by: ['date'],
-      _sum: { amount: true },
+      by: ['date'], _sum: { amount: true },
       where: { date: { gte: twelveMonthsAgo } }
     }),
     prisma.expense.groupBy({
-      by: ['date'],
-      _sum: { amount: true },
+      by: ['date'], _sum: { amount: true },
       where: { date: { gte: twelveMonthsAgo } }
-    })
+    }),
   ]);
 
   // Note: Deep AI context like studentLedger and teacherWorkload is disabled for stability during connectivity issues.
