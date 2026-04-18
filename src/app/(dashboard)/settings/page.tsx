@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { 
   Building2, 
@@ -36,7 +37,7 @@ const SettingsPage = () => {
       getSchoolConfig(),
       getRooms()
     ]).then(([configRes, roomsRes]) => {
-      if (configRes.success) {
+      if (configRes.success && configRes.data) {
         let sessions = configRes.data.sessions;
         if (typeof sessions === 'string') {
           try { sessions = JSON.parse(sessions); } catch (e) { sessions = []; }
@@ -265,9 +266,9 @@ const SettingsPage = () => {
                 { label: 'University Logo', field: 'universityLogo' }
               ].map((logo) => (
                 <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-slate-50 rounded-[28px] border border-slate-100/50 group hover:border-indigo-100 transition-all">
-                  <div className="w-24 h-24 rounded-2xl bg-white shadow-sm border border-slate-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <div className="w-24 h-24 rounded-2xl bg-white shadow-sm border border-slate-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300 relative">
                     {config[logo.field] ? (
-                      <img src={config[logo.field]} alt="Logo Preview" className="w-full h-full object-contain p-3" />
+                      <Image src={config[logo.field]} alt="Logo Preview" fill className="object-contain p-3" />
                     ) : (
                       <ImageIcon className="text-slate-200" size={32} />
                     )}

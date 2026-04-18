@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
@@ -262,10 +263,11 @@ export default function ResultsPageClient({
             </div>
             <div className="flex-1 overflow-auto p-12 flex items-center justify-center">
               {previewUrl && previewUrl.startsWith("http") ? (
-                <img 
+                <Image 
                   src={previewUrl} 
                   alt="Document Preview" 
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl shadow-black"
+                  fill
+                  className="object-contain rounded-xl shadow-2xl shadow-black"
                 />
               ) : (
                 <div className="bg-white/5 p-12 rounded-[40px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">

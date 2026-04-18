@@ -32,7 +32,7 @@ export default async function DashboardLayout({
       }
     });
   } catch (error) {
-    console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", error.message);
+    console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", (error as any).message);
   }
   
   // Note: adminProfile fetch moved to the Page to reduce Layout pressure
@@ -47,7 +47,7 @@ export default async function DashboardLayout({
           className="flex items-center justify-center lg:justify-start gap-2 px-2 mb-6 shrink-0"
         >
           <Image src={schoolConfig?.schoolLogo || "/logo.png"} alt="logo" width={32} height={32} className="w-8 h-8 object-contain" />
-          <span className="hidden lg:block font-black text-xl tracking-tighter text-indigo-600 truncate">
+          <span className="hidden lg:block font-black text-xl tracking-tighter text-primary truncate">
              {schoolConfig?.schoolName || "SnapSchool"}
           </span>
         </Link>

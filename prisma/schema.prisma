@@ -522,3 +522,14 @@ enum AttendanceStatus {
   ABSENT
   LATE
 }
+
+model SetupRequest {
+  id          String   @id @default(cuid())
+  schoolName  String
+  ownerName   String
+  phoneNumber String
+  city        String
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

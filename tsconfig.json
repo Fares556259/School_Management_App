@@ -22,5 +22,17 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "check_data.js",
+    "check_db.js",
+    "checkData.js",
+    "debug-stats.ts",
+    "list-parents.js",
+    "test-auth.js",
+    "test-data.js",
+    "test-login.js",
+    "test-parent.js",
+    "check_data.js"
+  ]
 }

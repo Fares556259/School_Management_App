@@ -81,13 +81,13 @@ const AssistantClient = ({
                     </span>
                   </div>
                   <h2 className="text-3xl font-black text-slate-900 leading-tight">
-                    Fiche d'Intelligence
+                    Fiche d&apos;Intelligence
                   </h2>
                 </div>
 
                 <div className="bg-slate-50/50 p-6 rounded-[32px] border border-slate-100 mb-8">
                   <p className="text-lg font-bold text-slate-700 leading-relaxed italic">
-                    "{selectedActivity.fullDesc}"
+                    &quot;{selectedActivity.fullDesc}&quot;
                   </p>
                 </div>
 
@@ -97,8 +97,8 @@ const AssistantClient = ({
                       <Info size={18} />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Statut de l'Action</p>
-                      <p className="text-sm text-slate-500 font-medium">Exécuté avec succès par l'Assistant IA Zbiba.</p>
+                      <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Statut de l&apos;Action</p>
+                      <p className="text-sm text-slate-500 font-medium">Exécuté avec succès par l&apos;Assistant IA Zbiba.</p>
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useRef } from "react";
+import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
@@ -18,18 +18,20 @@ import {
 } from "../../admin/actions/examActions";
 import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
 import ExamTimetablePrint from "../../admin/timetable/components/ExamTimetablePrint";
-import { sessions as staticSessions, defaultSessions } from "../../admin/timetable/components/ScheduleGrid";
+import { defaultSessions } from "../../admin/timetable/components/ScheduleGrid";
 import { getSchoolConfig } from "../../admin/actions/schoolActions";
 
 const ExamTimetableClient = ({ 
   classes, 
   subjects, 
   teachers, 
+  rooms,
   role 
 }: { 
   classes: any[]; 
   subjects: any[]; 
   teachers: any[]; 
+  rooms: any[];
   role: string;
 }) => {
   const router = useRouter();
@@ -59,7 +61,7 @@ const ExamTimetableClient = ({
     ? classes.find(c => c.id === classId) 
     : classes[0];
 
-  const fetchSlots = async () => {
+  const fetchSlots = useCallback(async () => {
     if (!selectedClass) return;
     setLoading(true);
     const res = await getExamsByClass(selectedClass.id, selectedPeriod);
@@ -67,11 +69,11 @@ const ExamTimetableClient = ({
       setSlots(res.data as any[]);
     }
     setLoading(false);
-  };
+  }, [selectedClass, selectedPeriod]);
 
   useEffect(() => {
     fetchSlots();
-  }, [selectedClass?.id, selectedPeriod, refreshKey]);
+  }, [fetchSlots, refreshKey]);
 
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
@@ -292,6 +294,7 @@ const ExamTimetableClient = ({
               classId={selectedClass.id} 
               subjects={subjects}
               teachers={teachers}
+              rooms={rooms}
               isEditMode={isEditMode}
               refreshKey={refreshKey}
               type="exam"

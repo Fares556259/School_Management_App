@@ -11,7 +11,8 @@ import {
   getTimetableByClass, 
   moveTimetableSlot, 
   updateTimetableSlot,
-  deleteTimetableSlot
+  deleteTimetableSlot,
+  bulkUpdateTimetableSlots
 } from "../actions/timetableActions";
 import { generateTimetableFromPrompt } from "../actions/timetableAiActions";
 

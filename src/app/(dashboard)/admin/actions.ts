@@ -363,7 +363,7 @@ Context:
 - Tuition range: $100 – $150
 - Location: Tunisia
 - Type: Private International / Higher Education
-- Current challenges: ${reportData.anomalies.length > 0 ? reportData.anomalies.map(a => a.message).join(", ") : "Low enrollment, negative net performance this month."}
+- Current challenges: ${reportData.anomalies.length > 0 ? reportData.anomalies.map((a: { message: string }) => a.message).join(", ") : "Low enrollment, negative net performance this month."}
 
 Goal:
 Deliver a report that a school director could directly use to improve financial performance and make strategic decisions.

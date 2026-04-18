@@ -1,4 +1,5 @@
 import React, { forwardRef } from "react";
+import Image from "next/image";
 import { Day } from "@prisma/client";
 
 interface ExamTimetablePrintProps {
@@ -94,7 +95,9 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
         <div className="w-1/3 text-[10px] leading-tight flex flex-col items-start gap-2">
           <p className="font-bold whitespace-pre-line">{schoolConfig.schoolName}</p>
           {schoolConfig.schoolLogo ? (
-            <img src={schoolConfig.schoolLogo} alt="School Logo" className="w-16 h-16 object-contain" />
+            <div className="w-16 h-16 relative">
+              <Image src={schoolConfig.schoolLogo} alt="School Logo" fill className="object-contain" />
+            </div>
           ) : (
             <div className="w-16 h-16 bg-slate-50 border border-slate-200 flex items-center justify-center">
               <span className="text-[8px] text-slate-400 font-sans uppercase">Logo</span>
@@ -108,7 +111,9 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
             </div>
             <div className="w-12 h-12 flex flex-col items-center justify-center">
                 {schoolConfig.ministryLogo ? (
-                   <img src={schoolConfig.ministryLogo} alt="Ministry Logo" className="w-10 h-10 object-contain" />
+                   <div className="w-10 h-10 relative">
+                     <Image src={schoolConfig.ministryLogo} alt="Ministry Logo" fill className="object-contain" />
+                   </div>
                 ) : (
                   <>
                     <div className="w-8 h-8 rounded-full border border-slate-300"></div>
@@ -122,7 +127,9 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
           <div className="flex flex-col items-end gap-2">
              <p className="font-bold uppercase tracking-tighter whitespace-pre-line">{schoolConfig.universityName}</p>
              {schoolConfig.universityLogo ? (
-                <img src={schoolConfig.universityLogo} alt="University Logo" className="w-12 h-12 object-contain" />
+                <div className="w-12 h-12 relative">
+                  <Image src={schoolConfig.universityLogo} alt="University Logo" fill className="object-contain" />
+                </div>
              ) : (
                <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center">
                   <span className="text-[6px] text-slate-400 font-sans uppercase">Logo</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { SetupRequest } from "@prisma/client";
-import { updateSetupRequestStatus, deleteSetupRequest } from "../actions";
+import { updateSetupRequestStatus, deleteSetupRequest } from "./actions";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import Image from "next/image";

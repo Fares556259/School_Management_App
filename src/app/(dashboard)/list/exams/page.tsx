@@ -55,12 +55,14 @@ const ExamListPage = async ({
   });
   const teachers = await prisma.teacher.findMany();
   const subjects = await prisma.subject.findMany();
+  const rooms = await prisma.room.findMany();
 
   return (
     <ExamTimetableClient 
         classes={classes} 
         teachers={teachers} 
         subjects={subjects}
+        rooms={rooms}
         role={role!} 
     />
   );

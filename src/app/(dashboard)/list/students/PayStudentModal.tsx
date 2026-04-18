@@ -49,7 +49,7 @@ export default function PayStudentModal({
       // Always reset additional amount to the remaining balance for the current target month
       setAdditionalAmount(remainingBalance);
     }
-  }, [isOpen]); // Only trigger on open to avoid resetting while typing
+  }, [isOpen, selectedMonth, paidMonths, monthsList, remainingBalance]); // Include all dependencies to satisfy linter
 
   const handlePay = () => {
     if (!isAdmin || !selectedMonth || (isSkipping && !isPartial)) return;

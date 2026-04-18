@@ -41,9 +41,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
     const profit = totalIncome - totalExpense;
 
     return (
-        <div className="bg-[#F8FAFC] min-h-screen text-[#1E293B] font-inter">
-            {/* Professional Consulting Typography */}
-            <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <div className="bg-[#F8FAFC] min-h-screen text-[#1E293B]">
             
             <AuditView 
                 initialAnalysis={aiAnalysis}
@@ -55,10 +53,8 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
             />
 
             <style dangerouslySetInnerHTML={{ __html: `
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
-                
-                .font-montserrat { font-family: 'Montserrat', sans-serif; }
-                .font-inter { font-family: 'Inter', sans-serif; }
+                .font-montserrat { font-family: var(--font-montserrat), sans-serif; }
+                .font-inter { font-family: var(--font-inter), sans-serif; }
                 
                 /* Precise Typography for PDF (Deloitte-Style) */
                 h1 { font-family: 'Montserrat'; font-size: 32pt; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useTransition, useCallback, ReactNode, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Maximize2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -448,24 +449,28 @@ export default function GradeSheetRecorder({
               isPdf ? (
                 <iframe src={proofPreviewUrl} className="w-full h-full rounded-2xl border border-slate-200 bg-white shadow-lg" title="Proof PDF" />
               ) : (
-                <img
-                  src={proofPreviewUrl}
-                  alt="Proof document"
-                  onLoad={() => {
-                    setIsImageLoading(false);
-                    setHasImageError(false);
-                  }}
-                  onError={() => {
-                    setIsImageLoading(false);
-                    setHasImageError(true);
-                  }}
-                  className={`rounded-xl shadow-2xl border border-white/50 transition-transform duration-200 ${zoom === 1 ? 'max-w-full max-h-full object-contain' : ''}`}
-                  style={zoom !== 1 ? { 
-                    transform: `scale(${zoom})`, 
-                    transformOrigin: "center top",
-                    maxWidth: "none"
-                  } : {}}
-                />
+                <div className={`relative transition-transform duration-200 ${zoom === 1 ? 'w-full h-full' : ''}`}
+                     style={zoom !== 1 ? { 
+                       transform: `scale(${zoom})`, 
+                       transformOrigin: "center top",
+                       width: "100%",
+                       minHeight: "1000px"
+                     } : {}}>
+                  <Image
+                    src={proofPreviewUrl}
+                    alt="Proof document"
+                    fill
+                    onLoad={() => {
+                      setIsImageLoading(false);
+                      setHasImageError(false);
+                    }}
+                    onError={() => {
+                      setIsImageLoading(false);
+                      setHasImageError(true);
+                    }}
+                    className="object-contain rounded-xl shadow-2xl border border-white/50"
+                  />
+                </div>
               )
             )}
           </div>
@@ -678,13 +683,14 @@ export default function GradeSheetRecorder({
             {isPdf ? (
               <iframe src={proofPreviewUrl!} className="w-full h-full rounded-3xl border-none" title="Fullscreen Proof PDF" />
             ) : (
-              <div className="w-full h-full overflow-auto flex items-center justify-center p-12 scrollbar-none">
-                <img 
+              <div className="w-full h-full relative p-12 overflow-auto">
+                <Image 
                   src={proofPreviewUrl!} 
                   alt="Fullscreen preview" 
-                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-                  />
-                </div>
+                  fill
+                  className="object-contain rounded-xl shadow-2xl"
+                />
+              </div>
               )}
             </div>
           </motion.div>

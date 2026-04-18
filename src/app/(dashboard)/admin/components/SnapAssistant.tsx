@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Minus, Maximize2, Camera } from 'lucide-react';
+import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import { getChatResponse, upsertConversation, isAIQuotaReached } from '../actions/aiActions';
 import { executeAICommand } from '../actions/crudActions';
@@ -73,7 +74,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
 
   const compressImage = (dataUrl: string, maxWidth = 1024): Promise<string> => {
     return new Promise((resolve) => {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
@@ -176,7 +177,10 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         }
       } catch (error: any) {
         console.error("Supabase upload error:", error);
-        setError(error.message || "Upload failed. Please try again.");
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `❌ **Error**: ${error.message || "Upload failed. Please try again."}` 
+        }]);
       }
     }
 
@@ -278,11 +282,12 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         {/* Header - Clean & Minimal */}
         <div className="bg-white p-6 border-b border-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100">
-              <img 
+            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 relative">
+              <Image 
                 src={isLoading ? "/zbiba-thinking.png" : selectedImage ? "/zbiba-reports.png" : "/zbiba.png"} 
                 alt="zbiba" 
-                className={`w-full h-full object-cover ${isLoading ? 'animate-pulse' : ''}`} 
+                fill
+                className={`object-cover ${isLoading ? 'animate-pulse' : ''}`} 
               />
             </div>
             <div>
@@ -320,8 +325,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                           {m.content}
                       </ReactMarkdown>
                       {m.image && (
-                        <div className="mt-4 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
-                          <img src={m.image} alt="Uploaded" className="w-full max-h-[500px] object-contain bg-slate-50" />
+                        <div className="mt-4 rounded-2xl overflow-hidden border border-slate-100 shadow-sm relative min-h-[200px]">
+                          <Image src={m.image} alt="Uploaded" fill className="object-contain bg-slate-50" />
                         </div>
                       )}
                   </div>
@@ -346,8 +351,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           <div className="max-w-4xl mx-auto">
             {selectedImage && (
               <div className="mb-4 relative inline-block group">
-                <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl">
-                  <img src={selectedImage} alt="Preview" className="h-32 w-32 object-cover" />
+                <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl w-32 h-32">
+                  <Image src={selectedImage} alt="Preview" fill className="object-cover" />
                 </div>
                 <button 
                   onClick={() => setSelectedImage(null)}
@@ -430,10 +435,11 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                 <div className="relative">
                   <div className="absolute -inset-1 bg-white/40 rounded-2xl blur-sm opacity-25"></div>
                   <div className="relative w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-inner overflow-hidden border border-white/50">
-                    <img 
+                    <Image 
                       src={isLoading ? "/zbiba-thinking.png" : selectedImage ? "/zbiba-reports.png" : "/zbiba.png"} 
                       alt="zbiba" 
-                      className={`w-full h-full object-cover ${isLoading ? 'animate-pulse' : ''}`} 
+                      fill
+                      className={`object-cover ${isLoading ? 'animate-pulse' : ''}`} 
                     />
                   </div>
                 </div>
@@ -472,8 +478,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                               {m.content}
                           </ReactMarkdown>
                           {m.image && (
-                            <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-                              <img src={m.image} alt="Uploaded" className="w-full max-h-48 object-cover" />
+                            <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 shadow-sm relative h-48">
+                              <Image src={m.image} alt="Uploaded" fill className="object-cover" />
                             </div>
                           )}
                       </div>
@@ -497,8 +503,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             <div className="p-4 border-t border-slate-100 bg-white">
               {selectedImage && (
                 <div className="mb-3 relative inline-block group">
-                  <div className="relative rounded-xl overflow-hidden border-2 border-indigo-500 shadow-lg">
-                    <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover" />
+                  <div className="relative rounded-xl overflow-hidden border-2 border-indigo-500 shadow-lg w-20 h-20">
+                    <Image src={selectedImage} alt="Preview" fill className="object-cover" />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                   </div>
                   <button 
@@ -577,9 +583,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="relative p-2"
+              className="relative p-2 w-12 h-12"
             >
-              <img src="/zbiba.png" className="w-12 h-12 object-contain" alt="zbiba" />
+              <Image src="/zbiba.png" fill className="object-contain" alt="zbiba" />
               {/* Minimalist Live Indicator */}
               <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-sm ring-4 ring-emerald-500/20 animate-pulse" />
             </motion.div>

@@ -196,6 +196,38 @@ export async function deleteTimetableSlot(id: number) {
   }
 }
 
+export async function bulkUpdateTimetableSlots(classId: number, slots: any[]) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete all existing slots for this class
+      await tx.timetableSlot.deleteMany({
+        where: { classId }
+      });
+
+      // 2. Create new slots
+      const dataToCreate = slots.map(slot => ({
+        day: slot.day,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        slotNumber: slot.slotNumber,
+        subjectId: slot.subjectId,
+        teacherId: slot.teacherId,
+        classId: classId,
+      }));
+
+      await tx.timetableSlot.createMany({
+        data: dataToCreate
+      });
+    });
+
+    revalidatePath(`/admin/timetable`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Bulk update error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function getAllRooms() {
   try {
     const rooms = await prisma.room.findMany({

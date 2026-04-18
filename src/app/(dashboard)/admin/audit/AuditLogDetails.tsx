@@ -3,6 +3,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, User, Activity, Tag, DollarSign, Clock, Info } from "lucide-react";
+import Image from "next/image";
 
 interface AuditLog {
   id: number;
@@ -96,7 +97,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
               <div className="p-5 bg-gradient-to-br from-slate-50 to-white rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 group">
                  <div className="relative">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md border-2 border-white ring-4 ring-slate-50 relative z-10">
-                       <img src={performer?.avatar || "/avatar.png"} alt="" className="w-full h-full object-cover" />
+                       <Image src={performer?.avatar || "/avatar.png"} alt="" fill className="object-cover" />
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-2 border-white rounded-full z-20 flex items-center justify-center">
                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
