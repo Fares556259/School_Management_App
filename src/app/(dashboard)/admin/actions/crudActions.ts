@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { MONTHS } from "@/lib/dateUtils";
 
 export type AICommand = {
   type: "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE" | "RECORD_GRADES";
@@ -74,11 +75,40 @@ export async function executeAICommand(command: AICommand) {
           if (isPartial) {
             await tx.expense.create({
               data: {
-                title: `Revenue Gap: ${recipient} (${month}/${year})`,
+                title: `Revenue Gap: ${recipient} (${MONTHS[parseInt(month) - 1]} ${year})`,
                 amount: gap,
                 category: "Deferred Revenue Gap",
                 date: new Date()
               } as any
+            });
+          }
+
+          // 3. Record the Actual Payment in the appropriate ledger (Income/Expense)
+          const ledgerTitle = payment.student
+            ? `Tuition: ${recipient} (${MONTHS[parseInt(month) - 1]} ${year})`
+            : `Salary: ${recipient} (${MONTHS[parseInt(month) - 1]} ${year})`;
+
+          if (payment.student) {
+            await tx.income.create({
+              data: {
+                title: ledgerTitle,
+                amount: actualPaid,
+                category: "Tuition",
+                date: new Date(),
+                referenceType: "Payment",
+                referenceId: payment.id.toString()
+              }
+            });
+          } else {
+            await tx.expense.create({
+              data: {
+                title: ledgerTitle,
+                amount: actualPaid,
+                category: "Salary",
+                date: new Date(),
+                referenceType: "Payment",
+                referenceId: payment.id.toString()
+              }
             });
           }
 
