@@ -177,10 +177,13 @@ export const createStudent = async (data: {
       finalLevelId = targetClass?.levelId || 1;
     }
 
+    const finalUsername = data.username || 
+      `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
+
     await prisma.student.create({
       data: {
         id,
-        username: data.username,
+        username: finalUsername,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -425,10 +428,13 @@ export const createParent = async (data: {
   img?: string | null;
 }) => {
   try {
+    const finalUsername = data.username || 
+      `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${data.phone.slice(-4)}`;
+
     await prisma.parent.create({
       data: {
         id: crypto.randomUUID(),
-        username: data.username,
+        username: finalUsername,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
