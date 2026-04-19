@@ -212,7 +212,7 @@ export async function getChatResponse(
   if (!apiKey) return { success: false, error: "API key missing" };
 
   try {
-    // SECURITY BYPASS: Mask technical IDs to "Safe-Ref-Codes" to prevent AI PII triggers
+    // SECURITY BYPASS: Mask technical IDs
     const maskedUnpaid = (context.unpaidPayments || []).map((p: any) => ({
       ...p,
       safeRef: p.studentId || p.teacherId || p.staffId,
@@ -226,14 +226,15 @@ export async function getChatResponse(
       CONTEXT: ${JSON.stringify({ ...context, unpaidPayments: maskedUnpaid })}
       
       CRITICAL RULES:
-      1. ONLY emit a "MARK_PAID" command if the user EXPLICITLY mentions a Month AND a Year.
-      2. If the user only says "X has paid" without a date, DO NOT emit a command. Instead, ask for the missing month and year in your text response.
-      3. Identify students by FULL NAME from context.
-      4. TABLE: Every student summary MUST show a 12-month summary table.
+      1. MANDATORY TABLE: For any "info", "status", or "summary" request, your JSON "response" MUST contain a complete 12-month Markdown table (Sept 2025 - Aug 2026).
+      2. PROJECTED AMOUNTS: Do NOT show "0" for pending months. Find the student's monthly fee (e.g. 450 DT) and use it for ALL pending months in the table. 
+      3. RESPONSE STRUCTURE: [Your brief text] followed by [The 12-month Markdown Table].
+      4. ACTION ENFORCEMENT: Emit "MARK_PAID" command ONLY if the user says "mark paid" or "he paid".
+      5. Identify students by FULL NAME from context.
 
       JSON RESPONSE FORMAT:
       {
-        "response": "Your text response (asking for details or confirming card).",
+        "response": "Brief professional confirmation in ${locale}.",
         "command": null | { "type": "MARK_PAID", "data": { "studentId": "safeRef", "student_name": "NAME", "month": 1-12, "year": 2026, "amount": 450 } }
       }
     `;
@@ -241,7 +242,7 @@ export async function getChatResponse(
     const content = await unifiedAIRouter({
       systemPrompt,
       userPrompt: userMessage,
-      history: history.slice(-3), // Shorter history to break refusal loops
+      history: history.slice(-3),
       imageBase64,
       jsonMode: true
     });
@@ -250,29 +251,30 @@ export async function getChatResponse(
     const cleaned = cleanAIJson(content);
     const result = JSON.parse(cleaned);
 
-    // ROBUST RESOLVER (Handles reverse names, nicknames, and masked IDs)
+    // ROBUST RESOLVER (Corrected keys for dashboardContext)
     if (result.command?.type === "MARK_PAID") {
       const data = result.command.data;
       const targetName = (data.student_name || "").toLowerCase().trim();
       const targetRef = (data.studentId || "").trim();
       
-      const allRecords = [...(context.unpaidPayments || []), ...(context.recentPaidPayments || [])];
+      const activity = context.financials?.recentActivity || {};
+      const allRecords = [...(activity.uncollected || []), ...(activity.paidHistory || [])];
       
-      const match = allRecords.find(p => {
-        const id = p.studentId || p.teacherId || p.staffId || p.id;
-        const fullName = `${p.student?.name} ${p.student?.surname}`.toLowerCase();
-        const reverseName = `${p.student?.surname} ${p.student?.name}`.toLowerCase();
-        
-        return (id === targetRef) || 
-               (targetName && (fullName.includes(targetName) || targetName.includes(fullName) || reverseName.includes(targetName)));
-      });
+      let match = allRecords.find(p => (p.studentId || p.teacherId || p.staffId) === targetRef);
+      
+      if (!match && targetName) {
+        match = allRecords.find(p => {
+          const fullName = (p.name || "").toLowerCase();
+          return fullName.includes(targetName) || targetName.includes(fullName);
+        });
+      }
 
       if (match) {
-        result.command.data.studentId = match.studentId || match.student?.id || match.id;
-        if (!result.command.data.amount) result.command.data.amount = match.amount || 450;
+        result.command.data.studentId = match.studentId || match.teacherId || match.staffId;
+        if (!result.command.data.amount) result.command.data.amount = match.amount;
+        if (!result.command.data.month) result.command.data.month = match.month;
+        if (!result.command.data.year) result.command.data.year = match.year;
         console.log("🎯 [RESOLVER_SUCCESS] Linked to:", result.command.data.studentId);
-      } else {
-        console.warn("⚠️ [RESOLVER_FAIL] No match for:", targetName, targetRef);
       }
     }
 
@@ -283,9 +285,6 @@ export async function getChatResponse(
   }
 }
 
-/**
- * Strips markdown code blocks and returns clean JSON
- */
 function cleanAIJson(text: string): string {
   if (!text) return "{}";
   const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
@@ -297,19 +296,9 @@ export async function getFinancialInsights(data: any, locale = "fr") {
   if (!usage.allowed) return { error: `DAILY_QUOTA_REACHED|${usage.quota}` };
 
   const prompt = `
-    You are an expert school financial analyst. Analyze the following data and provide exactly 5 concise, strategic insights.
-    
+    Analyze the following data and provide exactly 5 concise, strategic insights.
     DATA: ${JSON.stringify(data)}
-    
-    RETURN ONLY a JSON array of objects with this schema:
-    [
-      { 
-        "text": "...", 
-        "type": "performance" | "risk" | "opportunity" | "trend" | "action", 
-        "icon": "A single representative emoji (e.g. 📈, ⚠️, 💡, 🔍, ⚡...)", 
-        "confidence": "HIGH" | "MEDIUM" | "LOW" 
-      }
-    ]
+    RETURN ONLY a JSON array of objects: [{ "text": "...", "type": "...", "icon": "...", "confidence": "..." }]
   `;
 
   try {
@@ -323,42 +312,15 @@ export async function getFinancialInsights(data: any, locale = "fr") {
   }
 }
 
-export async function upsertConversation({
-  id,
-  title,
-  messages,
-  month,
-  year
-}: {
-  id?: string;
-  title: string;
-  messages: any[];
-  month: number;
-  year: number;
-}) {
+export async function upsertConversation({ id, title, messages, month, year }: any) {
   if (!(prisma as any).conversation) return { success: false, error: "Conversation model not initialized" };
   try {
-    const data = {
-      title,
-      messages: messages as any,
-      month,
-      year,
-      updatedAt: new Date(),
-    };
-
+    const data = { title, messages, month, year, updatedAt: new Date() };
     if (id && id !== "new") {
-      const conv = await (prisma as any).conversation.update({
-        where: { id },
-        data,
-      });
+      const conv = await (prisma as any).conversation.update({ where: { id }, data });
       return { success: true, conversation: conv };
     } else {
-      const conv = await (prisma as any).conversation.create({
-        data: {
-          ...data,
-          userId: "admin",
-        },
-      });
+      const conv = await (prisma as any).conversation.create({ data: { ...data, userId: "admin" } });
       revalidatePath("/list/assistant");
       return { success: true, conversation: conv };
     }
@@ -371,13 +333,16 @@ export async function upsertConversation({
 export async function getConversations(month: number, year: number) {
   if (!(prisma as any).conversation) return [];
   try {
-    const conversations = await (prisma as any).conversation.findMany({
+    return await (prisma as any).conversation.findMany({
       where: { month, year },
       orderBy: { updatedAt: "desc" },
     });
-    return conversations;
   } catch (error) {
     console.error("Failed to fetch conversations:", error);
     return [];
   }
+}
+
+export async function getAIUsageStatsDirect() {
+  return await getAIUsageStats();
 }
