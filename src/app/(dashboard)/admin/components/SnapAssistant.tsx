@@ -278,30 +278,23 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
 
       const result = await getChatResponse(userMessage, enrichedContext, imageBase64, locale, messages);
 
-      if (result.response) {
-        // ... success logic ...
+      if (result.response || result.commands) {
         if (onUsageUpdate) onUsageUpdate();
-        const userMsgObj: Message = { 
-          role: 'user', 
-          content: userMessage || "Sent an image for analysis.",
-          image: uploadedUrl || undefined 
-        };
+        
         const assistantMsgObj: Message = { 
           role: 'assistant', 
-          content: result.response,
+          content: result.response || result.error || "No response received",
           command: result.command,
           commands: result.commands
         };
         
-        const newMessages = [...messages, userMsgObj, assistantMsgObj];
-
-        setMessages(newMessages);
+        setMessages(prev => [...prev, assistantMsgObj]);
 
         // PERSIST TO DATABASE
         const saveRes = await upsertConversation({
           id: currentSessionId === "new" ? undefined : currentSessionId,
           title: currentSessionId === "new" ? (userMessage.substring(0, 30) + "...") : "Continued Conversation",
-          messages: newMessages,
+          messages: [...messages, { role: 'user', content: userMessage || "Sent an image for analysis.", image: uploadedUrl || undefined }, assistantMsgObj],
           month,
           year
         });

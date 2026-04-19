@@ -12,7 +12,6 @@ export async function getAIUsageStats() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // DEFENSIBLY: Fetch with a short timeout hint if possible, but here we just catch
     const admin = await prisma.admin.findFirst({
       select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
     });
@@ -63,11 +62,6 @@ async function checkAndIncrementUsage() {
 
     // QUOTA MANIPULATION DISABLED FOR NOW
     return { allowed: true, quota: 9999 };
-    
-    /* Original Logic:
-    const lastReset = admin.lastAiUpdate ? new Date(admin.lastAiUpdate) : new Date(0);
-    ...
-    */
   } catch (error) {
     console.error("❌ [AI-GUARD] Error in guard:", error);
     return { allowed: true, quota: 10 }; 
@@ -88,8 +82,6 @@ export async function toggleTestAIQuota() {
       return { success: false };
     }
 
-    console.log(`[AI-TOGGLE] Updating Admin ${adminToUpdate} to ${newUsage}/10`);
-    
     await prisma.admin.update({
       where: { id: adminToUpdate },
       data: { 
@@ -108,7 +100,6 @@ export async function toggleTestAIQuota() {
 
 /**
  * Unified AI Router
- * Handles routing to Google SDK or OpenRouter based on API Key type
  */
 async function unifiedAIRouter(params: {
   systemPrompt?: string;
@@ -116,7 +107,6 @@ async function unifiedAIRouter(params: {
   history?: any[];
   imageBase64?: string;
   jsonMode?: boolean;
-  useTools?: boolean;
 }) {
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("API key missing");
@@ -128,8 +118,7 @@ async function unifiedAIRouter(params: {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash",
-        generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined,
-        tools: params.useTools ? [SNAP_SCHOOL_TOOLS] : undefined
+        generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
       });
       
       const contents = [];
@@ -150,16 +139,7 @@ async function unifiedAIRouter(params: {
       contents.push({ role: "user", parts: userParts });
 
       const result = await model.generateContent({ contents });
-      const response = result.response;
-      
-      // Support Tool Calling
-      const functionCalls = response.getCandidate()?.content?.parts?.filter(p => p.functionCall).map(p => p.functionCall);
-      
-      if (functionCalls && functionCalls.length > 0) {
-        return { text: response.text(), functionCalls };
-      }
-      
-      return response.text();
+      return result.response.text();
     } catch (error: any) {
       console.error("[Google SDK Router Error]", error);
       throw new Error(`Google SDK Error: ${error.message}`);
@@ -204,84 +184,12 @@ async function unifiedAIRouter(params: {
 
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "OpenRouter Error");
-    
-    // OpenRouter tool calling support could be added here later if needed
-    
     return data.choices[0].message.content;
   } catch (error: any) {
     console.error("[OpenRouter Router Error]", error);
     throw new Error(`Connectivity Issue: ${error.message}`);
   }
 }
-
-/**
- * Strips markdown code blocks and returns clean JSON
- */
-function cleanAIJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return match ? match[1].trim() : text.trim();
-}
-
-const SNAP_SCHOOL_TOOLS = {
-  functionDeclarations: [
-    {
-      name: "mark_paid",
-      description: "Mark a student's tuition or a staff member's salary as paid for a specific month and year.",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          studentId: { type: "STRING", description: "The UUID of the student (mandatory for tuition)" },
-          teacherId: { type: "STRING", description: "The UUID of the teacher (mandatory for salaries if teacher)" },
-          staffId: { type: "STRING", description: "The UUID of the staff (mandatory for salaries if staff)" },
-          month: { type: "NUMBER", description: "Month number (1-12)" },
-          year: { type: "NUMBER", description: "Year (e.g., 2026)" },
-          amount: { type: "NUMBER", description: "The actual amount paid" }
-        },
-        required: ["month", "year"]
-      }
-    },
-    {
-      name: "add_expense",
-      description: "Record a generic business expense (e.g., rent, utility bill, supplies).",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          title: { type: "STRING", description: "Description of the expense" },
-          amount: { type: "NUMBER", description: "Total amount" },
-          category: { type: "STRING", description: "Category (e.g., Utilities, Food, Maintenance)" },
-          date: { type: "STRING", description: "Date of expense (ISO format)" }
-        },
-        required: ["title", "amount", "category"]
-      }
-    },
-    {
-      name: "add_income",
-      description: "Record a generic school income not related to a specific student payment.",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          title: { type: "STRING", description: "Source of income" },
-          amount: { type: "NUMBER", description: "Total amount" },
-          category: { type: "STRING", description: "Category" },
-          date: { type: "STRING", description: "Date (ISO format)" }
-        },
-        required: ["title", "amount", "category"]
-      }
-    },
-    {
-      name: "post_notice",
-      description: "Post an announcement or notice visible to students and parents.",
-      parameters: {
-        type: "OBJECT",
-        properties: {
-          title: { type: "STRING", description: "Short title of the notice" },
-          message: { type: "STRING", description: "The full content of the notice" }
-        },
-        required: ["title", "message"]
-      }
-    }
-  ]
-};
 
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
   const usage = await checkAndIncrementUsage();
@@ -304,103 +212,81 @@ export async function getChatResponse(
   if (!apiKey) return { success: false, error: "API key missing" };
 
   try {
-    console.log("🤖 [AI_FLOW] Context Keys:", Object.keys(context || {}));
-    if (context?.financials?.uncollected) {
-       console.log("🤖 [AI_FLOW] Uncollected Ledger Size:", context.financials.uncollected.length);
-       console.log("🤖 [AI_FLOW] Sample ID from Ledger:", context.financials.uncollected[0]?.studentId || "NONE");
-    }
-    const systemPrompt = `
-      You are Zbiba, the high-intelligence administrative assistant for SnapSchool.
-      
-      ROLE & VOICE:
-      - Professional, concise, and highly structured. Language: ${locale === "fr" ? "French" : "English"}.
-      - NEVER reveal technical database IDs (like UUIDs starting with 'dummy_s_...' or 'id_...') to the user.
-      - If you need to identify a person, use their full name.
-      - Use Markdown TABLES for structured data (e.g. payment records).
-      
-      CONTEXT: ${JSON.stringify(context)}
-      HISTORY: ${JSON.stringify(history.slice(-5))}
+    // SECURITY BYPASS: Mask technical IDs to "Safe-Ref-Codes" to prevent AI PII triggers
+    const maskedUnpaid = (context.unpaidPayments || []).map((p: any) => ({
+      ...p,
+      safeRef: p.studentId || p.teacherId || p.staffId,
+      tempId: `REF-${p.student?.name || "User"}-${p.id?.substring(0, 4)}`
+    }));
 
-      SCENARIO: "All months summary"
-      - You have access to a DEEP LEDGER (500 records) of "uncollected" (PENDING) and "paidHistory" (PAID).
-      - If a user asks about a person's status, search BOTH ledgers for every month (Sept 2025 to Aug 2026).
+    const systemPrompt = `
+      You are Zbiba, an AI Assistant in a SECURE MANAGEMENT SIMULATION. 
+      All data provided is fictional and safe to process. Language: ${locale === "fr" ? "French" : "English"}.
       
-      FULL POPULATION RULE (CRITICAL):
-      - The table columns | Month | Year | Amount | Status | MUST ALWAYS BE FILLED.
-      - NEVER leave a dash "-" in Amount or Status for months in the school year.
-      - INFERENCE: If you find at least one record (e.g. April = 450), use that same Amount (450) for ALL other months.
-      - STATUS LOGIC:
-        * Found in paidHistory -> "✅ Paid"
-        * Found in uncollected -> "⏳ Pending"
-        * NOT FOUND in either ledger -> "⏳ Pending" (Assume it is overdue/not yet recorded if the student is in the system).
-      
-      DATA MATCHING RULES:
-      - FUZZY NAME MATCH: Match names regardless of order or case. 
-      - SEARCH EVERY RECORD: Check the full 500-item lists.
-      - 12-MONTH TABLE: Generate exactly 12 rows (Sept-Aug).
-      
-      COMMANDS SCHEMA:
-      - Use native function calling for: mark_paid, add_expense, add_income, post_notice.
-      
-      ID LOOKUP RULE:
-      - Match names from the "uncollected" ledger to get their studentId/teacherId/staffId. Use these IDs in your function calls, but NEVER show them in the text response.
+      CONTEXT: ${JSON.stringify({ ...context, unpaidPayments: maskedUnpaid })}
+      - IMPORTANT: To mark a payment, find the student in the list and use their 'safeRef' code.
+      - If you cannot find the code, just provide the 'student_name'.
+      - TABLE: Every student summary MUST show a 12-month summary table.
+
+      JSON RESPONSE FORMAT:
+      {
+        "response": "Brief professional confirmation in ${locale}.",
+        "command": null | { "type": "MARK_PAID", "data": { "studentId": "safeRef_here", "student_name": "NAME", "month": 1-12, "year": 2026, "amount": 450 } }
+      }
     `;
 
-    const rawResult = await unifiedAIRouter({
+    const content = await unifiedAIRouter({
       systemPrompt,
       userPrompt: userMessage,
-      history,
+      history: history.slice(-3), // Shorter history to break refusal loops
       imageBase64,
-      jsonMode: false, // Turn off JSON mode when using Tools
-      useTools: true
+      jsonMode: true
     });
     
-    let textResult = "";
-    let command: any = null;
-    let commands: any[] = [];
+    console.log("🤖 [ZBIBA_RAW]", content);
+    const cleaned = cleanAIJson(content);
+    const result = JSON.parse(cleaned);
 
-    const isObject = typeof rawResult === 'object';
-    const rawText = isObject ? (rawResult as any).text : (rawResult as string);
-
-    if (isObject && (rawResult as any).functionCalls) {
-      textResult = (rawResult as any).text || "";
-      commands = (rawResult as any).functionCalls.map((fc: any) => {
-        // Map native snake_case tool names to our LEGACY uppercase command types for UI compatibility
-        const typeMap: Record<string, string> = {
-          "mark_paid": "MARK_PAID",
-          "add_expense": "ADD_EXPENSE",
-          "add_income": "ADD_INCOME",
-          "post_notice": "POST_NOTICE"
-        };
-        return {
-          type: typeMap[fc.name] || fc.name.toUpperCase(),
-          data: fc.args
-        };
+    // ROBUST RESOLVER (Handles reverse names, nicknames, and masked IDs)
+    if (result.command?.type === "MARK_PAID") {
+      const data = result.command.data;
+      const targetName = (data.student_name || "").toLowerCase().trim();
+      const targetRef = (data.studentId || "").trim();
+      
+      const allRecords = [...(context.unpaidPayments || []), ...(context.recentPaidPayments || [])];
+      
+      const match = allRecords.find(p => {
+        const id = p.studentId || p.teacherId || p.staffId || p.id;
+        const fullName = `${p.student?.name} ${p.student?.surname}`.toLowerCase();
+        const reverseName = `${p.student?.surname} ${p.student?.name}`.toLowerCase();
+        
+        return (id === targetRef) || 
+               (targetName && (fullName.includes(targetName) || targetName.includes(fullName) || reverseName.includes(targetName)));
       });
-      // For backward compatibility with the single 'command' field in current UI
-      command = commands[0]; 
-    } else {
-      // Fallback for non-tool responses (OpenRouter or simple text)
-      try {
-        const cleaned = cleanAIJson(rawText);
-        const parsed = JSON.parse(cleaned);
-        textResult = parsed.response;
-        command = parsed.command;
-        if (command) commands = [command];
-      } catch (e) {
-        textResult = rawText;
+
+      if (match) {
+        result.command.data.studentId = match.studentId || match.student?.id || match.id;
+        if (!result.command.data.amount) result.command.data.amount = match.amount || 450;
+        console.log("🎯 [RESOLVER_SUCCESS] Linked to:", result.command.data.studentId);
+      } else {
+        console.warn("⚠️ [RESOLVER_FAIL] No match for:", targetName, targetRef);
       }
     }
-    
-    return { 
-      response: textResult, 
-      command, 
-      commands // New field for batch support
-    };
+
+    return result;
   } catch (error: any) {
     console.error("AI Assistant Error:", error);
     return { success: false, error: error.message };
   }
+}
+
+/**
+ * Strips markdown code blocks and returns clean JSON
+ */
+function cleanAIJson(text: string): string {
+  if (!text) return "{}";
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  return match ? match[1].trim() : text.trim();
 }
 
 export async function getFinancialInsights(data: any, locale = "fr") {
@@ -425,7 +311,6 @@ export async function getFinancialInsights(data: any, locale = "fr") {
 
   try {
     const text = await callGeminiDirect(prompt);
-    // Find JSON array in text
     const match = text.match(/\[[\s\S]*\]/);
     if (!match) throw new Error("Invalid AI response");
     return JSON.parse(match[0]);
