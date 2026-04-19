@@ -130,7 +130,7 @@ const ParentListPage = async ({
     </tr>
   );
 
-  const [data, count] = await Promise.all([
+  const [data, count, classes, levels] = await Promise.all([
     prisma.parent.findMany({
       where: query,
       include: {
@@ -140,7 +140,14 @@ const ParentListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.parent.count({ where: query }),
+    prisma.class.findMany({ select: { id: true, name: true } }),
+    prisma.level.findMany({ select: { id: true, level: true } }),
   ]);
+
+  const relatedData = {
+    classId: classes.map((c) => ({ value: c.id.toString(), label: c.name })),
+    levelId: levels.map((l) => ({ value: l.id.toString(), label: l.level.toString() })),
+  };
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -156,7 +163,13 @@ const ParentListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <CrudFormModal entity="parent" mode="create" />}
+            {role === "admin" && (
+              <CrudFormModal
+                entity="parent"
+                mode="create"
+                relatedData={relatedData}
+              />
+            )}
           </div>
         </div>
       </div>

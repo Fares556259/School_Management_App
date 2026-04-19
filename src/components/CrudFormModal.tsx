@@ -11,6 +11,7 @@ import {
   createSubject, updateSubject, deleteSubject,
   createExpense, updateExpense, deleteExpense,
   createIncome, updateIncome, deleteIncome,
+  enrollFamily, 
 } from "@/lib/crudActions";
 
 
@@ -168,6 +169,21 @@ export default function CrudFormModal({
   const [error, setError] = useState("");
   const [img, setImg] = useState<any>(data?.img || null);
 
+  // Unified Enrollment State
+  const [students, setStudents] = useState<any[]>([
+    { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
+  ]);
+
+  const addStudent = () => {
+    setStudents([...students, { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }]);
+  };
+
+  const removeStudent = (id: number) => {
+    if (students.length > 1) {
+      setStudents(students.filter(s => s.id !== id));
+    }
+  };
+
   // Merge dynamic relatedData options into field definitions
   const fields = entityFields[entity].map((f) => {
     if (relatedData && relatedData[f.name] && f.type === "select" && !f.options) {
@@ -198,10 +214,34 @@ export default function CrudFormModal({
     startTransition(async () => {
       let result;
       if (mode === "create") {
-        result = await createFns[entity](values);
+        if (entity === "parent") {
+          // Collect children data from the form
+          const studentList = students.map((s, index) => ({
+            name: formData.get(`student-${index}-name`),
+            surname: formData.get(`student-${index}-surname`),
+            username: formData.get(`student-${index}-username`),
+            sex: formData.get(`student-${index}-sex`),
+            birthday: formData.get(`student-${index}-birthday`),
+            classId: formData.get(`student-${index}-classId`),
+            levelId: formData.get(`student-${index}-levelId`),
+            bloodType: "O+", // Default for speed
+          }));
+
+          // Validate that children info is filled
+          const missingInfo = studentList.some(s => !s.name || !s.surname || !s.classId);
+          if (missingInfo) {
+            setError("Please fill in all student details.");
+            return;
+          }
+
+          result = await enrollFamily(values, studentList);
+        } else {
+          result = await createFns[entity](values);
+        }
       } else if (mode === "update" && id) {
         result = await updateFns[entity](id, values);
       }
+      
       if (result?.success) {
         setOpen(false);
       } else {
@@ -398,6 +438,116 @@ export default function CrudFormModal({
                       </div>
                     ))}
                   </div>
+
+                  {/* CHILDREN SECTION FOR PARENT ENROLLMENT */}
+                  {entity === "parent" && mode === "create" && (
+                    <div className="flex flex-col gap-6 mt-4 pt-6 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800">Children</h3>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest">Register at least one student</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addStudent}
+                          className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 uppercase tracking-wider flex items-center gap-1"
+                        >
+                          <span className="text-sm">+</span> Add Sibling
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col gap-8">
+                        {students.map((student, index) => (
+                          <div key={student.id} className="relative p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            {students.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeStudent(student.id)}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-slate-200 text-rose-500 rounded-full flex items-center justify-center text-xs shadow-sm hover:bg-rose-50"
+                              >
+                                ✕
+                              </button>
+                            )}
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">First Name *</label>
+                                <input
+                                  name={`student-${index}-name`}
+                                  required
+                                  placeholder="Child's Name"
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Last Name *</label>
+                                <input
+                                  name={`student-${index}-surname`}
+                                  required
+                                  placeholder="Child's Surname"
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sex *</label>
+                                <select
+                                  name={`student-${index}-sex`}
+                                  required
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                  <option value="MALE">Male</option>
+                                  <option value="FEMALE">Female</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Birthday *</label>
+                                <input
+                                  type="date"
+                                  name={`student-${index}-birthday`}
+                                  required
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class *</label>
+                                <select
+                                  name={`student-${index}-classId`}
+                                  required
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                  <option value="">Select Class...</option>
+                                  {relatedData?.classId?.map(o => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Level *</label>
+                                <select
+                                  name={`student-${index}-levelId`}
+                                  required
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                >
+                                  <option value="">Select Level...</option>
+                                  {relatedData?.levelId?.map(o => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="sm:col-span-2">
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Username (Optional)</label>
+                                <input
+                                  name={`student-${index}-username`}
+                                  placeholder="Leave empty for auto-generation"
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
 

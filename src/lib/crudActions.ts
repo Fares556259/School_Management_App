@@ -920,3 +920,73 @@ export const resetParentPassword = async (parentId: string) => {
     return { success: false, error: err?.message || "Database connection error." };
   }
 };
+
+// ===================== UNIFIED ENROLLMENT =====================
+export const enrollFamily = async (parentData: any, children: any[]) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Find or Create Parent (Smart lookup by phone OR username)
+      let parent = await tx.parent.findFirst({
+        where: { 
+          OR: [
+            { phone: parentData.phone },
+            { username: parentData.username }
+          ]
+        },
+      });
+
+      if (!parent) {
+        parent = await tx.parent.create({
+          data: {
+            id: crypto.randomUUID(),
+            username: parentData.username || parentData.phone,
+            name: parentData.name,
+            surname: parentData.surname,
+            email: parentData.email || null,
+            phone: parentData.phone,
+            address: parentData.address,
+            img: parentData.img || null,
+          }
+        });
+      }
+
+      // 2. Create Students
+      for (const child of children) {
+        await tx.student.create({
+          data: {
+            id: crypto.randomUUID(),
+            username: child.username || `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`,
+            name: child.name,
+            surname: child.surname,
+            email: child.email || null,
+            phone: child.phone || null,
+            address: child.address || parent.address,
+            bloodType: child.bloodType || "O+",
+            birthday: new Date(child.birthday),
+            sex: child.sex,
+            parentId: parent.id,
+            classId: parseInt(child.classId),
+            levelId: parseInt(child.levelId),
+            img: child.img || null,
+          }
+        });
+      }
+
+      return parent;
+    });
+
+    await createAuditLog({
+      action: "ENROLL_FAMILY",
+      entityType: "Parent",
+      entityId: result.id,
+      description: `Unified Enrollment: Parent ${result.name} ${result.surname} + ${children.length} students.`,
+    });
+
+    revalidatePath("/list/parents");
+    revalidatePath("/list/students");
+    return { success: true };
+  } catch (err: any) {
+    console.error("enrollFamily error:", err);
+    return { success: false, error: err?.message || "Failed to enroll family." };
+  }
+};
