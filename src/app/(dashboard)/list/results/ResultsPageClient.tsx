@@ -5,6 +5,7 @@ import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 
 interface Props {
   role: string | undefined;
@@ -257,17 +258,18 @@ export default function ResultsPageClient({
               <button 
                 onClick={() => setIsPreviewOpen(false)}
                 className="p-2 hover:bg-white/10 rounded-full text-white transition-colors"
+                title="Close Preview"
               >
-                ✕
+                <X size={24} />
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-12 flex items-center justify-center">
+            <div className="flex-1 overflow-auto p-12 flex items-center justify-center relative">
               {previewUrl && previewUrl.startsWith("http") ? (
                 <Image 
                   src={previewUrl} 
                   alt="Document Preview" 
                   fill
-                  className="object-contain rounded-xl shadow-2xl shadow-black"
+                  className="object-contain rounded-xl shadow-2xl shadow-black p-4"
                 />
               ) : (
                 <div className="bg-white/5 p-12 rounded-[40px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">

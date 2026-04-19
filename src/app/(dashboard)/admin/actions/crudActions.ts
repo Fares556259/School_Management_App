@@ -198,7 +198,7 @@ export async function executeAICommand(command: AICommand) {
       }
 
       case "ADD_EXPENSE": {
-        const { title, amount, category, date } = command.data;
+        const { title, amount, category, date, referenceId } = command.data;
         if (!title || !amount || !category) throw new Error("Missing expense data");
 
         const expense = await prisma.expense.create({
@@ -207,7 +207,8 @@ export async function executeAICommand(command: AICommand) {
             amount: parseFloat(amount),
             category: category || "General",
             date: date ? new Date(date) : new Date(),
-            img: command.data.img || undefined
+            img: command.data.img || undefined,
+            referenceId: referenceId || undefined
           }
         });
 
@@ -226,7 +227,10 @@ export async function executeAICommand(command: AICommand) {
         });
 
         revalidatePath("/admin");
-        return { success: true, message: `New expense '${title}' of $${amount} added successfully.` };
+        revalidatePath("/list/expenses");
+        revalidatePath("/list/incomes");
+        revalidatePath("/");
+        return { success: true, message: `New expense '${title}' of ${amount} DT added successfully.` };
       }
 
       case "ADD_INCOME": {
@@ -258,7 +262,10 @@ export async function executeAICommand(command: AICommand) {
         });
 
         revalidatePath("/admin");
-        return { success: true, message: `New income '${title}' of $${amount} added successfully.` };
+        revalidatePath("/list/expenses");
+        revalidatePath("/list/incomes");
+        revalidatePath("/");
+        return { success: true, message: `New income '${title}' of ${amount} DT added successfully.` };
       }
 
       case "POST_NOTICE": {

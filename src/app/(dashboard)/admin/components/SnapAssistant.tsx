@@ -759,7 +759,6 @@ const ActionCard: React.FC<ActionCardProps> = ({
     const rawType = command.type || "UNKNOWN";
     const type = rawType.toUpperCase().trim();
     
-    // Resilience: Map common hallucinations to internal keys
     const mappedType = 
        (type.includes("PAYMENT") || type.includes("PAID")) ? "MARK_PAID" :
        (type.includes("EXPENSE")) ? "ADD_EXPENSE" :
@@ -783,34 +782,90 @@ const ActionCard: React.FC<ActionCardProps> = ({
 
   if (isExecuted) return null;
 
-  const colorMap: Record<string, string> = {
-    emerald: "emerald",
-    rose: "rose",
-    amber: "amber",
-    indigo: "indigo",
-    slate: "slate"
+  const designs: Record<string, any> = {
+    emerald: {
+      bg: "bg-emerald-50/50",
+      border: "border-emerald-100",
+      accent: "bg-emerald-500",
+      text: "text-emerald-900",
+      label: "text-emerald-600",
+      button: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100",
+      iconBg: "bg-emerald-100 text-emerald-600"
+    },
+    rose: {
+      bg: "bg-rose-50/50",
+      border: "border-rose-100",
+      accent: "bg-rose-500",
+      text: "text-rose-900",
+      label: "text-rose-600",
+      button: "bg-rose-600 hover:bg-rose-700 shadow-rose-100",
+      iconBg: "bg-rose-100 text-rose-600"
+    },
+    amber: {
+      bg: "bg-amber-50/50",
+      border: "border-amber-100",
+      accent: "bg-amber-500",
+      text: "text-amber-900",
+      label: "text-amber-600",
+      button: "bg-amber-600 hover:bg-amber-700 shadow-amber-100",
+      iconBg: "bg-amber-100 text-amber-600"
+    },
+    indigo: {
+      bg: "bg-indigo-50/50",
+      border: "border-indigo-100",
+      accent: "bg-indigo-500",
+      text: "text-indigo-900",
+      label: "text-indigo-600",
+      button: "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100",
+      iconBg: "bg-indigo-100 text-indigo-600"
+    },
+    slate: {
+      bg: "bg-slate-50/50",
+      border: "border-slate-100",
+      accent: "bg-slate-500",
+      text: "text-slate-900",
+      label: "text-slate-600",
+      button: "bg-slate-600 hover:bg-slate-700 shadow-slate-100",
+      iconBg: "bg-slate-100 text-slate-600"
+    }
   };
 
-  const c = colorMap[info.color] || "slate";
+  const style = designs[info.color] || designs.slate;
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`mt-4 bg-${c}-50 border border-${c}-100 rounded-2xl p-4 shadow-sm overflow-hidden`}
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      className={`mt-4 ${style.bg} border-2 ${style.border} rounded-[24px] p-4 shadow-xl shadow-slate-200/20 overflow-hidden relative group`}
     >
+      <div className={`absolute top-0 left-0 w-1.5 h-full ${style.accent}`} />
+      
       <div className="flex items-start gap-3">
-        <div className={`p-2 bg-white rounded-xl text-${c}-600 shadow-sm border border-${c}-50`}>
+        <div className={`p-2.5 ${style.iconBg} rounded-xl shadow-sm shrink-0`}>
           <Icon size={mini ? 16 : 20} />
         </div>
+        
         <div className="flex-1 min-w-0">
-          <h4 className={`text-[10px] sm:text-xs font-black text-${c}-900 uppercase tracking-tight`}>{info.label}</h4>
-          <div className="mt-2 text-[10px] sm:text-xs text-slate-600 font-medium space-y-1 overflow-hidden">
+          <div className="flex flex-col mb-3">
+            <h4 className={`text-[9px] font-black ${style.label} uppercase tracking-[0.15em] mb-0.5`}>
+              {locale === "fr" ? "Ordre de Zbiba" : "Zbiba Command"}
+            </h4>
+            <h3 className={`text-base font-black ${style.text} tracking-tight leading-tight`}>
+              {info.label}
+            </h3>
+          </div>
+
+          <div className="space-y-1 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-white/80 shadow-inner">
              {Object.entries(command.data).map(([key, val]: [string, any]) => (
-               key !== 'img' && <div key={key} className="flex justify-between border-b border-dashed border-slate-200 pb-1 gap-2">
-                 <span className="text-slate-400 capitalize shrink-0">{key}:</span>
-                 <span className="font-bold truncate">{typeof val === 'object' ? JSON.stringify(val) : val}</span>
-               </div>
+               key !== 'img' && key !== 'studentId' && (
+                <div key={key} className="flex justify-between items-center py-1 border-b border-white last:border-0 gap-3">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">{key}</span>
+                  <span className="text-[11px] font-bold text-slate-700 truncate text-right">
+                    {typeof val === 'object' ? JSON.stringify(val) : val}
+                    {key.toLowerCase().includes('amount') ? ' DT' : ''}
+                  </span>
+                </div>
+               )
              ))}
           </div>
           
@@ -818,23 +873,27 @@ const ActionCard: React.FC<ActionCardProps> = ({
             <button 
               onClick={onConfirm}
               disabled={isLoading}
-              className={`flex-1 py-2 rounded-xl bg-${c}-600 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-${c}-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-${c}-100 disabled:opacity-50 active:scale-95`}
+              className={`flex-[2] py-2.5 rounded-xl ${style.button} text-white text-[10px] font-black uppercase tracking-[0.1em] transition-all flex items-center justify-center gap-2 shadow-xl disabled:opacity-50 active:scale-95 group/btn`}
             >
               {isLoading ? (
                 <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : <Check size={14} />}
+              ) : <Check size={16} className="group-hover:scale-110 transition-transform" />}
               {locale === "fr" ? "Confirmer" : "Confirm"}
             </button>
             <button 
               onClick={onCancel}
               disabled={isLoading}
-              className="px-3 sm:px-4 py-2 rounded-xl bg-white text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-50 active:scale-95"
+              className="flex-1 py-2.5 rounded-xl bg-white text-slate-400 text-[10px] font-black uppercase tracking-[0.1em] border-2 border-slate-50 hover:bg-slate-50 hover:border-slate-100 transition-all disabled:opacity-50 active:scale-95"
             >
-              {locale === "fr" ? "Annuler" : "Cancel"}
+              {locale === "fr" ? "Ignorer" : "Ignore"}
             </button>
           </div>
         </div>
       </div>
+      
+      {!isLoading && (
+        <div className={`absolute -right-4 -bottom-4 w-20 h-20 ${style.accent} opacity-[0.03] rounded-full blur-2xl group-hover:opacity-[0.08] transition-opacity`} />
+      )}
     </motion.div>
   );
 };

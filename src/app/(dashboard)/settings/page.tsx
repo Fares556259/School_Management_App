@@ -240,12 +240,10 @@ const SettingsPage = () => {
 
       setMessage({ type: 'success', text: 'All settings updated successfully!' });
       
-      // Update original states to current
-      setOriginalConfig(JSON.parse(JSON.stringify(config)));
-      setOriginalLevelFees(JSON.parse(JSON.stringify(levelFees)));
-      setOriginalVariationCounts(JSON.parse(JSON.stringify(variationCounts)));
-      
-      router.refresh();
+      // Hard refresh after a short delay so the user can see the success message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error: any) {
       console.error("Save error:", error);
       setMessage({ type: 'error', text: error.message || 'Failed to update settings.' });
@@ -588,7 +586,7 @@ const SettingsPage = () => {
                    </div>
                    
                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 items-end">
                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Variations (A-Z)</label>
                         <input 
                           type="number"
@@ -599,14 +597,6 @@ const SettingsPage = () => {
                           onChange={e => setVariationCounts({...variationCounts, [lvl.id]: parseInt(e.target.value) || 0})}
                         />
                       </div>
-                      
-                      <button 
-                        onClick={() => handleSyncVariations(lvl.id)}
-                        disabled={saving}
-                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-blue-200/50 disabled:opacity-50 h-[40px]"
-                      >
-                        {saving ? 'Syncing...' : 'Sync Variations'}
-                      </button>
                    </div>
                 </div>
               ))}
@@ -824,26 +814,48 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* SAVE BUTTON */}
+          {/* FLOATING SAVE BAR */}
           <AnimatePresence>
             {hasChanges && (
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 100 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex justify-end gap-4 mt-4"
+                exit={{ opacity: 0, y: 100 }}
+                className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-2xl"
               >
-                 <button 
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-2 px-10 py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 hover:shadow-slate-200 disabled:opacity-50 group overflow-hidden relative"
-                 >
-                    <span className="relative z-10 flex items-center gap-2">
-                       {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save size={18} />}
-                       {saving ? 'Synchronizing...' : 'Save Configuration'}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-indigo-700 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                 </button>
+                 <div className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 p-3 pl-8 rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex items-center justify-between group overflow-hidden">
+                    <div className="flex flex-col gap-0.5">
+                       <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] leading-none">System Settings</h3>
+                       <p className="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Unsaved Changes
+                       </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                       <button 
+                          type="button"
+                          onClick={() => window.location.reload()}
+                          className="px-6 py-3.5 text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+                       >
+                          Discard
+                       </button>
+                       <button 
+                          type="submit"
+                          disabled={saving}
+                          className="flex items-center gap-3 px-10 py-4 bg-white text-slate-900 font-black text-xs uppercase tracking-[0.15em] rounded-[2.5rem] hover:bg-emerald-400 hover:text-white transition-all shadow-xl disabled:opacity-50 group/save relative overflow-hidden"
+                       >
+                          <span className="relative z-10 flex items-center gap-2">
+                             {saving ? <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div> : <Save size={18} />}
+                             {saving ? 'Saving...' : 'Save Configuration'}
+                          </span>
+                       </button>
+                    </div>
+
+                    {/* Background glow effects */}
+                    <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px]"></div>
+                    <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]"></div>
+                 </div>
               </motion.div>
             )}
           </AnimatePresence>

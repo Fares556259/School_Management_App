@@ -234,13 +234,21 @@ export async function getChatResponse(
       1. MANDATORY TABLE CONTENT: For any "info", "status", or "summary" request, your JSON "response" MUST contain a 12-row Markdown table for Sept 2025 - Aug 2026. This is non-negotiable.
       2. FEE FALLBACK: Use a standard fee of 450 DT for all pending months if the context doesn't specify a different rate for that student.
       3. RESPONSE STRUCTURE: Provide a 1-sentence intro followed immediately by the 12-month table.
-      4. ACTION ENFORCEMENT: ONLY emit "MARK_PAID" if the user uses actionable words like "mark", "record", or "paid".
+      4. ACTION ENFORCEMENT: 
+         - Emit "MARK_PAID" for tuition/salary recordings.
+         - Emit "ADD_EXPENSE" if an image appears to be an Invoice (Facture) or Receipt. Extract: title, amount, category, and date.
       5. Identify students by FULL NAME from context.
 
       JSON RESPONSE FORMAT:
       {
-        "response": "Brief professional confirmation in ${locale}.",
-        "command": null | { "type": "MARK_PAID", "data": { "studentId": "ID_FROM_CONTEXT", "student_name": "NAME", "month": 1-12, "year": 2026, "amount": 450 } }
+        "response": "Brief professional confirmation in ${locale}. If detecting an invoice or expense, EXPLICITLY TELL THE USER they must click the 'Record Expense' button below to finalize the recording.",
+        "command": null | { 
+          "type": "MARK_PAID" | "ADD_EXPENSE", 
+          "data": { 
+             "studentId": "ID", "month": 1, "year": 2026, "amount": 450, // For MARK_PAID
+             "title": "Vendor/Description", "category": "Type", "date": "YYYY-MM-DD" // For ADD_EXPENSE
+          } 
+        }
       }
     `;
 

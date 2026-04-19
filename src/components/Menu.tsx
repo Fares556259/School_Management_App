@@ -4,6 +4,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { 
+  Home, 
+  TrendingDown, 
+  TrendingUp, 
+  Activity, 
+  GraduationCap, 
+  Percent, 
+  Calendar, 
+  UserRound, 
+  Contact, 
+  Users, 
+  UserCheck, 
+  CreditCard, 
+  UsersRound, 
+  BookOpen, 
+  DoorOpen, 
+  Presentation, 
+  FileText, 
+  ClipboardList, 
+  Megaphone, 
+  User, 
+  Settings, 
+  LogOut,
+  BarChart3,
+  Settings2,
+  CalendarCheck
+} from "lucide-react";
 
 const labelToKey: Record<string, any> = {
   "Home": "home",
@@ -31,7 +58,7 @@ const labelToKey: Record<string, any> = {
 };
 
 interface MenuItem {
-  icon: string;
+  icon: any; // Can be Lucide icon or string path
   label: string;
   href: string;
   visible: string[];
@@ -47,127 +74,127 @@ const menuItems: MenuSection[] = [
     title: "MENU",
     items: [
       {
-        icon: "/home.png",
+        icon: Home,
         label: "Home",
         href: "/",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/finance.png",
+        icon: TrendingDown,
         label: "Expenses",
         href: "/list/expenses",
         visible: ["admin"],
       },
       {
-        icon: "/finance.png",
+        icon: TrendingUp,
         label: "Incomes",
         href: "/list/incomes",
         visible: ["admin"],
       },
       {
-        icon: "/setting.png",
+        icon: Activity,
         label: "Audit Log",
         href: "/admin/audit",
         visible: ["admin"],
       },
       {
-        icon: "/result.png",
+        icon: GraduationCap,
         label: "Results",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/result.png",
+        icon: Percent,
         label: "Grades",
         href: "/admin/grades",
         visible: ["admin"],
       },
       {
-        icon: "/calendar.png",
+        icon: Calendar,
         label: "Timetable",
         href: "/admin/timetable",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/teacher.png",
+        icon: UserRound,
         label: "Teachers",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/parent.png",
+        icon: Contact,
         label: "Staff",
         href: "/list/staff",
         visible: ["admin"],
       },
       {
-        icon: "/student.png",
+        icon: Users,
         label: "Students",
         href: "/list/students",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/calendar.png",
+        icon: CalendarCheck,
         label: "Attendance",
         href: "/admin/attendance",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/finance.png",
+        icon: CreditCard,
         label: "Partial Payments",
         href: "/list/payments-partial",
         visible: ["admin"],
       },
       {
-        icon: "/zbiba.png",
+        icon: "/zbiba.png", // Keeping custom robot
         label: "Zbiba AI",
         href: "/list/assistant",
         visible: ["admin"],
       },
       {
-        icon: "/parent.png",
+        icon: UsersRound,
         label: "Parents",
         href: "/list/parents",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/subject.png",
+        icon: BookOpen,
         label: "Subjects",
         href: "/list/subjects",
         visible: ["admin"],
       },
       {
-        icon: "/class.png",
+        icon: DoorOpen,
         label: "Classes",
         href: "/list/classes",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/lesson.png",
+        icon: Presentation,
         label: "Lessons",
         href: "/list/lessons",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/exam.png",
+        icon: FileText,
         label: "Exams",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/assignment.png",
+        icon: ClipboardList,
         label: "Assignments",
         href: "/list/assignments",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/announcement.png",
+        icon: Megaphone,
         label: "Announcements",
         href: "/list/announcements",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/calendar.png",
+        icon: Settings2,
         label: "Setup Requests",
         href: "/admin/setup-requests",
         visible: ["superuser"],
@@ -178,25 +205,25 @@ const menuItems: MenuSection[] = [
     title: "OTHER",
     items: [
       {
-        icon: "/profile.png",
+        icon: User,
         label: "Profile",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/setting.png",
+        icon: BarChart3,
         label: "Daily Reports",
         href: "/admin/reports",
         visible: ["admin"],
       },
       {
-        icon: "/setting.png",
+        icon: Settings,
         label: "Settings",
         href: "/settings",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/logout.png",
+        icon: LogOut,
         label: "Logout",
         href: "/logout",
         visible: ["admin", "teacher", "student", "parent"],
@@ -238,15 +265,24 @@ const Menu = ({ role }: { role: string }) => {
                     isActive ? "scale-y-100" : "scale-y-0 group-hover:scale-y-100 group-hover:bg-primary/40"
                   }`} />
                   
-                  <Image
-                    src={item.icon}
-                    alt=""
-                    width={22}
-                    height={22}
-                    className={`transition-all duration-300 ${
-                      isActive ? "opacity-100 brightness-200" : "opacity-60 group-hover:opacity-100"
-                    } group-hover:scale-110`}
-                  />
+                  <div className={`transition-all duration-300 ${
+                    isActive 
+                      ? "opacity-100 scale-110 text-white" 
+                      : "opacity-60 group-hover:opacity-100 group-hover:scale-110 text-slate-500 group-hover:text-primary"
+                  }`}>
+                    {typeof item.icon === 'string' ? (
+                      <div className="relative w-[22px] h-[22px]">
+                         <Image 
+                           src={item.icon} 
+                           alt="" 
+                           fill
+                           className={isActive ? "brightness-200" : ""}
+                         />
+                      </div>
+                    ) : (
+                      <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                    )}
+                  </div>
                   <span className={`hidden lg:block font-bold tracking-tight ${isActive ? "translate-x-1" : ""} transition-transform duration-300`}>
                     {(t.menu as any)[labelToKey[item.label]] || item.label}
                   </span>
