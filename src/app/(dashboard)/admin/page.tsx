@@ -144,13 +144,13 @@ const AdminPage = async ({
   // BATCH 5: Action Items & Critical Ledger
   const [unpaidPayments, deferredPaymentsCount, revenueGapThisPeriod] = await Promise.all([
     prisma.payment.findMany({
-      where: { status: "PENDING", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
+      where: { status: "PENDING" }, 
       include: {
         student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
         teacher: { select: { id: true, name: true, surname: true, phone: true } },
         staff: { select: { id: true, name: true, surname: true, phone: true } },
       },
-      take: 20
+      take: 500 // Increased significantly to cover deep backlogs
     }),
     prisma.payment.count({
       where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() }
@@ -164,8 +164,8 @@ const AdminPage = async ({
   // BATCH 6: Visual Context & History
   const [recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses, yearPaymentStatus, recentAuditLogs, allNotices, allSubjects, histIncome, histExpense] = await Promise.all([
     prisma.payment.findMany({ 
-      take: 8, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
-      include: { student: { select: { name: true, surname: true } }, teacher: { select: { name: true, surname: true } }, staff: { select: { name: true, surname: true } } } 
+      take: 500, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
+      include: { student: { select: { id: true, name: true, surname: true } }, teacher: { select: { id: true, name: true, surname: true } }, staff: { select: { id: true, name: true, surname: true } } } 
     }),
     prisma.expense.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
     prisma.income.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
@@ -303,8 +303,31 @@ const AdminPage = async ({
         })),
         auditTrail: recentAuditLogs.map(log => ({ action: log.action, desc: log.description, user: log.performedBy, time: log.timestamp })),
         uncollected: [
-          ...unpaidFees.map(f => ({ name: f.name, studentId: f.id, amount: f.amount, type: 'STUDENT' })),
-          ...unpaidEmployees.map(e => ({ name: e.name, id: e.id, amount: e.amount, type: e.type.toUpperCase() }))
+          ...unpaidPayments.map(f => ({ 
+            name: f.student ? `${f.student.name} ${f.student.surname}` : (f.teacher || f.staff)?.name || "Unknown", 
+            studentId: f.studentId,
+            teacherId: f.teacherId,
+            staffId: f.staffId,
+            amount: f.amount, 
+            month: f.month,
+            year: f.year,
+            type: f.userType,
+            status: "Pending"
+          })),
+        ],
+        paidHistory: [
+          ...recentPaidPayments.map(p => ({
+            name: p.student ? `${p.student.name} ${p.student.surname}` : (p.teacher || p.staff)?.name || "Unknown",
+            studentId: p.studentId,
+            teacherId: p.teacherId,
+            staffId: p.staffId,
+            amount: p.amount,
+            month: p.month,
+            year: p.year,
+            type: p.userType,
+            status: "Paid",
+            date: p.paidAt
+          }))
         ]
       },
       historicalTrends: trendData,

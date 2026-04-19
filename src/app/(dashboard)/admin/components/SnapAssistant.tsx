@@ -11,13 +11,16 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { Lock, CheckCircle, AlertTriangle, Trash2, Settings, Receipt, HandCoins, LineChart, Megaphone, Check } from 'lucide-react';
 import { AICommand } from '../actions/crudActions';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   image?: string;
   command?: AICommand;
+  commands?: AICommand[];
   commandExecuted?: boolean;
+  executedCommandIndices?: number[];
 }
 
 interface SnapAssistantProps {
@@ -52,27 +55,29 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   const [pendingCommandId, setPendingCommandId] = useState<number | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  const handleConfirmCommand = async (index: number) => {
-    const msg = messages[index];
-    if (!msg.command || isExecuting) return;
+  const handleConfirmCommand = async (msgIndex: number, commandIndex?: number) => {
+    const msg = messages[msgIndex];
+    const targetCommand = typeof commandIndex === 'number' ? msg.commands?.[commandIndex] : msg.command;
+    if (!targetCommand || isExecuting) return;
 
     setIsExecuting(true);
-    setPendingCommandId(index);
+    // Track which specific card is loading
+    setPendingCommandId(msgIndex); 
 
     try {
       // Find the last image in history if needed for the command
       let imgUrl = msg.image;
       if (!imgUrl) {
-         const lastWithImage = [...messages.slice(0, index + 1)].reverse().find(m => m.image);
+         const lastWithImage = [...messages.slice(0, msgIndex + 1)].reverse().find(m => m.image);
          imgUrl = lastWithImage?.image;
       }
       
       const finalCommand = {
-        ...msg.command,
-        type: msg.command.type.toUpperCase().trim() as any,
+        ...targetCommand,
+        type: targetCommand.type.toUpperCase().trim() as any,
         data: {
-          ...msg.command.data,
-          img: imgUrl || msg.command.data.img
+          ...targetCommand.data,
+          img: imgUrl || targetCommand.data.img
         }
       };
 
@@ -81,36 +86,58 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
       if (res.success) {
         setMessages(prev => {
           const newMsgs = [...prev];
-          newMsgs[index] = { ...newMsgs[index], commandExecuted: true };
+          const currentMsg = { ...newMsgs[msgIndex] };
+          
+          if (typeof commandIndex === 'number') {
+            const executed = currentMsg.executedCommandIndices || [];
+            currentMsg.executedCommandIndices = [...executed, commandIndex];
+          } else {
+            currentMsg.commandExecuted = true;
+          }
+          
+          newMsgs[msgIndex] = currentMsg;
           return [...newMsgs, { role: 'assistant', content: `✅ **${t.zbiba.success}**: ${res.message}` }];
         });
         router.refresh();
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: `❌ **${t.zbiba.error}**: ${res.error}` }]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Action confirmation error:", err);
-      setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: Execution failed.` }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: Execution failed. ${err.message || ""}` }]);
     } finally {
       setIsExecuting(false);
       setPendingCommandId(null);
     }
   };
 
-  const handleCancelCommand = (index: number) => {
+  const handleCancelCommand = (msgIndex: number, commandIndex?: number) => {
     setMessages(prev => {
       const newMsgs = [...prev];
-      newMsgs[index] = { ...newMsgs[index], commandExecuted: true }; // Mark as done to hide card
+      const currentMsg = { ...newMsgs[msgIndex] };
+
+      if (typeof commandIndex === 'number') {
+        const executed = currentMsg.executedCommandIndices || [];
+        currentMsg.executedCommandIndices = [...executed, commandIndex];
+      } else {
+        currentMsg.commandExecuted = true;
+      }
+
+      newMsgs[msgIndex] = currentMsg;
       return [...newMsgs, { role: 'assistant', content: locale === "fr" ? "L'action a été annulée." : "Action has been cancelled." }];
     });
   };
 
   useEffect(() => {
+    // Quota reached logic disabled for now
+    setIsLocked(false);
+    /*
     isAIQuotaReached().then(reached => {
       if (reached) {
         setIsLocked(true);
       }
     });
+    */
   }, []);
   
   // Initialize with initialMessages if provided, otherwise the welcome message
@@ -261,7 +288,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         };
         const assistantMsgObj: Message = { 
           role: 'assistant', 
-          content: result.response 
+          content: result.response,
+          command: result.command,
+          commands: result.commands
         };
         
         const newMessages = [...messages, userMsgObj, assistantMsgObj];
@@ -284,34 +313,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           }
         }
         
-        // HANDLE AI COMMANDS
+        // HANDLE AI COMMANDS (Legacy check, primarily handles single commands if emitted)
         if (result.command && result.command.type) {
-          // Normalization: Ensure type is clean before saving/sending
-          result.command.type = result.command.type.toUpperCase().trim();
-          
-          const userMsgObj: Message = { 
-            role: 'user', 
-            content: userMessage || "Sent an image for analysis.",
-            image: uploadedUrl || undefined 
-          };
-          
-          const assistantMsgObj: Message = { 
-            role: 'assistant', 
-            content: result.response,
-            command: result.command 
-          };
-          
-          const newMessages = [...messages, userMsgObj, assistantMsgObj];
-          setMessages(newMessages);
-
-          // PERSIST TO DATABASE
-          await upsertConversation({
-            id: currentSessionId === "new" ? undefined : currentSessionId,
-            title: currentSessionId === "new" ? (userMessage.substring(0, 30) + "...") : "Continued Conversation",
-            messages: newMessages,
-            month,
-            year
-          });
+          // ... legacy block handled by unified commands array above
         }
       } else {
         if (result.error?.startsWith("DAILY_QUOTA_REACHED")) {
@@ -392,8 +396,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                       : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm shadow-slate-200/50'
                   }`}
                 >
-                  <div className="prose prose-indigo prose-sm max-w-none font-medium">
-                      <ReactMarkdown>
+                  <div className="prose prose-indigo prose-sm max-w-none font-medium custom-markdown">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {m.content}
                       </ReactMarkdown>
                       {m.image && (
@@ -410,6 +414,27 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                           onConfirm={() => handleConfirmCommand(i)}
                           onCancel={() => handleCancelCommand(i)}
                         />
+                      )}
+                      
+                      {/* BATCH COMMANDS SUPPORT */}
+                      {m.commands && m.commands.length > 0 && (
+                        <div className="flex flex-col gap-4 mt-4">
+                          {m.commands.map((cmd, cmdIdx) => {
+                            const isExecuted = m.executedCommandIndices?.includes(cmdIdx);
+                            if (isExecuted) return null;
+                            return (
+                              <ActionCard 
+                                key={cmdIdx}
+                                command={cmd}
+                                locale={locale}
+                                isLoading={isExecuting && pendingCommandId === i}
+                                isExecuted={false}
+                                onConfirm={() => handleConfirmCommand(i, cmdIdx)}
+                                onCancel={() => handleCancelCommand(i, cmdIdx)}
+                              />
+                            );
+                          })}
+                        </div>
                       )}
                   </div>
                 </div>
@@ -555,8 +580,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                           : 'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none'
                       }`}
                     >
-                      <div className="prose prose-sm font-medium">
-                          <ReactMarkdown>
+                      <div className="prose prose-sm font-medium custom-markdown">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
                               {m.content}
                           </ReactMarkdown>
                           {m.image && (
@@ -574,6 +599,27 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                               onCancel={() => handleCancelCommand(i)}
                               mini
                             />
+                          )}
+
+                          {m.commands && m.commands.length > 0 && (
+                            <div className="flex flex-col gap-2 mt-3">
+                              {m.commands.map((cmd, cmdIdx) => {
+                                const isExecuted = m.executedCommandIndices?.includes(cmdIdx);
+                                if (isExecuted) return null;
+                                return (
+                                  <ActionCard 
+                                    key={cmdIdx}
+                                    command={cmd}
+                                    locale={locale}
+                                    isLoading={isExecuting && pendingCommandId === i}
+                                    isExecuted={false}
+                                    onConfirm={() => handleConfirmCommand(i, cmdIdx)}
+                                    onCancel={() => handleCancelCommand(i, cmdIdx)}
+                                    mini
+                                  />
+                                );
+                              })}
+                            </div>
                           )}
                       </div>
                     </div>
@@ -799,5 +845,45 @@ const ActionCard: React.FC<ActionCardProps> = ({
     </motion.div>
   );
 };
+
+// Add custom styles for markdown tables
+const markdownStyles = `
+  .custom-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.85rem;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+  }
+  .custom-markdown th {
+    background: #f8fafc;
+    padding: 10px;
+    text-align: left;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .custom-markdown td {
+    padding: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #64748b;
+  }
+  .custom-markdown tr:last-child td {
+    border-bottom: none;
+  }
+  .custom-markdown tr:hover td {
+    background: #fdfdfd;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = markdownStyles;
+  document.head.appendChild(style);
+}
 
 export default SnapAssistant;

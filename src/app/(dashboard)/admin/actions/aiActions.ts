@@ -61,24 +61,13 @@ async function checkAndIncrementUsage() {
 
     if (!admin) return { allowed: true, quota: 10 };
 
-    // Handle Reset Logic
+    // QUOTA MANIPULATION DISABLED FOR NOW
+    return { allowed: true, quota: 9999 };
+    
+    /* Original Logic:
     const lastReset = admin.lastAiUpdate ? new Date(admin.lastAiUpdate) : new Date(0);
-    lastReset.setHours(0, 0, 0, 0);
-
-    if (today > lastReset || admin.aiUsage < (admin.aiQuota || 10)) {
-       const newUsage = today > lastReset ? 1 : (admin.aiUsage + 1);
-       
-       await prisma.admin.update({
-         where: { id: admin.id },
-         data: { 
-           aiUsage: newUsage,
-           lastAiUpdate: today
-         }
-       });
-       return { allowed: true, quota: admin.aiQuota };
-    }
-
-    return { allowed: false, quota: admin.aiQuota };
+    ...
+    */
   } catch (error) {
     console.error("❌ [AI-GUARD] Error in guard:", error);
     return { allowed: true, quota: 10 }; 
@@ -127,6 +116,7 @@ async function unifiedAIRouter(params: {
   history?: any[];
   imageBase64?: string;
   jsonMode?: boolean;
+  useTools?: boolean;
 }) {
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("API key missing");
@@ -138,7 +128,8 @@ async function unifiedAIRouter(params: {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash",
-        generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
+        generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined,
+        tools: params.useTools ? [SNAP_SCHOOL_TOOLS] : undefined
       });
       
       const contents = [];
@@ -159,7 +150,16 @@ async function unifiedAIRouter(params: {
       contents.push({ role: "user", parts: userParts });
 
       const result = await model.generateContent({ contents });
-      return result.response.text();
+      const response = result.response;
+      
+      // Support Tool Calling
+      const functionCalls = response.getCandidate()?.content?.parts?.filter(p => p.functionCall).map(p => p.functionCall);
+      
+      if (functionCalls && functionCalls.length > 0) {
+        return { text: response.text(), functionCalls };
+      }
+      
+      return response.text();
     } catch (error: any) {
       console.error("[Google SDK Router Error]", error);
       throw new Error(`Google SDK Error: ${error.message}`);
@@ -204,12 +204,84 @@ async function unifiedAIRouter(params: {
 
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "OpenRouter Error");
+    
+    // OpenRouter tool calling support could be added here later if needed
+    
     return data.choices[0].message.content;
   } catch (error: any) {
     console.error("[OpenRouter Router Error]", error);
     throw new Error(`Connectivity Issue: ${error.message}`);
   }
 }
+
+/**
+ * Strips markdown code blocks and returns clean JSON
+ */
+function cleanAIJson(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  return match ? match[1].trim() : text.trim();
+}
+
+const SNAP_SCHOOL_TOOLS = {
+  functionDeclarations: [
+    {
+      name: "mark_paid",
+      description: "Mark a student's tuition or a staff member's salary as paid for a specific month and year.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          studentId: { type: "STRING", description: "The UUID of the student (mandatory for tuition)" },
+          teacherId: { type: "STRING", description: "The UUID of the teacher (mandatory for salaries if teacher)" },
+          staffId: { type: "STRING", description: "The UUID of the staff (mandatory for salaries if staff)" },
+          month: { type: "NUMBER", description: "Month number (1-12)" },
+          year: { type: "NUMBER", description: "Year (e.g., 2026)" },
+          amount: { type: "NUMBER", description: "The actual amount paid" }
+        },
+        required: ["month", "year"]
+      }
+    },
+    {
+      name: "add_expense",
+      description: "Record a generic business expense (e.g., rent, utility bill, supplies).",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING", description: "Description of the expense" },
+          amount: { type: "NUMBER", description: "Total amount" },
+          category: { type: "STRING", description: "Category (e.g., Utilities, Food, Maintenance)" },
+          date: { type: "STRING", description: "Date of expense (ISO format)" }
+        },
+        required: ["title", "amount", "category"]
+      }
+    },
+    {
+      name: "add_income",
+      description: "Record a generic school income not related to a specific student payment.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING", description: "Source of income" },
+          amount: { type: "NUMBER", description: "Total amount" },
+          category: { type: "STRING", description: "Category" },
+          date: { type: "STRING", description: "Date (ISO format)" }
+        },
+        required: ["title", "amount", "category"]
+      }
+    },
+    {
+      name: "post_notice",
+      description: "Post an announcement or notice visible to students and parents.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING", description: "Short title of the notice" },
+          message: { type: "STRING", description: "The full content of the notice" }
+        },
+        required: ["title", "message"]
+      }
+    }
+  ]
+};
 
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {
   const usage = await checkAndIncrementUsage();
@@ -238,44 +310,93 @@ export async function getChatResponse(
        console.log("🤖 [AI_FLOW] Sample ID from Ledger:", context.financials.uncollected[0]?.studentId || "NONE");
     }
     const systemPrompt = `
-      You are Zbiba (pronounced "Zbeeba"), an expert AI school administrator for "SnapSchool".
-      Your tone: Strategic, professional, and helpful. Language: ${locale === "fr" ? "French" : "English"}.
+      You are Zbiba, the high-intelligence administrative assistant for SnapSchool.
+      
+      ROLE & VOICE:
+      - Professional, concise, and highly structured. Language: ${locale === "fr" ? "French" : "English"}.
+      - NEVER reveal technical database IDs (like UUIDs starting with 'dummy_s_...' or 'id_...') to the user.
+      - If you need to identify a person, use their full name.
+      - Use Markdown TABLES for structured data (e.g. payment records).
       
       CONTEXT: ${JSON.stringify(context)}
-      - IMPORTANT: context.currentPeriod contains the Month and Year being viewed. Use these as defaults for commands if the user doesn't specify others.
       HISTORY: ${JSON.stringify(history.slice(-5))}
 
-      CAPABILITIES:
-      1. Analyze financials (Incomes, Expenses, Payments).
-      2. Manage Academics (Grades, Classes).
-      3. Perform Actions: YOU CAN EMIT COMMANDS.
+      SCENARIO: "All months summary"
+      - You have access to a DEEP LEDGER (500 records) of "uncollected" (PENDING) and "paidHistory" (PAID).
+      - If a user asks about a person's status, search BOTH ledgers for every month (Sept 2025 to Aug 2026).
+      
+      FULL POPULATION RULE (CRITICAL):
+      - The table columns | Month | Year | Amount | Status | MUST ALWAYS BE FILLED.
+      - NEVER leave a dash "-" in Amount or Status for months in the school year.
+      - INFERENCE: If you find at least one record (e.g. April = 450), use that same Amount (450) for ALL other months.
+      - STATUS LOGIC:
+        * Found in paidHistory -> "✅ Paid"
+        * Found in uncollected -> "⏳ Pending"
+        * NOT FOUND in either ledger -> "⏳ Pending" (Assume it is overdue/not yet recorded if the student is in the system).
+      
+      DATA MATCHING RULES:
+      - FUZZY NAME MATCH: Match names regardless of order or case. 
+      - SEARCH EVERY RECORD: Check the full 500-item lists.
+      - 12-MONTH TABLE: Generate exactly 12 rows (Sept-Aug).
       
       COMMANDS SCHEMA:
-      1. MARK_PAID: { "studentId": "ID_FROM_CONTEXT", "month": 1-12, "year": 202X, "amount": number }
-      - IMPORTANT: To find the correct ID, look at context.financials.uncollected list. Match the name, then use the provided studentId or teacherId. NEVER use phone numbers as IDs.
-      2. ADD_EXPENSE: { "title": "string", "amount": number, "category": "string" }
-      3. ADD_INCOME: { "title": "string", "amount": number, "category": "string" }
-      4. POST_NOTICE: { "title": "string", "message": "string" }
-      5. RECORD_GRADES: { "className": "string", "subjectName": "string", "term": 1-3, "grades": [{ "studentName": "string", "score": number }] }
-
-      JSON RESPONSE FORMAT:
-      {
-        "response": "Natural language text (in ${locale}). Explain that you prepared the action card.",
-        "command": null | { "type": "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE" | "RECORD_GRADES", "data": { ... } }
-      }
-      - IMPORTANT: Use EXACT keys for types. Forbidden types: "ADD_PAYMENT", "RECORD_PAYMENT", "CONFIRM_...". Use "MARK_PAID".
-      - IMPORTANT: Always use context IDs (like studentId) when available.
+      - Use native function calling for: mark_paid, add_expense, add_income, post_notice.
+      
+      ID LOOKUP RULE:
+      - Match names from the "uncollected" ledger to get their studentId/teacherId/staffId. Use these IDs in your function calls, but NEVER show them in the text response.
     `;
 
-    const content = await unifiedAIRouter({
+    const rawResult = await unifiedAIRouter({
       systemPrompt,
       userPrompt: userMessage,
       history,
       imageBase64,
-      jsonMode: true
+      jsonMode: false, // Turn off JSON mode when using Tools
+      useTools: true
     });
     
-    return JSON.parse(content);
+    let textResult = "";
+    let command: any = null;
+    let commands: any[] = [];
+
+    const isObject = typeof rawResult === 'object';
+    const rawText = isObject ? (rawResult as any).text : (rawResult as string);
+
+    if (isObject && (rawResult as any).functionCalls) {
+      textResult = (rawResult as any).text || "";
+      commands = (rawResult as any).functionCalls.map((fc: any) => {
+        // Map native snake_case tool names to our LEGACY uppercase command types for UI compatibility
+        const typeMap: Record<string, string> = {
+          "mark_paid": "MARK_PAID",
+          "add_expense": "ADD_EXPENSE",
+          "add_income": "ADD_INCOME",
+          "post_notice": "POST_NOTICE"
+        };
+        return {
+          type: typeMap[fc.name] || fc.name.toUpperCase(),
+          data: fc.args
+        };
+      });
+      // For backward compatibility with the single 'command' field in current UI
+      command = commands[0]; 
+    } else {
+      // Fallback for non-tool responses (OpenRouter or simple text)
+      try {
+        const cleaned = cleanAIJson(rawText);
+        const parsed = JSON.parse(cleaned);
+        textResult = parsed.response;
+        command = parsed.command;
+        if (command) commands = [command];
+      } catch (e) {
+        textResult = rawText;
+      }
+    }
+    
+    return { 
+      response: textResult, 
+      command, 
+      commands // New field for batch support
+    };
   } catch (error: any) {
     console.error("AI Assistant Error:", error);
     return { success: false, error: error.message };
