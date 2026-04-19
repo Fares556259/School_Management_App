@@ -59,7 +59,7 @@ export async function createAnnouncementNotifications(noticeId: number) {
  * Scans for students who haven't paid for the current month and reminds parents.
  * Can be called by a cron job or a manually triggered endpoint.
  */
-export async function processPaymentReminders() {
+export async function processPaymentReminders(force: boolean = false) {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
@@ -100,13 +100,13 @@ export async function processPaymentReminders() {
           orderBy: { createdAt: 'desc' }
         });
 
-        const shouldRemind = !existingNotify || 
+        const shouldRemind = force || !existingNotify || 
           (now.getTime() - new Date(existingNotify.updatedAt).getTime() > SIX_HOURS_MS);
 
         if (shouldRemind) {
           const message = `Payment for ${student.name} for ${new Intl.DateTimeFormat('en-US', { month: 'long' }).format(now)} ${currentYear} is pending. Please settle at your earliest convenience.`;
           
-          if (existingNotify) {
+          if (existingNotify && !force) {
             // Update the existing one (bump timestamp and mark as unread)
             await prisma.notification.update({
               where: { id: existingNotify.id },
@@ -117,7 +117,7 @@ export async function processPaymentReminders() {
               }
             });
           } else {
-            // Create new notification
+            // Create new notification (Force always creates new for "Just now" timestamp)
             await prisma.notification.create({
               data: {
                 parentId: student.parentId,

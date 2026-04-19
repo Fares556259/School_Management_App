@@ -5,6 +5,7 @@ import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wall
 import { downloadCSV } from '@/lib/csvExport';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
+import { toast } from 'react-toastify';
 
 interface ActionItem {
   id: string;
@@ -58,9 +59,13 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
       if (data.success) {
         localStorage.setItem(storageKey, Date.now().toString());
         setCooldown(4 * 60 * 60 * 1000);
+        toast.success(`Success! Sent reminders to ${data.count} parents. (App Notifications delivered)`);
+      } else {
+        toast.error("Failed to send reminders. Please try again.");
       }
     } catch (error) {
       console.error("Failed to send reminders:", error);
+      toast.error("Connection error. Is the server running?");
     } finally {
       setIsSending(false);
     }
@@ -74,13 +79,22 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
 
   if (cooldown > 0 && !disabled) {
     return (
-      <button 
-        disabled
-        className="w-full py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed"
+      <div 
+        className="w-full py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-black text-slate-400 flex items-center justify-center gap-2 cursor-default select-none group/lock"
       >
         <Clock size={14} />
         {t.actionCenter.smsLocked} {formatCooldown(cooldown)})
-      </button>
+        <span 
+          onClick={(e) => {
+            e.stopPropagation();
+            localStorage.removeItem(storageKey);
+            setCooldown(0);
+          }}
+          className="ml-2 px-2 py-0.5 bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-colors cursor-pointer pointer-events-auto active:scale-95"
+        >
+          Reset
+        </span>
+      </div>
     );
   }
 
@@ -99,7 +113,7 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
       ) : (
         <MessageSquare size={14} className={disabled ? "text-slate-300" : "text-indigo-400 group-hover/sms:scale-110 transition-transform"} />
       )}
-      {isSending ? t.actionCenter.sendingReminders : t.actionCenter.sendReminders}
+      {isSending ? t.actionCenter.sendingReminders : "Send Payment Reminders (App & SMS)"}
     </button>
   );
 };

@@ -3,7 +3,7 @@ import { processPaymentReminders } from "@/lib/notifications";
 
 export async function POST() {
   try {
-    const result = await processPaymentReminders();
+    const result = await processPaymentReminders(true);
     return NextResponse.json(result);
   } catch (error) {
     console.error("[API_FINANCE_REMINDERS] Error:", error);
