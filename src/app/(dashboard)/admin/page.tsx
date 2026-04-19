@@ -162,7 +162,19 @@ const AdminPage = async ({
   ]);
 
   // BATCH 6: Visual Context & History
-  const [recentPaidPayments, recentGeneralExpenses, recentGeneralIncomes, schoolClasses, yearPaymentStatus, recentAuditLogs, allNotices, allSubjects, histIncome, histExpense] = await Promise.all([
+  const [
+    recentPaidPayments, 
+    recentGeneralExpenses, 
+    recentGeneralIncomes, 
+    schoolClasses, 
+    yearPaymentStatus, 
+    recentAuditLogs, 
+    allNotices, 
+    allSubjects, 
+    histIncome, 
+    histExpense,
+    allStudents
+  ] = await Promise.all([
     prisma.payment.findMany({ 
       take: 500, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
       include: { student: { select: { id: true, name: true, surname: true } }, teacher: { select: { id: true, name: true, surname: true } }, staff: { select: { id: true, name: true, surname: true } } } 
@@ -185,7 +197,10 @@ const AdminPage = async ({
       by: ['date'], _sum: { amount: true },
       where: { date: { gte: twelveMonthsAgo } }
     }),
+    prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
   ]);
+
+  const studentCensusData = allStudents.map(s => ({ id: s.id, name: `${s.name} ${s.surname}` }));
 
   // Note: Deep AI context like studentLedger and teacherWorkload is disabled for stability during connectivity issues.
   // We provide simplified metrics instead.
@@ -292,6 +307,7 @@ const AdminPage = async ({
     year: startDate.getFullYear(),
     metrics: { income: currentIncome, expense: currentExpense, balance: currentBalance, unpaid: unpaidAmount },
     census: { students: studentCount, teachers: teacherCount, staff: staffCount, classes: classCount },
+    studentCensus: studentCensusData,
     financials: {
       currentPeriod: { income: currentIncome, expense: currentExpense, categories: fullBreakdown },
       recentActivity: {

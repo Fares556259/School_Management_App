@@ -108,86 +108,91 @@ async function unifiedAIRouter(params: {
   imageBase64?: string;
   jsonMode?: boolean;
 }) {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey) throw new Error("API key missing");
+  const primaryKey = process.env.OPENROUTER_API_KEY;
+  const secondaryKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-  const isGoogleKey = apiKey.startsWith("AIza");
-  
-  if (isGoogleKey) {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
+  async function callProvider(key: string) {
+    const isGoogleNative = key.startsWith("AIza");
+    
+    if (isGoogleNative) {
+      console.log("🛰️ [ROUTER] Using Google Native SDK...");
+      const genAI = new GoogleGenerativeAI(key);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash",
         generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
       });
       
-      const contents = [];
-      if (params.systemPrompt) {
-        contents.push({ role: "user", parts: [{ text: `SYSTEM_INSTRUCTION: ${params.systemPrompt}` }] });
-      }
-      if (params.history) {
-        contents.push(...params.history.map(m => ({ 
-          role: m.role === "assistant" ? "model" : "user", 
-          parts: [{ text: m.content }] 
-        })));
-      }
-      
+      const contents: any[] = [];
+      if (params.systemPrompt) contents.push({ role: "user", parts: [{ text: `SYSTEM_INSTRUCTION: ${params.systemPrompt}` }] });
+      if (params.history) contents.push(...params.history.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })));
       const userParts: any[] = [{ text: params.userPrompt }];
-      if (params.imageBase64) {
-        userParts.push({ inlineData: { data: params.imageBase64, mimeType: "image/jpeg" } });
-      }
+      if (params.imageBase64) userParts.push({ inlineData: { data: params.imageBase64, mimeType: "image/jpeg" } });
       contents.push({ role: "user", parts: userParts });
 
       const result = await model.generateContent({ contents });
       return result.response.text();
-    } catch (error: any) {
-      console.error("[Google SDK Router Error]", error);
-      throw new Error(`Google SDK Error: ${error.message}`);
+    } else {
+      console.log("🌐 [ROUTER] Using OpenRouter Fetch (Economy Mode)...");
+      const messages = [];
+      if (params.systemPrompt) messages.push({ role: "system", content: params.systemPrompt });
+      
+      // Economy Mode: Only take last 10 history messages
+      const shortHistory = (params.history || []).slice(-10);
+      if (shortHistory.length > 0) messages.push(...shortHistory);
+      
+      messages.push({
+        role: "user",
+        content: params.imageBase64 
+          ? [
+              { type: "text", text: params.userPrompt },
+              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${params.imageBase64}` } }
+            ]
+          : params.userPrompt
+      });
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://snapschool.ai", 
+          "X-Title": "SnapSchool AI", 
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-001",
+          messages,
+          max_tokens: 2000, // Economy limit
+          response_format: params.jsonMode ? { type: "json_object" } : undefined
+        })
+      });
+
+      if (!response.ok) {
+        const errBody = await response.text();
+        if (response.status === 402) {
+           throw new Error("CREDIT_EXHAUSTED|Your OpenRouter account is out of credits. Please top up at openrouter.ai or add a native Google AI key (AIza...) to your .env file.");
+        }
+        throw new Error(`Provider Failed: ${response.status} ${errBody}`);
+      }
+      const data = await response.json();
+      return data.choices[0].message.content;
     }
   }
 
-  // OpenRouter Fallback
+  // EXECUTION WITH SMART FALLBACK
   try {
-    const messages = [];
-    if (params.systemPrompt) messages.push({ role: "system", content: params.systemPrompt });
-    if (params.history) messages.push(...params.history);
-    
-    messages.push({
-      role: "user",
-      content: params.imageBase64 
-        ? [
-            { type: "text", text: params.userPrompt },
-            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${params.imageBase64}` } }
-          ]
-        : params.userPrompt
-    });
-
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://snapschool.ai", 
-        "X-Title": "SnapSchool AI", 
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.0-flash-001",
-        messages,
-        response_format: params.jsonMode ? { type: "json_object" } : undefined
-      })
-    });
-
-    if (!response.ok) {
-       const errBody = await response.text();
-       throw new Error(`OpenRouter Fetch Failed: ${response.status} ${errBody}`);
+    if (primaryKey) {
+      try {
+        return await callProvider(primaryKey);
+      } catch (err: any) {
+        console.error("🚀 [ROUTER_FALLBACK] Primary failed, trying secondary:", err.message);
+        if (!secondaryKey || secondaryKey === primaryKey) throw err;
+      }
     }
-
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || "OpenRouter Error");
-    return data.choices[0].message.content;
-  } catch (error: any) {
-    console.error("[OpenRouter Router Error]", error);
-    throw new Error(`Connectivity Issue: ${error.message}`);
+    if (secondaryKey) return await callProvider(secondaryKey);
+    throw new Error("No valid AI API keys found in environment.");
+  } catch (finalError: any) {
+    console.error("❌ [ROUTER_FATAL]", finalError);
+    throw finalError;
   }
 }
 
@@ -226,16 +231,16 @@ export async function getChatResponse(
       CONTEXT: ${JSON.stringify({ ...context, unpaidPayments: maskedUnpaid })}
       
       CRITICAL RULES:
-      1. MANDATORY TABLE: For any "info", "status", or "summary" request, your JSON "response" MUST contain a complete 12-month Markdown table (Sept 2025 - Aug 2026).
-      2. PROJECTED AMOUNTS: Do NOT show "0" for pending months. Find the student's monthly fee (e.g. 450 DT) and use it for ALL pending months in the table. 
-      3. RESPONSE STRUCTURE: [Your brief text] followed by [The 12-month Markdown Table].
-      4. ACTION ENFORCEMENT: Emit "MARK_PAID" command ONLY if the user says "mark paid" or "he paid".
+      1. MANDATORY TABLE CONTENT: For any "info", "status", or "summary" request, your JSON "response" MUST contain a 12-row Markdown table for Sept 2025 - Aug 2026. This is non-negotiable.
+      2. FEE FALLBACK: Use a standard fee of 450 DT for all pending months if the context doesn't specify a different rate for that student.
+      3. RESPONSE STRUCTURE: Provide a 1-sentence intro followed immediately by the 12-month table.
+      4. ACTION ENFORCEMENT: ONLY emit "MARK_PAID" if the user uses actionable words like "mark", "record", or "paid".
       5. Identify students by FULL NAME from context.
 
       JSON RESPONSE FORMAT:
       {
         "response": "Brief professional confirmation in ${locale}.",
-        "command": null | { "type": "MARK_PAID", "data": { "studentId": "safeRef", "student_name": "NAME", "month": 1-12, "year": 2026, "amount": 450 } }
+        "command": null | { "type": "MARK_PAID", "data": { "studentId": "ID_FROM_CONTEXT", "student_name": "NAME", "month": 1-12, "year": 2026, "amount": 450 } }
       }
     `;
 
@@ -260,13 +265,31 @@ export async function getChatResponse(
       const activity = context.financials?.recentActivity || {};
       const allRecords = [...(activity.uncollected || []), ...(activity.paidHistory || [])];
       
+      // 1. Direct Context ID Match (The Gold Standard)
       let match = allRecords.find(p => (p.studentId || p.teacherId || p.staffId) === targetRef);
       
-      if (!match && targetName) {
-        match = allRecords.find(p => {
-          const fullName = (p.name || "").toLowerCase();
-          return fullName.includes(targetName) || targetName.includes(fullName);
-        });
+      // 2. Fuzzy Name Match (Fallback if AI provided a NAME instead of an ID)
+      if (!match) {
+        const queryName = targetRef.toLowerCase().length > 3 ? targetRef.toLowerCase() : targetName;
+        if (queryName) {
+           // Search recent financial activity first (includes teachers/staff)
+           match = allRecords.find(p => {
+             const fullName = (p.name || "").toLowerCase();
+             return fullName === queryName || fullName.includes(queryName) || queryName.includes(fullName);
+           });
+
+           // 3. GLOBAL CENSUS FALLBACK (Foolproof student mapping)
+           if (!match && context.studentCensus) {
+             console.log("🔍 [RESOLVER] Falling back to Student Census...");
+             const studentMatch = context.studentCensus.find((s: any) => {
+               const fullName = (s.name || "").toLowerCase();
+               return fullName === queryName || fullName.includes(queryName) || queryName.includes(fullName);
+             });
+             if (studentMatch) {
+               match = { studentId: studentMatch.id, name: studentMatch.name } as any;
+             }
+           }
+        }
       }
 
       if (match) {

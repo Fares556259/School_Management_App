@@ -23,25 +23,102 @@ export async function executeAICommand(command: AICommand) {
         if (!month || !year) throw new Error("Missing month/year data");
         if (!studentId && !teacherId && !staffId) throw new Error("Missing recipient ID");
 
-        // Find the pending payment
-        const payment = await prisma.payment.findFirst({
+        const m = parseInt(month);
+        const y = parseInt(year);
+
+        // 1. Try to find the existing pending payment
+        let payment = await prisma.payment.findFirst({
           where: {
             studentId: studentId || undefined,
             teacherId: teacherId || undefined,
             staffId: staffId || undefined,
-            month: parseInt(month),
-            year: parseInt(year),
+            month: m,
+            year: y,
             status: "PENDING"
           },
-          include: { 
-            student: true,
-            teacher: true,
-            staff: true
-          }
+          include: { student: true, teacher: true, staff: true }
         });
 
-        if (!payment) throw new Error("No pending payment found for this period");
+        // 2. If not found, we create a on-the-fly "PAID" record (Year-round flexibility)
+        if (!payment) {
+          console.log("📝 [ON_THE_FLY] No pending payment. Creating new record.");
+          
+          // We need the recipient name for the audit log
+          let recipientName = "Unknown Recipient";
+          let userType = "Unknown";
+          
+          if (studentId) {
+            const s = await prisma.student.findUnique({ where: { id: studentId } });
+            if (s) {
+              recipientName = `${s.name} ${s.surname}`;
+              userType = "STUDENT";
+            }
+          } else if (teacherId) {
+            const t = await prisma.teacher.findUnique({ where: { id: teacherId } });
+            if (t) {
+              recipientName = `${t.name} ${t.surname}`;
+              userType = "TEACHER";
+            }
+          } else if (staffId) {
+            const s = await prisma.staff.findUnique({ where: { id: staffId } });
+            if (s) {
+              recipientName = `${s.name} ${s.surname}`;
+              userType = "STAFF";
+            }
+          }
 
+          if (recipientName === "Unknown Recipient") throw new Error("Could not find recipient in database");
+
+          const actualPaid = paidAmount ? parseFloat(paidAmount) : 450;
+          
+          const newPayment = await prisma.$transaction(async (tx) => {
+            const p = await tx.payment.create({
+              data: {
+                studentId: studentId || undefined,
+                teacherId: teacherId || undefined,
+                staffId: staffId || undefined,
+                month: m,
+                year: y,
+                amount: actualPaid,
+                status: "PAID",
+                paidAt: new Date(),
+                img: img || undefined,
+                userType: userType as any
+              }
+            });
+
+            const ledgerTitle = studentId ? `Tuition: ${recipientName} (${MONTHS[m - 1]} ${y})` : `Salary: ${recipientName} (${MONTHS[m - 1]} ${y})`;
+
+            if (studentId) {
+              await tx.income.create({
+                data: { title: ledgerTitle, amount: actualPaid, category: "Tuition", date: new Date(), referenceType: "Payment", referenceId: p.id.toString() }
+              });
+            } else {
+              await tx.expense.create({
+                data: { title: ledgerTitle, amount: actualPaid, category: "Salary", date: new Date(), referenceType: "Payment", referenceId: p.id.toString() }
+              });
+            }
+
+            await tx.auditLog.create({
+              data: {
+                action: "CREATE",
+                performedBy: "zbiba (AI)",
+                entityType: "Payment",
+                entityId: p.id.toString(),
+                description: `AI created on-the-fly payment record for ${recipientName} (${m}/${y})`,
+                amount: actualPaid,
+                type: studentId ? "income" : "expense"
+              }
+            });
+
+            return p;
+          });
+
+          revalidatePath("/admin");
+          return { success: true, message: `New payment record created and marked as PAID for ${recipientName} (${m}/${y}).` };
+        }
+
+        // 3. IF FOUND: Existing logic for updating pending payment
         const targetAmount = payment.amount;
         const actualPaid = paidAmount ? parseFloat(paidAmount) : targetAmount;
         const isPartial = actualPaid < targetAmount;
@@ -58,9 +135,8 @@ export async function executeAICommand(command: AICommand) {
         const finalStatus = isPartial ? "PARTIAL" : "PAID";
 
         await prisma.$transaction(async (tx) => {
-          // 1. Update the Payment record
           await tx.payment.update({
-            where: { id: payment.id },
+            where: { id: payment.id! },
             data: {
               status: finalStatus as any,
               amount: actualPaid, 
@@ -71,11 +147,10 @@ export async function executeAICommand(command: AICommand) {
             }
           });
 
-          // 2. If partial, record the "Loss" as an Expense
           if (isPartial) {
             await tx.expense.create({
               data: {
-                title: `Revenue Gap: ${recipient} (${MONTHS[parseInt(month) - 1]} ${year})`,
+                title: `Revenue Gap: ${recipient} (${MONTHS[m - 1]} ${y})`,
                 amount: gap,
                 category: "Deferred Revenue Gap",
                 date: new Date()
@@ -83,47 +158,30 @@ export async function executeAICommand(command: AICommand) {
             });
           }
 
-          // 3. Record the Actual Payment in the appropriate ledger (Income/Expense)
           const ledgerTitle = payment.student
-            ? `Tuition: ${recipient} (${MONTHS[parseInt(month) - 1]} ${year})`
-            : `Salary: ${recipient} (${MONTHS[parseInt(month) - 1]} ${year})`;
+            ? `Tuition: ${recipient} (${MONTHS[m - 1]} ${y})`
+            : `Salary: ${recipient} (${MONTHS[m - 1]} ${y})`;
 
           if (payment.student) {
             await tx.income.create({
-              data: {
-                title: ledgerTitle,
-                amount: actualPaid,
-                category: "Tuition",
-                date: new Date(),
-                referenceType: "Payment",
-                referenceId: payment.id.toString()
-              }
+              data: { title: ledgerTitle, amount: actualPaid, category: "Tuition", date: new Date(), referenceType: "Payment", referenceId: payment.id!.toString() }
             });
           } else {
             await tx.expense.create({
-              data: {
-                title: ledgerTitle,
-                amount: actualPaid,
-                category: "Salary",
-                date: new Date(),
-                referenceType: "Payment",
-                referenceId: payment.id.toString()
-              }
+              data: { title: ledgerTitle, amount: actualPaid, category: "Salary", date: new Date(), referenceType: "Payment", referenceId: payment.id!.toString() }
             });
           }
 
-          // 3. Log the action
           await tx.auditLog.create({
             data: {
               action: "UPDATE",
               performedBy: "zbiba (AI)",
               entityType: "Payment",
-              entityId: payment.id.toString(),
+              entityId: payment.id!.toString(),
               description: isPartial 
                 ? `AI marked PARTIAL payment for ${recipient}. Paid ${actualPaid} DT, gap of ${gap} DT recorded as loss.`
                 : `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
               oldValues: payment as any,
-              newValues: { status: finalStatus, paidAmount: actualPaid, gap } as any,
               amount: actualPaid,
               type: payment.student ? "income" : "expense"
             }
