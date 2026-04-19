@@ -9,10 +9,16 @@ export type AICommand = {
 };
 
 export async function executeAICommand(command: AICommand) {
+  console.log("🚀 [AI_COMMAND] RECV:", JSON.stringify(command));
   try {
-    switch (command.type) {
+    const rawType = command.type || "UNKNOWN";
+    const type = rawType.toUpperCase().trim();
+
+    switch (type) {
+      case "RECORD_PAYMENT": // Resilience: Hallucination alias
       case "MARK_PAID": {
         const { studentId, teacherId, staffId, month, year, amount: paidAmount, deferredUntil, img } = command.data;
+        console.log(`🔍 [ACTION_QUERY] RecipientID=${studentId || teacherId || staffId}, Month=${month}, Year=${year}`);
         if (!month || !year) throw new Error("Missing month/year data");
         if (!studentId && !teacherId && !staffId) throw new Error("Missing recipient ID");
 
@@ -315,7 +321,8 @@ export async function executeAICommand(command: AICommand) {
       }
 
       default:
-        throw new Error("Unsupported AI command type");
+        console.error(`❌ [AI_COMMAND] UNSUPPORTED_TYPE: "${type}"`, command);
+        throw new Error(`Unsupported AI command type: "${type}"`);
     }
   } catch (error: any) {
     console.error("AI Command Execution Error:", error);

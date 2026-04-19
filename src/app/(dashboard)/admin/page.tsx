@@ -301,7 +301,11 @@ const AdminPage = async ({
           type: p.userType,
           name: p.student ? `${p.student.name} ${p.student.surname}` : (p.teacher || p.staff)?.name
         })),
-        auditTrail: recentAuditLogs.map(log => ({ action: log.action, desc: log.description, user: log.performedBy, time: log.timestamp }))
+        auditTrail: recentAuditLogs.map(log => ({ action: log.action, desc: log.description, user: log.performedBy, time: log.timestamp })),
+        uncollected: [
+          ...unpaidFees.map(f => ({ name: f.name, studentId: f.id, amount: f.amount, type: 'STUDENT' })),
+          ...unpaidEmployees.map(e => ({ name: e.name, id: e.id, amount: e.amount, type: e.type.toUpperCase() }))
+        ]
       },
       historicalTrends: trendData,
       academics: { overallAvg: (overallGradeAvg._avg.score || 0).toFixed(1) },

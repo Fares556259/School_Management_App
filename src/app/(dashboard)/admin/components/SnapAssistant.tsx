@@ -9,12 +9,15 @@ import { getChatResponse, upsertConversation, isAIQuotaReached } from '../action
 import { executeAICommand } from '../actions/crudActions';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/translations/LanguageContext';
-import { Lock } from 'lucide-react';
+import { Lock, CheckCircle, AlertTriangle, Trash2, Settings, Receipt, HandCoins, LineChart, Megaphone, Check } from 'lucide-react';
+import { AICommand } from '../actions/crudActions';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   image?: string;
+  command?: AICommand;
+  commandExecuted?: boolean;
 }
 
 interface SnapAssistantProps {
@@ -46,6 +49,61 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   const [isOpen, setIsOpen] = useState(initialOpen || fullPage);
   const [isLocked, setIsLocked] = useState(false);
   const [quota, setQuota] = useState(10);
+  const [pendingCommandId, setPendingCommandId] = useState<number | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+
+  const handleConfirmCommand = async (index: number) => {
+    const msg = messages[index];
+    if (!msg.command || isExecuting) return;
+
+    setIsExecuting(true);
+    setPendingCommandId(index);
+
+    try {
+      // Find the last image in history if needed for the command
+      let imgUrl = msg.image;
+      if (!imgUrl) {
+         const lastWithImage = [...messages.slice(0, index + 1)].reverse().find(m => m.image);
+         imgUrl = lastWithImage?.image;
+      }
+      
+      const finalCommand = {
+        ...msg.command,
+        type: msg.command.type.toUpperCase().trim() as any,
+        data: {
+          ...msg.command.data,
+          img: imgUrl || msg.command.data.img
+        }
+      };
+
+      const res = await executeAICommand(finalCommand);
+      
+      if (res.success) {
+        setMessages(prev => {
+          const newMsgs = [...prev];
+          newMsgs[index] = { ...newMsgs[index], commandExecuted: true };
+          return [...newMsgs, { role: 'assistant', content: `✅ **${t.zbiba.success}**: ${res.message}` }];
+        });
+        router.refresh();
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: `❌ **${t.zbiba.error}**: ${res.error}` }]);
+      }
+    } catch (err) {
+      console.error("Action confirmation error:", err);
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: Execution failed.` }]);
+    } finally {
+      setIsExecuting(false);
+      setPendingCommandId(null);
+    }
+  };
+
+  const handleCancelCommand = (index: number) => {
+    setMessages(prev => {
+      const newMsgs = [...prev];
+      newMsgs[index] = { ...newMsgs[index], commandExecuted: true }; // Mark as done to hide card
+      return [...newMsgs, { role: 'assistant', content: locale === "fr" ? "L'action a été annulée." : "Action has been cancelled." }];
+    });
+  };
 
   useEffect(() => {
     isAIQuotaReached().then(reached => {
@@ -185,7 +243,13 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
     }
 
     try {
-      const result = await getChatResponse(userMessage, context, imageBase64, locale, messages);
+      // Enrich context with current month/year view
+      const enrichedContext = {
+        ...context,
+        currentPeriod: { month, year }
+      };
+
+      const result = await getChatResponse(userMessage, enrichedContext, imageBase64, locale, messages);
 
       if (result.response) {
         // ... success logic ...
@@ -221,25 +285,33 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         }
         
         // HANDLE AI COMMANDS
-        if (result.command) {
-          setMessages(prev => [...prev, { role: 'assistant', content: `⚙️ *${t.zbiba.processing}: ${result.command.type}...*` }]);
+        if (result.command && result.command.type) {
+          // Normalization: Ensure type is clean before saving/sending
+          result.command.type = result.command.type.toUpperCase().trim();
           
-          if (uploadedUrl) {
-            result.command.data.img = uploadedUrl;
-          } else {
-            const lastImageMsg = [...messages].reverse().find(m => m.image);
-            if (lastImageMsg && lastImageMsg.image?.startsWith('http')) {
-               result.command.data.img = lastImageMsg.image;
-            }
-          }
+          const userMsgObj: Message = { 
+            role: 'user', 
+            content: userMessage || "Sent an image for analysis.",
+            image: uploadedUrl || undefined 
+          };
+          
+          const assistantMsgObj: Message = { 
+            role: 'assistant', 
+            content: result.response,
+            command: result.command 
+          };
+          
+          const newMessages = [...messages, userMsgObj, assistantMsgObj];
+          setMessages(newMessages);
 
-          const cmdResult = await executeAICommand(result.command);
-          if (cmdResult.success) {
-            setMessages(prev => [...prev, { role: 'assistant', content: `✅ **${t.zbiba.success}**: ${cmdResult.message}` }]);
-            router.refresh();
-          } else {
-            setMessages(prev => [...prev, { role: 'assistant', content: `❌ **${t.zbiba.error}**: ${cmdResult.error}` }]);
-          }
+          // PERSIST TO DATABASE
+          await upsertConversation({
+            id: currentSessionId === "new" ? undefined : currentSessionId,
+            title: currentSessionId === "new" ? (userMessage.substring(0, 30) + "...") : "Continued Conversation",
+            messages: newMessages,
+            month,
+            year
+          });
         }
       } else {
         if (result.error?.startsWith("DAILY_QUOTA_REACHED")) {
@@ -328,6 +400,16 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                         <div className="mt-4 rounded-2xl overflow-hidden border border-slate-100 shadow-sm relative min-h-[200px]">
                           <Image src={m.image} alt="Uploaded" fill className="object-contain bg-slate-50" />
                         </div>
+                      )}
+                      {m.command && !m.commandExecuted && (
+                        <ActionCard 
+                          command={m.command}
+                          locale={locale}
+                          isLoading={isExecuting && pendingCommandId === i}
+                          isExecuted={!!m.commandExecuted}
+                          onConfirm={() => handleConfirmCommand(i)}
+                          onCancel={() => handleCancelCommand(i)}
+                        />
                       )}
                   </div>
                 </div>
@@ -482,6 +564,17 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                               <Image src={m.image} alt="Uploaded" fill className="object-cover" />
                             </div>
                           )}
+                          {m.command && !m.commandExecuted && (
+                            <ActionCard 
+                              command={m.command}
+                              locale={locale}
+                              isLoading={isExecuting && pendingCommandId === i}
+                              isExecuted={!!m.commandExecuted}
+                              onConfirm={() => handleConfirmCommand(i)}
+                              onCancel={() => handleCancelCommand(i)}
+                              mini
+                            />
+                          )}
                       </div>
                     </div>
                   </motion.div>
@@ -601,6 +694,109 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         )}
       </motion.button>
     </div>
+  );
+};
+
+interface ActionCardProps {
+  command: AICommand;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+  isExecuted: boolean;
+  locale: string;
+  mini?: boolean;
+}
+
+const ActionCard: React.FC<ActionCardProps> = ({ 
+  command, 
+  onConfirm, 
+  onCancel, 
+  isLoading, 
+  isExecuted,
+  locale,
+  mini = false
+}) => {
+  const getInfo = () => {
+    const rawType = command.type || "UNKNOWN";
+    const type = rawType.toUpperCase().trim();
+    
+    // Resilience: Map common hallucinations to internal keys
+    const mappedType = 
+       (type.includes("PAYMENT") || type.includes("PAID")) ? "MARK_PAID" :
+       (type.includes("EXPENSE")) ? "ADD_EXPENSE" :
+       (type.includes("INCOME")) ? "ADD_INCOME" :
+       (type.includes("NOTICE") || type.includes("ANNOUNCE")) ? "POST_NOTICE" :
+       (type.includes("GRADE") || type.includes("MARK") || type.includes("RESULT")) ? "RECORD_GRADES" :
+       type;
+
+    switch(mappedType) {
+      case "MARK_PAID": return { icon: HandCoins, color: "emerald", label: locale === "fr" ? "Confirmer Paiement" : "Confirm Payment" };
+      case "ADD_EXPENSE": return { icon: Receipt, color: "rose", label: locale === "fr" ? "Enregistrer Dépense" : "Record Expense" };
+      case "ADD_INCOME": return { icon: HandCoins, color: "emerald", label: locale === "fr" ? "Enregistrer Revenu" : "Record Income" };
+      case "POST_NOTICE": return { icon: Megaphone, color: "amber", label: locale === "fr" ? "Publier l'Annonce" : "Post Announcement" };
+      case "RECORD_GRADES": return { icon: LineChart, color: "indigo", label: locale === "fr" ? "Enregistrer les Notes" : "Record Grades" };
+      default: return { icon: Settings, color: "slate", label: `${locale === "fr" ? "Confirmer Action" : "Confirm Action"} (${rawType})` };
+    }
+  };
+
+  const info = getInfo();
+  const Icon = info.icon;
+
+  if (isExecuted) return null;
+
+  const colorMap: Record<string, string> = {
+    emerald: "emerald",
+    rose: "rose",
+    amber: "amber",
+    indigo: "indigo",
+    slate: "slate"
+  };
+
+  const c = colorMap[info.color] || "slate";
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`mt-4 bg-${c}-50 border border-${c}-100 rounded-2xl p-4 shadow-sm overflow-hidden`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`p-2 bg-white rounded-xl text-${c}-600 shadow-sm border border-${c}-50`}>
+          <Icon size={mini ? 16 : 20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className={`text-[10px] sm:text-xs font-black text-${c}-900 uppercase tracking-tight`}>{info.label}</h4>
+          <div className="mt-2 text-[10px] sm:text-xs text-slate-600 font-medium space-y-1 overflow-hidden">
+             {Object.entries(command.data).map(([key, val]: [string, any]) => (
+               key !== 'img' && <div key={key} className="flex justify-between border-b border-dashed border-slate-200 pb-1 gap-2">
+                 <span className="text-slate-400 capitalize shrink-0">{key}:</span>
+                 <span className="font-bold truncate">{typeof val === 'object' ? JSON.stringify(val) : val}</span>
+               </div>
+             ))}
+          </div>
+          
+          <div className="mt-4 flex gap-2">
+            <button 
+              onClick={onConfirm}
+              disabled={isLoading}
+              className={`flex-1 py-2 rounded-xl bg-${c}-600 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-${c}-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-${c}-100 disabled:opacity-50 active:scale-95`}
+            >
+              {isLoading ? (
+                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : <Check size={14} />}
+              {locale === "fr" ? "Confirmer" : "Confirm"}
+            </button>
+            <button 
+              onClick={onCancel}
+              disabled={isLoading}
+              className="px-3 sm:px-4 py-2 rounded-xl bg-white text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-50 active:scale-95"
+            >
+              {locale === "fr" ? "Annuler" : "Cancel"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

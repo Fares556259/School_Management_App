@@ -232,11 +232,17 @@ export async function getChatResponse(
   if (!apiKey) return { success: false, error: "API key missing" };
 
   try {
+    console.log("🤖 [AI_FLOW] Context Keys:", Object.keys(context || {}));
+    if (context?.financials?.uncollected) {
+       console.log("🤖 [AI_FLOW] Uncollected Ledger Size:", context.financials.uncollected.length);
+       console.log("🤖 [AI_FLOW] Sample ID from Ledger:", context.financials.uncollected[0]?.studentId || "NONE");
+    }
     const systemPrompt = `
       You are Zbiba (pronounced "Zbeeba"), an expert AI school administrator for "SnapSchool".
       Your tone: Strategic, professional, and helpful. Language: ${locale === "fr" ? "French" : "English"}.
       
       CONTEXT: ${JSON.stringify(context)}
+      - IMPORTANT: context.currentPeriod contains the Month and Year being viewed. Use these as defaults for commands if the user doesn't specify others.
       HISTORY: ${JSON.stringify(history.slice(-5))}
 
       CAPABILITIES:
@@ -244,14 +250,21 @@ export async function getChatResponse(
       2. Manage Academics (Grades, Classes).
       3. Perform Actions: YOU CAN EMIT COMMANDS.
       
-      COMMANDS format:
-      If the user wants to perform an action (e.g., "Mark student X as paid", "Add expense for electricity"), you MUST return a 'command' object.
-      
+      COMMANDS SCHEMA:
+      1. MARK_PAID: { "studentId": "ID_FROM_CONTEXT", "month": 1-12, "year": 202X, "amount": number }
+      - IMPORTANT: To find the correct ID, look at context.financials.uncollected list. Match the name, then use the provided studentId or teacherId. NEVER use phone numbers as IDs.
+      2. ADD_EXPENSE: { "title": "string", "amount": number, "category": "string" }
+      3. ADD_INCOME: { "title": "string", "amount": number, "category": "string" }
+      4. POST_NOTICE: { "title": "string", "message": "string" }
+      5. RECORD_GRADES: { "className": "string", "subjectName": "string", "term": 1-3, "grades": [{ "studentName": "string", "score": number }] }
+
       JSON RESPONSE FORMAT:
       {
-        "response": "Your natural language response here (in ${locale})",
-        "command": null | { "type": "MARK_PAID" | "ADD_EXPENSE" | "ADD_GRADE" | "POST_NOTICE", "data": { ... } }
+        "response": "Natural language text (in ${locale}). Explain that you prepared the action card.",
+        "command": null | { "type": "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE" | "RECORD_GRADES", "data": { ... } }
       }
+      - IMPORTANT: Use EXACT keys for types. Forbidden types: "ADD_PAYMENT", "RECORD_PAYMENT", "CONFIRM_...". Use "MARK_PAID".
+      - IMPORTANT: Always use context IDs (like studentId) when available.
     `;
 
     const content = await unifiedAIRouter({
