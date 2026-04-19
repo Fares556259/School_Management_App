@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import SearchableSelect from "./SearchableSelect";
 import {
   createTeacher, updateTeacher, deleteTeacher,
   createStudent, updateStudent, deleteStudent,
@@ -42,18 +43,15 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "salary", label: "Salary ($)", type: "number" },
   ],
   student: [
-    { name: "username", label: "Username", type: "text", required: true },
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
     { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", type: "text" },
     { name: "address", label: "Address", type: "text", required: true },
-    { name: "bloodType", label: "Blood Type", type: "text", required: true },
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "parentId", label: "Parent", type: "select", required: true },
+    { name: "parentId", label: "Parent", type: "searchable-select", required: true },
     { name: "classId", label: "Class", type: "select", required: true, parseAsNumber: true },
-    { name: "levelId", label: "Level", type: "select", required: true, parseAsNumber: true },
     { name: "img", label: "Profile Photo", type: "image" },
   ],
   staff: [
@@ -70,7 +68,6 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "salary", label: "Salary ($)", type: "number" },
   ],
   parent: [
-    { name: "username", label: "Username", type: "text", required: true },
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
     { name: "email", label: "Email", type: "email" },
@@ -186,7 +183,7 @@ export default function CrudFormModal({
 
   // Merge dynamic relatedData options into field definitions
   const fields = entityFields[entity].map((f) => {
-    if (relatedData && relatedData[f.name] && f.type === "select" && !f.options) {
+    if (relatedData && relatedData[f.name] && (f.type === "select" || f.type === "searchable-select") && !f.options) {
       return { ...f, options: relatedData[f.name] };
     }
     return f;
@@ -219,11 +216,9 @@ export default function CrudFormModal({
           const studentList = students.map((s, index) => ({
             name: formData.get(`student-${index}-name`),
             surname: formData.get(`student-${index}-surname`),
-            username: formData.get(`student-${index}-username`),
             sex: formData.get(`student-${index}-sex`),
             birthday: formData.get(`student-${index}-birthday`),
             classId: formData.get(`student-${index}-classId`),
-            levelId: formData.get(`student-${index}-levelId`),
             bloodType: "O+", // Default for speed
           }));
 
@@ -421,6 +416,14 @@ export default function CrudFormModal({
                               </div>
                             )}
                           </div>
+                        ) : f.type === "searchable-select" ? (
+                          <SearchableSelect
+                            name={f.name}
+                            options={f.options || []}
+                            defaultValue={data?.[f.name]}
+                            required={f.required}
+                            placeholder={`Search ${f.label}...`}
+                          />
                         ) : (
                           <input
                             name={f.name}
@@ -520,27 +523,6 @@ export default function CrudFormModal({
                                     <option key={o.value} value={o.value}>{o.label}</option>
                                   ))}
                                 </select>
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Level *</label>
-                                <select
-                                  name={`student-${index}-levelId`}
-                                  required
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                                >
-                                  <option value="">Select Level...</option>
-                                  {relatedData?.levelId?.map(o => (
-                                    <option key={o.value} value={o.value}>{o.label}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="sm:col-span-2">
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Username (Optional)</label>
-                                <input
-                                  name={`student-${index}-username`}
-                                  placeholder="Leave empty for auto-generation"
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                                />
                               </div>
                             </div>
                           </div>

@@ -156,16 +156,27 @@ export const createStudent = async (data: {
   email?: string;
   phone?: string;
   address: string;
-  bloodType: string;
+  bloodType?: string;
   birthday: string;
   sex: "MALE" | "FEMALE";
   parentId: string;
   classId: number;
-  levelId: number;
+  levelId?: number;
   img?: string | null;
 }) => {
   try {
     const id = crypto.randomUUID();
+
+    // Auto-fetch levelId from class if not provided
+    let finalLevelId = data.levelId;
+    if (!finalLevelId || finalLevelId === 0) {
+      const targetClass = await prisma.class.findUnique({
+        where: { id: data.classId },
+        select: { levelId: true }
+      });
+      finalLevelId = targetClass?.levelId || 1;
+    }
+
     await prisma.student.create({
       data: {
         id,
@@ -175,12 +186,12 @@ export const createStudent = async (data: {
         email: data.email || null,
         phone: data.phone || null,
         address: data.address,
-        bloodType: data.bloodType,
+        bloodType: data.bloodType || "O+",
         birthday: new Date(data.birthday),
         sex: data.sex,
         parentId: data.parentId,
         classId: data.classId,
-        levelId: data.levelId,
+        levelId: finalLevelId,
         img: data.img || null,
       },
     });
@@ -279,13 +290,23 @@ export const updateStudent = async (
     sex: "MALE" | "FEMALE";
     parentId: string;
     classId: number;
-    levelId: number;
+    levelId?: number;
     img: string | null;
   }>
 ) => {
   try {
     const updateData: any = { ...data };
     if (data.birthday) updateData.birthday = new Date(data.birthday);
+
+    // Auto-update levelId if classId changed
+    if (data.classId) {
+      const targetClass = await prisma.class.findUnique({
+        where: { id: data.classId },
+        select: { levelId: true }
+      });
+      if (targetClass) updateData.levelId = targetClass.levelId;
+    }
+
     await prisma.student.update({ where: { id }, data: updateData });
     await createAuditLog({
       action: "UPDATE_STUDENT",
@@ -936,10 +957,14 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
       });
 
       if (!parent) {
+        // Generate a clean username if not provided
+        const genUsername = parentData.username || 
+          `${parentData.name.toLowerCase()}.${parentData.surname.toLowerCase()}.${parentData.phone.slice(-4)}`;
+          
         parent = await tx.parent.create({
           data: {
             id: crypto.randomUUID(),
-            username: parentData.username || parentData.phone,
+            username: genUsername,
             name: parentData.name,
             surname: parentData.surname,
             email: parentData.email || null,
@@ -952,10 +977,19 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
 
       // 2. Create Students
       for (const child of children) {
+        // Auto-fetch levelId from class
+        const targetClass = await tx.class.findUnique({
+          where: { id: parseInt(child.classId) },
+          select: { levelId: true }
+        });
+
+        const studentUsername = child.username || 
+          `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
+
         await tx.student.create({
           data: {
             id: crypto.randomUUID(),
-            username: child.username || `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`,
+            username: studentUsername,
             name: child.name,
             surname: child.surname,
             email: child.email || null,
@@ -966,7 +1000,7 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             sex: child.sex,
             parentId: parent.id,
             classId: parseInt(child.classId),
-            levelId: parseInt(child.levelId),
+            levelId: targetClass?.levelId || 1,
             img: child.img || null,
           }
         });

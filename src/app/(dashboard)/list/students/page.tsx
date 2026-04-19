@@ -29,11 +29,6 @@ const columns = [
     className: "hidden md:table-cell",
   },
   {
-    header: "Level",
-    accessor: "level",
-    className: "hidden md:table-cell",
-  },
-  {
     header: "Phone",
     accessor: "phone",
     className: "hidden lg:table-cell",
@@ -130,7 +125,6 @@ const StudentListPage = async ({
           </div>
         </td>
         <td className="hidden md:table-cell">{item.username}</td>
-        <td className="hidden md:table-cell">{item.level.level}</td>
         <td className="hidden md:table-cell">{item.phone}</td>
         <td className="hidden md:table-cell">{item.address}</td>
         <td>
