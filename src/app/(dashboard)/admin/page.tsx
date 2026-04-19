@@ -173,7 +173,8 @@ const AdminPage = async ({
     allSubjects, 
     histIncome, 
     histExpense,
-    allStudents
+    allStudents,
+    currentMonthStudentPayments
   ] = await Promise.all([
     prisma.payment.findMany({ 
       take: 500, orderBy: { paidAt: 'desc' }, where: { status: 'PAID' }, 
@@ -197,7 +198,23 @@ const AdminPage = async ({
       by: ['date'], _sum: { amount: true },
       where: { date: { gte: twelveMonthsAgo } }
     }),
-    prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.student.findMany({ 
+      select: { 
+        id: true, 
+        name: true, 
+        surname: true, 
+        parent: { select: { phone: true } },
+        level: { select: { tuitionFee: true } }
+      } 
+    }),
+    prisma.payment.findMany({
+      where: { 
+        month: startDate.getMonth() + 1, 
+        year: startDate.getFullYear(), 
+        userType: "STUDENT" 
+      },
+      select: { studentId: true, status: true, amount: true }
+    })
   ]);
 
   const studentCensusData = allStudents.map(s => ({ id: s.id, name: `${s.name} ${s.surname}` }));
@@ -208,8 +225,6 @@ const AdminPage = async ({
   const studentLedger: any[] = [];
   const classAverages: any[] = [];
   const teacherWorkload: any[] = [];
-
-  // AI context mapping removed for stability
 
   // 2. AGGREGATES & CALCULATIONS
   const currentIncome = (incomeStats._sum.amount || 0) + (studentPaymentsStats._sum.amount || 0);
@@ -281,15 +296,34 @@ const AdminPage = async ({
 
   const fullBreakdown = [...incomeBreakdown, ...expenseBreakdown];
 
-  // Unpaid Processing
-  const unpaidAmount = unpaidPayments.reduce((acc, p) => acc + p.amount, 0);
-  const unpaidFees = unpaidPayments.filter(p => p.userType === "STUDENT" && p.student).map(p => ({
-    id: p.student!.id,
-    name: `${p.student!.name} ${p.student!.surname}`,
-    amount: p.amount,
-    type: 'student' as const,
-    phone: p.student!.parent?.phone || undefined
-  }));
+  // Unpaid Processing REFACTORED
+  const studentsWithPaidStatus = new Set(
+    currentMonthStudentPayments
+      .filter(p => p.status === "PAID" || p.status === "PARTIAL")
+      .map(p => p.studentId)
+  );
+
+  const pendingStudentPaymentsMap = new Map(
+    currentMonthStudentPayments
+      .filter(p => p.status === "PENDING")
+      .map(p => [p.studentId, p.amount])
+  );
+
+  const missingFees = allStudents
+    .filter(s => !studentsWithPaidStatus.has(s.id))
+    .map(s => {
+      const studentLevel = (s as any).level;
+      return {
+        id: s.id,
+        name: `${s.name} ${s.surname}`,
+        amount: pendingStudentPaymentsMap.get(s.id) || (studentLevel?.tuitionFee ?? 450), 
+        type: 'student' as const,
+        phone: s.parent?.phone || undefined
+      };
+    });
+
+  const unpaidFees = missingFees;
+  const unpaidAmountFees = unpaidFees.reduce((acc, f) => acc + f.amount, 0);
 
   const unpaidEmployees = unpaidPayments.filter(p => ["TEACHER", "STAFF"].includes(p.userType) && (p.teacher || p.staff)).map(p => {
     const entity = p.teacher || p.staff;
@@ -301,11 +335,14 @@ const AdminPage = async ({
       phone: (p.teacher?.phone || p.staff?.phone) || undefined
     };
   });
+  const unpaidAmountEmployees = unpaidEmployees.reduce((acc, e) => acc + e.amount, 0);
+
+  const finalUnpaidAmount = unpaidAmountFees + unpaidAmountEmployees;
 
   const dashboardContext = {
     month: MONTHS[startDate.getMonth()],
     year: startDate.getFullYear(),
-    metrics: { income: currentIncome, expense: currentExpense, balance: currentBalance, unpaid: unpaidAmount },
+    metrics: { income: currentIncome, expense: currentExpense, balance: currentBalance, unpaid: finalUnpaidAmount },
     census: { students: studentCount, teachers: teacherCount, staff: staffCount, classes: classCount },
     studentCensus: studentCensusData,
     financials: {
@@ -319,17 +356,24 @@ const AdminPage = async ({
         })),
         auditTrail: recentAuditLogs.map(log => ({ action: log.action, desc: log.description, user: log.performedBy, time: log.timestamp })),
         uncollected: [
-          ...unpaidPayments.map(f => ({ 
-            name: f.student ? `${f.student.name} ${f.student.surname}` : (f.teacher || f.staff)?.name || "Unknown", 
-            studentId: f.studentId,
-            teacherId: f.teacherId,
-            staffId: f.staffId,
+          ...unpaidFees.map(f => ({ 
+            name: f.name, 
+            studentId: f.id,
             amount: f.amount, 
-            month: f.month,
-            year: f.year,
-            type: f.userType,
+            month: startDate.getMonth() + 1,
+            year: startDate.getFullYear(),
+            type: "STUDENT",
             status: "Pending"
           })),
+          ...unpaidEmployees.map(e => ({
+            name: e.name,
+            staffId: e.id,
+            amount: e.amount,
+            month: startDate.getMonth() + 1,
+            year: startDate.getFullYear(),
+            type: e.type.toUpperCase(),
+            status: "Pending"
+          }))
         ],
         paidHistory: [
           ...recentPaidPayments.map(p => ({

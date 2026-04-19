@@ -51,7 +51,8 @@ const ExamListPage = async ({
   const classes = await prisma.class.findMany({
     include: {
         level: true
-    }
+    },
+    orderBy: { name: 'asc' }
   });
   const teachers = await prisma.teacher.findMany();
   const subjects = await prisma.subject.findMany();

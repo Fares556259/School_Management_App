@@ -140,8 +140,14 @@ const ParentListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.parent.count({ where: query }),
-    prisma.class.findMany({ select: { id: true, name: true } }),
-    prisma.level.findMany({ select: { id: true, level: true } }),
+    prisma.class.findMany({ 
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' }
+    }),
+    prisma.level.findMany({ 
+      select: { id: true, level: true },
+      orderBy: { level: 'asc' }
+    }),
   ]);
 
   const relatedData = {

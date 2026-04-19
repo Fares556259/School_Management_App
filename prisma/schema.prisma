@@ -114,9 +114,10 @@ model Level {
   id       Int       @id @default(autoincrement())
   level    Int
   schoolId String    @default("default_school")
-  classes  Class[]
-  School   School    @relation(fields: [schoolId], references: [id])
-  students Student[]
+  classes     Class[]
+  School      School    @relation(fields: [schoolId], references: [id])
+  students    Student[]
+  tuitionFee  Float     @default(450)
 
   @@unique([level, schoolId])
 }

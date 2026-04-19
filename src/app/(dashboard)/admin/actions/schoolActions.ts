@@ -167,3 +167,184 @@ export async function updateSchoolConfig(data: any) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getLevelTuitionFees() {
+  try {
+    const schoolId = "default_school";
+    
+    // Ensure levels 1-6 exist by default
+    const standardLevels = [1, 2, 3, 4, 5, 6];
+    await Promise.all(standardLevels.map(lvl => 
+      prisma.level.upsert({
+        where: { level_schoolId: { level: lvl, schoolId } },
+        update: {},
+        create: { level: lvl, tuitionFee: 450, schoolId }
+      })
+    ));
+
+    const levels = await prisma.level.findMany({
+      select: {
+        id: true,
+        level: true,
+        tuitionFee: true,
+        classes: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: { level: 'asc' }
+    });
+    return { success: true, data: levels };
+  } catch (error: any) {
+    console.error("Error fetching level fees:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateLevelTuitionFee(id: number, fee: number) {
+  try {
+    const updated = await prisma.level.update({
+      where: { id },
+      data: { tuitionFee: fee }
+    });
+    revalidatePath("/settings");
+    revalidatePath("/admin");
+    return { success: true, data: updated };
+  } catch (error: any) {
+    console.error("Error updating level fee:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getLevels() {
+  try {
+    const levels = await prisma.level.findMany({
+      select: { id: true, level: true }
+    });
+    return { success: true, data: levels };
+  } catch (error: any) {
+    console.error("Error fetching levels:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function addLevel(level: number, tuitionFee: number) {
+  try {
+    const newLevel = await prisma.level.create({
+      data: {
+        level: level,
+        tuitionFee: tuitionFee,
+        schoolId: "default_school"
+      }
+    });
+    revalidatePath("/settings");
+    revalidatePath("/admin");
+    return { success: true, data: newLevel };
+  } catch (error: any) {
+    console.error("Error adding level:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function syncLevelVariations(levelId: number, count: number) {
+  try {
+    const level = await prisma.level.findUnique({
+      where: { id: levelId },
+      select: { level: true, schoolId: true }
+    });
+
+    if (!level) throw new Error("Level not found");
+
+    const targetNames = Array.from({ length: count }, (_, i) => 
+      `${level.level}${String.fromCharCode(65 + i)}`
+    );
+
+    // 1. Create/Update variations
+    for (const name of targetNames) {
+      await prisma.class.upsert({
+        where: {
+          name_schoolId: {
+            name: name,
+            schoolId: level.schoolId
+          }
+        },
+        update: {
+          levelId: levelId // Ensure it belongs to this level
+        },
+        create: {
+          name,
+          levelId,
+          schoolId: level.schoolId,
+          capacity: 30
+        }
+      });
+    }
+
+    // 2. Identify and attempt to remove excess variations (only if count < current)
+    const currentVariations = await prisma.class.findMany({
+      where: { levelId },
+      include: {
+        _count: {
+          select: {
+            students: true,
+            lessons: true,
+            timetable: true
+          }
+        }
+      }
+    });
+
+    let errors: string[] = [];
+    for (const cls of currentVariations) {
+      if (!targetNames.includes(cls.name)) {
+        // This class is no longer in the target set
+        if (cls._count.students > 0 || cls._count.lessons > 0 || cls._count.timetable > 0) {
+          errors.push(`Cannot remove class ${cls.name}: It has active students or scheduled lessons.`);
+        } else {
+          await prisma.class.delete({ where: { id: cls.id } });
+        }
+      }
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/admin");
+    return { success: true, errors: errors.length > 0 ? errors : null };
+  } catch (error: any) {
+    console.error("Error syncing variations:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteClass(id: number) {
+  try {
+    await prisma.class.delete({
+      where: { id }
+    });
+    revalidatePath("/settings");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting class:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function addSettingsClass(data: { name: string, levelId: number }) {
+  try {
+    const newClass = await prisma.class.create({
+      data: {
+        name: data.name,
+        levelId: data.levelId,
+        capacity: 30, // Default capacity
+      }
+    });
+    revalidatePath("/settings");
+    revalidatePath("/admin");
+    return { success: true, data: newClass };
+  } catch (error: any) {
+    console.error("Error creating class from settings:", error);
+    return { success: false, error: error.message };
+  }
+}

@@ -15,28 +15,65 @@ import {
   Trash2,
   DoorOpen,
   Hash,
-  Save
+  Save,
+  HandCoins,
+  Search,
+  X,
+  Columns
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getSchoolConfig, updateSchoolConfig } from "../admin/actions/schoolActions";
 import { 
-  getRooms, addRoom, deleteRoom, updateRoom
+  getSchoolConfig, 
+  updateSchoolConfig,
+  getLevelTuitionFees,
+  updateLevelTuitionFee,
+  getLevels,
+  addSettingsClass,
+  addLevel,
+  deleteClass,
+  syncLevelVariations
+} from "../admin/actions/schoolActions";
+import { 
+  getRooms, 
+  addRoom, 
+  deleteRoom, 
+  updateRoom 
 } from "../admin/actions/infrastructureActions";
 
 const SettingsPage = () => {
   const router = useRouter();
   const [config, setConfig] = useState<any>(null);
+  const [levelFees, setLevelFees] = useState<any[]>([]);
+  const [levels, setLevels] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [originalConfig, setOriginalConfig] = useState<any>(null);
+  const [originalLevelFees, setOriginalLevelFees] = useState<any[]>([]);
+  const [originalVariationCounts, setOriginalVariationCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // New Level Form State
+  const [isAddingLevel, setIsAddingLevel] = useState(false);
+  const [nextLevelNumber, setNextLevelNumber] = useState<number>(0);
+  const [nextLevelFee, setNextLevelFee] = useState<number>(450);
+
+  // Variation sync state
+  const [variationCounts, setVariationCounts] = useState<Record<number, number>>({});
+
+  // New Class Form State
+  const [isAddingClass, setIsAddingClass] = useState(false);
+  const [newClassName, setNewClassName] = useState("");
+  const [newClassLevel, setNewClassLevel] = useState<number>(0);
+  const [newClassFee, setNewClassFee] = useState<number>(450);
+
   useEffect(() => {
     Promise.all([
       getSchoolConfig(),
-      getRooms()
-    ]).then(([configRes, roomsRes]) => {
+      getRooms(),
+      getLevelTuitionFees(),
+      getLevels()
+    ]).then(([configRes, roomsRes, feesRes, levelsRes]) => {
       if (configRes.success && configRes.data) {
         let sessions = configRes.data.sessions;
         if (typeof sessions === 'string') {
@@ -51,10 +88,73 @@ const SettingsPage = () => {
       }
       
       if (roomsRes.success) setRooms(roomsRes.data);
+      if (feesRes.success) {
+        setLevelFees(feesRes.data);
+        setOriginalLevelFees(JSON.parse(JSON.stringify(feesRes.data)));
+        // Default next level number
+        const maxLevel = feesRes.data.reduce((max: number, l: any) => Math.max(max, l.level), 0);
+        setNextLevelNumber(maxLevel + 1);
+
+        // Initialize variation counts
+        const counts: Record<number, number> = {};
+        feesRes.data.forEach((lvl: any) => {
+          counts[lvl.id] = Array.isArray(lvl.classes) ? lvl.classes.length : 0;
+        });
+        setVariationCounts(counts);
+        setOriginalVariationCounts(JSON.parse(JSON.stringify(counts)));
+      }
+      if (levelsRes.success) {
+        setLevels(levelsRes.data);
+        if (levelsRes.data.length > 0) setNewClassLevel(levelsRes.data[0].id);
+      }
       
       setLoading(false);
     });
   }, []);
+
+  const handleAddLevel = async () => {
+    if (!nextLevelNumber) return;
+    
+    setSaving(true);
+    const res = await addLevel(nextLevelNumber, nextLevelFee);
+    
+    if (res.success) {
+      setLevelFees([...levelFees, res.data].sort((a,b) => a.level - b.level));
+      setIsAddingLevel(false);
+      setNextLevelNumber(nextLevelNumber + 1);
+      setMessage({ type: 'success', text: `Level ${nextLevelNumber} added!` });
+    } else {
+      setMessage({ type: 'error', text: res.error || "Failed to add level" });
+    }
+    setSaving(false);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleUpdateLevelFee = (id: number, value: string) => {
+    const fee = parseFloat(value);
+    if (isNaN(fee)) return;
+    
+    // Update local state (Save button will detect change)
+    setLevelFees(prev => prev.map(l => l.id === id ? { ...l, tuitionFee: fee } : l));
+  };
+
+  const handleDeleteClass = async (id: number) => {
+    // Optimistic UI update
+    setLevelFees(prev => prev.map(l => ({
+      ...l,
+      classes: l.classes?.filter((c: any) => c.id !== id)
+    })));
+
+    const res = await deleteClass(id);
+    if (!res.success) {
+      setMessage({ type: 'error', text: `Failed to delete class: ${res.error}` });
+      // Re-fetch to sync if failed
+      getLevelTuitionFees().then(res => {
+         if (res.success) setLevelFees(res.data);
+      });
+    }
+  };
+
 
   const handleAddRoom = async () => {
     const nextNum = rooms.length + 1;
@@ -71,29 +171,87 @@ const SettingsPage = () => {
     }
   };
 
+  const handleSyncVariations = async (levelId: number) => {
+    setSaving(true);
+    const count = variationCounts[levelId] || 1;
+    const res = await syncLevelVariations(levelId, count);
+    
+    if (res.success) {
+      if (res.errors) {
+        setMessage({ type: 'error', text: res.errors.join(" ") });
+      } else {
+        setMessage({ type: 'success', text: "Academic structure updated!" });
+      }
+      // Refresh fees to update chips
+      getLevelTuitionFees().then(res => {
+        if (res.success) setLevelFees(res.data);
+      });
+    } else {
+      setMessage({ type: 'error', text: res.error || "Failed to sync Variations" });
+    }
+    setSaving(false);
+    setTimeout(() => setMessage(null), 5000);
+  };
+
   const handleUpdateRoom = async (id: number, value: string) => {
     // Optimistic update
     setRooms(rooms.map(r => r.id === id ? { ...r, name: value } : r));
     await updateRoom(id, value);
   };
 
-  const hasChanges = config && originalConfig && JSON.stringify(config) !== JSON.stringify(originalConfig);
+  const hasTuitionChanges = JSON.stringify(levelFees) !== JSON.stringify(originalLevelFees);
+  const hasVariationChanges = JSON.stringify(variationCounts) !== JSON.stringify(originalVariationCounts);
+  
+  const hasChanges = (config && originalConfig && JSON.stringify(config) !== JSON.stringify(originalConfig)) || 
+                     hasTuitionChanges || 
+                     hasVariationChanges;
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
     
-    const res = await updateSchoolConfig(config);
-    if (res.success) {
-      setMessage({ type: 'success', text: 'Settings updated successfully!' });
-      setOriginalConfig(JSON.parse(JSON.stringify(config))); // Update original to current
-      router.refresh(); // Sync sidebar/layout immediately
-    } else {
-      setMessage({ type: 'error', text: res.error || 'Failed to update settings.' });
+    try {
+      // 1. Save standard school config
+      const configRes = await updateSchoolConfig(config);
+      if (!configRes.success) throw new Error(configRes.error || "Failed to update school config");
+
+      // 2. Save Tuition Fee changes
+      if (hasTuitionChanges) {
+        for (const lvl of levelFees) {
+          const originalLvl = originalLevelFees.find(o => o.id === lvl.id);
+          if (originalLvl && originalLvl.tuitionFee !== lvl.tuitionFee) {
+            const res = await updateLevelTuitionFee(lvl.id, lvl.tuitionFee);
+            if (!res.success) throw new Error(`Failed to update fee for Level ${lvl.level}: ${res.error}`);
+          }
+        }
+      }
+
+      // 3. Save Variation changes (Sync)
+      if (hasVariationChanges) {
+        for (const [levelId, count] of Object.entries(variationCounts)) {
+          const id = parseInt(levelId);
+          if (originalVariationCounts[id] !== count) {
+            const res = await syncLevelVariations(id, count);
+            if (!res.success) throw new Error(`Failed to sync variations for level: ${res.error}`);
+          }
+        }
+      }
+
+      setMessage({ type: 'success', text: 'All settings updated successfully!' });
+      
+      // Update original states to current
+      setOriginalConfig(JSON.parse(JSON.stringify(config)));
+      setOriginalLevelFees(JSON.parse(JSON.stringify(levelFees)));
+      setOriginalVariationCounts(JSON.parse(JSON.stringify(variationCounts)));
+      
+      router.refresh();
+    } catch (error: any) {
+      console.error("Save error:", error);
+      setMessage({ type: 'error', text: error.message || 'Failed to update settings.' });
     }
-    setSaving(false);
     
+    setSaving(false);
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -186,6 +344,7 @@ const SettingsPage = () => {
       <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
+
 
   return (
     <div className="flex-1 p-8 bg-[#F7F8FA] overflow-y-auto">
@@ -351,7 +510,108 @@ const SettingsPage = () => {
             </div>
           </div>
 
+          {/* TUITION FEES PER LEVEL */}
+          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
+              <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                <div className="flex items-center gap-2">
+                  <HandCoins className="text-emerald-600" size={18} />
+                  <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Tuition Fees per Academic Level</h2>
+                </div>
+              </div>
+            </div>
 
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {levelFees.map((lvl: any) => (
+                <div 
+                  key={lvl.id}
+                  className="flex flex-col gap-4 p-5 bg-slate-50 border border-slate-100 rounded-[24px] group hover:border-emerald-200 hover:bg-emerald-50/5 transition-all shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Primary</span>
+                      <span className="text-sm font-black text-slate-700">Level {lvl.level}</span>
+                    </div>
+                    <div className="relative max-w-[100px]">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">$</span>
+                      <input 
+                        type="number"
+                        className="w-full bg-white border border-slate-100 rounded-lg pl-6 pr-2 py-1.5 text-xs font-black text-slate-800 focus:outline-none focus:border-emerald-500 transition-all text-right"
+                        value={lvl.tuitionFee}
+                        onChange={(e) => handleUpdateLevelFee(lvl.id, e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* CLASS VARIATIONS (A, B, C...) */}
+                  <div className="flex flex-wrap gap-2 mt-auto">
+                     {lvl.classes?.map((cls: any) => (
+                        <div key={cls.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-500 shadow-sm group/chip hover:border-emerald-200 transition-all">
+                           <span>{cls.name}</span>
+                           <button 
+                             onClick={() => handleDeleteClass(cls.id)}
+                             className="text-slate-300 hover:text-rose-500 transition-colors"
+                           >
+                             <X size={10} />
+                           </button>
+                        </div>
+                     ))}
+                  </div>
+                </div>
+              ))}
+              
+              {levelFees.length === 0 && !isAddingLevel && (
+                <div className="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[32px] gap-3 bg-slate-50/25">
+                   <div className="p-3 bg-white rounded-2xl text-slate-200 shadow-sm">
+                     <AlertCircle size={24} />
+                   </div>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pricing data not initialized</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ACADEMIC STRUCTURE & VARIATIONS */}
+          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Columns className="text-blue-600" size={18} />
+              <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Academic Structure & Variations</h2>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {levelFees.map((lvl: any) => (
+                <div key={lvl.id} className="flex items-center justify-between p-5 bg-slate-50 border border-slate-100 rounded-[24px] hover:border-blue-100 hover:bg-blue-50/10 transition-all shadow-sm">
+                   <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Primary Grade</span>
+                      <span className="text-sm font-black text-slate-700">Level {lvl.level}</span>
+                   </div>
+                   
+                   <div className="flex items-center gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Variations (A-Z)</label>
+                        <input 
+                          type="number"
+                          min={0}
+                          max={26}
+                          className="w-20 bg-white border border-slate-100 rounded-xl px-3 py-2 text-sm font-black text-slate-700 focus:outline-none focus:border-blue-500 transition-all text-center"
+                          value={variationCounts[lvl.id] !== undefined ? variationCounts[lvl.id] : 0}
+                          onChange={e => setVariationCounts({...variationCounts, [lvl.id]: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleSyncVariations(lvl.id)}
+                        disabled={saving}
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-blue-200/50 disabled:opacity-50 h-[40px]"
+                      >
+                        {saving ? 'Syncing...' : 'Sync Variations'}
+                      </button>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* ACADEMIC PERIOD */}
           <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">

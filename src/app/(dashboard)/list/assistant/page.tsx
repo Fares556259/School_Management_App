@@ -34,7 +34,10 @@ export default async function AssistantPage() {
     prisma.grade.findMany(),
     prisma.notice.findMany({ take: 5, orderBy: { date: "desc" } }),
     prisma.lesson.findMany(),
-    prisma.class.findMany({ include: { _count: { select: { students: true } } } }),
+    prisma.class.findMany({ 
+      include: { _count: { select: { students: true } } },
+      orderBy: { name: "asc" }
+    }),
     prisma.gradeSheet.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
     prisma.payment.aggregate({
       where: { status: "PARTIAL", month: startDate.getMonth() + 1, year: startDate.getFullYear() },
