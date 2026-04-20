@@ -5,79 +5,108 @@ import { revalidatePath } from "next/cache";
 
 /**
  * Bulk initializes GradeSheets for all subjects in a given class and term.
- * Each sheet will have all existing students initialized with a score of 0.
+ * Optimized with high-efficiency batch operations to prevent database timeouts.
  */
 export async function initializeClassSheets(classId: number, term: number) {
   try {
-    // 1. Get all subjects and all students in this class
+    // 1. Parallel Fetch of foundational data
     const [subjects, students] = await Promise.all([
       prisma.subject.findMany(),
-      prisma.student.findMany({ where: { classId } }),
+      prisma.student.findMany({ 
+        where: { classId },
+        select: { id: true } 
+      }),
     ]);
 
     if (students.length === 0) {
       return { success: false, error: "No students found in this class." };
     }
 
-    // 2. Perform initialization in a transaction with an extended timeout
-    await prisma.$transaction(async (tx) => {
-      for (const subject of subjects) {
-        // Create/find the sheet
-        const sheet = await tx.gradeSheet.upsert({
-          where: {
-            classId_subjectId_term: {
-              classId,
-              subjectId: subject.id,
-              term,
-            },
-          },
-          update: {}, 
-          create: {
-            classId,
+    const studentIds = students.map(s => s.id);
+    const subjectIds = subjects.map(s => s.id);
+
+    // 2. Step 1: Bulk Create missing GradeSheets
+    // Using createMany with skipDuplicates is significantly faster than upserting in a loop
+    await prisma.gradeSheet.createMany({
+      data: subjects.map(s => ({
+        classId,
+        subjectId: s.id,
+        term,
+        proofUrl: "",
+        notes: "INITIALIZED_BULK",
+      })),
+      skipDuplicates: true,
+    });
+
+    // 3. Step 2: Retrieve the Sheet ID mapping
+    // We need the IDs to link grades to their respective sheets
+    const sheets = await prisma.gradeSheet.findMany({
+      where: {
+        classId,
+        term,
+      },
+      select: {
+        id: true,
+        subjectId: true,
+      }
+    });
+
+    const subjectToSheetMap = new Map(sheets.map(s => [s.subjectId, s.id]));
+
+    // 4. Step 3: Identify missing grades across all subjects/students
+    // Fetch all existing grades for this class/term in one go
+    const existingGrades = await prisma.grade.findMany({
+      where: {
+        term,
+        studentId: { in: studentIds },
+        subjectId: { in: subjectIds },
+      },
+      select: {
+        studentId: true,
+        subjectId: true,
+      }
+    });
+
+    const existingGradeSet = new Set(existingGrades.map(g => `${g.studentId}-${g.subjectId}`));
+
+    // 5. Step 4: Construct the bulk insertion payload
+    const gradesToCreate = [];
+    for (const subject of subjects) {
+      const sheetId = subjectToSheetMap.get(subject.id);
+      if (!sheetId) continue;
+
+      for (const studentId of studentIds) {
+        if (!existingGradeSet.has(`${studentId}-${subject.id}`)) {
+          gradesToCreate.push({
+            studentId: studentId,
             subjectId: subject.id,
             term,
-            proofUrl: "", 
-            notes: "INITIALIZED_BULK",
-          },
-        });
-
-        // 3. Optimized Bulk Grade Creation
-        // Find students who DON'T have a grade for this subject/term yet
-        const existingGrades = await tx.grade.findMany({
-          where: {
-            subjectId: subject.id,
-            term,
-            studentId: { in: students.map(s => s.id) }
-          },
-          select: { studentId: true }
-        });
-
-        const existingStudentIds = new Set(existingGrades.map(g => g.studentId));
-        const missingStudents = students.filter(s => !existingStudentIds.has(s.id));
-
-        if (missingStudents.length > 0) {
-          // Use createMany for high-speed bulk insertion
-          await tx.grade.createMany({
-            data: missingStudents.map(s => ({
-              studentId: s.id,
-              subjectId: subject.id,
-              term,
-              score: 0,
-              sheetId: sheet.id,
-            })),
-            skipDuplicates: true,
+            score: 0,
+            sheetId: sheetId,
           });
         }
       }
-    }, {
-      timeout: 30000 // Extend to 30 seconds to prevent timeout on large classes
-    });
+    }
+
+    // 6. Step 5: Execute final bulk insertion
+    if (gradesToCreate.length > 0) {
+      // Chunking if necessary for very large classes (e.g., thousands of combinations)
+      // but for standard school classes, createMany is extremely efficient.
+      await prisma.grade.createMany({
+        data: gradesToCreate,
+        skipDuplicates: true,
+      });
+    }
 
     revalidatePath("/list/results");
     revalidatePath("/admin/grades");
+    
     return { success: true };
   } catch (error: any) {
     console.error("Initialization Error:", error);
-    return { success: false, error: error.message || "Failed to initialize sheets." };
+    return { 
+      success: false, 
+      error: error.message || "Failed to initialize sheets. Please try again." 
+    };
   }
 }

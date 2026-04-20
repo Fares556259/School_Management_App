@@ -30,8 +30,9 @@ export default function ResultsPageClient({
   const [loadingSheet, setLoadingSheet] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState<string>(String(classes[0]?.id || ""));
-  const [selectedTerm, setSelectedTerm] = useState<string>("all");
+  const validClasses = classes.filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes");
+  const [selectedClassId, setSelectedClassId] = useState<string>(String(validClasses[0]?.id || ""));
+  const [selectedTerm, setSelectedTerm] = useState<string>("1");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -57,7 +58,7 @@ export default function ResultsPageClient({
   };
 
   const handleBulkInitialize = async () => {
-    if (selectedClassId === "all") return;
+    if (!selectedClassId) return;
     const activeTerm = selectedTerm === "all" ? 1 : Number(selectedTerm);
     
     if (!confirm(`Are you sure you want to initialize ALL subjects for this class with a score of 0? This will create persistent records in the database.`)) {
@@ -86,10 +87,10 @@ export default function ResultsPageClient({
 
   const displayItems = (() => {
     // 2. If a specific Class is selected, show ALL subjects (Cheklist Mode)
-    const activeClass = classes.find(c => String(c.id) === selectedClassId);
+    const activeClass = validClasses.find(c => String(c.id) === selectedClassId);
     if (!activeClass) return [];
     
-    const activeTerm = selectedTerm === "all" ? 1 : Number(selectedTerm);
+    const activeTerm = Number(selectedTerm);
 
     return subjects
       .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -97,7 +98,7 @@ export default function ResultsPageClient({
         const matchingSheet = sheets.find(
           sheet => String(sheet.classId) === selectedClassId && 
                   sheet.subjectId === subj.id && 
-                  String(sheet.term) === (selectedTerm === "all" ? String(sheet.term) : selectedTerm)
+                  String(sheet.term) === selectedTerm
         );
         
         if (matchingSheet) {
@@ -113,9 +114,9 @@ export default function ResultsPageClient({
         <GradeSheetRecorder
           students={initialStudents}
           subjects={subjects}
-          classes={classes}
+          classes={validClasses}
           teachers={teachers}
-          initialClassId={editingData?.classId ?? classes[0]?.id}
+          initialClassId={editingData?.classId ?? validClasses[0]?.id}
           initialTerm={editingData?.term ?? 1}
           existingSheet={editingData}
           onClose={() => setActiveView("list")}
@@ -163,7 +164,7 @@ export default function ResultsPageClient({
            onChange={(e) => setSelectedClassId(e.target.value)}
            className="px-6 py-4 bg-white rounded-[24px] border border-slate-100 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
          >
-           {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+           {validClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
          </select>
 
          <select 
@@ -171,13 +172,12 @@ export default function ResultsPageClient({
            onChange={(e) => setSelectedTerm(e.target.value)}
            className="px-6 py-4 bg-white rounded-[24px] border border-slate-100 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
          >
-           <option value="all">All Terms</option>
            <option value="1">Term 1</option>
            <option value="2">Term 2</option>
            <option value="3">Term 3</option>
          </select>
 
-         {selectedClassId !== "all" && (
+         {selectedClassId && (
            <button
              onClick={handleBulkInitialize}
              disabled={isInitializing}

@@ -7,20 +7,23 @@ const ResultListPage = async () => {
   const { userId } = auth();
   const role = await getRole();
 
-  const [classes, subjects, teachers, sheets] = await Promise.all([
-    prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.subject.findMany({ orderBy: { domain: "asc" } }),
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
-    prisma.gradeSheet.findMany({
-      include: {
-        class: { select: { name: true, _count: { select: { students: true } } } },
-        subject: { select: { name: true } },
-        teacher: { select: { name: true, surname: true } },
-        grades: { select: { id: true } },
-      },
-      orderBy: [{ updatedAt: "desc" }],
-    }),
-  ]);
+  // 🐘 V3 Stabilization: Serialize queries to avoid pool contention during heavy operations
+  const classesRaw = await prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+  
+  // Hard-filter any placeholder "all" classes immediately
+  const classes = classesRaw.filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes");
+
+  const subjects = await prisma.subject.findMany({ orderBy: { domain: "asc" } });
+  const teachers = await prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } });
+  const sheets = await prisma.gradeSheet.findMany({
+    include: {
+      class: { select: { name: true, _count: { select: { students: true } } } },
+      subject: { select: { name: true } },
+      teacher: { select: { name: true, surname: true } },
+      grades: { select: { id: true } },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+  });
 
   // For the recorder, we need a list of students for the first class by default
   const defaultClassId = classes.length > 0 ? classes[0].id : null;

@@ -45,7 +45,7 @@ export async function createGradeSheet(data: {
 }
 
 export async function getGradeSheet(classId: number, subjectId: number, term: number) {
-  return prisma.gradeSheet.findUnique({
+  const sheet = await prisma.gradeSheet.findUnique({
     where: { classId_subjectId_term: { classId, subjectId, term } },
     include: {
       grades: { include: { student: true } },
@@ -54,6 +54,33 @@ export async function getGradeSheet(classId: number, subjectId: number, term: nu
       class: true,
     },
   });
+
+  if (sheet) return sheet;
+
+  // Fallback: If no sheet exists, check if any grades exist for this combination
+  // (Handling legacy or orphaned grades before the sync fix was applied)
+  const orphanedGrades = await prisma.grade.findMany({
+    where: {
+      term,
+      subjectId,
+      student: { classId }
+    },
+    include: { student: true }
+  });
+
+  if (orphanedGrades.length > 0) {
+    return {
+      id: null, // Indicates no physical sheet record yet
+      classId,
+      subjectId,
+      term,
+      proofUrl: "",
+      notes: "FETCHED_ORPHANED_GRADES",
+      grades: orphanedGrades
+    };
+  }
+
+  return null;
 }
 
 export async function getAllGradeSheets(classId?: number, subjectId?: number, term?: number) {

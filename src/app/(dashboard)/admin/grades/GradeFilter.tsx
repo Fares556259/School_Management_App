@@ -34,12 +34,13 @@ export default function GradeFilter({
           onChange={(e) => handleChange("classId", e.target.value)}
           className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
         >
-          {/* <option value="">Select Class</option> */}
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          {classes
+            .filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes")
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
         </select>
       </div>
 
