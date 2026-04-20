@@ -5,7 +5,8 @@ import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, PlayCircle } from "lucide-react";
+import { initializeClassSheets } from "../../admin/grades/initializeAction";
 
 interface Props {
   role: string | undefined;
@@ -33,6 +34,7 @@ export default function ResultsPageClient({
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const startNewRecording = () => {
     setEditingSheetId(null);
@@ -51,6 +53,34 @@ export default function ResultsPageClient({
       console.error("Failed to load sheet for editing:", err);
     } finally {
       setLoadingSheet(false);
+    }
+  };
+
+  const handleBulkInitialize = async () => {
+    if (selectedClassId === "all") return;
+    const activeTerm = selectedTerm === "all" ? 1 : Number(selectedTerm);
+    
+    if (!confirm(`Are you sure you want to initialize ALL subjects for this class with a score of 0? This will create persistent records in the database.`)) {
+      return;
+    }
+
+    setIsInitializing(true);
+    try {
+      const res = await initializeClassSheets(Number(selectedClassId), activeTerm);
+      if (res.success) {
+        // We need to refresh the page/data. In a real app, we might use router.refresh() 
+        // or re-fetch server props. For now, we'll alert and the user can see the change on next interaction 
+        // or through layout revalidation.
+        alert("Success! All subjects have been initialized with 0 scores.");
+        window.location.reload(); // Simple way to force server re-fetch of sheets
+      } else {
+        alert("Error: " + res.error);
+      }
+    } catch (err) {
+      console.error("Initialization failed:", err);
+      alert("Failed to initialize sheets.");
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -156,15 +186,28 @@ export default function ResultsPageClient({
            <option value="2">Term 2</option>
            <option value="3">Term 3</option>
          </select>
+
+         {selectedClassId !== "all" && (
+           <button
+             onClick={handleBulkInitialize}
+             disabled={isInitializing}
+             className="px-6 py-4 bg-emerald-500 text-white rounded-[24px] shadow-lg shadow-emerald-100 hover:bg-emerald-600 hover:-translate-y-0.5 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+           >
+             <PlayCircle size={14} />
+             Initialize ALL Subjects (0)
+           </button>
+         )}
       </div>
 
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {loadingSheet && (
+        {(loadingSheet || isInitializing) && (
            <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center">
               <div className="flex flex-col items-center gap-4">
                  <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                 <span className="text-[10px] font-black text-indigo-800 uppercase tracking-widest">Unlocking Records...</span>
+                 <span className="text-[10px] font-black text-indigo-800 uppercase tracking-widest text-center">
+                   {isInitializing ? "Initializing Database...\nCreating Zero-Baseline Grade Sheets" : "Unlocking Records..."}
+                 </span>
               </div>
            </div>
         )}
