@@ -122,13 +122,13 @@ model Parent {
 }
 
 model Level {
-  id       Int       @id @default(autoincrement())
-  level    Int
-  schoolId String    @default("default_school")
-  classes     Class[]
-  School      School    @relation(fields: [schoolId], references: [id])
-  students    Student[]
-  tuitionFee  Float     @default(450)
+  id         Int       @id @default(autoincrement())
+  level      Int
+  schoolId   String    @default("default_school")
+  tuitionFee Float     @default(450)
+  classes    Class[]
+  School     School    @relation(fields: [schoolId], references: [id])
+  students   Student[]
 
   @@unique([level, schoolId])
 }
@@ -291,16 +291,14 @@ model Institution {
 }
 
 model Room {
-  id       Int    @id @default(autoincrement())
-  name     String
-  schoolId String @default("default_school")
-  School         School          @relation(fields: [schoolId], references: [id])
-  TimetableSlot  TimetableSlot[]
+  id            Int             @id @default(autoincrement())
+  name          String
+  schoolId      String          @default("default_school")
+  School        School          @relation(fields: [schoolId], references: [id])
+  TimetableSlot TimetableSlot[]
 
   @@unique([name, schoolId])
 }
-
-
 
 model Result {
   id           Int         @id @default(autoincrement())
@@ -413,16 +411,16 @@ model TimetableSlot {
   startTime  String
   endTime    String
   slotNumber Int
-  roomId     Int?
   subjectId  Int?
   teacherId  String?
   classId    Int
   schoolId   String   @default("default_school")
+  roomId     Int?
   class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  room       Room?    @relation(fields: [roomId], references: [id])
   School     School   @relation(fields: [schoolId], references: [id])
   subject    Subject? @relation(fields: [subjectId], references: [id])
   teacher    Teacher? @relation(fields: [teacherId], references: [id])
-  room       Room?    @relation(fields: [roomId], references: [id])
 
   @@unique([classId, day, slotNumber])
 }
@@ -495,66 +493,39 @@ model Notification {
 }
 
 model School {
-  id               String             @id
-  name             String
-  logo             String?
-  subdomain        String             @unique
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime
-  Admin            Admin[]
-  Assignment       Assignment[]
-  Attendance       Attendance[]
-  AuditLog         AuditLog[]
-  Class            Class[]
-  Conversation     Conversation[]
-  Exam             Exam[]
-  ExamPeriodConfig ExamPeriodConfig[]
-  Expense          Expense[]
-  Grade            Grade[]
-  GradeSheet       GradeSheet[]
-  Income           Income[]
-  Lesson           Lesson[]
-  Level            Level[]
-  Notice           Notice[]
-  Notification     Notification[]
-  Parent           Parent[]
-  Payment          Payment[]
-  Result           Result[]
-  Institution   Institution?
-  Staff            Staff[]
-  Student          Student[]
-  Subject          Subject[]
-  Teacher          Teacher[]
-  TimetableSlot    TimetableSlot[]
-  Room             Room[]
+  id                    String                  @id
+  name                  String
+  logo                  String?
+  subdomain             String                  @unique
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  Admin                 Admin[]
+  Assignment            Assignment[]
+  Attendance            Attendance[]
+  AuditLog              AuditLog[]
+  Class                 Class[]
+  Conversation          Conversation[]
+  Exam                  Exam[]
+  ExamPeriodConfig      ExamPeriodConfig[]
+  Expense               Expense[]
+  Grade                 Grade[]
+  GradeSheet            GradeSheet[]
+  Income                Income[]
+  Institution           Institution?
+  Lesson                Lesson[]
+  Level                 Level[]
+  Notice                Notice[]
+  Notification          Notification[]
+  Parent                Parent[]
+  Payment               Payment[]
   ProfitabilityScenario ProfitabilityScenario[]
-}
-
-enum UserSex {
-  MALE
-  FEMALE
-}
-
-enum Day {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  PARTIAL
-  OVERDUE
-}
-
-enum AttendanceStatus {
-  PRESENT
-  ABSENT
-  LATE
+  Result                Result[]
+  Room                  Room[]
+  Staff                 Staff[]
+  Student               Student[]
+  Subject               Subject[]
+  Teacher               Teacher[]
+  TimetableSlot         TimetableSlot[]
 }
 
 model SetupRequest {
@@ -582,4 +553,31 @@ model ProfitabilityScenario {
   School         School   @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])
+}
+
+enum UserSex {
+  MALE
+  FEMALE
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
 }

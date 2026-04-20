@@ -35,6 +35,8 @@ import {
   Percent,
   CheckCircle2,
   Package,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CashFlowChart from "./CashFlowChart";
@@ -52,8 +54,11 @@ interface SimulatorBaseline {
     teachers: number;
     staff: number;
     total: number;
+    teacherCount: number;
+    staffCount: number;
   };
   monthlyOverhead: number;
+  cumulativeReserves: number;
 }
 
 interface Scenario {
@@ -88,7 +93,11 @@ export default function SimulatorInterface({
   const [inAcquisitionCost, setInAcquisitionCost] = useState(50); // TND per student
   const [inCollectionRate, setInCollectionRate] = useState(95); // Payment success rate %
 
-  // --- Results State (Only updates on "Calculer") ---
+  // Advanced Operational States (Absolute)
+  const [inDebt, setInDebt] = useState(0); // Monthly Debt
+  const [inReserves, setInReserves] = useState(Math.floor(baseline.cumulativeReserves)); // Total Reserves
+
+  // Results State (Only updates on "Calculer")
   const [resValues, setResValues] = useState({
     tuition: inTuition,
     payroll: inPayroll,
@@ -96,6 +105,8 @@ export default function SimulatorInterface({
     students: inStudents,
     acquisitionCost: inAcquisitionCost,
     collectionRate: inCollectionRate,
+    debt: inDebt,
+    reserves: inReserves,
     revenue: baseline.levels.reduce((acc, curr) => acc + (curr.studentCount * curr.tuitionFee), 0),
     expenses: baseline.payroll.total + baseline.monthlyOverhead + (inStudents * inAcquisitionCost),
   });
@@ -113,7 +124,7 @@ export default function SimulatorInterface({
   const handleCalculate = () => {
     const grossRevenue = inStudents * inTuition;
     const collectedRevenue = grossRevenue * (inCollectionRate / 100);
-    const totalExpenses = inPayroll + inOverhead + (inStudents * inAcquisitionCost);
+    const totalExpenses = inPayroll + inOverhead + (inStudents * inAcquisitionCost) + inDebt;
     
     setResValues({
       tuition: inTuition,
@@ -122,6 +133,8 @@ export default function SimulatorInterface({
       students: inStudents,
       acquisitionCost: inAcquisitionCost,
       collectionRate: inCollectionRate,
+      debt: inDebt,
+      reserves: inReserves,
       revenue: collectedRevenue,
       expenses: totalExpenses,
     });
@@ -313,6 +326,37 @@ export default function SimulatorInterface({
               </label>
            </div>
         </div>
+
+        {/* Card 4: Advanced Treasury / Reserves */}
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 space-y-6">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Gestion de Trésorerie</p>
+           <div className="space-y-6">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-500 mb-2 block">Dette Mensuelle (Crédit)</span>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={inDebt}
+                    onChange={(e) => setInDebt(Number(e.target.value))}
+                    className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all font-black text-slate-700 pr-16"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">TND</span>
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-500 mb-2 block">Réserves de Fonds Totales</span>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={inReserves}
+                    onChange={(e) => setInReserves(Number(e.target.value))}
+                    className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all font-black text-slate-700 pr-16"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">TND</span>
+                </div>
+              </label>
+           </div>
+        </div>
       </div>
 
       {/* 3. The "Calculer" CTA */}
@@ -373,6 +417,73 @@ export default function SimulatorInterface({
            borderColorClass="border-purple-200"
            bgColorClass="bg-purple-50"
          />
+      </div>
+
+      {/* --- Section: District Health & Risk Analysis --- */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-rose-100 rounded-xl text-rose-600">
+            <AlertCircle size={20} />
+          </div>
+          <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">Indicateurs de Santé District</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* KPI 2: Student-to-Teacher Ratio */}
+          <ConvertyMetricCard 
+             title="Ratio Élèves/Prof" 
+             value={`${(resValues.students / (baseline.payroll.teacherCount || 1)).toFixed(1)}`} 
+             subtitle="Équilibre Personnel" 
+             icon={<Users size={20} />} 
+             colorClass={(resValues.students / (baseline.payroll.teacherCount || 1)) > 25 ? "text-amber-600" : "text-slate-600"}
+          />
+
+          {/* KPI 3: Admin Cost Ratio */}
+          {/* Formula: Non-Teacher Expense / Total Instructional (Simplified) */}
+          <ConvertyMetricCard 
+             title="Ratio Coût Admin" 
+             value={`${(((resValues.payroll - baseline.payroll.teachers) + resValues.overhead) / (baseline.payroll.teachers || 1)).toFixed(2)}`} 
+             subtitle="Admin vs Classe" 
+             icon={<Package size={20} />} 
+             colorClass={(((resValues.payroll - baseline.payroll.teachers) + resValues.overhead) / (baseline.payroll.teachers || 1)) > 0.4 ? "text-rose-600" : "text-slate-600"}
+          />
+
+          {/* KPI 4: Fund Balance Ratio */}
+          <ConvertyMetricCard 
+             title="Ratio de Réserve" 
+             value={`${((resValues.reserves / (resValues.expenses * 12)) * 100).toFixed(1)} %`} 
+             subtitle="Sécurité Financière" 
+             icon={<ShieldCheck size={20} />} 
+             colorClass={((resValues.reserves / (resValues.expenses * 12)) * 100) < 15 ? "text-rose-600" : "text-emerald-600"}
+          />
+
+          {/* KPI 5: Days of Cash on Hand */}
+          <ConvertyMetricCard 
+             title="Jours de Trésorerie" 
+             value={`${Math.floor(resValues.reserves / (resValues.expenses / 30))} J`} 
+             subtitle="Survie en Cash" 
+             icon={<History size={20} />} 
+             colorClass={Math.floor(resValues.reserves / (resValues.expenses / 30)) < 60 ? "text-rose-600" : "text-emerald-600"}
+          />
+
+          {/* KPI 6: Expenditure-to-Revenue Ratio */}
+          <ConvertyMetricCard 
+             title="Ratio Dépenses/Rev" 
+             value={`${(resValues.expenses / resValues.revenue).toFixed(2)}`} 
+             subtitle="Vivre selon moyens" 
+             icon={<TrendingDown size={20} />} 
+             colorClass={(resValues.expenses / resValues.revenue) > 1.0 ? "text-rose-600" : "text-emerald-600"}
+          />
+
+          {/* KPI 8: Debt Burden Ratio */}
+          <ConvertyMetricCard 
+             title="Fardeau de Dette" 
+             value={`${((resValues.debt / resValues.revenue) * 100).toFixed(1)} %`} 
+             subtitle="Pression LT" 
+             icon={<AlertTriangle size={20} />} 
+             colorClass={((resValues.debt / resValues.revenue) * 100) > 15 ? "text-rose-600" : "text-slate-600"}
+          />
+        </div>
       </div>
 
       {/* 5. Highlight Footer (Break-even card) */}

@@ -17,16 +17,26 @@ export async function getSimulatorBaseline() {
     });
 
     // 2. Fetch payroll totals
-    const [teacherPayroll, staffPayroll] = await Promise.all([
+    const [teacherPayroll, staffPayroll, teacherCount, staffCount] = await Promise.all([
       prisma.teacher.aggregate({
         _sum: { salary: true },
       }),
       prisma.staff.aggregate({
         _sum: { salary: true },
       }),
+      prisma.teacher.count(),
+      prisma.staff.count(),
     ]);
 
-    // 3. Estimate monthly fixed expenses (Utilities, Maintenance, etc.)
+    // 3. Calculate Reserves (Cumulative Balance)
+    const [incomeTotal, expenseTotal] = await Promise.all([
+      prisma.income.aggregate({ _sum: { amount: true } }),
+      prisma.expense.aggregate({ _sum: { amount: true } }),
+    ]);
+    
+    const cumulativeReserves = (incomeTotal._sum.amount || 0) - (expenseTotal._sum.amount || 0);
+
+    // 4. Estimate monthly fixed expenses (Utilities, Maintenance, etc.)
     // We'll take the average of the last 3 full months
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -54,8 +64,11 @@ export async function getSimulatorBaseline() {
           teachers: teacherPayroll._sum.salary || 0,
           staff: staffPayroll._sum.salary || 0,
           total: (teacherPayroll._sum.salary || 0) + (staffPayroll._sum.salary || 0),
+          teacherCount,
+          staffCount,
         },
         monthlyOverhead: estimatedMonthlyOverhead || 500, // Default fallback
+        cumulativeReserves,
       },
     };
   } catch (error: any) {
