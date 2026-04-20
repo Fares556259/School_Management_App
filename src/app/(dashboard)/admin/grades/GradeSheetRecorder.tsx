@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Maximize2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createGradeSheet, GradeEntry } from "./actions";
+import { createGradeSheet, GradeEntry, getGradeSheet } from "./actions";
 import { extractGradesFromImage } from "./aiActions";
 import { isAIQuotaReached } from "../actions/aiActions";
 import { Lock, Sparkles } from "lucide-react";
@@ -62,8 +62,45 @@ export default function GradeSheetRecorder({
 
   const updateTeacherId = (id: string) => { setTeacherId(id); setIsDirty(true); };
   const updateNotes = (val: string) => { setNotes(val); setIsDirty(true); };
-  const updateSubjectId = (id: number) => { setSubjectId(id); setIsDirty(true); };
-  const updateTerm = (t: number) => { setTerm(t); setIsDirty(true); };
+ 
+  const syncSessionData = async (cId: number, sId: number, t: number) => {
+    setIsSyncing(true);
+    try {
+      const sheet = await getGradeSheet(cId, sId, t);
+      if (sheet) {
+        // Map existing grades
+        const newGrades: Record<string, string> = {};
+        sheet.grades.forEach((g: any) => {
+          newGrades[g.studentId] = String(g.score);
+        });
+        setGrades(newGrades);
+        setProofPreviewUrl(sheet.proofUrl || null);
+        setNotes(sheet.notes || "");
+        setTeacherId(sheet.teacherId || "");
+      } else {
+        // Reset if no sheet exists
+        setGrades({});
+        setProofPreviewUrl(null);
+        setNotes("");
+        setTeacherId("");
+      }
+      setIsDirty(false); // Reset dirty on fresh load
+    } catch (err) {
+      console.error("Failed to sync session data:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+ 
+  const updateSubjectId = async (id: number) => { 
+    setSubjectId(id); 
+    await syncSessionData(classId, id, term);
+  };
+  
+  const updateTerm = async (t: number) => { 
+    setTerm(t); 
+    await syncSessionData(classId, subjectId, t);
+  };
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);
   
@@ -88,6 +125,7 @@ export default function GradeSheetRecorder({
   const [hasImageError, setHasImageError] = useState(false);
   const [isAiLocked, setIsAiLocked] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked).catch(console.error);
@@ -106,6 +144,7 @@ export default function GradeSheetRecorder({
       setStudents(data);
       setGrades({}); // Reset grades when class changes
       setIsDirty(true);
+      await syncSessionData(newId, subjectId, term);
     } catch (err) {
       console.error("Failed to fetch students:", err);
     } finally {
@@ -589,9 +628,14 @@ export default function GradeSheetRecorder({
           </div>
 
           <div className="flex-1 overflow-auto relative">
-            {isLoadingStudents && (
+            {(isLoadingStudents || isSyncing) && (
               <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Loading Students…</span>
+                <div className="flex flex-col items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                        {isLoadingStudents ? "Loading Students..." : "Syncing Records..."}
+                    </span>
+                </div>
               </div>
             )}
             <table className="w-full text-sm">
