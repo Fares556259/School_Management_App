@@ -54,14 +54,37 @@ export default function ResultsPageClient({
     }
   };
 
-  const filteredSheets = sheets.filter((s) => {
-    const matchesSearch = 
-      s.class.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.subject.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesClass = selectedClassId === "all" || String(s.classId) === selectedClassId;
-    const matchesTerm = selectedTerm === "all" || String(s.term) === selectedTerm;
-    return matchesSearch && matchesClass && matchesTerm;
-  });
+  const displayItems = (() => {
+    // 1. If "All Classes" is selected, just show existing sheets filtered
+    if (selectedClassId === "all") {
+      return sheets.filter((s) => {
+        const matchesSearch = 
+          s.class.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.subject.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesTerm = selectedTerm === "all" || String(s.term) === selectedTerm;
+        return matchesSearch && matchesTerm;
+      }).map(s => ({ type: 'existing', data: s, subject: s.subject, class: s.class, term: s.term }));
+    }
+
+    // 2. If a specific Class is selected, show ALL subjects (Cheklist Mode)
+    const activeClass = classes.find(c => String(c.id) === selectedClassId);
+    const activeTerm = selectedTerm === "all" ? 1 : Number(selectedTerm);
+
+    return subjects
+      .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .map(subj => {
+        const matchingSheet = sheets.find(
+          sheet => String(sheet.classId) === selectedClassId && 
+                  sheet.subjectId === subj.id && 
+                  String(sheet.term) === (selectedTerm === "all" ? String(sheet.term) : selectedTerm)
+        );
+        
+        if (matchingSheet) {
+          return { type: 'existing', data: matchingSheet, subject: subj, class: activeClass, term: matchingSheet.term };
+        }
+        return { type: 'placeholder', data: null, subject: subj, class: activeClass, term: activeTerm };
+      });
+  })();
 
   if (activeView === "recorder") {
     return (
@@ -146,103 +169,139 @@ export default function ResultsPageClient({
            </div>
         )}
         
-        {filteredSheets.length === 0 && (
+        {displayItems.length === 0 && (
           <div className="col-span-full bg-white p-20 rounded-[40px] border border-slate-100 flex flex-col items-center gap-4 opacity-60">
              <div className="text-6xl text-slate-200">📄</div>
-             <p className="font-black text-slate-400 uppercase tracking-widest text-xs">No entries match your current selection</p>
+             <p className="font-black text-slate-400 uppercase tracking-widest text-xs">No subjects match your current selection</p>
           </div>
         )}
 
-        {filteredSheets.map((sheet) => (
-          <div 
-            key={sheet.id} 
-            className="group bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all flex flex-col gap-6 relative"
-          >
-             {/* TERM TAG & BADGES */}
-             <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
-                <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                  Term {sheet.term}
-                </div>
-                {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
-                   <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                      Proof Attached
-                   </div>
-                ) : (
-                   <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-lg text-[8px] font-black text-amber-600 uppercase tracking-widest leading-none flex items-center gap-1">
-                      ⚠️ Missing Proof
-                   </div>
-                )}
-                {sheet.grades.length < (sheet.class._count?.students || 1) && (
-                   <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
-                      🕒 Incomplete
-                   </div>
-                )}
-                {sheet.notes === "AI_PROCESSED" && (
-                   <div className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-[8px] font-black text-indigo-600 uppercase tracking-widest leading-none flex items-center gap-1">
-                      ✨ AI Mode
-                   </div>
-                )}
-             </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{sheet.subject.name}</span>
-              <h3 className="text-xl font-black text-slate-800 tracking-tight">{sheet.class.name}</h3>
-            </div>
-
-            <div className="flex flex-col gap-4">
-               {/* STATS */}
-               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <div className="flex items-center justify-between mb-2">
-                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recording Progress</span>
-                     <span className={`text-[10px] font-black ${sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-slate-800'}`}>
-                        {sheet.grades.length} Graded
-                     </span>
+        {displayItems.map((item, idx) => {
+          const isPlaceholder = item.type === 'placeholder';
+          const sheet = item.data;
+          
+          return (
+            <div 
+              key={isPlaceholder ? `p-${item.subject.id}` : sheet.id} 
+              className={`group p-6 rounded-[32px] border transition-all flex flex-col gap-6 relative ${
+                isPlaceholder 
+                  ? "bg-slate-50/50 border-dashed border-slate-200 opacity-80 hover:opacity-100 hover:bg-white hover:border-indigo-200" 
+                  : "bg-white border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50"
+              }`}
+            >
+               {/* TERM TAG & BADGES */}
+               <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
+                  <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                    Term {item.term}
                   </div>
-                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                     <div 
-                       className={`h-full rounded-full transition-all duration-1000 ${sheet.grades.length >= (sheet.class._count?.students || 1) ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
-                       style={{ width: `${Math.min(100, (sheet.grades.length / (sheet.class._count?.students || 1)) * 100)}%` }}
-                     ></div>
-                  </div>
+                  {!isPlaceholder && (
+                    <>
+                      {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
+                         <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                            Proof Attached
+                         </div>
+                      ) : (
+                         <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-lg text-[8px] font-black text-amber-600 uppercase tracking-widest leading-none flex items-center gap-1">
+                            ⚠️ Missing Proof
+                         </div>
+                      )}
+                      {sheet.grades.length < (sheet.class._count?.students || 1) && (
+                         <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
+                            🕒 Incomplete
+                         </div>
+                      )}
+                    </>
+                  )}
+                  {isPlaceholder && (
+                     <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
+                        ⚪ No Data
+                     </div>
+                  )}
                </div>
-
-               {/* META */}
-               <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xs">👤</div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-800">{sheet.teacher?.name} {sheet.teacher?.surname || 'N/A'}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead Teacher</p>
-                  </div>
-               </div>
+  
+              <div className="flex flex-col gap-1">
+                <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`}>
+                  {item.subject.name}
+                </span>
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">{item.class.name}</h3>
+              </div>
+  
+              <div className="flex flex-col gap-4">
+                 {/* STATS / PLACEHOLDER PROGRESS */}
+                 <div className={`${isPlaceholder ? 'bg-slate-100/50' : 'bg-slate-50'} p-4 rounded-2xl border border-slate-100`}>
+                    <div className="flex items-center justify-between mb-2">
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recording Progress</span>
+                       <span className={`text-[10px] font-black ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-slate-800'}`}>
+                          {isPlaceholder ? '0' : sheet.grades.length} Graded
+                       </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                       <div 
+                         className={`h-full rounded-full transition-all duration-1000 ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'bg-emerald-500' : 'bg-indigo-500/40'}`} 
+                         style={{ width: isPlaceholder ? '0%' : `${Math.min(100, (sheet.grades.length / (sheet.class._count?.students || 1)) * 100)}%` }}
+                       ></div>
+                    </div>
+                 </div>
+  
+                 {/* META */}
+                 <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xs">👤</div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-800">
+                        {isPlaceholder ? '—' : `${sheet.teacher?.name} ${sheet.teacher?.surname || 'N/A'}`}
+                      </p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead Teacher</p>
+                    </div>
+                 </div>
+              </div>
+  
+              <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">
+                 {isPlaceholder ? (
+                   <button 
+                     onClick={() => {
+                        setEditingData({ 
+                          classId: item.class.id, 
+                          subjectId: item.subject.id, 
+                          term: item.term,
+                          grades: [] 
+                        });
+                        setActiveView("recorder");
+                     }}
+                     className="flex-1 py-3 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all border border-indigo-600"
+                   >
+                     Record Missing Sheet
+                   </button>
+                 ) : (
+                   <>
+                    <button 
+                      onClick={() => editSheet(sheet)}
+                      className="flex-1 py-3 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 border border-slate-200 transition-all"
+                    >
+                      Edit Recording
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setPreviewUrl(sheet.proofUrl);
+                        setIsPreviewOpen(true);
+                      }}
+                      className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border group ${
+                        sheet.proofUrl?.startsWith('http') 
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm shadow-emerald-50' 
+                          : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                      }`}
+                      title={sheet.proofUrl?.startsWith('http') ? "View Original Proof" : "No Proof Available"}
+                    >
+                      <span className={`group-hover:scale-125 transition-transform text-lg ${sheet.proofUrl?.startsWith('http') ? 'animate-bounce-subtle' : ''}`}>
+                        👁️
+                      </span>
+                    </button>
+                   </>
+                 )}
+              </div>
             </div>
-
-            <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">
-               <button 
-                 onClick={() => editSheet(sheet)}
-                 className="flex-1 py-3 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 border border-slate-200 transition-all"
-               >
-                 Edit Recording
-               </button>
-                 <button 
-                   onClick={() => {
-                     setPreviewUrl(sheet.proofUrl);
-                     setIsPreviewOpen(true);
-                   }}
-                   className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border group ${
-                     sheet.proofUrl?.startsWith('http') 
-                       ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm shadow-emerald-50' 
-                       : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                   }`}
-                   title={sheet.proofUrl?.startsWith('http') ? "View Original Proof" : "No Proof Available"}
-                 >
-                   <span className={`group-hover:scale-125 transition-transform text-lg ${sheet.proofUrl?.startsWith('http') ? 'animate-bounce-subtle' : ''}`}>
-                     👁️
-                   </span>
-                 </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {/* PREVIEW MODAL */}
       <AnimatePresence>
