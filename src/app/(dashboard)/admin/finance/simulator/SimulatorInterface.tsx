@@ -96,6 +96,8 @@ export default function SimulatorInterface({
   // Advanced Operational States (Absolute)
   const [inDebt, setInDebt] = useState(0); // Monthly Debt
   const [inReserves, setInReserves] = useState(Math.floor(baseline.cumulativeReserves)); // Total Reserves
+  const [inCapacity, setInCapacity] = useState(200); // Physical places
+  const [inRetention, setInRetention] = useState(95); // Student Retention %
 
   // Results State (Only updates on "Calculer")
   const [resValues, setResValues] = useState({
@@ -107,6 +109,8 @@ export default function SimulatorInterface({
     collectionRate: inCollectionRate,
     debt: inDebt,
     reserves: inReserves,
+    capacity: inCapacity,
+    retention: inRetention,
     revenue: baseline.levels.reduce((acc, curr) => acc + (curr.studentCount * curr.tuitionFee), 0),
     expenses: baseline.payroll.total + baseline.monthlyOverhead + (inStudents * inAcquisitionCost),
   });
@@ -124,7 +128,13 @@ export default function SimulatorInterface({
   const handleCalculate = () => {
     const grossRevenue = inStudents * inTuition;
     const collectedRevenue = grossRevenue * (inCollectionRate / 100);
-    const totalExpenses = inPayroll + inOverhead + (inStudents * inAcquisitionCost) + inDebt;
+    
+    // Efficiency Modeling: Churn replacement cost
+    // To maintain statis student count, we replace those who leave
+    const churnCount = inStudents * (1 - inRetention / 100);
+    const churnCost = churnCount * inAcquisitionCost;
+
+    const totalExpenses = inPayroll + inOverhead + (inStudents * inAcquisitionCost) + inDebt + churnCost;
     
     setResValues({
       tuition: inTuition,
@@ -135,6 +145,8 @@ export default function SimulatorInterface({
       collectionRate: inCollectionRate,
       debt: inDebt,
       reserves: inReserves,
+      capacity: inCapacity,
+      retention: inRetention,
       revenue: collectedRevenue,
       expenses: totalExpenses,
     });
@@ -355,6 +367,33 @@ export default function SimulatorInterface({
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">TND</span>
                 </div>
               </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-500 mb-2 block">Capacité Physique</span>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={inCapacity}
+                      onChange={(e) => setInCapacity(Number(e.target.value))}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all font-black text-slate-700 pr-12"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">Unit</span>
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-500 mb-2 block">Rétention (%)</span>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      max="100"
+                      value={inRetention}
+                      onChange={(e) => setInRetention(Number(e.target.value))}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all font-black text-slate-700 pr-8"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">%</span>
+                  </div>
+                </label>
+              </div>
            </div>
         </div>
       </div>
@@ -482,6 +521,55 @@ export default function SimulatorInterface({
              subtitle="Pression LT" 
              icon={<AlertTriangle size={20} />} 
              colorClass={((resValues.debt / resValues.revenue) * 100) > 15 ? "text-rose-600" : "text-slate-600"}
+          />
+        </div>
+      </div>
+
+      {/* --- Section: Efficience & Rentabilité Operationnelle --- */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-100 rounded-xl text-indigo-600">
+            <Zap size={20} />
+          </div>
+          <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">Efficience & Développement</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* KPI Enrichment 1: Capacity Utilization */}
+          <ConvertyMetricCard 
+             title="Utilisation Capacité" 
+             value={`${((resValues.students / (resValues.capacity || 1)) * 100).toFixed(1)} %`} 
+             subtitle="Optimisation des Lieux" 
+             icon={<Layers size={20} />} 
+             colorClass={((resValues.students / (resValues.capacity || 1)) * 100) > 80 ? "text-emerald-600" : "text-amber-600"}
+          />
+
+          {/* KPI Enrichment 2: Tuition Yield */}
+          <ConvertyMetricCard 
+             title="Rendement Frais" 
+             value={`${Math.floor(resValues.revenue / (resValues.students || 1)).toLocaleString()} TND`} 
+             subtitle="Rev. Moyen / Étudiant" 
+             icon={<TrendingUp size={20} />} 
+             colorClass={Math.floor(resValues.revenue / (resValues.students || 1)) > 5000 ? "text-emerald-600" : "text-slate-600"}
+          />
+
+          {/* KPI Enrichment 3: CAC Payback Time */}
+          {/* Formula: AcquisitionCost / MonthlyProfitPerStudent */}
+          <ConvertyMetricCard 
+             title="Payback CAC" 
+             value={`${(resValues.acquisitionCost / (profitPerStudent > 0 ? profitPerStudent : 1)).toFixed(1)} Moo.`} 
+             subtitle="Temps de Retour" 
+             icon={<History size={20} />} 
+             colorClass={(resValues.acquisitionCost / (profitPerStudent > 0 ? profitPerStudent : 1)) < 12 ? "text-emerald-600" : "text-rose-600"}
+          />
+
+          {/* KPI Enrichment 4: Operating Expense Ratio (OER) */}
+          <ConvertyMetricCard 
+             title="Ratio Opérationnel" 
+             value={`${((resValues.expenses / resValues.revenue) * 100).toFixed(1)} %`} 
+             subtitle="Index OER" 
+             icon={<Target size={20} />} 
+             colorClass={((resValues.expenses / resValues.revenue) * 100) > 90 ? "text-rose-600" : "text-emerald-600"}
           />
         </div>
       </div>
