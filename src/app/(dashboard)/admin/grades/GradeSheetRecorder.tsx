@@ -83,7 +83,9 @@ export default function GradeSheetRecorder({
           setNotes(sheet.notes || "");
           setTeacherId(sheet.teacherId || "");
         } else {
-          setGrades({});
+          const zeroGrades: Record<string, string> = {};
+          students.forEach(s => { zeroGrades[s.id] = "0"; });
+          setGrades(zeroGrades);
           setProofPreviewUrl(null);
           setNotes("");
           setTeacherId("");
@@ -104,10 +106,15 @@ export default function GradeSheetRecorder({
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);
   
   // Initialize grades from existingSheet if provided
-  const initialGradesMap = existingSheet?.grades?.reduce((acc: any, g: any) => {
-    acc[g.studentId] = String(g.score);
-    return acc;
-  }, {}) ?? {};
+  const initialGradesMap = existingSheet?.grades?.length > 0 
+    ? existingSheet.grades.reduce((acc: any, g: any) => {
+        acc[g.studentId] = String(g.score);
+        return acc;
+      }, {}) 
+    : initialStudents.reduce((acc: any, s: any) => {
+        acc[s.id] = "0";
+        return acc;
+      }, {});
 
   const [grades, setGrades] = useState<Record<string, string>>(initialGradesMap);
   const [isPending, startTransition] = useTransition();
@@ -141,7 +148,9 @@ export default function GradeSheetRecorder({
       const response = await fetch(`/api/students?classId=${newId}`);
       const data = await response.json();
       setStudents(data);
-      setGrades({}); // Reset grades when class changes
+      const zeroGrades: Record<string, string> = {};
+      data.forEach((s: any) => { zeroGrades[s.id] = "0"; });
+      setGrades(zeroGrades); // Default to 0 when class changes
       setIsDirty(true);
     } catch (err) {
       console.error("Failed to fetch students:", err);
