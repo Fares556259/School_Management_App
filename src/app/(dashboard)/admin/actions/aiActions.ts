@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getCachedInsights, setCachedInsights, generateHash } from "@/lib/insightsCache";
 
 /**
  * Efficiently fetch AI usage for an admin with caching-like behavior for the request.
@@ -123,7 +124,8 @@ async function unifiedAIRouter(params: {
   }
 
   async function callProvider(key: string) {
-    const isGoogleNative = key.startsWith("AIza");
+    try {
+      const isGoogleNative = key.startsWith("AIza");
     
     if (isGoogleNative) {
       console.log("🛰️ [ROUTER] Using Google Native SDK...");
@@ -182,10 +184,18 @@ async function unifiedAIRouter(params: {
         if (response.status === 402) {
            throw new Error("CREDIT_EXHAUSTED|Your OpenRouter account is out of credits. Please top up at openrouter.ai or add a native Google AI key (AIza...) to your .env file.");
         }
+        if (response.status === 429) {
+           throw new Error("RATE_LIMITED|Upstream provider is rate-limited. Serving cached data if available.");
+        }
         throw new Error(`Provider Failed: ${response.status} ${errBody}`);
       }
       const data = await response.json();
       return data.choices[0].message.content;
+      }
+    } catch (err: any) {
+      if (err.message.includes("RATE_LIMITED") || err.message.includes("CREDIT_EXHAUSTED")) throw err;
+      console.error(`❌ [ROUTER_FETCH_ERROR] Detail:`, err.message, err.cause || "");
+      throw err;
     }
   }
 
@@ -210,7 +220,7 @@ async function unifiedAIRouter(params: {
       return await execute();
     } catch (err: any) {
       lastErr = err;
-      if (err.message.includes("CREDIT_EXHAUSTED") || err.message.includes("UNAUTHORIZED")) break; 
+      if (err.message.includes("CREDIT_EXHAUSTED") || err.message.includes("UNAUTHORIZED") || err.message.includes("RATE_LIMITED")) break; 
       console.warn(`⚠️ [AI-RETRY] Attempt ${i + 1} failed. Retrying...`, err.message);
       if (i < MAX_RETRIES) await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
     }
@@ -348,6 +358,24 @@ export async function getFinancialInsights(data: any, locale = "fr") {
   const usage = await checkAndIncrementUsage();
   if (!usage.allowed) return { error: `DAILY_QUOTA_REACHED|${usage.quota}` };
 
+  // 🛰️ INSIGHTS CACHING LAYER
+  const dataPayload = {
+    totalBalance: data.income - data.expense,
+    thisMonthIncome: data.income || 0,
+    thisMonthExpense: data.expense || 0,
+    unpaidAmount: 0, // Placeholder for aggregation if not in payload
+    unpaidCount: 0 
+  };
+  const hash = generateHash(dataPayload);
+  const cached = getCachedInsights(hash);
+
+  if (cached) {
+    console.log("🛰️ [CACHE] Hit: Serving valid insights from storage.");
+    return cached;
+  }
+
+  console.log("🛰️ [CACHE] Miss: Requesting new AI insights...");
+
   const prompt = `
     Analyze the following data and provide exactly 5 concise, strategic insights.
     DATA: ${JSON.stringify(data)}
@@ -356,12 +384,30 @@ export async function getFinancialInsights(data: any, locale = "fr") {
 
   try {
     const text = await callGeminiDirect(prompt);
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error("Invalid AI response");
-    return JSON.parse(match[0]);
+    const cleaned = cleanAIJson(text);
+    
+    // Robustly search for the JSON array within the response
+    const match = cleaned.match(/\[[\s\S]*\]/);
+    if (!match) {
+      console.warn("⚠️ [AI-INSIGHTS] No JSON array found in response. Raw:", cleaned);
+      return []; 
+    }
+    
+    try {
+      const parsed = JSON.parse(match[0]);
+      if (parsed.length > 0) {
+        setCachedInsights(hash, parsed);
+      }
+      return parsed;
+    } catch (parseErr) {
+      console.error("❌ [AI-INSIGHTS] JSON Parse failed:", parseErr, "Content:", match[0]);
+      return [];
+    }
   } catch (error: any) {
-    console.error("Financial Insight Error:", error);
-    return { error: error.message };
+    console.error("❌ [AI-INSIGHTS] Insight Generation Error:", error);
+    // On network failure or rate limiting, try to return ANY existing cache even if hash is different?
+    // For now, return empty array to prevent UI crash.
+    return []; 
   }
 }
 

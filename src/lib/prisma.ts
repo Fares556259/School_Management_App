@@ -21,10 +21,12 @@ if (!globalThis.pgPool) {
   console.log("🐘 [PRISMA] Initializing new PG Pool...");
   globalThis.pgPool = new Pool({ 
     connectionString: process.env.DATABASE_URL,
-    max: 10,
+    max: 15, // Slightly higher to support batch dashboard parallelization
     ssl: { rejectUnauthorized: false }, 
-    connectionTimeoutMillis: 30000, // Increased to 30s to match mobile timeout
-    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 30000, // 30s is more than enough for cloud DBs
+    idleTimeoutMillis: 15000,       // 15s aggressive pruning of idle clients
+    // TCP Keep-Alive to prevent pooler silent-drops
+    keepAlive: true,
   });
 
   globalThis.pgPool.on('error', (err) => {

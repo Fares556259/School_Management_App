@@ -7,29 +7,33 @@ const ResultListPage = async () => {
   const { userId } = auth();
   const role = await getRole();
 
-  // 🐘 V3 Stabilization: Serialize queries to avoid pool contention during heavy operations
-  const classesRaw = await prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
-  
-  // Hard-filter any placeholder "all" classes immediately
+  // 🐘 V3 Stabilization: Re-parallelize optimized queries with hardened pool settings
+  const [classesRaw, subjects, teachers, sheets, allStudents] = await Promise.all([
+    prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.subject.findMany({ orderBy: { domain: "asc" } }),
+    prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
+    prisma.gradeSheet.findMany({
+      include: {
+        class: { select: { name: true, _count: { select: { students: true } } } },
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } },
+        grades: { select: { id: true } },
+      },
+      orderBy: [{ updatedAt: "desc" }],
+    }),
+    prisma.student.findMany({ 
+      where: { classId: { not: undefined } },
+      select: { id: true, name: true, surname: true, classId: true }, 
+      orderBy: { name: "asc" } 
+    })
+  ]);
+
+  // Derive initial students after parallel fetch completes
+  const firstClassId = classesRaw?.length > 0 ? classesRaw[0].id : null;
+  const initialStudents = allStudents.filter(s => s.classId === firstClassId);
+
+  // Hard-filter any placeholder "all" classes
   const classes = classesRaw.filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes");
-
-  const subjects = await prisma.subject.findMany({ orderBy: { domain: "asc" } });
-  const teachers = await prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } });
-  const sheets = await prisma.gradeSheet.findMany({
-    include: {
-      class: { select: { name: true, _count: { select: { students: true } } } },
-      subject: { select: { name: true } },
-      teacher: { select: { name: true, surname: true } },
-      grades: { select: { id: true } },
-    },
-    orderBy: [{ updatedAt: "desc" }],
-  });
-
-  // For the recorder, we need a list of students for the first class by default
-  const defaultClassId = classes.length > 0 ? classes[0].id : null;
-  const initialStudents = defaultClassId 
-    ? await prisma.student.findMany({ where: { classId: defaultClassId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } })
-    : [];
 
   return (
     <ResultsPageClient

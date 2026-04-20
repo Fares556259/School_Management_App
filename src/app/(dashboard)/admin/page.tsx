@@ -81,18 +81,21 @@ const AdminPage = async ({
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
   // 1. DATA FETCHING (Tiered for stability)
-  
-  // 1. DATA FETCHING (Tiered Parallel Batches for Performance & Stability)
-  
+  const startTime = Date.now();
+  console.log("⏱️ [DASHBOARD] Starting Data Fetching...");
+
   // BATCH 1: Vital Census Stats
+  const b1Start = Date.now();
   const [studentCount, teacherCount, staffCount, classCount] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
     prisma.staff.count(),
     prisma.class.count(),
   ]);
+  console.log(`⏱️ [DASHBOARD] Batch 1 (Census) completed in ${Date.now() - b1Start}ms`);
   
   // BATCH 2: Primary Financial Period Performance
+  const b2Start = Date.now();
   const [incomeStats, expenseStats, incomeCategoriesThisPeriod, expenseCategoriesThisPeriod] = await Promise.all([
     prisma.income.aggregate({ 
       _sum: { amount: true }, 
@@ -111,8 +114,10 @@ const AdminPage = async ({
       where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } }
     }),
   ]);
+  console.log(`⏱️ [DASHBOARD] Batch 2 (Financial Core) completed in ${Date.now() - b2Start}ms`);
 
   // BATCH 3: Workforce & Demographic Metrics
+  const b3Start = Date.now();
   const [studentPaymentsStats, salaryPaymentsStats, maleStudentCount, femaleStudentCount, overallGradeAvg] = await Promise.all([
     prisma.payment.aggregate({ 
       _sum: { amount: true }, where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate, lt: endDate } } 
@@ -124,8 +129,10 @@ const AdminPage = async ({
     prisma.student.count({ where: { sex: "FEMALE" } }),
     prisma.grade.aggregate({ _avg: { score: true } }),
   ]);
+  console.log(`⏱️ [DASHBOARD] Batch 3 (Workforce) completed in ${Date.now() - b3Start}ms`);
 
   // BATCH 4: Comparison Benchmarks
+  const b4Start = Date.now();
   const [incomePrevPeriod, expensePrevPeriod, studentPaymentsPrevPeriod, salaryPaymentsPrevPeriod] = await Promise.all([
     prisma.income.aggregate({ 
       _sum: { amount: true }, where: { date: { gte: prevStartDate, lt: prevEndDate }, NOT: { category: "Tuition" } } 
@@ -160,8 +167,10 @@ const AdminPage = async ({
       _sum: { deferredAmount: true }
     }),
   ]);
+  console.log(`⏱️ [DASHBOARD] Batch 5 (Action Items) completed in ${Date.now() - b3Start}ms`);
 
   // BATCH 6: Visual Context & History
+  const b6Start = Date.now();
   const [
     recentPaidPayments, 
     recentGeneralExpenses, 
@@ -216,6 +225,8 @@ const AdminPage = async ({
       select: { studentId: true, status: true, amount: true }
     })
   ]);
+  console.log(`⏱️ [DASHBOARD] Batch 6 (Visual/History) completed in ${Date.now() - b6Start}ms`);
+  console.log(`⏱️ [DASHBOARD] Total Data Fetching completed in ${Date.now() - startTime}ms`);
 
   const studentCensusData = allStudents.map(s => ({ id: s.id, name: `${s.name} ${s.surname}` }));
 
@@ -514,7 +525,7 @@ const AdminPage = async ({
         />
       </section>
 
-      {/* 6. AI ASSISTANT */}
+      {/* SNAP ASSISTANT - AI Dashboard Companion */}
       <SnapAssistant context={dashboardContext} />
     </div>
   );

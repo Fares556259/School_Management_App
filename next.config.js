@@ -20,6 +20,7 @@ const nextConfig = {
         hostname: "img.clerk.com",
       },
     ],
+    unoptimized: true, // 🐘 V3 Stabilization: Disable optimization to resolve 'fetch failed' timeouts for remote assets
   },
   experimental: {
     serverActions: {

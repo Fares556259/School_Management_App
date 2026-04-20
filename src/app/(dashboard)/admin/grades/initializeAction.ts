@@ -25,78 +25,69 @@ export async function initializeClassSheets(classId: number, term: number) {
     const studentIds = students.map(s => s.id);
     const subjectIds = subjects.map(s => s.id);
 
-    // 2. Step 1: Bulk Create missing GradeSheets
-    // Using createMany with skipDuplicates is significantly faster than upserting in a loop
-    await prisma.gradeSheet.createMany({
-      data: subjects.map(s => ({
-        classId,
-        subjectId: s.id,
-        term,
-        proofUrl: "",
-        notes: "INITIALIZED_BULK",
-      })),
-      skipDuplicates: true,
-    });
-
-    // 3. Step 2: Retrieve the Sheet ID mapping
-    // We need the IDs to link grades to their respective sheets
-    const sheets = await prisma.gradeSheet.findMany({
-      where: {
-        classId,
-        term,
-      },
-      select: {
-        id: true,
-        subjectId: true,
-      }
-    });
-
-    const subjectToSheetMap = new Map(sheets.map(s => [s.subjectId, s.id]));
-
-    // 4. Step 3: Identify missing grades across all subjects/students
-    // Fetch all existing grades for this class/term in one go
-    const existingGrades = await prisma.grade.findMany({
-      where: {
-        term,
-        studentId: { in: studentIds },
-        subjectId: { in: subjectIds },
-      },
-      select: {
-        studentId: true,
-        subjectId: true,
-      }
-    });
-
-    const existingGradeSet = new Set(existingGrades.map(g => `${g.studentId}-${g.subjectId}`));
-
-    // 5. Step 4: Construct the bulk insertion payload
-    const gradesToCreate = [];
-    for (const subject of subjects) {
-      const sheetId = subjectToSheetMap.get(subject.id);
-      if (!sheetId) continue;
-
-      for (const studentId of studentIds) {
-        if (!existingGradeSet.has(`${studentId}-${subject.id}`)) {
-          gradesToCreate.push({
-            studentId: studentId,
-            subjectId: subject.id,
-            term,
-            score: 0,
-            sheetId: sheetId,
-          });
-        }
-      }
-    }
-
-    // 6. Step 5: Execute final bulk insertion
-    if (gradesToCreate.length > 0) {
-      // Chunking if necessary for very large classes (e.g., thousands of combinations)
-      // but for standard school classes, createMany is extremely efficient.
-      await prisma.grade.createMany({
-        data: gradesToCreate,
+    // 2. Execute initialization within a single transaction for maximum performance
+    await prisma.$transaction(async (tx) => {
+      // Step 1: Bulk Create missing GradeSheets
+      await tx.gradeSheet.createMany({
+        data: subjects.map(s => ({
+          classId,
+          subjectId: s.id,
+          term,
+          proofUrl: "",
+          notes: "INITIALIZED_BULK",
+        })),
         skipDuplicates: true,
       });
-    }
+
+      // Step 2: Retrieve the Sheet ID mapping
+      const sheets = await tx.gradeSheet.findMany({
+        where: { classId, term },
+        select: { id: true, subjectId: true }
+      });
+
+      const subjectToSheetMap = new Map(sheets.map(s => [s.subjectId, s.id]));
+
+      // Step 3: Identify missing grades
+      const existingGrades = await tx.grade.findMany({
+        where: {
+          term,
+          studentId: { in: studentIds },
+          subjectId: { in: subjectIds },
+        },
+        select: { studentId: true, subjectId: true }
+      });
+
+      const existingGradeSet = new Set(existingGrades.map(g => `${g.studentId}-${g.subjectId}`));
+
+      // Step 4: Construct the bulk insertion payload
+      const gradesToCreate = [];
+      for (const subject of subjects) {
+        const sheetId = subjectToSheetMap.get(subject.id);
+        if (!sheetId) continue;
+
+        for (const studentId of studentIds) {
+          if (!existingGradeSet.has(`${studentId}-${subject.id}`)) {
+            gradesToCreate.push({
+              studentId: studentId,
+              subjectId: subject.id,
+              term,
+              score: 0,
+              sheetId: sheetId,
+            });
+          }
+        }
+      }
+
+      // Step 5: Execute final bulk insertion
+      if (gradesToCreate.length > 0) {
+        // Chunking slightly to avoid potential row limits if huge, 
+        // though 600-1000 rows is fine for createMany in one go.
+        await tx.grade.createMany({
+          data: gradesToCreate,
+          skipDuplicates: true,
+        });
+      }
+    });
 
     revalidatePath("/list/results");
     revalidatePath("/admin/grades");

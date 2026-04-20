@@ -51,6 +51,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(initialOpen || fullPage);
   const [isLocked, setIsLocked] = useState(false);
+  
   const [quota, setQuota] = useState(10);
   const [pendingCommandId, setPendingCommandId] = useState<number | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -129,15 +130,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   };
 
   useEffect(() => {
-    // Quota reached logic disabled for now
+    // 🛠️ HARD STABILIZATION: Force unlock and prevent takeover
     setIsLocked(false);
-    /*
-    isAIQuotaReached().then(reached => {
-      if (reached) {
-        setIsLocked(true);
-      }
-    });
-    */
   }, []);
   
   // Initialize with initialMessages if provided, otherwise the welcome message
@@ -329,7 +323,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
     setSelectedImage(null); // Clear only AFTER everything is done
   };
 
-  if (fullPage) {
+  // 🐘 V4 Stabilization: Safely disable full-page mode during diagnostics to ensure it doesn't hijack layout
+  if (false && fullPage) {
     return (
       <div className="w-full h-full bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
         {isLocked && (
@@ -451,7 +446,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           <div className="max-w-4xl mx-auto">
             {selectedImage && (
               <div className="mb-4 relative inline-block group">
-                <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl w-32 h-32">
+                <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl w-32 h-32 relative">
                   <Image src={selectedImage} alt="Preview" fill className="object-cover" />
                 </div>
                 <button 

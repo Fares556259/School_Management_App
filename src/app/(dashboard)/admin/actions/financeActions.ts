@@ -44,7 +44,7 @@ export async function getSimulatorBaseline() {
     const historicalExpenses = await prisma.expense.findMany({
       where: {
         date: { gte: threeMonthsAgo },
-        category: { notIn: ["SALARY"] }, // Exclude salaries as they are handled above
+        category: { notIn: ["Salary", "Salary Payment"] }, // Exclude salaries as they are handled separately via payroll logic
       },
     });
 
