@@ -30,7 +30,7 @@ export default function ResultsPageClient({
   const [loadingSheet, setLoadingSheet] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState<string>(classes[0]?.id ? String(classes[0].id) : "all");
+  const [selectedClassId, setSelectedClassId] = useState<string>(String(classes[0]?.id || ""));
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

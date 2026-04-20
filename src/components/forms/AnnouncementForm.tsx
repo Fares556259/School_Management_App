@@ -172,7 +172,7 @@ const AnnouncementForm = ({
               {...register("classId")}
               defaultValue={data?.classId || ""}
             >
-              <option value="">🌍 Global (All Classes)</option>
+              {/* <option value="">🌍 Global (All Classes)</option> */}
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   📚 Class {c.name}
@@ -191,7 +191,7 @@ const AnnouncementForm = ({
                 defaultValue={data?.targetStudentId || ""}
                 disabled={fetchingStudents}
               >
-                <option value="">👤 All Students in Class</option>
+                {/* <option value="">👤 All Students in Class</option> */}
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     🎓 {s.name} {s.surname}
