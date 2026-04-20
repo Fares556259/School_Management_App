@@ -6,6 +6,8 @@ import { generateSmartInsights } from "@/lib/reports/generator";
 import { DailyReportEmail } from "@/components/emails/DailyReportEmail";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET(request: Request) {

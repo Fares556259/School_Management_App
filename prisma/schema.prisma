@@ -19,6 +19,8 @@ model Admin {
   lastAiUpdate DateTime @default(now())
   schoolId     String   @default("default_school")
   School       School   @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
 }
 
 model Staff {
@@ -67,6 +69,11 @@ model Student {
   level         Level          @relation(fields: [levelId], references: [id])
   parent        Parent         @relation(fields: [parentId], references: [id])
   School        School         @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([parentId])
+  @@index([levelId])
 }
 
 model Teacher {
@@ -91,6 +98,8 @@ model Teacher {
   School      School          @relation(fields: [schoolId], references: [id])
   timetable   TimetableSlot[]
   subjects    Subject[]       @relation("SubjectToTeacher")
+
+  @@index([schoolId])
 }
 
 model Parent {
@@ -108,6 +117,8 @@ model Parent {
   notifications Notification[]
   School        School         @relation(fields: [schoolId], references: [id])
   students      Student[]
+
+  @@index([schoolId])
 }
 
 model Level {
@@ -172,6 +183,8 @@ model Grade {
   subject   Subject     @relation(fields: [subjectId], references: [id])
 
   @@unique([studentId, subjectId, term])
+  @@index([schoolId])
+  @@index([sheetId])
 }
 
 model GradeSheet {
@@ -192,6 +205,8 @@ model GradeSheet {
   teacher   Teacher? @relation(fields: [teacherId], references: [id])
 
   @@unique([classId, subjectId, term])
+  @@index([schoolId])
+  @@index([teacherId])
 }
 
 model Lesson {
@@ -211,6 +226,11 @@ model Lesson {
   School      School       @relation(fields: [schoolId], references: [id])
   subject     Subject      @relation(fields: [subjectId], references: [id])
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([teacherId])
+  @@index([subjectId])
 }
 
 model Exam {
@@ -224,6 +244,9 @@ model Exam {
   lesson     Lesson   @relation(fields: [lessonId], references: [id])
   School     School   @relation(fields: [schoolId], references: [id])
   results    Result[]
+
+  @@index([schoolId])
+  @@index([lessonId])
 }
 
 model Assignment {
@@ -290,6 +313,9 @@ model Result {
   exam         Exam?       @relation(fields: [examId], references: [id])
   School       School      @relation(fields: [schoolId], references: [id])
   student      Student     @relation(fields: [studentId], references: [id])
+
+  @@index([schoolId])
+  @@index([studentId])
 }
 
 model Expense {
@@ -341,6 +367,8 @@ model Payment {
   @@unique([studentId, month, year])
   @@unique([teacherId, month, year])
   @@unique([staffId, month, year])
+  @@index([schoolId])
+  @@index([studentId])
 }
 
 model AuditLog {
@@ -358,6 +386,9 @@ model AuditLog {
   timestamp     DateTime  @default(now())
   schoolId      String    @default("default_school")
   School        School    @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([timestamp])
 }
 
 model Notice {
@@ -441,6 +472,7 @@ model Attendance {
   student             Student          @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, date, lessonId])
+  @@index([schoolId])
 }
 
 model Notification {

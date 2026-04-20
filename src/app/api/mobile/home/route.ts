@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
     const [slots, attendance, todayLessons, examPeriods] = await Promise.all([
       prisma.timetableSlot.findMany({
         where: { classId: student.classId, day: todayEnum as any },
-        include: { subject: true, teacher: true },
+        include: { subject: true, teacher: true, room: true },
         orderBy: { slotNumber: "asc" },
       }),
       prisma.attendance.findMany({

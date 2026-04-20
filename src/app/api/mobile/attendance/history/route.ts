@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
+import { Day } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 

@@ -15,3 +15,34 @@ export const adjustWorkWeek = (date: Date) => {
   }
   return date;
 };
+
+export const adjustScheduleToCurrentWeek = (
+  lessons: { title: string; start: Date; end: Date }[]
+) => {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  // We want to map lessons to THIS week. 
+  // Let's find the most recent Sunday/Monday.
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  return lessons.map((lesson) => {
+    const lessonDay = lesson.start.getDay();
+    const daysToAdd = lessonDay === 0 ? 6 : lessonDay - 1;
+    
+    const start = new Date(startOfWeek);
+    start.setDate(startOfWeek.getDate() + daysToAdd);
+    start.setHours(lesson.start.getHours(), lesson.start.getMinutes());
+
+    const end = new Date(startOfWeek);
+    end.setDate(startOfWeek.getDate() + daysToAdd);
+    end.setHours(lesson.end.getHours(), lesson.end.getMinutes());
+
+    return {
+      title: lesson.title,
+      start,
+      end,
+    };
+  });
+};

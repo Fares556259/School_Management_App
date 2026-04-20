@@ -125,7 +125,7 @@ const Homepage = () => {
       <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03]" 
            style={{ backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-      <Navbar isSignedIn={isSignedIn} handleLoginClick={handleLoginClick} />
+      <Navbar isSignedIn={!!isSignedIn} handleLoginClick={handleLoginClick} />
 
       {/* 🚀 HERO SECTION */}
       <section ref={heroRef} className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">

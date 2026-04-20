@@ -87,8 +87,8 @@ const SettingsPage = () => {
         setOriginalConfig(JSON.parse(JSON.stringify(data)));
       }
       
-      if (roomsRes.success) setRooms(roomsRes.data);
-      if (feesRes.success) {
+      if (roomsRes.success && roomsRes.data) setRooms(roomsRes.data);
+      if (feesRes.success && feesRes.data) {
         setLevelFees(feesRes.data);
         setOriginalLevelFees(JSON.parse(JSON.stringify(feesRes.data)));
         // Default next level number
@@ -103,7 +103,7 @@ const SettingsPage = () => {
         setVariationCounts(counts);
         setOriginalVariationCounts(JSON.parse(JSON.stringify(counts)));
       }
-      if (levelsRes.success) {
+      if (levelsRes.success && levelsRes.data) {
         setLevels(levelsRes.data);
         if (levelsRes.data.length > 0) setNewClassLevel(levelsRes.data[0].id);
       }
@@ -150,7 +150,7 @@ const SettingsPage = () => {
       setMessage({ type: 'error', text: `Failed to delete class: ${res.error}` });
       // Re-fetch to sync if failed
       getLevelTuitionFees().then(res => {
-         if (res.success) setLevelFees(res.data);
+         if (res.success && res.data) setLevelFees(res.data);
       });
     }
   };
@@ -184,7 +184,7 @@ const SettingsPage = () => {
       }
       // Refresh fees to update chips
       getLevelTuitionFees().then(res => {
-        if (res.success) setLevelFees(res.data);
+        if (res.success && res.data) setLevelFees(res.data);
       });
     } else {
       setMessage({ type: 'error', text: res.error || "Failed to sync Variations" });

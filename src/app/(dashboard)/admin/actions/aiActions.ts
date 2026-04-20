@@ -111,6 +111,17 @@ async function unifiedAIRouter(params: {
   const primaryKey = process.env.OPENROUTER_API_KEY;
   const secondaryKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
+  const MAX_RETRIES = 2;
+  const TIMEOUT_MS = 30000; // 30s timeout
+
+  async function callWithTimeout(promise: Promise<any>, timeoutMs: number) {
+    let timeoutId: any;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("AI_TIMEOUT|The AI took too long to respond.")), timeoutMs);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+  }
+
   async function callProvider(key: string) {
     const isGoogleNative = key.startsWith("AIza");
     
@@ -178,22 +189,33 @@ async function unifiedAIRouter(params: {
     }
   }
 
-  // EXECUTION WITH SMART FALLBACK
-  try {
+  // EXECUTION WITH SMART FALLBACK & RETRY
+  const execute = async () => {
     if (primaryKey) {
       try {
-        return await callProvider(primaryKey);
+        return await callWithTimeout(callProvider(primaryKey), TIMEOUT_MS);
       } catch (err: any) {
+        if (err.message.includes("402") || err.message.includes("429")) throw err; // Don't retry auth/billing
         console.error("🚀 [ROUTER_FALLBACK] Primary failed, trying secondary:", err.message);
         if (!secondaryKey || secondaryKey === primaryKey) throw err;
       }
     }
-    if (secondaryKey) return await callProvider(secondaryKey);
+    if (secondaryKey) return await callWithTimeout(callProvider(secondaryKey), TIMEOUT_MS);
     throw new Error("No valid AI API keys found in environment.");
-  } catch (finalError: any) {
-    console.error("❌ [ROUTER_FATAL]", finalError);
-    throw finalError;
+  };
+
+  let lastErr: any;
+  for (let i = 0; i <= MAX_RETRIES; i++) {
+    try {
+      return await execute();
+    } catch (err: any) {
+      lastErr = err;
+      if (err.message.includes("CREDIT_EXHAUSTED") || err.message.includes("UNAUTHORIZED")) break; 
+      console.warn(`⚠️ [AI-RETRY] Attempt ${i + 1} failed. Retrying...`, err.message);
+      if (i < MAX_RETRIES) await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+    }
   }
+  throw lastErr;
 }
 
 export async function callGeminiDirect(prompt: string, imageBase64?: string) {

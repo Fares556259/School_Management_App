@@ -125,6 +125,8 @@ export const ar = {
     error: "خطأ",
     describeImage: "صف هذه الصورة...",
     askZbiba: "اسأل زبيبة...",
-    poweredBy: "مدعوم من Gemini 1.5 Flash • مدرك للسياق"
+    poweredBy: "مدعوم من Gemini 1.5 Flash",
+    contextAware: "مدرك للسياق",
+    operationalIntelligence: "الذكاء التشغيلي"
   }
 };

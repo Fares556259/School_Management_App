@@ -6,6 +6,7 @@ type InputFieldProps = {
   register?: any;
   name: string;
   defaultValue?: string;
+  placeholder?: string;
   error?: FieldError;
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
   required?: boolean;
@@ -17,6 +18,7 @@ const InputField = ({
   register,
   name,
   defaultValue,
+  placeholder,
   error,
   inputProps,
   required,
@@ -30,6 +32,7 @@ const InputField = ({
         {...(register ? register(name) : {})}
         className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
         {...inputProps}
+        placeholder={placeholder}
         defaultValue={defaultValue}
         required={required}
       />

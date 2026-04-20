@@ -22,7 +22,7 @@ type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subjec
 interface FieldDef {
   name: string;
   label: string;
-  type: "text" | "email" | "number" | "date" | "select" | "image";
+  type: "text" | "email" | "number" | "date" | "select" | "image" | "searchable-select";
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
