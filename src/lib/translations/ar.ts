@@ -21,6 +21,7 @@ export const ar = {
     settings: "الإعدادات",
     logout: "تسجيل الخروج",
     partialPayments: "الدفعات الجزئية",
+    profitability: "الربحية",
     other: "أخرى"
   },
   navbar: {

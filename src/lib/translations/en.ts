@@ -21,6 +21,7 @@ export const en = {
     settings: "Settings",
     logout: "Logout",
     partialPayments: "Partial Payments",
+    profitability: "Profitability",
     other: "OTHER"
   },
   navbar: {

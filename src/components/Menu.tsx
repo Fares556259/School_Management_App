@@ -29,7 +29,8 @@ import {
   LogOut,
   BarChart3,
   Settings2,
-  CalendarCheck
+  CalendarCheck,
+  Calculator
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
@@ -45,6 +46,7 @@ const labelToKey: Record<string, any> = {
   "Students": "students",
   "Attendance": "attendance",
   "Partial Payments": "partialPayments",
+  "Profitability": "profitability",
   "Parents": "parents",
   "Subjects": "subjects",
   "Classes": "classes",
@@ -143,6 +145,12 @@ const menuItems: MenuSection[] = [
         icon: CreditCard,
         label: "Partial Payments",
         href: "/list/payments-partial",
+        visible: ["admin"],
+      },
+      {
+        icon: Calculator,
+        label: "Profitability",
+        href: "/admin/finance/simulator",
         visible: ["admin"],
       },
       {

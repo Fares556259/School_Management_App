@@ -21,4 +21,5 @@ export const routeAccessMap: { [key: string]: string[] } = {
   "/admin/grades(.*)": ["admin"],
   "/api/grades(.*)": ["admin"],
   "/api/report-card(.*)": ["admin"],
+  "/admin/finance/simulator": ["admin"],
 };
