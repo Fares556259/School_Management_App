@@ -1,6 +1,6 @@
 import { Day, PrismaClient, UserSex, PaymentStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "../node_modules/@types/pg";
+import { Pool } from "pg";
 import "dotenv/config";
 
 const connectionString = process.env.DATABASE_URL;
@@ -11,20 +11,28 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("Starting Tunisian Seeding...");
 
-  // 1. CLEANUP
-  await prisma.grade.deleteMany();
+  // 1. CLEANUP (Delete in order of dependencies)
+  await prisma.attendance.deleteMany();
   await prisma.result.deleteMany();
+  await prisma.notice.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.grade.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.assignment.deleteMany();
   await prisma.exam.deleteMany();
   await prisma.lesson.deleteMany();
+  await prisma.timetableSlot.deleteMany();
+  await prisma.gradeSheet.deleteMany();
   await prisma.student.deleteMany();
   await prisma.class.deleteMany();
   await prisma.teacher.deleteMany();
+  await prisma.parent.deleteMany();
   await prisma.subject.deleteMany();
   await prisma.level.deleteMany();
-  await prisma.parent.deleteMany();
   await prisma.staff.deleteMany();
+  await prisma.room.deleteMany();
+  await prisma.profitabilityScenario.deleteMany();
+  await prisma.auditLog.deleteMany();
   await prisma.admin.deleteMany();
 
   // 2. ADMIN
@@ -51,26 +59,30 @@ async function main() {
     }
   }
 
-  // 4. SUBJECTS (Tunisian Primary School List)
+  // 4. SUBJECTS (Tunisian Primary School List - Official Grouping)
   const subjectData = [
-    // Arabic Language Domain
+    // Arabic Language Domain (مجال اللغة العربية)
     { name: "Arabic Communication", domain: "Arabic Language Domain" },
     { name: "Reading", domain: "Arabic Language Domain" },
     { name: "Writing", domain: "Arabic Language Domain" },
     { name: "Grammar", domain: "Arabic Language Domain" },
-    // Science & Technology Domain
+
+    // Science & Technology Domain (مجال العلوم والتكنولوجيا)
     { name: "Mathematics", domain: "Science & Technology Domain" },
     { name: "Scientific Activities", domain: "Science & Technology Domain" },
     { name: "Technology", domain: "Science & Technology Domain" },
-    // Discovery Domain
+
+    // Discovery Domain (مجال التنشئة)
     { name: "Islamic Education", domain: "Discovery Domain" },
     { name: "History", domain: "Discovery Domain" },
     { name: "Geography", domain: "Discovery Domain" },
     { name: "Civic Education", domain: "Discovery Domain" },
     { name: "Artistic Education", domain: "Discovery Domain" },
     { name: "Plastic Arts", domain: "Discovery Domain" },
+    { name: "Music Education", domain: "Discovery Domain" },
     { name: "Physical Education", domain: "Discovery Domain" },
-    // Foreign Languages Domain
+
+    // Foreign Languages Domain (مجال اللغات الأجنبية)
     { name: "French Oral Expression", domain: "Foreign Languages Domain" },
     { name: "French Reading", domain: "Foreign Languages Domain" },
     { name: "French Written Production", domain: "Foreign Languages Domain" },

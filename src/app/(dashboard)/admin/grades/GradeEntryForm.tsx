@@ -26,18 +26,29 @@ interface Student {
 }
 
 const subjectTranslations: Record<string, string> = {
-  "Arabic": "عربية",
-  "French": "فرنسية",
-  "English": "إنقليزية",
+  // Arabic Language Domain
+  "Arabic Communication": "تواصل شفوي",
+  "Reading": "قراءة",
+  "Writing": "إنتاج كتابي",
+  "Grammar": "قواعد اللغة",
+  // Science & Technology Domain
   "Mathematics": "رياضيات",
-  "Science": "إيقاظ علمي",
-  "Computer Science": "إعلامية / تكنولوجيا",
+  "Scientific Activities": "أيقاظ علمي",
+  "Technology": "تكنولوجيا",
+  // Discovery/Social Domain
+  "Islamic Education": "تربية إسلامية",
   "History": "تاريخ",
   "Geography": "جغرافيا",
-  "Civics": "تربية مدنية",
+  "Civic Education": "تربية مدنية",
+  "Artistic Education": "تربية تشكيلية",
+  "Plastic Arts": "تربية تشكيلية",
+  "Music Education": "تربية موسيقية",
   "Physical Education": "تربية بدنية",
-  "Music / Arts": "تربية موسيقية / تشكيلية",
-  "Islamic Education": "تربية إسلامية",
+  // Foreign Languages
+  "French Oral Expression": "تواصل شفوي (فرنسية)",
+  "French Reading": "قراءة (فرنسية)",
+  "French Written Production": "إنتاج كتابي (فرنسية)",
+  "English": "إنقليزية",
 };
 
 export default function GradeEntryForm({
@@ -233,9 +244,9 @@ export default function GradeEntryForm({
                     <div className="flex items-center gap-3 px-2">
                         <div className="h-4 w-1 bg-indigo-500 rounded-full" />
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                          {domain === "Languages Domain" ? "مجال اللغة العربية" :
+                          {domain === "Arabic Language Domain" ? "مجال اللغة العربية" :
                            domain === "Science & Technology Domain" ? "مجال العلوم والتكنولوجيا" :
-                           domain === "Social / Discovery Domain" ? "مجال التنشئة" :
+                           domain === "Discovery Domain" ? "مجال التنشئة" :
                            domain === "Foreign Languages Domain" ? "مجال اللغات الأجنبية" : 
                            domain}
                         </h4>
