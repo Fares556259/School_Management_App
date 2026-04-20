@@ -19,7 +19,7 @@ export async function initializeClassSheets(classId: number, term: number) {
       return { success: false, error: "No students found in this class." };
     }
 
-    // 2. Perform initialization in a transaction
+    // 2. Perform initialization in a transaction with an extended timeout
     await prisma.$transaction(async (tx) => {
       for (const subject of subjects) {
         // Create/find the sheet
@@ -31,42 +31,46 @@ export async function initializeClassSheets(classId: number, term: number) {
               term,
             },
           },
-          update: {}, // Don't overwrite existing notes/proof if they already exist
+          update: {}, 
           create: {
             classId,
             subjectId: subject.id,
             term,
-            proofUrl: "", // Empty proof initially
+            proofUrl: "", 
             notes: "INITIALIZED_BULK",
           },
         });
 
-        // Initialize grades for all students to 0 if not already present
-        // We use createMany for performance, but need to skip duplicates
-        // Since sqlite doesn't support skipDuplicates in createMany well with composite keys sometimes,
-        // we'll loop or use a more robust upsert strategy.
-        // Actually, let's use a batch approach to find existing and add missing.
-        
-        for (const student of students) {
-          await tx.grade.upsert({
-            where: {
-              studentId_subjectId_term: {
-                studentId: student.id,
-                subjectId: subject.id,
-                term,
-              },
-            },
-            update: {}, // Don't overwrite existing grades if they are already higher/different
-            create: {
-              studentId: student.id,
+        // 3. Optimized Bulk Grade Creation
+        // Find students who DON'T have a grade for this subject/term yet
+        const existingGrades = await tx.grade.findMany({
+          where: {
+            subjectId: subject.id,
+            term,
+            studentId: { in: students.map(s => s.id) }
+          },
+          select: { studentId: true }
+        });
+
+        const existingStudentIds = new Set(existingGrades.map(g => g.studentId));
+        const missingStudents = students.filter(s => !existingStudentIds.has(s.id));
+
+        if (missingStudents.length > 0) {
+          // Use createMany for high-speed bulk insertion
+          await tx.grade.createMany({
+            data: missingStudents.map(s => ({
+              studentId: s.id,
               subjectId: subject.id,
               term,
               score: 0,
               sheetId: sheet.id,
-            },
+            })),
+            skipDuplicates: true,
           });
         }
       }
+    }, {
+      timeout: 30000 // Extend to 30 seconds to prevent timeout on large classes
     });
 
     revalidatePath("/list/results");
