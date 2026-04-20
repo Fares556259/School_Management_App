@@ -527,6 +527,7 @@ model School {
   Teacher          Teacher[]
   TimetableSlot    TimetableSlot[]
   Room             Room[]
+  ProfitabilityScenario ProfitabilityScenario[]
 }
 
 enum UserSex {
@@ -565,4 +566,20 @@ model SetupRequest {
   status      String   @default("PENDING")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ProfitabilityScenario {
+  id             String   @id @default(cuid())
+  name           String
+  tuitionAdjust  Float    @default(0)
+  salaryAdjust   Float    @default(0)
+  overheadAdjust Float    @default(0)
+  targetStudents Int      @default(0)
+  description    String?
+  schoolId       String   @default("default_school")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  School         School   @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
 }

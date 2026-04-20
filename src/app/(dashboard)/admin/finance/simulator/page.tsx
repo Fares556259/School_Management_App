@@ -1,4 +1,5 @@
 import { getSimulatorBaseline } from "../../actions/financeActions";
+import { getScenarios } from "../../actions/profitabilityActions";
 import SimulatorInterface from "./SimulatorInterface";
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
@@ -7,7 +8,10 @@ export default async function ProfitabilitySimulatorPage() {
   const role = await getRole();
   if (role !== "admin") redirect("/");
 
-  const baseline = await getSimulatorBaseline();
+  const [baseline, scenariosRes] = await Promise.all([
+    getSimulatorBaseline(),
+    getScenarios(),
+  ]);
 
   if (!baseline.success) {
     return (
@@ -29,7 +33,10 @@ export default async function ProfitabilitySimulatorPage() {
         </p>
       </div>
 
-      <SimulatorInterface baseline={baseline.data!} />
+      <SimulatorInterface 
+        baseline={baseline.data!} 
+        initialScenarios={scenariosRes.success ? scenariosRes.data || [] : []}
+      />
     </div>
   );
 }
