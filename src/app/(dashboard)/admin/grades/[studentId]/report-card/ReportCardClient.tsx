@@ -35,13 +35,23 @@ export default function ReportCardClient({
   term: number;
 }) {
   const [data, setData] = useState<ReportData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`/api/report-card?studentId=${studentId}&term=${term}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load report card data");
+        return res.json();
+      })
       .then((d) => {
+        if (d.error) throw new Error(d.error);
         setData(d);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        setError(err.message);
         setLoading(false);
       });
   }, [studentId, term]);
@@ -53,13 +63,29 @@ export default function ReportCardClient({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-40">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-slate-500 font-bold">جاري تحميل بطاقة الأعداد...</p>
+        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest font-black">Loading Bulletin...</p>
       </div>
     );
   }
 
-  if (!data) return <div className="text-center py-20 font-bold text-red-500 underline whitespace-nowrap">حدث خطأ أثناء تحميل البيانات</div>;
+  if (error || !data || !data.header) {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-3xl border border-slate-100 shadow-xl text-center">
+        <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⚠️</span>
+        </div>
+        <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Notice</h3>
+        <p className="text-xs font-bold text-slate-500 mb-6">{error || "The requested report card could not be generated."}</p>
+        <button 
+            onClick={() => window.history.back()}
+            className="px-6 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all"
+        >
+            Go Back
+        </button>
+      </div>
+    );
+  }
 
   const getTermText = (t: number) => {
     if (t === 1) return "الثلاثي الأول";

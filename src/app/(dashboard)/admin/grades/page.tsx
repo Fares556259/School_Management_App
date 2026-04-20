@@ -58,6 +58,7 @@ export default async function GradesPage({
         </div>
       ) : (
         <GradeEntryForm
+          key={`${classId}-${term}`}
           students={students}
           subjects={subjects}
           term={term}

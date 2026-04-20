@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
-import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -50,10 +50,34 @@ export async function POST(req: NextRequest) {
     const validatedData = gradeSchema.parse(body);
     const { studentId, term, scores } = validatedData;
 
+    // 1. Find the student's class to look for corresponding sheets
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { classId: true },
+    });
+
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
     // Use a transaction to ensure all grades are saved correctly
-    const results = await prisma.$transaction(
-      scores.map((s) =>
-        prisma.grade.upsert({
+    const results = await prisma.$transaction(async (tx) => {
+      const updates = [];
+      
+      for (const s of scores) {
+        // 2. Look for an existing GradeSheet for this Class + Subject + Term
+        const existingSheet = await tx.gradeSheet.findUnique({
+          where: {
+            classId_subjectId_term: {
+              classId: student.classId,
+              subjectId: s.subjectId,
+              term,
+            },
+          },
+          select: { id: true },
+        });
+
+        const update = tx.grade.upsert({
           where: {
             studentId_subjectId_term: {
               studentId,
@@ -63,16 +87,25 @@ export async function POST(req: NextRequest) {
           },
           update: {
             score: s.score,
+            sheetId: existingSheet?.id || undefined,
           },
           create: {
             studentId,
             subjectId: s.subjectId,
             term,
             score: s.score,
+            sheetId: existingSheet?.id || undefined,
           },
-        })
-      )
-    );
+        });
+        updates.push(update);
+      }
+      
+      return Promise.all(updates);
+    });
+
+    // 3. Trigger Revalidation for all relevant dashboards
+    revalidatePath("/admin/grades");
+    revalidatePath("/list/results");
 
     return NextResponse.json({ success: true, count: results.length });
   } catch (error) {

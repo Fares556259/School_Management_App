@@ -78,6 +78,7 @@ export default function GradeEntryForm({
 
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [isDirty, setIsDirty] = useState(false);
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
@@ -95,6 +96,7 @@ export default function GradeEntryForm({
       }
     }));
     setSaveStatus("idle");
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
@@ -119,6 +121,7 @@ export default function GradeEntryForm({
 
       if (res.ok) {
         setSaveStatus("success");
+        setIsDirty(false);
         setTimeout(() => setSaveStatus("idle"), 3000);
       } else {
         setSaveStatus("error");
@@ -212,28 +215,30 @@ export default function GradeEntryForm({
                   <FileText size={14} />
                   عرض بطاقة الأعداد
                 </Link>
-                <button
-                  onClick={handleSave}
-                  disabled={saveStatus === "saving"}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-xl font-black text-xs transition-all shadow-md ${
-                    saveStatus === "success" 
-                      ? "bg-emerald-500 text-white shadow-emerald-100" 
-                      : saveStatus === "error" 
-                      ? "bg-rose-500 text-white shadow-rose-100"
-                      : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
-                  }`}
-                >
-                  {saveStatus === "saving" ? (
-                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : saveStatus === "success" ? (
-                    <CheckCircle2 size={14} />
-                  ) : saveStatus === "error" ? (
-                    <AlertCircle size={14} />
-                  ) : (
-                    <Save size={14} />
-                  )}
-                  {saveStatus === "saving" ? "جاري الحفظ..." : saveStatus === "success" ? "تم الحفظ!" : saveStatus === "error" ? "خطأ" : "حفظ الأعداد"}
-                </button>
+                {(isDirty || saveStatus !== "idle") && (
+                  <button
+                    onClick={handleSave}
+                    disabled={saveStatus === "saving"}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-xl font-black text-xs transition-all shadow-md animate-in fade-in zoom-in duration-300 ${
+                      saveStatus === "success" 
+                        ? "bg-emerald-500 text-white shadow-emerald-100" 
+                        : saveStatus === "error" 
+                        ? "bg-rose-500 text-white shadow-rose-100"
+                        : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+                    }`}
+                  >
+                    {saveStatus === "saving" ? (
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : saveStatus === "success" ? (
+                      <CheckCircle2 size={14} />
+                    ) : saveStatus === "error" ? (
+                      <AlertCircle size={14} />
+                    ) : (
+                      <Save size={14} />
+                    )}
+                    {saveStatus === "saving" ? "جاري الحفظ..." : saveStatus === "success" ? "تم الحفظ!" : saveStatus === "error" ? "خطأ" : "حفظ الأعداد"}
+                  </button>
+                )}
               </div>
             </div>
 

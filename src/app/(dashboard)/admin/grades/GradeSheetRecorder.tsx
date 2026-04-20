@@ -59,6 +59,11 @@ export default function GradeSheetRecorder({
   const [term, setTerm] = useState<number>(existingSheet?.term ?? initialTerm);
   const [teacherId, setTeacherId] = useState<string>(existingSheet?.teacherId ?? "");
   const [notes, setNotes] = useState(existingSheet?.notes ?? "");
+
+  const updateTeacherId = (id: string) => { setTeacherId(id); setIsDirty(true); };
+  const updateNotes = (val: string) => { setNotes(val); setIsDirty(true); };
+  const updateSubjectId = (id: number) => { setSubjectId(id); setIsDirty(true); };
+  const updateTerm = (t: number) => { setTerm(t); setIsDirty(true); };
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);
   
@@ -82,6 +87,7 @@ export default function GradeSheetRecorder({
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [hasImageError, setHasImageError] = useState(false);
   const [isAiLocked, setIsAiLocked] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked).catch(console.error);
@@ -99,6 +105,7 @@ export default function GradeSheetRecorder({
       const data = await response.json();
       setStudents(data);
       setGrades({}); // Reset grades when class changes
+      setIsDirty(true);
     } catch (err) {
       console.error("Failed to fetch students:", err);
     } finally {
@@ -117,6 +124,7 @@ export default function GradeSheetRecorder({
     setProofFile(file);
     setIsImageLoading(true);
     setProofPreviewUrl(URL.createObjectURL(file));
+    setIsDirty(true);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -126,6 +134,7 @@ export default function GradeSheetRecorder({
     setProofFile(file);
     setIsImageLoading(true);
     setProofPreviewUrl(URL.createObjectURL(file));
+    setIsDirty(true);
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -162,12 +171,14 @@ export default function GradeSheetRecorder({
 
   const handleGradeChange = (studentId: string, value: string) => {
     setGrades((prev) => ({ ...prev, [studentId]: value }));
+    setIsDirty(true);
   };
 
   const fillAll = (value: string) => {
     const all: Record<string, string> = {};
     students.forEach((s) => (all[s.id] = value));
     setGrades(all);
+    setIsDirty(true);
   };
 
   const handleAiScan = async () => {
@@ -230,6 +241,7 @@ export default function GradeSheetRecorder({
         if (result.data) {
           setGrades(prev => ({ ...prev, ...result.data }));
           setAiFilledIds(new Set(Object.keys(result.data)));
+          setIsDirty(true);
           // Clear highlighter after a few seconds
           setTimeout(() => setAiFilledIds(new Set()), 5000);
         }
@@ -288,9 +300,9 @@ export default function GradeSheetRecorder({
         });
 
         setSaveStatus("success");
+        setIsDirty(false);
         setTimeout(() => {
           setSaveStatus("idle");
-          handleClose();
         }, 1500);
       } catch (err) {
         console.error("Save Error:", err);
@@ -337,13 +349,15 @@ export default function GradeSheetRecorder({
             </span>
           )}
 
-          <button
-            onClick={handleSave}
-            disabled={isPending || isLoadingStudents}
-            className="px-5 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 uppercase tracking-widest shadow-lg shadow-indigo-100"
-          >
-            {isPending ? "Saving…" : "Save Sheet"}
-          </button>
+          {(isDirty || saveStatus !== "idle") && (
+            <button
+              onClick={handleSave}
+              disabled={isPending || isLoadingStudents}
+              className="px-5 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 uppercase tracking-widest shadow-lg shadow-indigo-100 animate-in fade-in zoom-in duration-300"
+            >
+              {isPending ? "Saving…" : "Save Sheet"}
+            </button>
+          )}
           
           <button 
             onClick={handleClose} 
@@ -642,7 +656,7 @@ export default function GradeSheetRecorder({
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Notes (optional)</label>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => updateNotes(e.target.value)}
               placeholder="e.g. 3 students absent, paper submitted on April 08"
               rows={2}
               className="w-full text-sm text-slate-700 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
