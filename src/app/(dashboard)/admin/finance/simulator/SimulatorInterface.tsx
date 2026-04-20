@@ -37,6 +37,7 @@ import {
   Package,
   ShieldCheck,
   AlertTriangle,
+  UserPlus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CashFlowChart from "./CashFlowChart";
@@ -98,6 +99,10 @@ export default function SimulatorInterface({
   const [inReserves, setInReserves] = useState(Math.floor(baseline.cumulativeReserves)); // Total Reserves
   const [inCapacity, setInCapacity] = useState(200); // Physical places
   const [inRetention, setInRetention] = useState(95); // Student Retention %
+
+  // Recruitment Optimizer States
+  const [targetClassStudents, setTargetClassStudents] = useState(20);
+  const [targetClassMargin, setTargetClassMargin] = useState(30); // %
 
   // Results State (Only updates on "Calculer")
   const [resValues, setResValues] = useState({
@@ -161,6 +166,11 @@ export default function SimulatorInterface({
   
   const weightedAvgTuition = resValues.students > 0 ? (resValues.revenue / resValues.students) : 0;
   const breakEvenStudents = weightedAvgTuition > 0 ? Math.ceil(resValues.expenses / weightedAvgTuition) : 0;
+
+  // --- Recruitment Optimizer Logic ---
+  const classRevenueBase = targetClassStudents * resValues.tuition;
+  const maxAffordableSalary = classRevenueBase * (1 - targetClassMargin / 100);
+  const annualRecruitmentProfit = (classRevenueBase - maxAffordableSalary) * 12;
 
   // --- Sensitivity Impacts (±10% variance) ---
   const sensitivityImpacts = useMemo(() => {
@@ -571,6 +581,69 @@ export default function SimulatorInterface({
              icon={<Target size={20} />} 
              colorClass={((resValues.expenses / resValues.revenue) * 100) > 90 ? "text-rose-600" : "text-emerald-600"}
           />
+        </div>
+      </div>
+
+      {/* --- Section: Optimiseur de Recrutement (Reverse Calculation) --- */}
+      <div className="bg-slate-900 p-10 rounded-[40px] text-white shadow-2xl relative overflow-hidden">
+        {/* Glow effect */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
+        
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/30">
+              <UserPlus size={12} />
+              Assistant de Recrutement
+            </div>
+            <h2 className="text-3xl font-black tracking-tight leading-tight">Optimisez vos Salaires Enseignants</h2>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+              Déterminez le plafond de salaire maximum pour rester rentable en fonction du nombre d&apos;élèves et de votre marge cible.
+            </p>
+
+            <div className="grid grid-cols-2 gap-6 pt-4">
+               <div>
+                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Élèves en Classe</span>
+                 <input 
+                    type="number"
+                    value={targetClassStudents}
+                    onChange={(e) => setTargetClassStudents(Number(e.target.value))}
+                    className="w-full bg-slate-800 border-2 border-slate-700 focus:border-indigo-500 outline-none p-4 rounded-2xl font-black text-xl transition-all"
+                 />
+               </div>
+               <div>
+                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Marge Cible (%)</span>
+                 <input 
+                    type="number"
+                    value={targetClassMargin}
+                    onChange={(e) => setTargetClassMargin(Number(e.target.value))}
+                    className="w-full bg-slate-800 border-2 border-slate-700 focus:border-indigo-500 outline-none p-4 rounded-2xl font-black text-xl transition-all"
+                 />
+               </div>
+            </div>
+          </div>
+
+          <div className="bg-indigo-600 p-8 rounded-[32px] shadow-2xl space-y-8 border-t border-indigo-400">
+             <div className="space-y-2">
+                <p className="text-xs font-black text-indigo-200 uppercase tracking-widest">Salaire Mensuel Max Conseillé</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-black tracking-tighter">{Math.floor(maxAffordableSalary).toLocaleString()}</span>
+                  <span className="text-xl font-bold opacity-60">TND</span>
+                </div>
+             </div>
+
+             <div className="h-[1px] bg-indigo-500/50" />
+
+             <div className="grid grid-cols-2 gap-8">
+                <div>
+                  <p className="text-[10px] font-black text-indigo-200 uppercase mb-1">Revenu Classe</p>
+                  <p className="text-lg font-black">{Math.floor(classRevenueBase).toLocaleString()} TND</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-indigo-200 uppercase mb-1">Profit Annuel</p>
+                  <p className="text-lg font-black text-emerald-300">+{Math.floor(annualRecruitmentProfit).toLocaleString()} TND</p>
+                </div>
+             </div>
+          </div>
         </div>
       </div>
 
