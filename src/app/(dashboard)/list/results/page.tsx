@@ -13,7 +13,7 @@ const ResultListPage = async () => {
     prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
     prisma.gradeSheet.findMany({
       include: {
-        class: { select: { name: true } },
+        class: { select: { name: true, _count: { select: { students: true } } } },
         subject: { select: { name: true } },
         teacher: { select: { name: true, surname: true } },
         grades: { select: { id: true } },

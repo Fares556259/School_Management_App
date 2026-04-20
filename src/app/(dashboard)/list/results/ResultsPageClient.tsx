@@ -173,7 +173,7 @@ export default function ResultsPageClient({
                       ⚠️ Missing Proof
                    </div>
                 )}
-                {sheet.grades.length < 18 && (
+                {sheet.grades.length < (sheet.class._count?.students || 1) && (
                    <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
                       🕒 Incomplete
                    </div>
@@ -195,14 +195,14 @@ export default function ResultsPageClient({
                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <div className="flex items-center justify-between mb-2">
                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recording Progress</span>
-                     <span className={`text-[10px] font-black ${sheet.grades.length >= 18 ? 'text-emerald-600' : 'text-slate-800'}`}>
+                     <span className={`text-[10px] font-black ${sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-slate-800'}`}>
                         {sheet.grades.length} Graded
                      </span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                      <div 
-                       className={`h-full rounded-full transition-all duration-1000 ${sheet.grades.length >= 18 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
-                       style={{ width: `${Math.min(100, (sheet.grades.length / 18) * 100)}%` }}
+                       className={`h-full rounded-full transition-all duration-1000 ${sheet.grades.length >= (sheet.class._count?.students || 1) ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                       style={{ width: `${Math.min(100, (sheet.grades.length / (sheet.class._count?.students || 1)) * 100)}%` }}
                      ></div>
                   </div>
                </div>
