@@ -30,7 +30,7 @@ export default function ResultsPageClient({
   const [loadingSheet, setLoadingSheet] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClassId, setSelectedClassId] = useState<string>("all");
+  const [selectedClassId, setSelectedClassId] = useState<string>(classes[0]?.id ? String(classes[0].id) : "all");
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -85,19 +85,10 @@ export default function ResultsPageClient({
   };
 
   const displayItems = (() => {
-    // 1. If "All Classes" is selected, just show existing sheets filtered
-    if (selectedClassId === "all") {
-      return sheets.filter((s) => {
-        const matchesSearch = 
-          s.class.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.subject.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesTerm = selectedTerm === "all" || String(s.term) === selectedTerm;
-        return matchesSearch && matchesTerm;
-      }).map(s => ({ type: 'existing', data: s, subject: s.subject, class: s.class, term: s.term }));
-    }
-
     // 2. If a specific Class is selected, show ALL subjects (Cheklist Mode)
     const activeClass = classes.find(c => String(c.id) === selectedClassId);
+    if (!activeClass) return [];
+    
     const activeTerm = selectedTerm === "all" ? 1 : Number(selectedTerm);
 
     return subjects
@@ -172,7 +163,6 @@ export default function ResultsPageClient({
            onChange={(e) => setSelectedClassId(e.target.value)}
            className="px-6 py-4 bg-white rounded-[24px] border border-slate-100 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
          >
-           <option value="all">All Classes</option>
            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
          </select>
 
