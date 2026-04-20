@@ -63,44 +63,43 @@ export default function GradeSheetRecorder({
   const updateTeacherId = (id: string) => { setTeacherId(id); setIsDirty(true); };
   const updateNotes = (val: string) => { setNotes(val); setIsDirty(true); };
  
-  const syncSessionData = async (cId: number, sId: number, t: number) => {
-    setIsSyncing(true);
-    try {
-      const sheet = await getGradeSheet(cId, sId, t);
-      if (sheet) {
-        // Map existing grades
-        const newGrades: Record<string, string> = {};
-        sheet.grades.forEach((g: any) => {
-          newGrades[g.studentId] = String(g.score);
-        });
-        setGrades(newGrades);
-        setProofPreviewUrl(sheet.proofUrl || null);
-        setNotes(sheet.notes || "");
-        setTeacherId(sheet.teacherId || "");
-      } else {
-        // Reset if no sheet exists
-        setGrades({});
-        setProofPreviewUrl(null);
-        setNotes("");
-        setTeacherId("");
+  // CENTRALIZED SYNC EFFECT
+  useEffect(() => {
+    let cancelled = false;
+    
+    const sync = async () => {
+      setIsSyncing(true);
+      try {
+        const sheet = await getGradeSheet(classId, subjectId, term);
+        if (cancelled) return;
+        
+        if (sheet) {
+          const newGrades: Record<string, string> = {};
+          sheet.grades.forEach((g: any) => {
+            newGrades[g.studentId] = String(g.score);
+          });
+          setGrades(newGrades);
+          setProofPreviewUrl(sheet.proofUrl || null);
+          setNotes(sheet.notes || "");
+          setTeacherId(sheet.teacherId || "");
+        } else {
+          setGrades({});
+          setProofPreviewUrl(null);
+          setNotes("");
+          setTeacherId("");
+        }
+        setIsDirty(false); // Reset dirty state as this is a fresh database sync
+      } catch (err) {
+        console.error("Sync Error:", err);
+      } finally {
+        if (!cancelled) setIsSyncing(false);
       }
-      setIsDirty(false); // Reset dirty on fresh load
-    } catch (err) {
-      console.error("Failed to sync session data:", err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
- 
-  const updateSubjectId = async (id: number) => { 
-    setSubjectId(id); 
-    await syncSessionData(classId, id, term);
-  };
-  
-  const updateTerm = async (t: number) => { 
-    setTerm(t); 
-    await syncSessionData(classId, subjectId, t);
-  };
+    };
+
+    sync();
+    return () => { cancelled = true; };
+  }, [classId, subjectId, term]);
+
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);
   
@@ -144,7 +143,6 @@ export default function GradeSheetRecorder({
       setStudents(data);
       setGrades({}); // Reset grades when class changes
       setIsDirty(true);
-      await syncSessionData(newId, subjectId, term);
     } catch (err) {
       console.error("Failed to fetch students:", err);
     } finally {
