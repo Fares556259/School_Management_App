@@ -1,13 +1,13 @@
 "use server";
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
 import FiscalDistribution from "./FiscalDistribution";
 import SmartFinancialInsights from "./SmartFinancialInsights";
 import GrowthAnalyticsChart from "./GrowthAnalyticsChart";
-import FiscalBarChart from "./FiscalBarChart";
-import FinancialBreakdown from "./FinancialBreakdown";
+import ActionCenter from "./ActionCenter";
+import NoticeBoard from "./NoticeBoard";
 import { translations, Locale } from "@/lib/translations";
 
 interface DashboardAppendageProps {
@@ -31,175 +31,159 @@ export default async function DashboardAppendage({
 }: DashboardAppendageProps) {
   const t = translations[locale];
   const now = new Date();
+  const currentMonth = startDate.getMonth() + 1;
+  const currentYear = startDate.getFullYear();
 
-  // BATCH 6: Visual Context & History (Offloaded to Suspense boundary)
-  const [
-    recentPaidPayments, 
-    recentGeneralExpenses, 
-    recentGeneralIncomes, 
-    recentAuditLogs, 
-    allNotices, 
-    histIncome, 
-    histExpense,
-    incomeCategoriesThisPeriod,
-    expenseCategoriesThisPeriod,
-    studentPaymentsStats,
-    salaryPaymentsStats
-  ] = await Promise.all([
-    prisma.payment.findMany({ 
-      take: 20, // Reduced from 500 for massive stabilization
-      orderBy: { paidAt: 'desc' }, 
-      where: { status: 'PAID' }, 
-      include: { student: { select: { id: true, name: true, surname: true } }, teacher: { select: { id: true, name: true, surname: true } }, staff: { select: { id: true, name: true, surname: true } } } 
-    }),
-    prisma.expense.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
-    prisma.income.findMany({ take: 8, orderBy: { date: 'desc' }, select: { title: true, amount: true, date: true, category: true } }),
-    prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }),
-    prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { title: true, message: true, date: true } }),
-    prisma.income.groupBy({
-      by: ['date'], _sum: { amount: true },
-      where: { date: { gte: twelveMonthsAgo } }
-    }),
-    prisma.expense.groupBy({
-      by: ['date'], _sum: { amount: true },
-      where: { date: { gte: twelveMonthsAgo } }
-    }),
-    // Re-fetching specific categories for the breakdown to avoid passing massive objects
-    prisma.income.groupBy({
-      by: ['category'], _sum: { amount: true },
-      where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Tuition" } }
-    }),
-    prisma.expense.groupBy({
-      by: ['category'], _sum: { amount: true },
-      where: { date: { gte: startDate, lt: endDate }, NOT: { category: "Salary" } }
-    }),
-    prisma.payment.aggregate({ 
-      _sum: { amount: true }, where: { status: "PAID", userType: "STUDENT", paidAt: { gte: startDate, lt: endDate } } 
-    }),
-    prisma.payment.aggregate({ 
-      _sum: { amount: true }, where: { status: "PAID", userType: { in: ["TEACHER", "STAFF"] }, paidAt: { gte: startDate, lt: endDate } } 
-    }),
-    prisma.payment.findMany({
-      where: { status: "PENDING" }, 
+  // HEAVY DATA FETCHING CONSOLIDATION (Phase 6 Restoration)
+  const safeFetch = async <T>(promise: Promise<T>, fallback: T): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 5000))
+    ]).catch((err) => {
+      console.warn(`⏱️ [APPENDAGE_TIMEOUT] ${err.message === "TIMEOUT" ? "Query timed out" : "Query failed"}. Returning fallback.`);
+      return fallback;
+    });
+  };
+
+  // 1. MEGA-CONSOLIDATED TRENDS & BREAKDOWNS
+  const getSecondaryStats = async () => {
+    const results: any = await prisma.$queryRaw`
+      SELECT
+        -- Category breakdowns
+        (SELECT json_agg(t) FROM (
+          SELECT category, SUM(amount)::float as total 
+          FROM "Income" 
+          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Tuition'
+          GROUP BY category
+        ) t) as income_categories,
+        
+        (SELECT json_agg(t) FROM (
+          SELECT category, SUM(amount)::float as total 
+          FROM "Expense" 
+          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Salary'
+          GROUP BY category
+        ) t) as expense_categories,
+
+        -- 12 Month Trends
+        (SELECT json_agg(t) FROM (
+          SELECT date_trunc('month', date) as month, SUM(amount)::float as total
+          FROM "Income"
+          WHERE date >= ${twelveMonthsAgo}
+          GROUP BY 1 ORDER BY 1
+        ) t) as income_trend,
+
+        (SELECT json_agg(t) FROM (
+          SELECT date_trunc('month', date) as month, SUM(amount)::float as total
+          FROM "Expense"
+          WHERE date >= ${twelveMonthsAgo}
+          GROUP BY 1 ORDER BY 1
+        ) t) as expense_trend
+    `;
+    return results[0];
+  };
+
+  const secondaryStats = await safeFetch(getSecondaryStats(), {
+    income_categories: [], expense_categories: [], income_trend: [], expense_trend: []
+  });
+
+  // 2. RECENT ACTIVITY BATCH
+  const [allNotices, recentAuditLogs] = await Promise.all([
+    safeFetch(prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { title: true, message: true, date: true } }), []),
+    safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
+  ]);
+
+  // 3. UNCOLLECTED FEES RESTORATION (FIND STUDENTS WITH NO PAID PAYMENT)
+  const getUncollectedData = async () => {
+    // We want students who DON'T have a 'PAID' record for this month
+    const unpaidStudents: any[] = await prisma.$queryRaw`
+      SELECT 
+        s.id, s.name, s.surname, p.phone as "parentPhone", l."tuitionFee",
+        pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+      FROM "Student" s
+      JOIN "Level" l ON s."levelId" = l.id
+      JOIN "Parent" p ON s."parentId" = p.id
+      LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
+        AND pay.month = ${currentMonth} 
+        AND pay.year = ${currentYear}
+      WHERE (pay.status IS NULL OR pay.status != 'PAID')
+      LIMIT 100
+    `;
+
+    // Also get unpaid employees (TEACHER/STAFF)
+    const unpaidEmp = await prisma.payment.findMany({
+      where: { 
+        status: { in: ["PENDING", "PARTIAL"] },
+        userType: { in: ["TEACHER", "STAFF"] }
+      },
       include: {
-        student: { select: { id: true, name: true, surname: true, parent: { select: { phone: true } } } },
         teacher: { select: { id: true, name: true, surname: true, phone: true } },
         staff: { select: { id: true, name: true, surname: true, phone: true } },
       },
-      take: 100 // Reduced from 500 for massive stabilization
-    }),
-    prisma.student.findMany({ 
-      select: { 
-        id: true, name: true, surname: true, 
-        parent: { select: { phone: true } },
-        level: { select: { tuitionFee: true } }
-      } 
-    }),
-    prisma.payment.findMany({
-      where: { month: startDate.getMonth() + 1, year: startDate.getFullYear(), userType: "STUDENT" },
-      select: { studentId: true, status: true, amount: true }
-    })
-  ]);
+      take: 50
+    });
 
-  // UNPAID PROCESSING
-  const studentsWithPaidStatus = new Set(
-    currentMonthStudentPayments
-      .filter(p => p.status === "PAID" || p.status === "PARTIAL")
-      .map(p => p.studentId)
-  );
+    return { unpaidStudents, unpaidEmp };
+  };
 
-  const pendingStudentPaymentsMap = new Map(
-    currentMonthStudentPayments
-      .filter(p => p.status === "PENDING")
-      .map(p => [p.studentId, p.amount])
-  );
+  const uncollectedLists = await safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidEmp: [] });
 
-  const unpaidFees = allStudents
-    .filter(s => !studentsWithPaidStatus.has(s.id))
-    .map(s => ({
-      name: `${s.name} ${s.surname}`,
-      studentId: s.id,
-      amount: pendingStudentPaymentsMap.get(s.id) || (s.level?.tuitionFee ?? 450), 
-      month: startDate.getMonth() + 1,
-      year: startDate.getFullYear(),
-      type: "STUDENT",
-      status: "Pending"
-    }));
+  // --- DATA PROCESSING ---
 
-  const unpaidEmployees = unpaidPayments.filter(p => ["TEACHER", "STAFF"].includes(p.userType)).map(p => {
-    const entity = p.teacher || p.staff;
+  const unpaidFees = uncollectedLists.unpaidStudents.map(s => {
+    let dueAmount = s.tuitionFee || 450;
+    if (s.paymentStatus === "PARTIAL") {
+      dueAmount = s.deferredAmount || (dueAmount - s.paymentAmount);
+    } else if (s.paymentStatus === "PENDING") {
+      dueAmount = s.paymentAmount || dueAmount;
+    }
+
     return {
-      name: entity ? `${entity.name} ${entity.surname}` : "Unknown",
-      staffId: p.staffId,
-      teacherId: p.teacherId,
-      amount: p.amount,
-      month: p.month,
-      year: p.year,
-      type: p.userType,
-      status: "Pending"
+      id: s.id,
+      name: `${s.name} ${s.surname}`,
+      amount: dueAmount,
+      type: 'student' as const,
+      phone: s.parentPhone
     };
   });
 
-  const fullUncollected = [...unpaidFees, ...unpaidEmployees];
+  const unpaidEmployees = uncollectedLists.unpaidEmp.map(p => {
+    const entity = p.teacher || p.staff;
+    return {
+      id: p.teacherId || p.staffId || "unknown",
+      name: entity ? `${entity.name} ${entity.surname}` : "Unknown",
+      amount: p.status === "PARTIAL" ? (p.deferredAmount || p.amount) : p.amount,
+      type: (p.userType.toLowerCase() === 'teacher' ? 'teacher' : 'staff') as 'teacher' | 'staff',
+    };
+  });
 
-  // Calculations extracted from AdminPage
+  // Calculate trends
   const trendData = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthName = MONTHS[d.getMonth()];
-    const monthlyIncome = histIncome
-      .filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
-      .reduce((acc, curr) => acc + (curr._sum.amount || 0), 0);
-    const monthlyExpense = histExpense
-      .filter(x => x.date.getMonth() === d.getMonth() && x.date.getFullYear() === d.getFullYear())
-      .reduce((acc, curr) => acc + (curr._sum.amount || 0), 0);
-    trendData.push({ month: monthName, income: monthlyIncome, expense: monthlyExpense });
+    const inc = (secondaryStats.income_trend || []).find((x: any) => new Date(x.month).getMonth() === d.getMonth() && new Date(x.month).getFullYear() === d.getFullYear())?.total || 0;
+    const exp = (secondaryStats.expense_trend || []).find((x: any) => new Date(x.month).getMonth() === d.getMonth() && new Date(x.month).getFullYear() === d.getFullYear())?.total || 0;
+    trendData.push({ month: monthName, income: inc, expense: exp });
   }
 
   const normalize = (name: string) => {
     const n = name.trim().toLowerCase();
     if (n === 'salary' || n === 'salaries') return 'Salaries';
     if (n === 'fees' || n === 'tuition') return 'Tuition';
-    if (n === 'donation' || n === 'donations') return 'Donations';
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
   const incomeBreakdown = [
-    { name: 'Tuition', value: studentPaymentsStats._sum.amount || 0, type: 'income' as const },
-    ...incomeCategoriesThisPeriod.map(cat => ({ name: normalize(cat.category), value: cat._sum.amount || 0, type: 'income' as const }))
-  ].reduce((acc, curr) => {
-    const existing = acc.find(x => x.name === curr.name);
-    if (existing) existing.value += curr.value; else acc.push(curr);
-    return acc;
-  }, [] as any[]);
+    { name: 'Tuition', value: currentIncome - (secondaryStats.income_categories || []).reduce((a: any, b: any) => a + (b.total || 0), 0), type: 'income' as const },
+    ...(secondaryStats.income_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'income' as const }))
+  ];
 
   const expenseBreakdown = [
-    { name: 'Salaries', value: salaryPaymentsStats._sum.amount || 0, type: 'expense' as const },
-    ...expenseCategoriesThisPeriod.map(cat => ({ name: normalize(cat.category), value: cat._sum.amount || 0, type: 'expense' as const }))
-  ].reduce((acc, curr) => {
-    const existing = acc.find(x => x.name === curr.name);
-    if (existing) existing.value += curr.value; else acc.push(curr);
-    return acc;
-  }, [] as any[]);
+    { name: 'Salaries', value: currentExpense - (secondaryStats.expense_categories || []).reduce((a: any, b: any) => a + (b.total || 0), 0), type: 'expense' as const },
+    ...(secondaryStats.expense_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'expense' as const }))
+  ];
 
   const fullBreakdown = [...incomeBreakdown, ...expenseBreakdown];
-
-  const dailyMap: Record<string, { income: number; expense: number }> = {};
-  histIncome.forEach(x => {
-    const day = x.date.toISOString().split('T')[0];
-    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
-    dailyMap[day].income += (x._sum.amount || 0);
-  });
-  histExpense.forEach(x => {
-    const day = x.date.toISOString().split('T')[0];
-    if (!dailyMap[day]) dailyMap[day] = { income: 0, expense: 0 };
-    dailyMap[day].expense += (x._sum.amount || 0);
-  });
-
-  const dailyInsightsData = Object.entries(dailyMap).map(([date, vals]) => ({
-    date,
-    ...vals
-  })).sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <>
@@ -232,20 +216,19 @@ export default async function DashboardAppendage({
           expense={currentExpense}
           breakdown={fullBreakdown}
           prevIncome={prevIncome}
-          month={MONTHS[startDate.getMonth()]}
-          dailyData={dailyInsightsData.slice(-14)}
+          month={MONTHS[now.getMonth()]}
+          dailyData={[]}
         />
       </section>
 
-      {/* 6. ACTION CENTER (UNPAID LEDGER) */}
       <section className="border-t border-slate-100 pt-8 mt-8">
         <ActionCenter 
-          uncollected={fullUncollected}
-          studentCensus={allStudents.map(s => ({ id: s.id, name: `${s.name} ${s.surname}` }))}
+          unpaidFees={unpaidFees}
+          unpaidEmployees={unpaidEmployees}
+          monthLabel={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`}
         />
       </section>
 
-      {/* 7. NOTICE BOARD */}
       <section className="mt-8">
         <NoticeBoard notices={allNotices} />
       </section>

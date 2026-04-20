@@ -16,40 +16,46 @@ export const payStaffSalary = async (
   const yearVal = parseInt(yStr);
 
   try {
-    const payment = await prisma.payment.upsert({
-      where: {
-        staffId_month_year: {
+    const payment = await prisma.$transaction(async (tx) => {
+      const p = await tx.payment.upsert({
+        where: {
+          staffId_month_year: {
+            staffId,
+            month: monthIdx,
+            year: yearVal
+          }
+        },
+        update: {
+          status: "PAID",
+          paidAt: new Date(),
+          amount
+        },
+        create: {
           staffId,
+          amount,
           month: monthIdx,
-          year: yearVal
+          year: yearVal,
+          status: "PAID",
+          userType: "STAFF",
+          paidAt: new Date()
         }
-      },
-      update: {
-        status: "PAID",
-        paidAt: new Date(),
-        amount
-      },
-      create: {
-        staffId,
-        amount,
-        month: monthIdx,
-        year: yearVal,
-        status: "PAID",
-        userType: "STAFF",
-        paidAt: new Date()
-      }
-    });
+      });
 
-    // Also add to Expense table for central reporting
-    await prisma.expense.create({
-      data: {
-        title: `Salary: ${staffName} (${monthYear})`,
-        amount,
-        date: new Date(),
-        category: "Salary",
-        referenceType: "StaffSalary",
-        referenceId: payment.id.toString(),
-      },
+      // Also add to Expense table for central reporting
+      await tx.expense.create({
+        data: {
+          title: `Salary: ${staffName} (${monthYear})`,
+          amount,
+          date: new Date(),
+          category: "Salary",
+          referenceType: "StaffSalary",
+          referenceId: p.id.toString(),
+        },
+      });
+
+      return p;
+    }, {
+      timeout: 60000
     });
 
     const effectiveDate = new Date(yearVal, monthIdx - 1, 1);

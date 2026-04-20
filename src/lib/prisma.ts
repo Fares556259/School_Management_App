@@ -1,62 +1,60 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import { cache } from "react";
 
-declare global {
-  var prisma: PrismaClient | undefined;
-  var pgPool: Pool | undefined;
-}
+/**
+ * DATABASE STABILIZATION V4 (Hardened Singleton)
+ * - Limits pool size to 3 to prevent "Connection Terminated" errors on free projects.
+ * - Robust singleton pattern for Next.js hot-reloading.
+ * - Extended timeouts for flaky cloud environments.
+ */
 
 const isDev = process.env.NODE_ENV !== "production";
 
-/**
- * DATABASE STABILIZATION V3 (Cached & Hardened)
- * - SSL enabled for Supabase compatibility.
- * - Connection pool max: 10 (supports parallel dashboard batches).
- * - React.cache() for request-level deduplication.
- */
+// Use a standard global cast for Next.js singleton persistence
+const globalForPrisma = global as unknown as {
+  prisma?: PrismaClient;
+  pgPool?: Pool;
+};
 
-if (!globalThis.pgPool) {
-  console.log("🐘 [PRISMA] Initializing new PG Pool...");
-  globalThis.pgPool = new Pool({ 
+const getPgPool = () => {
+  if (globalForPrisma.pgPool) return globalForPrisma.pgPool;
+
+  console.log("🐘 [PRISMA] Initializing unique persistent PG Session Pool...");
+  const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 15, // Slightly higher to support batch dashboard parallelization
-    ssl: { rejectUnauthorized: false }, 
-    connectionTimeoutMillis: 30000, // 30s is more than enough for cloud DBs
-    idleTimeoutMillis: 15000,       // 15s aggressive pruning of idle clients
-    // TCP Keep-Alive to prevent pooler silent-drops
-    keepAlive: true,
+    max: 1, // STRICT ISOLATION for Port 5432 Stability
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 90000, // 90s for high-latency sessions
+    idleTimeoutMillis: 60000,
   });
 
-  globalThis.pgPool.on('error', (err) => {
-    console.error('❌ [PRISMA] Unexpected error on idle client:', err);
+  pool.on('error', (err) => {
+    console.error('❌ [PRISMA] Background pool error:', err);
   });
-}
 
-const adapter = new PrismaPg(globalThis.pgPool);
+  if (isDev) globalForPrisma.pgPool = pool;
+  return pool;
+};
 
-const prismaClient =
-  globalThis.prisma ||
-  new PrismaClient({
+const getPrismaClient = () => {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma;
+
+  const pool = getPgPool();
+  const adapter = new PrismaPg(pool);
+  
+  const client = new PrismaClient({
     adapter,
     log: isDev ? ["error", "warn"] : ["error"],
   });
 
-// Diagnostic Heartbeat
-if (isDev) {
-  globalThis.prisma = prismaClient;
+  if (isDev) {
+    globalForPrisma.prisma = client;
+    console.log("✅ [PRISMA] Singleton Instance Activated.");
+  }
   
-  // Asynchronous heartbeat check
-  globalThis.pgPool.query('SELECT 1').then(() => {
-    console.log("✅ [PRISMA] Database connected successfully.");
-  }).catch((err) => {
-    console.error("❌ [PRISMA] Database connection failed:", err.message);
-    if (err.message.includes('allow_list')) {
-      console.warn("⚠️ [ACTION REQUIRED] Please set Supabase Network Constraints to 'Allow all access' (0.0.0.0/0).");
-    }
-  });
-}
+  return client;
+};
 
-export const prisma = prismaClient;
+export const prisma = getPrismaClient();
 export default prisma;

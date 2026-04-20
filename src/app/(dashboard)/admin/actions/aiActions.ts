@@ -100,6 +100,32 @@ export async function toggleTestAIQuota() {
 }
 
 /**
+ * CIRCUIT BREAKER STATE
+ */
+let CIRCUIT_BREAKER_TRIPPED = false;
+let CIRCUIT_BREAKER_RESET_TIME = 0;
+
+const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+function checkCircuitBreaker() {
+  if (CIRCUIT_BREAKER_TRIPPED) {
+    if (Date.now() > CIRCUIT_BREAKER_RESET_TIME) {
+      console.log("🔓 [AI-BREAKER] Cooldown expired. Resetting circuit...");
+      CIRCUIT_BREAKER_TRIPPED = false;
+      return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+function tripCircuitBreaker() {
+  console.warn("🔒 [AI-BREAKER] Tripping circuit due to provider instability. Cooling down for 5m...");
+  CIRCUIT_BREAKER_TRIPPED = true;
+  CIRCUIT_BREAKER_RESET_TIME = Date.now() + COOLDOWN_MS;
+}
+
+/**
  * Unified AI Router
  */
 async function unifiedAIRouter(params: {
@@ -199,20 +225,31 @@ async function unifiedAIRouter(params: {
     }
   }
 
-  // EXECUTION WITH SMART FALLBACK & RETRY
+  // EXECUTION WITH SMART FALLBACK & RETRY (Enhanced for Rate Limits/504s)
   const execute = async () => {
-    if (primaryKey) {
+    let providers = [];
+    if (primaryKey) providers.push(primaryKey);
+    if (secondaryKey && secondaryKey !== primaryKey) providers.push(secondaryKey);
+
+    let lastErr: any;
+    for (const key of providers) {
       try {
-        return await callWithTimeout(callProvider(primaryKey), TIMEOUT_MS);
+        return await callWithTimeout(callProvider(key), TIMEOUT_MS);
       } catch (err: any) {
-        if (err.message.includes("402") || err.message.includes("429")) throw err; // Don't retry auth/billing
-        console.error("🚀 [ROUTER_FALLBACK] Primary failed, trying secondary:", err.message);
-        if (!secondaryKey || secondaryKey === primaryKey) throw err;
+        lastErr = err;
+        // If it's a credit issue, don't try other providers (usually same account)
+        if (err.message.includes("CREDIT_EXHAUSTED")) throw err;
+        
+        console.error(`🚀 [ROUTER_FAILOVER] Provider attempt failed (${err.message}). Trying next...`);
+        // Continue to next provider in the list
       }
     }
-    if (secondaryKey) return await callWithTimeout(callProvider(secondaryKey), TIMEOUT_MS);
-    throw new Error("No valid AI API keys found in environment.");
+    throw lastErr || new Error("No valid AI API providers succeeded.");
   };
+
+  if (!checkCircuitBreaker()) {
+    throw new Error("RATE_LIMITED|AI Service is cooling down due to recent errors. Using cached data.");
+  }
 
   let lastErr: any;
   for (let i = 0; i <= MAX_RETRIES; i++) {
@@ -220,7 +257,13 @@ async function unifiedAIRouter(params: {
       return await execute();
     } catch (err: any) {
       lastErr = err;
-      if (err.message.includes("CREDIT_EXHAUSTED") || err.message.includes("UNAUTHORIZED") || err.message.includes("RATE_LIMITED")) break; 
+      if (err.message.includes("CREDIT_EXHAUSTED") || err.message.includes("UNAUTHORIZED") || err.message.includes("RATE_LIMITED") || err.message.includes("504") || err.message.includes("TIMEDOUT")) {
+        // Trip breaker for infrastructure failures or limits
+        if (err.message.includes("RATE_LIMITED") || err.message.includes("504") || err.message.includes("TIMEOUT")) {
+          tripCircuitBreaker();
+        }
+        break; 
+      }
       console.warn(`⚠️ [AI-RETRY] Attempt ${i + 1} failed. Retrying...`, err.message);
       if (i < MAX_RETRIES) await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
     }
@@ -369,12 +412,16 @@ export async function getFinancialInsights(data: any, locale = "fr") {
   const hash = generateHash(dataPayload);
   const cached = getCachedInsights(hash);
 
-  if (cached) {
+  if (cached && cached.insights && !cached.isStale) {
     console.log("🛰️ [CACHE] Hit: Serving valid insights from storage.");
-    return cached;
+    return cached.insights;
   }
 
-  console.log("🛰️ [CACHE] Miss: Requesting new AI insights...");
+  if (cached && cached.isStale) {
+    console.log("🛰️ [CACHE] Refreshing stale insights in background...");
+  } else {
+    console.log("🛰️ [CACHE] Miss: Requesting new AI insights...");
+  }
 
   const prompt = `
     Analyze the following data and provide exactly 5 concise, strategic insights.
@@ -405,8 +452,13 @@ export async function getFinancialInsights(data: any, locale = "fr") {
     }
   } catch (error: any) {
     console.error("❌ [AI-INSIGHTS] Insight Generation Error:", error);
-    // On network failure or rate limiting, try to return ANY existing cache even if hash is different?
-    // For now, return empty array to prevent UI crash.
+    
+    // ON FAILURE: Return the stale cache if we have ANY (even if hash changed)
+    if (cached && cached.insights) {
+      console.log("🛰️ [CACHE] Fallback: Serving stale insights after provider failure.");
+      return cached.insights;
+    }
+    
     return []; 
   }
 }

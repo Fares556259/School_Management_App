@@ -33,24 +33,26 @@ export const generateHash = (payload: InsightPayload): string => {
   return crypto.createHash('sha256').update(dataString).digest('hex');
 };
 
-export const getCachedInsights = (hash: string): any[] | null => {
+export const getCachedInsights = (hash: string): { insights: any[] | null, isStale: boolean } => {
   try {
     ensureCacheDir();
-    if (!fs.existsSync(CACHE_FILE)) return null;
+    if (!fs.existsSync(CACHE_FILE)) return { insights: null, isStale: false };
 
     const fileContent = fs.readFileSync(CACHE_FILE, 'utf-8');
     const cache: CachedInsight = JSON.parse(fileContent);
 
-    // If hashes match and cache is less than 24 hours old, considered valid
+    // If hashes match and cache is less than 24 hours old, considered fresh
     const ONE_DAY = 24 * 60 * 60 * 1000;
     if (cache.hash === hash && Date.now() - cache.timestamp < ONE_DAY) {
-      return cache.insights;
+      return { insights: cache.insights, isStale: false };
     }
 
-    return null;
+    // FALLBACK: If hashes don't match or expired, return as STALE instead of null
+    // This implements "Stale-While-Revalidate"
+    return { insights: cache.insights, isStale: true };
   } catch (error) {
     console.error("Cache read error:", error);
-    return null; // Fail gracefully
+    return { insights: null, isStale: false }; // Fail gracefully
   }
 };
 

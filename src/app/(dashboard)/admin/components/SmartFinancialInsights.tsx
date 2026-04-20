@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/translations/LanguageContext';
-import { getFinancialInsights } from '../actions/aiActions';
-import { Lock } from 'lucide-react';
+import { Lock, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface Insight {
   text: string;
@@ -60,52 +59,84 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const [quota, setQuota] = useState(10);
+  const [error, setError] = useState<string | null>(null);
 
   const [lastDataHash, setLastDataHash] = useState("");
 
-  useEffect(() => {
+  const fetchAiInsights = async (force = false) => {
     const currentDataHash = JSON.stringify({ income, expense, breakdown, prevIncome, month, dailyData, locale });
-    if (currentDataHash === lastDataHash) return;
+    if (!force && currentDataHash === lastDataHash) return;
 
-    const fetchAiInsights = async () => {
-      setIsLoading(true);
-      setIsLocked(false);
-      setLastDataHash(currentDataHash);
+    setIsLoading(true);
+    setIsLocked(false);
+    setError(null);
+    setLastDataHash(currentDataHash);
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s client-side timeout
+
+      const res = await fetch("/api/admin/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: { income, expense, breakdown, prevIncome, month, dailyData },
+          locale
+        }),
+        signal: controller.signal
+      });
       
-      try {
-        const result = await getFinancialInsights({
-          income,
-          expense,
-          breakdown,
-          prevIncome,
-          month,
-          dailyData
-        }, locale);
+      clearTimeout(timeoutId);
 
-        if (Array.isArray(result)) {
-          setInsights(result);
-        } else if (result.error?.startsWith("DAILY_QUOTA_REACHED")) {
+      if (!res.ok) {
+        if (res.status === 504) throw new Error("TIMEOUT");
+        throw new Error("FAILED");
+      }
+
+      const result = await res.json();
+
+      if (result.error) {
+        if (result.error.startsWith("DAILY_QUOTA_REACHED")) {
           setIsLocked(true);
           setQuota(Number(result.error.split("|")[1]) || 10);
         } else {
-          throw new Error("Invalid AI response");
+          setError(result.error);
         }
-      } catch (err: any) {
-        if (err.message?.startsWith("DAILY_QUOTA_REACHED")) {
-          setIsLocked(true);
-          setQuota(Number(err.message.split("|")[1]) || 10);
-        } else {
-          // ... fallback logic ...
-          const fallbackInsights: Insight[] = [];
-          // ... (keep fallback insights logic)
-          setInsights(fallbackInsights);
-        }
+      } else if (Array.isArray(result)) {
+        setInsights(result);
+      } else {
+        throw new Error("INVALID_RESPONSE");
       }
+    } catch (err: any) {
+      console.error("❌ [CLIENT_AI_ERROR] Failed to fetch insights:", err.message);
+      if (err.name === 'AbortError' || err.message === 'TIMEOUT') {
+        setError("AI Service temporarily busy (Timeout). Showing local fallbacks.");
+      } else {
+        setError("Failed to generate AI insights.");
+      }
+      
+      // FALLBACK INSIGHTS
+      const fallbackInsights: Insight[] = [
+        { 
+          text: `Revenue for ${month} is currently $${income.toLocaleString()}. Maintain positive cashflow.`, 
+          type: 'performance', 
+          icon: 'dollar-sign' 
+        },
+        { 
+          text: expense > income ? "Warning: Expenses exceed current income." : "Healthy income-to-expense ratio.", 
+          type: expense > income ? 'risk' : 'trend', 
+          icon: expense > income ? 'warning' : 'bar-chart' 
+        }
+      ];
+      setInsights(fallbackInsights);
+    } finally {
       setIsLoading(false);
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchAiInsights();
-  }, [income, expense, breakdown, prevIncome, month, dailyData, locale, lastDataHash]);
+  }, [income, expense, breakdown, prevIncome, month, dailyData, locale]);
 
   return (
     <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden ${className || ''}`}>
@@ -123,21 +154,37 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
            </button>
         </div>
       )}
+      
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
             {t.smartInsights.title}
-            </h2>
-            <div className="px-2 py-0.5 bg-indigo-50 rounded-md">
-                <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">{t.smartInsights.aiPowered}</span>
-            </div>
+          </h2>
+          <div className="px-2 py-0.5 bg-indigo-50 rounded-md">
+            <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">{t.smartInsights.aiPowered}</span>
+          </div>
         </div>
-        <span className={`flex h-2 w-2 rounded-full ${isLoading ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`} />
+        <div className="flex items-center gap-3">
+          {error && (
+            <div className="flex items-center gap-1 text-rose-500 text-[10px] font-bold">
+              <AlertCircle size={12} />
+              <span>{error}</span>
+            </div>
+          )}
+          <button 
+            onClick={() => fetchAiInsights(true)}
+            disabled={isLoading}
+            className={`p-1.5 rounded-full hover:bg-slate-50 transition-all text-slate-400 ${isLoading ? 'animate-spin cursor-not-allowed' : ''}`}
+          >
+            <RefreshCw size={14} />
+          </button>
+          <span className={`flex h-2 w-2 rounded-full ${isLoading ? 'bg-indigo-500 animate-pulse' : error ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+        </div>
       </div>
 
       <div className={`relative flex-1 min-h-0 w-full ${isLocked ? 'blur-[6px] pointer-events-none select-none grayscale-[0.5]' : ''}`}>
         <AnimatePresence mode="wait">
-          {isLoading ? (
+          {isLoading && insights.length === 0 ? (
             <motion.div 
                key="loading"
                initial={{ opacity: 0 }}
