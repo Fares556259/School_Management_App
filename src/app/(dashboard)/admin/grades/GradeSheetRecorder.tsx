@@ -416,15 +416,15 @@ export default function GradeSheetRecorder({
 
       {/* ─── FILTERS BAR ─── */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-3 bg-white border-b border-slate-100">
-        <SelectField label="Class" value={String(classId)} onChange={(v) => handleClassChange(Number(v))}>
+        <SelectField label="Class" value={String(classId)} onChange={(v) => handleClassChange(Number(v))} disabled={!!existingSheet}>
           {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </SelectField>
 
-        <SelectField label="Subject" value={String(subjectId)} onChange={(v) => setSubjectId(Number(v))}>
+        <SelectField label="Subject" value={String(subjectId)} onChange={(v) => setSubjectId(Number(v))} disabled={!!existingSheet}>
           {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </SelectField>
 
-        <SelectField label="Term" value={String(term)} onChange={(v) => setTerm(Number(v))}>
+        <SelectField label="Term" value={String(term)} onChange={(v) => setTerm(Number(v))} disabled={!!existingSheet}>
           {TERMS.map((t) => <option key={t} value={t}>Term {t}</option>)}
         </SelectField>
 
@@ -771,19 +771,22 @@ function SelectField({
   value,
   onChange,
   children,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className={`flex flex-col gap-0.5 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</label>
       <select
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 cursor-pointer"
+        className={`text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
       >
         {children}
       </select>
