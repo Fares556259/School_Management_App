@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import NextTopLoader from "nextjs-toploader";
 import NavigationLoader from "@/components/NavigationLoader";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Suspense } from "react";
 
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
@@ -38,6 +39,7 @@ export default function RootLayout({
               <NavigationLoader />
             </Suspense>
             {children}
+            <SpeedInsights />
           </LanguageProvider>
         </body>
       </html>
