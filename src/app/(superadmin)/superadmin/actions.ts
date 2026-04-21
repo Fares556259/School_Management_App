@@ -37,7 +37,7 @@ export async function updateSetupRequestStatus(id: string, status: string) {
       where: { id },
       data: { status },
     });
-    revalidatePath("/admin/setup-requests");
+    revalidatePath("/superadmin");
     return { success: true };
   } catch (error) {
     console.error("Error updating setup request:", error);
@@ -52,7 +52,7 @@ export async function deleteSetupRequest(id: string) {
     await prisma.setupRequest.delete({
       where: { id },
     });
-    revalidatePath("/admin/setup-requests");
+    revalidatePath("/superadmin");
     return { success: true };
   } catch (error) {
     console.error("Error deleting setup request:", error);
