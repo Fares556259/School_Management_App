@@ -1,3 +1,5 @@
+import { getRole } from "@/lib/role";
+import { redirect } from "next/navigation";
 import { getSetupRequests, getPendingAdmins } from "./actions";
 import SetupRequestTable from "./SetupRequestTable";
 import PendingAdminsTable from "./PendingAdminsTable";
