@@ -9,18 +9,20 @@ datasource db {
 }
 
 model Admin {
-  id           String   @id
-  username     String   @unique
-  email        String?  @unique
-  name         String?
-  surname      String?
-  phone        String?
-  img          String?
-  aiUsage      Int      @default(0)
-  aiQuota      Int      @default(10)
-  lastAiUpdate DateTime @default(now())
-  schoolId     String   @default("default_school")
-  School       School   @relation(fields: [schoolId], references: [id])
+  id                String   @id
+  username          String   @unique
+  email             String?  @unique
+  name              String?
+  surname           String?
+  phone             String?
+  img               String?
+  status            String   @default("pending") // pending, active, rejected
+  pendingSchoolName String?
+  aiUsage           Int      @default(0)
+  aiQuota           Int      @default(10)
+  lastAiUpdate      DateTime @default(now())
+  schoolId          String   @default("default_school")
+  School            School   @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])
 }

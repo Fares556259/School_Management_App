@@ -60,25 +60,119 @@ export async function deleteSetupRequest(id: string) {
   }
 }
 
-import { provisionSchool } from "./provisioning";
+import { clerkClient } from "@clerk/nextjs/server";
+import slugify from "slugify";
 
-/**
- * Activates a setup request by fully provisioning the school infrastructure
- * and creating the administrator's account.
- */
-export async function activateSetup(id: string) {
+export async function getPendingAdmins() {
+  await ensureSuperUser();
+  try {
+    return await prisma.admin.findMany({
+      where: { status: "pending" },
+      orderBy: { lastAiUpdate: "desc" }, // reusing a date field or just default
+    });
+  } catch (error) {
+    console.error("Error fetching pending admins:", error);
+    throw new Error("Failed to fetch pending admins.");
+  }
+}
+
+export async function approveAdmin(adminId: string) {
   await ensureSuperUser();
 
   try {
-    const result = await provisionSchool(id);
-    if (result.success) {
-      revalidatePath("/superadmin");
-      return result;
-    } else {
-      return { success: false, error: result.error };
+    const admin = await prisma.admin.findUnique({
+      where: { id: adminId },
+    });
+
+    if (!admin || !admin.pendingSchoolName) {
+      return { success: false, error: "Admin or school name not found." };
     }
+
+    const schoolName = admin.pendingSchoolName;
+    const baseSlug = slugify(schoolName, { lower: true, strict: true });
+    let schoolId = baseSlug;
+    let counter = 1;
+
+    // Ensure uniqueness
+    while (await prisma.school.findFirst({ where: { id: schoolId } })) {
+      schoolId = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Create School
+      await tx.school.create({
+        data: {
+          id: schoolId,
+          name: schoolName,
+          subdomain: schoolId,
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. Create Institution Settings
+      await tx.institution.create({
+        data: {
+          schoolId: schoolId,
+          schoolName: schoolName,
+          academicYear: "2025-2026",
+          currentSemester: 1,
+        },
+      });
+
+      // 3. Create Default Levels
+      for (const l of [1, 2, 3, 4, 5, 6]) {
+        await tx.level.create({
+          data: { level: l, schoolId: schoolId },
+        });
+      }
+
+      // 4. Update Admin
+      await tx.admin.update({
+        where: { id: adminId },
+        data: {
+          status: "active",
+          schoolId: schoolId,
+          pendingSchoolName: null,
+        },
+      });
+    });
+
+    // 5. Update Clerk Metadata
+    const client = await clerkClient();
+    await client.users.updateUserMetadata(adminId, {
+      publicMetadata: {
+        role: "admin",
+        status: "active",
+        schoolId: schoolId,
+      },
+    });
+
+    revalidatePath("/superadmin");
+    return { success: true };
   } catch (error: any) {
-    console.error("Error in activateSetup:", error);
-    return { success: false, error: error.message || "Failed to activate." };
+    console.error("Approval Error:", error);
+    return { success: false, error: error.message || "Failed to approve user." };
+  }
+}
+
+export async function rejectAdmin(adminId: string) {
+  await ensureSuperUser();
+
+  try {
+    // 1. Delete from Clerk
+    const client = await clerkClient();
+    await client.users.deleteUser(adminId);
+
+    // 2. Delete from Prisma (Cascade should handle if setup, but usually Admin is top-level)
+    await prisma.admin.delete({
+      where: { id: adminId },
+    });
+
+    revalidatePath("/superadmin");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Rejection Error:", error);
+    return { success: false, error: error.message || "Failed to reject user." };
   }
 }

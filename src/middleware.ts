@@ -11,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/onboarding",
+  "/waiting-approval",
   "/request-setup(.*)",
   "/api/mobile(.*)", 
   "/uploads(.*)",
@@ -27,22 +27,29 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId) return;
 
   // 1. TRY: Session Claims (FAST - No Network)
-  let role = (auth().sessionClaims as any)?.metadata?.role as string | undefined;
+  let metadata = (auth().sessionClaims as any)?.metadata;
+  let role = metadata?.role as string | undefined;
+  let status = metadata?.status as string | undefined;
 
-  // 2. FALLBACK: Fetch from Clerk API (Wait for user to fix JWT Template)
-  // We only do this if role is missing to avoid locking out the user
-  if (!role && userId) {
+  // 2. FALLBACK: Fetch from Clerk API
+  if ((!role || !status) && userId) {
     try {
       const client = await clerkClient();
       const user = await client.users.getUser(userId);
       role = user.publicMetadata?.role as string | undefined;
-      console.warn(`[PERF WARNING] Role missing from session claims for user ${userId}. Falling back to API fetch. Please configure Clerk JWT Templates for better performance.`);
+      status = user.publicMetadata?.status as string | undefined;
     } catch (err) {
       console.error("Clerk Fallback Error:", err);
     }
   }
 
-  // 3. AUTHORIZATION
+  // 3. ENFORCE APPROVAL STATUS
+  // Only 'active' users can enter the app dashboards
+  if (status !== "active") {
+    return NextResponse.redirect(new URL("/waiting-approval", req.url));
+  }
+
+  // 4. ROLE-BASED AUTHORIZATION
   for (const { matcher, allowedRoles } of matchers) {
     if (matcher(req)) {
       if (!role || !allowedRoles.includes(role)) {

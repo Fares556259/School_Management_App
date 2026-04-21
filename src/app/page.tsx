@@ -55,7 +55,7 @@ const Navbar = ({ isSignedIn, handleLoginClick }: { isSignedIn: boolean; handleL
                 Sign In
               </button>
               <button 
-                onClick={() => (window.location.href = "/request-setup")}
+                onClick={() => (window.location.href = "/sign-up")}
                 className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-sm"
               >
                 Sign Up
@@ -153,7 +153,7 @@ const Homepage = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <button 
-                onClick={() => router.push("/request-setup")}
+                onClick={() => router.push("/sign-up")}
                 className="w-full sm:w-auto px-12 py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-200 text-lg hover:-translate-y-1 active:scale-95"
               >
                 Sign Up Your School →
@@ -432,7 +432,7 @@ const Homepage = () => {
               
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <button 
-                  onClick={() => router.push("/request-setup")}
+                  onClick={() => router.push("/sign-up")}
                   className="w-full sm:w-auto px-12 py-6 bg-white text-slate-900 font-black rounded-[2rem] hover:bg-slate-50 transition-all shadow-xl text-xl hover:-translate-y-1 active:scale-95"
                 >
                   Sign Up Your School →
