@@ -46,7 +46,7 @@ const Navbar = ({ isSignedIn, handleLoginClick }: { isSignedIn: boolean; handleL
         </div>
 
         <div className="flex items-center gap-3">
-          {!isSignedIn && (
+          {!isSignedIn ? (
             <>
               <button 
                 onClick={handleLoginClick}
@@ -55,19 +55,20 @@ const Navbar = ({ isSignedIn, handleLoginClick }: { isSignedIn: boolean; handleL
                 Sign In
               </button>
               <button 
-                onClick={() => (window.location.href = "/sign-up")}
-                className="px-6 py-2.5 bg-white text-indigo-600 font-bold rounded-2xl border-2 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all text-sm"
+                onClick={() => (window.location.href = "/request-setup")}
+                className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-sm"
               >
                 Sign Up
               </button>
             </>
+          ) : (
+            <button 
+              onClick={() => router.push("/admin")}
+              className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-sm"
+            >
+              Dashboard →
+            </button>
           )}
-          <button 
-             onClick={() => (window.location.href = "/request-setup")}
-             className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-sm"
-          >
-            Get Setup →
-          </button>
         </div>
       </div>
     </motion.nav>
@@ -153,15 +154,9 @@ const Homepage = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
               <button 
                 onClick={() => router.push("/request-setup")}
-                className="w-full sm:w-auto px-10 py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-200 text-lg hover:-translate-y-1 active:scale-95"
+                className="w-full sm:w-auto px-12 py-5 bg-indigo-600 text-white font-black rounded-3xl hover:bg-indigo-700 transition-all shadow-2xl shadow-indigo-200 text-lg hover:-translate-y-1 active:scale-95"
               >
-                Request Free Setup
-              </button>
-              <button 
-                onClick={() => router.push("/sign-up")}
-                className="w-full sm:w-auto px-10 py-5 bg-white text-indigo-600 font-black rounded-3xl hover:bg-indigo-50 transition-all border-2 border-indigo-200 text-lg hover:-translate-y-1 active:scale-95 shadow-sm"
-              >
-                Sign Up →
+                Sign Up Your School →
               </button>
               <button className="w-full sm:w-auto px-10 py-5 bg-white text-slate-800 font-bold rounded-3xl hover:bg-slate-50 transition-all border border-slate-100 text-lg flex items-center justify-center gap-2 group shadow-sm">
                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
@@ -440,7 +435,7 @@ const Homepage = () => {
                   onClick={() => router.push("/request-setup")}
                   className="w-full sm:w-auto px-12 py-6 bg-white text-slate-900 font-black rounded-[2rem] hover:bg-slate-50 transition-all shadow-xl text-xl hover:-translate-y-1 active:scale-95"
                 >
-                  Schedule Free Setup →
+                  Sign Up Your School →
                 </button>
                 <Link href="https://wa.me/23889444" className="text-white text-sm font-bold flex items-center gap-2 hover:text-indigo-400 transition-colors py-4 px-6 underline decoration-white/20 underline-offset-8">
                   Contact Sales on WhatsApp

@@ -60,29 +60,25 @@ export async function deleteSetupRequest(id: string) {
   }
 }
 
+import { provisionSchool } from "./provisioning";
+
 /**
- * Activates a setup request, enabling that email to sign up.
- * The school infrastructure will be auto-provisioned after sign-up.
+ * Activates a setup request by fully provisioning the school infrastructure
+ * and creating the administrator's account.
  */
 export async function activateSetup(id: string) {
   await ensureSuperUser();
 
   try {
-    const request = await prisma.setupRequest.findUnique({ where: { id } });
-    if (!request) return { success: false, error: "Request not found." };
-    if (request.status === "ACTIVATED" || request.status === "PROVISIONED") {
-      return { success: false, error: "This request is already activated or provisioned." };
+    const result = await provisionSchool(id);
+    if (result.success) {
+      revalidatePath("/superadmin");
+      return result;
+    } else {
+      return { success: false, error: result.error };
     }
-
-    await prisma.setupRequest.update({
-      where: { id },
-      data: { status: "ACTIVATED" },
-    });
-
-    revalidatePath("/superadmin");
-    return { success: true, email: request.email };
   } catch (error: any) {
-    console.error("Error activating setup request:", error);
+    console.error("Error in activateSetup:", error);
     return { success: false, error: error.message || "Failed to activate." };
   }
 }

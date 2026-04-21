@@ -27,23 +27,30 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
   };
 
   const handleActivate = async (id: string, currentStatus: string, email: string) => {
-    if (currentStatus === "ACTIVATED" || currentStatus === "PROVISIONED") {
-      toast.info("This school is already activated.");
+    if (currentStatus === "PROVISIONED") {
+      toast.info("This school is already provisioned.");
       return;
     }
-    if (!confirm(`Activate this school request?\n\nEmail: ${email}\n\nThis will allow them to sign up and get a fresh dashboard.`)) return;
+    
+    if (!confirm(`🚀 Activate this school?\n\nEmail: ${email}\n\nThis will create their database, school records, and Clerk account. They will be able to sign in immediately.`)) return;
 
     setActivatingId(id);
     try {
       const res = await activateSetup(id);
       if (res?.success) {
-        toast.success(`✅ Activated! ${email} can now sign up.`);
+        const msg = `✅ ACTIVATED SUCCESSFULLY!\n\n` +
+                    `Email: ${email}\n` +
+                    `Password: ${res.tempPassword}\n\n` +
+                    `Please share these credentials with the school owner. They can now sign in at /sign-in.`;
+        
+        alert(msg);
+        toast.success("School Provisioned!");
         router.refresh();
       } else {
         toast.error(res?.error || "Failed to activate.");
       }
     } catch (error) {
-      toast.error("An unexpected error occurred.");
+      toast.error("An unexpected error occurred during activation.");
     } finally {
       setActivatingId(null);
     }
