@@ -533,8 +533,9 @@ model SetupRequest {
   schoolName  String
   ownerName   String
   phoneNumber String
+  email       String
   city        String
-  status      String   @default("PENDING")
+  status      String   @default("PENDING") // PENDING, CONTACTED, COMPLETED, PROVISIONED
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

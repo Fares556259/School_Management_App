@@ -54,6 +54,13 @@ const RequestSetupPage = () => {
               required
             />
             <InputField
+              label="Email Address"
+              name="email"
+              type="email"
+              placeholder="e.g. director@school.com"
+              required
+            />
+            <InputField
               label="City"
               name="city"
               placeholder="e.g. Tunis"

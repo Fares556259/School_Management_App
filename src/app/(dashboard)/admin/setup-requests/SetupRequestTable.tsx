@@ -2,8 +2,10 @@
 
 import { SetupRequest } from "@prisma/client";
 import { updateSetupRequestStatus, deleteSetupRequest } from "./actions";
+import { provisionSchool } from "./provisioning";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +13,7 @@ import { Button } from "@/components/ui/button";
 
 const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
   const router = useRouter();
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
@@ -21,6 +24,33 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
       }
     } catch (error) {
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleProvision = async (id: string, isProvisioned: boolean, hasEmail: boolean) => {
+    if (isProvisioned) {
+      toast.info("This school is already provisioned.");
+      return;
+    }
+    if (!hasEmail) {
+      toast.error("Cannot provision: This request is missing an email address.");
+      return;
+    }
+    if (!confirm("Are you sure you want to provision this school? This will create an isolated dashboard and send an invitation email to the owner.")) return;
+    
+    setProvisioningId(id);
+    try {
+      const res = await provisionSchool(id);
+      if (res?.success) {
+        toast.success(`School provisioned successfully! ID: ${res.schoolId}`);
+        router.refresh();
+      } else {
+        toast.error(res?.error || "Failed to provision school.");
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred.");
+    } finally {
+      setProvisioningId(null);
     }
   };
 
@@ -104,6 +134,24 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
               </td>
               <td className="px-6 py-4 rounded-r-2xl border-r border-t border-b border-slate-50 text-right">
                 <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-9 w-9 rounded-xl ${
+                      item.status === "PROVISIONED" 
+                        ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+                        : "bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm"
+                    }`}
+                    onClick={() => handleProvision(item.id, item.status === "PROVISIONED", !!item.email)}
+                    disabled={provisioningId === item.id || item.status === "PROVISIONED"}
+                    title={item.status === "PROVISIONED" ? "Already Provisioned" : "Approve & Provision School"}
+                  >
+                    {provisioningId === item.id ? (
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    )}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
