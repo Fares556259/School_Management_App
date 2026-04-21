@@ -447,7 +447,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             {selectedImage && (
               <div className="mb-4 relative inline-block group">
                 <div className="relative rounded-2xl overflow-hidden border-4 border-indigo-500 shadow-2xl w-32 h-32 relative">
-                  <Image src={selectedImage} alt="Preview" fill className="object-cover" />
+                  <Image src={selectedImage!} alt="Preview" fill className="object-cover" />
                 </div>
                 <button 
                   onClick={() => setSelectedImage(null)}

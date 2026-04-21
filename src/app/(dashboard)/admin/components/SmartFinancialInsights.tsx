@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { Lock, RefreshCw, AlertCircle } from 'lucide-react';
@@ -19,6 +19,7 @@ interface SmartFinancialInsightsProps {
   prevIncome: number;
   month: string;
   dailyData?: { date: string, income: number, expense: number }[];
+  unpaidCount?: number;
   className?: string;
 }
 
@@ -52,6 +53,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   prevIncome,
   month,
   dailyData,
+  unpaidCount = 0,
   className
 }) => {
   const { locale, t } = useLanguage();
@@ -63,8 +65,8 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
 
   const [lastDataHash, setLastDataHash] = useState("");
 
-  const fetchAiInsights = async (force = false) => {
-    const currentDataHash = JSON.stringify({ income, expense, breakdown, prevIncome, month, dailyData, locale });
+  const fetchAiInsights = useCallback(async (force = false) => {
+    const currentDataHash = JSON.stringify({ income, expense, breakdown, prevIncome, month, dailyData, unpaidCount, locale });
     if (!force && currentDataHash === lastDataHash) return;
 
     setIsLoading(true);
@@ -80,7 +82,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          data: { income, expense, breakdown, prevIncome, month, dailyData },
+          data: { income, expense, breakdown, prevIncome, month, dailyData, unpaidCount },
           locale
         }),
         signal: controller.signal
@@ -132,11 +134,11 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [income, expense, breakdown, prevIncome, month, dailyData, locale, lastDataHash]);
 
   useEffect(() => {
     fetchAiInsights();
-  }, [income, expense, breakdown, prevIncome, month, dailyData, locale]);
+  }, [fetchAiInsights]);
 
   return (
     <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden ${className || ''}`}>

@@ -100,7 +100,7 @@ export default function GradeSheetRecorder({
 
     sync();
     return () => { cancelled = true; };
-  }, [classId, subjectId, term]);
+  }, [classId, subjectId, term, students]);
 
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);

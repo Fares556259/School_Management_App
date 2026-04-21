@@ -35,7 +35,7 @@ export default async function DashboardAppendage({
   const currentYear = startDate.getFullYear();
 
   // HEAVY DATA FETCHING CONSOLIDATION (Phase 6 Restoration)
-  const safeFetch = async <T>(promise: Promise<T>, fallback: T): Promise<T> => {
+  const safeFetch = async <T extends unknown>(promise: Promise<T>, fallback: T): Promise<T> => {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 5000))
@@ -88,7 +88,7 @@ export default async function DashboardAppendage({
 
   // 2. RECENT ACTIVITY BATCH
   const [allNotices, recentAuditLogs] = await Promise.all([
-    safeFetch(prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { title: true, message: true, date: true } }), []),
+    safeFetch(prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { id: true, title: true, message: true, date: true, important: true } }), []),
     safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
   ]);
 
@@ -218,6 +218,7 @@ export default async function DashboardAppendage({
           prevIncome={prevIncome}
           month={MONTHS[now.getMonth()]}
           dailyData={[]}
+          unpaidCount={unpaidFees.length}
         />
       </section>
 

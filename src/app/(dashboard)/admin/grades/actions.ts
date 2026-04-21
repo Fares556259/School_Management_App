@@ -76,6 +76,7 @@ export async function getGradeSheet(classId: number, subjectId: number, term: nu
       term,
       proofUrl: "",
       notes: "FETCHED_ORPHANED_GRADES",
+      teacherId: null,
       grades: orphanedGrades
     };
   }
