@@ -1,8 +1,7 @@
 "use client";
 
 import { SetupRequest } from "@prisma/client";
-import { updateSetupRequestStatus, deleteSetupRequest } from "./actions";
-import { provisionSchool } from "./provisioning";
+import { updateSetupRequestStatus, deleteSetupRequest, activateSetup } from "./actions";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -13,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
   const router = useRouter();
-  const [provisioningId, setProvisioningId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
@@ -27,36 +26,26 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
     }
   };
 
-  const handleProvision = async (id: string, isProvisioned: boolean, hasEmail: boolean) => {
-    if (isProvisioned) {
-      toast.info("This school is already provisioned.");
+  const handleActivate = async (id: string, currentStatus: string, email: string) => {
+    if (currentStatus === "ACTIVATED" || currentStatus === "PROVISIONED") {
+      toast.info("This school is already activated.");
       return;
     }
-    if (!hasEmail) {
-      toast.error("Cannot provision: This request is missing an email address.");
-      return;
-    }
-    if (!confirm("Are you sure you want to provision this school? This will create an isolated dashboard and send an invitation email to the owner.")) return;
-    
-    setProvisioningId(id);
+    if (!confirm(`Activate this school request?\n\nEmail: ${email}\n\nThis will allow them to sign up and get a fresh dashboard.`)) return;
+
+    setActivatingId(id);
     try {
-      const res = await provisionSchool(id);
+      const res = await activateSetup(id);
       if (res?.success) {
-        toast.success(`School provisioned! ID: ${res.schoolId}`);
-        if (res.tempPassword) {
-            // Note: Since toast vanishes, we also log it or use alert for safety so the admin doesn't lose it.
-            setTimeout(() => {
-                alert(`IMPORTANT: Password for new admin is:\n\n${res.tempPassword}\n\nPlease copy and share this securely!`);
-            }, 500);
-        }
+        toast.success(`✅ Activated! ${email} can now sign up.`);
         router.refresh();
       } else {
-        toast.error(res?.error || "Failed to provision school.");
+        toast.error(res?.error || "Failed to activate.");
       }
     } catch (error) {
       toast.error("An unexpected error occurred.");
     } finally {
-      setProvisioningId(null);
+      setActivatingId(null);
     }
   };
 
@@ -70,6 +59,15 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
       }
     } catch (error) {
       toast.error("Failed to delete request");
+    }
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "PROVISIONED": return "bg-indigo-500 hover:bg-indigo-600";
+      case "ACTIVATED":   return "bg-emerald-500 hover:bg-emerald-600";
+      case "CONTACTED":   return "bg-blue-500 hover:bg-blue-600";
+      default:            return "bg-yellow-500 hover:bg-yellow-600";
     }
   };
 
@@ -96,6 +94,7 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
                 <div className="flex flex-col">
                   <span className="font-black text-slate-800 tracking-tight">{item.schoolName}</span>
                   <span className="text-xs text-slate-500 font-medium">{item.ownerName}</span>
+                  <span className="text-xs text-slate-400 font-mono mt-0.5">{item.email}</span>
                 </div>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
@@ -113,24 +112,22 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
                 <div className="flex items-center gap-2">
-                  <Badge 
-                    className={`text-[10px] font-black uppercase pointer-events-none ${
-                      item.status === "COMPLETED" ? "bg-emerald-500 hover:bg-emerald-600" :
-                      item.status === "CONTACTED" ? "bg-blue-500 hover:bg-blue-600" :
-                      "bg-yellow-500 hover:bg-yellow-600"
-                    }`}
+                  <Badge
+                    className={`text-[10px] font-black uppercase pointer-events-none ${getStatusBadgeClass(item.status)}`}
                   >
                     {item.status}
                   </Badge>
-                  <select
-                    value={item.status}
-                    onChange={(e) => handleStatusUpdate(item.id, e.target.value)}
-                    className="opacity-0 w-4 h-4 absolute cursor-pointer"
-                  >
-                    <option value="PENDING">Pending</option>
-                    <option value="CONTACTED">Contacted</option>
-                    <option value="COMPLETED">Completed</option>
-                  </select>
+                  {item.status !== "ACTIVATED" && item.status !== "PROVISIONED" && (
+                    <select
+                      value={item.status}
+                      onChange={(e) => handleStatusUpdate(item.id, e.target.value)}
+                      className="opacity-0 w-4 h-4 absolute cursor-pointer"
+                    >
+                      <option value="PENDING">Pending</option>
+                      <option value="CONTACTED">Contacted</option>
+                      <option value="COMPLETED">Completed</option>
+                    </select>
+                  )}
                 </div>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
@@ -140,24 +137,35 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
               </td>
               <td className="px-6 py-4 rounded-r-2xl border-r border-t border-b border-slate-50 text-right">
                 <div className="flex items-center justify-end gap-2">
+                  {/* ACTIVATE BUTTON */}
                   <Button
                     variant="ghost"
                     size="icon"
                     className={`h-9 w-9 rounded-xl ${
-                      item.status === "PROVISIONED" 
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+                      item.status === "ACTIVATED" || item.status === "PROVISIONED"
+                        ? "bg-emerald-100 text-emerald-600 cursor-not-allowed"
                         : "bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm"
                     }`}
-                    onClick={() => handleProvision(item.id, item.status === "PROVISIONED", !!item.email)}
-                    disabled={provisioningId === item.id || item.status === "PROVISIONED"}
-                    title={item.status === "PROVISIONED" ? "Already Provisioned" : "Approve & Provision School"}
+                    onClick={() => handleActivate(item.id, item.status, item.email)}
+                    disabled={activatingId === item.id || item.status === "ACTIVATED" || item.status === "PROVISIONED"}
+                    title={
+                      item.status === "ACTIVATED" ? "Already Activated — Waiting for Sign-Up" :
+                      item.status === "PROVISIONED" ? "Fully Provisioned" :
+                      "Activate — Allow this school to sign up"
+                    }
                   >
-                    {provisioningId === item.id ? (
+                    {activatingId === item.id ? (
                       <div className="w-4 h-4 border-2 border-indigo-600 border-t-white rounded-full animate-spin" />
+                    ) : item.status === "ACTIVATED" || item.status === "PROVISIONED" ? (
+                      // Checkmark icon for activated/provisioned
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                      // Lightning bolt = Activate
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                     )}
                   </Button>
+
+                  {/* WHATSAPP BUTTON */}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -173,6 +181,8 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l4-4V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v10z"/></svg>
                     </a>
                   </Button>
+
+                  {/* DELETE BUTTON */}
                   <Button
                     variant="ghost"
                     size="icon"

@@ -8,10 +8,15 @@ const matchers = Object.keys(routeAccessMap).map((route) => ({
 }));
 
 const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/onboarding",
+  "/request-setup(.*)",
   "/api/mobile(.*)", 
-  "/uploads(.*)", 
+  "/uploads(.*)",
   "/public(.*)",
-  "/api/public(.*)"
+  "/api/public(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
