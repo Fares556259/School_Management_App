@@ -1,7 +1,7 @@
 "use client";
 
 import { SetupRequest } from "@prisma/client";
-import { updateSetupRequestStatus, deleteSetupRequest, activateSetup } from "./actions";
+import { updateSetupRequestStatus, deleteSetupRequest } from "./actions";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
   const router = useRouter();
-  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
@@ -26,35 +26,6 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
     }
   };
 
-  const handleActivate = async (id: string, currentStatus: string, email: string) => {
-    if (currentStatus === "PROVISIONED") {
-      toast.info("This school is already provisioned.");
-      return;
-    }
-    
-    if (!confirm(`🚀 Activate this school?\n\nEmail: ${email}\n\nThis will create their database, school records, and Clerk account. They will be able to sign in immediately.`)) return;
-
-    setActivatingId(id);
-    try {
-      const res = await activateSetup(id);
-      if (res?.success) {
-        const msg = `✅ ACTIVATED SUCCESSFULLY!\n\n` +
-                    `Email: ${email}\n` +
-                    `Password: ${res.tempPassword}\n\n` +
-                    `Please share these credentials with the school owner. They can now sign in at /sign-in.`;
-        
-        alert(msg);
-        toast.success("School Provisioned!");
-        router.refresh();
-      } else {
-        toast.error(res?.error || "Failed to activate.");
-      }
-    } catch (error) {
-      toast.error("An unexpected error occurred during activation.");
-    } finally {
-      setActivatingId(null);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this request?")) return;
@@ -144,33 +115,6 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
               </td>
               <td className="px-6 py-4 rounded-r-2xl border-r border-t border-b border-slate-50 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  {/* ACTIVATE BUTTON */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-9 w-9 rounded-xl ${
-                      item.status === "ACTIVATED" || item.status === "PROVISIONED"
-                        ? "bg-emerald-100 text-emerald-600 cursor-not-allowed"
-                        : "bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-sm"
-                    }`}
-                    onClick={() => handleActivate(item.id, item.status, item.email)}
-                    disabled={activatingId === item.id || item.status === "ACTIVATED" || item.status === "PROVISIONED"}
-                    title={
-                      item.status === "ACTIVATED" ? "Already Activated — Waiting for Sign-Up" :
-                      item.status === "PROVISIONED" ? "Fully Provisioned" :
-                      "Activate — Allow this school to sign up"
-                    }
-                  >
-                    {activatingId === item.id ? (
-                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-white rounded-full animate-spin" />
-                    ) : item.status === "ACTIVATED" || item.status === "PROVISIONED" ? (
-                      // Checkmark icon for activated/provisioned
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    ) : (
-                      // Lightning bolt = Activate
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    )}
-                  </Button>
 
                   {/* WHATSAPP BUTTON */}
                   <Button

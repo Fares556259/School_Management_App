@@ -45,7 +45,7 @@ export default function WaitingApprovalPage() {
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Next Step</span>
-              <span className="text-sm font-bold text-slate-700">We'll email you once activated.</span>
+              <span className="text-sm font-bold text-slate-700">We&apos;ve emailed you once activated.</span>
             </div>
           </div>
         </div>

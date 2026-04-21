@@ -211,7 +211,7 @@ export default function SignUpPage() {
                     <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h2 className="text-xl font-black text-slate-800">Verify Your Email</h2>
-                <p className="text-sm text-slate-500 mt-2 font-medium">We've sent a code to <br/><span className="text-slate-800 font-bold">{emailAddress}</span></p>
+                <p className="text-sm text-slate-500 mt-2 font-medium">We&apos;ve sent a code to <br/><span className="text-slate-800 font-bold">{emailAddress}</span></p>
               </div>
 
               {error && (
