@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
  */
 async function ensureSuperUser() {
   const role = await getRole();
-  if (role !== "superuser") {
+  if (role !== "superadmin") {
     throw new Error("Unauthorized: Superuser access required.");
   }
 }
@@ -111,8 +111,11 @@ export async function approveAdmin(adminId: string) {
       });
 
       // 2. Create Institution Settings
+      // Hotfix: Using a random ID because the schema has a hardcoded @default(1) which triggers a constraint failure
+      const safeId = Math.floor(Math.random() * 1000000) + 10;
       await tx.institution.create({
         data: {
+          id: safeId,
           schoolId: schoolId,
           schoolName: schoolName,
           academicYear: "2025-2026",
@@ -174,5 +177,43 @@ export async function rejectAdmin(adminId: string) {
   } catch (error: any) {
     console.error("Rejection Error:", error);
     return { success: false, error: error.message || "Failed to reject user." };
+  }
+}
+
+export async function createTestLead() {
+  await ensureSuperUser();
+  try {
+    const testId = "test_lead_" + Math.floor(Math.random() * 10000);
+    const schoolName = "Emerald Heights Academy";
+    
+    // 1. Create SetupRequest
+    await prisma.setupRequest.create({
+      data: {
+        schoolName: schoolName,
+        ownerName: "Sarah Jenkins",
+        phoneNumber: "+1 555-0123",
+        email: "sarah.jenkins@example.com",
+        city: "Seattle",
+        status: "PENDING"
+      }
+    });
+
+    // 2. Create Admin record
+    await prisma.admin.create({
+      data: {
+        id: testId,
+        username: "sarah_admin",
+        email: "sarah.jenkins@example.com",
+        name: "Sarah",
+        surname: "Jenkins",
+        status: "pending",
+        pendingSchoolName: schoolName,
+        schoolId: "default_school"
+      }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }

@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { getSetupRequests, getPendingAdmins } from "./actions";
 import SetupRequestTable from "./SetupRequestTable";
 import PendingAdminsTable from "./PendingAdminsTable";
+import GenerateTestLeadBtn from "./GenerateTestLeadBtn";
 
 const SetupRequestsPage = async ({ searchParams }: { searchParams: { tab?: string } }) => {
   const role = await getRole();
   const activeTab = searchParams.tab || "leads";
 
-  // STRICT ACCESS CONTROL: Only superusers can access this page
-  if (role !== "superuser") {
+  // STRICT ACCESS CONTROL: Only superadmins can access this page
+  if (role !== "superadmin") {
     return redirect("/");
   }
 
@@ -32,6 +33,10 @@ const SetupRequestsPage = async ({ searchParams }: { searchParams: { tab?: strin
         >
           User Approvals ({pendingAdmins.length})
         </a>
+        <div className="flex-1" />
+        <div className="pb-4">
+            <GenerateTestLeadBtn />
+        </div>
       </div>
 
       {/* Main Table Content */}

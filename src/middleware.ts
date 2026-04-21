@@ -44,8 +44,8 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // 3. ENFORCE APPROVAL STATUS
-  // Only 'active' users can enter the app dashboards (Superusers are exempt)
-  if (status !== "active" && role !== "superuser") {
+  // Only 'active' users can enter the app dashboards (Superadmins are exempt)
+  if (status !== "active" && role !== "superadmin") {
     return NextResponse.redirect(new URL("/waiting-approval", req.url));
   }
 

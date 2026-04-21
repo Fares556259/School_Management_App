@@ -20,7 +20,7 @@ export default async function SuperadminLayout({
 
   const role = await getRole();
   
-  if (role !== "superuser") {
+  if (role !== "superadmin") {
     return redirect("/admin");
   }
 
