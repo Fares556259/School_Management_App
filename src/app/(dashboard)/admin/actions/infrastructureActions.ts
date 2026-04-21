@@ -2,13 +2,15 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 // --- ROOMS ---
 
 export async function getRooms() {
   try {
+    const schoolId = await getSchoolId();
     const rooms = await prisma.room.findMany({
-      where: { schoolId: "default_school" },
+      where: { schoolId },
       orderBy: { name: 'asc' }
     });
     return { success: true, data: rooms };
@@ -20,8 +22,9 @@ export async function getRooms() {
 
 export async function addRoom(name: string) {
   try {
+    const schoolId = await getSchoolId();
     const room = await prisma.room.create({
-      data: { name, schoolId: "default_school" }
+      data: { name, schoolId }
     });
     revalidatePath("/settings");
     return { success: true, data: room };

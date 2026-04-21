@@ -2,11 +2,13 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 export async function getSchoolConfig() {
   try {
+    const schoolId = await getSchoolId();
     let config = await prisma.institution.findFirst({
-      where: { schoolId: "default_school" },
+      where: { schoolId },
       select: {
         id: true,
         schoolId: true,
@@ -105,11 +107,11 @@ export async function updateSchoolConfig(data: any) {
 
     // 2. Update the Institution (using schoolId as resilient unique key)
     const updated = await prisma.institution.upsert({
-      where: { schoolId: data.schoolId || "default_school" },
+      where: { schoolId: data.schoolId || await getSchoolId() },
       update: updateData,
       create: { 
         ...updateData, 
-        schoolId: data.schoolId || "default_school",
+        schoolId: data.schoolId || await getSchoolId(),
         id: 1 
       },
       select: {
@@ -170,8 +172,8 @@ export async function updateSchoolConfig(data: any) {
 
 export async function getLevelTuitionFees() {
   try {
-    const schoolId = "default_school";
-    
+    const schoolId = await getSchoolId();
+
     // Ensure levels 1-6 exist by default
     const standardLevels = [1, 2, 3, 4, 5, 6];
     await Promise.all(standardLevels.map(lvl => 
@@ -232,12 +234,9 @@ export async function getLevels() {
 
 export async function addLevel(level: number, tuitionFee: number) {
   try {
+    const schoolId = await getSchoolId();
     const newLevel = await prisma.level.create({
-      data: {
-        level: level,
-        tuitionFee: tuitionFee,
-        schoolId: "default_school"
-      }
+      data: { level, tuitionFee, schoolId },
     });
     revalidatePath("/settings");
     revalidatePath("/admin");

@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 export type SimulationState = {
   name: string;
@@ -14,10 +15,11 @@ export type SimulationState = {
 
 export async function saveScenario(data: SimulationState) {
   try {
+    const schoolId = await getSchoolId();
     const scenario = await prisma.profitabilityScenario.create({
       data: {
         ...data,
-        schoolId: "default_school", // Logic for school isolation
+        schoolId,
       },
     });
 
@@ -31,8 +33,9 @@ export async function saveScenario(data: SimulationState) {
 
 export async function getScenarios() {
   try {
+    const schoolId = await getSchoolId();
     const scenarios = await prisma.profitabilityScenario.findMany({
-      where: { schoolId: "default_school" },
+      where: { schoolId },
       orderBy: { updatedAt: "desc" },
     });
 

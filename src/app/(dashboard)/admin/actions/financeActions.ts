@@ -1,9 +1,11 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { getSchoolId } from "@/lib/school";
 
 export async function getSimulatorBaseline() {
   try {
+    const schoolId = await getSchoolId();
     const now = new Date();
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(now.getMonth() - 3);
@@ -14,24 +16,25 @@ export async function getSimulatorBaseline() {
       incomeTotal, expenseTotal,
     ] = await Promise.all([
       prisma.level.findMany({
+        where: { schoolId },
         select: { id: true, level: true, tuitionFee: true, _count: { select: { students: true } } },
       }),
-      prisma.teacher.aggregate({ _sum: { salary: true } }),
-      prisma.staff.aggregate({ _sum: { salary: true } }),
-      prisma.teacher.count(),
-      prisma.staff.count(),
-      prisma.income.aggregate({ _sum: { amount: true } }),
-      prisma.expense.aggregate({ _sum: { amount: true } }),
+      prisma.teacher.aggregate({ where: { schoolId }, _sum: { salary: true } }),
+      prisma.staff.aggregate({ where: { schoolId }, _sum: { salary: true } }),
+      prisma.teacher.count({ where: { schoolId } }),
+      prisma.staff.count({ where: { schoolId } }),
+      prisma.income.aggregate({ where: { schoolId }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { schoolId }, _sum: { amount: true } }),
     ]);
 
     // ── Historical income & expense records (last 3 months) ─────────────────
     const [recentIncomes, recentExpenses] = await Promise.all([
       prisma.income.findMany({
-        where: { date: { gte: threeMonthsAgo } },
+        where: { schoolId, date: { gte: threeMonthsAgo } },
         select: { title: true, amount: true, category: true },
       }),
       prisma.expense.findMany({
-        where: { date: { gte: threeMonthsAgo } },
+        where: { schoolId, date: { gte: threeMonthsAgo } },
         select: { title: true, amount: true, category: true },
       }),
     ]);
@@ -39,10 +42,10 @@ export async function getSimulatorBaseline() {
     // ── Payment collection rate (last 3 months) ──────────────────────────────
     const [paidPayments, totalPayments] = await Promise.all([
       prisma.payment.count({
-        where: { userType: "student", status: "PAID", paidAt: { gte: threeMonthsAgo } },
+        where: { schoolId, userType: "student", status: "PAID", paidAt: { gte: threeMonthsAgo } },
       }),
       prisma.payment.count({
-        where: { userType: "student", paidAt: { gte: threeMonthsAgo } },
+        where: { schoolId, userType: "student", paidAt: { gte: threeMonthsAgo } },
       }),
     ]);
     const collectionRate = totalPayments > 0

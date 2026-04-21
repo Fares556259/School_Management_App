@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { Day } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 export type TimetableSlotUpdate = {
   id: number;
@@ -84,10 +85,10 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
 
 export async function getAllClasses() {
   try {
+    const schoolId = await getSchoolId();
     const classes = await prisma.class.findMany({
-      include: {
-        level: true
-      },
+      where: { schoolId },
+      include: { level: true },
       orderBy: { name: 'asc' }
     });
     return { success: true, data: classes };
@@ -98,8 +99,9 @@ export async function getAllClasses() {
 
 export async function getAllSubjectsAndTeachers() {
   try {
-    const subjects = await prisma.subject.findMany();
-    const teachers = await prisma.teacher.findMany();
+    const schoolId = await getSchoolId();
+    const subjects = await prisma.subject.findMany({ where: { schoolId } });
+    const teachers = await prisma.teacher.findMany({ where: { schoolId } });
     return { success: true, subjects, teachers };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -230,8 +232,9 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[]) {
 
 export async function getAllRooms() {
   try {
+    const schoolId = await getSchoolId();
     const rooms = await prisma.room.findMany({
-      where: { schoolId: "default_school" },
+      where: { schoolId },
       orderBy: { name: 'asc' }
     });
     return { success: true, data: rooms };
