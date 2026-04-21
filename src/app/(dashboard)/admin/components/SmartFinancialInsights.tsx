@@ -134,7 +134,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [income, expense, breakdown, prevIncome, month, dailyData, locale, lastDataHash]);
+  }, [income, expense, breakdown, prevIncome, month, dailyData, unpaidCount, locale, lastDataHash]);
 
   useEffect(() => {
     fetchAiInsights();

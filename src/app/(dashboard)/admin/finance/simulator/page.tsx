@@ -25,10 +25,10 @@ export default async function ProfitabilitySimulatorPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Financial Simulator</h1>
-        <p className="text-slate-500 font-medium">
+    <div className="space-y-6 animate-in fade-in duration-700">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Financial Simulator</h1>
+        <p className="text-slate-500 text-sm">
           Strategic planning tool to simulate profitability, tuition adjustments, and break-even thresholds.
         </p>
       </div>
