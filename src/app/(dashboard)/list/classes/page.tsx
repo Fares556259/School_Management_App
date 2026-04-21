@@ -8,6 +8,7 @@ import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
+import { getSchoolId } from "@/lib/school";
 
 type ClassList = Class & { supervisor: Teacher | null } & { level: Level } & {
   _count: { students: number };
@@ -49,8 +50,10 @@ const ClassListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.ClassWhereInput = {};
+  const query: Prisma.ClassWhereInput = { schoolId };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
@@ -112,8 +115,8 @@ const ClassListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.class.count({ where: query }),
-    prisma.level.findMany({ select: { id: true, level: true } }),
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.level.findMany({ where: { schoolId }, select: { id: true, level: true } }),
+    prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
   ]);
 
   const classRelatedData = {

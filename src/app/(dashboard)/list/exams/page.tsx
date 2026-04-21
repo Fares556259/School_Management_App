@@ -2,6 +2,7 @@ import { getRole } from "@/lib/role";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import ExamTimetableClient from "./ExamTimetableClient";
+import { getSchoolId } from "@/lib/school";
 
 const ExamListPage = async ({
   searchParams,
@@ -11,8 +12,10 @@ const ExamListPage = async ({
   const role = await getRole();
   const { classId, teacherId, search } = searchParams;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.ExamWhereInput = {};
+  const query: Prisma.ExamWhereInput = { schoolId };
 
   if (classId) {
     query.lesson = { classId: parseInt(classId) };
@@ -49,14 +52,15 @@ const ExamListPage = async ({
   });
 
   const classes = await prisma.class.findMany({
+    where: { schoolId },
     include: {
         level: true
     },
     orderBy: { name: 'asc' }
   });
-  const teachers = await prisma.teacher.findMany();
-  const subjects = await prisma.subject.findMany();
-  const rooms = await prisma.room.findMany();
+  const teachers = await prisma.teacher.findMany({ where: { schoolId } });
+  const subjects = await prisma.subject.findMany({ where: { schoolId } });
+  const rooms = await prisma.room.findMany({ where: { schoolId } });
 
   return (
     <ExamTimetableClient 

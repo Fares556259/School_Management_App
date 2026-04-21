@@ -2,17 +2,21 @@ import { getRole } from "@/lib/role";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "../../../../lib/prisma";
 import ResultsPageClient from "./ResultsPageClient";
+import { getSchoolId } from "@/lib/school";
 
 const ResultListPage = async () => {
   const { userId } = auth();
   const role = await getRole();
 
+  const schoolId = await getSchoolId();
+
   // 🐘 V3 Stabilization: Re-parallelize optimized queries with hardened pool settings
   const [classesRaw, subjects, teachers, sheets, allStudents] = await Promise.all([
-    prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.subject.findMany({ orderBy: { domain: "asc" } }),
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
+    prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
     prisma.gradeSheet.findMany({
+      where: { schoolId },
       include: {
         class: { select: { name: true, _count: { select: { students: true } } } },
         subject: { select: { name: true } },
@@ -22,7 +26,7 @@ const ResultListPage = async () => {
       orderBy: [{ updatedAt: "desc" }],
     }),
     prisma.student.findMany({ 
-      where: { classId: { not: undefined } },
+      where: { schoolId, classId: { not: undefined } },
       select: { id: true, name: true, surname: true, classId: true }, 
       orderBy: { name: "asc" } 
     })

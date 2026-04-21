@@ -15,6 +15,7 @@ import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import StudentListClient from "./StudentListClient";
+import { getSchoolId } from "@/lib/school";
 
 type StudentList = Student & { class: Class } & { level: Level } & { payments: Payment[] };
 
@@ -63,8 +64,10 @@ const StudentListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.StudentWhereInput = {};
+  const query: Prisma.StudentWhereInput = { schoolId };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
@@ -176,12 +179,17 @@ const StudentListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.student.count({ where: query }),
-    prisma.parent.findMany({ select: { id: true, name: true, surname: true } }),
+    prisma.parent.findMany({ 
+      where: { schoolId },
+      select: { id: true, name: true, surname: true } 
+    }),
     prisma.class.findMany({ 
+      where: { schoolId },
       select: { id: true, name: true },
       orderBy: { name: 'asc' }
     }),
     prisma.level.findMany({ 
+      where: { schoolId },
       select: { id: true, level: true },
       orderBy: { level: 'asc' }
     }),

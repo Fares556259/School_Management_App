@@ -2,6 +2,7 @@ import { getRole } from "@/lib/role";
 import prisma from "@/lib/prisma";
 import PartialPaymentsClient from "./PartialPaymentsClient";
 import { PaymentStatus } from "@prisma/client";
+import { getSchoolId } from "@/lib/school";
 
 export default async function PartialPaymentsPage() {
   const role = await getRole();
@@ -10,9 +11,12 @@ export default async function PartialPaymentsPage() {
     return <div className="p-4">Unauthorized Access</div>;
   }
 
+  const schoolId = await getSchoolId();
+
   // Fetch all partial payments
   const payments = await prisma.payment.findMany({
     where: {
+      schoolId,
       status: "PARTIAL" as PaymentStatus,
       userType: "STUDENT"
     },

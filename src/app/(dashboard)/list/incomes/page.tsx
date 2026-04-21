@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import CrudFormModal from "@/components/CrudFormModal";
 import FinanceDateFilter from "@/components/FinanceDateFilter";
+import { getSchoolId } from "@/lib/school";
 import FinanceExportButton from "@/components/FinanceExportButton";
 
 const columns = [
@@ -49,8 +50,10 @@ const IncomeListPage = async ({
   const { page, search, from, to, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.IncomeWhereInput = {};
+  const query: Prisma.IncomeWhereInput = { schoolId };
 
   if (search) {
     query.OR = [

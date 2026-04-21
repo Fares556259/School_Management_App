@@ -1,5 +1,8 @@
 "use server";
 
+import { getSchoolId } from "@/lib/school";
+
+
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
@@ -20,11 +23,13 @@ export const createTeacher = async (data: {
   img?: string;
 }) => {
   try {
+    const schoolId = await getSchoolId();
     const id = crypto.randomUUID();
 
     // 2. Create Prisma Record
     await prisma.teacher.create({
       data: {
+        schoolId,
         id: id,
         username: data.username,
         name: data.name,
@@ -55,11 +60,13 @@ export const createTeacher = async (data: {
 
 export const bulkCreateTeachers = async (teachers: any[]) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.$transaction(async (tx) => {
       for (const t of teachers) {
         const id = crypto.randomUUID();
         await tx.teacher.create({
           data: {
+            schoolId,
             id,
             username: t.username,
             name: t.name,
@@ -180,8 +187,11 @@ export const createStudent = async (data: {
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
+    const schoolId = await getSchoolId();
+
     await prisma.student.create({
       data: {
+        schoolId,
         id,
         username: finalUsername,
         name: data.name,
@@ -244,8 +254,10 @@ export const bulkCreateStudents = async (students: any[]) => {
         }
 
         // 2. Create Student
+        const schoolId = await getSchoolId();
         await tx.student.create({
           data: {
+            schoolId,
             id: studentId,
             username: s.username,
             name: s.name,
@@ -350,8 +362,10 @@ export const createStaff = async (data: {
   salary?: number;
 }) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.staff.create({
       data: {
+        schoolId,
         id: crypto.randomUUID(),
         username: data.username,
         name: data.name,
@@ -431,8 +445,11 @@ export const createParent = async (data: {
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${data.phone.slice(-4)}`;
 
+    const schoolId = await getSchoolId();
+
     await prisma.parent.create({
       data: {
+        schoolId,
         id: crypto.randomUUID(),
         username: finalUsername,
         name: data.name,
@@ -489,8 +506,10 @@ export const createClass = async (data: {
   supervisorId?: string;
 }) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.class.create({
       data: {
+        schoolId,
         name: data.name,
         capacity: data.capacity,
         levelId: data.levelId,
@@ -535,7 +554,8 @@ export const deleteClass = async (id: number) => {
 // ===================== SUBJECT =====================
 export const createSubject = async (data: { name: string }) => {
   try {
-    await prisma.subject.create({ data: { name: data.name } });
+    const schoolId = await getSchoolId();
+    await prisma.subject.create({ data: { schoolId, name: data.name } });
     revalidatePath("/list/subjects");
     return { success: true };
   } catch (err: any) {
@@ -575,8 +595,10 @@ export const createExpense = async (data: {
   img?: string;
 }) => {
   try {
+    const schoolId = await getSchoolId();
     const expense = await prisma.expense.create({
       data: {
+        schoolId,
         title: data.title,
         amount: data.amount,
         category: data.category,
@@ -673,8 +695,10 @@ export const createIncome = async (data: {
   img?: string;
 }) => {
   try {
+    const schoolId = await getSchoolId();
     const income = await prisma.income.create({
       data: {
+        schoolId,
         title: data.title,
         amount: data.amount,
         category: data.category,
@@ -773,15 +797,17 @@ export const createNotice = async (data: {
   pdfUrl?: string | null;
 }) => {
   try {
+    const schoolId = await getSchoolId();
     const notice = await prisma.notice.create({
       data: {
+        schoolId,
         title: data.title,
         message: data.message,
         important: data.important,
         img: data.img || null,
         pdfUrl: data.pdfUrl || null,
-        class: data.classId ? { connect: { id: data.classId } } : undefined,
-        targetStudent: data.targetStudentId ? { connect: { id: data.targetStudentId } } : undefined,
+        classId: data.classId || null,
+        targetStudentId: data.targetStudentId || null,
       },
     });
 
@@ -967,8 +993,10 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         const genUsername = parentData.username || 
           `${parentData.name.toLowerCase()}.${parentData.surname.toLowerCase()}.${parentData.phone.slice(-4)}`;
           
+        const schoolId = await getSchoolId();
         parent = await tx.parent.create({
           data: {
+            schoolId,
             id: crypto.randomUUID(),
             username: genUsername,
             name: parentData.name,
@@ -992,8 +1020,10 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         const studentUsername = child.username || 
           `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
+        const schoolId = await getSchoolId();
         await tx.student.create({
           data: {
+            schoolId,
             id: crypto.randomUUID(),
             username: studentUsername,
             name: child.name,

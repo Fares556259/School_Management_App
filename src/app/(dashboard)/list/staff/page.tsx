@@ -11,8 +11,8 @@ import PaymentTimeline from "@/components/PaymentTimeline";
 import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
-
 import Table from "@/components/Table";
+import { getSchoolId } from "@/lib/school";
 
 const columns = [
   {
@@ -62,7 +62,9 @@ const StaffListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
-  const where: any = {};
+  const schoolId = await getSchoolId();
+
+  const where: any = { schoolId };
   if (queryParams.search) {
     where.OR = [
       { name: { contains: queryParams.search, mode: "insensitive" } },

@@ -3,6 +3,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getSchoolId } from "@/lib/school";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
@@ -39,8 +40,10 @@ const SubjectListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.SubjectWhereInput = {};
+  const query: Prisma.SubjectWhereInput = { schoolId };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {

@@ -8,6 +8,7 @@ import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Notice, Class, Prisma } from "@prisma/client";
+import { getSchoolId } from "@/lib/school";
 
 type NoticeList = Notice & {
   class: Class | null;
@@ -48,8 +49,10 @@ const AnnouncementListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.NoticeWhereInput = {};
+  const query: Prisma.NoticeWhereInput = { schoolId };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {

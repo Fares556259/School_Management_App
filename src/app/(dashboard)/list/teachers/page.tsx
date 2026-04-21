@@ -14,6 +14,7 @@ import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import TeacherListClient from "./TeacherListClient";
+import { getSchoolId } from "@/lib/school";
 
 const columns = [
   {
@@ -73,8 +74,10 @@ const TeacherListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.TeacherWhereInput = {};
+  const query: Prisma.TeacherWhereInput = { schoolId };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {

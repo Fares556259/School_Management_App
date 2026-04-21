@@ -8,6 +8,7 @@ import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
+import { getSchoolId } from "@/lib/school";
 
 type AssignmentList = Assignment & {
   lesson: Lesson & {
@@ -52,8 +53,10 @@ const AssignmentListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
+  const schoolId = await getSchoolId();
+
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.AssignmentWhereInput = {};
+  const query: Prisma.AssignmentWhereInput = { schoolId };
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
