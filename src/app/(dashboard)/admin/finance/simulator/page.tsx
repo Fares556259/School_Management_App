@@ -36,6 +36,7 @@ export default async function ProfitabilitySimulatorPage() {
       <SimulatorInterface 
         baseline={baseline.data!} 
         initialScenarios={scenariosRes.success ? scenariosRes.data || [] : []}
+        autofill={baseline.data!.autofill}
       />
     </div>
   );

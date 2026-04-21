@@ -18,6 +18,25 @@ interface SimulatorBaseline {
   monthlyOverhead: number;
   cumulativeReserves: number;
 }
+interface Autofill {
+  collectionRate: number;
+  registrationPerMonth: number;
+  transportIncomePerMonth: number;
+  cafeteriaPerMonth: number;
+  extracurricularPerMonth: number;
+  rentPerMonth: number;
+  electricityPerMonth: number;
+  waterPerMonth: number;
+  internetPerMonth: number;
+  fuelPerMonth: number;
+  busMaintPerMonth: number;
+  materialsPerMonth: number;
+  maintenancePerMonth: number;
+  marketingPerMonth: number;
+  adminPerMonth: number;
+  insurancePerMonth: number;
+  miscPerMonth: number;
+}
 interface Scenario {
   id: string; name: string; tuitionAdjust: number; salaryAdjust: number;
   overheadAdjust: number; targetStudents: number; description?: string | null; updatedAt: Date;
@@ -160,8 +179,8 @@ function ChipCard({ label, value, status }: { label: string; value: string; stat
 }
 
 /* ─── Main ─── */
-export default function SimulatorInterface({ baseline }: {
-  baseline: SimulatorBaseline; initialScenarios: Scenario[];
+export default function SimulatorInterface({ baseline, autofill, initialScenarios }: {
+  baseline: SimulatorBaseline; initialScenarios: Scenario[]; autofill?: Autofill;
 }) {
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -171,34 +190,36 @@ export default function SimulatorInterface({ baseline }: {
   ) || 450;
   const totalStudents = baseline.levels.reduce((s, l) => s + l.studentCount, 0) || 100;
 
+  const af = autofill; // shorthand
+
   // Income
   const [iTuition, setITuition] = useState(avgTuition);
   const [iStudents, setIStudents] = useState(totalStudents);
-  const [iCollectionRate, setICollectionRate] = useState(95);
-  const [iRegistration, setIRegistration] = useState(0);
-  const [iTransportFee, setITransportFee] = useState(0);
+  const [iCollectionRate, setICollectionRate] = useState(af?.collectionRate ?? 90);
+  const [iRegistration, setIRegistration] = useState(af?.registrationPerMonth ?? 0);
+  const [iTransportFee, setITransportFee] = useState(0); // per-student, keep manual
   const [iTransportStudents, setITransportStudents] = useState(0);
-  const [iCafeteria, setICafeteria] = useState(0);
-  const [iExtra, setIExtra] = useState(0);
+  const [iCafeteria, setICafeteria] = useState(af?.cafeteriaPerMonth ?? 0);
+  const [iExtra, setIExtra] = useState(af?.extracurricularPerMonth ?? 0);
   const [iUniforms, setIUniforms] = useState(0);
   const [iFacility, setIFacility] = useState(0);
   const [iDonations, setIDonations] = useState(0);
 
   // Expenses
   const [eSalaries, setESalaries] = useState(baseline.payroll.total || 0);
-  const [eRent, setERent] = useState(0);
-  const [eElectricity, setEElectricity] = useState(0);
-  const [eWater, setEWater] = useState(0);
-  const [eInternet, setEInternet] = useState(0);
-  const [eFuel, setEFuel] = useState(0);
-  const [eBusMaint, setEBusMaint] = useState(0);
+  const [eRent, setERent] = useState(af?.rentPerMonth ?? 0);
+  const [eElectricity, setEElectricity] = useState(af?.electricityPerMonth ?? 0);
+  const [eWater, setEWater] = useState(af?.waterPerMonth ?? 0);
+  const [eInternet, setEInternet] = useState(af?.internetPerMonth ?? 0);
+  const [eFuel, setEFuel] = useState(af?.fuelPerMonth ?? 0);
+  const [eBusMaint, setEBusMaint] = useState(af?.busMaintPerMonth ?? 0);
   const [eDrivers, setEDrivers] = useState(0);
-  const [eMaterials, setEMaterials] = useState(0);
-  const [eMaintenance, setEMaintenance] = useState(0);
-  const [eMarketing, setEMarketing] = useState(0);
-  const [eAdmin, setEAdmin] = useState(0);
-  const [eInsurance, setEInsurance] = useState(0);
-  const [eMisc, setEMisc] = useState(0);
+  const [eMaterials, setEMaterials] = useState(af?.materialsPerMonth ?? 0);
+  const [eMaintenance, setEMaintenance] = useState(af?.maintenancePerMonth ?? 0);
+  const [eMarketing, setEMarketing] = useState(af?.marketingPerMonth ?? 0);
+  const [eAdmin, setEAdmin] = useState(af?.adminPerMonth ?? 0);
+  const [eInsurance, setEInsurance] = useState(af?.insurancePerMonth ?? 0);
+  const [eMisc, setEMisc] = useState(af?.miscPerMonth ?? 0);
 
   const [targetMargin, setTargetMargin] = useState(20);
   const [result, setResult] = useState<CalcResult | null>(null);
@@ -434,8 +455,17 @@ export default function SimulatorInterface({ baseline }: {
     danger:  { banner: "bg-red-50     border-red-200",   text: "text-red-700",   label: "In Deficit ✗",        desc: (r: CalcResult) => `Losing ${Math.abs(r.netProfit).toLocaleString()} TND / month. Urgent review.` },
   };
 
+  const hasSyncedData = !!autofill && Object.values(autofill).some(v => v > 0);
+
   return (
     <div className="space-y-4 pb-20">
+      {/* DB Sync Badge */}
+      {hasSyncedData && (
+        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5 w-fit">
+          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          Auto-filled from your school database (last 3 months average)
+        </div>
+      )}
 
       {/* ── INCOME ──────────────────────────────────────────── */}
       <SectionCard title="Monthly Income" subtitle="All projected revenue sources"
