@@ -1,12 +1,7 @@
 import { Day, PrismaClient, UserSex, AttendanceStatus } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
 import "dotenv/config";
 
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
   console.log("Cleaning up database...");
@@ -30,6 +25,18 @@ async function main() {
   await prisma.admin.deleteMany();
 
   console.log("Seeding small, realistic data...");
+
+  // SCHOOL
+  await prisma.school.upsert({
+    where: { id: "default_school" },
+    update: {},
+    create: {
+      id: "default_school",
+      name: "SnapSchool Primary",
+      subdomain: "primary",
+      updatedAt: new Date(),
+    }
+  });
 
   // ADMIN
   await prisma.admin.create({

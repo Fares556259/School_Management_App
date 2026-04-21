@@ -47,27 +47,23 @@ export async function provisionSchool(setupRequestId: string) {
     
     // We try to create the user first. If they already exist, we'll update their metadata.
     let clerkUserId;
+    let tempPassword;
     try {
+        tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + "9!aA";
+        
         const newUser = await client.users.createUser({
             emailAddress: [request.email],
+            password: tempPassword,
             firstName: request.ownerName.split(' ')[0] || "Director",
             lastName: request.ownerName.split(' ').slice(1).join(' ') || "",
             publicMetadata: {
                 role: "admin",
                 schoolId: schoolId
-            },
-            skipPasswordRequirement: true // Essential for invitations
+            }
         });
         clerkUserId = newUser.id;
         
-        // Wait briefly to ensure user is created before creating ticket
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Create an invitation ticket
-        await client.signInTokens.createSignInToken({
-            userId: clerkUserId,
-            expiresInSeconds: 60 * 60 * 24 * 30 // 30 days
-        });
+        // Removed signInToken creation because password generation is safer and bypasses strict instance configs.
 
     } catch (clerkError: any) {
         console.error("Clerk User Creation Error:", clerkError);
@@ -133,7 +129,7 @@ export async function provisionSchool(setupRequestId: string) {
       });
     });
 
-    return { success: true, schoolId };
+    return { success: true, schoolId, tempPassword: typeof tempPassword !== 'undefined' ? tempPassword : "User Already Existed" };
   } catch (error: any) {
     console.error("Provisioning Error:", error);
     return { success: false, error: error.message || "An unexpected error occurred during provisioning." };

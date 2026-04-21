@@ -42,7 +42,13 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
     try {
       const res = await provisionSchool(id);
       if (res?.success) {
-        toast.success(`School provisioned successfully! ID: ${res.schoolId}`);
+        toast.success(`School provisioned! ID: ${res.schoolId}`);
+        if (res.tempPassword) {
+            // Note: Since toast vanishes, we also log it or use alert for safety so the admin doesn't lose it.
+            setTimeout(() => {
+                alert(`IMPORTANT: Password for new admin is:\n\n${res.tempPassword}\n\nPlease copy and share this securely!`);
+            }, 500);
+        }
         router.refresh();
       } else {
         toast.error(res?.error || "Failed to provision school.");
