@@ -51,7 +51,7 @@ export default function SignUpPage() {
         setFormData(prev => ({ ...prev, email: signUp.emailAddress as string }));
       }
     }
-  }, [isLoaded, signUp]);
+  }, [isLoaded, signUp, formData.email]);
 
   // 1. Reset Session
   const handleReset = async () => {

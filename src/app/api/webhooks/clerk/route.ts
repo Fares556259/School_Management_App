@@ -140,7 +140,7 @@ export async function POST(req: Request) {
         select: { email: true }
       });
 
-      if (user) {
+      if (user && user.email) {
         // Remove from SetupRequest (Lead)
         await prisma.setupRequest.deleteMany({
           where: { email: user.email }
