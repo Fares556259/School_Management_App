@@ -55,65 +55,7 @@ const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
         {/* LANGUAGE SWITCHER */}
         <LanguageSwitcher />
 
-        {/* AI USAGE TRACKER (Admin Only) */}
-        {role === "admin" && aiStats && (
-          <div className='hidden lg:flex items-center gap-3 bg-indigo-50/50 px-3 py-1.5 rounded-2xl border border-indigo-100/50 hover:bg-white transition-all group ml-2'>
-             <div className="flex items-center gap-2 cursor-help" title="Quota AI Quotidien">
-                <div className="p-1 rounded-lg bg-indigo-600 text-white shadow-sm ring-4 ring-indigo-500/10 group-hover:scale-110 transition-transform">
-                    <Sparkles size={10} />
-                </div>
-                <div className="flex flex-col -space-y-0.5">
-                    <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest">Zbiba AI</span>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-12 h-1 bg-slate-200 rounded-full overflow-hidden">
-                            <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${(aiStats.usage / (aiStats.quota || 10)) * 100}%` }}
-                                className={`h-full rounded-full ${aiStats.usage / (aiStats.quota || 10) > 0.8 ? 'bg-amber-400' : 'bg-indigo-500'}`}
-                            />
-                        </div>
-                        <span className="text-[9px] font-black text-slate-500">{aiStats.usage}/{aiStats.quota}</span>
-                    </div>
-                </div>
-             </div>
 
-             {/* TEST TOGGLE BUTTON */}
-             <button 
-                onClick={async () => {
-                   setIsToggling(true);
-                   try {
-                    const result = await toggleTestAIQuota();
-                    if (result?.success) {
-                        setAiStats({ 
-                            usage: result.newUsage ?? 0, 
-                            quota: result.quota ?? 10 
-                        });
-                        window.location.reload();
-                    }
-                   } catch (err) {
-                    console.error("Toggle Error:", err);
-                   } finally {
-                    setIsToggling(false);
-                   }
-                }}
-                disabled={isToggling}
-                className={`p-1.5 rounded-lg border transition-all ${
-                   aiStats.usage >= aiStats.quota 
-                   ? 'bg-amber-100 border-amber-200 text-amber-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200' 
-                   : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200'
-                }`}
-                title={aiStats.usage >= aiStats.quota ? "Click to UNLOCK (Test)" : "Click to LOCK (Test)"}
-             >
-                {isToggling ? (
-                   <RefreshCw size={12} className="animate-spin" />
-                ) : aiStats.usage >= aiStats.quota ? (
-                   <Lock size={12} />
-                ) : (
-                   <Unlock size={12} />
-                )}
-             </button>
-          </div>
-        )}
 
         <div className='h-8 w-[1px] bg-slate-200 mx-1 hidden sm:block'></div>
         <div className='flex items-center gap-3 pl-2'>

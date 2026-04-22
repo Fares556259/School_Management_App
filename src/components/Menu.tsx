@@ -153,12 +153,7 @@ const menuItems: MenuSection[] = [
         href: "/admin/finance/simulator",
         visible: ["admin", "superuser"],
       },
-      {
-        icon: "/zbiba.png", // Keeping custom robot
-        label: "Zbiba AI",
-        href: "/list/assistant",
-        visible: ["admin", "superuser"],
-      },
+
       {
         icon: UsersRound,
         label: "Parents",
