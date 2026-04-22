@@ -4,23 +4,50 @@ import { useUser, SignOutButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { Clock, ShieldCheck, LogOut, Mail, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function WaitingApprovalPage() {
-  const { user } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
+  const router = useRouter();
 
   useEffect(() => {
-    if (user && syncStatus === "idle") {
+    // 🚀 AUTO-REDIRECT IF ACTIVE
+    if (isLoaded && isSignedIn && user) {
+      const status = user.publicMetadata?.status as string | undefined;
+      const role = user.publicMetadata?.role as string | undefined;
+      
+      if (status === "active" || role === "superadmin") {
+        router.push("/admin");
+      }
+    }
+
+    // 🔄 REFRESH USER DATA PERIODICALLY 
+    // This catches the moment the superadmin approves the account
+    const interval = setInterval(() => {
+      if (isSignedIn && user) {
+        user.reload().catch(e => console.error("Poll fail:", e));
+      }
+    }, 10000); // Check every 10s
+
+    return () => clearInterval(interval);
+  }, [isLoaded, isSignedIn, user, router]);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user && syncStatus === "idle") {
       setSyncStatus("syncing");
       
       const schoolName = (user.unsafeMetadata?.schoolName as string) 
                       || (user.publicMetadata?.schoolName as string) 
                       || `${user.firstName || "Unknown"}'s School`;
+      
+      const phoneNumber = (user.unsafeMetadata?.phoneNumber as string) || "N/A";
+      const city = (user.unsafeMetadata?.city as string) || "Online";
                       
       fetch("/api/auth/sync-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schoolName }),
+        body: JSON.stringify({ schoolName, phoneNumber, city }),
       })
       .then(async res => {
           if (res.ok) setSyncStatus("success");
@@ -31,7 +58,7 @@ export default function WaitingApprovalPage() {
           setSyncStatus("error");
       });
     }
-  }, [user, syncStatus]);
+  }, [isLoaded, isSignedIn, user, syncStatus]);
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center p-6 relative overflow-hidden">

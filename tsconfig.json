@@ -24,6 +24,7 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": [
     "node_modules",
+    "scratch",
     "check_data.js",
     "check_db.js",
     "checkData.js",

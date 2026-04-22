@@ -5,8 +5,7 @@ import { approveAdmin, rejectAdmin } from "./actions";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Image from "next/image";
-
+import { Check, X, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -70,18 +69,23 @@ const PendingAdminsTable = ({ data }: { data: Admin[] }) => {
               className="bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-shadow group"
             >
               <td className="px-6 py-4 rounded-l-2xl border-l border-t border-b border-slate-50">
-                <div className="flex flex-col">
-                  <span className="font-black text-slate-800 tracking-tight">{item.username}</span>
-                  <span className="text-xs text-slate-400 font-mono mt-0.5">{item.email}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-black text-slate-800 tracking-tight">{item.username}</span>
+                    <span className="text-xs text-slate-400 font-mono mt-0.5">{item.email}</span>
+                  </div>
                 </div>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
-                <Badge variant="outline" className="text-sm font-black text-indigo-600 bg-indigo-50 border-indigo-100">
+                <Badge variant="outline" className="text-xs font-black text-indigo-600 bg-indigo-50 border-indigo-100 px-3 py-1">
                   {item.pendingSchoolName || "N/A"}
                 </Badge>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
-                <Badge className="text-[10px] font-black uppercase bg-yellow-500 hover:bg-yellow-600">
+                <Badge className="text-[10px] font-black uppercase bg-yellow-500 hover:bg-yellow-600 px-2 py-1">
                   {item.status}
                 </Badge>
               </td>
@@ -96,9 +100,9 @@ const PendingAdminsTable = ({ data }: { data: Admin[] }) => {
                     disabled={processingId === item.id}
                   >
                     {processingId === item.id ? (
-                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <Check className="w-4 h-4" />
                     )}
                   </Button>
 
@@ -110,7 +114,7 @@ const PendingAdminsTable = ({ data }: { data: Admin[] }) => {
                     onClick={() => handleReject(item.id)}
                     disabled={processingId === item.id}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <X className="w-4 h-4" />
                   </Button>
                 </div>
               </td>

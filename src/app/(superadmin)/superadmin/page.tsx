@@ -4,6 +4,7 @@ import { getSetupRequests, getPendingAdmins } from "./actions";
 import SetupRequestTable from "./SetupRequestTable";
 import PendingAdminsTable from "./PendingAdminsTable";
 import GenerateTestLeadBtn from "./GenerateTestLeadBtn";
+import SyncClerkBtn from "./SyncClerkBtn";
 
 const SetupRequestsPage = async ({ searchParams }: { searchParams: { tab?: string } }) => {
   const role = await getRole();
@@ -34,7 +35,8 @@ const SetupRequestsPage = async ({ searchParams }: { searchParams: { tab?: strin
           User Approvals ({pendingAdmins.length})
         </a>
         <div className="flex-1" />
-        <div className="pb-4">
+        <div className="pb-4 flex items-center gap-3">
+            <SyncClerkBtn />
             <GenerateTestLeadBtn />
         </div>
       </div>

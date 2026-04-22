@@ -20,34 +20,45 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isPublicRoute(req)) return;
-  
   const { userId } = auth();
+  const isPublic = isPublicRoute(req);
+  const isWaitingPage = req.nextUrl.pathname === "/waiting-approval";
 
-  if (!userId) return;
+  // 1. If not logged in and not public, Clerk handles the redirect to sign-in
+  if (!userId && !isPublic) return;
 
-  // 1. TRY: Session Claims (FAST - No Network)
-  let metadata = (auth().sessionClaims as any)?.metadata;
-  let role = metadata?.role as string | undefined;
-  let status = metadata?.status as string | undefined;
+  // 2. If logged in, we check metadata for redirect logic
+  let role: string | undefined;
+  let status: string | undefined;
 
-  // 2. FALLBACK: Fetch from Clerk API
-  if ((!role || !status) && userId) {
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      role = user.publicMetadata?.role as string | undefined;
-      status = user.publicMetadata?.status as string | undefined;
-    } catch (err) {
-      console.error("Clerk Fallback Error:", err);
+  if (userId) {
+    // Session claims for speed
+    const metadata = (auth().sessionClaims as any)?.metadata;
+    role = metadata?.role as string | undefined;
+    status = metadata?.status as string | undefined;
+
+    // Fallback to API
+    if (!role || !status) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        role = user.publicMetadata?.role as string | undefined;
+        status = user.publicMetadata?.status as string | undefined;
+      } catch (err) { }
+    }
+
+    // 🚀 REDIRECT ACTIVE USERS AWAY FROM WAITING PAGE
+    if (status === "active" && isWaitingPage) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
+    // 🔒 TRAP PENDING USERS ON WAITING PAGE
+    if (status !== "active" && role !== "superadmin" && !isPublic) {
+      return NextResponse.redirect(new URL("/waiting-approval", req.url));
     }
   }
 
-  // 3. ENFORCE APPROVAL STATUS
-  // Only 'active' users can enter the app dashboards (Superadmins are exempt)
-  if (status !== "active" && role !== "superadmin") {
-    return NextResponse.redirect(new URL("/waiting-approval", req.url));
-  }
+  if (isPublic) return;
 
   // 4. ROLE-BASED AUTHORIZATION
   for (const { matcher, allowedRoles } of matchers) {

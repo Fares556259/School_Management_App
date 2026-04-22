@@ -6,15 +6,17 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
+import { Trash2, Phone, ExternalLink, MessageCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
   const router = useRouter();
-  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
+    setLoadingId(id);
     try {
       const res = await updateSetupRequestStatus(id, newStatus);
       if (res.success) {
@@ -23,12 +25,15 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
       }
     } catch (error) {
       toast.error("Failed to update status");
+    } finally {
+      setLoadingId(null);
     }
   };
 
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this request?")) return;
+    setLoadingId(id);
     try {
       const res = await deleteSetupRequest(id);
       if (res.success) {
@@ -37,13 +42,16 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
       }
     } catch (error) {
       toast.error("Failed to delete request");
+    } finally {
+      setLoadingId(null);
     }
   };
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case "PROVISIONED": return "bg-indigo-500 hover:bg-indigo-600";
+      case "PROVISIONED":
       case "ACTIVATED":   return "bg-emerald-500 hover:bg-emerald-600";
+      case "REFUSED":     return "bg-rose-500 hover:bg-rose-600";
       case "CONTACTED":   return "bg-blue-500 hover:bg-blue-600";
       default:            return "bg-yellow-500 hover:bg-yellow-600";
     }
@@ -78,9 +86,9 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
               <td className="px-6 py-4 border-t border-b border-slate-50">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-indigo-50 rounded-lg text-indigo-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <Phone className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-bold text-slate-700">{item.phoneNumber}</span>
+                  <span className="font-bold text-slate-700">{item.phoneNumber || "N/A"}</span>
                 </div>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
@@ -89,22 +97,29 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
                 </Badge>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 relative">
                   <Badge
-                    className={`text-[10px] font-black uppercase pointer-events-none ${getStatusBadgeClass(item.status)}`}
+                    className={`text-[10px] font-black uppercase transition-colors px-2 py-1 ${getStatusBadgeClass(item.status)}`}
                   >
                     {item.status}
                   </Badge>
                   {item.status !== "ACTIVATED" && item.status !== "PROVISIONED" && (
-                    <select
-                      value={item.status}
-                      onChange={(e) => handleStatusUpdate(item.id, e.target.value)}
-                      className="opacity-0 w-4 h-4 absolute cursor-pointer"
-                    >
-                      <option value="PENDING">Pending</option>
-                      <option value="CONTACTED">Contacted</option>
-                      <option value="COMPLETED">Completed</option>
-                    </select>
+                    <div className="relative group/select">
+                      <select
+                        value={item.status}
+                        onChange={(e) => handleStatusUpdate(item.id, e.target.value)}
+                        className="opacity-0 w-8 h-8 absolute -left-8 -top-4 cursor-pointer"
+                        disabled={loadingId === item.id}
+                      >
+                        <option value="PENDING">Pending</option>
+                        <option value="CONTACTED">Contacted</option>
+                        <option value="REFUSED">Refused</option>
+                        <option value="COMPLETED">Completed</option>
+                      </select>
+                      <button className="p-1 text-slate-300 hover:text-indigo-600 transition-colors">
+                         <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </td>
@@ -124,12 +139,12 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
                     asChild
                   >
                     <a
-                      href={`https://wa.me/${item.phoneNumber.replace(/[^0-9]/g, "")}`}
+                      href={`https://wa.me/${item.phoneNumber?.replace(/[^0-9]/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="WhatsApp"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l4-4V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v10z"/></svg>
+                      <MessageCircle className="w-4 h-4" />
                     </a>
                   </Button>
 
@@ -137,11 +152,12 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl"
+                    className={`h-9 w-9 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl ${loadingId === item.id ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={() => handleDelete(item.id)}
+                    disabled={loadingId === item.id}
                     title="Delete"
                   >
-                    <Image src="/delete.png" alt="" width={16} height={16} className="group-hover:brightness-200 transition-all" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </td>

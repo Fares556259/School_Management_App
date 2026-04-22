@@ -99,47 +99,10 @@ export async function approveAdmin(adminId: string) {
       counter++;
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Create School
-      await tx.school.create({
-        data: {
-          id: schoolId,
-          name: schoolName,
-          subdomain: schoolId,
-          updatedAt: new Date(),
-        },
-      });
-
-      // 2. Create Institution Settings
-      // Hotfix: Using a random ID because the schema has a hardcoded @default(1) which triggers a constraint failure
-      const safeId = Math.floor(Math.random() * 1000000) + 10;
-      await tx.institution.create({
-        data: {
-          id: safeId,
-          schoolId: schoolId,
-          schoolName: schoolName,
-          academicYear: "2025-2026",
-          currentSemester: 1,
-        },
-      });
-
-      // 3. Create Default Levels
-      for (const l of [1, 2, 3, 4, 5, 6]) {
-        await tx.level.create({
-          data: { level: l, schoolId: schoolId },
-        });
-      }
-
-      // 4. Update Admin
-      await tx.admin.update({
-        where: { id: adminId },
-        data: {
-          status: "active",
-          schoolId: schoolId,
-          pendingSchoolName: null,
-        },
-      });
-    });
+    const provisionResult = await provisionSchool(adminId, schoolId, schoolName, admin.email || undefined);
+    if (!provisionResult.success) {
+      return provisionResult;
+    }
 
     // 5. Update Clerk Metadata
     const client = await clerkClient();
@@ -167,7 +130,16 @@ export async function rejectAdmin(adminId: string) {
     const client = await clerkClient();
     await client.users.deleteUser(adminId);
 
-    // 2. Delete from Prisma (Cascade should handle if setup, but usually Admin is top-level)
+    // 2. Identify and Update the setup request to 'REFUSED'
+    const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+    if (admin?.email) {
+      await prisma.setupRequest.updateMany({
+        where: { email: admin.email },
+        data: { status: "REFUSED" }
+      });
+    }
+
+    // 3. Delete from Prisma
     await prisma.admin.delete({
       where: { id: adminId },
     });
@@ -215,5 +187,71 @@ export async function createTestLead() {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Shared logic to provision all database records required for a school.
+ */
+export async function provisionSchool(adminId: string, schoolId: string, schoolName: string, email?: string) {
+  // Note: Caller should handle ensureSuperUser() or similar authorization
+  try {
+    // 1. Check if school already exists to prevent crashes
+    const existingSchool = await prisma.school.findFirst({ where: { id: schoolId } });
+    if (existingSchool) return { success: true };
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Create School
+      await tx.school.create({
+        data: {
+          id: schoolId,
+          name: schoolName,
+          subdomain: schoolId,
+          updatedAt: new Date(),
+        },
+      });
+
+      // 2. Create Institution Settings
+      const safeId = Math.floor(Math.random() * 1000000) + 10;
+      await tx.institution.create({
+        data: {
+          id: safeId,
+          schoolId: schoolId,
+          schoolName: schoolName,
+          academicYear: "2025-2026",
+          currentSemester: 1,
+        },
+      });
+
+      // 3. Create Default Levels
+      for (const l of [1, 2, 3, 4, 5, 6]) {
+        await tx.level.create({
+          data: { level: l, schoolId: schoolId },
+        });
+      }
+
+      // 4. Update Admin
+      await tx.admin.update({
+        where: { id: adminId },
+        data: {
+          status: "active",
+          schoolId: schoolId,
+          pendingSchoolName: null,
+        },
+      });
+
+      // 5. Update SetupRequest status to 'ACTIVATED'
+      if (email) {
+        await tx.setupRequest.updateMany({
+          where: { email: email },
+          data: { status: "ACTIVATED" }
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Provisioning Error:", error);
+    return { success: false, error: error.message || "Failed to provision school." };
   }
 }
