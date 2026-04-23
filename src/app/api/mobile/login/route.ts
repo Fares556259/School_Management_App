@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       success: true,
       status: hasPassword ? "NEEDS_PASSWORD" : "NEEDS_SETUP",
       parentId: parent.id,
+      schoolId: parent.schoolId,
       name: `${parent.name} ${parent.surname}`,
       img: parent.img,
     });

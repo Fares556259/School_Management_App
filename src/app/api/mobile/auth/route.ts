@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
 
     const parent = await prisma.parent.findFirst({
       where: {
-        schoolId: resolvedSchoolId,
         OR: [{ phone: phone.trim() }, { username: phone.trim() }],
       },
       orderBy: { id: "asc" },
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       parentId: parent.id,
-      schoolId: resolvedSchoolId,
+      schoolId: parent.schoolId,
       name: `${parent.name} ${parent.surname}`,
       img: parent.img,
       students: parent.students,
