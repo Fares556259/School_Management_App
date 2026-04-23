@@ -23,6 +23,7 @@ async function sendPush(parentId: string, title: string, body: string, data: any
       title,
       body,
       data,
+      channelId: data.channelId || 'default', // Map channel from data
     }];
 
     // Note: In production, you might want to batch these messages
@@ -88,7 +89,11 @@ export async function createAnnouncementNotifications(noticeId: number) {
         parentId, 
         notice.important ? `🚨 URGENT: ${notice.title}` : `📢 ${notice.title}`,
         notice.message.substring(0, 100) + (notice.message.length > 100 ? "..." : ""),
-        { type: "ANNOUNCEMENT", noticeId: notice.id }
+        { 
+          type: "ANNOUNCEMENT", 
+          noticeId: notice.id,
+          channelId: notice.important ? "emergency" : "default" 
+        }
       );
     }
 
@@ -239,7 +244,7 @@ export async function createAttendanceNotification(studentId: string, status: st
       student.parentId,
       `📍 Attendance: ${status}`,
       `${student.name} is ${statusLabel} today (${dateStr}).`,
-      { type: "ATTENDANCE", studentId }
+      { type: "ATTENDANCE", studentId, channelId: "emergency" }
     );
 
     console.log(`[NOTIFICATIONS] Created attendance alert for ${studentId} (${status})`);
