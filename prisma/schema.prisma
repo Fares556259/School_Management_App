@@ -117,6 +117,7 @@ model Parent {
   createdAt     DateTime       @default(now())
   img           String?
   password      String?
+  expoPushToken String?
   schoolId      String         @default("default_school")
   notifications Notification[]
   School        School         @relation(fields: [schoolId], references: [id])

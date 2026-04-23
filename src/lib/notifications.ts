@@ -1,4 +1,37 @@
 import prisma from "./prisma";
+import { Expo } from "expo-server-sdk";
+
+const expo = new Expo();
+
+/**
+ * Sends a push notification to a parent via Expo.
+ */
+async function sendPush(parentId: string, title: string, body: string, data: any = {}) {
+  try {
+    const parent = await prisma.parent.findUnique({
+      where: { id: parentId },
+      select: { expoPushToken: true },
+    });
+
+    if (!parent?.expoPushToken || !Expo.isExpoPushToken(parent.expoPushToken)) {
+      return;
+    }
+
+    const messages = [{
+      to: parent.expoPushToken,
+      sound: 'default',
+      title,
+      body,
+      data,
+    }];
+
+    // Note: In production, you might want to batch these messages
+    await expo.sendPushNotificationsAsync(messages);
+    console.log(`[PUSH-SENT] To parent ${parentId}: ${title}`);
+  } catch (error) {
+    console.error("[PUSH-ERROR]", error);
+  }
+}
 
 /**
  * Creates notifications for parents when a new notice is published.
@@ -48,6 +81,16 @@ export async function createAnnouncementNotifications(noticeId: number) {
         studentId: notice.targetStudentId || null,
       })),
     });
+
+    // Send push notifications
+    for (const parentId of parentIds) {
+      sendPush(
+        parentId, 
+        notice.important ? `🚨 URGENT: ${notice.title}` : `📢 ${notice.title}`,
+        notice.message.substring(0, 100) + (notice.message.length > 100 ? "..." : ""),
+        { type: "ANNOUNCEMENT", noticeId: notice.id }
+      );
+    }
 
     console.log(`[NOTIFICATIONS] Created ${parentIds.length} announcement notifications for notice ${noticeId}`);
   } catch (error) {
@@ -128,6 +171,15 @@ export async function processPaymentReminders(force: boolean = false) {
               }
             });
           }
+          
+          // Send push notification
+          sendPush(
+            student.parentId,
+            "💰 Payment Reminder",
+            message,
+            { type: "PAYMENT", studentId: student.id }
+          );
+
           remindersSent++;
         }
       }
@@ -181,6 +233,14 @@ export async function createAttendanceNotification(studentId: string, status: st
         message: `${student.name} has been marked as ${statusLabel} on ${dateStr}.`,
       }
     });
+
+    // Send push notification
+    sendPush(
+      student.parentId,
+      `📍 Attendance: ${status}`,
+      `${student.name} is ${statusLabel} today (${dateStr}).`,
+      { type: "ATTENDANCE", studentId }
+    );
 
     console.log(`[NOTIFICATIONS] Created attendance alert for ${studentId} (${status})`);
   } catch (error) {

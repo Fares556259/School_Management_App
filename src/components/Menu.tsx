@@ -30,7 +30,8 @@ import {
   BarChart3,
   Settings2,
   CalendarCheck,
-  Calculator
+  Calculator,
+  Smartphone
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
@@ -54,6 +55,7 @@ const labelToKey: Record<string, any> = {
   "Exams": "exams",
   "Assignments": "assignments",
   "Daily Reports": "dailyReports",
+  "Mobile App": "mobileApp",
   "Profile": "profile",
   "Settings": "settings",
   "Logout": "logout"
@@ -218,6 +220,12 @@ const menuItems: MenuSection[] = [
         label: "Daily Reports",
         href: "/admin/reports",
         visible: ["admin", "superuser"],
+      },
+      {
+        icon: Smartphone,
+        label: "Mobile App",
+        href: "/admin/mobile-app",
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: Settings,
