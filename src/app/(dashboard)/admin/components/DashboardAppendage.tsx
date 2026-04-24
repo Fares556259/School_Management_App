@@ -7,7 +7,6 @@ import FiscalDistribution from "./FiscalDistribution";
 import SmartFinancialInsights from "./SmartFinancialInsights";
 import GrowthAnalyticsChart from "./GrowthAnalyticsChart";
 import ActionCenter from "./ActionCenter";
-import NoticeBoard from "./NoticeBoard";
 import { translations, Locale } from "@/lib/translations";
 
 interface DashboardAppendageProps {
@@ -87,8 +86,7 @@ export default async function DashboardAppendage({
   });
 
   // 2. RECENT ACTIVITY BATCH
-  const [allNotices, recentAuditLogs] = await Promise.all([
-    safeFetch(prisma.notice.findMany({ take: 5, orderBy: { date: 'desc' }, select: { id: true, title: true, message: true, date: true, important: true } }), []),
+  const [recentAuditLogs] = await Promise.all([
     safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
   ]);
 
@@ -228,10 +226,6 @@ export default async function DashboardAppendage({
           unpaidEmployees={unpaidEmployees}
           monthLabel={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`}
         />
-      </section>
-
-      <section className="mt-8">
-        <NoticeBoard notices={allNotices} />
       </section>
     </>
   );
