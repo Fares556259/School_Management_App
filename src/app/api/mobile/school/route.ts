@@ -1,10 +1,13 @@
 import prisma from "@/lib/prisma";
-import { getSchoolId } from "@/lib/school";
+import { getSchoolIdFromHeader } from "@/lib/school";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = getSchoolIdFromHeader(headers());
+    console.log(`[DEBUG-MOBILE-SCHOOL] Fetching for schoolId: ${schoolId}`);
+    
     const config = await prisma.institution.findFirst({
       where: { schoolId },
       select: {

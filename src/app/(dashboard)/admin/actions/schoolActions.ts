@@ -34,6 +34,7 @@ export async function getSchoolConfig() {
       config = await prisma.institution.create({
         data: {
           id: 1,
+          schoolId: schoolId,
           schoolName: "Ecole Supérieure de la Statistique et de l'Analyse de l'Information",
           ministryName: "Ministère de l'Enseignement Supérieur et de la Recherche Scientifique",
           universityName: "Université de Carthage",
@@ -184,15 +185,28 @@ export async function getLevelTuitionFees() {
   try {
     const schoolId = await getSchoolId();
 
-    // Ensure levels 1-6 exist by default
+    // 1. Fetch existing levels first to see what's missing
+    const existingLevels = await prisma.level.findMany({
+      where: { schoolId },
+      select: { level: true }
+    });
+    const existingLevelNumbers = existingLevels.map(l => l.level);
+
+    // 2. Identify missing standard levels (1-6)
     const standardLevels = [1, 2, 3, 4, 5, 6];
-    await Promise.all(standardLevels.map(lvl => 
-      prisma.level.upsert({
-        where: { level_schoolId: { level: lvl, schoolId } },
-        update: {},
-        create: { level: lvl, tuitionFee: 450, schoolId }
-      })
-    ));
+    const missingLevels = standardLevels.filter(lvl => !existingLevelNumbers.includes(lvl));
+
+    // 3. Create missing levels in bulk if any
+    if (missingLevels.length > 0) {
+      await prisma.level.createMany({
+        data: missingLevels.map(lvl => ({
+          level: lvl,
+          tuitionFee: 450,
+          schoolId
+        })),
+        skipDuplicates: true
+      });
+    }
 
     const levels = await prisma.level.findMany({
       select: {
