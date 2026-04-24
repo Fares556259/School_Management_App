@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Minus, Maximize2, Camera } from 'lucide-react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
-import { getChatResponse, upsertConversation, isAIQuotaReached } from '../actions/aiActions';
+import { getChatResponse, upsertConversation, isAIQuotaReached, getAIContext } from '../actions/aiActions';
 import { executeAICommand } from '../actions/crudActions';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/translations/LanguageContext';
@@ -51,6 +51,8 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(initialOpen || fullPage);
   const [isLocked, setIsLocked] = useState(false);
+  const [activeContext, setActiveContext] = useState(context);
+  const [isContextLoading, setIsContextLoading] = useState(false);
   
   const [quota, setQuota] = useState(10);
   const [pendingCommandId, setPendingCommandId] = useState<number | null>(null);
@@ -128,6 +130,26 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
       return [...newMsgs, { role: 'assistant', content: locale === "fr" ? "L'action a été annulée." : "Action has been cancelled." }];
     });
   };
+
+  useEffect(() => {
+    if (isOpen && (!activeContext.studentCensus || activeContext.studentCensus.length === 0)) {
+      const fetchEnrichedContext = async () => {
+        setIsContextLoading(true);
+        try {
+          const enriched = await getAIContext(month, year);
+          setActiveContext((prev: any) => ({
+            ...prev,
+            ...enriched
+          }));
+        } catch (err) {
+          console.error("Failed to load AI context:", err);
+        } finally {
+          setIsContextLoading(false);
+        }
+      };
+      fetchEnrichedContext();
+    }
+  }, [isOpen, activeContext.studentCensus, month, year]);
 
   useEffect(() => {
     // 🛠️ HARD STABILIZATION: Force unlock and prevent takeover
@@ -266,7 +288,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
     try {
       // Enrich context with current month/year view
       const enrichedContext = {
-        ...context,
+        ...activeContext,
         currentPeriod: { month, year }
       };
 
@@ -613,6 +635,16 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                     </div>
                   </motion.div>
                 ))}
+                {isContextLoading && messages.length === 1 && (
+                  <div className="flex justify-start">
+                    <div className="bg-indigo-50/50 p-3 rounded-2xl flex gap-1.5 items-center">
+                      <span className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <span className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <span className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce" />
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1">Synchronizing Intelligence...</span>
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
                 {isLoading && (
                   <div className="flex justify-start">

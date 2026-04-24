@@ -115,72 +115,75 @@ export async function GET(request: NextRequest) {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-    // Group 1: Initial lookups that only depend on student info or global config
-    const [slots, attendance, todayLessons, examPeriods] = await Promise.all([
-      prisma.timetableSlot.findMany({
-        where: { classId: student.classId, day: todayEnum as any },
-        include: { subject: true, teacher: true, room: true },
-        orderBy: { slotNumber: "asc" },
-      }),
-      prisma.attendance.findMany({
-        where: { studentId, date: { gte: todayStart, lt: todayEnd } },
-        orderBy: { id: "desc" },
-      }),
-      prisma.lesson.findMany({
-        where: { classId: student.classId, day: todayEnum as any },
-        select: { id: true, subjectId: true, teacherId: true },
-      }),
-      prisma.examPeriodConfig.findMany({
-        select: { period: true, startDate: true, endDate: true, pdfUrl: true },
-        orderBy: { period: 'asc' }
-      })
-    ]);
+    // Group 1: Sequential lookups to respect connection pool
+    const slots = await prisma.timetableSlot.findMany({
+      where: { classId: student.classId, day: todayEnum as any },
+      include: { subject: true, teacher: true, room: true },
+      orderBy: { slotNumber: "asc" },
+    });
+    
+    const attendance = await prisma.attendance.findMany({
+      where: { studentId, date: { gte: todayStart, lt: todayEnd } },
+      orderBy: { id: "desc" },
+    });
+    
+    const todayLessons = await prisma.lesson.findMany({
+      where: { classId: student.classId, day: todayEnum as any },
+      select: { id: true, subjectId: true, teacherId: true },
+    });
+    
+    const examPeriods = await prisma.examPeriodConfig.findMany({
+      select: { period: true, startDate: true, endDate: true, pdfUrl: true },
+      orderBy: { period: 'asc' }
+    });
 
     const lessonIds = todayLessons.map((l) => l.id);
     const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // Group 2: Lookups that depend on lessonIds or classId
-    const [tasksDue, tasksGiven, upcomingExams, gradeSheetRemarks, resources] = await Promise.all([
-      prisma.assignment.findMany({
-        where: { 
-          lessonId: { in: lessonIds }, 
-          dueDate: { gte: todayStart, lt: todayEnd } 
-        },
-        include: { lesson: { include: { subject: true, teacher: true } } },
-      }),
-      prisma.assignment.findMany({
-        where: { 
-          lessonId: { in: lessonIds }, 
-          startDate: { gte: todayStart, lt: todayEnd } 
-        },
-        include: { lesson: { include: { subject: true, teacher: true } } },
-      }),
-      prisma.exam.findMany({
-        where: { 
-          lessonId: { in: lessonIds }, 
-          startTime: { gte: todayStart, lt: weekEnd } 
-        },
-        include: { lesson: { include: { subject: true, teacher: true } } },
-        orderBy: { startTime: "asc" },
-      }),
-      prisma.gradeSheet.findMany({
-        where: { 
-          classId: student.classId, 
-          notes: { not: "" }, 
-          updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } 
-        },
-        include: { subject: true, teacher: true },
-        orderBy: { updatedAt: "desc" },
-        take: 5,
-      }),
-      prisma.resource.findMany({
-        where: {
-          lessonId: { in: lessonIds },
-          createdAt: { gte: todayStart, lt: todayEnd }
-        },
-        include: { lesson: { include: { subject: true, teacher: true } } },
-      })
-    ]);
+    // Group 2: Sequential lookups that depend on lessonIds or classId
+    const tasksDue = await prisma.assignment.findMany({
+      where: { 
+        lessonId: { in: lessonIds }, 
+        dueDate: { gte: todayStart, lt: todayEnd } 
+      },
+      include: { lesson: { include: { subject: true, teacher: true } } },
+    });
+    
+    const tasksGiven = await prisma.assignment.findMany({
+      where: { 
+        lessonId: { in: lessonIds }, 
+        startDate: { gte: todayStart, lt: todayEnd } 
+      },
+      include: { lesson: { include: { subject: true, teacher: true } } },
+    });
+    
+    const upcomingExams = await prisma.exam.findMany({
+      where: { 
+        lessonId: { in: lessonIds }, 
+        startTime: { gte: todayStart, lt: weekEnd } 
+      },
+      include: { lesson: { include: { subject: true, teacher: true } } },
+      orderBy: { startTime: "asc" },
+    });
+    
+    const gradeSheetRemarks = await prisma.gradeSheet.findMany({
+      where: { 
+        classId: student.classId, 
+        notes: { not: "" }, 
+        updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } 
+      },
+      include: { subject: true, teacher: true },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+    });
+    
+    const resources = await prisma.resource.findMany({
+      where: {
+        lessonId: { in: lessonIds },
+        createdAt: { gte: todayStart, lt: todayEnd }
+      },
+      include: { lesson: { include: { subject: true, teacher: true } } },
+    });
 
     const attendanceRemarks: any[] = [];
     attendance

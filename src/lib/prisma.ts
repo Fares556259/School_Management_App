@@ -17,8 +17,18 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: isDev ? ["error", "warn"] : ["error"],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
 if (isDev) globalForPrisma.prisma = prisma;
+
+// Explicit cleanup for high-fidelity connection management
+process.on("beforeExit", async () => {
+  await prisma.$disconnect();
+});
 
 export default prisma;

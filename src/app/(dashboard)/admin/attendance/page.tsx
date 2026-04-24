@@ -47,8 +47,13 @@ export default function AttendancePage() {
     fetch("/api/attendance/classes")
       .then((r) => r.json())
       .then((data) => {
-        setClasses(data);
-        if (data.length > 0) setSelectedClass(String(data[0].id));
+        const classesArray = Array.isArray(data) ? data : [];
+        setClasses(classesArray);
+        if (classesArray.length > 0) setSelectedClass(String(classesArray[0].id));
+      })
+      .catch((err) => {
+        console.error("Failed to fetch classes:", err);
+        setClasses([]);
       });
   }, []);
 

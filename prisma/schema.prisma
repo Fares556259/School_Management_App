@@ -349,6 +349,9 @@ model Expense {
   img           String?
   schoolId      String   @default("default_school")
   School        School   @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([date])
 }
 
 model Income {
@@ -362,6 +365,9 @@ model Income {
   img           String?
   schoolId      String   @default("default_school")
   School        School   @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([date])
 }
 
 model Payment {

@@ -1052,6 +1052,15 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
       entityId: result.id,
       description: `Unified Enrollment: Parent ${result.name} ${result.surname} + ${children.length} students.`,
     });
+    
+    revalidatePath("/list/parents");
+    revalidatePath("/list/students");
+    return { success: true, parentId: result.id };
+  } catch (err: any) {
+    console.error("enrollFamily error:", err);
+    return { success: false, error: err?.message || "Failed to enroll family." };
+  }
+};
 
 // ===================== ASSIGNMENT =====================
 export const createAssignment = async (data: {

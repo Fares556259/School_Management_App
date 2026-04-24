@@ -509,3 +509,41 @@ export async function getConversations(month: number, year: number) {
 export async function getAIUsageStatsDirect() {
   return await getAIUsageStats();
 }
+
+/**
+ * NEW: Lazy-load AI context to reduce initial Dashboard render pressure
+ */
+export async function getAIContext(month: number, year: number) {
+  try {
+    const startDate = new Date(year, month - 1, 1);
+    
+    // FETCH SEQUENTIALLY to respect connection pool
+    const studentCensusData = await prisma.student.findMany({ 
+      select: { id: true, name: true, surname: true },
+      take: 500
+    });
+
+    const unpaidStudents = await prisma.$queryRaw<any[]>`
+      SELECT s.id, s.name, s.surname, l."tuitionFee"
+      FROM "Student" s
+      JOIN "Level" l ON s."levelId" = l.id
+      LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
+        AND pay.month = ${month} 
+        AND pay.year = ${year}
+      WHERE (pay.status IS NULL OR pay.status != 'PAID')
+      LIMIT 100
+    `;
+
+    return {
+      studentCensus: studentCensusData.map(s => ({ id: s.id, name: `${s.name} ${s.surname}` })),
+      unpaidPayments: unpaidStudents.map(s => ({
+        studentId: s.id,
+        name: `${s.name} ${s.surname}`,
+        amount: s.tuitionFee || 450
+      }))
+    };
+  } catch (error) {
+    console.error("❌ [AI-CONTEXT-ERROR] Failed to fetch background context:", error);
+    return { studentCensus: [], unpaidPayments: [] };
+  }
+}

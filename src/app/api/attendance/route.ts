@@ -176,7 +176,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const upserts = records.map(async (r) => {
+    // Sequentialize upserts to avoid connection pool pressure
+    for (const r of records) {
       const existing = await prisma.attendance.findFirst({
         where: {
           studentId: r.studentId,
@@ -186,12 +187,12 @@ export async function POST(request: NextRequest) {
       });
 
       if (existing) {
-        return prisma.attendance.update({
+        await prisma.attendance.update({
           where: { id: existing.id },
           data: { status: r.status as AttendanceStatus, note: r.note ?? null },
         });
       } else {
-        return prisma.attendance.create({
+        await prisma.attendance.create({
           data: {
             studentId: r.studentId,
             date: dayStart,
@@ -201,9 +202,7 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-    });
-
-    await Promise.all(upserts);
+    }
 
     // Trigger notifications asynchronously for ABSENT and LATE
     records.forEach(r => {

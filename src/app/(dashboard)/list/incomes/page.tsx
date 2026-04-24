@@ -69,19 +69,24 @@ const IncomeListPage = async ({
     };
   }
 
-  const [data, count, allData] = await Promise.all([
-    prisma.income.findMany({
-      where: query,
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: { date: "desc" },
-    }),
-    prisma.income.count({ where: query }),
-    prisma.income.findMany({
-      where: query,
-      orderBy: { date: "desc" },
-    }),
-  ]);
+  // Sequentialize queries to avoid connection pool pressure
+  const data = await prisma.income.findMany({
+    where: query,
+    take: ITEM_PER_PAGE,
+    skip: ITEM_PER_PAGE * (p - 1),
+    orderBy: { date: "desc" },
+  });
+
+  const count = await prisma.income.count({ where: query });
+
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+  // Note: allData is needed for ExportButton, limited to last 12 months for pool stability
+  const allData = await prisma.income.findMany({
+    where: { ...query, date: { gte: twelveMonthsAgo } },
+    orderBy: { date: "desc" },
+  });
 
   const renderRow = (item: Income) => (
     <tr

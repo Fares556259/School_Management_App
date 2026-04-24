@@ -108,21 +108,7 @@ const AdminPage = async ({
   const prevExpense = (stats.prev_expense_general || 0) + (stats.prev_expense_salary || 0);
   const prevBalance = prevIncome - prevExpense;
 
-  // 3. ENRICH CONTEXT FOR AI ASSISTANT (CENSUS & UNPAID SYNC)
-  const [studentCensusData, unpaidStudents] = await Promise.all([
-    prisma.student.findMany({ select: { id: true, name: true, surname: true } }),
-    prisma.$queryRaw<any[]>`
-      SELECT s.id, s.name, s.surname, l."tuitionFee"
-      FROM "Student" s
-      JOIN "Level" l ON s."levelId" = l.id
-      LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
-        AND pay.month = ${startDate.getMonth() + 1} 
-        AND pay.year = ${startDate.getFullYear()}
-      WHERE (pay.status IS NULL OR pay.status != 'PAID')
-      LIMIT 100
-    `
-  ]);
-
+  // 3. ENRICH CONTEXT FOR AI ASSISTANT (CONSOLIDATED CORE ONLY)
   const dashboardContext = {
      financials: {
        income: currentIncome,
@@ -131,13 +117,8 @@ const AdminPage = async ({
        prevBalance,
        month: MONTHS[startDate.getMonth()],
        year: startDate.getFullYear()
-     },
-     studentCensus: studentCensusData.map(s => ({ id: s.id, name: `${s.name} ${s.surname}` })),
-     unpaidPayments: unpaidStudents.map(s => ({
-       studentId: s.id,
-       name: `${s.name} ${s.surname}`,
-       amount: s.tuitionFee || 450
-     }))
+     }
+     // Note: Detailed census and unpaid lists moved to lazy-load inside SnapAssistant
   };
 
   return (

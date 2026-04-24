@@ -41,8 +41,13 @@ const ResourceForm = ({
   useEffect(() => {
     fetch("/api/lessons")
       .then((res) => res.json())
-      .then((data) => setLessons(data))
-      .catch((err) => console.error("Error fetching lessons:", err));
+      .then((data) => {
+        setLessons(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Error fetching lessons:", err);
+        setLessons([]);
+      });
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

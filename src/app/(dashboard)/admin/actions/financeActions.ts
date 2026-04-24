@@ -11,43 +11,38 @@ export async function getSimulatorBaseline() {
     threeMonthsAgo.setMonth(now.getMonth() - 3);
 
     // ── Core payroll & student data ─────────────────────────────────────────
-    const [
-      levels, teacherPayroll, staffPayroll, teacherCount, staffCount,
-      incomeTotal, expenseTotal,
-    ] = await Promise.all([
-      prisma.level.findMany({
-        where: { schoolId },
-        select: { id: true, level: true, tuitionFee: true, _count: { select: { students: true } } },
-      }),
-      prisma.teacher.aggregate({ where: { schoolId }, _sum: { salary: true } }),
-      prisma.staff.aggregate({ where: { schoolId }, _sum: { salary: true } }),
-      prisma.teacher.count({ where: { schoolId } }),
-      prisma.staff.count({ where: { schoolId } }),
-      prisma.income.aggregate({ where: { schoolId }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { schoolId }, _sum: { amount: true } }),
-    ]);
+    // Sequentialize to avoid connection pool pressure (original was 7 parallel queries)
+    const levels = await prisma.level.findMany({
+      where: { schoolId },
+      select: { id: true, level: true, tuitionFee: true, _count: { select: { students: true } } },
+    });
+    
+    const teacherPayroll = await prisma.teacher.aggregate({ where: { schoolId }, _sum: { salary: true } });
+    const staffPayroll = await prisma.staff.aggregate({ where: { schoolId }, _sum: { salary: true } });
+    const teacherCount = await prisma.teacher.count({ where: { schoolId } });
+    const staffCount = await prisma.staff.count({ where: { schoolId } });
+    const incomeTotal = await prisma.income.aggregate({ where: { schoolId }, _sum: { amount: true } });
+    const expenseTotal = await prisma.expense.aggregate({ where: { schoolId }, _sum: { amount: true } });
 
     // ── Historical income & expense records (last 3 months) ─────────────────
-    const [recentIncomes, recentExpenses] = await Promise.all([
-      prisma.income.findMany({
-        where: { schoolId, date: { gte: threeMonthsAgo } },
-        select: { title: true, amount: true, category: true },
-      }),
-      prisma.expense.findMany({
-        where: { schoolId, date: { gte: threeMonthsAgo } },
-        select: { title: true, amount: true, category: true },
-      }),
-    ]);
+    const recentIncomes = await prisma.income.findMany({
+      where: { schoolId, date: { gte: threeMonthsAgo } },
+      select: { title: true, amount: true, category: true },
+    });
+    
+    const recentExpenses = await prisma.expense.findMany({
+      where: { schoolId, date: { gte: threeMonthsAgo } },
+      select: { title: true, amount: true, category: true },
+    });
 
     // ── Payment collection rate (last 3 months) ──────────────────────────────
-    const [paidPayments, totalPayments] = await Promise.all([
-      prisma.payment.count({
-        where: { schoolId, userType: "student", status: "PAID", paidAt: { gte: threeMonthsAgo } },
-      }),
-      prisma.payment.count({
-        where: { schoolId, userType: "student", paidAt: { gte: threeMonthsAgo } },
-      }),
-    ]);
+    const paidPayments = await prisma.payment.count({
+      where: { schoolId, userType: "student", status: "PAID", paidAt: { gte: threeMonthsAgo } },
+    });
+    
+    const totalPayments = await prisma.payment.count({
+      where: { schoolId, userType: "student", paidAt: { gte: threeMonthsAgo } },
+    });
     const collectionRate = totalPayments > 0
       ? Math.round((paidPayments / totalPayments) * 100)
       : 90;
