@@ -1,5 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
+import { getSchoolId } from "@/lib/school";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import FinanceChart from "./FinanceChart";
@@ -37,11 +40,12 @@ const FinancePage = async ({
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 
   const { category, type, q } = searchParams;
+  const schoolId = await getSchoolId();
   const currentMonth = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
 
   // Build where clauses from search params
-  const incomeWhere: Record<string, any> = {};
-  const expenseWhere: Record<string, any> = {};
+  const incomeWhere: Record<string, any> = { schoolId };
+  const expenseWhere: Record<string, any> = { schoolId };
 
   if (q) {
     incomeWhere.title = { contains: q, mode: "insensitive" };

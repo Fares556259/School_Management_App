@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms } from "../actions/timetableActions";
 import { getSchoolConfig } from "../actions/schoolActions";
 import TimetableClient from "./TimetableClient";

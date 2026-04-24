@@ -8,9 +8,8 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function GET(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   // In a real production scenario, you would verify an Authorization header or Vercel CRON secret here
   // if (request.headers.get("Authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
   //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

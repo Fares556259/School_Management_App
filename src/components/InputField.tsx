@@ -10,6 +10,7 @@ type InputFieldProps = {
   error?: FieldError;
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
   required?: boolean;
+  className?: string;
 };
 
 const InputField = ({
@@ -22,9 +23,10 @@ const InputField = ({
   error,
   inputProps,
   required,
+  className,
 }: InputFieldProps) => {
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className={`flex flex-col gap-2 ${className || "w-full"}`}>
       <label className="text-xs text-gray-500">{label}</label>
       <input
         type={type}
