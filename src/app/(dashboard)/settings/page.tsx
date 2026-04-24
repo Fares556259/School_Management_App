@@ -391,19 +391,21 @@ const SettingsPage = () => {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Ministry Name</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Phone Number</label>
                 <input 
                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                   value={config.ministryName}
-                   onChange={e => setConfig({...config, ministryName: e.target.value})}
+                   value={config.phone}
+                   onChange={e => setConfig({...config, phone: e.target.value})}
+                   placeholder="+216 71 000 000"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">University Name</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Address</label>
                 <input 
                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                   value={config.universityName}
-                   onChange={e => setConfig({...config, universityName: e.target.value})}
+                   value={config.address}
+                   onChange={e => setConfig({...config, address: e.target.value})}
+                   placeholder="123 Education Ave, Tunis"
                 />
               </div>
             </div>
