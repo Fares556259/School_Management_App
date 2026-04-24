@@ -227,6 +227,7 @@ model Lesson {
   assignments Assignment[]
   attendance  Attendance[]
   exams       Exam[]
+  resources   Resource[]
   class       Class        @relation(fields: [classId], references: [id])
   School      School       @relation(fields: [schoolId], references: [id])
   subject     Subject      @relation(fields: [subjectId], references: [id])
@@ -264,6 +265,20 @@ model Assignment {
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
   School    School   @relation(fields: [schoolId], references: [id])
   results   Result[]
+}
+
+model Resource {
+  id        Int      @id @default(autoincrement())
+  title     String
+  url       String
+  lessonId  Int
+  schoolId  String   @default("default_school")
+  createdAt DateTime @default(now())
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  School    School   @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([lessonId])
 }
 
 model ExamPeriodConfig {
@@ -527,6 +542,7 @@ model School {
   Payment               Payment[]
   ProfitabilityScenario ProfitabilityScenario[]
   Result                Result[]
+  Resource              Resource[]
   Room                  Room[]
   Staff                 Staff[]
   Student               Student[]

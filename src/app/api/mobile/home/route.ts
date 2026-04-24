@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
     const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     // Group 2: Lookups that depend on lessonIds or classId
-    const [tasksDue, tasksGiven, upcomingExams, gradeSheetRemarks] = await Promise.all([
+    const [tasksDue, tasksGiven, upcomingExams, gradeSheetRemarks, resources] = await Promise.all([
       prisma.assignment.findMany({
         where: { 
           lessonId: { in: lessonIds }, 
@@ -172,6 +172,13 @@ export async function GET(request: NextRequest) {
         include: { subject: true, teacher: true },
         orderBy: { updatedAt: "desc" },
         take: 5,
+      }),
+      prisma.resource.findMany({
+        where: {
+          lessonId: { in: lessonIds },
+          createdAt: { gte: todayStart, lt: todayEnd }
+        },
+        include: { lesson: { include: { subject: true, teacher: true } } },
       })
     ]);
 
@@ -289,6 +296,13 @@ export async function GET(request: NextRequest) {
         endTime: e.endTime,
       })),
       teacherRemarks: teacherRemarks,
+      resources: resources.map((r) => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        subject: r.lesson.subject.name,
+        teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}`,
+      })),
     });
   } catch (error: any) {
     console.error("[Mobile Home Error]", error);

@@ -31,7 +31,8 @@ import {
   Settings2,
   CalendarCheck,
   Calculator,
-  Smartphone
+  Smartphone,
+  Library
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
@@ -54,6 +55,8 @@ const labelToKey: Record<string, any> = {
   "Lessons": "lessons",
   "Exams": "exams",
   "Assignments": "assignments",
+  "Resources": "resources",
+  "Announcements": "announcements",
   "Daily Reports": "dailyReports",
   "Mobile App": "mobileApp",
   "Profile": "profile",
@@ -190,6 +193,12 @@ const menuItems: MenuSection[] = [
         icon: ClipboardList,
         label: "Assignments",
         href: "/list/assignments",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: Library,
+        label: "Resources",
+        href: "/list/resources",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {

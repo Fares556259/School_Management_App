@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState, useTransition } from "react";
-import { deleteNotice } from "@/lib/crudActions";
+import { deleteNotice, deleteAssignment, deleteResource } from "@/lib/crudActions";
 
 // USE LAZY LOADING
 
@@ -19,6 +19,12 @@ const StudentForm = dynamic(() => import("./forms/StudentForm"), {
 const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const AssignmentForm = dynamic(() => import("./forms/AssignmentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ResourceForm = dynamic(() => import("./forms/ResourceForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 
 const forms: {
   [key: string]: (type: "create" | "update", data?: any) => JSX.Element;
@@ -26,6 +32,8 @@ const forms: {
   teacher: (type, data) => <TeacherForm type={type} data={data} />,
   student: (type, data) => <StudentForm type={type} data={data} />,
   announcement: (type, data) => <AnnouncementForm type={type} data={data} />,
+  assignment: (type, data) => <AssignmentForm type={type} data={data} />,
+  resource: (type, data) => <ResourceForm type={type} data={data} />,
 };
 
 const FormModal = ({
@@ -69,6 +77,10 @@ const FormModal = ({
       let res;
       if (table === "announcement") {
         res = await deleteNotice(id as number);
+      } else if (table === "assignment") {
+        res = await deleteAssignment(id as number);
+      } else if (table === "resource") {
+        res = await deleteResource(id as number);
       }
       // Add other table deletions here if needed
       

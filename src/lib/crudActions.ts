@@ -1052,11 +1052,135 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
       description: `Unified Enrollment: Parent ${result.name} ${result.surname} + ${children.length} students.`,
     });
 
-    revalidatePath("/list/parents");
-    revalidatePath("/list/students");
+// ===================== ASSIGNMENT =====================
+export const createAssignment = async (data: {
+  title: string;
+  startDate: string;
+  dueDate: string;
+  lessonId: number;
+}) => {
+  try {
+    const schoolId = await getSchoolId();
+    const assignment = await prisma.assignment.create({
+      data: {
+        schoolId,
+        title: data.title,
+        startDate: new Date(data.startDate),
+        dueDate: new Date(data.dueDate),
+        lessonId: data.lessonId,
+      },
+    });
+
+    await createAuditLog({
+      action: "CREATE_ASSIGNMENT",
+      entityType: "Assignment",
+      entityId: assignment.id.toString(),
+      description: `Created new assignment: ${data.title} (Lesson ID: ${data.lessonId})`,
+    });
+
+    revalidatePath("/list/assignments");
     return { success: true };
   } catch (err: any) {
-    console.error("enrollFamily error:", err);
-    return { success: false, error: err?.message || "Failed to enroll family." };
+    console.error("createAssignment error:", err);
+    return { success: false, error: err?.message || "Failed to create assignment." };
+  }
+};
+
+export const updateAssignment = async (
+  id: number,
+  data: Partial<{
+    title: string;
+    startDate: string;
+    dueDate: string;
+    lessonId: number;
+  }>
+) => {
+  try {
+    const updateData: any = { ...data };
+    if (data.startDate) updateData.startDate = new Date(data.startDate);
+    if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
+
+    await prisma.assignment.update({ where: { id }, data: updateData });
+    
+    await createAuditLog({
+      action: "UPDATE_ASSIGNMENT",
+      entityType: "Assignment",
+      entityId: id.toString(),
+      description: `Updated assignment: ${id}`,
+    });
+
+    revalidatePath("/list/assignments");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update assignment." };
+  }
+};
+
+export const deleteAssignment = async (id: number) => {
+  try {
+    const assignment = await prisma.assignment.findUnique({ where: { id } });
+    await prisma.assignment.delete({ where: { id } });
+    
+    await createAuditLog({
+      action: "DELETE_ASSIGNMENT",
+      entityType: "Assignment",
+      entityId: id.toString(),
+      description: `Deleted assignment: ${assignment?.title}`,
+    });
+
+    revalidatePath("/list/assignments");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete assignment." };
+  }
+};
+
+// ===================== RESOURCE =====================
+export const createResource = async (data: {
+  title: string;
+  url: string;
+  lessonId: number;
+}) => {
+  try {
+    const schoolId = await getSchoolId();
+    const resource = await prisma.resource.create({
+      data: {
+        schoolId,
+        title: data.title,
+        url: data.url,
+        lessonId: data.lessonId,
+      },
+    });
+
+    await createAuditLog({
+      action: "CREATE_RESOURCE",
+      entityType: "Resource",
+      entityId: resource.id.toString(),
+      description: `Uploaded new course resource: ${data.title} (Lesson ID: ${data.lessonId})`,
+    });
+
+    revalidatePath("/list/lessons"); // Since resources are often viewed there
+    return { success: true };
+  } catch (err: any) {
+    console.error("createResource error:", err);
+    return { success: false, error: err?.message || "Failed to create resource." };
+  }
+};
+
+export const deleteResource = async (id: number) => {
+  try {
+    const resource = await prisma.resource.findUnique({ where: { id } });
+    await prisma.resource.delete({ where: { id } });
+    
+    await createAuditLog({
+      action: "DELETE_RESOURCE",
+      entityType: "Resource",
+      entityId: id.toString(),
+      description: `Deleted resource: ${resource?.title}`,
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete resource." };
   }
 };

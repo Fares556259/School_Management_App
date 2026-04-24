@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import FormModal from "@/components/FormModal";
 
 type Status = "PRESENT" | "ABSENT" | "LATE" | null;
 
@@ -172,6 +173,29 @@ export default function AttendancePage() {
             <h1 className="text-2xl font-black text-slate-800 tracking-tight">Attendance Tracker</h1>
             <p className="text-sm text-slate-500 font-medium">Mark daily student attendance per class</p>
           </div>
+        </div>
+
+        {/* Lesson Actions */}
+        <div className="flex items-center gap-3 mt-4 md:mt-0">
+          {selectedLesson && selectedLesson !== "ALL" && (
+            <>
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lesson Actions:</span>
+                <div className="flex gap-2">
+                   <FormModal 
+                    table="assignment" 
+                    type="create" 
+                    data={{ lessonId: parseInt(selectedLesson) }}
+                  />
+                  <FormModal 
+                    table="resource" 
+                    type="create" 
+                    data={{ lessonId: parseInt(selectedLesson) }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
