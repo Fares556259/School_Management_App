@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
 import { createAttendanceNotification } from "@/lib/notifications";
+import { getSchoolId } from "@/lib/school";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ const DAY_MAP: Record<number, string> = {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const schoolId = await getSchoolId();
   const classId = searchParams.get("classId");
   const dateStr = searchParams.get("date");
   const lessonIdParam = searchParams.get("lessonId");
@@ -38,6 +40,7 @@ export async function GET(request: NextRequest) {
   // Use TimetableSlots for the dropdowns as they represent the recurring actual schedule!
   const slots = await prisma.timetableSlot.findMany({
     where: {
+      schoolId,
       classId: parseInt(classId),
       day: dayEnum as any,
     },
@@ -64,10 +67,10 @@ export async function GET(request: NextRequest) {
       const targetSlot = slots.find(s => s.id === slotId);
       if (targetSlot?.subjectId) {
          // find the lesson
-         const lesson = await prisma.lesson.findFirst({
-           where: { classId: parseInt(classId), subjectId: targetSlot.subjectId, day: dayEnum as any }
-         });
-         if (lesson) targetLessonId = lesson.id;
+          const lesson = await prisma.lesson.findFirst({
+            where: { schoolId, classId: parseInt(classId), subjectId: targetSlot.subjectId, day: dayEnum as any }
+          });
+          if (lesson) targetLessonId = lesson.id;
       }
     } else {
       targetLessonId = parseInt(lessonIdParam);
@@ -77,7 +80,7 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   
   const students = await prisma.student.findMany({
-    where: { classId: parseInt(classId) },
+    where: { schoolId, classId: parseInt(classId) },
     select: {
       id: true,
       name: true,
@@ -132,6 +135,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const schoolId = await getSchoolId();
     const { records, date, lessonId } = body as {
       records: { studentId: string; status: "PRESENT" | "ABSENT" | "LATE"; note?: string }[];
       date: string;
@@ -149,14 +153,14 @@ export async function POST(request: NextRequest) {
     if (lessonId && lessonId !== "ALL") {
       if (lessonId.startsWith("slot-")) {
         const slotId = parseInt(lessonId.replace("slot-", ""));
-        const targetSlot = await prisma.timetableSlot.findUnique({ where: { id: slotId }, include: { subject: true } });
+        const targetSlot = await prisma.timetableSlot.findFirst({ where: { id: slotId, schoolId }, include: { subject: true } });
         if (targetSlot && targetSlot.subjectId) {
           let lesson = await prisma.lesson.findFirst({
-            where: { classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
+            where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
           });
           if (!lesson) {
             // Need a teacherId fallback, find subject teacher or use a default
-            const anyTeacher = await prisma.teacher.findFirst();
+            const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
             lesson = await prisma.lesson.create({
               data: {
                 name: targetSlot.subject?.name || "Session",
@@ -166,6 +170,7 @@ export async function POST(request: NextRequest) {
                 subjectId: targetSlot.subjectId,
                 classId: targetSlot.classId,
                 teacherId: targetSlot.teacherId || anyTeacher!.id,
+                schoolId,
               }
             });
           }
@@ -180,6 +185,7 @@ export async function POST(request: NextRequest) {
     for (const r of records) {
       const existing = await prisma.attendance.findFirst({
         where: {
+          schoolId,
           studentId: r.studentId,
           date: dayStart,
           lessonId: targetLessonId,
@@ -199,6 +205,7 @@ export async function POST(request: NextRequest) {
             status: r.status as AttendanceStatus,
             note: r.note ?? null,
             lessonId: targetLessonId,
+            schoolId,
           },
         });
       }

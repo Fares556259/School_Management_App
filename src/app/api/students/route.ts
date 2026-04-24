@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
+import { getSchoolId } from "@/lib/school";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -15,8 +16,9 @@ export async function GET(request: Request) {
     return new NextResponse("Missing classId", { status: 400 });
   }
 
+  const schoolId = await getSchoolId();
   const students = await prisma.student.findMany({
-    where: { classId: parseInt(classId) },
+    where: { schoolId, classId: parseInt(classId) },
     select: { id: true, name: true, surname: true },
     orderBy: { name: "asc" },
   });

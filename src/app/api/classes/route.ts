@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
+import { getSchoolId } from "@/lib/school";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -9,7 +10,9 @@ export async function GET() {
   }
 
   try {
+    const schoolId = await getSchoolId();
     const classes = await prisma.class.findMany({
+      where: { schoolId },
       select: {
         id: true,
         name: true,

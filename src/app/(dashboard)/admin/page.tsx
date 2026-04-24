@@ -11,6 +11,7 @@ import DashboardAppendage from "./components/DashboardAppendage";
 import DashboardSkeleton from "./components/DashboardSkeleton";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
+import { getSchoolId } from "@/lib/school";
 import React, { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,8 @@ const AdminPage = async ({
     month: queryMonth, 
     year: queryYear 
   } = searchParams || {};
+
+  const schoolId = await getSchoolId();
 
   const now = new Date();
   
@@ -62,22 +65,22 @@ const AdminPage = async ({
     try {
       const stats: any[] = await prisma.$queryRaw`
         SELECT
-          (SELECT COUNT(*)::int FROM "Student") as student_count,
-          (SELECT COUNT(*)::int FROM "Teacher") as teacher_count,
-          (SELECT COUNT(*)::int FROM "Staff") as staff_count,
-          (SELECT COUNT(*)::int FROM "Class") as class_count,
+          (SELECT COUNT(*)::int FROM "Student" WHERE "schoolId" = ${schoolId}) as student_count,
+          (SELECT COUNT(*)::int FROM "Teacher" WHERE "schoolId" = ${schoolId}) as teacher_count,
+          (SELECT COUNT(*)::int FROM "Staff" WHERE "schoolId" = ${schoolId}) as staff_count,
+          (SELECT COUNT(*)::int FROM "Class" WHERE "schoolId" = ${schoolId}) as class_count,
           
           -- Current Period
-          COALESCE((SELECT SUM(amount)::float FROM "Income" WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Tuition'), 0) as current_income_general,
-          COALESCE((SELECT SUM(amount)::float FROM "Expense" WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Salary'), 0) as current_expense_general,
-          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE status = 'PAID' AND "userType" = 'STUDENT' AND "paidAt" >= ${startDate} AND "paidAt" < ${endDate}), 0) as current_income_tuition,
-          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE status = 'PAID' AND "userType" IN ('TEACHER', 'STAFF') AND "paidAt" >= ${startDate} AND "paidAt" < ${endDate}), 0) as current_expense_salary,
+          COALESCE((SELECT SUM(amount)::float FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate} AND category != 'Tuition'), 0) as current_income_general,
+          COALESCE((SELECT SUM(amount)::float FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate} AND category != 'Salary'), 0) as current_expense_general,
+          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" = 'STUDENT' AND "paidAt" >= ${startDate} AND "paidAt" < ${endDate}), 0) as current_income_tuition,
+          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" IN ('TEACHER', 'STAFF') AND "paidAt" >= ${startDate} AND "paidAt" < ${endDate}), 0) as current_expense_salary,
 
           -- Previous Period
-          COALESCE((SELECT SUM(amount)::float FROM "Income" WHERE date >= ${prevStartDate} AND date < ${prevEndDate} AND category != 'Tuition'), 0) as prev_income_general,
-          COALESCE((SELECT SUM(amount)::float FROM "Expense" WHERE date >= ${prevStartDate} AND date < ${prevEndDate} AND category != 'Salary'), 0) as prev_expense_general,
-          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE status = 'PAID' AND "userType" = 'STUDENT' AND "paidAt" >= ${prevStartDate} AND "paidAt" < ${prevEndDate}), 0) as prev_income_tuition,
-          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE status = 'PAID' AND "userType" IN ('TEACHER', 'STAFF') AND "paidAt" >= ${prevStartDate} AND "paidAt" < ${prevEndDate}), 0) as prev_expense_salary
+          COALESCE((SELECT SUM(amount)::float FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate} AND category != 'Tuition'), 0) as prev_income_general,
+          COALESCE((SELECT SUM(amount)::float FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate} AND category != 'Salary'), 0) as prev_expense_general,
+          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" = 'STUDENT' AND "paidAt" >= ${prevStartDate} AND "paidAt" < ${prevEndDate}), 0) as prev_income_tuition,
+          COALESCE((SELECT SUM(amount)::float FROM "Payment" WHERE "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" IN ('TEACHER', 'STAFF') AND "paidAt" >= ${prevStartDate} AND "paidAt" < ${prevEndDate}), 0) as prev_expense_salary
       `;
       return stats[0];
     } catch (error) {
