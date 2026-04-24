@@ -19,11 +19,11 @@ async function sendPush(parentId: string, title: string, body: string, data: any
 
     const messages = [{
       to: parent.expoPushToken,
-      sound: 'default',
+      sound: data.channelId === 'emergency' ? 'alert.m4a' : 'notification.m4a',
       title,
       body,
       data,
-      channelId: data.channelId || 'default', // Map channel from data
+      channelId: data.channelId || 'default', 
     }];
 
     // Note: In production, you might want to batch these messages
