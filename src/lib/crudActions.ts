@@ -6,6 +6,7 @@ import { getSchoolId } from "@/lib/school";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
+import { createAssignmentNotification, createResourceNotification } from "./notifications";
 import { UserSex } from "@prisma/client";
 
 // ===================== TEACHER =====================
@@ -1078,6 +1079,9 @@ export const createAssignment = async (data: {
       description: `Created new assignment: ${data.title} (Lesson ID: ${data.lessonId})`,
     });
 
+    // Trigger Notifications
+    await createAssignmentNotification(assignment.id);
+
     revalidatePath("/list/assignments");
     return { success: true };
   } catch (err: any) {
@@ -1158,6 +1162,9 @@ export const createResource = async (data: {
       entityId: resource.id.toString(),
       description: `Uploaded new course resource: ${data.title} (Lesson ID: ${data.lessonId})`,
     });
+
+    // Trigger Notifications
+    await createResourceNotification(resource.id);
 
     revalidatePath("/list/lessons"); // Since resources are often viewed there
     return { success: true };

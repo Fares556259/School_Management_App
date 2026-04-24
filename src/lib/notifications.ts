@@ -252,3 +252,93 @@ export async function createAttendanceNotification(studentId: string, status: st
     console.error("[NOTIFICATIONS] Error creating attendance notification:", error);
   }
 }
+
+/**
+ * Creates notifications for parents when a new assignment is published.
+ */
+export async function createAssignmentNotification(assignmentId: number) {
+  try {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: { lesson: { include: { class: true, subject: true } } },
+    });
+
+    if (!assignment) return;
+
+    const students = await prisma.student.findMany({
+      where: { classId: assignment.lesson.classId },
+      select: { parentId: true, id: true, name: true },
+    });
+
+    const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
+
+    // Create database notifications
+    await prisma.notification.createMany({
+      data: students.map((s) => ({
+        parentId: s.parentId,
+        studentId: s.id,
+        type: "ANNOUNCEMENT",
+        title: `New Task: ${assignment.title}`,
+        message: `A new task for ${assignment.lesson.subject.name} has been assigned to ${s.name}.`,
+      })),
+    });
+
+    // Send push notifications
+    for (const s of students) {
+      sendPush(
+        s.parentId,
+        `📝 New Task: ${assignment.title}`,
+        `Task for ${assignment.lesson.subject.name} is now available.`,
+        { type: "HOMEWORK", studentId: s.id }
+      );
+    }
+
+    console.log(`[NOTIFICATIONS] Created ${students.length} assignment notifications for assignment ${assignmentId}`);
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error creating assignment notification:", error);
+  }
+}
+
+/**
+ * Creates notifications for parents when a new resource is published.
+ */
+export async function createResourceNotification(resourceId: number) {
+  try {
+    const resource = await prisma.resource.findUnique({
+      where: { id: resourceId },
+      include: { lesson: { include: { class: true, subject: true } } },
+    });
+
+    if (!resource) return;
+
+    const students = await prisma.student.findMany({
+      where: { classId: resource.lesson.classId },
+      select: { parentId: true, id: true, name: true },
+    });
+
+    // Create database notifications
+    await prisma.notification.createMany({
+      data: students.map((s) => ({
+        parentId: s.parentId,
+        studentId: s.id,
+        type: "ANNOUNCEMENT",
+        title: `Course Resource: ${resource.title}`,
+        message: `New educational material shared for ${resource.lesson.subject.name}.`,
+      })),
+    });
+
+    // Send push notifications
+    for (const s of students) {
+      sendPush(
+        s.parentId,
+        `📚 New Resource: ${resource.title}`,
+        `New material shared for ${resource.lesson.subject.name}.`,
+        { type: "RESOURCE", studentId: s.id }
+      );
+    }
+
+    console.log(`[NOTIFICATIONS] Created ${students.length} resource notifications for resource ${resourceId}`);
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error creating resource notification:", error);
+  }
+}
