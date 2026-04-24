@@ -51,6 +51,7 @@ const FormModal = ({
     | "lesson"
     | "exam"
     | "assignment"
+    | "resource"
     | "result"
     | "attendance"
     | "event"
