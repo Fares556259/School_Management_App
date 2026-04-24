@@ -85,17 +85,21 @@ const SettingsPage = () => {
         };
         setConfig(data);
         setOriginalConfig(JSON.parse(JSON.stringify(data)));
+        setLoading(false);
+      } else {
+        console.error("Config fetch failed:", configRes.error);
+        // Don't hide loading if we don't have essential config, 
+        // or redirect/show error. For now, let's keep loading or handle error.
+        setMessage({ type: 'error', text: 'Failed to load school configuration.' });
       }
       
       if (roomsRes.success && roomsRes.data) setRooms(roomsRes.data);
       if (feesRes.success && feesRes.data) {
         setLevelFees(feesRes.data);
         setOriginalLevelFees(JSON.parse(JSON.stringify(feesRes.data)));
-        // Default next level number
         const maxLevel = feesRes.data.reduce((max: number, l: any) => Math.max(max, l.level), 0);
         setNextLevelNumber(maxLevel + 1);
 
-        // Initialize variation counts
         const counts: Record<number, number> = {};
         feesRes.data.forEach((lvl: any) => {
           counts[lvl.id] = Array.isArray(lvl.classes) ? lvl.classes.length : 0;
@@ -107,8 +111,6 @@ const SettingsPage = () => {
         setLevels(levelsRes.data);
         if (levelsRes.data.length > 0) setNewClassLevel(levelsRes.data[0].id);
       }
-      
-      setLoading(false);
     });
   }, []);
 
@@ -386,7 +388,7 @@ const SettingsPage = () => {
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Name</label>
                 <input 
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  value={config.schoolName}
+                  value={config?.schoolName || ""}
                   onChange={e => setConfig({...config, schoolName: e.target.value})}
                 />
               </div>
@@ -394,7 +396,7 @@ const SettingsPage = () => {
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Phone Number</label>
                 <input 
                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                   value={config.phone}
+                   value={config?.phone || ""}
                    onChange={e => setConfig({...config, phone: e.target.value})}
                    placeholder="+216 71 000 000"
                 />
@@ -403,7 +405,7 @@ const SettingsPage = () => {
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Address</label>
                 <input 
                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                   value={config.address}
+                   value={config?.address || ""}
                    onChange={e => setConfig({...config, address: e.target.value})}
                    placeholder="123 Education Ave, Tunis"
                 />
@@ -426,7 +428,7 @@ const SettingsPage = () => {
               ].map((logo) => (
                 <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-slate-50 rounded-[28px] border border-slate-100/50 group hover:border-indigo-100 transition-all">
                     <div className="w-24 h-24 rounded-2xl bg-white shadow-sm border border-slate-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300 relative">
-                    {config[logo.field] ? (
+                    {config?.[logo.field] ? (
                       <Image src={config[logo.field]} alt="Logo Preview" fill className="object-contain p-3" />
                     ) : (
                       <ImageIcon className="text-slate-200" size={32} />
@@ -616,7 +618,7 @@ const SettingsPage = () => {
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Academic Year</label>
                   <input 
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
-                    value={config.academicYear}
+                    value={config?.academicYear || ""}
                     onChange={e => setConfig({...config, academicYear: e.target.value})}
                   />
                </div>
@@ -627,7 +629,7 @@ const SettingsPage = () => {
                    <input 
                      type="date"
                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
-                     value={config.yearStart ? new Date(config.yearStart).toISOString().split('T')[0] : ""}
+                     value={config?.yearStart ? new Date(config.yearStart).toISOString().split('T')[0] : ""}
                      onChange={e => setConfig({...config, yearStart: e.target.value})}
                    />
                  </div>
@@ -636,7 +638,7 @@ const SettingsPage = () => {
                    <input 
                      type="date"
                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
-                     value={config.yearEnd ? new Date(config.yearEnd).toISOString().split('T')[0] : ""}
+                     value={config?.yearEnd ? new Date(config.yearEnd).toISOString().split('T')[0] : ""}
                      onChange={e => setConfig({...config, yearEnd: e.target.value})}
                    />
                  </div>
@@ -646,7 +648,7 @@ const SettingsPage = () => {
                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Current Semester</label>
                  <select 
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all appearance-none"
-                    value={config.currentSemester}
+                    value={config?.currentSemester || 1}
                     onChange={e => setConfig({...config, currentSemester: parseInt(e.target.value)})}
                  >
                     <option value={1}>Semester 1</option>
@@ -675,7 +677,7 @@ const SettingsPage = () => {
 
             <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
               <AnimatePresence initial={false}>
-                {Array.isArray(config.holidays) && config.holidays.length > 0 ? (
+                {Array.isArray(config?.holidays) && config.holidays.length > 0 ? (
                   config.holidays.map((holiday: any) => (
                     <motion.div 
                       key={holiday.id}
@@ -749,7 +751,7 @@ const SettingsPage = () => {
             </div>
             <div className="flex flex-col gap-4">
                <AnimatePresence mode="popLayout">
-                {config.sessions.map((session: any, idx: number) => (
+                {config?.sessions?.map((session: any, idx: number) => (
                   <motion.div 
                     key={session.id || idx}
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
