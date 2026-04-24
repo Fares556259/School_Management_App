@@ -38,12 +38,16 @@ export async function getSchoolId(): Promise<string> {
       where: { id: userId },
       select: { schoolId: true },
     });
-    if (admin?.schoolId) return admin.schoolId;
+    if (admin?.schoolId) {
+      console.log(`[getSchoolId] Resolved from DB for ${userId}: ${admin.schoolId}`);
+      return admin.schoolId;
+    }
   } catch (err) {
     console.error("[getSchoolId] Resolution failed, using default:", err);
   }
 
   // 4. Safe fallback — single-school deployments or seeded data
+  console.log(`[getSchoolId] Using default fallback: default_school`);
   return "default_school";
 }
 

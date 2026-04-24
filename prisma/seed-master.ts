@@ -9,6 +9,7 @@ async function main() {
   // 1. CLEANUP (Nuclear Option)
   console.log("🧹 Wiping database for a clean start...");
   await prisma.auditLog.deleteMany();
+  await prisma.attendance.deleteMany();
   await prisma.income.deleteMany();
   await prisma.expense.deleteMany();
   await prisma.payment.deleteMany();
@@ -29,30 +30,38 @@ async function main() {
   await prisma.admin.deleteMany();
   await prisma.notice.deleteMany();
 
+  const schoolId = "bringbringa138gmailcom";
+  
+  await prisma.school.upsert({
+    where: { id: schoolId },
+    update: { name: "SnapSchool Master Academy" },
+    create: { id: schoolId, name: "SnapSchool Master Academy", subdomain: "master", updatedAt: new Date() }
+  });
+
   // 2. CORE INFRASTRUCTURE
   console.log("🏗️ Seeding Core Infrastructure (Admins, Levels, Subjects)...");
-  await prisma.admin.create({ data: { id: "admin1", username: "admin1", name: "Fares", surname: "Admin" } });
+  await prisma.admin.create({ data: { id: "admin1", username: "admin1", name: "Fares", surname: "Admin", schoolId } });
 
   const levels = [];
   for (let i = 1; i <= 6; i++) {
-    const level = await prisma.level.create({ data: { level: i } });
+    const level = await prisma.level.create({ data: { level: i, schoolId } });
     levels.push(level);
   }
 
   const subjectData = [
-    { name: "Arabe", domain: "Langues" },
-    { name: "Français", domain: "Langues" },
-    { name: "Anglais", domain: "Langues" },
-    { name: "Mathématiques", domain: "Sciences" },
-    { name: "Sciences de la Vie", domain: "Sciences" },
-    { name: "Technologie", domain: "Sciences" },
-    { name: "Histoire", domain: "Sciences Humaines" },
-    { name: "Géographie", domain: "Sciences Humaines" },
-    { name: "Éducation Civique", domain: "Sciences Humaines" },
-    { name: "Éducation Islamique", domain: "Sciences Humaines" },
-    { name: "Éducation Physique", domain: "Arts & Sport" },
-    { name: "Arts Plastiques", domain: "Arts & Sport" },
-    { name: "Musique", domain: "Arts & Sport" }
+    { name: "Arabe", domain: "Langues", schoolId },
+    { name: "Français", domain: "Langues", schoolId },
+    { name: "Anglais", domain: "Langues", schoolId },
+    { name: "Mathématiques", domain: "Sciences", schoolId },
+    { name: "Sciences de la Vie", domain: "Sciences", schoolId },
+    { name: "Technologie", domain: "Sciences", schoolId },
+    { name: "Histoire", domain: "Sciences Humaines", schoolId },
+    { name: "Géographie", domain: "Sciences Humaines", schoolId },
+    { name: "Éducation Civique", domain: "Sciences Humaines", schoolId },
+    { name: "Éducation Islamique", domain: "Sciences Humaines", schoolId },
+    { name: "Éducation Physique", domain: "Arts & Sport", schoolId },
+    { name: "Arts Plastiques", domain: "Arts & Sport", schoolId },
+    { name: "Musique", domain: "Arts & Sport", schoolId }
   ];
 
   const subjects = [];
@@ -78,6 +87,7 @@ async function main() {
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
         birthday: new Date("1985-06-15"),
         salary: 2500 + (Math.random() * 1000),
+        schoolId,
         subjects: { connect: [{ id: subjects[i % subjects.length].id }] }
       }
     });
@@ -98,7 +108,8 @@ async function main() {
         bloodType: "O+",
         salary: 1200 + (Math.random() * 500),
         birthday: new Date("1990-09-20"),
-        role: i % 2 === 0 ? "Comptable" : "Surveillant"
+        role: i % 2 === 0 ? "Comptable" : "Surveillant",
+        schoolId
       }
     });
     staff.push(s);
@@ -114,7 +125,8 @@ async function main() {
           name: `${i + 1}${section}`,
           levelId: levels[i].id,
           capacity: 25,
-          supervisorId: teachers[i % teachers.length].id
+          supervisorId: teachers[i % teachers.length].id,
+          schoolId
         }
       });
       classes.push(classObj);
@@ -132,7 +144,8 @@ async function main() {
         surname: `Parent ${i}`,
         email: `parent${i}@gmail.com`,
         phone: `55000${i.toString().padStart(3, '0')}`,
-        address: "Cité El Khadra, Tunis"
+        address: "Cité El Khadra, Tunis",
+        schoolId
       }
     });
   }
@@ -151,7 +164,8 @@ async function main() {
         parentId: `parent${Math.ceil(i/2)}`,
         levelId: levels[Math.floor((i-1)/50)].id,
         classId: classes[Math.floor((i-1)/16.6) % classes.length].id,
-        birthday: new Date("2016-01-01")
+        birthday: new Date("2016-01-01"),
+        schoolId
       }
     });
     students.push(s);
@@ -171,7 +185,8 @@ async function main() {
           title: `${expenseCats[j % expenseCats.length]} - M${m}`,
           amount: 300 + Math.random() * 700,
           category: expenseCats[j % expenseCats.length],
-          date: new Date(currentYear, m - 1, 10 + j)
+          date: new Date(currentYear, m - 1, 10 + j),
+          schoolId
         }
       });
     }
@@ -182,7 +197,8 @@ async function main() {
           title: `${incomeCats[j % incomeCats.length]} - M${m}`,
           amount: 600 + Math.random() * 1200,
           category: incomeCats[j % incomeCats.length],
-          date: new Date(currentYear, m - 1, 15 + j)
+          date: new Date(currentYear, m - 1, 15 + j),
+          schoolId
         }
       });
     }
@@ -205,7 +221,8 @@ async function main() {
                 year: currentYear,
                 status: status,
                 userType: "STUDENT",
-                paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m - 1, 5) : null
+                paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m - 1, 5) : null,
+                schoolId
             }
         });
     }
@@ -220,7 +237,8 @@ async function main() {
                 year: currentYear,
                 status: status,
                 userType: "TEACHER",
-                paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m - 1, 25) : null
+                paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m - 1, 25) : null,
+                schoolId
             }
         });
     }
@@ -235,7 +253,8 @@ async function main() {
                 year: currentYear,
                 status: status,
                 userType: "STAFF",
-                paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m - 1, 28) : null
+                paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m - 1, 28) : null,
+                schoolId
             }
         });
     }
@@ -252,7 +271,8 @@ async function main() {
                   studentId: student.id,
                   subjectId: subject.id,
                   term: 1,
-                  score: 10 + Math.random() * 10
+                  score: 10 + Math.random() * 10,
+                  schoolId
               }
           });
       }
@@ -265,7 +285,7 @@ async function main() {
     { title: "Vacances de Printemps", message: "Les cours reprendront le lundi suivant.", important: false },
     { title: "Nouveaux Clubs", message: "Inscrivez-vous aux clubs de robotique et de théâtre.", important: false }
   ];
-  for (const n of notices) await prisma.notice.create({ data: n });
+  for (const n of notices) await prisma.notice.create({ data: { ...n, schoolId } });
 
   const auditActions = ["PAIEMENT_RECU", "ETUDIANT_INSCRIT", "NOTE_MODIFIEE", "DEPENSE_ENREGISTREE"];
   for (let i = 1; i <= 30; i++) {
@@ -275,7 +295,8 @@ async function main() {
               performedBy: "admin1",
               entityType: "SYSTEM",
               description: `Action de test numéro ${i} enregistrée dans le journal d'audit.`,
-              timestamp: new Date(Date.now() - (i * 3600000))
+              timestamp: new Date(Date.now() - (i * 3600000)),
+              schoolId
           }
       });
   }

@@ -144,10 +144,12 @@ const ParentListPage = async ({
     }),
     prisma.parent.count({ where: query }),
     prisma.class.findMany({ 
+      where: { schoolId },
       select: { id: true, name: true },
       orderBy: { name: 'asc' }
     }),
     prisma.level.findMany({ 
+      where: { schoolId },
       select: { id: true, level: true },
       orderBy: { level: 'asc' }
     }),
