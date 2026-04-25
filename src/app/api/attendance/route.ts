@@ -149,8 +149,30 @@ export async function GET(request: NextRequest) {
     ]);
   }
 
+  // Calculate monthly stats for insights
+  const monthStart = new Date(dayStart.getFullYear(), dayStart.getMonth(), 1);
+  const monthEnd = new Date(dayStart.getFullYear(), dayStart.getMonth() + 1, 0);
+
+  const monthlyAbsences = await prisma.attendance.groupBy({
+    by: ['studentId'],
+    where: {
+      schoolId,
+      date: { gte: monthStart, lte: monthEnd },
+      status: 'ABSENT',
+      student: { classId: parseInt(classId) }
+    },
+    _count: { id: true }
+  });
+
+  const statsMap = Object.fromEntries(monthlyAbsences.map(a => [a.studentId, a._count.id]));
+
+  const finalStudents = mappedStudents.map(s => ({
+    ...s,
+    monthlyAbsences: statsMap[s.id] || 0
+  }));
+
   return NextResponse.json({ 
-    students: mappedStudents, 
+    students: finalStudents, 
     lessons: lessonsForUI,
     assignments,
     resources

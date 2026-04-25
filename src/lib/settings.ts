@@ -1,6 +1,8 @@
 export const ITEM_PER_PAGE = 10;
 
 export const routeAccessMap: { [key: string]: string[] } = {
+  "/admin/attendance": ["admin", "teacher", "superuser"],
+  "/admin/timetable": ["admin", "teacher", "parent", "student", "superuser"],
   "/admin(.*)": ["admin"],
   "/teacher(.*)": ["admin", "teacher"],
   "/student(.*)": ["admin", "student"],

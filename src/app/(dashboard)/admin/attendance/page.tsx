@@ -11,6 +11,7 @@ interface StudentRow {
   name: string;
   surname: string;
   img: string | null;
+  monthlyAbsences: number;
   attendance: { id: number; status: string; note: string | null }[];
 }
 
@@ -43,6 +44,7 @@ export default function AttendancePage() {
   const [filter, setFilter] = useState<Status | "ALL">("ALL");
   const [assignments, setAssignments] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
+  const [canEdit, setCanEdit] = useState(false);
 
   // Load classes on mount
   useEffect(() => {
@@ -180,13 +182,20 @@ export default function AttendancePage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Attendance Tracker</h1>
-            <p className="text-sm text-slate-500 font-medium">Mark daily student attendance per class</p>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Attendance Monitoring & Management</h1>
+            <p className="text-sm text-slate-500 font-medium text-balance max-w-md">Primary recording is managed by teachers via mobile. Admins can monitor logs and perform overrides if necessary.</p>
           </div>
         </div>
-
-        {/* Lesson Actions - Moved to Workspace */}
-        <div className="flex items-center gap-3 mt-4 md:mt-0">
+        <div className="flex items-center gap-3">
+           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admin Override</span>
+             <button 
+               onClick={() => setCanEdit(!canEdit)}
+               className={`w-12 h-6 rounded-full transition-all relative ${canEdit ? 'bg-indigo-600' : 'bg-slate-200'}`}
+             >
+               <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${canEdit ? 'left-7' : 'left-1'}`} />
+             </button>
+           </div>
         </div>
       </div>
 
@@ -244,19 +253,21 @@ export default function AttendancePage() {
             />
           </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || !isDirty}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-indigo-200 transition-all disabled:opacity-60"
-        >
-          {saving ? (
-            <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving...</>
-          ) : (saved || !isDirty) ? (
-            <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg> Saved!</>
-          ) : (
-            <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Attendance</>
-          )}
-        </button>
+        {canEdit && (
+          <button
+            onClick={handleSave}
+            disabled={saving || !isDirty}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-indigo-200 transition-all disabled:opacity-60"
+          >
+            {saving ? (
+              <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving...</>
+            ) : (saved || !isDirty) ? (
+              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg> Saved!</>
+            ) : (
+              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Attendance</>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Stats Row */}
@@ -276,6 +287,41 @@ export default function AttendancePage() {
           </div>
         ))}
       </div>
+ 
+       {/* Insights Section */}
+       {filtered.some(s => s.monthlyAbsences > 2) && (
+         <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+           <div className="bg-rose-50 border border-rose-100 rounded-3xl p-5 flex items-center gap-6">
+             <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200 shrink-0">
+               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+               </svg>
+             </div>
+             <div className="flex-1">
+               <h3 className="text-sm font-black text-rose-800 uppercase tracking-tight mb-1">Attention Needed</h3>
+               <p className="text-xs text-rose-600 font-semibold leading-relaxed">
+                 The following students have missed 3 or more sessions this month. You may want to contact their parents.
+               </p>
+             </div>
+             <div className="flex -space-x-3 overflow-hidden p-1">
+               {filtered
+                 .filter(s => s.monthlyAbsences > 2)
+                 .slice(0, 5)
+                 .map(s => (
+                   <div key={s.id} className="inline-block h-10 w-10 rounded-xl ring-4 ring-rose-50 overflow-hidden relative" title={`${s.name}: ${s.monthlyAbsences} absences`}>
+                     <Image src={s.img || "/noavatar.png"} alt="" fill className="object-cover" />
+                   </div>
+                 ))}
+               {filtered.filter(s => s.monthlyAbsences > 2).length > 5 && (
+                 <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-rose-200 text-rose-700 text-[10px] font-black ring-4 ring-rose-50">
+                   +{filtered.filter(s => s.monthlyAbsences > 2).length - 5}
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       )}
+
 
       {/* Quick Mark All Buttons */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -360,29 +406,45 @@ export default function AttendancePage() {
                         </div>
                         <div>
                           <p className="font-bold text-slate-800 text-sm">{student.name} {student.surname}</p>
-                          {config && (
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${config.light}`}>
-                              {config.label}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {config && (
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${config.light}`}>
+                                {config.label}
+                              </span>
+                            )}
+                            {student.attendance[0]?.id && !String(student.attendance[0]?.id).startsWith('v-') && (
+                              <span className="flex items-center gap-1 text-[9px] font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase tracking-tighter" title="Recorded by teacher during session">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                Mobile Log
+                              </span>
+                            )}
+                            {student.monthlyAbsences > 0 && (
+                               <span className={`flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tighter ${student.monthlyAbsences > 2 ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-400'}`}>
+                                 {student.monthlyAbsences} Abs/Month
+                               </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
 
-                    {/* Status Buttons */}
+                    {/* Status Buttons (Admin Override) */}
                     <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className={`flex items-center justify-center gap-1.5 p-1 rounded-2xl border transition-all ${canEdit ? 'bg-slate-50 border-indigo-100' : 'bg-slate-50/50 border-slate-50 opacity-60'}`}>
                         {(["PRESENT", "LATE", "ABSENT"] as const).map((s) => (
                           <button
                             key={s}
+                            disabled={!canEdit}
                             onClick={() => {
                               setStatuses((prev) => ({ ...prev, [student.id]: prev[student.id] === s ? null : s }));
                               setIsDirty(true);
                             }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 shadow-sm ${
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all duration-150 uppercase tracking-wider ${
                               statuses[student.id] === s
-                                ? STATUS_CONFIG[s].color + " shadow-md scale-105"
-                                : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                                ? STATUS_CONFIG[s].color + " shadow-md"
+                                : "text-slate-400 hover:text-slate-600 " + (canEdit ? "hover:bg-white" : "")
                             }`}
                           >
                             {STATUS_CONFIG[s].label}
