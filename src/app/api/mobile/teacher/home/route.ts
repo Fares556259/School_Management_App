@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
 
     const attendanceRecords = await prisma.attendance.findMany({
       where: {
+        date: { gte: todayStart, lt: todayEnd },
         lesson: {
-          teacherId,
-          date: { gte: todayStart, lt: todayEnd }
+          teacherId: teacherId
         }
       }
     });
