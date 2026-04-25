@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    const [assignments, resources, lessonCount, timetableCount] = await Promise.all([
+    const [assignments, resources, lessons, timetableSlots] = await Promise.all([
       prisma.assignment.findMany({
         where: {
           lesson: { classId: parseInt(classId) },
@@ -62,14 +62,14 @@ export async function GET(request: NextRequest) {
           lesson: { classId: parseInt(classId), day: dayName as any }
         }
       }),
-      prisma.lesson.count({
+      prisma.lesson.findMany({
         where: {
           classId: parseInt(classId),
           teacherId: teacherId || undefined,
           day: dayName as any
         }
       }),
-      prisma.timetableSlot.count({
+      prisma.timetableSlot.findMany({
         where: {
           classId: parseInt(classId),
           teacherId: teacherId || undefined,
@@ -77,6 +77,10 @@ export async function GET(request: NextRequest) {
         }
       })
     ]);
+
+    // Use the first lesson ID if available, otherwise maybe use a timetable slot ID
+    const lessonId = lessons[0]?.id || null;
+    const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
 
     const studentData = students.map(s => ({
       id: s.id,
@@ -90,7 +94,8 @@ export async function GET(request: NextRequest) {
       students: studentData,
       assignments,
       resources,
-      hasLesson: lessonCount > 0 || timetableCount > 0
+      hasLesson,
+      lessonId
     });
   } catch (error: any) {
     console.error("[Teacher Students API Error]", error);

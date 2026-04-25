@@ -27,29 +27,38 @@ export async function POST(request: NextRequest) {
     // Bulk upsert records
     // Since Prisma doesn't have a bulk upsert with specific unique constraints easily in one call, 
     // we'll use a transaction with multiple upserts
-    const results = await prisma.$transaction(
-      records.map((record: any) => 
-        prisma.attendance.upsert({
+    // Use a transaction to ensure atomicity
+    const results = await prisma.$transaction(async (tx) => {
+      const ops = [];
+      for (const record of records) {
+        // Find existing record
+        const existing = await tx.attendance.findFirst({
           where: {
-            studentId_date_lessonId: {
-              studentId: record.studentId,
-              date: attendanceDate,
-              lessonId: lessonId ? parseInt(lessonId) : null
-            }
-          },
-          update: {
-            status: record.status,
-          },
-          create: {
             studentId: record.studentId,
             date: attendanceDate,
-            lessonId: lessonId ? parseInt(lessonId) : null,
-            status: record.status,
-            schoolId: schoolId
+            lessonId: lessonId ? parseInt(lessonId) : null
           }
-        })
-      )
-    );
+        });
+
+        if (existing) {
+          ops.push(tx.attendance.update({
+            where: { id: existing.id },
+            data: { status: record.status }
+          }));
+        } else {
+          ops.push(tx.attendance.create({
+            data: {
+              studentId: record.studentId,
+              date: attendanceDate,
+              lessonId: lessonId ? parseInt(lessonId) : null,
+              status: record.status,
+              schoolId: schoolId
+            }
+          }));
+        }
+      }
+      return Promise.all(ops);
+    });
 
     return NextResponse.json({ success: true, count: results.length });
   } catch (error: any) {
