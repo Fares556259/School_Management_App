@@ -68,10 +68,11 @@ export async function GET(request: NextRequest) {
   });
 
   let targetLessonId: number | null = null;
+  const isAll = !lessonIdParam || lessonIdParam === "ALL";
   
-  if (lessonIdParam && lessonIdParam !== "ALL") {
-    if (lessonIdParam.startsWith("slot-")) {
-      const slotId = parseInt(lessonIdParam.replace("slot-", ""));
+  if (!isAll) {
+    if (lessonIdParam!.startsWith("slot-")) {
+      const slotId = parseInt(lessonIdParam!.replace("slot-", ""));
       const targetSlot = slots.find(s => s.id === slotId);
       if (targetSlot?.subjectId) {
           const lesson = await prisma.lesson.findFirst({
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
           if (lesson) targetLessonId = lesson.id;
       }
     } else {
-      const parsedId = parseInt(lessonIdParam);
+      const parsedId = parseInt(lessonIdParam!);
       if (!isNaN(parsedId)) {
         targetLessonId = parsedId;
       }
@@ -99,19 +100,46 @@ export async function GET(request: NextRequest) {
       attendance: {
         where: {
           date: { gte: dayStart, lt: dayEnd },
-          lessonId: targetLessonId,
+          // If not 'isAll', filter by specific lesson. Otherwise, get all for the day.
+          lessonId: isAll ? undefined : targetLessonId,
         },
-        select: { id: true, status: true, note: true },
+        select: { id: true, status: true, note: true, lessonId: true },
         orderBy: { id: "desc" },
       },
     },
     orderBy: [{ name: "asc" }],
   });
 
-  // Inject virtual "PRESENT" for sessions that are in the past
-  const mappedStudents = students.map((s) => {
-    if (s.attendance.length === 0 && lessonIdParam && lessonIdParam !== "ALL") {
-      const slotId = lessonIdParam.startsWith("slot-") ? parseInt(lessonIdParam.replace("slot-", "")) : null;
+  // If 'isAll', we aggregate the attendance into a single representative status for the day
+  // Prioritizing ABSENT > LATE > PRESENT
+  const aggregatedStudents = students.map((s) => {
+    if (isAll) {
+      let finalStatus: string | null = null;
+      let finalId: any = -1;
+      let finalNote: string | null = null;
+
+      if (s.attendance.length > 0) {
+        const statuses = s.attendance.map(a => a.status);
+        if (statuses.includes("ABSENT")) finalStatus = "ABSENT";
+        else if (statuses.includes("LATE")) finalStatus = "LATE";
+        else finalStatus = "PRESENT";
+        
+        const mainRecord = s.attendance.find(a => a.status === finalStatus) || s.attendance[0];
+        finalId = mainRecord.id;
+        finalNote = mainRecord.note;
+      } else {
+        finalStatus = "PRESENT"; // Default to present for the overview if no records
+      }
+
+      return {
+        ...s,
+        attendance: [{ id: finalId, status: finalStatus, note: finalNote }]
+      };
+    }
+    
+    // If specific lesson, handle virtual presence for past slots
+    if (s.attendance.length === 0 && !isAll) {
+      const slotId = lessonIdParam!.startsWith("slot-") ? parseInt(lessonIdParam!.replace("slot-", "")) : null;
       const slot = slots.find(sl => sl.id === slotId);
       
       if (slot?.endTime) {
@@ -166,7 +194,7 @@ export async function GET(request: NextRequest) {
 
   const statsMap = Object.fromEntries(monthlyAbsences.map(a => [a.studentId, a._count.id]));
 
-  const finalStudents = mappedStudents.map(s => ({
+  const finalStudents = aggregatedStudents.map(s => ({
     ...s,
     monthlyAbsences: statsMap[s.id] || 0
   }));
@@ -229,8 +257,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Sequentialize upserts to avoid connection pool pressure
-    for (const r of records) {
+    // Parallelize operations to avoid timeout and improve speed
+    const ops = records.map(async (r) => {
       const existing = await prisma.attendance.findFirst({
         where: {
           schoolId,
@@ -238,15 +266,16 @@ export async function POST(request: NextRequest) {
           date: dayStart,
           lessonId: targetLessonId,
         },
+        select: { id: true }
       });
 
       if (existing) {
-        await prisma.attendance.update({
+        return prisma.attendance.update({
           where: { id: existing.id },
           data: { status: r.status as AttendanceStatus, note: r.note ?? null },
         });
       } else {
-        await prisma.attendance.create({
+        return prisma.attendance.create({
           data: {
             studentId: r.studentId,
             date: dayStart,
@@ -257,7 +286,9 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-    }
+    });
+
+    await Promise.all(ops);
 
     // Trigger notifications asynchronously for ABSENT and LATE
     records.forEach(r => {

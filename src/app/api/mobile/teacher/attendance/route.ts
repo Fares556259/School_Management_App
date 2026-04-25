@@ -24,41 +24,106 @@ export async function POST(request: NextRequest) {
     // Normalize date to YYYY-MM-DD
     attendanceDate.setHours(0, 0, 0, 0);
 
-    // Bulk upsert records
-    // Since Prisma doesn't have a bulk upsert with specific unique constraints easily in one call, 
-    // we'll use a transaction with multiple upserts
-    // Use a transaction to ensure atomicity
-    const results = await prisma.$transaction(async (tx) => {
-      const ops = [];
-      for (const record of records) {
-        // Find existing record
-        const existing = await tx.attendance.findFirst({
+    let effectiveLessonId = lessonId ? parseInt(lessonId) : null;
+
+    // 1. Ensure lesson exists (First pass, outside main transaction for speed)
+    if (!effectiveLessonId && classId) {
+      const moment = (await import('moment')).default;
+      const dayName = moment(attendanceDate).format('dddd').toUpperCase();
+      
+      const lesson = await prisma.lesson.findFirst({
+        where: {
+          schoolId,
+          classId: parseInt(classId),
+          teacherId,
+          day: dayName as any
+        }
+      });
+
+      if (lesson) {
+        effectiveLessonId = lesson.id;
+      } else {
+        const slot = await prisma.timetableSlot.findFirst({
+          where: {
+            schoolId,
+            classId: parseInt(classId),
+            teacherId,
+            day: dayName as any
+          },
+          include: { subject: true }
+        });
+
+        if (slot) {
+          const newLesson = await prisma.lesson.create({
+            data: {
+              name: slot.subject?.name || "Session",
+              day: dayName as any,
+              startTime: attendanceDate,
+              endTime: attendanceDate,
+              subjectId: slot.subjectId,
+              classId: parseInt(classId),
+              teacherId,
+              schoolId
+            }
+          });
+          effectiveLessonId = newLesson.id;
+        }
+      }
+    }
+
+    // 2. Bulk upsert records
+    // We use native upsert for non-null lessonIds (fastest) 
+    // and manual check for null lessonIds (necessary for Prisma unique constraints)
+    const ops = records.map(async (record: any) => {
+      if (effectiveLessonId) {
+        return prisma.attendance.upsert({
+          where: {
+            studentId_date_lessonId: {
+              studentId: record.studentId,
+              date: attendanceDate,
+              lessonId: effectiveLessonId
+            }
+          },
+          update: { status: record.status },
+          create: {
+            studentId: record.studentId,
+            date: attendanceDate,
+            lessonId: effectiveLessonId,
+            status: record.status,
+            schoolId: schoolId
+          }
+        });
+      } else {
+        // Fallback for null lessonId (Manual/Orphan records)
+        const existing = await prisma.attendance.findFirst({
           where: {
             studentId: record.studentId,
             date: attendanceDate,
-            lessonId: lessonId ? parseInt(lessonId) : null
-          }
+            lessonId: null
+          },
+          select: { id: true }
         });
 
         if (existing) {
-          ops.push(tx.attendance.update({
+          return prisma.attendance.update({
             where: { id: existing.id },
             data: { status: record.status }
-          }));
+          });
         } else {
-          ops.push(tx.attendance.create({
+          return prisma.attendance.create({
             data: {
               studentId: record.studentId,
               date: attendanceDate,
-              lessonId: lessonId ? parseInt(lessonId) : null,
+              lessonId: null,
               status: record.status,
               schoolId: schoolId
             }
-          }));
+          });
         }
       }
-      return Promise.all(ops);
     });
+
+    const results = await Promise.all(ops);
 
     return NextResponse.json({ success: true, count: results.length });
   } catch (error: any) {
