@@ -21,6 +21,7 @@ const DAY_MAP: Record<number, string> = {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const schoolId = await getSchoolId();
+  console.log(`[Attendance API] Fetching for School: ${schoolId}`);
   const classId = searchParams.get("classId");
   const dateStr = searchParams.get("date");
   const lessonIdParam = searchParams.get("lessonId");
@@ -48,32 +49,41 @@ export async function GET(request: NextRequest) {
     orderBy: { slotNumber: "asc" },
   });
 
-  const lessonsForUI = slots.map(s => ({
-    id: `slot-${s.id}`,
-    name: s.subject?.name || "Free Period",
-    startTime: `${dateStr}T${s.startTime}:00`, // proxy for UI formatting
-    subject: s.subject,
-    slotId: s.id,
-  }));
+  // Resolve real Lesson IDs for the UI slots if they exist
+  const lessonIds = await prisma.lesson.findMany({
+    where: { schoolId, classId: parseInt(classId), day: dayEnum as any },
+    select: { id: true, subjectId: true }
+  });
+
+  const lessonsForUI = slots.map(s => {
+    const realLesson = lessonIds.find(l => l.subjectId === s.subjectId);
+    return {
+      id: `slot-${s.id}`,
+      name: s.subject?.name || "Free Period",
+      startTime: `${dateStr}T${s.startTime}:00`,
+      subject: s.subject,
+      slotId: s.id,
+      realLessonId: realLesson?.id || null,
+    };
+  });
 
   let targetLessonId: number | null = null;
   
   if (lessonIdParam && lessonIdParam !== "ALL") {
-    // UI is passing a TimetableSlot. We must resolve it to its concrete Lesson or fallback to subject inference later
-    // Actually, when filtering in the UI, we just want to load the attendance.
-    // Let's resolve the actual underlying Lesson ID if it exists:
     if (lessonIdParam.startsWith("slot-")) {
       const slotId = parseInt(lessonIdParam.replace("slot-", ""));
       const targetSlot = slots.find(s => s.id === slotId);
       if (targetSlot?.subjectId) {
-         // find the lesson
           const lesson = await prisma.lesson.findFirst({
             where: { schoolId, classId: parseInt(classId), subjectId: targetSlot.subjectId, day: dayEnum as any }
           });
           if (lesson) targetLessonId = lesson.id;
       }
     } else {
-      targetLessonId = parseInt(lessonIdParam);
+      const parsedId = parseInt(lessonIdParam);
+      if (!isNaN(parsedId)) {
+        targetLessonId = parsedId;
+      }
     }
   }
 
@@ -128,7 +138,23 @@ export async function GET(request: NextRequest) {
     return s;
   });
 
-  return NextResponse.json({ students: mappedStudents, lessons: lessonsForUI });
+  // Fetch Assignments and Resources if we have a target lesson
+  let assignments: any[] = [];
+  let resources: any[] = [];
+
+  if (targetLessonId) {
+    [assignments, resources] = await Promise.all([
+      prisma.assignment.findMany({ where: { lessonId: targetLessonId, schoolId } }),
+      prisma.resource.findMany({ where: { lessonId: targetLessonId, schoolId } }),
+    ]);
+  }
+
+  return NextResponse.json({ 
+    students: mappedStudents, 
+    lessons: lessonsForUI,
+    assignments,
+    resources
+  });
 }
 
 // POST /api/attendance

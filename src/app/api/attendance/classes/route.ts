@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const schoolId = await getSchoolId();
+    console.log(`[Classes API] Fetching for School: ${schoolId}`);
     const classes = await prisma.class.findMany({
       where: { schoolId },
       select: {

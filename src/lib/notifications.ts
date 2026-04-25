@@ -289,7 +289,7 @@ export async function createAssignmentNotification(assignmentId: number) {
         s.parentId,
         `📝 New Task: ${assignment.title}`,
         `Task for ${assignment.lesson.subject.name} is now available.`,
-        { type: "HOMEWORK", studentId: s.id }
+        { type: "HOMEWORK", studentId: s.id, homeworkId: assignment.id }
       );
     }
 
@@ -333,7 +333,7 @@ export async function createResourceNotification(resourceId: number) {
         s.parentId,
         `📚 New Resource: ${resource.title}`,
         `New material shared for ${resource.lesson.subject.name}.`,
-        { type: "RESOURCE", studentId: s.id }
+        { type: "RESOURCE", studentId: s.id, resourceId: resource.id }
       );
     }
 

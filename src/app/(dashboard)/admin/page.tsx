@@ -58,8 +58,6 @@ const AdminPage = async ({
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
   // 1. DATA FETCHING (CONSOLIDATED MEGA-QUERY FOR 90% LATENCY REDUCTION)
-  console.log(`🚀 [DASHBOARD] Fetching for School: ${schoolId}`);
-
   const getMegaStats = async () => {
     try {
       const [
@@ -209,6 +207,7 @@ const AdminPage = async ({
            currentIncome={currentIncome}
            currentExpense={currentExpense}
            prevIncome={prevIncome}
+           schoolId={schoolId}
         />
       </Suspense>
 

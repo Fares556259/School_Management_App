@@ -17,6 +17,7 @@ interface DashboardAppendageProps {
   currentIncome: number;
   currentExpense: number;
   prevIncome: number;
+  schoolId: string;
 }
 
 export default async function DashboardAppendage({
@@ -26,7 +27,8 @@ export default async function DashboardAppendage({
   locale,
   currentIncome,
   currentExpense,
-  prevIncome
+  prevIncome,
+  schoolId
 }: DashboardAppendageProps) {
   const t = translations[locale];
   const now = new Date();
@@ -52,14 +54,14 @@ export default async function DashboardAppendage({
         (SELECT json_agg(t) FROM (
           SELECT category, SUM(amount)::float as total 
           FROM "Income" 
-          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Tuition'
+          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Tuition' AND "schoolId" = ${schoolId}
           GROUP BY category
         ) t) as income_categories,
         
         (SELECT json_agg(t) FROM (
           SELECT category, SUM(amount)::float as total 
           FROM "Expense" 
-          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Salary'
+          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Salary' AND "schoolId" = ${schoolId}
           GROUP BY category
         ) t) as expense_categories,
 
@@ -67,14 +69,14 @@ export default async function DashboardAppendage({
         (SELECT json_agg(t) FROM (
           SELECT date_trunc('month', date) as month, SUM(amount)::float as total
           FROM "Income"
-          WHERE date >= ${twelveMonthsAgo}
+          WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId}
           GROUP BY 1 ORDER BY 1
         ) t) as income_trend,
 
         (SELECT json_agg(t) FROM (
           SELECT date_trunc('month', date) as month, SUM(amount)::float as total
           FROM "Expense"
-          WHERE date >= ${twelveMonthsAgo}
+          WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId}
           GROUP BY 1 ORDER BY 1
         ) t) as expense_trend
     `;

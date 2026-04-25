@@ -26,12 +26,14 @@ export async function GET(request: NextRequest) {
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { classId: true },
+      select: { classId: true, schoolId: true },
     });
 
     if (!student) {
       return new NextResponse("Student not found", { status: 404 });
     }
+
+    const schoolId = student.schoolId;
 
     // Determine today's day correctly ignoring timezone shifts
     let now = new Date();
@@ -112,8 +114,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 1. Attendance boundaries
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    // Use UTC to avoid timezone issues when filtering by date
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
 
     // Group 1: Sequential lookups to respect connection pool
     const slots = await prisma.timetableSlot.findMany({
@@ -143,24 +146,28 @@ export async function GET(request: NextRequest) {
     // Group 2: Sequential lookups that depend on lessonIds or classId
     const tasksDue = await prisma.assignment.findMany({
       where: { 
-        lessonId: { in: lessonIds }, 
-        dueDate: { gte: todayStart, lt: todayEnd } 
+        lesson: { classId: student.classId },
+        dueDate: { gte: todayStart, lt: todayEnd },
+        schoolId
       },
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
     
+    // Modified: tasksGiven should be for ANY lesson in the student's class given TODAY
     const tasksGiven = await prisma.assignment.findMany({
       where: { 
-        lessonId: { in: lessonIds }, 
-        startDate: { gte: todayStart, lt: todayEnd } 
+        lesson: { classId: student.classId },
+        startDate: { gte: todayStart, lt: todayEnd },
+        schoolId
       },
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
     
     const upcomingExams = await prisma.exam.findMany({
       where: { 
-        lessonId: { in: lessonIds }, 
-        startTime: { gte: todayStart, lt: weekEnd } 
+        lesson: { classId: student.classId },
+        startTime: { gte: todayStart, lt: weekEnd },
+        schoolId
       },
       include: { lesson: { include: { subject: true, teacher: true } } },
       orderBy: { startTime: "asc" },
@@ -177,10 +184,12 @@ export async function GET(request: NextRequest) {
       take: 5,
     });
     
+    // Modified: resources should be for ANY lesson in the student's class created TODAY
     const resources = await prisma.resource.findMany({
       where: {
-        lessonId: { in: lessonIds },
-        createdAt: { gte: todayStart, lt: todayEnd }
+        lesson: { classId: student.classId },
+        createdAt: { gte: todayStart, lt: todayEnd },
+        schoolId
       },
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
@@ -276,19 +285,46 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       sessions,
       examPeriods,
+      holidayName,
       tasksDue: tasksDue.map((a) => ({
         id: a.id,
         title: a.title,
+        description: a.description,
+        img: a.img,
         subject: a.lesson.subject.name,
         teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
         dueDate: a.dueDate,
+        startDate: a.startDate,
+      })),
+      homeworkDue: tasksDue.map((a) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        img: a.img,
+        subject: a.lesson.subject.name,
+        teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
+        dueDate: a.dueDate,
+        startDate: a.startDate,
       })),
       tasksGiven: tasksGiven.map((a) => ({
         id: a.id,
         title: a.title,
+        description: a.description,
+        img: a.img,
         subject: a.lesson.subject.name,
         teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
         dueDate: a.dueDate,
+        startDate: a.startDate,
+      })),
+      homeworkGiven: tasksGiven.map((a) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        img: a.img,
+        subject: a.lesson.subject.name,
+        teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
+        dueDate: a.dueDate,
+        startDate: a.startDate,
       })),
       upcomingExams: upcomingExams.map((e) => ({
         id: e.id,
@@ -300,6 +336,13 @@ export async function GET(request: NextRequest) {
       })),
       teacherRemarks: teacherRemarks,
       resources: resources.map((r) => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        subject: r.lesson.subject.name,
+        teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}`,
+      })),
+      files: resources.map((r) => ({
         id: r.id,
         title: r.title,
         url: r.url,

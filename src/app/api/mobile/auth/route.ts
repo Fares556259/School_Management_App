@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Resolve school — use provided schoolId, or fall back to "default_school"
     const resolvedSchoolId = schoolId || "default_school";
 
-    const parent = await prisma.parent.findFirst({
+    let user: any = await prisma.parent.findFirst({
       where: {
         OR: [{ phone: phone.trim() }, { username: phone.trim() }],
       },
@@ -30,13 +30,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (parent) {
-      console.log(
-        `[Mobile Auth POST] ID: ${parent.id}, Name: ${parent.name}, School: ${resolvedSchoolId}, HasPassword: ${!!parent.password}, Action: ${action}`
-      );
+    let userType = "parent";
+
+    if (!user) {
+      user = await prisma.teacher.findFirst({
+        where: {
+          OR: [{ phone: phone.trim() }, { username: phone.trim() }],
+        },
+        orderBy: { id: "asc" },
+      });
+      if (user) userType = "teacher";
     }
 
-    if (!parent) {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: "No account found with this number." },
         { status: 404 }
@@ -44,19 +50,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "setup") {
-      if (parent.password) {
+      if (user.password) {
         return NextResponse.json(
           { success: false, error: "This account already has a password set." },
           { status: 400 }
         );
       }
       const hashedPassword = await bcrypt.hash(password, 10);
-      await prisma.parent.update({
-        where: { id: parent.id },
-        data: { password: hashedPassword },
-      });
+      if (userType === "parent") {
+        await prisma.parent.update({
+          where: { id: user.id },
+          data: { password: hashedPassword },
+        });
+      } else {
+        await prisma.teacher.update({
+          where: { id: user.id },
+          data: { password: hashedPassword, activated: true },
+        });
+      }
     } else if (action === "signin") {
-      if (!parent.password) {
+      if (!user.password) {
         return NextResponse.json(
           {
             success: false,
@@ -65,7 +78,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const isValid = await bcrypt.compare(password, parent.password);
+      const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
         return NextResponse.json(
           { success: false, error: "Incorrect password. Please try again." },
@@ -79,14 +92,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Success — return session data including schoolId for subsequent requests
+    // Success — return session data
     return NextResponse.json({
       success: true,
-      parentId: parent.id,
-      schoolId: parent.schoolId,
-      name: `${parent.name} ${parent.surname}`,
-      img: parent.img,
-      students: parent.students,
+      userId: user.id,
+      userType,
+      schoolId: user.schoolId,
+      name: `${user.name} ${user.surname}`,
+      img: user.img,
+      students: userType === "parent" ? user.students : [],
     });
   } catch (error: any) {
     console.error("[Mobile Auth Error]", error);

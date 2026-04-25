@@ -41,6 +41,8 @@ export default function AttendancePage() {
   const [isDirty, setIsDirty] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Status | "ALL">("ALL");
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
 
   // Load classes on mount
   useEffect(() => {
@@ -68,15 +70,20 @@ export default function AttendancePage() {
     setLessons(fetchedLessons);
 
     if (fetchedLessons.length > 0) {
-      if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => l.id === selectedLesson)) {
-        setSelectedLesson(fetchedLessons[0].id);
+      const firstLessonId = String(fetchedLessons[0].id);
+      if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => String(l.id) === selectedLesson)) {
+        if (selectedLesson !== firstLessonId) {
+          setSelectedLesson(firstLessonId);
+        }
       }
-    } else {
+    } else if (selectedLesson !== "") {
       setSelectedLesson("");
     }
 
     const studentsArray = Array.isArray(data?.students) ? data.students : Array.isArray(data) ? data : [];
     setStudents(studentsArray);
+    setAssignments(data?.assignments || []);
+    setResources(data?.resources || []);
 
     const initialStatuses: Record<string, Status> = {};
     const initialNotes: Record<string, { author: string; text: string }[]> = {};
@@ -156,16 +163,14 @@ export default function AttendancePage() {
   const lateCount = Object.values(statuses).filter((s) => s === "LATE").length;
   const unmarked = total - presentCount - absentCount - lateCount;
 
-  const filtered = (Array.isArray(students) ? students : []).filter((s) => {
-    const matchSearch =
-      !search ||
-      `${s.name} ${s.surname}`.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "ALL" || statuses[s.id] === filter || (filter === null && !statuses[s.id]);
-    return matchSearch && matchFilter;
+  const filtered = (students || []).filter((s) => {
+    const fullName = `${s.name || ""} ${s.surname || ""}`.toLowerCase();
+    const matchesSearch = !search || fullName.includes(search.toLowerCase());
+    const matchesFilter = filter === "ALL" || statuses[s.id] === filter || (filter === null && !statuses[s.id]);
+    return matchesSearch && matchesFilter;
   });
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
@@ -180,27 +185,8 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        {/* Lesson Actions */}
+        {/* Lesson Actions - Moved to Workspace */}
         <div className="flex items-center gap-3 mt-4 md:mt-0">
-          {selectedLesson && selectedLesson !== "ALL" && (
-            <>
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lesson Actions:</span>
-                <div className="flex gap-2">
-                   <FormModal 
-                    table="assignment" 
-                    type="create" 
-                    data={{ lessonId: parseInt(selectedLesson) }}
-                  />
-                  <FormModal 
-                    table="resource" 
-                    type="create" 
-                    data={{ lessonId: parseInt(selectedLesson) }}
-                  />
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
 
@@ -238,7 +224,7 @@ export default function AttendancePage() {
             {lessons.length === 0 && <option value="">No sessions today</option>}
             {lessons.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.subject?.name || l.name} ({new Date(l.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                {l.subject?.name || l.name} {l.startTime ? `(${new Date(l.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ""}
               </option>
             ))}
           </select>
@@ -327,7 +313,7 @@ export default function AttendancePage() {
       </div>
 
       {/* Student Table */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <svg className="w-8 h-8 animate-spin mb-4 text-indigo-400" fill="none" viewBox="0 0 24 24">
@@ -511,6 +497,144 @@ export default function AttendancePage() {
           </div>
         )}
       </div>
+
+      {/* Lesson Activities Section (Moved to Bottom) */}
+      {selectedLesson && selectedLesson !== "ALL" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {/* Tasks Column */}
+          <div className="bg-white rounded-[2rem] shadow-xl shadow-indigo-100/20 border border-slate-100 overflow-hidden flex flex-col group transition-all hover:shadow-2xl hover:shadow-indigo-100/40">
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-200 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight">Lesson Tasks</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Assignments & Homework</p>
+                </div>
+              </div>
+              <FormModal 
+                table="assignment" 
+                type="create" 
+                data={{ 
+                  lessonId: lessons.find(l => l.id === selectedLesson)?.realLessonId || -1,
+                  classId: selectedClass
+                }}
+              />
+            </div>
+            <div className="p-6 flex-1 max-h-[500px] overflow-y-auto space-y-6">
+              {assignments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-bold">No tasks assigned yet.</p>
+                </div>
+              ) : (
+                assignments.map((task) => (
+                  <div key={task.id} className="relative bg-white border border-slate-100 rounded-3xl p-6 transition-all hover:border-amber-300 hover:shadow-lg group/item">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-black text-slate-800 mb-1 group-hover/item:text-amber-600 transition-colors">{task.title}</h3>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                             Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "TBD"}
+                           </span>
+                        </div>
+                      </div>
+                    </div>
+                    {task.description && (
+                      <p className="text-sm text-slate-500 mb-6 leading-relaxed line-clamp-3">{task.description}</p>
+                    )}
+                    {task.img && (
+                      <a 
+                        href={task.img} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 hover:bg-amber-500 rounded-2xl text-xs font-black text-slate-600 hover:text-white transition-all border border-slate-100 hover:border-amber-400 group/btn shadow-sm"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        PREVIEW ATTACHMENT
+                      </a>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Resources Column */}
+          <div className="bg-white rounded-[2rem] shadow-xl shadow-indigo-100/20 border border-slate-100 overflow-hidden flex flex-col group transition-all hover:shadow-2xl hover:shadow-indigo-100/40">
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight">Resources</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Documents & Materials</p>
+                </div>
+              </div>
+              <FormModal 
+                table="resource" 
+                type="create" 
+                data={{ 
+                  lessonId: lessons.find(l => l.id === selectedLesson)?.realLessonId || -1,
+                  classId: selectedClass
+                }}
+              />
+            </div>
+            <div className="p-6 flex-1 max-h-[500px] overflow-y-auto space-y-4">
+              {resources.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-300">
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-bold">No resources shared yet.</p>
+                </div>
+              ) : (
+                resources.map((res) => (
+                  <div key={res.id} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 rounded-[1.5rem] transition-all group/res">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm border border-slate-100 group-hover/res:scale-110 transition-transform">
+                         <span className="text-xl">📄</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-slate-800 truncate leading-tight mb-0.5">{res.title}</p>
+                        <p className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-tight">
+                          {res.description || "Educational Material"}
+                        </p>
+                      </div>
+                    </div>
+                    <a 
+                      href={res.url} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 flex items-center justify-center transition-all shadow-sm hover:shadow-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </a>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  ;
 }

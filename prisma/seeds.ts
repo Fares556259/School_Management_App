@@ -1,215 +1,286 @@
-import { Day, PrismaClient, UserSex, AttendanceStatus } from "@prisma/client";
+import { Day, PrismaClient, UserSex, AttendanceStatus, PaymentStatus } from "@prisma/client";
 import "dotenv/config";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Cleaning up database...");
-  await prisma.gradeSheet.deleteMany();
-  await prisma.attendance.deleteMany();
-  await prisma.grade.deleteMany();
-  await prisma.result.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.assignment.deleteMany();
-  await prisma.exam.deleteMany();
-  await prisma.timetableSlot.deleteMany();
-  await prisma.lesson.deleteMany();
-  await prisma.student.deleteMany();
-  await prisma.class.deleteMany();
-  await prisma.teacher.deleteMany();
-  await prisma.subject.deleteMany();
-  await prisma.level.deleteMany();
-  await prisma.parent.deleteMany();
-  await prisma.examPeriodConfig.deleteMany();
-  await prisma.staff.deleteMany();
-  await prisma.admin.deleteMany();
+  const schoolId = "rayens-school";
+  const userId = "user_3ChR7zuRhdCEM0PXNmJDTg2MhmB";
 
-  console.log("Seeding small, realistic data...");
+  console.log(`🚀 Starting Seed Generation for School: ${schoolId}...`);
 
-  // SCHOOL
-  await prisma.school.upsert({
-    where: { id: "default_school" },
-    update: {},
-    create: {
-      id: "default_school",
-      name: "SnapSchool Primary",
-      subdomain: "primary",
-      updatedAt: new Date(),
+  // 1. CLEANUP
+  console.log("🧹 Cleaning up existing data...");
+  const tables = [
+    'Attendance', 'AuditLog', 'Result', 'Grade', 'GradeSheet', 'Payment', 
+    'Assignment', 'Resource', 'Exam', 'Lesson', 'TimetableSlot', 
+    'Student', 'Class', 'Teacher', 'Subject', 'Level', 'Parent', 'Staff', 
+    'Admin', 'Notice', 'Notification', 'ExamPeriodConfig', 'Institution'
+  ];
+  
+  for (const table of tables) {
+    try {
+      await (prisma as any)[table.toLowerCase()].deleteMany();
+    } catch (e) {
+      // Some table names might not match perfectly with pluralization in lowercase
+      if (table === 'Attendance') await prisma.attendance.deleteMany();
+      if (table === 'AuditLog') await prisma.auditLog.deleteMany();
     }
-  });
-
-  // ADMIN
-  await prisma.admin.create({
-    data: { id: "admin1", username: "admin", name: "Super", surname: "Admin", email: "admin@example.com" },
-  });
-
-  // LEVELS
-  const level1 = await prisma.level.create({ data: { level: 1 } });
-  const level2 = await prisma.level.create({ data: { level: 2 } });
-
-  // CLASSES
-  const class1A = await prisma.class.create({ data: { name: "1A", levelId: level1.id, capacity: 25 } });
-  const class2A = await prisma.class.create({ data: { name: "2A", levelId: level2.id, capacity: 25 } });
-
-  // SUBJECTS
-  const math = await prisma.subject.create({ data: { name: "Mathematics", domain: "Science" } });
-  const french = await prisma.subject.create({ data: { name: "French", domain: "Languages" } });
-  const physics = await prisma.subject.create({ data: { name: "Physics", domain: "Science" } });
-
-  // TEACHER
-  const teacher1 = await prisma.teacher.create({
-    data: {
-      id: "t1", username: "tarek1", name: "Tarek", surname: "Ben Ali", email: "tarek@school.com", phone: "555-0101", address: "Tunis", bloodType: "O+", sex: UserSex.MALE,
-      birthday: new Date("1985-05-15"), salary: 2500,
-      subjects: { connect: [{ id: math.id }, { id: physics.id }] },
-      classes: { connect: [{ id: class1A.id }, { id: class2A.id }] }
-    }
-  });
-
-  const teacher2 = await prisma.teacher.create({
-    data: {
-      id: "t2", username: "sarah1", name: "Sarah", surname: "Mabrouk", email: "sarah@school.com", phone: "555-0102", address: "Ariana", bloodType: "A+", sex: UserSex.FEMALE,
-      birthday: new Date("1990-08-22"), salary: 2500,
-      subjects: { connect: [{ id: french.id }] },
-      classes: { connect: [{ id: class1A.id }, { id: class2A.id }] }
-    }
-  });
-
-  // PARENT
-  const parentFares = await prisma.parent.create({
-    data: {
-      id: "parent1", username: "fares1", name: "Fares", surname: "Selmi", email: "parent@example.com", phone: "555-0200", address: "Tunis, Tunisia"
-    }
-  });
-
-  // STUDENTS
-  const amine = await prisma.student.create({
-    data: {
-      id: "student1", username: "amine1", name: "Amine", surname: "Selmi", email: "amine@example.com", phone: "555-0201", address: "Tunis, Tunisia", bloodType: "O+", sex: UserSex.MALE,
-      parentId: parentFares.id, levelId: level1.id, classId: class1A.id, birthday: new Date("2010-01-10"), img: "https://i.pravatar.cc/150?u=amine"
-    }
-  });
-
-  const youssef = await prisma.student.create({
-    data: {
-      id: "student2", username: "youssef1", name: "Youssef", surname: "Selmi", email: "youssef@example.com", phone: "555-0202", address: "Tunis, Tunisia", bloodType: "O+", sex: UserSex.MALE,
-      parentId: parentFares.id, levelId: level2.id, classId: class2A.id, birthday: new Date("2012-04-15"), img: "https://i.pravatar.cc/150?u=youssef"
-    }
-  });
-
-  // LESSONS
-  const l1 = await prisma.lesson.create({
-    data: { name: "Math Class 1A", day: Day.MONDAY, startTime: new Date("2026-04-13T08:00:00Z"), endTime: new Date("2026-04-13T10:00:00Z"), subjectId: math.id, classId: class1A.id, teacherId: teacher1.id }
-  });
-  const l2 = await prisma.lesson.create({
-    data: { name: "French Class 1A", day: Day.TUESDAY, startTime: new Date("2026-04-14T10:00:00Z"), endTime: new Date("2026-04-14T12:00:00Z"), subjectId: french.id, classId: class1A.id, teacherId: teacher2.id }
-  });
-
-  // TIMETABLE SLOTS for Amine (Class 1A)
-  const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY];
-  for (let d of days) {
-    await prisma.timetableSlot.create({
-      data: { day: d, slotNumber: 1, startTime: "08:00", endTime: "10:00", classId: class1A.id, subjectId: math.id, teacherId: teacher1.id }
-    });
-    await prisma.timetableSlot.create({
-      data: { day: d, slotNumber: 2, startTime: "10:00", endTime: "12:00", classId: class1A.id, subjectId: french.id, teacherId: teacher2.id }
-    });
-    // Class 2A (Youssef)
-    await prisma.timetableSlot.create({
-      data: { day: d, slotNumber: 1, startTime: "08:00", endTime: "10:00", classId: class2A.id, subjectId: french.id, teacherId: teacher2.id }
-    });
-    await prisma.timetableSlot.create({
-      data: { day: d, slotNumber: 2, startTime: "10:00", endTime: "12:00", classId: class2A.id, subjectId: physics.id, teacherId: teacher1.id }
-    });
   }
 
-  // ASSIGNMENTS
-  const today = new Date();
-  await prisma.assignment.create({
-    data: { title: "Algebra Homework", startDate: new Date(today.setHours(8)), dueDate: new Date(new Date().setDate(today.getDate() + 1)), lessonId: l1.id }
-  });
-  await prisma.assignment.create({
-    data: { title: "French Vocabulary Essay", startDate: new Date(today.setHours(9)), dueDate: new Date(new Date().setDate(today.getDate() + 2)), lessonId: l2.id }
-  });
-
-  // ATTENDANCE (Today)
-  const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
-  await prisma.attendance.create({
-    data: { date: todayStart, status: AttendanceStatus.PRESENT, studentId: amine.id }
-  });
-  await prisma.attendance.create({
-    data: { date: todayStart, status: AttendanceStatus.LATE, studentId: youssef.id, note: "Arrived 10 mins late" }
+  // 2. SCHOOL & INSTITUTION
+  console.log("🏢 Creating School Infrastructure...");
+  await prisma.school.upsert({
+    where: { id: schoolId },
+    update: { name: "Rayen's School" },
+    create: { id: schoolId, name: "Rayen's School", subdomain: "rayens", updatedAt: new Date() }
   });
 
-  // PAYMENTS
-  const currentYear = new Date().getFullYear();
-  await prisma.payment.create({
-    data: { amount: 120, month: 4, year: currentYear, status: "PENDING", userType: "STUDENT", studentId: amine.id }
-  });
-  await prisma.payment.create({
-    data: { amount: 120, month: 4, year: currentYear, status: "PAID", userType: "STUDENT", paidAt: new Date(), studentId: youssef.id }
-  });
-
-  // EXAM PERIODS
-  const week1Start = new Date("2026-04-13T00:00:00Z");
-  const week1End = new Date("2026-04-19T23:59:59Z");
-  const week2Start = new Date("2026-04-20T00:00:00Z");
-  const week2End = new Date("2026-04-26T23:59:59Z");
-
-  await prisma.examPeriodConfig.createMany({
-    data: [
-      { 
-        period: 1, 
-        startDate: week1Start, 
-        endDate: week1End, 
-        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
-      },
-      { 
-        period: 2, 
-        startDate: week2Start, 
-        endDate: week2End, 
-        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
-      },
-    ]
-  });
-
-  // EXAMS
-  await prisma.exam.create({
-    data: {
-      title: "Midterm Mathematics",
-      startTime: new Date("2026-04-16T09:00:00Z"),
-      endTime: new Date("2026-04-16T11:00:00Z"),
-      lessonId: l1.id
+  await prisma.institution.upsert({
+    where: { schoolId },
+    update: {},
+    create: {
+      schoolId,
+      schoolName: "Rayen's School Academy",
+      schoolLogo: "https://vdtjowscislyfdtmvykd.supabase.co/storage/v1/object/public/uploads/logo.png",
+      phone: "+216 22 123 456",
+      address: "Tunis, Tunisia",
     }
   });
 
-  await prisma.exam.create({
+  // 3. ADMIN
+  console.log("👤 Seeding Admin...");
+  await prisma.admin.create({
     data: {
-      title: "French oral exam",
-      startTime: new Date("2026-04-17T14:00:00Z"),
-      endTime: new Date("2026-04-17T15:30:00Z"),
-      lessonId: l2.id
-    }
-  });
-  
-  await prisma.exam.create({
-    data: {
-      title: "Physics Mock Test",
-      startTime: new Date("2026-04-18T10:00:00Z"),
-      endTime: new Date("2026-04-18T12:00:00Z"),
-      lessonId: l1.id // Reusing l1 for simplicity
+      id: userId,
+      username: "admin_fares",
+      name: "Fares",
+      surname: "Selmi",
+      email: "fares@snapschool.tn",
+      schoolId,
+      status: "active"
     }
   });
 
-  console.log("Seeding completed successfully: Fares Selmi (Parent), Amine & Youssef (Students), 2 Weeks of Exams.");
+  // 4. LEVELS
+  console.log("📈 Seeding Levels...");
+  const levelData = [
+    { level: 1, tuitionFee: 400 },
+    { level: 2, tuitionFee: 450 },
+    { level: 3, tuitionFee: 500 },
+    { level: 4, tuitionFee: 550 },
+    { level: 5, tuitionFee: 600 },
+    { level: 6, tuitionFee: 650 },
+  ];
+  const levels = [];
+  for (const l of levelData) {
+    const created = await prisma.level.create({ data: { ...l, schoolId } });
+    levels.push(created);
+  }
+
+  // 5. SUBJECTS
+  console.log("📚 Seeding Subjects...");
+  const subjectsData = [
+    { name: "Mathematics", domain: "Sciences" },
+    { name: "French", domain: "Languages" },
+    { name: "English", domain: "Languages" },
+    { name: "Science", domain: "Sciences" },
+    { name: "History", domain: "Humanities" },
+    { name: "Geography", domain: "Humanities" },
+    { name: "ICT", domain: "Technology" },
+    { name: "Art", domain: "Arts" },
+  ];
+  const subjects = [];
+  for (const s of subjectsData) {
+    const created = await prisma.subject.create({ data: { ...s, schoolId } });
+    subjects.push(created);
+  }
+
+  // 6. TEACHERS
+  console.log("👨‍🏫 Seeding Teachers...");
+  const teachers = [];
+  for (let i = 1; i <= 10; i++) {
+    const t = await prisma.teacher.create({
+      data: {
+        id: `teacher${i}`,
+        username: `teacher${i}`,
+        name: ["Ahmed", "Monia", "Sami", "Leila", "Karim", "Ines", "Omar", "Hana", "Zied", "Rim"][i-1],
+        surname: ["Ben Ali", "Mabrouk", "Trabelsi", "Gharbi", "Mansour", "Said", "Cherif", "Hammami", "Abidi", "Jlassi"][i-1],
+        email: `teacher${i}@rayens-school.tn`,
+        phone: `9812300${i}`,
+        address: "Tunis",
+        bloodType: "A+",
+        sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
+        birthday: new Date("1985-01-01"),
+        salary: 2800 + (i * 100),
+        schoolId,
+        subjects: { connect: [{ id: subjects[i % subjects.length].id }] }
+      }
+    });
+    teachers.push(t);
+  }
+
+  // 7. CLASSES
+  console.log("🏢 Seeding Classes...");
+  const classes = [];
+  for (let i = 0; i < levels.length; i++) {
+    for (const section of ["A", "B"]) {
+      const classObj = await prisma.class.create({
+        data: {
+          name: `${levels[i].level}${section}`,
+          levelId: levels[i].id,
+          capacity: 25,
+          supervisorId: teachers[i % teachers.length].id,
+          schoolId
+        }
+      });
+      classes.push(classObj);
+    }
+  }
+
+  // 8. PARENTS & STUDENTS
+  console.log("👨‍👩‍👧‍👦 Seeding Parents & Students (100)...");
+  const studentCount = 100;
+  for (let i = 1; i <= 50; i++) {
+    const parent = await prisma.parent.create({
+      data: {
+        id: `parent${i}`,
+        username: `parent${i}`,
+        name: `ParentName${i}`,
+        surname: `ParentSurname${i}`,
+        email: `parent${i}@gmail.com`,
+        phone: `550000${i.toString().padStart(2, '0')}`,
+        address: "Tunis",
+        schoolId
+      }
+    });
+
+    // Each parent has 2 students
+    for (let j = 1; j <= 2; j++) {
+      const sId = (i - 1) * 2 + j;
+      const classIdx = (sId - 1) % classes.length;
+      await prisma.student.create({
+        data: {
+          id: `student${sId}`,
+          username: `student${sId}`,
+          name: `StudentName${sId}`,
+          surname: `StudentSurname${sId}`,
+          address: "Tunis",
+          bloodType: "O+",
+          sex: sId % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
+          parentId: parent.id,
+          levelId: classes[classIdx].levelId,
+          classId: classes[classIdx].id,
+          birthday: new Date("2015-05-20"),
+          schoolId
+        }
+      });
+    }
+  }
+
+  // 9. LESSONS & TIMETABLE
+  console.log("📅 Seeding Timetable...");
+  const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY];
+  for (const classObj of classes) {
+    for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+      for (let slotNum = 1; slotNum <= 2; slotNum++) {
+        const subject = subjects[(dayIdx + slotNum + classObj.id) % subjects.length];
+        const teacher = teachers[(dayIdx + slotNum + classObj.id) % teachers.length];
+        
+        // Create Lesson
+        const lesson = await prisma.lesson.create({
+          data: {
+            name: `${subject.name} - ${classObj.name}`,
+            day: days[dayIdx],
+            startTime: new Date("2026-04-13T08:00:00Z"),
+            endTime: new Date("2026-04-13T10:00:00Z"),
+            subjectId: subject.id,
+            classId: classObj.id,
+            teacherId: teacher.id,
+            schoolId
+          }
+        });
+
+        // Create Slot
+        await prisma.timetableSlot.create({
+          data: {
+            day: days[dayIdx],
+            slotNumber: slotNum,
+            startTime: slotNum === 1 ? "08:00" : "10:00",
+            endTime: slotNum === 1 ? "10:00" : "12:00",
+            classId: classObj.id,
+            subjectId: subject.id,
+            teacherId: teacher.id,
+            schoolId
+          }
+        });
+      }
+    }
+  }
+
+  // 10. PAYMENTS (Recent 3 months)
+  console.log("💰 Seeding Payments...");
+  const currentYear = 2026;
+  const students = await prisma.student.findMany({ where: { schoolId } });
+  for (const s of students) {
+    const level = levels.find(l => l.id === s.levelId);
+    for (let m = 1; m <= 4; m++) {
+      const status = m < 4 ? PaymentStatus.PAID : PaymentStatus.PENDING;
+      await prisma.payment.create({
+        data: {
+          studentId: s.id,
+          amount: level?.tuitionFee || 450,
+          month: m,
+          year: currentYear,
+          status,
+          userType: "STUDENT",
+          paidAt: status === PaymentStatus.PAID ? new Date(currentYear, m-1, 10) : null,
+          schoolId
+        }
+      });
+    }
+  }
+
+  // 11. GENERAL FINANCIALS (Expenses & Incomes)
+  console.log("💸 Seeding General Financials...");
+  const expenseCats = ["Electricity", "Water", "Maintenance", "Cleaning", "Marketing"];
+  const incomeCats = ["Donations", "Events", "Cafeteria", "Books"];
+
+  for (let m = 1; m <= 4; m++) {
+    // Random general expenses
+    for (let j = 0; j < 3; j++) {
+      await prisma.expense.create({
+        data: {
+          title: `${expenseCats[j % expenseCats.length]} - Month ${m}`,
+          amount: 200 + Math.random() * 500,
+          category: expenseCats[j % expenseCats.length],
+          date: new Date(currentYear, m - 1, 15 + j),
+          schoolId
+        }
+      });
+    }
+    // Random general incomes
+    for (let j = 0; j < 2; j++) {
+      await prisma.income.create({
+        data: {
+          title: `${incomeCats[j % incomeCats.length]} - Month ${m}`,
+          amount: 400 + Math.random() * 1000,
+          category: incomeCats[j % incomeCats.length],
+          date: new Date(currentYear, m - 1, 20 + j),
+          schoolId
+        }
+      });
+    }
+  }
+
+  console.log("✅ Seed Generation Completed Successfully!");
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
+  .catch((e) => {
+    console.error("❌ Seeding Error:", e);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });

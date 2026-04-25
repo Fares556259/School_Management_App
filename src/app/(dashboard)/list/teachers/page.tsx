@@ -47,6 +47,11 @@ const columns = [
     className: "hidden lg:table-cell",
   },
   {
+    header: "Status",
+    accessor: "activated",
+    className: "hidden lg:table-cell",
+  },
+  {
     header: "Paid Status",
     accessor: "isPaid",
   },

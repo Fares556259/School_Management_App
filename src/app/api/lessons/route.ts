@@ -18,6 +18,7 @@ export async function GET(request: Request) {
       include: {
         subject: true,
         class: true,
+        teacher: true,
       },
       orderBy: {
         name: "asc",

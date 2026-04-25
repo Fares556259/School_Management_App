@@ -13,27 +13,14 @@ import prisma from "./prisma";
 export async function getSchoolId(): Promise<string> {
   try {
     const { userId, sessionClaims } = auth();
-    if (!userId) return "default_school";
+    console.log(`[getSchoolId] Resolving for User: ${userId}`);
 
-    // 1. Fast path — JWT session claims (set when admin logs in)
-    const schoolIdFromClaims = (sessionClaims as any)?.metadata?.schoolId as
-      | string
-      | undefined;
-    if (schoolIdFromClaims) return schoolIdFromClaims;
-
-    // 2. Clerk API fallback
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      const schoolIdFromClerk = user.publicMetadata?.schoolId as
-        | string
-        | undefined;
-      if (schoolIdFromClerk) return schoolIdFromClerk;
-    } catch {
-      // Clerk unreachable — continue to DB fallback
+    if (!userId) {
+      console.log(`[getSchoolId] No userId found, returning default_school`);
+      return "default_school";
     }
 
-    // 3. DB Admin record fallback
+    // 1. Check DB Admin record first (allows manual overrides)
     const admin = await prisma.admin.findUnique({
       where: { id: userId },
       select: { schoolId: true },
@@ -42,11 +29,29 @@ export async function getSchoolId(): Promise<string> {
       console.log(`[getSchoolId] Resolved from DB for ${userId}: ${admin.schoolId}`);
       return admin.schoolId;
     }
+
+    // 2. Fallback to JWT session claims
+    const schoolIdFromClaims = (sessionClaims as any)?.metadata?.schoolId as string | undefined;
+    if (schoolIdFromClaims) {
+      console.log(`[getSchoolId] Resolved from CLAIMS for ${userId}: ${schoolIdFromClaims}`);
+      return schoolIdFromClaims;
+    }
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      const schoolIdFromClerk = user.publicMetadata?.schoolId as string | undefined;
+      if (schoolIdFromClerk) {
+        console.log(`[getSchoolId] Resolved from CLERK API for ${userId}: ${schoolIdFromClerk}`);
+        return schoolIdFromClerk;
+      }
+    } catch (e) {
+      console.log(`[getSchoolId] Clerk API check failed for ${userId}`);
+    }
+
   } catch (err) {
     console.error("[getSchoolId] Resolution failed, using default:", err);
   }
 
-  // 4. Safe fallback — single-school deployments or seeded data
   console.log(`[getSchoolId] Using default fallback: default_school`);
   return "default_school";
 }

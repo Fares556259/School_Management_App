@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Phone number is required", { status: 400 });
     }
 
-    const parent = await prisma.parent.findFirst({
+    let user: any = await prisma.parent.findFirst({
       where: {
         OR: [
           { phone: phone.trim() },
@@ -22,25 +22,38 @@ export async function POST(request: NextRequest) {
       orderBy: { id: 'asc' }
     });
 
-    if (parent) {
-      console.log(`[Mobile Login Status] ID: ${parent.id}, Name: ${parent.name}, HasPassword: ${!!parent.password}`);
+    let userType = "parent";
+
+    if (!user) {
+      user = await prisma.teacher.findFirst({
+        where: {
+          OR: [
+            { phone: phone.trim() },
+            { username: phone.trim() }
+          ]
+        },
+        orderBy: { id: 'asc' }
+      });
+      if (user) userType = "teacher";
     }
 
-    if (!parent) {
-      return new NextResponse("No parent account found with that phone number.", { status: 404 });
+    if (!user) {
+      return new NextResponse("No account found with that phone number.", { status: 404 });
     }
 
     // New logic for multi-step auth - Strictly check for a valid hashed password
-    const hasPassword = !!parent.password && parent.password.length > 10; 
+    const hasPassword = !!user.password && user.password.length > 10; 
 
-    console.log(`[Mobile Login Status] ID: ${parent.id}, Name: ${parent.name}, HasPasswordDetected: ${hasPassword}, RawLen: ${parent.password?.length || 0}`);
+    console.log(`[Mobile Login Status] Type: ${userType}, ID: ${user.id}, Name: ${user.name}, HasPasswordDetected: ${hasPassword}`);
+    
     return NextResponse.json({
       success: true,
       status: hasPassword ? "NEEDS_PASSWORD" : "NEEDS_SETUP",
-      parentId: parent.id,
-      schoolId: parent.schoolId,
-      name: `${parent.name} ${parent.surname}`,
-      img: parent.img,
+      userId: user.id,
+      userType,
+      schoolId: user.schoolId,
+      name: `${user.name} ${user.surname}`,
+      img: user.img,
     });
   } catch (error) {
     console.error("[Mobile Login Error]", error);

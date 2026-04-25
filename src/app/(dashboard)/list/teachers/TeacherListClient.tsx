@@ -73,8 +73,19 @@ export default function TeacherListClient({
         <td className="hidden md:table-cell">
           {item.classes.map((c) => c.name).join(",")}
         </td>
-        <td className="hidden md:table-cell">{item.phone}</td>
-        <td className="hidden md:table-cell">{item.address}</td>
+        <td className="hidden lg:table-cell">{item.phone}</td>
+        <td className="hidden lg:table-cell">{item.address}</td>
+        <td className="hidden lg:table-cell">
+          {item.activated ? (
+            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+              Activated
+            </span>
+          ) : (
+            <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-bold">
+              Pending
+            </span>
+          )}
+        </td>
         <td>
           <PaySalaryModal 
             teacherId={item.id} 

@@ -95,6 +95,9 @@ model Teacher {
   birthday    DateTime
   salary      Float           @default(3000)
   schoolId    String          @default("default_school")
+  password    String?
+  activated   Boolean         @default(false)
+  expoPushToken String?
   classes     Class[]
   gradeSheets GradeSheet[]
   lessons     Lesson[]
@@ -256,26 +259,29 @@ model Exam {
 }
 
 model Assignment {
-  id        Int      @id @default(autoincrement())
-  title     String
-  startDate DateTime
-  dueDate   DateTime
-  lessonId  Int
-  schoolId  String   @default("default_school")
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
-  School    School   @relation(fields: [schoolId], references: [id])
-  results   Result[]
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  img         String?
+  startDate   DateTime
+  dueDate     DateTime
+  lessonId    Int
+  schoolId    String   @default("default_school")
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  School      School   @relation(fields: [schoolId], references: [id])
+  results     Result[]
 }
 
 model Resource {
-  id        Int      @id @default(autoincrement())
-  title     String
-  url       String
-  lessonId  Int
-  schoolId  String   @default("default_school")
-  createdAt DateTime @default(now())
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
-  School    School   @relation(fields: [schoolId], references: [id])
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  url         String
+  lessonId    Int
+  schoolId    String   @default("default_school")
+  createdAt   DateTime @default(now())
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  School      School   @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])
   @@index([lessonId])

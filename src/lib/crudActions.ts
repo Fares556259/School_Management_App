@@ -1065,6 +1065,8 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
 // ===================== ASSIGNMENT =====================
 export const createAssignment = async (data: {
   title: string;
+  description?: string;
+  img?: string;
   startDate: string;
   dueDate: string;
   lessonId: number;
@@ -1072,13 +1074,15 @@ export const createAssignment = async (data: {
   try {
     const schoolId = await getSchoolId();
     const assignment = await prisma.assignment.create({
-      data: {
-        schoolId,
-        title: data.title,
-        startDate: new Date(data.startDate),
-        dueDate: new Date(data.dueDate),
-        lessonId: data.lessonId,
-      },
+        data: {
+          schoolId,
+          title: data.title,
+          description: data.description || null,
+          img: data.img || null,
+          startDate: new Date(data.startDate),
+          dueDate: new Date(data.dueDate),
+          lessonId: data.lessonId,
+        },
     });
 
     await createAuditLog({
@@ -1092,6 +1096,7 @@ export const createAssignment = async (data: {
     await createAssignmentNotification(assignment.id);
 
     revalidatePath("/list/assignments");
+    revalidatePath("/admin/attendance");
     return { success: true };
   } catch (err: any) {
     console.error("createAssignment error:", err);
@@ -1103,6 +1108,8 @@ export const updateAssignment = async (
   id: number,
   data: Partial<{
     title: string;
+    description: string;
+    img: string;
     startDate: string;
     dueDate: string;
     lessonId: number;
@@ -1123,6 +1130,7 @@ export const updateAssignment = async (
     });
 
     revalidatePath("/list/assignments");
+    revalidatePath("/admin/attendance");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to update assignment." };
@@ -1148,9 +1156,9 @@ export const deleteAssignment = async (id: number) => {
   }
 };
 
-// ===================== RESOURCE =====================
 export const createResource = async (data: {
   title: string;
+  description?: string;
   url: string;
   lessonId: number;
 }) => {
@@ -1160,6 +1168,7 @@ export const createResource = async (data: {
       data: {
         schoolId,
         title: data.title,
+        description: data.description || null,
         url: data.url,
         lessonId: data.lessonId,
       },
@@ -1175,7 +1184,8 @@ export const createResource = async (data: {
     // Trigger Notifications
     await createResourceNotification(resource.id);
 
-    revalidatePath("/list/lessons"); // Since resources are often viewed there
+    revalidatePath("/list/lessons"); 
+    revalidatePath("/admin/attendance");
     return { success: true };
   } catch (err: any) {
     console.error("createResource error:", err);
@@ -1195,6 +1205,8 @@ export const deleteResource = async (id: number) => {
       description: `Deleted resource: ${resource?.title}`,
     });
 
+    revalidatePath("/list/resources");
+    revalidatePath("/admin/attendance");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to delete resource." };
