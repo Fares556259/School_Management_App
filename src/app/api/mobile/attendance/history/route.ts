@@ -119,11 +119,12 @@ export async function GET(request: NextRequest) {
           if (record || isPast) {
              const finalStatus = record?.status || "PRESENT";
              
-             sessions.push({
-               id: record?.id || `v-${dateKey}-${slot.id}`,
-               subject: slot.subject?.name || "General",
-               status: finalStatus
-             });
+              sessions.push({
+                id: record?.id || `v-${dateKey}-${slot.id}`,
+                subject: slot.subject?.name || "General",
+                status: finalStatus,
+                score: record?.score || null
+              });
 
              if (finalStatus === "ABSENT") dayStatus = "ABSENT";
              else if (finalStatus === "LATE" && dayStatus !== "ABSENT") dayStatus = "LATE";
@@ -149,7 +150,8 @@ export async function GET(request: NextRequest) {
             sessions.push({
               id: record.id,
               subject: record.lesson?.subject?.name || "Manual Record",
-              status: record.status
+              status: record.status,
+              score: record.score || null
             });
 
             if (record.status === "ABSENT") dayStatus = "ABSENT";

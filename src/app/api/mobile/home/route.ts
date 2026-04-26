@@ -279,6 +279,7 @@ export async function GET(request: NextRequest) {
         startTime: slot.startTime,
         endTime: slot.endTime,
         attendance: finalStatus, // PRESENT | ABSENT | LATE | null (if future & not marked)
+        score: att?.score || null,
       };
     });
 

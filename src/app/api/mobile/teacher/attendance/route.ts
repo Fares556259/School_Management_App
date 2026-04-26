@@ -90,7 +90,8 @@ export async function POST(request: NextRequest) {
           },
           update: { 
             status: record.status,
-            note: formattedNote
+            note: formattedNote,
+            score: record.score !== undefined ? parseInt(record.score) : undefined
           },
           create: {
             studentId: record.studentId,
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
             lessonId: effectiveLessonId,
             status: record.status,
             note: formattedNote,
+            score: record.score !== undefined ? parseInt(record.score) : null,
             schoolId: schoolId
           }
         });
@@ -116,7 +118,8 @@ export async function POST(request: NextRequest) {
             where: { id: existing.id },
             data: { 
               status: record.status,
-              note: formattedNote
+              note: formattedNote,
+              score: record.score !== undefined ? parseInt(record.score) : undefined
             }
           });
         } else {
@@ -127,6 +130,7 @@ export async function POST(request: NextRequest) {
               lessonId: null,
               status: record.status,
               note: formattedNote,
+              score: record.score !== undefined ? parseInt(record.score) : null,
               schoolId: schoolId
             }
           });

@@ -499,6 +499,7 @@ model Attendance {
   justificationNote   String?
   justificationStatus String           @default("PENDING")
   schoolId            String           @default("default_school")
+  score               Int?
   lesson              Lesson?          @relation(fields: [lessonId], references: [id])
   School              School           @relation(fields: [schoolId], references: [id])
   student             Student          @relation(fields: [studentId], references: [id])
