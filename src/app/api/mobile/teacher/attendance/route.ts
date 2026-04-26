@@ -79,6 +79,10 @@ export async function POST(request: NextRequest) {
         formattedNote = JSON.stringify([{ author: "Teacher", text: formattedNote }]);
       }
 
+      // Robust score parsing
+      const rawScore = record.score;
+      const parsedScore = (rawScore !== undefined && rawScore !== null && rawScore !== "") ? parseInt(rawScore.toString()) : null;
+
       if (effectiveLessonId) {
         return prisma.attendance.upsert({
           where: {
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
           update: { 
             status: record.status,
             note: formattedNote,
-            score: record.score !== undefined ? parseInt(record.score) : undefined
+            score: isNaN(parsedScore as any) ? undefined : parsedScore
           },
           create: {
             studentId: record.studentId,
@@ -99,7 +103,7 @@ export async function POST(request: NextRequest) {
             lessonId: effectiveLessonId,
             status: record.status,
             note: formattedNote,
-            score: record.score !== undefined ? parseInt(record.score) : null,
+            score: isNaN(parsedScore as any) ? null : parsedScore,
             schoolId: schoolId
           }
         });
@@ -119,7 +123,7 @@ export async function POST(request: NextRequest) {
             data: { 
               status: record.status,
               note: formattedNote,
-              score: record.score !== undefined ? parseInt(record.score) : undefined
+              score: isNaN(parsedScore as any) ? undefined : parsedScore
             }
           });
         } else {
@@ -130,7 +134,7 @@ export async function POST(request: NextRequest) {
               lessonId: null,
               status: record.status,
               note: formattedNote,
-              score: record.score !== undefined ? parseInt(record.score) : null,
+              score: isNaN(parsedScore as any) ? null : parsedScore,
               schoolId: schoolId
             }
           });

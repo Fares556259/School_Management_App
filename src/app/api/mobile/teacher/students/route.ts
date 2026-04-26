@@ -82,13 +82,27 @@ export async function GET(request: NextRequest) {
     const lessonId = lessons[0]?.id || null;
     const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
 
-    const studentData = students.map(s => ({
-      id: s.id,
-      name: s.name,
-      surname: s.surname,
-      img: s.img,
-      attendanceStatus: s.attendance[0]?.status || null
-    }));
+    const studentData = students.map(s => {
+      const att = s.attendance[0];
+      let displayNote = att?.note || "";
+      // If it's a JSON string, try to extract the first text
+      if (displayNote.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(displayNote);
+          displayNote = parsed[0]?.text || "";
+        } catch (e) {}
+      }
+
+      return {
+        id: s.id,
+        name: s.name,
+        surname: s.surname,
+        img: s.img,
+        attendanceStatus: att?.status || null,
+        note: displayNote,
+        score: att?.score || 0
+      };
+    });
 
     return NextResponse.json({
       students: studentData,
