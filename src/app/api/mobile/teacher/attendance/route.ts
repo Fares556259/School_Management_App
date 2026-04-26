@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teacherId, classId, records, date, lessonId } = body;
+    const { teacherId, classId, records, date, lessonId, task, resource } = body;
 
     if (!teacherId || !records || !Array.isArray(records)) {
       return new NextResponse("Missing required fields", { status: 400 });
@@ -72,9 +72,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Bulk upsert records
-    // We use native upsert for non-null lessonIds (fastest) 
-    // and manual check for null lessonIds (necessary for Prisma unique constraints)
     const ops = records.map(async (record: any) => {
+      // Format note as a standard SnapSchool JSON string if provided
+      let formattedNote = record.note || null;
+      if (formattedNote && !formattedNote.startsWith("[")) {
+        formattedNote = JSON.stringify([{ author: "Teacher", text: formattedNote }]);
+      }
+
       if (effectiveLessonId) {
         return prisma.attendance.upsert({
           where: {
@@ -84,17 +88,20 @@ export async function POST(request: NextRequest) {
               lessonId: effectiveLessonId
             }
           },
-          update: { status: record.status },
+          update: { 
+            status: record.status,
+            note: formattedNote
+          },
           create: {
             studentId: record.studentId,
             date: attendanceDate,
             lessonId: effectiveLessonId,
             status: record.status,
+            note: formattedNote,
             schoolId: schoolId
           }
         });
       } else {
-        // Fallback for null lessonId (Manual/Orphan records)
         const existing = await prisma.attendance.findFirst({
           where: {
             studentId: record.studentId,
@@ -107,7 +114,10 @@ export async function POST(request: NextRequest) {
         if (existing) {
           return prisma.attendance.update({
             where: { id: existing.id },
-            data: { status: record.status }
+            data: { 
+              status: record.status,
+              note: formattedNote
+            }
           });
         } else {
           return prisma.attendance.create({
@@ -116,6 +126,7 @@ export async function POST(request: NextRequest) {
               date: attendanceDate,
               lessonId: null,
               status: record.status,
+              note: formattedNote,
               schoolId: schoolId
             }
           });
@@ -124,6 +135,32 @@ export async function POST(request: NextRequest) {
     });
 
     const results = await Promise.all(ops);
+
+    // 3. Handle Task/Assignment Creation
+    if (task && task.title && effectiveLessonId) {
+      await prisma.assignment.create({
+        data: {
+          title: task.title,
+          description: task.description || "",
+          startDate: attendanceDate,
+          dueDate: new Date(attendanceDate.getTime() + 7 * 24 * 60 * 60 * 1000), // Default 1 week
+          lessonId: effectiveLessonId,
+          schoolId: schoolId
+        }
+      });
+    }
+
+    // 4. Handle Resource Creation
+    if (resource && resource.title && resource.url && effectiveLessonId) {
+      await prisma.resource.create({
+        data: {
+          title: resource.title,
+          url: resource.url,
+          lessonId: effectiveLessonId,
+          schoolId: schoolId
+        }
+      });
+    }
 
     return NextResponse.json({ success: true, count: results.length });
   } catch (error: any) {
@@ -134,3 +171,4 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
