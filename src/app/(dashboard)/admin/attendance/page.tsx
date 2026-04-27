@@ -12,6 +12,11 @@ interface StudentRow {
   surname: string;
   img: string | null;
   monthlyAbsences: number;
+  parent: {
+    name: string;
+    surname: string;
+    phone: string;
+  };
   attendance: { id: number; status: string; note: string | null }[];
 }
 
@@ -290,33 +295,76 @@ export default function AttendancePage() {
  
        {/* Insights Section */}
        {filtered.some(s => s.monthlyAbsences > 2) && (
-         <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-           <div className="bg-rose-50 border border-rose-100 rounded-3xl p-5 flex items-center gap-6">
-             <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200 shrink-0">
-               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-               </svg>
-             </div>
-             <div className="flex-1">
-               <h3 className="text-sm font-black text-rose-800 uppercase tracking-tight mb-1">Attention Needed</h3>
-               <p className="text-xs text-rose-600 font-semibold leading-relaxed">
-                 The following students have missed 3 or more sessions this month. You may want to contact their parents.
-               </p>
-             </div>
-             <div className="flex -space-x-3 overflow-hidden p-1">
-               {filtered
-                 .filter(s => s.monthlyAbsences > 2)
-                 .slice(0, 5)
-                 .map(s => (
-                   <div key={s.id} className="inline-block h-10 w-10 rounded-xl ring-4 ring-rose-50 overflow-hidden relative" title={`${s.name}: ${s.monthlyAbsences} absences`}>
-                     <Image src={s.img || "/noavatar.png"} alt="" fill className="object-cover" />
-                   </div>
-                 ))}
-               {filtered.filter(s => s.monthlyAbsences > 2).length > 5 && (
-                 <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-rose-200 text-rose-700 text-[10px] font-black ring-4 ring-rose-50">
-                   +{filtered.filter(s => s.monthlyAbsences > 2).length - 5}
+         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+           <div className="bg-white border border-rose-100 rounded-[2.5rem] p-8 shadow-xl shadow-rose-100/20 overflow-hidden relative group">
+             {/* Background Decoration */}
+             <div className="absolute top-0 right-0 w-64 h-64 bg-rose-50 rounded-full -mr-32 -mt-32 opacity-50 group-hover:scale-110 transition-transform duration-700" />
+             
+             <div className="relative flex flex-col lg:flex-row gap-8 items-start">
+               <div className="flex-shrink-0">
+                 <div className="w-16 h-16 rounded-[2rem] bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
+                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                   </svg>
                  </div>
-               )}
+               </div>
+
+               <div className="flex-1">
+                 <div className="mb-6">
+                   <h3 className="text-xl font-black text-rose-900 tracking-tight mb-2">Attention Required: High Absence Alerts</h3>
+                   <p className="text-sm text-rose-600 font-semibold leading-relaxed max-w-2xl">
+                     The following students have missed <span className="px-2 py-0.5 bg-rose-500 text-white rounded-lg mx-1">3 or more</span> sessions this month. Immediate parent contact is recommended to discuss their academic progress.
+                   </p>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                   {filtered
+                     .filter(s => s.monthlyAbsences > 2)
+                     .map(s => (
+                       <div key={s.id} className="bg-rose-50/50 border border-rose-100 rounded-3xl p-5 hover:bg-rose-50 transition-all group/item">
+                         <div className="flex items-center gap-4 mb-4">
+                           <div className="relative w-12 h-12 rounded-2xl overflow-hidden ring-4 ring-white shadow-sm flex-shrink-0">
+                             <Image src={s.img || "/noavatar.png"} alt="" fill className="object-cover" />
+                           </div>
+                           <div className="min-w-0">
+                             <p className="font-black text-rose-900 text-base truncate">{s.name} {s.surname}</p>
+                             <div className="flex items-center gap-2">
+                               <span className="text-[10px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                 {s.monthlyAbsences} Absences
+                               </span>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         <div className="space-y-3 pt-4 border-t border-rose-100/50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm text-rose-400">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                  </svg>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1">Parent</p>
+                                  <p className="text-xs font-bold text-rose-800 truncate">{s.parent?.name} {s.parent?.surname}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <a 
+                              href={`tel:${s.parent?.phone}`}
+                              className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-rose-500 rounded-2xl text-xs font-black text-rose-600 hover:text-white transition-all border border-rose-200 hover:border-rose-400 shadow-sm"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                              CALL PARENT
+                            </a>
+                         </div>
+                       </div>
+                     ))}
+                 </div>
+               </div>
              </div>
            </div>
          </div>

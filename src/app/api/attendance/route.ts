@@ -97,6 +97,13 @@ export async function GET(request: NextRequest) {
       name: true,
       surname: true,
       img: true,
+      parent: {
+        select: {
+          name: true,
+          surname: true,
+          phone: true,
+        }
+      },
       attendance: {
         where: {
           date: { gte: dayStart, lt: dayEnd },
