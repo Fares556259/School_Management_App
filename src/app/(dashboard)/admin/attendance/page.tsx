@@ -398,11 +398,7 @@ export default function AttendancePage() {
                                     <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm">{entry.day}</span>
                                     <span className="text-sm font-bold text-slate-700">{entry.session}</span>
                                   </div>
-                                  <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tight ${
-                                    entry.status === "Excused" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-rose-50 text-rose-600 border border-rose-100"
-                                  }`}>
-                                    {entry.status}
-                                  </span>
+
                                 </div>
                               ))}
                             </div>
