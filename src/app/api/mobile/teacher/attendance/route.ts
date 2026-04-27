@@ -150,6 +150,7 @@ export async function POST(request: NextRequest) {
         data: {
           title: task.title,
           description: task.description || "",
+          img: task.attachments && task.attachments.length > 0 ? task.attachments.map((a: any) => a.uri).join(',') : null,
           startDate: attendanceDate,
           dueDate: new Date(attendanceDate.getTime() + 7 * 24 * 60 * 60 * 1000), // Default 1 week
           lessonId: effectiveLessonId,

@@ -42,6 +42,10 @@ export async function GET(request: NextRequest) {
         id: a.id,
         title: a.title,
         description: a.description,
+        attachments: a.img ? a.img.split(',').map((uri: string) => ({ 
+          type: uri.toLowerCase().endsWith('.pdf') ? 'PDF' : 'IMAGE', 
+          uri: uri 
+        })) : [],
         subject: a.lesson.subject.name,
         className: a.lesson.class.name,
         submitted: submitted,
@@ -132,7 +136,7 @@ export async function POST(request: NextRequest) {
         dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
         lessonId: lesson.id,
         schoolId: schoolId,
-        img: attachments && attachments.length > 0 ? attachments[0].uri : null
+        img: attachments && attachments.length > 0 ? attachments.map((a: any) => a.uri).join(',') : null
       }
     });
 

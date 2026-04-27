@@ -292,6 +292,10 @@ export async function GET(request: NextRequest) {
         title: a.title,
         description: a.description,
         img: a.img,
+        attachments: a.img ? a.img.split(',').map((url: string) => ({
+          type: url.toLowerCase().endsWith('.pdf') ? 'PDF' : 'IMAGE',
+          url: url
+        })) : [],
         subject: a.lesson.subject.name,
         teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
         dueDate: a.dueDate,
@@ -302,6 +306,10 @@ export async function GET(request: NextRequest) {
         title: a.title,
         description: a.description,
         img: a.img,
+        attachments: a.img ? a.img.split(',').map((url: string) => ({
+          type: url.toLowerCase().endsWith('.pdf') ? 'PDF' : 'IMAGE',
+          url: url
+        })) : [],
         subject: a.lesson.subject.name,
         teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
         dueDate: a.dueDate,
@@ -312,6 +320,10 @@ export async function GET(request: NextRequest) {
         title: a.title,
         description: a.description,
         img: a.img,
+        attachments: a.img ? a.img.split(',').map((url: string) => ({
+          type: url.toLowerCase().endsWith('.pdf') ? 'PDF' : 'IMAGE',
+          url: url
+        })) : [],
         subject: a.lesson.subject.name,
         teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
         dueDate: a.dueDate,
@@ -322,6 +334,10 @@ export async function GET(request: NextRequest) {
         title: a.title,
         description: a.description,
         img: a.img,
+        attachments: a.img ? a.img.split(',').map((url: string) => ({
+          type: url.toLowerCase().endsWith('.pdf') ? 'PDF' : 'IMAGE',
+          url: url
+        })) : [],
         subject: a.lesson.subject.name,
         teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`,
         dueDate: a.dueDate,
