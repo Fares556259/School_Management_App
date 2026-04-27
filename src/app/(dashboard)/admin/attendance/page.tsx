@@ -323,25 +323,25 @@ export default function AttendancePage() {
 
              {/* Content Area: Premium Slate Dark List */}
              <div className="p-4 md:p-6 bg-white">
-               <div className="bg-slate-900 rounded-[2rem] p-4 md:p-6 space-y-4 shadow-inner">
+               <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-[2rem] p-4 md:p-6 space-y-4 shadow-inner">
                  {filtered
                     .filter(s => s.monthlyAbsences > 2)
                     .map(s => (
                       <div key={s.id} className="flex flex-col gap-3">
-                        <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-slate-800 hover:border-white/10">
+                        <div className="bg-white border border-indigo-100 shadow-sm rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:shadow-md hover:border-indigo-200">
                           <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-indigo-300 font-black shadow-lg shrink-0 border border-white/10">
+                             <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black shadow-lg shrink-0 border border-white/10">
                                {s.name[0]}{s.surname[0]}
                              </div>
                              <div className="min-w-0">
-                               <p className="font-bold text-white text-base leading-tight">{s.name} {s.surname}</p>
-                               <p className="text-sm text-slate-400 font-medium">Contact: {s.parent?.name} {s.parent?.surname}</p>
+                               <p className="font-black text-slate-800 text-base leading-tight">{s.name} {s.surname}</p>
+                               <p className="text-sm text-slate-500 font-bold">Contact: {s.parent?.name} {s.parent?.surname}</p>
                              </div>
                           </div>
 
                           <div className="flex items-center gap-3">
                              {/* Absence Badge: Red dot + pill */}
-                             <div className="bg-slate-900/50 text-rose-400 border border-rose-500/30 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
+                             <div className="bg-rose-50 text-rose-600 border border-rose-100 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
                                <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
                                {s.monthlyAbsences} Absences
                              </div>
@@ -380,7 +380,7 @@ export default function AttendancePage() {
                         {/* Quick Remark Input Field */}
                         {activeRemarkId === s.id && (
                           <div className="mx-4 mb-2 animate-in slide-in-from-top-2 duration-300">
-                            <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-2xl border border-white/10 shadow-xl">
+                            <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-indigo-100 shadow-xl">
                               <input 
                                 autoFocus
                                 type="text" 
@@ -398,7 +398,7 @@ export default function AttendancePage() {
                                   }
                                 }}
                                 placeholder="Add follow-up note (e.g., Called, student is sick)..."
-                                className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:ring-0 px-3 py-1"
+                                className="flex-1 bg-transparent border-none text-sm text-slate-800 placeholder-slate-400 focus:ring-0 px-3 py-1"
                               />
                               <button 
                                 onClick={() => {
