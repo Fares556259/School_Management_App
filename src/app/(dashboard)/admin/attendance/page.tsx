@@ -269,76 +269,82 @@ export default function AttendancePage() {
         ))}
       </div>
  
-       {/* Insights Section - High Absence Alerts (Mockup Redesign) */}
+       {/* Insights Section - High Absence Alerts (Premium Redesign) */}
        {showAlerts && filtered.some(s => s.monthlyAbsences > 2) && (
          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-           <div className="bg-[#fff1f1] border border-rose-100 rounded-[2rem] overflow-hidden shadow-xl shadow-rose-200/20">
+           <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-100/40">
              
-             {/* Header: Clean & One-line */}
-             <div className="px-8 py-5 flex items-center gap-4 border-b border-rose-100/50">
-               <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center text-rose-700 shrink-0">
-                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+             {/* Header: Professional & Clean */}
+             <div className="px-8 py-6 flex items-center gap-4 border-b border-slate-50 bg-slate-50/50">
+               <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                  </svg>
                </div>
-               <div className="flex items-center gap-2 flex-wrap">
-                 <h3 className="text-lg font-black text-rose-900 tracking-tight">Attention required — high absence alerts</h3>
-                 <div className="flex items-center gap-2 text-sm font-semibold text-rose-800/80">
-                   <span>Students with</span>
-                   <span className="bg-rose-500 text-white px-3 py-0.5 rounded-full text-xs font-black">3 or more</span>
-                   <span>absences this month. Immediate parent contact recommended.</span>
+               <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1">
+                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Student Success Alerts</h3>
+                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                   <span>Critical absences:</span>
+                   <span className="bg-rose-50 text-rose-600 px-3 py-0.5 rounded-full text-xs font-black border border-rose-100">3 or more sessions</span>
+                   <span className="hidden md:inline">• Immediate follow-up required</span>
                  </div>
                </div>
              </div>
 
-             {/* Content Area: Dark High-Contrast List */}
-             <div className="bg-[#1a1a1a] p-4 md:p-6 space-y-3">
-               {filtered
-                 .filter(s => s.monthlyAbsences > 2)
-                 .map(s => (
-                   <div key={s.id} className="bg-[#262626] border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-[#2c2c2c] hover:border-white/10">
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-rose-200 flex items-center justify-center text-rose-700 font-black shadow-inner shrink-0">
-                          {s.name[0]}{s.surname[0]}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-white text-base leading-tight">{s.name} {s.surname}</p>
-                          <p className="text-sm text-slate-400 font-medium">Parent: {s.parent?.name} {s.parent?.surname}</p>
-                        </div>
-                     </div>
+             {/* Content Area: Premium Slate Dark List */}
+             <div className="p-4 md:p-6 bg-white">
+               <div className="bg-slate-900 rounded-[2rem] p-4 md:p-6 space-y-4 shadow-inner">
+                 {filtered
+                   .filter(s => s.monthlyAbsences > 2)
+                   .map(s => (
+                     <div key={s.id} className="bg-slate-800/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-slate-800 hover:border-white/10">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-indigo-300 font-black shadow-lg shrink-0 border border-white/10">
+                            {s.name[0]}{s.surname[0]}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-white text-base leading-tight">{s.name} {s.surname}</p>
+                            <p className="text-sm text-slate-400 font-medium">Contact: {s.parent?.name} {s.parent?.surname}</p>
+                          </div>
+                       </div>
 
-                     <div className="flex items-center gap-3">
-                        {/* Absence Badge: Red dot + pill */}
-                        <div className="bg-[#fff1f1] text-rose-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
-                          <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                          {s.monthlyAbsences} absences
-                        </div>
+                       <div className="flex items-center gap-3">
+                          {/* Absence Badge: Red dot + pill */}
+                          <div className="bg-slate-900/50 text-rose-400 border border-rose-500/30 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
+                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                            {s.monthlyAbsences} Absences
+                          </div>
 
-                        {/* Inline Call Button */}
-                        <a 
-                          href={`tel:${s.parent?.phone}`}
-                          className="flex items-center gap-2 bg-transparent hover:bg-white/5 border border-white/10 rounded-xl px-5 py-2 text-sm font-bold text-white transition-all shrink-0"
-                        >
-                          <svg className="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                          </svg>
-                          Call parent
-                        </a>
+                          {/* Inline Call Button */}
+                          <a 
+                            href={`tel:${s.parent?.phone}`}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-all shrink-0 shadow-lg shadow-indigo-900/20 active:scale-95"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                            </svg>
+                            Call parent
+                          </a>
+                       </div>
                      </div>
-                   </div>
-                 ))}
+                   ))}
+               </div>
              </div>
 
              {/* Footer Summary */}
-             <div className="px-8 py-4 bg-[#fff1f1] flex items-center justify-between">
-               <div className="text-sm font-bold text-rose-800/80 tracking-tight">
-                 {filtered.filter(s => s.monthlyAbsences > 2).length} students flagged · Class {classes.find(c => String(c.id) === selectedClass)?.name || "N/A"} · {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+             <div className="px-8 py-5 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+               <div className="flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                 <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">{filtered.filter(s => s.monthlyAbsences > 2).length} Flags</span>
+                 <span>•</span>
+                 <span>Class {classes.find(c => String(c.id) === selectedClass)?.name || "N/A"}</span>
+                 <span>•</span>
+                 <span>{new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                </div>
                <button 
                  onClick={() => setShowAlerts(false)}
-                 className="text-xs font-black text-rose-400 hover:text-rose-600 uppercase tracking-widest transition-colors p-2"
+                 className="text-xs font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-all p-2 bg-white border border-slate-200 rounded-lg hover:border-indigo-200 hover:shadow-sm"
                >
-                 Dismiss
+                 Dismiss Feed
                </button>
              </div>
            </div>
