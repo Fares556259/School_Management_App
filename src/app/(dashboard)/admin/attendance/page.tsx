@@ -12,6 +12,7 @@ interface StudentRow {
   surname: string;
   img: string | null;
   monthlyAbsences: number;
+  absenceHistory?: { date: string; lessonName: string }[];
   parent: {
     name: string;
     surname: string;
@@ -387,16 +388,11 @@ export default function AttendancePage() {
                           <div className="mx-2 p-6 bg-white border border-slate-200 border-t-0 rounded-b-3xl -mt-4 animate-in slide-in-from-top-4 duration-300 shadow-inner">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Absence History</h4>
                             <div className="space-y-2">
-                              {[
-                                { day: "Mon, Apr 14", session: "ICT — 08:00 AM", status: "Unexcused" },
-                                { day: "Tue, Apr 15", session: "English — 11:00 AM", status: "Unexcused" },
-                                { day: "Thu, Apr 17", session: "Math — 10:00 AM", status: "Excused" },
-                                { day: "Mon, Apr 21", session: "Science — 09:00 AM", status: "Unexcused" },
-                              ].map((entry, idx) => (
+                              {(s.absenceHistory || []).map((entry, idx) => (
                                 <div key={idx} className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl group hover:bg-slate-50 transition-colors">
                                   <div className="flex items-center gap-4">
-                                    <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm">{entry.day}</span>
-                                    <span className="text-sm font-bold text-slate-700">{entry.session}</span>
+                                    <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm">{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                    <span className="text-sm font-bold text-slate-700">{entry.lessonName}</span>
                                   </div>
 
                                 </div>

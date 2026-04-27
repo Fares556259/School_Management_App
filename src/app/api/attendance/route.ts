@@ -188,22 +188,39 @@ export async function GET(request: NextRequest) {
   const monthStart = new Date(dayStart.getFullYear(), dayStart.getMonth(), 1);
   const monthEnd = new Date(dayStart.getFullYear(), dayStart.getMonth() + 1, 0);
 
-  const monthlyAbsences = await prisma.attendance.groupBy({
-    by: ['studentId'],
+  // Fetch all absences for this class in the current month to build real history
+  const monthlyAbsences = await prisma.attendance.findMany({
     where: {
       schoolId,
       date: { gte: monthStart, lte: monthEnd },
       status: 'ABSENT',
       student: { classId: parseInt(classId) }
     },
-    _count: { id: true }
+    include: {
+      lesson: {
+        select: { name: true }
+      }
+    },
+    orderBy: { date: 'desc' }
   });
 
-  const statsMap = Object.fromEntries(monthlyAbsences.map(a => [a.studentId, a._count.id]));
+  // Group by studentId
+  const historyMap: Record<string, any[]> = {};
+  const countMap: Record<string, number> = {};
+
+  monthlyAbsences.forEach(a => {
+    if (!historyMap[a.studentId]) historyMap[a.studentId] = [];
+    historyMap[a.studentId].push({
+      date: a.date,
+      lessonName: a.lesson?.name || "Session"
+    });
+    countMap[a.studentId] = (countMap[a.studentId] || 0) + 1;
+  });
 
   const finalStudents = aggregatedStudents.map(s => ({
     ...s,
-    monthlyAbsences: statsMap[s.id] || 0
+    monthlyAbsences: countMap[s.id] || 0,
+    absenceHistory: historyMap[s.id] || []
   }));
 
   return NextResponse.json({ 
