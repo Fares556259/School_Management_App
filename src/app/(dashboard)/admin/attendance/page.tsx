@@ -187,20 +187,9 @@ export default function AttendancePage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Attendance Monitoring & Management</h1>
-            <p className="text-sm text-slate-500 font-medium text-balance max-w-md">Primary recording is managed by teachers via mobile. Admins can monitor logs and perform overrides if necessary.</p>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Attendance & Absence Tracking</h1>
+            <p className="text-sm text-slate-500 font-medium text-balance max-w-md">Real-time monitoring of session logs. Data is recorded exclusively by teachers via the SnapSchool mobile app.</p>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admin Override</span>
-             <button 
-               onClick={() => setCanEdit(!canEdit)}
-               className={`w-12 h-6 rounded-full transition-all relative ${canEdit ? 'bg-indigo-600' : 'bg-slate-200'}`}
-             >
-               <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${canEdit ? 'left-7' : 'left-1'}`} />
-             </button>
-           </div>
         </div>
       </div>
 
@@ -258,21 +247,6 @@ export default function AttendancePage() {
             />
           </div>
         </div>
-        {canEdit && (
-          <button
-            onClick={handleSave}
-            disabled={saving || !isDirty}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md shadow-indigo-200 transition-all disabled:opacity-60"
-          >
-            {saving ? (
-              <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving...</>
-            ) : (saved || !isDirty) ? (
-              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg> Saved!</>
-            ) : (
-              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Attendance</>
-            )}
-          </button>
-        )}
       </div>
 
       {/* Stats Row */}
@@ -371,26 +345,8 @@ export default function AttendancePage() {
        )}
 
 
-      {/* Quick Mark All Buttons */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mark all as:</span>
-        {(["PRESENT", "LATE", "ABSENT"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setAll(s)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${STATUS_CONFIG[s].color} shadow-sm`}
-          >
-            {STATUS_CONFIG[s].label}
-          </button>
-        ))}
-        <button
-          onClick={() => setAll(null)}
-          className="px-4 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all"
-        >
-          Clear All
-        </button>
-
-        {/* Filter Tabs */}
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-3 mb-4">
         <div className="ml-auto flex items-center gap-1 bg-slate-100 rounded-xl p-1">
           {(["ALL", "PRESENT", "LATE", "ABSENT"] as const).map((f) => (
             <button
@@ -478,111 +434,32 @@ export default function AttendancePage() {
                       </div>
                     </td>
 
-                    {/* Status Buttons (Admin Override) */}
                     <td className="px-4 py-4">
-                      <div className={`flex items-center justify-center gap-1.5 p-1 rounded-2xl border transition-all ${canEdit ? 'bg-slate-50 border-indigo-100' : 'bg-slate-50/50 border-slate-50 opacity-60'}`}>
-                        {(["PRESENT", "LATE", "ABSENT"] as const).map((s) => (
-                          <button
-                            key={s}
-                            disabled={!canEdit}
-                            onClick={() => {
-                              setStatuses((prev) => ({ ...prev, [student.id]: prev[student.id] === s ? null : s }));
-                              setIsDirty(true);
-                            }}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all duration-150 uppercase tracking-wider ${
-                              statuses[student.id] === s
-                                ? STATUS_CONFIG[s].color + " shadow-md"
-                                : "text-slate-400 hover:text-slate-600 " + (canEdit ? "hover:bg-white" : "")
-                            }`}
-                          >
-                            {STATUS_CONFIG[s].label}
-                          </button>
-                        ))}
+                      <div className="flex items-center justify-center">
+                        {status ? (
+                          <div className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider ${config?.color} shadow-sm min-w-[100px] text-center`}>
+                            {config?.label}
+                          </div>
+                        ) : (
+                          <div className="px-4 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-400 uppercase tracking-wider min-w-[100px] text-center">
+                            Pending
+                          </div>
+                        )}
                       </div>
                     </td>
 
-                    {/* Note */}
                     <td className="px-4 py-4 hidden lg:table-cell">
-                      <div className="flex flex-col gap-2">
-                        {editNotes[student.id] ? (
-                          (notes[student.id] || []).map((noteObj, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <select
-                                value={noteObj.author}
-                                onChange={(e) => {
-                                  const newNotes = [...(notes[student.id] || [])];
-                                  newNotes[idx].author = e.target.value;
-                                  setNotes(prev => ({ ...prev, [student.id]: newNotes }));
-                                  setIsDirty(true);
-                                }}
-                                className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[110px]"
-                              >
-                                <option value="Admin">Admin (Fares)</option>
-                                <option value="Tarek Ben Ali">T. Ben Ali (Math)</option>
-                                <option value="Sarah Mabrouk">S. Mabrouk (French)</option>
-                                <option value="Supervisor">Supervisor</option>
-                              </select>
-                              <input
-                                type="text"
-                                placeholder={idx === (notes[student.id]?.length || 0) - 1 ? "Add note..." : "Note content..."}
-                                value={noteObj.text}
-                                onChange={(e) => {
-                                  const newNotes = [...(notes[student.id] || [])];
-                                  newNotes[idx].text = e.target.value;
-                                  setNotes(prev => ({ ...prev, [student.id]: newNotes }));
-                                  setIsDirty(true);
-                                }}
-                                className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-transparent"
-                              />
-                              {idx === (notes[student.id]?.length || 0) - 1 && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    onClick={() => {
-                                      setNotes(prev => ({ ...prev, [student.id]: [...(notes[student.id] || []), { author: "Admin", text: "" }] }));
-                                      setIsDirty(true);
-                                    }}
-                                    className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center border border-indigo-100 border-b-2 transition-all active:translate-y-[1px] active:border-b font-black"
-                                  >
-                                    +
-                                  </button>
-                                  <button
-                                    onClick={() => setEditNotes(prev => ({ ...prev, [student.id]: false }))}
-                                    className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center border border-emerald-100 border-b-2 transition-all active:translate-y-[1px] active:border-b"
-                                    title="Done editing"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              )}
+                      <div className="flex flex-col gap-1.5">
+                        {(() => {
+                          const validNotes = (notes[student.id] || []).filter(n => n.text.trim() !== "");
+                          if (validNotes.length === 0) return <span className="text-xs text-slate-300 font-medium italic">No teacher remarks</span>;
+                          return validNotes.map((n, i) => (
+                            <div key={i} className="flex items-start gap-2 text-xs">
+                              <span className="font-bold text-slate-400 shrink-0">{n.author}:</span>
+                              <span className="text-slate-500 leading-relaxed">{n.text}</span>
                             </div>
-                          ))
-                        ) : (
-                          <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 min-h-[46px] group hover:border-indigo-100 transition-colors">
-                            <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                              {(() => {
-                                const validNotes = (notes[student.id] || []).filter(n => n.text.trim() !== "");
-                                if (validNotes.length === 0) return <span className="text-xs text-slate-400 font-medium italic">No notes</span>;
-                                return validNotes.map((n, i) => (
-                                  <div key={i} className="flex items-start gap-2 text-xs truncate">
-                                    <span className="font-bold text-slate-500 shrink-0">{n.author}:</span>
-                                    <span className="text-slate-600 truncate" title={n.text}>{n.text}</span>
-                                  </div>
-                                ));
-                               })()}
-                            </div>
-                            <button
-                              onClick={() => setEditNotes(prev => ({ ...prev, [student.id]: true }))}
-                              className="w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-center shrink-0 border border-slate-200 hover:border-indigo-200 transition-all shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
-                              title="Edit Notes"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
+                          ));
+                        })()}
                       </div>
                     </td>
                   </tr>
