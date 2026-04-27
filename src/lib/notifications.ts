@@ -342,3 +342,48 @@ export async function createResourceNotification(resourceId: number) {
     console.error("[NOTIFICATIONS] Error creating resource notification:", error);
   }
 }
+
+/**
+ * Sends a detailed high-absence alert to a parent.
+ */
+export async function createDetailedAbsenceAlert(studentId: string, history: { date: string; lessonName: string }[]) {
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { name: true, surname: true, parentId: true }
+    });
+    if (!student) return;
+
+    const count = history.length;
+    const historyText = history.map(h => {
+      const d = new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${d} (${h.lessonName})`;
+    }).join(", ");
+
+    const title = `🚨 Critical Attendance Alert`;
+    const message = `URGENT: ${student.name} ${student.surname} has reached ${count} absences this month. Missed sessions: ${historyText}. Please contact the administration immediately to discuss this matter.`;
+
+    await prisma.notification.create({
+      data: {
+        parentId: student.parentId,
+        studentId: studentId,
+        type: "ATTENDANCE",
+        title,
+        message,
+      }
+    });
+
+    sendPush(
+      student.parentId,
+      title,
+      message,
+      { type: "ATTENDANCE", studentId, channelId: "emergency" }
+    );
+
+    console.log(`[DETAILED-ALERT] Sent to ${student.parentId} for student ${studentId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[DETAILED-ALERT-ERROR]", error);
+    throw error;
+  }
+}

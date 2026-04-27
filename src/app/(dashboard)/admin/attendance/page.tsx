@@ -55,6 +55,7 @@ export default function AttendancePage() {
   const [activeRemarkId, setActiveRemarkId] = useState<string | null>(null);
   const [quickNote, setQuickNote] = useState("");
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+  const [sendingAlertId, setSendingAlertId] = useState<string | null>(null);
 
   // Load classes on mount
   useEffect(() => {
@@ -181,6 +182,26 @@ export default function AttendancePage() {
     const matchesFilter = filter === "ALL" || statuses[s.id] === filter || (filter === null && !statuses[s.id]);
     return matchesSearch && matchesFilter;
   });
+
+
+  const sendDetailedAlert = async (studentId: string, history: any[]) => {
+    setSendingAlertId(studentId);
+    try {
+      const res = await fetch("/api/admin/notifications/absence-alert", {
+        method: "POST",
+        body: JSON.stringify({ studentId, history }),
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error("Failed to send alert:", error);
+    } finally {
+      setSendingAlertId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
@@ -364,14 +385,23 @@ export default function AttendancePage() {
 
                              {/* Call Button */}
                              <button
+                               disabled={sendingAlertId === s.id}
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 window.location.href = `tel:${s.parent?.phone}`;
+                                 sendDetailedAlert(s.id, s.absenceHistory || []);
                                }}
-                               className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-all shrink-0 shadow-lg shadow-indigo-100 active:scale-95 flex items-center gap-2"
+                               className={`${
+                                 sendingAlertId === s.id ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                               } rounded-xl px-5 py-2.5 text-sm font-black text-white transition-all shrink-0 shadow-lg shadow-indigo-100 active:scale-95 flex items-center gap-2`}
                              >
-                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                               Call parent
+                               {sendingAlertId === s.id ? (
+                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                               ) : (
+                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                 </svg>
+                               )}
+                               {sendingAlertId === s.id ? 'Sending...' : 'Notify Parent'}
                              </button>
 
                              {/* Chevron */}
@@ -473,7 +503,27 @@ export default function AttendancePage() {
               {filtered.map((student, idx) => {
                 const status = statuses[student.id];
                 const config = status ? STATUS_CONFIG[status] : null;
-                return (
+              
+  const sendDetailedAlert = async (studentId: string, history: any[]) => {
+    setSendingAlertId(studentId);
+    try {
+      const res = await fetch("/api/admin/notifications/absence-alert", {
+        method: "POST",
+        body: JSON.stringify({ studentId, history }),
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error("Failed to send alert:", error);
+    } finally {
+      setSendingAlertId(null);
+    }
+  };
+
+  return (
                   <tr
                     key={student.id}
                     className={`border-b border-slate-50 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? "" : "bg-slate-50/50"}`}
