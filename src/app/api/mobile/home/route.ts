@@ -142,6 +142,13 @@ export async function GET(request: NextRequest) {
 
     const lessonIds = todayLessons.map((l) => l.id);
     const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    // Fetch student's task submissions (results)
+    const submissions = await prisma.result.findMany({
+      where: { studentId, assignmentId: { not: null } },
+      select: { assignmentId: true }
+    });
+    const submittedIds = new Set(submissions.map(s => s.assignmentId));
 
     // Group 2: Sequential lookups that depend on lessonIds or classId
     const tasksDue = await prisma.assignment.findMany({
@@ -289,6 +296,7 @@ export async function GET(request: NextRequest) {
       holidayName,
       tasksDue: tasksDue.map((a) => ({
         id: a.id,
+        isCompleted: submittedIds.has(a.id),
         title: a.title,
         description: a.description,
         img: a.img,
@@ -303,6 +311,7 @@ export async function GET(request: NextRequest) {
       })),
       homeworkDue: tasksDue.map((a) => ({
         id: a.id,
+        isCompleted: submittedIds.has(a.id),
         title: a.title,
         description: a.description,
         img: a.img,
@@ -317,6 +326,7 @@ export async function GET(request: NextRequest) {
       })),
       tasksGiven: tasksGiven.map((a) => ({
         id: a.id,
+        isCompleted: submittedIds.has(a.id),
         title: a.title,
         description: a.description,
         img: a.img,
@@ -331,6 +341,7 @@ export async function GET(request: NextRequest) {
       })),
       homeworkGiven: tasksGiven.map((a) => ({
         id: a.id,
+        isCompleted: submittedIds.has(a.id),
         title: a.title,
         description: a.description,
         img: a.img,

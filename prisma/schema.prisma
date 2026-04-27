@@ -335,6 +335,8 @@ model Result {
   assignmentId Int?
   studentId    String
   schoolId     String      @default("default_school")
+  img          String?     // Student's submission photo URL
+  submittedAt  DateTime    @default(now())
   assignment   Assignment? @relation(fields: [assignmentId], references: [id])
   exam         Exam?       @relation(fields: [examId], references: [id])
   School       School      @relation(fields: [schoolId], references: [id])
