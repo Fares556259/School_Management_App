@@ -51,6 +51,8 @@ export default function AttendancePage() {
   const [resources, setResources] = useState<any[]>([]);
   const [canEdit, setCanEdit] = useState(false);
   const [showAlerts, setShowAlerts] = useState(true);
+  const [activeRemarkId, setActiveRemarkId] = useState<string | null>(null);
+  const [quickNote, setQuickNote] = useState("");
 
   // Load classes on mount
   useEffect(() => {
@@ -323,39 +325,102 @@ export default function AttendancePage() {
              <div className="p-4 md:p-6 bg-white">
                <div className="bg-slate-900 rounded-[2rem] p-4 md:p-6 space-y-4 shadow-inner">
                  {filtered
-                   .filter(s => s.monthlyAbsences > 2)
-                   .map(s => (
-                     <div key={s.id} className="bg-slate-800/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-slate-800 hover:border-white/10">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-indigo-300 font-black shadow-lg shrink-0 border border-white/10">
-                            {s.name[0]}{s.surname[0]}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-white text-base leading-tight">{s.name} {s.surname}</p>
-                            <p className="text-sm text-slate-400 font-medium">Contact: {s.parent?.name} {s.parent?.surname}</p>
-                          </div>
-                       </div>
-
-                       <div className="flex items-center gap-3">
-                          {/* Absence Badge: Red dot + pill */}
-                          <div className="bg-slate-900/50 text-rose-400 border border-rose-500/30 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
-                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                            {s.monthlyAbsences} Absences
+                    .filter(s => s.monthlyAbsences > 2)
+                    .map(s => (
+                      <div key={s.id} className="flex flex-col gap-3">
+                        <div className="bg-slate-800/50 border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-slate-800 hover:border-white/10">
+                          <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-indigo-300 font-black shadow-lg shrink-0 border border-white/10">
+                               {s.name[0]}{s.surname[0]}
+                             </div>
+                             <div className="min-w-0">
+                               <p className="font-bold text-white text-base leading-tight">{s.name} {s.surname}</p>
+                               <p className="text-sm text-slate-400 font-medium">Contact: {s.parent?.name} {s.parent?.surname}</p>
+                             </div>
                           </div>
 
-                          {/* Inline Call Button */}
-                          <a 
-                            href={`tel:${s.parent?.phone}`}
-                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-all shrink-0 shadow-lg shadow-indigo-900/20 active:scale-95"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                            </svg>
-                            Call parent
-                          </a>
-                       </div>
-                     </div>
-                   ))}
+                          <div className="flex items-center gap-3">
+                             {/* Absence Badge: Red dot + pill */}
+                             <div className="bg-slate-900/50 text-rose-400 border border-rose-500/30 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
+                               <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                               {s.monthlyAbsences} Absences
+                             </div>
+
+                             {/* Quick Remark Button */}
+                             <button
+                               onClick={() => {
+                                 setActiveRemarkId(activeRemarkId === s.id ? null : s.id);
+                                 setQuickNote("");
+                               }}
+                               className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
+                                 activeRemarkId === s.id 
+                                   ? "bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-900/20" 
+                                   : "bg-slate-800 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                               }`}
+                               title="Add quick remark"
+                             >
+                               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                               </svg>
+                             </button>
+
+                             {/* Inline Call Button */}
+                             <a 
+                               href={`tel:${s.parent?.phone}`}
+                               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-all shrink-0 shadow-lg shadow-indigo-900/20 active:scale-95"
+                             >
+                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                 <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                               </svg>
+                               Call parent
+                             </a>
+                          </div>
+                        </div>
+
+                        {/* Quick Remark Input Field */}
+                        {activeRemarkId === s.id && (
+                          <div className="mx-4 mb-2 animate-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-2xl border border-white/10 shadow-xl">
+                              <input 
+                                autoFocus
+                                type="text" 
+                                value={quickNote}
+                                onChange={(e) => setQuickNote(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && quickNote.trim()) {
+                                    setNotes(prev => ({
+                                      ...prev,
+                                      [s.id]: [...(prev[s.id] || []), { author: "Admin", text: quickNote }]
+                                    }));
+                                    setIsDirty(true);
+                                    setActiveRemarkId(null);
+                                    setQuickNote("");
+                                  }
+                                }}
+                                placeholder="Add follow-up note (e.g., Called, student is sick)..."
+                                className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:ring-0 px-3 py-1"
+                              />
+                              <button 
+                                onClick={() => {
+                                  if (quickNote.trim()) {
+                                    setNotes(prev => ({
+                                      ...prev,
+                                      [s.id]: [...(prev[s.id] || []), { author: "Admin", text: quickNote }]
+                                    }));
+                                    setIsDirty(true);
+                                    setActiveRemarkId(null);
+                                    setQuickNote("");
+                                  }
+                                }}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-xl text-xs font-black transition-all"
+                              >
+                                SAVE
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                </div>
              </div>
 
