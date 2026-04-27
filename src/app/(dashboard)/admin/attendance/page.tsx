@@ -306,7 +306,7 @@ export default function AttendancePage() {
              
              {/* Header: Professional & Clean */}
              <div className="px-8 py-6 flex items-center gap-4 border-b border-slate-50 bg-slate-50/50">
-               <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+               <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                  </svg>
@@ -323,12 +323,12 @@ export default function AttendancePage() {
 
              {/* Content Area: Premium Slate Dark List */}
              <div className="p-4 md:p-6 bg-white">
-               <div className="bg-indigo-50/50 border border-indigo-100/50 rounded-[2rem] p-4 md:p-6 space-y-4 shadow-inner">
+               <div className="bg-slate-50/80 rounded-[2rem] p-4 md:p-6 space-y-4 p-4 md:p-6 space-y-4 shadow-inner">
                  {filtered
                     .filter(s => s.monthlyAbsences > 2)
                     .map(s => (
                       <div key={s.id} className="flex flex-col gap-3">
-                        <div className="bg-white border border-indigo-100 shadow-sm rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:shadow-md hover:border-indigo-200">
+                        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:shadow-md hover:border-indigo-200">
                           <div className="flex items-center gap-4">
                              <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black shadow-lg shrink-0 border border-white/10">
                                {s.name[0]}{s.surname[0]}
@@ -341,14 +341,10 @@ export default function AttendancePage() {
 
                           <div className="flex items-center gap-3">
                              {/* Absence Badge: Red dot + pill */}
-                             <div className="bg-white border-2 border-rose-100 px-4 py-2 rounded-2xl flex items-center gap-3 shadow-sm shrink-0 group-hover:border-rose-200 transition-colors">
-                          <div className="flex flex-col items-center">
-                            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1">Absences</span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                              <span className="text-lg font-black text-rose-600 leading-none">{s.monthlyAbsences}</span>
-                            </div>
-                          </div>
+                             <div className="bg-rose-100/80 text-rose-600 px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-2 border border-rose-200/50 shrink-0">
+                             <div className="w-2 h-2 rounded-full bg-rose-500" />
+                             {s.monthlyAbsences} Absences
+                           </div>
                         </div>
 
                              {/* Quick Remark Button */}
@@ -372,7 +368,7 @@ export default function AttendancePage() {
                              {/* Inline Call Button */}
                              <a 
                                href={`tel:${s.parent?.phone}`}
-                               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-all shrink-0 shadow-lg shadow-indigo-900/20 active:scale-95"
+                               className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 transition-all shrink-0 active:scale-95 shadow-sm"
                              >
                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
