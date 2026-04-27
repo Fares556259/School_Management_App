@@ -299,53 +299,52 @@ export default function AttendancePage() {
         ))}
       </div>
  
-       {/* Insights Section - High Absence Alerts (Premium Redesign) */}
-       {showAlerts && filtered.some(s => s.monthlyAbsences > 2) && (
-         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-           <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-100/40">
-             
-             {/* Header: Professional & Clean */}
-             <div className="px-8 py-6 flex items-center gap-4 border-b border-slate-50 bg-slate-50/50">
-               <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                 </svg>
-               </div>
-               <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1">
-                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Student Success Alerts</h3>
-                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-                   <span>Critical absences:</span>
-                   <span className="bg-rose-50 text-rose-600 px-3 py-0.5 rounded-full text-xs font-black border border-rose-100">3 or more sessions</span>
-                   <span className="hidden md:inline">• Immediate follow-up required</span>
-                 </div>
-               </div>
-             </div>
+       {/* Insights Section - High Absence Alerts (Clean Light Redesign) */}
+        {showAlerts && filtered.some(s => s.monthlyAbsences > 2) && (
+          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/50">
+              
+              {/* Header: Ultra-Clean & Professional */}
+              <div className="px-8 py-6 flex items-center gap-4 border-b border-slate-100 bg-white">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm shrink-0 border border-indigo-100/50">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col md:flex-row md:items-center gap-x-4 gap-y-1">
+                  <h3 className="text-xl font-black text-slate-800 tracking-tight">Student Success Alerts</h3>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                    <span>Critical absences:</span>
+                    <span className="bg-rose-50 text-rose-600 px-3 py-0.5 rounded-full text-[10px] font-black border border-rose-100 uppercase">3 or more sessions</span>
+                    <span className="hidden md:inline">• Immediate follow-up required</span>
+                  </div>
+                </div>
+              </div>
 
-             {/* Content Area: Premium Slate Dark List */}
-             <div className="p-4 md:p-6 bg-white">
-               <div className="bg-slate-50/80 rounded-[2rem] p-4 md:p-6 space-y-4 p-4 md:p-6 space-y-4 shadow-inner">
-                 {filtered
+              {/* Content Area: Light & Airy Student List */}
+              <div className="p-6 bg-slate-50/50">
+                <div className="space-y-4">
+                  {filtered
                     .filter(s => s.monthlyAbsences > 2)
                     .map(s => (
-                      <div key={s.id} className="flex flex-col gap-3">
-                        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:shadow-md hover:border-indigo-200">
+                      <div key={s.id} className="flex flex-col gap-3 animate-in slide-in-from-left-4 duration-300">
+                        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:shadow-md hover:border-indigo-100">
                           <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black shadow-lg shrink-0 border border-white/10">
+                             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-black shadow-inner shrink-0 border border-slate-200/50">
                                {s.name[0]}{s.surname[0]}
                              </div>
                              <div className="min-w-0">
-                               <p className="font-black text-slate-800 text-base leading-tight">{s.name} {s.surname}</p>
-                               <p className="text-sm text-slate-500 font-bold">Contact: {s.parent?.name} {s.parent?.surname}</p>
+                               <p className="font-black text-slate-800 text-base leading-tight tracking-tight">{s.name} {s.surname}</p>
+                               <p className="text-sm text-slate-400 font-medium">Contact: {s.parent?.name} {s.parent?.surname}</p>
                              </div>
                           </div>
 
                           <div className="flex items-center gap-3">
-                             {/* Absence Badge: Red dot + pill */}
-                             <div className="bg-rose-100/80 text-rose-600 px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-2 border border-rose-200/50 shrink-0">
-                             <div className="w-2 h-2 rounded-full bg-rose-500" />
-                             {s.monthlyAbsences} Absences
-                           </div>
-                        </div>
+                             {/* Absence Badge: Premium Pill */}
+                             <div className="bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-sm font-black flex items-center gap-2 border border-rose-100 shrink-0">
+                               <div className="w-2 h-2 rounded-full bg-rose-500" />
+                               {s.monthlyAbsences} Absences
+                             </div>
 
                              {/* Quick Remark Button */}
                              <button
@@ -355,8 +354,8 @@ export default function AttendancePage() {
                                }}
                                className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
                                  activeRemarkId === s.id 
-                                   ? "bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-900/20" 
-                                   : "bg-slate-800 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                                   ? "bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-200" 
+                                   : "bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50/30"
                                }`}
                                title="Add quick remark"
                              >
@@ -368,7 +367,7 @@ export default function AttendancePage() {
                              {/* Inline Call Button */}
                              <a 
                                href={`tel:${s.parent?.phone}`}
-                               className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 transition-all shrink-0 active:scale-95 shadow-sm"
+                               className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl px-5 py-2.5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-all shrink-0 active:scale-95 shadow-sm"
                              >
                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
@@ -422,28 +421,28 @@ export default function AttendancePage() {
                         )}
                       </div>
                     ))}
-               </div>
-             </div>
+                </div>
+              </div>
 
-             {/* Footer Summary */}
-             <div className="px-8 py-5 bg-slate-50 flex items-center justify-between border-t border-slate-100">
-               <div className="flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                 <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">{filtered.filter(s => s.monthlyAbsences > 2).length} Flags</span>
-                 <span>•</span>
-                 <span>Class {classes.find(c => String(c.id) === selectedClass)?.name || "N/A"}</span>
-                 <span>•</span>
-                 <span>{new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-               </div>
-               <button 
-                 onClick={() => setShowAlerts(false)}
-                 className="text-xs font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-all p-2 bg-white border border-slate-200 rounded-lg hover:border-indigo-200 hover:shadow-sm"
-               >
-                 Dismiss Feed
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+              {/* Footer Summary */}
+              <div className="px-8 py-5 bg-white flex items-center justify-between border-t border-slate-100">
+                <div className="flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">{filtered.filter(s => s.monthlyAbsences > 2).length} Flags</span>
+                  <span>•</span>
+                  <span>Class {classes.find(c => String(c.id) === selectedClass)?.name || "N/A"}</span>
+                  <span>•</span>
+                  <span className="text-slate-300">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <button 
+                  onClick={() => setShowAlerts(false)}
+                  className="bg-white border border-slate-100 hover:bg-slate-50 text-slate-300 hover:text-slate-500 font-black px-8 py-2.5 rounded-2xl transition-all shadow-sm tracking-widest text-xs uppercase"
+                >
+                  Dismiss Feed
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
 
       {/* Filter Tabs */}
