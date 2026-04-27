@@ -50,6 +50,7 @@ export default function AttendancePage() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
   const [canEdit, setCanEdit] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(true);
 
   // Load classes on mount
   useEffect(() => {
@@ -268,78 +269,77 @@ export default function AttendancePage() {
         ))}
       </div>
  
-       {/* Insights Section */}
-       {filtered.some(s => s.monthlyAbsences > 2) && (
+       {/* Insights Section - High Absence Alerts (Mockup Redesign) */}
+       {showAlerts && filtered.some(s => s.monthlyAbsences > 2) && (
          <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-           <div className="bg-white border border-rose-100 rounded-[2.5rem] p-8 shadow-xl shadow-rose-100/20 overflow-hidden relative group">
-             {/* Background Decoration */}
-             <div className="absolute top-0 right-0 w-64 h-64 bg-rose-50 rounded-full -mr-32 -mt-32 opacity-50 group-hover:scale-110 transition-transform duration-700" />
+           <div className="bg-[#fff1f1] border border-rose-100 rounded-[2rem] overflow-hidden shadow-xl shadow-rose-200/20">
              
-             <div className="relative flex flex-col lg:flex-row gap-8 items-start">
-               <div className="flex-shrink-0">
-                 <div className="w-16 h-16 rounded-[2rem] bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
-                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                   </svg>
+             {/* Header: Clean & One-line */}
+             <div className="px-8 py-5 flex items-center gap-4 border-b border-rose-100/50">
+               <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center text-rose-700 shrink-0">
+                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                 </svg>
+               </div>
+               <div className="flex items-center gap-2 flex-wrap">
+                 <h3 className="text-lg font-black text-rose-900 tracking-tight">Attention required — high absence alerts</h3>
+                 <div className="flex items-center gap-2 text-sm font-semibold text-rose-800/80">
+                   <span>Students with</span>
+                   <span className="bg-rose-500 text-white px-3 py-0.5 rounded-full text-xs font-black">3 or more</span>
+                   <span>absences this month. Immediate parent contact recommended.</span>
                  </div>
                </div>
+             </div>
 
-               <div className="flex-1">
-                 <div className="mb-6">
-                   <h3 className="text-xl font-black text-rose-900 tracking-tight mb-2">Attention Required: High Absence Alerts</h3>
-                   <p className="text-sm text-rose-600 font-semibold leading-relaxed max-w-2xl">
-                     The following students have missed <span className="px-2 py-0.5 bg-rose-500 text-white rounded-lg mx-1">3 or more</span> sessions this month. Immediate parent contact is recommended to discuss their academic progress.
-                   </p>
-                 </div>
+             {/* Content Area: Dark High-Contrast List */}
+             <div className="bg-[#1a1a1a] p-4 md:p-6 space-y-3">
+               {filtered
+                 .filter(s => s.monthlyAbsences > 2)
+                 .map(s => (
+                   <div key={s.id} className="bg-[#262626] border border-white/5 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-[#2c2c2c] hover:border-white/10">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-rose-200 flex items-center justify-center text-rose-700 font-black shadow-inner shrink-0">
+                          {s.name[0]}{s.surname[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-base leading-tight">{s.name} {s.surname}</p>
+                          <p className="text-sm text-slate-400 font-medium">Parent: {s.parent?.name} {s.parent?.surname}</p>
+                        </div>
+                     </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                   {filtered
-                     .filter(s => s.monthlyAbsences > 2)
-                     .map(s => (
-                       <div key={s.id} className="bg-rose-50/50 border border-rose-100 rounded-3xl p-5 hover:bg-rose-50 transition-all group/item">
-                         <div className="flex items-center gap-4 mb-4">
-                           <div className="relative w-12 h-12 rounded-2xl overflow-hidden ring-4 ring-white shadow-sm flex-shrink-0">
-                             <Image src={s.img || "/noavatar.png"} alt="" fill className="object-cover" />
-                           </div>
-                           <div className="min-w-0">
-                             <p className="font-black text-rose-900 text-base truncate">{s.name} {s.surname}</p>
-                             <div className="flex items-center gap-2">
-                               <span className="text-[10px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                 {s.monthlyAbsences} Absences
-                               </span>
-                             </div>
-                           </div>
-                         </div>
-                         
-                         <div className="space-y-3 pt-4 border-t border-rose-100/50">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm text-rose-400">
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                  </svg>
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1">Parent</p>
-                                  <p className="text-xs font-bold text-rose-800 truncate">{s.parent?.name} {s.parent?.surname}</p>
-                                </div>
-                              </div>
-                            </div>
+                     <div className="flex items-center gap-3">
+                        {/* Absence Badge: Red dot + pill */}
+                        <div className="bg-[#fff1f1] text-rose-600 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
+                          <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                          {s.monthlyAbsences} absences
+                        </div>
 
-                            <a 
-                              href={`tel:${s.parent?.phone}`}
-                              className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-rose-500 rounded-2xl text-xs font-black text-rose-600 hover:text-white transition-all border border-rose-200 hover:border-rose-400 shadow-sm"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                              </svg>
-                              CALL PARENT
-                            </a>
-                         </div>
-                       </div>
-                     ))}
-                 </div>
+                        {/* Inline Call Button */}
+                        <a 
+                          href={`tel:${s.parent?.phone}`}
+                          className="flex items-center gap-2 bg-transparent hover:bg-white/5 border border-white/10 rounded-xl px-5 py-2 text-sm font-bold text-white transition-all shrink-0"
+                        >
+                          <svg className="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                          </svg>
+                          Call parent
+                        </a>
+                     </div>
+                   </div>
+                 ))}
+             </div>
+
+             {/* Footer Summary */}
+             <div className="px-8 py-4 bg-[#fff1f1] flex items-center justify-between">
+               <div className="text-sm font-bold text-rose-800/80 tracking-tight">
+                 {filtered.filter(s => s.monthlyAbsences > 2).length} students flagged · Class {classes.find(c => String(c.id) === selectedClass)?.name || "N/A"} · {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                </div>
+               <button 
+                 onClick={() => setShowAlerts(false)}
+                 className="text-xs font-black text-rose-400 hover:text-rose-600 uppercase tracking-widest transition-colors p-2"
+               >
+                 Dismiss
+               </button>
              </div>
            </div>
          </div>
