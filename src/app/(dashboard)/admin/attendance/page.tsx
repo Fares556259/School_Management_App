@@ -12,7 +12,7 @@ interface StudentRow {
   surname: string;
   img: string | null;
   monthlyAbsences: number;
-  absenceHistory?: { date: string; lessonName: string }[];
+  absenceHistory?: { date: string; lessonName: string; startTime?: string }[];
   parent: {
     name: string;
     surname: string;
@@ -392,7 +392,7 @@ export default function AttendancePage() {
                                 <div key={idx} className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl group hover:bg-slate-50 transition-colors">
                                   <div className="flex items-center gap-4">
                                     <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm">{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                                    <span className="text-sm font-bold text-slate-700">{entry.lessonName}</span>
+                                    <span className="text-sm font-bold text-slate-700">{entry.lessonName} — {entry.startTime ? new Date(entry.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
                                   </div>
 
                                 </div>

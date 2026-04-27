@@ -198,7 +198,10 @@ export async function GET(request: NextRequest) {
     },
     include: {
       lesson: {
-        select: { name: true }
+        select: { 
+          name: true,
+          startTime: true
+        }
       }
     },
     orderBy: { date: 'desc' }
@@ -212,7 +215,8 @@ export async function GET(request: NextRequest) {
     if (!historyMap[a.studentId]) historyMap[a.studentId] = [];
     historyMap[a.studentId].push({
       date: a.date,
-      lessonName: a.lesson?.name || "Session"
+      lessonName: a.lesson?.name || "Session",
+      startTime: a.lesson?.startTime
     });
     countMap[a.studentId] = (countMap[a.studentId] || 0) + 1;
   });
