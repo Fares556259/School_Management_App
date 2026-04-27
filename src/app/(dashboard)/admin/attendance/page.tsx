@@ -341,10 +341,15 @@ export default function AttendancePage() {
 
                           <div className="flex items-center gap-3">
                              {/* Absence Badge: Red dot + pill */}
-                             <div className="bg-rose-50 text-rose-600 border border-rose-100 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm shrink-0">
-                               <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                               {s.monthlyAbsences} Absences
-                             </div>
+                             <div className="bg-white border-2 border-rose-100 px-4 py-2 rounded-2xl flex items-center gap-3 shadow-sm shrink-0 group-hover:border-rose-200 transition-colors">
+                          <div className="flex flex-col items-center">
+                            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1">Absences</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                              <span className="text-lg font-black text-rose-600 leading-none">{s.monthlyAbsences}</span>
+                            </div>
+                          </div>
+                        </div>
 
                              {/* Quick Remark Button */}
                              <button
