@@ -355,13 +355,30 @@ export async function createDetailedAbsenceAlert(studentId: string, history: { d
     if (!student) return;
 
     const count = history.length;
+    // Deduplication: Don't send the exact same count alert twice in 6 hours
+    const SIX_HOURS_AGO = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const existing = await prisma.notification.findFirst({
+      where: {
+        parentId: student.parentId,
+        studentId: studentId,
+        type: 'ATTENDANCE',
+        message: { contains: `missed ${count} sessions` },
+        createdAt: { gte: SIX_HOURS_AGO }
+      }
+    });
+
+    if (existing) {
+      console.log(`[DETAILED-ALERT-SKIP] Duplicate alert for ${studentId} (${count} absences) skipped.`);
+      return { success: true };
+    }
+
     const historyText = history.map(h => {
       const d = new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       return `${d} (${h.lessonName})`;
     }).join(", ");
 
     const title = `🚨 Critical Attendance Alert`;
-    const message = `URGENT: ${student.name} ${student.surname} has reached ${count} absences this month. Missed sessions: ${historyText}. Please contact the administration immediately to discuss this matter.`;
+    const message = `Your child has missed ${count} sessions this month. Missed sessions: ${historyText}. Please contact the administration immediately to discuss this matter.`;
 
     await prisma.notification.create({
       data: {
