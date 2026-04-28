@@ -205,6 +205,12 @@ export async function GET(request: NextRequest) {
     attendance
       .filter((a) => a.note && a.note.trim() !== "")
       .forEach((a) => {
+        const lessonObj = todayLessons.find(l => l.id === a.lessonId);
+        const slot = slots.find(s => s.subjectId === lessonObj?.subjectId);
+        
+        const realSubject = slot?.subject?.name || "General";
+        const realTeacher = slot?.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "Teacher";
+
         const rawText = a.note!;
         try {
           const parsed = JSON.parse(rawText);
@@ -214,8 +220,8 @@ export async function GET(request: NextRequest) {
                 attendanceRemarks.push({
                   id: `att-${a.id}-${idx}`,
                   note: p.text,
-                  subject: p.author || "Admin",
-                  teacher: null,
+                  subject: realSubject,
+                  teacher: realTeacher,
                   date: a.date,
                 });
               }
@@ -225,18 +231,16 @@ export async function GET(request: NextRequest) {
         } catch (e) {}
 
         // Fallback for isolated legacy strings
-        let author = "Admin";
         let text = rawText;
         if (text.startsWith("[") && text.includes("] ")) {
-          author = text.substring(1, text.indexOf("]"));
           text = text.substring(text.indexOf("] ") + 2);
         }
         
         attendanceRemarks.push({
           id: `att-${a.id}`,
           note: text,
-          subject: author,
-          teacher: null,
+          subject: realSubject,
+          teacher: realTeacher,
           date: a.date,
         });
       });

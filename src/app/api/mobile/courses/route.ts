@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
         l.resources.map(r => ({
           id: r.id,
           title: r.title,
+          description: r.description,
           url: r.url,
           createdAt: r.createdAt,
           teacher: `${l.teacher?.name} ${l.teacher?.surname}`
