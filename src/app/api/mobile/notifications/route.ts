@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
         message: n.message,
         time: formatRelativeTime(n.createdAt),
+        rawDate: n.createdAt,
         iconName,
         iconColor,
         isNew: !n.isRead

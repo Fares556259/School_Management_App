@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
         img: true,
         schoolId: true,
         activated: true,
+        subjects: {
+          select: { id: true, name: true }
+        }
       },
     });
 
