@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { createAttendanceNotification, createAssignmentNotification, createResourceNotification, createRemarkNotification } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -144,24 +145,44 @@ export async function POST(request: NextRequest) {
 
     const results = await Promise.all(ops);
 
-    // 3. Handle Task/Assignment Creation
+    // 3. Fire notifications for attendance status and remarks (non-blocking)
+    for (const record of records) {
+      // Notify parent if student is absent or late
+      if (record.status === 'ABSENT' || record.status === 'LATE') {
+        createAttendanceNotification(record.studentId, record.status, attendanceDate).catch(console.error);
+      }
+
+      // Notify parent if a remark note was left for this student
+      if (record.note && record.note.trim()) {
+        // Resolve the subject name from the lesson for a richer notification
+        const lessonSubject = effectiveLessonId
+          ? await prisma.lesson.findUnique({ where: { id: effectiveLessonId }, include: { subject: true } })
+          : null;
+        const subjectName = lessonSubject?.subject?.name || 'Class';
+        createRemarkNotification(record.studentId, subjectName, record.note).catch(console.error);
+      }
+    }
+
+    // 4. Handle Task/Assignment Creation
     if (task && task.title && effectiveLessonId) {
-      await prisma.assignment.create({
+      const newAssignment = await prisma.assignment.create({
         data: {
           title: task.title,
           description: task.description || "",
           img: task.attachments && task.attachments.length > 0 ? task.attachments.map((a: any) => a.uri).join(',') : null,
           startDate: attendanceDate,
-          dueDate: new Date(attendanceDate.getTime() + 7 * 24 * 60 * 60 * 1000), // Default 1 week
+          dueDate: new Date(attendanceDate.getTime() + 7 * 24 * 60 * 60 * 1000),
           lessonId: effectiveLessonId,
           schoolId: schoolId
         }
       });
+      // Notify parents about the new task
+      createAssignmentNotification(newAssignment.id).catch(console.error);
     }
 
-    // 4. Handle Resource Creation
+    // 5. Handle Resource Creation
     if (resource && resource.title && resource.url && effectiveLessonId) {
-      await prisma.resource.create({
+      const newResource = await prisma.resource.create({
         data: {
           title: resource.title,
           url: resource.url,
@@ -169,6 +190,8 @@ export async function POST(request: NextRequest) {
           schoolId: schoolId
         }
       });
+      // Notify parents about the new resource
+      createResourceNotification(newResource.id).catch(console.error);
     }
 
     return NextResponse.json({ success: true, count: results.length });

@@ -12,19 +12,12 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing teacherId", { status: 400 });
     }
 
-    // Fetch classes assigned to this teacher
-    // A teacher can be linked to classes via the 'classes' relation or 'timetable'
-    // We'll use the classes relation on the Teacher model
+    // Fetch classes via lessons/timetable to identify what they actually teach
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
       include: {
-        classes: {
-          include: {
-            _count: {
-              select: { students: true, lessons: true }
-            }
-          }
-        }
+        lessons: { select: { classId: true } },
+        timetable: { select: { classId: true } }
       }
     });
 
@@ -32,12 +25,30 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Teacher not found", { status: 404 });
     }
 
-    const classes = teacher.classes.map(c => ({
+    // Get unique class IDs strictly from lessons and timetable
+    const allClassIds = Array.from(new Set([
+      ...teacher.lessons.map(l => l.classId),
+      ...teacher.timetable.map(t => t.classId)
+    ]));
+
+    // Fetch full details for all these classes
+    const classesData = await prisma.class.findMany({
+      where: { id: { in: allClassIds } },
+      include: {
+        _count: {
+          select: { students: true, lessons: true }
+        },
+        level: true
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    const classes = classesData.map(c => ({
       id: c.id,
       name: c.name,
       students: c._count.students,
       lessons: c._count.lessons,
-      // We could add more stats here like average attendance
+      level: `${c.level.level}${c.name.match(/[a-zA-Z]/)?.[0] || ''}` // e.g. 1A, 2B
     }));
 
     return NextResponse.json(classes);

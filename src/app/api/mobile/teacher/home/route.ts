@@ -32,6 +32,25 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Teacher not found", { status: 404 });
     }
 
+    // 1. Calculate New Stats (Classes, Tasks given, Resources) - independent of the day
+    // Unique classes taught by this teacher from the timetable
+    const allSlots = await prisma.timetableSlot.findMany({
+      where: { teacherId },
+      select: { classId: true }
+    });
+    const uniqueClassIds = new Set(allSlots.map(s => s.classId));
+    const totalClasses = uniqueClassIds.size;
+
+    // Total tasks given by this teacher
+    const totalTasksGiven = await prisma.assignment.count({
+      where: { lesson: { teacherId } }
+    });
+
+    // Total resources shared by this teacher
+    const totalResources = await prisma.resource.count({
+      where: { lesson: { teacherId } }
+    });
+
     const now = new Date();
     const dayNum = now.getDay();
     const todayEnum = DAY_MAP[dayNum];
@@ -39,9 +58,9 @@ export async function GET(request: NextRequest) {
     if (todayEnum === "SUNDAY") {
       return NextResponse.json({
         todayClassesCount: 0,
-        presentCount: 0,
-        absentCount: 0,
-        tasksDueCount: 0,
+        totalClasses,
+        totalTasksGiven,
+        totalResources,
         todayClasses: []
       });
     }
@@ -59,34 +78,10 @@ export async function GET(request: NextRequest) {
       orderBy: { startTime: "asc" }
     });
 
-    // 2. Fetch today's attendance records for students in these classes
-    // We only care about lessons taught by this teacher today
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-
-    const attendanceRecords = await prisma.attendance.findMany({
-      where: {
-        date: { gte: todayStart, lt: todayEnd },
-        lesson: {
-          teacherId: teacherId
-        }
-      }
-    });
-
-    const presentCount = attendanceRecords.filter(a => a.status === 'PRESENT').length;
-    const absentCount = attendanceRecords.filter(a => a.status === 'ABSENT').length;
-
-    // 3. Tasks Due Count
-    const tasksDueCount = await prisma.assignment.count({
-      where: {
-        lesson: { teacherId },
-        dueDate: { gte: todayStart, lt: todayEnd }
-      }
-    });
-
-    // 4. Map classes with status (Live/Next)
+    // 2. Map classes with status (Live/Next)
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
+    let foundNext = false;
     const todayClasses = slots.map(slot => {
       const start = parseTime(slot.startTime);
       const end = parseTime(slot.endTime);
@@ -98,9 +93,14 @@ export async function GET(request: NextRequest) {
       if (currentTime >= startTimeMinutes && currentTime <= endTimeMinutes) {
         status = "Live";
       } else if (currentTime < startTimeMinutes) {
-        status = "Next";
+        if (!foundNext) {
+          status = "Next";
+          foundNext = true;
+        } else {
+          status = "Upcoming";
+        }
       } else {
-        status = "Finished";
+        status = "Completed";
       }
 
       return {
@@ -132,9 +132,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       todayClassesCount: slots.length,
-      presentCount,
-      absentCount,
-      tasksDueCount,
+      totalClasses,
+      totalTasksGiven,
+      totalResources,
       todayClasses
     });
 

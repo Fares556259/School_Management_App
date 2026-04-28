@@ -404,3 +404,40 @@ export async function createDetailedAbsenceAlert(studentId: string, history: { d
     throw error;
   }
 }
+
+/**
+ * Creates a notification for a parent when a teacher leaves a remark on their child.
+ */
+export async function createRemarkNotification(studentId: string, subjectName: string, remarkText: string) {
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { name: true, parentId: true }
+    });
+    if (!student) return;
+
+    const truncated = remarkText.length > 100 ? remarkText.substring(0, 100) + '...' : remarkText;
+
+    await prisma.notification.create({
+      data: {
+        parentId: student.parentId,
+        studentId,
+        type: "ANNOUNCEMENT",
+        title: `📝 Teacher Remark — ${subjectName}`,
+        message: `A remark was left for ${student.name}: "${truncated}"`,
+        schoolId: (await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } }))?.schoolId || "default_school"
+      }
+    });
+
+    sendPush(
+      student.parentId,
+      `📝 Teacher Remark — ${subjectName}`,
+      `"${truncated}"`,
+      { type: "REMARK", studentId }
+    );
+
+    console.log(`[NOTIFICATIONS] Remark notification sent for student ${studentId}`);
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error creating remark notification:", error);
+  }
+}

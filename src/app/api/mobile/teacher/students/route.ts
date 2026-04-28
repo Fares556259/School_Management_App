@@ -18,12 +18,35 @@ export async function GET(request: NextRequest) {
     const today = date ? new Date(date) : new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Identify the specific lesson context for this teacher and class
+    const dayName = moment(date || new Date()).format('dddd').toUpperCase();
+    const [lessons, timetableSlots] = await Promise.all([
+      prisma.lesson.findMany({
+        where: {
+          classId: parseInt(classId),
+          teacherId: teacherId || undefined,
+          day: dayName as any
+        }
+      }),
+      prisma.timetableSlot.findMany({
+        where: {
+          classId: parseInt(classId),
+          teacherId: teacherId || undefined,
+          day: dayName as any
+        }
+      })
+    ]);
+
+    const lessonId = lessons[0]?.id || null;
+    const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
+
     const students = await prisma.student.findMany({
       where: { classId: parseInt(classId) },
       include: {
         attendance: {
           where: {
             date: today,
+            lessonId: lessonId || undefined // Filter by specific lesson if known
           },
           take: 1,
         }
@@ -50,7 +73,7 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    const [assignments, resources, lessons, timetableSlots] = await Promise.all([
+    const [assignments, resources] = await Promise.all([
       prisma.assignment.findMany({
         where: {
           lesson: { classId: parseInt(classId) },
@@ -61,26 +84,8 @@ export async function GET(request: NextRequest) {
         where: {
           lesson: { classId: parseInt(classId), day: dayName as any }
         }
-      }),
-      prisma.lesson.findMany({
-        where: {
-          classId: parseInt(classId),
-          teacherId: teacherId || undefined,
-          day: dayName as any
-        }
-      }),
-      prisma.timetableSlot.findMany({
-        where: {
-          classId: parseInt(classId),
-          teacherId: teacherId || undefined,
-          day: dayName as any
-        }
       })
     ]);
-
-    // Use the first lesson ID if available, otherwise maybe use a timetable slot ID
-    const lessonId = lessons[0]?.id || null;
-    const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
 
     const studentData = students.map(s => {
       const att = s.attendance[0];
