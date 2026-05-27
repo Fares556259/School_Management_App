@@ -448,13 +448,14 @@ model TimetableSlot {
   classId    Int
   roomId     Int?
   schoolId   String   @default("default_school")
+  isDraft    Boolean  @default(false)
   class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   room       Room?    @relation(fields: [roomId], references: [id])
   School     School   @relation(fields: [schoolId], references: [id])
   subject    Subject? @relation(fields: [subjectId], references: [id])
   teacher    Teacher? @relation(fields: [teacherId], references: [id])
 
-  @@unique([classId, day, slotNumber])
+  @@unique([classId, day, slotNumber, isDraft])
 }
 
 model DailyReportLog {

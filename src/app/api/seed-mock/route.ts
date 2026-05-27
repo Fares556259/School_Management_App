@@ -14,6 +14,9 @@ export async function GET() {
 
     const student = parent1.students[0];
     const classId = student.classId;
+    if (!classId) {
+      return NextResponse.json({ error: "Student is not enrolled in a class" });
+    }
 
     const subjects = await prisma.subject.findMany();
     const teachers = await prisma.teacher.findMany();
@@ -25,7 +28,7 @@ export async function GET() {
 
     // Seed Timetable Slot for Wednesday
     await prisma.timetableSlot.upsert({
-      where: { classId_day_slotNumber: { classId, day: Day.WEDNESDAY, slotNumber: 1 } },
+      where: { classId_day_slotNumber_isDraft: { classId, day: Day.WEDNESDAY, slotNumber: 1, isDraft: false } },
       update: {},
       create: {
         day: Day.WEDNESDAY,
@@ -35,10 +38,11 @@ export async function GET() {
         classId,
         subjectId: subject.id,
         teacherId: teacher.id,
+        isDraft: false,
       }
     });
     await prisma.timetableSlot.upsert({
-      where: { classId_day_slotNumber: { classId, day: Day.WEDNESDAY, slotNumber: 2 } },
+      where: { classId_day_slotNumber_isDraft: { classId, day: Day.WEDNESDAY, slotNumber: 2, isDraft: false } },
       update: {},
       create: {
         day: Day.WEDNESDAY,
@@ -48,6 +52,7 @@ export async function GET() {
         classId,
         subjectId: subject.id,
         teacherId: teacher.id,
+        isDraft: false,
       }
     });
 

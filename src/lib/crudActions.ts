@@ -1045,12 +1045,12 @@ export const deleteNotice = async (id: number) => {
 };
 
 // ===================== TIMETABLE =====================
-export const bulkUpdateTimetableSlots = async (classId: number, slots: any[]) => {
+export const bulkUpdateTimetableSlots = async (classId: number, slots: any[], isDraft: boolean = false) => {
   try {
     await prisma.$transaction(async (tx) => {
       // 1. Delete existing slots for this class
       await tx.timetableSlot.deleteMany({
-        where: { classId },
+        where: { classId, isDraft },
       });
 
       // 2. Create new slots
@@ -1065,16 +1065,19 @@ export const bulkUpdateTimetableSlots = async (classId: number, slots: any[]) =>
             subjectId: slot.subjectId ? parseInt(String(slot.subjectId)) : null,
             teacherId: slot.teacherId ? String(slot.teacherId) : null,
             classId: parseInt(String(classId)),
+            isDraft: isDraft,
           },
         });
       }
     });
 
     await createAuditLog({
-      action: "AI_GENERATE_TIMETABLE",
+      action: isDraft ? "AI_GENERATE_TIMETABLE_DRAFT" : "AI_GENERATE_TIMETABLE",
       entityType: "Class",
       entityId: String(classId),
-      description: `AI Generated new timetable for Class ID: ${classId} (${slots.length} slots)`,
+      description: isDraft 
+        ? `AI Generated draft timetable for Class ID: ${classId} (${slots.length} slots)`
+        : `AI Generated new timetable for Class ID: ${classId} (${slots.length} slots)`,
     });
 
     revalidatePath("/admin/timetable");

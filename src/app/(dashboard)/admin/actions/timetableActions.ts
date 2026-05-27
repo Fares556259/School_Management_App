@@ -14,10 +14,10 @@ export type TimetableSlotUpdate = {
   roomId?: number | null;
 };
 
-export async function getTimetableByClass(classId: number) {
+export async function getTimetableByClass(classId: number, isDraft: boolean = false) {
   try {
     const slots = await prisma.timetableSlot.findMany({
-      where: { classId },
+      where: { classId, isDraft },
       include: {
         subject: true,
         teacher: true,
@@ -35,7 +35,7 @@ export async function getTimetableByClass(classId: number) {
   }
 }
 
-export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?: number, day?: Day, slotNumber?: number }) {
+export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?: number, day?: Day, slotNumber?: number, isDraft?: boolean }) {
   try {
     if (data.id === -1) {
       // CREATE NEW SLOT
@@ -49,6 +49,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
           subjectId: data.subjectId,
           teacherId: data.teacherId,
           roomId: data.roomId,
+          isDraft: data.isDraft || false,
         }
       });
       revalidatePath(`/admin/timetable`);
@@ -119,10 +120,11 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
     // Check if target slot is occupied
     const targetOccupied = await prisma.timetableSlot.findUnique({
       where: {
-        classId_day_slotNumber: {
+        classId_day_slotNumber_isDraft: {
           classId: sourceSlot.classId,
           day: targetDay,
           slotNumber: targetSlotNumber,
+          isDraft: sourceSlot.isDraft,
         },
       },
     });
@@ -130,13 +132,6 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
     await prisma.$transaction(async (tx) => {
       if (targetOccupied) {
         // SWAP: Move target occupied slot to source position
-        // Temporary set to negative ID or use update to avoid unique constraint mismatch mid-transaction
-        // Actually, we can just delete and recreate or update Source first with target data
-        
-        // 1. Clear target location temporarily (we have sourceSlot data in memory)
-        // No need, we can just update them in two steps if we handle the unique constraint carefully
-        // But Prisma handles transactions well.
-        
         await tx.timetableSlot.update({
           where: { id: targetOccupied.id },
           data: { slotNumber: -1 }, // Move to limbo
@@ -198,12 +193,12 @@ export async function deleteTimetableSlot(id: number) {
   }
 }
 
-export async function bulkUpdateTimetableSlots(classId: number, slots: any[]) {
+export async function bulkUpdateTimetableSlots(classId: number, slots: any[], isDraft: boolean = false) {
   try {
     await prisma.$transaction(async (tx) => {
-      // 1. Delete all existing slots for this class
+      // 1. Delete all existing slots for this class with this draft status
       await tx.timetableSlot.deleteMany({
-        where: { classId }
+        where: { classId, isDraft }
       });
 
       // 2. Create new slots
@@ -215,6 +210,7 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[]) {
         subjectId: slot.subjectId,
         teacherId: slot.teacherId,
         classId: classId,
+        isDraft: isDraft,
       }));
 
       await tx.timetableSlot.createMany({
@@ -226,6 +222,67 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[]) {
     return { success: true };
   } catch (error: any) {
     console.error("Bulk update error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function publishDraftTimetable(classId: number) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete currently published slots
+      await tx.timetableSlot.deleteMany({
+        where: { classId, isDraft: false }
+      });
+
+      // 2. Get drafts
+      const drafts = await tx.timetableSlot.findMany({
+        where: { classId, isDraft: true }
+      });
+
+      // 3. Clone draft to published
+      if (drafts.length > 0) {
+        const publishedData = drafts.map(slot => ({
+          day: slot.day,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          slotNumber: slot.slotNumber,
+          subjectId: slot.subjectId,
+          teacherId: slot.teacherId,
+          roomId: slot.roomId,
+          schoolId: slot.schoolId,
+          classId: slot.classId,
+          isDraft: false,
+        }));
+
+        await tx.timetableSlot.createMany({
+          data: publishedData
+        });
+      }
+
+      // 4. Delete drafts
+      await tx.timetableSlot.deleteMany({
+        where: { classId, isDraft: true }
+      });
+    });
+
+    revalidatePath(`/admin/timetable`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Publish draft error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function discardDraftTimetable(classId: number) {
+  try {
+    await prisma.timetableSlot.deleteMany({
+      where: { classId, isDraft: true }
+    });
+
+    revalidatePath(`/admin/timetable`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Discard draft error:", error);
     return { success: false, error: error.message };
   }
 }

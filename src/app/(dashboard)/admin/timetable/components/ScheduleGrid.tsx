@@ -22,12 +22,13 @@ interface ScheduleGridProps {
   examPeriod?: number;
   startDate?: Date;
   endDate?: Date;
-  fetchDataAction?: (id: number) => Promise<{ success: boolean; data?: any[] }>;
+  fetchDataAction?: (id: number, isDraft?: boolean) => Promise<{ success: boolean; data?: any[] }>;
   onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
   sessions?: { id: number; label: string; time: string }[];
+  isDraft?: boolean;
 }
 
 const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
@@ -47,7 +48,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   onUpdateAction,
   onDeleteAction,
   onRefresh,
-  sessions: propSessions
+  sessions: propSessions,
+  isDraft = false
 }, ref) => {
   const [localSlots, setLocalSlots] = useState<any[]>(propSlots || []);
   const [isLoading, setIsLoading] = useState(!propSlots && !!fetchDataAction);
@@ -60,7 +62,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     if (fetchDataAction && classId) {
       const loadData = async () => {
         setIsLoading(true);
-        const res = await fetchDataAction(classId);
+        const res = await fetchDataAction(classId, isDraft);
         if (res.success && res.data) {
           setLocalSlots(res.data);
         }
@@ -68,7 +70,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       };
       loadData();
     }
-  }, [classId, fetchDataAction, refreshKey]);
+  }, [classId, fetchDataAction, refreshKey, isDraft]);
 
   useEffect(() => {
     if (propSlots) {
@@ -246,7 +248,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         teachers={teachers}
                         rooms={rooms}
                         usedSubjectIds={usedSubjectIds}
-                        onUpdateAction={onUpdateAction}
+                        onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
                         onDeleteAction={onDeleteAction}
                         onRefresh={onRefresh}
                         isEditMode={isEditMode}

@@ -49,12 +49,13 @@ export async function POST(request: NextRequest) {
             schoolId,
             classId: parseInt(classId),
             teacherId,
-            day: dayName as any
+            day: dayName as any,
+            isDraft: false
           },
           include: { subject: true }
         });
 
-        if (slot) {
+        if (slot && slot.subjectId) {
           const newLesson = await prisma.lesson.create({
             data: {
               name: slot.subject?.name || "Session",

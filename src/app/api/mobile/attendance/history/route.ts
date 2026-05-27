@@ -19,13 +19,13 @@ export async function GET(request: NextRequest) {
       select: { classId: true, createdAt: true },
     });
 
-    if (!student) {
-      return new NextResponse("Student not found", { status: 404 });
+    if (!student || !student.classId) {
+      return new NextResponse("Student is not enrolled in any class", { status: 400 });
     }
 
     // 1. Fetch the timetable for this class to know the sessions per day
-    let slots = await prisma.timetableSlot.findMany({
-      where: { classId: student.classId },
+    let slots: any[] = await prisma.timetableSlot.findMany({
+      where: { classId: student.classId, isDraft: false },
       include: { subject: true },
     });
 

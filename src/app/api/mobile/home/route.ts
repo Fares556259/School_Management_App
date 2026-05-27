@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     // Group 1: Sequential lookups to respect connection pool
     const slots = await prisma.timetableSlot.findMany({
-      where: { classId: student.classId, day: todayEnum as any },
+      where: { classId: student.classId, day: todayEnum as any, isDraft: false },
       include: { subject: true, teacher: true, room: true },
       orderBy: { slotNumber: "asc" },
     });

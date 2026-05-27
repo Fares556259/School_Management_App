@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" }
     });
 
-    const slots = await prisma.timetableSlot.findMany({
-      where: { classId: parseInt(classId), teacherId },
+    const slots: any[] = await prisma.timetableSlot.findMany({
+      where: { classId: parseInt(classId), teacherId: teacherId || undefined, isDraft: false },
       include: { subject: true }
     });
-    const lessons = await prisma.lesson.findMany({
-      where: { classId: parseInt(classId), teacherId },
+    const lessons: any[] = await prisma.lesson.findMany({
+      where: { classId: parseInt(classId), teacherId: teacherId || undefined },
       include: { subject: true }
     });
     
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     if (!finalSubjectId) {
       // Find the first subject this teacher teaches in this specific class
       const classSlot = await prisma.timetableSlot.findFirst({
-        where: { classId: parseInt(classId), teacherId },
+        where: { classId: parseInt(classId), teacherId, isDraft: false },
         select: { subjectId: true }
       });
       if (classSlot && classSlot.subjectId) {

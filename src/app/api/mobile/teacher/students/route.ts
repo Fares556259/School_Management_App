@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
         where: {
           classId: parseInt(classId),
           teacherId: teacherId || undefined,
-          day: dayName as any
+          day: dayName as any,
+          isDraft: false
         }
       })
     ]);
@@ -56,7 +57,6 @@ export async function GET(request: NextRequest) {
 
     // Fetch assignments and resources for this class and date
     // Use the date string directly for moment to avoid timezone shifting issues with new Date()
-    const dayName = moment(date || new Date()).format('dddd').toUpperCase();
 
     if (dayName === "SUNDAY") {
       return NextResponse.json({

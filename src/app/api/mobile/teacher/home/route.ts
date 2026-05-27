@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // 1. Calculate New Stats (Classes, Tasks given, Resources) - independent of the day
     // Unique classes taught by this teacher from the timetable
     const allSlots = await prisma.timetableSlot.findMany({
-      where: { teacherId },
+      where: { teacherId, isDraft: false },
       select: { classId: true }
     });
     const uniqueClassIds = new Set(allSlots.map(s => s.classId));
@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
     const slots = await prisma.timetableSlot.findMany({
       where: { 
         teacherId, 
-        day: todayEnum as any 
+        day: todayEnum as any,
+        isDraft: false
       },
       include: { 
         class: true, 
