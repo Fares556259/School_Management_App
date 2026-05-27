@@ -1,0 +1,132 @@
+# FEATURE_LOG.md — SnapSchool Feature and Logic Documentation
+> Last updated: 2026-05-27
+
+This file tracks all custom features, schema changes, and custom business logic implemented in the SnapSchool codebase. **Review this file before making any changes to the database, actions, or entity forms.**
+
+---
+
+## 1. Decentralized Class Creation Flow (Option A)
+
+### Context & Problem Statement
+Previously, configuring "Variations (A-Z)" (e.g., A, B, C) in **Settings -> Academic Structure** would automatically populate and save `Class` records (like "1A", "1B") directly into the database with a default capacity of 30. This made the "Add Class" form on the Classes list page redundant, as classes were already created automatically.
+
+### New Logic Flow
+We shifted to a two-step decentralized structure:
+1. **Settings defines the allowed structure:** Settings now only stores the *number* of variations configured per level (e.g., Level 1 has 2 variations). It does **not** auto-create the classes.
+2. **Classes page handles instance creation:** The "Add Class" form actually creates the class instance, populated from the allowed variations not yet created.
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin User
+    participant Settings as Settings Page
+    participant DB as Postgres DB
+    participant Classes as Classes Page
+    
+    Admin->>Settings: Configure Level 1 to have 2 Variations (A, B)
+    Settings->>DB: Update Level 1 "variations" count = 2
+    Admin->>Classes: Click "Add New Class"
+    Classes->>DB: Fetch configured variations & existing classes
+    DB-->>Classes: configured variations (1A, 1B), existing: none
+    Classes-->>Admin: Show dropdown for Name with options ["1A", "1B"]
+    Admin->>Classes: Select "1A", input Capacity (e.g., 25) & Save
+    Classes->>DB: Create Class (1A) with Capacity 25 & Inferred Level 1
+```
+
+### Affected Components & Logic Details
+
+#### A. Database Schema (`prisma/schema.prisma`)
+- Added `variations Int @default(0)` to the `Level` model.
+- Kept `Class` as a relational child of `Level`.
+
+#### B. Actions (`src/app/(dashboard)/admin/actions/schoolActions.ts`)
+- **`syncLevelVariations(levelId, count)`**: Now simply updates the `Level` record's `variations` column with the new count. 
+- **Graceful Cleanup**: If the variation count is *reduced* in Settings (e.g., 3 -> 2), it checks if there are empty `Class` records exceeding the new count (e.g., "1C" exists but count is now 2) and deletes them. If a class is not empty (contains students/lessons/timetable), it returns a list of errors without deleting them.
+
+#### C. Classes Page (`src/app/(dashboard)/list/classes/page.tsx`)
+- Fetches all configuring `Level` structures, including their variations and currently created subclasses.
+- Dynamically computes the list of **available (uncreated)** class names (e.g., if variations count is 3 and only "1A" exists, it offers "1B" and "1C" in the options).
+- Passes the options list to the modal form.
+
+#### D. Form Modal (`src/components/CrudFormModal.tsx`)
+- **Simplified Class Form**: Updated `entityFields.class` to contain:
+  1. `name` (Class Name) - Now a `select` dropdown instead of a text input.
+  2. `capacity` (Capacity) - `number` input.
+  - **Removed `gradeId` (Grade) and `supervisorId` (Supervisor)** to simplify creation and let teachers/supervisors be assigned dynamically elsewhere.
+- **Update Mode Option Retention**: In update mode, the form automatically injects the class's current name into the dropdown options, ensuring it displays and saves properly.
+
+#### E. Class Actions (`src/lib/crudActions.ts`)
+- **Level Invalidation & Auto-inference**: Since Grade/Level was removed from the form, the `createClass` and `updateClass` actions automatically parse the level number from the selected name (e.g. `data.name.match(/^\d+/)` parses "1A" -> Level 1). It queries the database for the corresponding `Level` ID under the active `schoolId` and links it automatically.
+
+## 2. Dynamic Class Details & High-Fidelity Student Directory
+
+### New Logic Flow
+To align with the high-fidelity school management mockup provided by the user, we implemented a dedicated **Class Details & Student Directory** view:
+1. **Interactive Class Linkages:** In the **Classes** page (`/list/classes`), clicking the class name or the dedicated **`View Students`** button redirects the administrator to `/list/classes/[id]`.
+2. **Mockup-Inspired Student Registry:** The new dynamic Class Details page displays:
+   - Level, capacity limits, and class supervisor summaries.
+   - A table listing **all students enrolled in this class** showing their profile avatar, full name, username, roll number, address, DOB, and actions.
+   - Clean dynamic roll number formatting (e.g. `#01`, `#02`...) matching the mockup.
+3. **Contextual Class-Student Assignments:** An **`+ Assign Students`** action button is positioned at the top right of the table. Clicking it opens a searchable modal to bulk select other students in the school using checkboxes and assign them to this class.
+
+```mermaid
+graph TD
+    ClassesList["Classes List (/list/classes)"]
+    ClassDetails["Class Details (/list/classes/[id])"]
+    AssignModal["Assign Students Modal"]
+    DB["Postgres Database"]
+
+    ClassesList -- "Click Class Name or 'View Students'" --> ClassDetails
+    ClassDetails -- "Click '+ Assign Students'" --> AssignModal
+    AssignModal -- "Check students & Save" --> DB
+    DB -- "Reload class data" --> ClassDetails
+```
+
+### Affected Components & Logic Details
+
+#### A. Classes List Component (`src/app/(dashboard)/list/classes/page.tsx`)
+- Simplified query load: removed parent and student fetches from the server component to optimize page load speeds.
+- Links rows directly to `/list/classes/${item.id}` and adds the purple `View Students` action button.
+
+#### B. Dynamic Class Details Component (`src/app/(dashboard)/list/classes/[id]/page.tsx`)
+- Fetches active class details and its enrolled students.
+- Fetches all other unassigned/assignable students in the school to construct options for bulk checkbox selection.
+- Builds a premium responsive table matching the design mockup layout.
+
+---
+
+## 3. AI Timetable Scheduler Playground Visual Overhaul & Redundancy Removal
+
+### Context & Problem Statement
+The AI Scheduler Playground is dedicated to generating, viewing, and planning curriculum draft timetables before they are approved and published. However, the presence of the Active vs. Draft Suggestion toggle switcher on this playground page was redundant (since active schedules belong strictly to the main Timetable page) and crowded the premium top workspace bar.
+
+### Improvements Implemented
+1. **Redundancy Clean-Up:** Completely removed the Active vs. Draft Suggestion toggle switcher from the top bar when the page is rendered in draft mode (`forceDraft={true}`). This guarantees that the playground workspace is clean and focuses exclusively on curriculum draft optimization.
+2. **Transfer to Database & Menu Integration:**
+   - **Publish to Active Button:** Added a primary green `Publish to Active` button directly to the top bar when a draft is active on the AI Scheduler page. Clicking this triggers the database transaction (`publishDraftTimetable`) to clone draft slots into official active records.
+   - **Automatic Redirection:** Updated the action completion callback to automatically route the administrator via Next.js router (`router.push`) to the official **Academic Timetable** page (`/admin/timetable?classId=...`) and trigger `router.refresh()`. This seamlessly transfers the draft to the database and shifts the active view to the official Menu calendar page.
+   - **Discard Draft Action:** Added a dedicated `Discard Draft` button next to publish, allowing users to permanently wipe the draft and instantly reset the playground state.
+3. **Visual Enhancements & Premium Styling:**
+   - **Dynamic Gradient Icon:** Replaced the generic clock icon with a vibrant gradient icon utilizing the `Sparkles` icon (`bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white`) when in AI mode.
+   - **Clean Pill Badges:** Restructured the header pills, introducing a sleek purple `"AI Scheduler"` status badge to complement the `"View Mode" / "Edit Mode"` state pill.
+   - **Micro-Interactions & Hover States:** Upgraded action buttons (`Download PDF`, `AI Magic Generate`, `Edit Schedule`) with subtle hover scaling (`hover:scale-[1.02] active:scale-[0.98]`) and enhanced shadow structures for a premium SaaS look.
+   - **Form Select Styling:** Upgraded the class selector dropdown container and select input with polished light grey borders (`border-slate-200`) and standard typography matching the premium dashboard layout.
+
+---
+
+## 4. Arabic-Only Subject Name Formatting for Timetable & AI Scheduler
+
+### Context & Problem Statement
+Subject records in the database store trilingual name labels separated by pipes (e.g. `الرياضيات | MATHÉMATIQUES | MATHEMATICS`). While highly detailed, displaying the full trilingual string inside the dense layout of the timetable calendar cells and selection modals led to a cluttered and messy UI presentation.
+
+### Improvements Implemented
+1. **Dynamic Text Splitting:** Integrated dynamic string-splitting logic into the subject rendering elements. The string is split by the pipe (`|`) character, and only the first segment (which represents the **Arabic translation**) is kept and trimmed: `rawSubjectName.split("|")[0].trim()`.
+2. **Timetable Calendar Grid Cells:** Implemented formatting in the `ScheduleSlot` component, ensuring the active calendar displays clean Arabic names (e.g., `الرياضيات` instead of `الرياضيات | MATHÉMATIQUES | MATHEMATICS`).
+3. **Interactive Select Dropdowns:** Applied the same Arabic formatter to the subject select lists inside the scheduler edit popup forms, making draft modification highly polished.
+4. **AI Generation Proposal Cards:** Integrated formatting inside the `AiScheduleModal` review steps so generated schedules are previewed using only clean Arabic subject titles.
+
+---
+
+## 5. Guidelines for Future Database or Logic Modifications
+- **Never auto-create class records outside of this flow.** All class creation must run through `createClass` inside `crudActions.ts` to ensure consistent auto-level-mapping.
+- **If changing student enrollment logic:** Student creation retains `classId` assignment. Linking a student to `classId` automatically maps them to that class.
+
