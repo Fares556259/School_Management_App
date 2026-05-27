@@ -7,6 +7,7 @@ export const ar = {
     results: "النتائج",
     grades: "الدرجات",
     timetable: "جدول الأوقات",
+    aiScheduler: "مخطط الذكاء الاصطناعي",
     teachers: "الأساتذة",
     staff: "الموظفين",
     students: "الطلاب",

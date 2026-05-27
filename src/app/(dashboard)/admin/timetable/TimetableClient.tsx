@@ -24,12 +24,14 @@ const TimetablePage = ({
   teachers,
   sessions,
   rooms,
+  forceDraft = false,
 }: {
   classes: any[];
   subjects: any[];
   teachers: any[];
   sessions?: any[];
   rooms: any[];
+  forceDraft?: boolean;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,7 +41,7 @@ const TimetablePage = ({
   const [isAiLocked, setIsAiLocked] = useState(false);
 
   // Draft States
-  const [isDraftView, setIsDraftView] = useState(false);
+  const [isDraftView, setIsDraftView] = useState(forceDraft);
   const [hasDraft, setHasDraft] = useState(false);
 
   // PDF Export Ref
@@ -64,15 +66,19 @@ const TimetablePage = ({
       getTimetableByClass(selectedClass.id, true).then(res => {
         const draftExists = !!(res.success && res.data && res.data.length > 0);
         setHasDraft(draftExists);
-        // Automatically switch to draft view if a draft is loaded
-        if (draftExists) {
+        if (forceDraft) {
           setIsDraftView(true);
         } else {
-          setIsDraftView(false);
+          // Automatically switch to draft view if a draft is loaded
+          if (draftExists) {
+            setIsDraftView(true);
+          } else {
+            setIsDraftView(false);
+          }
         }
       });
     }
-  }, [selectedClass?.id, refreshKey]);
+  }, [selectedClass?.id, refreshKey, forceDraft]);
 
   const handleAiSuccess = () => {
     setRefreshKey(prev => prev + 1);
@@ -123,9 +129,11 @@ const TimetablePage = ({
               </span>
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
-              Academic Timetable
+              {forceDraft ? "AI Scheduler Playground" : "Academic Timetable"}
             </h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-60">Manage weekly schedules for all grades.</p>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-60">
+              {forceDraft ? "Plan, generate, and optimize curriculum drafts." : "Manage weekly schedules for all grades."}
+            </p>
           </div>
         </div>
         

@@ -7,6 +7,7 @@ export const en = {
     results: "Results",
     grades: "Grades",
     timetable: "Timetable",
+    aiScheduler: "AI Scheduler",
     teachers: "Teachers",
     staff: "Staff",
     students: "Students",

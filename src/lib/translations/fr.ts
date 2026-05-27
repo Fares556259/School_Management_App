@@ -7,6 +7,7 @@ export const fr = {
     results: "Résultats",
     grades: "Notes",
     timetable: "Emploi du temps",
+    aiScheduler: "Planificateur IA",
     teachers: "Enseignants",
     staff: "Personnel",
     students: "Étudiants",

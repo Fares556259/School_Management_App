@@ -32,7 +32,8 @@ import {
   CalendarCheck,
   Calculator,
   Smartphone,
-  Library
+  Library,
+  Sparkles
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
@@ -43,6 +44,7 @@ const labelToKey: Record<string, any> = {
   "Results": "results",
   "Grades": "grades",
   "Timetable": "timetable",
+  "AI Scheduler": "aiScheduler",
   "Teachers": "teachers",
   "Staff": "staff",
   "Students": "students",
@@ -121,6 +123,12 @@ const menuItems: MenuSection[] = [
         label: "Timetable",
         href: "/admin/timetable",
         visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: Sparkles,
+        label: "AI Scheduler",
+        href: "/admin/timetable/ai",
+        visible: ["admin"],
       },
       {
         icon: UserRound,
