@@ -196,20 +196,6 @@ const SubjectListPage = async ({
           })}
         </div>
 
-        {/* ── COLUMN LEGEND ── */}
-        {subjects.length > 0 && (
-          <div className="hidden md:flex items-center gap-6 px-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            <span className="w-7" />
-            <div className="flex-1 grid grid-cols-3 gap-6">
-              <span className="text-right">Arabic / عربي</span>
-              <span className="text-center">French / Français</span>
-              <span>English</span>
-            </div>
-            <span className="min-w-[140px]" />
-            <span className="w-16" />
-          </div>
-        )}
-
         {/* ── EMPTY STATE ── */}
         {subjects.length === 0 && (
           <div className="bg-white rounded-2xl border border-slate-100 flex flex-col items-center justify-center py-20 gap-4 text-center shadow-sm">
