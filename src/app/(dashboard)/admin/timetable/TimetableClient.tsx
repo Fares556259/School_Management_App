@@ -65,16 +65,12 @@ const TimetablePage = ({
     if (selectedClass?.id) {
       getTimetableByClass(selectedClass.id, true).then(res => {
         const draftExists = !!(res.success && res.data && res.data.length > 0);
-        setHasDraft(draftExists);
         if (forceDraft) {
+          setHasDraft(draftExists);
           setIsDraftView(true);
         } else {
-          // Automatically switch to draft view if a draft is loaded
-          if (draftExists) {
-            setIsDraftView(true);
-          } else {
-            setIsDraftView(false);
-          }
+          setHasDraft(false);
+          setIsDraftView(false);
         }
       });
     }
@@ -124,9 +120,11 @@ const TimetablePage = ({
               <span className={`text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                 {isEditMode ? 'Edit Mode' : 'View Mode'}
               </span>
-              <span className={`text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center ${isDraftView ? 'bg-amber-500 text-white border-amber-600' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                {isDraftView ? 'Draft View' : 'Published View'}
-              </span>
+              {forceDraft && (
+                <span className={`text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center ${isDraftView ? 'bg-amber-500 text-white border-amber-600' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
+                  {isDraftView ? 'Draft View' : 'Published View'}
+                </span>
+              )}
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
               {forceDraft ? "AI Scheduler Playground" : "Academic Timetable"}
@@ -150,19 +148,23 @@ const TimetablePage = ({
           <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
 
           {/* AI GENERATE BUTTON */}
-          <button 
-            onClick={() => setIsAiOpen(true)}
-            className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg group ${
-              isAiLocked 
-              ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-100'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
-            }`}
-          >
-            {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
-            {isAiLocked ? 'Limite AI Atteinte' : 'AI Magic Generate'}
-          </button>
+          {forceDraft && (
+            <>
+              <button 
+                onClick={() => setIsAiOpen(true)}
+                className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg group ${
+                  isAiLocked 
+                  ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-100'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+                }`}
+              >
+                {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
+                {isAiLocked ? 'Limite AI Atteinte' : 'AI Magic Generate'}
+              </button>
 
-          <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
+              <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
+            </>
+          )}
 
           {/* EDIT TIMETABLE BUTTON */}
           <button 
@@ -183,31 +185,35 @@ const TimetablePage = ({
           <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
 
           {/* DRAFT VIEW SELECT SWITCHER */}
-          <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-            <button 
-              onClick={() => setIsDraftView(false)}
-              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                !isDraftView 
-                ? 'bg-white text-slate-700 shadow-sm border border-slate-100' 
-                : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Active
-            </button>
-            <button 
-              onClick={() => setIsDraftView(true)}
-              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1 ${
-                isDraftView 
-                ? 'bg-amber-500 text-white shadow-sm' 
-                : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              Draft Suggestion
-              {hasDraft && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>}
-            </button>
-          </div>
+          {forceDraft && (
+            <>
+              <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                <button 
+                  onClick={() => setIsDraftView(false)}
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                    !isDraftView 
+                    ? 'bg-white text-slate-700 shadow-sm border border-slate-100' 
+                    : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Active
+                </button>
+                <button 
+                  onClick={() => setIsDraftView(true)}
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1 ${
+                    isDraftView 
+                    ? 'bg-amber-500 text-white shadow-sm' 
+                    : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Draft Suggestion
+                  {hasDraft && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>}
+                </button>
+              </div>
 
-          <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
+              <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
+            </>
+          )}
 
           {/* CLASS SELECTOR */}
           <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
@@ -216,7 +222,7 @@ const TimetablePage = ({
               className="bg-white border border-slate-100 rounded-lg px-4 py-2 text-xs font-black text-slate-700 shadow-sm focus:outline-none focus:border-indigo-500 transition-all cursor-pointer hover:bg-white uppercase tracking-wider"
               value={selectedClass?.id}
               onChange={(e) => {
-                router.push(`/admin/timetable?classId=${e.target.value}`);
+                router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
               }}
             >
               {classes.map(cls => (
