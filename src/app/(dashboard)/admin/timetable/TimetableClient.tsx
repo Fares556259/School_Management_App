@@ -88,6 +88,8 @@ const TimetablePage = ({
         setIsDraftView(false);
         setHasDraft(false);
         setRefreshKey(prev => prev + 1);
+        router.push(`/admin/timetable?classId=${selectedClass.id}`);
+        router.refresh();
       } else {
         alert(res.error || "Failed to publish draft.");
       }
@@ -99,7 +101,7 @@ const TimetablePage = ({
     if (window.confirm("Are you sure you want to discard this suggested draft? All changes in this draft will be permanently deleted.")) {
       const res = await discardDraftTimetable(selectedClass.id);
       if (res.success) {
-        setIsDraftView(false);
+        setIsDraftView(forceDraft);
         setHasDraft(false);
         setRefreshKey(prev => prev + 1);
       } else {
@@ -167,7 +169,29 @@ const TimetablePage = ({
                 }`}
               >
                 {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
-                {isAiLocked ? 'Limite AI Atteinte' : 'AI Magic Generate'}
+                {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
+              </button>
+
+              <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
+            </>
+          )}
+
+          {/* APPROVE / PUBLISH DRAFT (Visible on AI Scheduler page when draft exists) */}
+          {forceDraft && hasDraft && (
+            <>
+              <button 
+                onClick={handlePublishDraft}
+                className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Check size={14} className="stroke-[3px]" />
+                Publish to Active
+              </button>
+
+              <button 
+                onClick={handleDiscardDraft}
+                className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Discard Draft
               </button>
 
               <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
