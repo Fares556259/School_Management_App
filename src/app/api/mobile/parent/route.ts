@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   });
 
   const schoolConfig = await prisma.institution.findFirst({ 
-    where: { id: 1 },
+    where: { schoolId: parent?.schoolId || "default_school" },
     select: {
       schoolName: true,
       schoolLogo: true,

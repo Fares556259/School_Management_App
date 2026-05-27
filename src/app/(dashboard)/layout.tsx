@@ -2,6 +2,7 @@ import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
 import { auth } from "@clerk/nextjs/server";
 import { getRole } from "@/lib/role";
+import { getSchoolId } from "@/lib/school";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,8 +12,9 @@ import { cache } from "react";
 
 // Request-level caching for school configuration
 const getSchoolConfig = cache(async () => {
+  const schoolId = await getSchoolId();
   return await prisma.institution.findFirst({ 
-    where: { id: 1 },
+    where: { schoolId },
     select: {
       schoolName: true,
       schoolLogo: true,
@@ -53,9 +55,6 @@ export default async function DashboardLayout({
           className="flex items-center justify-center lg:justify-start gap-2 px-2 mb-6 shrink-0"
         >
           <Image src={schoolConfig?.schoolLogo || "/logo.png"} alt="logo" width={32} height={32} className="w-8 h-8 object-contain" />
-          <span className="hidden lg:block font-black text-xl tracking-tighter text-primary truncate">
-             {schoolConfig?.schoolName || "SnapSchool"}
-          </span>
         </Link>
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2">
           <Menu role={role!} />

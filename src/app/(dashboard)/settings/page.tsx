@@ -102,7 +102,7 @@ const SettingsPage = () => {
 
         const counts: Record<number, number> = {};
         feesRes.data.forEach((lvl: any) => {
-          counts[lvl.id] = Array.isArray(lvl.classes) ? lvl.classes.length : 0;
+          counts[lvl.id] = lvl.variations || 0;
         });
         setVariationCounts(counts);
         setOriginalVariationCounts(JSON.parse(JSON.stringify(counts)));

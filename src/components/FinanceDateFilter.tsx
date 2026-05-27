@@ -26,7 +26,7 @@ export default function FinanceDateFilter() {
     // Reset to page 1 when filtering
     params.delete("page");
     
-    router.push(`?${params.toString()}`);
+    router.push(`${window.location.pathname}?${params.toString()}`);
     setIsOpen(false);
   };
 

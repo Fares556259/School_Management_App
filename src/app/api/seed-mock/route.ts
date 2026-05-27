@@ -6,7 +6,7 @@ import { Day } from "@prisma/client";
 export async function GET() {
   try {
     const parent1 = await prisma.parent.findUnique({
-      where: { email: "parent1@gmail.com" },
+      where: { id: "parent1" },
       include: { students: { include: { class: true } } }
     });
 

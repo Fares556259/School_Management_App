@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
+import Link from "next/link";
 import { MONTHS } from "@/lib/dateUtils";
 
 export default function MonthSelector() {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -25,9 +25,6 @@ export default function MonthSelector() {
   }
 
   // Determine school year start (September)
-  // If we are in Jan-Jun (0-5), the school year started in Sep (8) of the previous year
-  // If we are in Aug-Dec (7-11), the school year started in Sep (8) of the current year
-  // (July/August are typically excluded or part of the summer, let's treat Aug as start)
   const schoolYearStartYear = (currentMonthIndex >= 8) ? currentYear : currentYear - 1;
 
   // Build the 10 months list: Sep, Oct, Nov, Dec, Jan, Feb, Mar, Apr, May, Jun
@@ -44,13 +41,6 @@ export default function MonthSelector() {
     { m: 5, y: schoolYearStartYear + 1 },    // Jun
   ];
 
-  const navigate = (month: number, year: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("month", `${month}-${year}`);
-    params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
   return (
     <div className="bg-white border-b border-slate-200 mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar">
       <div className="flex items-center gap-1 min-w-max py-2">
@@ -60,10 +50,14 @@ export default function MonthSelector() {
         </div>
         {schoolMonths.map(({ m, y }) => {
           const isActive = currentMonthIndex === m && currentYear === y;
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("month", `${m}-${y}`);
+          params.delete("page");
+
           return (
-            <button
+            <Link
               key={`${m}-${y}`}
-              onClick={() => navigate(m, y)}
+              href={`${pathname}?${params.toString()}`}
               className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 isActive
                   ? "bg-lamaSky text-white shadow-sm"
@@ -71,7 +65,7 @@ export default function MonthSelector() {
               }`}
             >
               {MONTHS[m].substring(0, 3)}
-            </button>
+            </Link>
           );
         })}
       </div>

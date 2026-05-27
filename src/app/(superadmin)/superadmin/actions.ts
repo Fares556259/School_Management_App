@@ -99,7 +99,7 @@ export async function approveAdmin(adminId: string) {
       counter++;
     }
 
-    const provisionResult = await provisionSchool(adminId, schoolId, schoolName, admin.email || undefined);
+    const provisionResult = await provisionSchool(adminId, schoolId, schoolName);
     if (!provisionResult.success) {
       return provisionResult;
     }
@@ -130,15 +130,6 @@ export async function rejectAdmin(adminId: string) {
     const client = await clerkClient();
     await client.users.deleteUser(adminId);
 
-    // 2. Identify and Update the setup request to 'REFUSED'
-    const admin = await prisma.admin.findUnique({ where: { id: adminId } });
-    if (admin?.email) {
-      await prisma.setupRequest.updateMany({
-        where: { email: admin.email },
-        data: { status: "REFUSED" }
-      });
-    }
-
     // 3. Delete from Prisma
     await prisma.admin.delete({
       where: { id: adminId },
@@ -158,24 +149,11 @@ export async function createTestLead() {
     const testId = "test_lead_" + Math.floor(Math.random() * 10000);
     const schoolName = "Emerald Heights Academy";
     
-    // 1. Create SetupRequest
-    await prisma.setupRequest.create({
-      data: {
-        schoolName: schoolName,
-        ownerName: "Sarah Jenkins",
-        phoneNumber: "+1 555-0123",
-        email: "sarah.jenkins@example.com",
-        city: "Seattle",
-        status: "PENDING"
-      }
-    });
-
     // 2. Create Admin record
     await prisma.admin.create({
       data: {
         id: testId,
         username: "sarah_admin",
-        email: "sarah.jenkins@example.com",
         name: "Sarah",
         surname: "Jenkins",
         status: "pending",
@@ -193,7 +171,7 @@ export async function createTestLead() {
 /**
  * Shared logic to provision all database records required for a school.
  */
-export async function provisionSchool(adminId: string, schoolId: string, schoolName: string, email?: string) {
+export async function provisionSchool(adminId: string, schoolId: string, schoolName: string) {
   // Note: Caller should handle ensureSuperUser() or similar authorization
   try {
     // 1. Check if school already exists to prevent crashes
@@ -239,14 +217,6 @@ export async function provisionSchool(adminId: string, schoolId: string, schoolN
           pendingSchoolName: null,
         },
       });
-
-      // 5. Update SetupRequest status to 'ACTIVATED'
-      if (email) {
-        await tx.setupRequest.updateMany({
-          where: { email: email },
-          data: { status: "ACTIVATED" }
-        });
-      }
     });
 
     return { success: true };

@@ -9,6 +9,8 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
+import Link from "next/link";
+import { Users } from "lucide-react";
 
 type ClassList = Class & { supervisor: Teacher | null } & { level: Level } & {
   _count: { students: number };
@@ -80,7 +82,11 @@ const ClassListPage = async ({
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-      <td className="hidden md:table-cell">{item.name}</td>
+      <td className="font-bold text-indigo-600 hover:underline">
+        <Link href={`/list/classes/${item.id}`}>
+          {item.name}
+        </Link>
+      </td>
       <td className="hidden md:table-cell">{item.capacity}</td>
       <td className="hidden md:table-cell">{item.level?.level}</td>
       <td className="hidden md:table-cell">
@@ -90,6 +96,13 @@ const ClassListPage = async ({
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
+              <Link 
+                href={`/list/classes/${item.id}`}
+                className="flex items-center gap-1.5 bg-purple-50 text-purple-600 px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+              >
+                <Users size={14} />
+                <span>View Students</span>
+              </Link>
               <CrudFormModal entity="class" mode="update" data={item} id={item.id} relatedData={classRelatedData} />
               <CrudFormModal entity="class" mode="delete" id={item.id} />
             </>
@@ -115,13 +128,35 @@ const ClassListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.class.count({ where: query }),
-    prisma.level.findMany({ where: { schoolId }, select: { id: true, level: true } }),
+    prisma.level.findMany({ 
+      where: { schoolId }, 
+      select: { 
+        id: true, 
+        level: true, 
+        variations: true,
+        classes: {
+          select: {
+            name: true
+          }
+        }
+      } 
+    }),
     prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
   ]);
 
+  const availableClassNames: { value: string; label: string }[] = [];
+  levels.forEach((l) => {
+    const existingNames = l.classes.map(c => c.name);
+    for (let i = 0; i < l.variations; i++) {
+      const name = `${l.level}${String.fromCharCode(65 + i)}`;
+      if (!existingNames.includes(name)) {
+        availableClassNames.push({ value: name, label: name });
+      }
+    }
+  });
+
   const classRelatedData = {
-    levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
-    supervisorId: teachers.map((t) => ({ value: t.id, label: `${t.name} ${t.surname}` })),
+    name: availableClassNames
   };
 
   return (

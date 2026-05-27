@@ -41,7 +41,6 @@ export async function getAdminProfile() {
         admin = await prisma.admin.update({
           where: { id: userId },
           data: {
-            email: user.emailAddresses[0]?.emailAddress,
             name: user.firstName,
             surname: user.lastName,
           }
@@ -73,7 +72,6 @@ export async function updateAdminProfile(data: {
       update: {
         name: data.name,
         surname: data.surname,
-        email: data.email,
         phone: data.phone,
         img: data.img,
       },
@@ -82,7 +80,6 @@ export async function updateAdminProfile(data: {
         username: userId, // Fallback if no username
         name: data.name,
         surname: data.surname,
-        email: data.email,
         phone: data.phone,
         img: data.img,
       },

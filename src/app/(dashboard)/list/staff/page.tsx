@@ -8,7 +8,6 @@ import Pagination from "@/components/Pagination";
 import PayStaffModal from "./PayStaffModal";
 import CrudFormModal from "@/components/CrudFormModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import MonthSelector from "@/components/MonthSelector";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import Table from "@/components/Table";
@@ -113,7 +112,6 @@ const StaffListPage = async ({
           />
           <div className="flex flex-col">
             <Link href={`/list/staff/${s.id}`} className="font-semibold">{s.name} {s.surname}</Link>
-            <p className="text-xs text-gray-500">{s.email}</p>
           </div>
         </td>
         <td className="hidden md:table-cell">{s.role}</td>
@@ -133,7 +131,7 @@ const StaffListPage = async ({
           />
         </td>
         <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={s.payments} />
+          <PaymentTimeline payments={s.payments} selectedMonthKey={selectedMonthKey} />
         </td>
         <td>
           <div className="flex items-center gap-2">
@@ -152,8 +150,7 @@ const StaffListPage = async ({
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* MONTH NAVIGATOR */}
-      <MonthSelector />
+      {/* MONTH NAVIGATOR REMOVED */}
       <div className="flex items-center justify-between mb-4">
         <MonthPaymentSummary
           total={staff.length}

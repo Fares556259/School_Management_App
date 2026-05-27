@@ -9,34 +9,34 @@ import { Payment } from "@prisma/client";
  */
 export default function PaymentTimeline({
   payments,
+  selectedMonthKey,
 }: {
   payments: Payment[];
+  selectedMonthKey?: string;
 }) {
   const now = new Date();
-  // Build a set of paid months dynamically from structured Payment records
   const paidMonths = new Map<string, "PAID" | "PARTIAL">();
+  
   payments.forEach((p) => {
     if ((p.status === "PAID" || p.status === "PARTIAL") && p.month > 0 && p.month <= 12) {
-      paidMonths.set(`${MONTHS[p.month - 1] || "Unknown"} ${p.year}`, p.status as any);
+      paidMonths.set(`${MONTHS[p.month - 1]} ${p.year}`, p.status as any);
     }
   });
 
   const schoolMonths = getSchoolYearMonths(now);
-  const currentMonthKey = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 
-  // Generate status for all school months
   const months: { key: string; short: string; status: "paid" | "partial" | "unpaid" }[] = [];
   
   schoolMonths.forEach((monthKey: string) => {
-    const isPastOrCurrent = monthKey === currentMonthKey || isMonthBefore(monthKey, currentMonthKey);
     const paymentStatus = paidMonths.get(monthKey);
-
     const [mName] = monthKey.split(" ");
     const short = mName.substring(0, 3);
 
-    if (paymentStatus === "PARTIAL") {
+    if (paymentStatus === "PAID") {
+      months.push({ key: monthKey, short, status: "paid" });
+    } else if (paymentStatus === "PARTIAL") {
       months.push({ key: monthKey, short, status: "partial" });
-    } else if (!paymentStatus) {
+    } else {
       months.push({ key: monthKey, short, status: "unpaid" });
     }
   });
@@ -44,7 +44,7 @@ export default function PaymentTimeline({
   return (
     <div className="flex items-center gap-1">
       {months.map((m) => {
-        const isPaid = m.status === "paid";
+        const isSelected = m.key === selectedMonthKey;
         return (
           <div
             key={m.key}
@@ -52,11 +52,13 @@ export default function PaymentTimeline({
             className="relative group"
           >
             <div
-              className={`w-5 h-5 rounded-full text-[8px] font-bold flex items-center justify-center transition-transform hover:scale-125 cursor-default ${
+              className={`w-5 h-5 rounded-full text-[8px] font-black flex items-center justify-center transition-all cursor-default ${
+                isSelected ? "ring-2 ring-indigo-500 ring-offset-1 scale-110" : "hover:scale-125"
+              } ${
                 m.status === "paid"
-                  ? "bg-emerald-400 text-white"
+                  ? "bg-emerald-400 text-white shadow-sm"
                   : m.status === "partial"
-                    ? "bg-orange-400 text-white"
+                    ? "bg-orange-400 text-white shadow-sm"
                     : "bg-rose-300 text-white"
               }`}
             >

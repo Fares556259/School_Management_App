@@ -31,9 +31,10 @@ export async function getSchoolConfig() {
     });
 
     if (!config) {
-      config = await prisma.institution.create({
-        data: {
-          id: 1,
+      config = await prisma.institution.upsert({
+        where: { schoolId },
+        update: {},
+        create: {
           schoolId: schoolId,
           schoolName: "Ecole Supérieure de la Statistique et de l'Analyse de l'Information",
           ministryName: "Ministère de l'Enseignement Supérieur et de la Recherche Scientifique",
@@ -84,8 +85,9 @@ export async function getSchoolConfig() {
 export async function updateSchoolConfig(data: any) {
   try {
     // 1. Fetch current config to check for session count changes
+    const schoolId = await getSchoolId();
     const currentConfig = await prisma.institution.findFirst({ 
-      where: { id: 1 },
+      where: { schoolId },
       select: { sessions: true } 
     });
     const oldSessions = currentConfig?.sessions ? (typeof currentConfig.sessions === 'string' ? JSON.parse(currentConfig.sessions as string) : currentConfig.sessions as any[]) : [];
@@ -120,8 +122,7 @@ export async function updateSchoolConfig(data: any) {
       update: updateData,
       create: { 
         ...updateData, 
-        schoolId: data.schoolId || await getSchoolId(),
-        id: 1 
+        schoolId: data.schoolId || await getSchoolId()
       },
       select: {
         id: true,
@@ -209,10 +210,12 @@ export async function getLevelTuitionFees() {
     }
 
     const levels = await prisma.level.findMany({
+      where: { schoolId },
       select: {
         id: true,
         level: true,
         tuitionFee: true,
+        variations: true,
         classes: {
           select: {
             id: true,
@@ -246,7 +249,9 @@ export async function updateLevelTuitionFee(id: number, fee: number) {
 
 export async function getLevels() {
   try {
+    const schoolId = await getSchoolId();
     const levels = await prisma.level.findMany({
+      where: { schoolId },
       select: { id: true, level: true }
     });
     return { success: true, data: levels };
@@ -273,40 +278,14 @@ export async function addLevel(level: number, tuitionFee: number) {
 
 export async function syncLevelVariations(levelId: number, count: number) {
   try {
-    const level = await prisma.level.findUnique({
+    const updatedLevel = await prisma.level.update({
       where: { id: levelId },
-      select: { level: true, schoolId: true }
+      data: { variations: count },
+      select: { level: true }
     });
 
-    if (!level) throw new Error("Level not found");
-
-    const targetNames = Array.from({ length: count }, (_, i) => 
-      `${level.level}${String.fromCharCode(65 + i)}`
-    );
-
-    // 1. Create/Update variations
-    for (const name of targetNames) {
-      await prisma.class.upsert({
-        where: {
-          name_schoolId: {
-            name: name,
-            schoolId: level.schoolId
-          }
-        },
-        update: {
-          levelId: levelId // Ensure it belongs to this level
-        },
-        create: {
-          name,
-          levelId,
-          schoolId: level.schoolId,
-          capacity: 30
-        }
-      });
-    }
-
-    // 2. Identify and attempt to remove excess variations (only if count < current)
-    const currentVariations = await prisma.class.findMany({
+    // Clean up empty classes that exceed the new variations limit
+    const classes = await prisma.class.findMany({
       where: { levelId },
       include: {
         _count: {
@@ -320,9 +299,12 @@ export async function syncLevelVariations(levelId: number, count: number) {
     });
 
     let errors: string[] = [];
-    for (const cls of currentVariations) {
+    const targetNames = Array.from({ length: count }, (_, i) => 
+      `${updatedLevel.level}${String.fromCharCode(65 + i)}`
+    );
+
+    for (const cls of classes) {
       if (!targetNames.includes(cls.name)) {
-        // This class is no longer in the target set
         if (cls._count.students > 0 || cls._count.lessons > 0 || cls._count.timetable > 0) {
           errors.push(`Cannot remove class ${cls.name}: It has active students or scheduled lessons.`);
         } else {

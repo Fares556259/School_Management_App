@@ -25,15 +25,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: "Superadmin profile detected. Skipping sync to prevent downgrade." });
     }
 
-    // Handle email collision: If another admin exists with this email but a different ID, delete it
-    const existingAdminByEmail = await prisma.admin.findUnique({
-      where: { email: email }
-    });
-
-    if (existingAdminByEmail && existingAdminByEmail.id !== userId) {
-      await prisma.admin.delete({ where: { email: email } });
-    }
-
     // INTEL: Check if they are already active in Clerk
     const clerkStatus = user.publicMetadata?.status as string;
     const dbAdminStatus = clerkStatus === "active" ? "active" : "pending";
@@ -43,7 +34,7 @@ export async function POST(req: Request) {
     if (clerkStatus === "active") {
       const { provisionSchool } = await import("@/app/(superadmin)/superadmin/actions");
       const schoolId = user.publicMetadata?.schoolId as string || "default_school";
-      await provisionSchool(userId, schoolId, schoolName, email);
+      await provisionSchool(userId, schoolId, schoolName);
     } else {
       // Create or Update the Admin record (Standard flow)
       await prisma.admin.upsert({
@@ -55,8 +46,7 @@ export async function POST(req: Request) {
         },
         create: {
           id: userId,
-          username: user.username || email?.split("@")[0] || "user_" + userId.slice(-5),
-          email: email || "no-email",
+          username: user.username || "user_" + userId.slice(-5),
           name: user.firstName || "New",
           surname: user.lastName || "Admin",
           status: "pending",
@@ -78,23 +68,15 @@ export async function POST(req: Request) {
     }
 
     // Also forcefully generate a SetupRequest to populate the Leads tab
-    // We check if one already exists for this email to prevent spamming the dashboard on refresh
-    const existingRequest = await prisma.setupRequest.findFirst({
-      where: { email: email }
+    await prisma.setupRequest.create({
+      data: {
+        schoolName: schoolName,
+        ownerName: `${user.firstName || "New"} ${user.lastName || "Admin"}`,
+        phoneNumber: phoneNumber || "N/A",
+        city: city || "Online / Sync",
+        status: dbLeadStatus
+      }
     });
-
-    if (!existingRequest) {
-      await prisma.setupRequest.create({
-        data: {
-          schoolName: schoolName,
-          ownerName: `${user.firstName || "New"} ${user.lastName || "Admin"}`,
-          phoneNumber: phoneNumber || "N/A",
-          email: email || "no-email",
-          city: city || "Online / Sync",
-          status: dbLeadStatus
-        }
-      });
-    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -90,7 +90,6 @@ export async function GET() {
           username: `teacher${i}`,
           name: `Mondher`,
           surname: `Ben Salem ${i}`,
-          email: `teacher${i}@snapschool.tn`,
           phone: `98000${i.toString().padStart(3, '0')}`,
           address: "Tunis, Tunisie",
           bloodType: "A+",
@@ -131,7 +130,6 @@ export async function GET() {
           username: `parent${i}`,
           name: `Yassine`,
           surname: `Parent ${i}`,
-          email: `parent${i}@gmail.com`,
           phone: `55000${i.toString().padStart(3, '0')}`,
           address: "Cité El Khadra, Tunis",
           schoolId

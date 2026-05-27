@@ -34,7 +34,6 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "username", label: "Username", type: "text", required: true },
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
-    { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", type: "text" },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "bloodType", label: "Blood Type", type: "text", required: true },
@@ -45,7 +44,6 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   student: [
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
-    { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", type: "text" },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "birthday", label: "Birthday", type: "date", required: true },
@@ -58,7 +56,6 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "username", label: "Username", type: "text", required: true },
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
-    { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", type: "text" },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "role", label: "Role", type: "text", required: true, placeholder: "e.g. Secretary, Guard, Janitor" },
@@ -70,19 +67,37 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   parent: [
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
-    { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", type: "text", required: true },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "img", label: "Profile Photo", type: "image" },
   ],
   class: [
-    { name: "name", label: "Class Name", type: "text", required: true, placeholder: "e.g. 1A, 2B" },
+    { name: "name", label: "Class Name", type: "select", required: true },
     { name: "capacity", label: "Capacity", type: "number", required: true },
-    { name: "gradeId", label: "Grade", type: "select", required: true, parseAsNumber: true },
-    { name: "supervisorId", label: "Supervisor", type: "select" },
   ],
   subject: [
-    { name: "name", label: "Subject Name", type: "text", required: true },
+    { 
+      name: "name", 
+      label: "Subject Name", 
+      type: "text", 
+      required: true,
+      placeholder: "Arabic | Français | English  e.g. الرياضيات | Mathématiques | Mathematics"
+    },
+    { 
+      name: "domain", 
+      label: "Domain / Category", 
+      type: "select", 
+      required: false,
+      options: [
+        { value: "Languages",         label: "🔤 Languages" },
+        { value: "Sciences",          label: "🔬 Sciences" },
+        { value: "Religion & Values", label: "☪️ Religion & Values" },
+        { value: "Humanities",        label: "🌍 Humanities" },
+        { value: "Arts & Technology", label: "🎨 Arts & Technology" },
+        { value: "Sport",             label: "⚽ Sport" },
+        { value: "General",           label: "📚 General" },
+      ]
+    },
   ],
   expense: [
     { name: "title", label: "Description", type: "text", required: true, placeholder: "e.g., Bus Fuel - Route A" },
@@ -183,10 +198,20 @@ export default function CrudFormModal({
 
   // Merge dynamic relatedData options into field definitions
   const fields = entityFields[entity].map((f) => {
+    let options = f.options;
     if (relatedData && relatedData[f.name] && (f.type === "select" || f.type === "searchable-select") && !f.options) {
-      return { ...f, options: relatedData[f.name] };
+      options = relatedData[f.name];
     }
-    return f;
+    // For Class dropdown in update mode, ensure current name is in the list
+    if (entity === "class" && f.name === "name" && data?.name) {
+      const opts = options || [];
+      if (!opts.some((o: any) => o.value === data.name)) {
+        options = [{ value: data.name, label: data.name }, ...opts];
+      } else {
+        options = opts;
+      }
+    }
+    return { ...f, options };
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {

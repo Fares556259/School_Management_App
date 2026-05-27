@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   await prisma.parent.update({
-    where: { email: "parent1@gmail.com" },
+    where: { id: "parent1" },
     data: { name: "Fares", surname: "Selmi" }
   });
   

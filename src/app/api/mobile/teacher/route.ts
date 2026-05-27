@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
         name: true,
         surname: true,
         phone: true,
-        email: true,
         img: true,
         schoolId: true,
         activated: true,

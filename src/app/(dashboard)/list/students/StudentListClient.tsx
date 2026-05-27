@@ -8,7 +8,7 @@ import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
-import MonthSelector from "@/components/MonthSelector";
+
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { Sparkles, Users } from "lucide-react";
 import Image from "next/image";
@@ -40,7 +40,7 @@ export default function StudentListClient({
   const [isBulkOpen, setIsBulkOpen] = useState(false);
 
   const renderRow = (
-    item: Student & { class: Class; level: Level; payments: Payment[] }
+    item: Student & { class: Class | null; level: Level; payments: Payment[] }
   ) => {
     const [mName, yStr] = selectedMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
@@ -68,7 +68,7 @@ export default function StudentListClient({
           />
           <div className="flex flex-col">
             <h3 className="font-semibold">{item.name}</h3>
-            <p className="text-xs text-gray-500">{item.class.name}</p>
+            <p className="text-xs text-gray-500">{item.class?.name ?? "No class assigned"}</p>
           </div>
         </td>
         <td className="hidden md:table-cell">{item.username}</td>
@@ -91,7 +91,7 @@ export default function StudentListClient({
           />
         </td>
         <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={item.payments} />
+          <PaymentTimeline payments={item.payments} selectedMonthKey={selectedMonthKey} />
         </td>
         <td>
           <div className="flex items-center gap-2">
@@ -114,8 +114,7 @@ export default function StudentListClient({
 
   return (
     <>
-      {/* 1. MONTH NAVIGATOR & SUMMARY */}
-      <MonthSelector />
+      {/* 1. MONTH SUMMARY */}
       <div className="flex items-center justify-between mb-6">
         <MonthPaymentSummary
           total={initialData.length}

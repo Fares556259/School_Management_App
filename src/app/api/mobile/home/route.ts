@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     // 0. Fetch School Config for holidays and academic bounds
     const schoolConfig = await prisma.institution.findFirst({ 
-      where: { id: 1 },
+      where: { schoolId },
       select: {
         schoolName: true,
         schoolLogo: true,

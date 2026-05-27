@@ -11,7 +11,6 @@ const schema = z.object({
     .string()
     .min(3, { message: "Username must be at least 3 characters long!" })
     .max(20, { message: "Username must be at most 20 characters long!" }),
-  email: z.string().email({ message: "Invalid email address!" }),
   password: z
     .string()
     .min(8, { message: "Password must be at least 8 characters long!" }),
@@ -59,13 +58,6 @@ const StudentForm = ({
           defaultValue={data?.username}
           register={register}
           error={errors?.username}
-        />
-        <InputField
-          label="Email"
-          name="email"
-          defaultValue={data?.email}
-          register={register}
-          error={errors?.email}
         />
         <InputField
           label="Password"

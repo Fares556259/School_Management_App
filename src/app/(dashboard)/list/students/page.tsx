@@ -11,13 +11,15 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Level, Payment, Prisma, Student } from "@prisma/client";
 import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import MonthSelector from "@/components/MonthSelector";
+
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import StudentListClient from "./StudentListClient";
 import { getSchoolId } from "@/lib/school";
 
-type StudentList = Student & { class: Class } & { level: Level } & { payments: Payment[] };
+export const dynamic = "force-dynamic";
+
+type StudentList = Student & { class: Class | null } & { level: Level } & { payments: Payment[] };
 
 const columns = [
   {
@@ -124,7 +126,7 @@ const StudentListPage = async ({
           />
           <div className="flex flex-col">
             <h3 className="font-semibold">{item.name}</h3>
-            <p className="text-xs text-gray-500">{item.class.name}</p>
+            <p className="text-xs text-gray-500">{item.class?.name ?? "No class assigned"}</p>
           </div>
         </td>
         <td className="hidden md:table-cell">{item.username}</td>
@@ -214,6 +216,7 @@ const StudentListPage = async ({
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       <StudentListClient
+        key={selectedMonthKey}
         initialData={data}
         columns={columns}
         count={count}

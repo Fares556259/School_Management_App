@@ -81,10 +81,6 @@ const SingleStudentPage = async ({
                   </span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/mail.png" alt="" width={14} height={14} />
-                  <span>{student.email || "-"}</span>
-                </div>
-                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/phone.png" alt="" width={14} height={14} />
                   <span>{student.phone || "-"}</span>
                 </div>
@@ -225,7 +221,6 @@ const SingleStudentPage = async ({
                 <span className="font-semibold">
                   {(student as any).parent.name + " " + (student as any).parent.surname}
                 </span>
-                <span className="text-xs text-gray-500">{(student as any).parent.email || "No email"}</span>
                 <span className="text-xs text-gray-500">{(student as any).parent.phone}</span>
               </div>
             </div>

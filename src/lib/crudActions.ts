@@ -1,6 +1,7 @@
 "use server";
 
 import { getSchoolId } from "@/lib/school";
+import { DEFAULT_SUBJECTS } from "./subjectConstants";
 
 
 import prisma from "@/lib/prisma";
@@ -14,7 +15,6 @@ export const createTeacher = async (data: {
   username: string;
   name: string;
   surname: string;
-  email?: string;
   phone?: string;
   address: string;
   bloodType: string;
@@ -35,7 +35,6 @@ export const createTeacher = async (data: {
         username: data.username,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         bloodType: data.bloodType,
@@ -62,6 +61,8 @@ export const createTeacher = async (data: {
 export const bulkCreateTeachers = async (teachers: any[]) => {
   try {
     const schoolId = await getSchoolId();
+    const auditLogsToCreate: { id: string; name: string; surname: string; username: string }[] = [];
+
     await prisma.$transaction(async (tx) => {
       for (const t of teachers) {
         const id = crypto.randomUUID();
@@ -72,7 +73,6 @@ export const bulkCreateTeachers = async (teachers: any[]) => {
             username: t.username,
             name: t.name,
             surname: t.surname,
-            email: t.email || null,
             phone: t.phone || null,
             address: t.address || "Unknown",
             bloodType: t.bloodType || "O+",
@@ -83,14 +83,23 @@ export const bulkCreateTeachers = async (teachers: any[]) => {
           },
         });
 
-        await createAuditLog({
-          action: "BULK_CREATE_TEACHER",
-          entityType: "Teacher",
-          entityId: id,
-          description: `Bulk enrolled teacher: ${t.name} ${t.surname} (${t.username})`,
+        auditLogsToCreate.push({
+          id,
+          name: t.name,
+          surname: t.surname,
+          username: t.username
         });
       }
     });
+
+    for (const log of auditLogsToCreate) {
+      await createAuditLog({
+        action: "BULK_CREATE_TEACHER",
+        entityType: "Teacher",
+        entityId: log.id,
+        description: `Bulk enrolled teacher: ${log.name} ${log.surname} (${log.username})`,
+      });
+    }
 
     revalidatePath("/list/teachers");
     return { success: true };
@@ -106,7 +115,6 @@ export const updateTeacher = async (
     username: string;
     name: string;
     surname: string;
-    email: string;
     phone: string;
     address: string;
     bloodType: string;
@@ -161,7 +169,6 @@ export const createStudent = async (data: {
   username: string;
   name: string;
   surname: string;
-  email?: string;
   phone?: string;
   address: string;
   bloodType?: string;
@@ -197,7 +204,6 @@ export const createStudent = async (data: {
         username: finalUsername,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         bloodType: data.bloodType || "O+",
@@ -224,6 +230,9 @@ export const createStudent = async (data: {
 
 export const bulkCreateStudents = async (students: any[]) => {
   try {
+    const schoolId = await getSchoolId();
+    const auditLogsToCreate: { id: string; name: string; surname: string; username: string }[] = [];
+
     await prisma.$transaction(async (tx) => {
       for (const s of students) {
         const studentId = crypto.randomUUID();
@@ -255,7 +264,6 @@ export const bulkCreateStudents = async (students: any[]) => {
         }
 
         // 2. Create Student
-        const schoolId = await getSchoolId();
         await tx.student.create({
           data: {
             schoolId,
@@ -263,7 +271,6 @@ export const bulkCreateStudents = async (students: any[]) => {
             username: s.username,
             name: s.name,
             surname: s.surname,
-            email: s.email || null,
             phone: s.phone || null,
             address: s.address || "Unknown",
             bloodType: s.bloodType || "O+",
@@ -275,14 +282,23 @@ export const bulkCreateStudents = async (students: any[]) => {
           },
         });
 
-        await createAuditLog({
-          action: "BULK_CREATE_STUDENT",
-          entityType: "Student",
-          entityId: studentId,
-          description: `Bulk enrolled student: ${s.name} ${s.surname} (${s.username})`,
+        auditLogsToCreate.push({
+          id: studentId,
+          name: s.name,
+          surname: s.surname,
+          username: s.username
         });
       }
     });
+
+    for (const log of auditLogsToCreate) {
+      await createAuditLog({
+        action: "BULK_CREATE_STUDENT",
+        entityType: "Student",
+        entityId: log.id,
+        description: `Bulk enrolled student: ${log.name} ${log.surname} (${log.username})`,
+      });
+    }
 
     revalidatePath("/list/students");
     return { success: true };
@@ -298,7 +314,6 @@ export const updateStudent = async (
     username: string;
     name: string;
     surname: string;
-    email: string;
     phone: string;
     address: string;
     bloodType: string;
@@ -353,7 +368,6 @@ export const createStaff = async (data: {
   username: string;
   name: string;
   surname: string;
-  email?: string;
   phone?: string;
   address: string;
   bloodType: string;
@@ -371,7 +385,6 @@ export const createStaff = async (data: {
         username: data.username,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         bloodType: data.bloodType,
@@ -393,7 +406,6 @@ export const updateStaff = async (
     username: string;
     name: string;
     surname: string;
-    email: string;
     phone: string;
     address: string;
     bloodType: string;
@@ -437,7 +449,6 @@ export const createParent = async (data: {
   username: string;
   name: string;
   surname: string;
-  email?: string;
   phone: string;
   address: string;
   img?: string | null;
@@ -455,7 +466,6 @@ export const createParent = async (data: {
         username: finalUsername,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone,
         address: data.address,
         img: data.img || null,
@@ -474,7 +484,6 @@ export const updateParent = async (
     username: string;
     name: string;
     surname: string;
-    email: string;
     phone: string;
     address: string;
     img: string | null;
@@ -503,17 +512,34 @@ export const deleteParent = async (id: string) => {
 export const createClass = async (data: {
   name: string;
   capacity: number;
-  levelId: number;
+  levelId?: number;
   supervisorId?: string;
 }) => {
   try {
     const schoolId = await getSchoolId();
+    
+    // Auto-infer levelId from name (e.g., "1A" -> Level 1)
+    const levelNumStr = data.name.match(/^\d+/)?.[0];
+    if (!levelNumStr) throw new Error("Invalid class name format. Must start with a grade number (e.g. 1A, 2B).");
+    const levelNumber = parseInt(levelNumStr, 10);
+
+    const targetLevel = await prisma.level.findUnique({
+      where: {
+        level_schoolId: {
+          level: levelNumber,
+          schoolId
+        }
+      }
+    });
+
+    if (!targetLevel) throw new Error(`Level ${levelNumber} is not configured in settings.`);
+
     await prisma.class.create({
       data: {
         schoolId,
         name: data.name,
-        capacity: data.capacity,
-        levelId: data.levelId,
+        capacity: Number(data.capacity),
+        levelId: targetLevel.id,
         supervisorId: data.supervisorId || null,
       },
     });
@@ -534,7 +560,32 @@ export const updateClass = async (
   }>
 ) => {
   try {
-    await prisma.class.update({ where: { id }, data });
+    const schoolId = await getSchoolId();
+    const updateData: any = { ...data };
+    
+    if (data.capacity !== undefined) {
+      updateData.capacity = Number(data.capacity);
+    }
+
+    if (data.name) {
+      const levelNumStr = data.name.match(/^\d+/)?.[0];
+      if (!levelNumStr) throw new Error("Invalid class name format. Must start with a grade number (e.g. 1A, 2B).");
+      const levelNumber = parseInt(levelNumStr, 10);
+
+      const targetLevel = await prisma.level.findUnique({
+        where: {
+          level_schoolId: {
+            level: levelNumber,
+            schoolId
+          }
+        }
+      });
+
+      if (!targetLevel) throw new Error(`Level ${levelNumber} is not configured in settings.`);
+      updateData.levelId = targetLevel.id;
+    }
+
+    await prisma.class.update({ where: { id }, data: updateData });
     revalidatePath("/list/classes");
     return { success: true };
   } catch (err: any) {
@@ -552,11 +603,102 @@ export const deleteClass = async (id: number) => {
   }
 };
 
-// ===================== SUBJECT =====================
-export const createSubject = async (data: { name: string }) => {
+// Remove a single student from a class (sets classId to null).
+// The student remains in the system and appears in the students list.
+export const removeStudentFromClass = async (studentId: string) => {
   try {
     const schoolId = await getSchoolId();
-    await prisma.subject.create({ data: { schoolId, name: data.name } });
+    // First verify the student belongs to this school (security check)
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, schoolId },
+      select: { id: true }
+    });
+    if (!student) {
+      return { success: false, error: "Student not found." };
+    }
+    // Use update with primary key only — classId is valid in the unchecked update input
+    await prisma.student.update({
+      where: { id: studentId },
+      data: { classId: null }
+    });
+    revalidatePath("/list/classes");
+    revalidatePath("/list/students");
+    return { success: true };
+  } catch (err: any) {
+    console.error("removeStudentFromClass error:", err);
+    return { success: false, error: err?.message || "Failed to remove student from class." };
+  }
+};
+
+export const assignStudentsToClass = async (classId: number, studentIds: string[]) => {
+  try {
+    const schoolId = await getSchoolId();
+    
+    // We run this inside a transaction to ensure all student assignments are updated safely
+    await prisma.$transaction(async (tx) => {
+      // 1. Unassign all students currently in this class who are not in the new selection
+      await tx.student.updateMany({
+        where: {
+          classId,
+          schoolId,
+          id: { notIn: studentIds }
+        },
+        data: {
+          classId: null
+        }
+      });
+
+      // 2. Assign selected students to this class
+      await tx.student.updateMany({
+        where: {
+          id: { in: studentIds },
+          schoolId
+        },
+        data: {
+          classId
+        }
+      });
+    });
+
+    revalidatePath("/list/classes");
+    revalidatePath("/list/students");
+    return { success: true };
+  } catch (err: any) {
+    console.error("assignStudentsToClass error:", err);
+    return { success: false, error: err?.message || "Failed to assign students." };
+  }
+};
+
+// ===================== SUBJECT =====================
+
+export const seedDefaultSubjects = async () => {
+  try {
+    const schoolId = await getSchoolId();
+    // Only seed if no subjects exist for this school
+    const existing = await prisma.subject.count({ where: { schoolId } });
+    if (existing > 0) return { success: true, seeded: false };
+
+    await prisma.subject.createMany({
+      data: DEFAULT_SUBJECTS.map((s) => ({ ...s, schoolId })),
+      skipDuplicates: true,
+    });
+    revalidatePath("/list/subjects");
+    return { success: true, seeded: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to seed subjects." };
+  }
+};
+
+export const createSubject = async (data: { name: string; domain?: string }) => {
+  try {
+    const schoolId = await getSchoolId();
+    await prisma.subject.create({
+      data: {
+        schoolId,
+        name: data.name,
+        domain: data.domain || "General",
+      },
+    });
     revalidatePath("/list/subjects");
     return { success: true };
   } catch (err: any) {
@@ -566,7 +708,7 @@ export const createSubject = async (data: { name: string }) => {
 
 export const updateSubject = async (
   id: number,
-  data: Partial<{ name: string }>
+  data: Partial<{ name: string; domain: string }>
 ) => {
   try {
     await prisma.subject.update({ where: { id }, data });
@@ -978,6 +1120,7 @@ export const resetParentPassword = async (parentId: string) => {
 // ===================== UNIFIED ENROLLMENT =====================
 export const enrollFamily = async (parentData: any, children: any[]) => {
   try {
+    const schoolId = await getSchoolId();
     const result = await prisma.$transaction(async (tx) => {
       // 1. Find or Create Parent (Smart lookup by phone OR username)
       let parent = await tx.parent.findFirst({
@@ -994,7 +1137,6 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         const genUsername = parentData.username || 
           `${parentData.name.toLowerCase()}.${parentData.surname.toLowerCase()}.${parentData.phone.slice(-4)}`;
           
-        const schoolId = await getSchoolId();
         parent = await tx.parent.create({
           data: {
             schoolId,
@@ -1002,7 +1144,6 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             username: genUsername,
             name: parentData.name,
             surname: parentData.surname,
-            email: parentData.email || null,
             phone: parentData.phone,
             address: parentData.address,
             img: parentData.img || null,
@@ -1021,7 +1162,6 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         const studentUsername = child.username || 
           `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
-        const schoolId = await getSchoolId();
         await tx.student.create({
           data: {
             schoolId,
@@ -1029,7 +1169,6 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             username: studentUsername,
             name: child.name,
             surname: child.surname,
-            email: child.email || null,
             phone: child.phone || null,
             address: child.address || parent.address,
             bloodType: child.bloodType || "O+",

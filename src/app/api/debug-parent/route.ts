@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const p = await prisma.parent.findUnique({
-    where: { email: "parent1@gmail.com" },
+    where: { id: "parent1" },
     include: { students: true }
   });
   return NextResponse.json(p);

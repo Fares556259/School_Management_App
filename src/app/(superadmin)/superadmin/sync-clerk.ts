@@ -43,8 +43,7 @@ export async function syncClerkUsers() {
 
       // 2. Check current DB state
       const existingAdminById = await prisma.admin.findUnique({ where: { id: user.id } });
-      const existingAdminByEmail = await prisma.admin.findUnique({ where: { email: email } });
-      const existingLead = await prisma.setupRequest.findFirst({ where: { email: email } });
+      const existingLead = null; // Email-less lead lookup disabled for sync safety
 
       // 3. CASE A: User exists but status is outdated (Manual Clerk activation)
       if (existingAdminById) {
@@ -55,7 +54,7 @@ export async function syncClerkUsers() {
                           || existingAdminById.pendingSchoolName
                           || "My School";
 
-          await provisionSchool(user.id, schoolId, schoolName, email);
+          await provisionSchool(user.id, schoolId, schoolName);
           
           synchronizedCount++;
           continue;
@@ -68,17 +67,11 @@ export async function syncClerkUsers() {
                         || (user.publicMetadata?.schoolName as string) 
                         || `${user.firstName || "New"}'s School`;
 
-        // Handle re-registration with same email
-        if (!existingAdminById && existingAdminByEmail) {
-           await prisma.admin.delete({ where: { email: email } });
-        }
-
         if (!existingAdminById) {
           await prisma.admin.create({
             data: {
               id: user.id,
-              username: user.username || email.split("@")[0] || "user_" + user.id.slice(-5),
-              email: email,
+              username: user.username || "user_" + user.id.slice(-5),
               name: user.firstName || "New",
               surname: user.lastName || "Admin",
               status: dbAdminStatus,
@@ -94,7 +87,6 @@ export async function syncClerkUsers() {
               schoolName: schoolName,
               ownerName: `${user.firstName || "New"} ${user.lastName || "Admin"}`,
               phoneNumber: "N/A",
-              email: email,
               city: "Sync Engine",
               status: dbLeadStatus
             }
@@ -104,7 +96,7 @@ export async function syncClerkUsers() {
         // AUTO-PROVISION if active
         if (clerkStatus === "active") {
           const schoolId = user.publicMetadata?.schoolId as string || "default_school";
-          await provisionSchool(user.id, schoolId, schoolName, email);
+          await provisionSchool(user.id, schoolId, schoolName);
         }
         
         synchronizedCount++;
@@ -120,14 +112,8 @@ export async function syncClerkUsers() {
     for (const admin of allKnownAdmins) {
       // PROTECTION: Never prune the active superadmin or anyone in the current Clerk slice
       if (!activeClerkIds.has(admin.id) && admin.id !== currentUserId) {
-        // Safety: If Admin record has no Clerk account, delete it and its lead
+        // Safety: If Admin record has no Clerk account, delete it
         await prisma.admin.delete({ where: { id: admin.id } });
-        
-        if (admin.email) {
-          await prisma.setupRequest.deleteMany({
-            where: { email: admin.email }
-          });
-        }
         prunedCount++;
       }
     }

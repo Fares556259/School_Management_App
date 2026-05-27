@@ -10,11 +10,13 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import MonthSelector from "@/components/MonthSelector";
+
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import TeacherListClient from "./TeacherListClient";
 import { getSchoolId } from "@/lib/school";
+
+export const dynamic = "force-dynamic";
 
 const columns = [
   {
@@ -138,6 +140,7 @@ const TeacherListPage = async ({
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       <TeacherListClient 
+        key={selectedMonthKey}
         initialData={data} 
         columns={columns} 
         count={count}

@@ -13,7 +13,6 @@ model Admin {
   username          String   @unique
   aiQuota           Int      @default(10)
   aiUsage           Int      @default(0)
-  email             String?  @unique
   img               String?
   lastAiUpdate      DateTime @default(now())
   name              String?
@@ -32,7 +31,6 @@ model Staff {
   username  String    @unique
   name      String
   surname   String
-  email     String?   @unique
   phone     String?   @unique
   role      String    @default("General")
   address   String
@@ -51,7 +49,6 @@ model Student {
   username      String         @unique
   name          String
   surname       String
-  email         String?        @unique
   phone         String?        @unique
   address       String
   img           String?
@@ -59,7 +56,7 @@ model Student {
   sex           UserSex
   createdAt     DateTime       @default(now())
   parentId      String
-  classId       Int
+  classId       Int?
   birthday      DateTime
   levelId       Int
   schoolId      String         @default("default_school")
@@ -69,7 +66,7 @@ model Student {
   notifications Notification[]
   payments      Payment[]
   results       Result[]
-  class         Class          @relation(fields: [classId], references: [id])
+  class         Class?         @relation(fields: [classId], references: [id])
   level         Level          @relation(fields: [levelId], references: [id])
   parent        Parent         @relation(fields: [parentId], references: [id])
   School        School         @relation(fields: [schoolId], references: [id])
@@ -85,7 +82,6 @@ model Teacher {
   username    String          @unique
   name        String
   surname     String
-  email       String?         @unique
   phone       String?         @unique
   address     String
   img         String?
@@ -114,7 +110,6 @@ model Parent {
   username      String         @unique
   name          String
   surname       String
-  email         String?        @unique
   phone         String         @unique
   address       String
   createdAt     DateTime       @default(now())
@@ -134,6 +129,7 @@ model Level {
   level      Int
   schoolId   String    @default("default_school")
   tuitionFee Float     @default(450)
+  variations Int       @default(0)
   classes    Class[]
   School     School    @relation(fields: [schoolId], references: [id])
   students   Student[]
@@ -298,7 +294,7 @@ model ExamPeriodConfig {
 }
 
 model Institution {
-  id              Int      @id @default(1)
+  id              Int      @id @default(autoincrement())
   schoolId        String   @unique @default("default_school")
   schoolName      String   @default("Ecole Supérieure de la Statistique et de l'Analyse de l'Information")
   schoolLogo      String?
@@ -571,7 +567,6 @@ model SetupRequest {
   schoolName  String
   ownerName   String
   phoneNumber String
-  email       String
   city        String
   status      String   @default("PENDING")
   createdAt   DateTime @default(now())

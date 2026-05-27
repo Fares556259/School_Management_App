@@ -64,15 +64,6 @@ export async function POST(req: Request) {
                     || `${first_name || "New"}'s School`;
 
     try {
-      // Handle email collision: If another admin exists with this email but a different ID, delete it
-      const existingAdminByEmail = await prisma.admin.findUnique({
-        where: { email: email }
-      });
-
-      if (existingAdminByEmail && existingAdminByEmail.id !== id) {
-        await prisma.admin.delete({ where: { email: email } });
-      }
-
       // INTEL: Check if they are already active in Clerk
       const clerkStatus = public_metadata?.status as string;
       const dbAdminStatus = clerkStatus === "active" ? "active" : "pending";
@@ -87,8 +78,7 @@ export async function POST(req: Request) {
         },
         create: {
           id: id,
-          username: username || email.split("@")[0] || "user_" + id.slice(-5),
-          email: email,
+          username: username || "user_" + id.slice(-5),
           name: first_name || "New",
           surname: last_name || "Admin",
           status: dbAdminStatus,
@@ -97,20 +87,16 @@ export async function POST(req: Request) {
         },
       });
 
-      // 2. Create SetupRequest (Lead)
-      const existingLead = await prisma.setupRequest.findFirst({ where: { email } });
-      if (!existingLead) {
-        await prisma.setupRequest.create({
-          data: {
-            schoolName: schoolName,
-            ownerName: `${first_name || "New"} ${last_name || "Admin"}`,
-            phoneNumber: "N/A",
-            email: email,
-            city: "Webhook Automatic",
-            status: dbLeadStatus
-          }
-        });
-      }
+      // 2. Create SetupRequest (Lead) - Skip email as it's no longer in schema
+      await prisma.setupRequest.create({
+        data: {
+          schoolName: schoolName,
+          ownerName: `${first_name || "New"} ${last_name || "Admin"}`,
+          phoneNumber: "N/A",
+          city: "Webhook Automatic",
+          status: dbLeadStatus
+        }
+      });
 
       // 3. Update Clerk metadata (role/status)
       const client = await clerkClient()
@@ -134,25 +120,12 @@ export async function POST(req: Request) {
     if (!id) return new Response('No ID found', { status: 400 })
 
     try {
-      // Find the user to get their email (for SetupRequest cleanup)
-      const user = await prisma.admin.findUnique({
-        where: { id: id },
-        select: { email: true }
+      // Remove from Admin
+      await prisma.admin.delete({
+        where: { id: id }
       });
-
-      if (user && user.email) {
-        // Remove from SetupRequest (Lead)
-        await prisma.setupRequest.deleteMany({
-          where: { email: user.email }
-        });
-
-        // Remove from Admin
-        await prisma.admin.delete({
-          where: { id: id }
-        });
-        
-        console.log(`Successfully deleted user ${id} and associated leads via webhook`)
-      }
+      
+      console.log(`Successfully deleted user ${id} via webhook`)
     } catch (dbErr) {
       console.error('Error deleting user via webhook:', dbErr)
       return new Response('Database deletion failed', { status: 500 })

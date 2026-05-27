@@ -14,7 +14,6 @@ const schema = z.object({
     .string()
     .min(3, { message: "Username must be at least 3 characters long!" })
     .max(20, { message: "Username must be at most 20 characters long!" }),
-  email: z.string().email({ message: "Invalid email address!" }).optional().or(z.literal("")),
   firstName: z.string().min(1, { message: "First name is required!" }),
   lastName: z.string().min(1, { message: "Last name is required!" }),
   phone: z.string().optional().or(z.literal("")),
@@ -44,7 +43,6 @@ const TeacherForm = ({
     resolver: zodResolver(schema),
     defaultValues: {
       username: data?.username || "",
-      email: data?.email || "",
       firstName: data?.name || "",
       lastName: data?.surname || "",
       phone: data?.phone || "",
@@ -62,7 +60,6 @@ const TeacherForm = ({
         username: formData.username,
         name: formData.firstName,
         surname: formData.lastName,
-        email: formData.email || undefined,
         phone: formData.phone || undefined,
         address: formData.address,
         bloodType: formData.bloodType,
@@ -91,13 +88,6 @@ const TeacherForm = ({
           defaultValue={data?.username}
           register={register}
           error={errors?.username}
-        />
-        <InputField
-          label="Email"
-          name="email"
-          defaultValue={data?.email}
-          register={register}
-          error={errors?.email}
         />
         <InputField
           label="First Name"
