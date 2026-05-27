@@ -9,14 +9,14 @@ import TableSearch from "@/components/TableSearch";
 
 export const dynamic = "force-dynamic";
 
-const DOMAIN_CONFIG: Record<string, { emoji: string; gradient: string; accent: string; light: string; text: string }> = {
-  "Languages":          { emoji: "🔤", gradient: "from-indigo-500 to-violet-500",   accent: "bg-indigo-500",  light: "bg-indigo-50 border-indigo-100",  text: "text-indigo-700" },
-  "Sciences":           { emoji: "🔬", gradient: "from-emerald-500 to-teal-500",    accent: "bg-emerald-500", light: "bg-emerald-50 border-emerald-100", text: "text-emerald-700" },
-  "Religion & Values":  { emoji: "☪️", gradient: "from-amber-500 to-orange-500",    accent: "bg-amber-500",   light: "bg-amber-50 border-amber-100",    text: "text-amber-700" },
-  "Humanities":         { emoji: "🌍", gradient: "from-rose-500 to-pink-500",       accent: "bg-rose-500",    light: "bg-rose-50 border-rose-100",      text: "text-rose-700" },
-  "Arts & Technology":  { emoji: "🎨", gradient: "from-purple-500 to-fuchsia-500",  accent: "bg-purple-500",  light: "bg-purple-50 border-purple-100",  text: "text-purple-700" },
-  "Sport":              { emoji: "⚽", gradient: "from-sky-500 to-cyan-500",        accent: "bg-sky-500",     light: "bg-sky-50 border-sky-100",        text: "text-sky-700" },
-  "General":            { emoji: "📚", gradient: "from-slate-500 to-gray-500",      accent: "bg-slate-500",   light: "bg-slate-50 border-slate-100",    text: "text-slate-700" },
+const DOMAIN_EMOJIS: Record<string, string> = {
+  "Languages":          "🔤",
+  "Sciences":           "🔬",
+  "Religion & Values":  "🕌",
+  "Humanities":         "🌍",
+  "Arts & Technology":  "🎨",
+  "Sport":              "⚽",
+  "General":            "📚",
 };
 
 function parseSubjectName(name: string) {
@@ -63,15 +63,15 @@ const SubjectListPage = async ({
   const totalLessons = subjects.reduce((sum, s) => sum + s._count.lessons, 0);
 
   return (
-    <div className="min-h-screen bg-[#F5F4FC] p-5 md:p-8">
-      <div className="max-w-6xl mx-auto flex flex-col gap-7">
+    <div className="min-h-screen bg-slate-50/50 p-6 md:p-10">
+      <div className="max-w-6xl mx-auto flex flex-col gap-8">
 
         {/* ── HEADER ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 border-b border-slate-100 pb-5">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Subjects</h1>
-            <p className="text-sm text-slate-400 font-semibold mt-1">
-              {subjects.length} subjects · {domainCount} domains
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Subjects</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Configure and manage your curriculum subjects and trilingual naming formats.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -80,130 +80,143 @@ const SubjectListPage = async ({
           </div>
         </div>
 
-        {/* ── STAT PILLS ── */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* ── STATS BAR (PREMIUM MINIMALIST) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
-            { label: "Total Subjects", value: subjects.length, emoji: "📚", color: "text-purple-700 bg-purple-50 border-purple-100" },
-            { label: "Assigned Teachers", value: totalTeachers, emoji: "👩‍🏫", color: "text-indigo-700 bg-indigo-50 border-indigo-100" },
-            { label: "Scheduled Lessons", value: totalLessons, emoji: "🗓️", color: "text-emerald-700 bg-emerald-50 border-emerald-100" },
+            { label: "Total Curriculum Subjects", value: subjects.length, emoji: "📚" },
+            { label: "Active Subject Teachers", value: totalTeachers, emoji: "👩‍🏫" },
+            { label: "Scheduled Subject Lessons", value: totalLessons, emoji: "🗓️" },
           ].map((stat) => (
-            <div key={stat.label} className={`rounded-2xl border px-5 py-4 flex items-center gap-3 ${stat.color}`}>
-              <span className="text-2xl">{stat.emoji}</span>
-              <div>
-                <p className="text-2xl font-black leading-none">{stat.value}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-70 mt-0.5">{stat.label}</p>
+            <div 
+              key={stat.label} 
+              className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center justify-between shadow-[0_2px_8px_-3px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_12px_-3px_rgba(0,0,0,0.05)] transition-shadow duration-200"
+            >
+              <div className="flex flex-col gap-1">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                <p className="text-3xl font-extrabold text-slate-900 tracking-tight mt-1">{stat.value}</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-indigo-50/70 border border-indigo-100/50 flex items-center justify-center text-xl text-indigo-600 shrink-0">
+                {stat.emoji}
               </div>
             </div>
           ))}
         </div>
 
-        {/* ── DOMAIN SECTIONS ── */}
-        {Object.entries(grouped).map(([domain, domainSubjects]) => {
-          const cfg = DOMAIN_CONFIG[domain] || DOMAIN_CONFIG["General"];
+        {/* ── SUBJECT GROUPS ── */}
+        <div className="flex flex-col gap-6">
+          {Object.entries(grouped).map(([domain, domainSubjects]) => {
+            const emoji = DOMAIN_EMOJIS[domain] || DOMAIN_EMOJIS["General"];
 
-          return (
-            <section key={domain} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-
-              {/* Domain header band */}
-              <div className={`bg-gradient-to-r ${cfg.gradient} px-6 py-4 flex items-center justify-between`}>
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{cfg.emoji}</span>
-                  <div>
-                    <h2 className="text-white font-black text-base tracking-tight">{domain}</h2>
-                    <p className="text-white/70 text-xs font-semibold">
-                      {domainSubjects.length} subject{domainSubjects.length !== 1 ? "s" : ""}
-                    </p>
+            return (
+              <section 
+                key={domain} 
+                className="bg-white rounded-2xl shadow-[0_2px_8px_-3px_rgba(0,0,0,0.02)] border border-slate-100 overflow-hidden"
+              >
+                {/* Clean, Premium Header Band */}
+                <div className="border-b border-slate-100/70 px-6 py-4 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center shadow-sm shrink-0">
+                      {emoji}
+                    </span>
+                    <div>
+                      <h2 className="text-slate-800 font-bold text-base tracking-tight">{domain}</h2>
+                      <p className="text-slate-400 text-xs font-medium mt-0.5">
+                        {domainSubjects.length} subject{domainSubjects.length !== 1 ? "s" : ""} in this category
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Subject rows */}
-              <div className="divide-y divide-slate-50">
-                {domainSubjects.map((subject, idx) => {
-                  const { arabic, french, english } = parseSubjectName(subject.name);
-                  const teacherNames = subject.teachers.map(t => `${t.name} ${t.surname}`).join(", ");
+                {/* Subject Rows */}
+                <div className="divide-y divide-slate-100">
+                  {domainSubjects.map((subject, idx) => {
+                    const { arabic, french, english } = parseSubjectName(subject.name);
+                    const teacherNames = subject.teachers.map(t => `${t.name} ${t.surname}`).join(", ");
 
-                  return (
-                    <div
-                      key={subject.id}
-                      className="group flex items-center gap-4 px-6 py-4 hover:bg-slate-50/70 transition-colors"
-                    >
-                      {/* Index number */}
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black text-white bg-gradient-to-br ${cfg.gradient}`}>
-                        {idx + 1}
+                    return (
+                      <div
+                        key={subject.id}
+                        className="group flex items-center gap-6 px-6 py-4 hover:bg-slate-50/30 transition-all duration-150"
+                      >
+                        {/* Index number */}
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold text-slate-400 bg-slate-50 border border-slate-100">
+                          {String(idx + 1).padStart(2, "0")}
+                        </div>
+
+                        {/* Trilingual name block */}
+                        <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-center">
+                          {/* Arabic */}
+                          <div className="text-right order-1 md:order-1" dir="rtl" lang="ar">
+                            <p className="text-base font-bold text-slate-800 leading-snug truncate">
+                              {arabic || english}
+                            </p>
+                          </div>
+                          {/* French */}
+                          <div className="text-center order-3 md:order-2 border-slate-100 md:border-x px-4 py-1 md:py-0">
+                            <p className="text-sm font-semibold text-slate-500 italic leading-snug truncate">
+                              {french || "—"}
+                            </p>
+                          </div>
+                          {/* English */}
+                          <div className="order-2 md:order-3">
+                            <p className="text-xs font-bold text-slate-400 leading-snug truncate">
+                              {english}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Teachers */}
+                        <div className="hidden lg:flex flex-col items-end min-w-[140px] max-w-[180px]">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Assigned Teachers</span>
+                          <span className="text-xs font-semibold text-slate-500 text-right truncate w-full" title={teacherNames || "No teachers assigned"}>
+                            {teacherNames || "—"}
+                          </span>
+                        </div>
+
+                        {/* Stats chips */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100 flex items-center gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+                            <span className="text-xs font-extrabold text-slate-700">{subject._count.lessons}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">lessons</span>
+                          </div>
+                        </div>
+
+                        {/* Admin actions — appear on hover */}
+                        {role === "admin" && (
+                          <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1.5">
+                            <CrudFormModal entity="subject" mode="delete" id={subject.id} />
+                          </div>
+                        )}
                       </div>
-
-                      {/* Trilingual name block */}
-                      <div className="flex-1 min-w-0 grid grid-cols-3 gap-4 items-center">
-                        {/* Arabic */}
-                        <div className="text-right" dir="rtl" lang="ar">
-                          <p className="text-base font-black text-slate-800 leading-snug truncate">
-                            {arabic || english}
-                          </p>
-                        </div>
-                        {/* French */}
-                        <div className="text-center border-x border-slate-100 px-4">
-                          <p className="text-sm font-bold text-slate-500 italic leading-snug truncate">
-                            {french || "—"}
-                          </p>
-                        </div>
-                        {/* English */}
-                        <div>
-                          <p className="text-xs font-bold text-slate-400 leading-snug truncate">
-                            {english}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Teachers */}
-                      <div className="hidden lg:flex flex-col items-end min-w-[140px] max-w-[160px]">
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Teachers</span>
-                        <span className="text-xs font-semibold text-slate-500 text-right truncate w-full">
-                          {teacherNames || "—"}
-                        </span>
-                      </div>
-
-                      {/* Stats chips */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className={`px-2.5 py-1 rounded-lg ${cfg.light} border`}>
-                          <span className={`text-xs font-black ${cfg.text}`}>{subject._count.lessons}</span>
-                          <span className="text-[9px] font-bold text-slate-400 ml-1 uppercase">lessons</span>
-                        </div>
-                      </div>
-
-                      {/* Admin actions — appear on hover */}
-                      {role === "admin" && (
-                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
-                          <CrudFormModal entity="subject" mode="delete" id={subject.id} />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
 
         {/* ── COLUMN LEGEND ── */}
         {subjects.length > 0 && (
-          <div className="flex items-center gap-8 px-2 text-[10px] font-black uppercase tracking-widest text-slate-300">
-            <span className="w-8" />
-            <div className="flex-1 grid grid-cols-3 gap-4">
-              <span className="text-right">عربي</span>
-              <span className="text-center">Français</span>
+          <div className="hidden md:flex items-center gap-6 px-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <span className="w-7" />
+            <div className="flex-1 grid grid-cols-3 gap-6">
+              <span className="text-right">Arabic / عربي</span>
+              <span className="text-center">French / Français</span>
               <span>English</span>
             </div>
+            <span className="min-w-[140px]" />
+            <span className="w-16" />
           </div>
         )}
 
         {/* ── EMPTY STATE ── */}
         {subjects.length === 0 && (
-          <div className="bg-white rounded-3xl border border-slate-100 flex flex-col items-center justify-center py-24 gap-4 text-center shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-100 flex flex-col items-center justify-center py-20 gap-4 text-center shadow-sm">
             <span className="text-5xl">📚</span>
             <div>
-              <h3 className="font-black text-slate-700 text-sm uppercase tracking-wider mb-1">No Subjects Found</h3>
-              <p className="text-xs font-semibold text-slate-400 max-w-xs mx-auto">
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-1">No Subjects Found</h3>
+              <p className="text-xs font-medium text-slate-400 max-w-xs mx-auto">
                 {searchValue ? "Try a different search term." : "Click + Add Subject to get started."}
               </p>
             </div>
