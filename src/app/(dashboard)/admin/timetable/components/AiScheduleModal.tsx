@@ -203,7 +203,7 @@ export default function AiScheduleModal({
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                            <BookOpen size={14} className="text-slate-400" />
-                           <span className="text-xs font-black text-slate-800 uppercase truncate">{subject?.name || "No Subject"}</span>
+                           <span className="text-xs font-black text-slate-800 uppercase truncate">{subject?.name ? subject.name.split("|")[0].trim() : "No Subject"}</span>
                         </div>
                         <div className="flex items-center gap-2">
                            <User size={14} className="text-slate-400" />

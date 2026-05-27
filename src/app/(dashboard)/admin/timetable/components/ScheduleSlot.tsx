@@ -140,7 +140,7 @@ const ScheduleSlot = ({
              {subjects
                .filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId)
                .map(s => (
-                 <option key={s.id} value={s.id}>{s.name}</option>
+                 <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
                ))
              }
            </select>
@@ -198,7 +198,8 @@ const ScheduleSlot = ({
     }
   };
 
-  const subjectName = type === "timetable" ? slot.subject?.name : slot.lesson?.subject?.name;
+  const rawSubjectName = type === "timetable" ? slot.subject?.name : slot.lesson?.subject?.name;
+  const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
   const teacherName = type === "timetable" 
     ? (slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "No Teacher Assigned")
     : (slot.lesson?.teacher ? `${slot.lesson.teacher.name} ${slot.lesson.teacher.surname}` : "No Teacher Assigned");
