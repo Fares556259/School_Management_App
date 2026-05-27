@@ -276,7 +276,7 @@ const Menu = ({ role }: { role: string }) => {
               const isActive = 
                 pathname === item.href || 
                 (item.href === "/" && pathname === "/admin") ||
-                (item.href !== "/" && pathname.startsWith(item.href));
+                (item.href !== "/" && pathname.startsWith(item.href) && (item.href !== "/admin/timetable" || pathname === "/admin/timetable"));
               
               return (
                 <Link
