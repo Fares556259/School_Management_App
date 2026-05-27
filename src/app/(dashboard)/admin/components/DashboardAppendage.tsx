@@ -92,7 +92,7 @@ export default async function DashboardAppendage({
     safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
   ]);
 
-  // 3. UNCOLLECTED FEES RESTORATION (FIND STUDENTS WITH NO PAID PAYMENT)
+  // 3. UNCOLLECTED FEES RESTORATION (FIND STUDENTS & EMPLOYEES WITH NO PAID PAYMENT FOR THIS MONTH)
   const getUncollectedData = async () => {
     // We want students who DON'T have a 'PAID' record for this month
     const unpaidStudents: any[] = await prisma.$queryRaw`
@@ -105,27 +105,43 @@ export default async function DashboardAppendage({
       LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
         AND pay.month = ${currentMonth} 
         AND pay.year = ${currentYear}
-      WHERE (pay.status IS NULL OR pay.status != 'PAID')
+      WHERE s."schoolId" = ${schoolId}
+        AND (pay.status IS NULL OR pay.status != 'PAID')
       LIMIT 100
     `;
 
-    // Also get unpaid employees (TEACHER/STAFF)
-    const unpaidEmp = await prisma.payment.findMany({
-      where: { 
-        status: { in: ["PENDING", "PARTIAL"] },
-        userType: { in: ["TEACHER", "STAFF"] }
-      },
-      include: {
-        teacher: { select: { id: true, name: true, surname: true, phone: true } },
-        staff: { select: { id: true, name: true, surname: true, phone: true } },
-      },
-      take: 50
-    });
+    // We want teachers who DON'T have a 'PAID' record for this month
+    const unpaidTeachers: any[] = await prisma.$queryRaw`
+      SELECT 
+        t.id, t.name, t.surname, t.phone, t.salary,
+        pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+      FROM "Teacher" t
+      LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
+        AND pay.month = ${currentMonth} 
+        AND pay.year = ${currentYear}
+      WHERE t."schoolId" = ${schoolId} 
+        AND (pay.status IS NULL OR pay.status != 'PAID')
+      LIMIT 100
+    `;
 
-    return { unpaidStudents, unpaidEmp };
+    // We want staff who DON'T have a 'PAID' record for this month
+    const unpaidStaff: any[] = await prisma.$queryRaw`
+      SELECT 
+        s.id, s.name, s.surname, s.phone, s.salary,
+        pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+      FROM "Staff" s
+      LEFT JOIN "Payment" pay ON s.id = pay."staffId" 
+        AND pay.month = ${currentMonth} 
+        AND pay.year = ${currentYear}
+      WHERE s."schoolId" = ${schoolId} 
+        AND (pay.status IS NULL OR pay.status != 'PAID')
+      LIMIT 100
+    `;
+
+    return { unpaidStudents, unpaidTeachers, unpaidStaff };
   };
 
-  const uncollectedLists = await safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidEmp: [] });
+  const uncollectedLists = await safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] });
 
   // --- DATA PROCESSING ---
 
@@ -146,15 +162,39 @@ export default async function DashboardAppendage({
     };
   });
 
-  const unpaidEmployees = uncollectedLists.unpaidEmp.map(p => {
-    const entity = p.teacher || p.staff;
+  const unpaidTeachersMapped = uncollectedLists.unpaidTeachers.map(t => {
+    let dueAmount = t.salary || 3000;
+    if (t.paymentStatus === "PARTIAL") {
+      dueAmount = t.deferredAmount || (dueAmount - t.paymentAmount);
+    } else if (t.paymentStatus === "PENDING") {
+      dueAmount = t.paymentAmount || dueAmount;
+    }
     return {
-      id: p.teacherId || p.staffId || "unknown",
-      name: entity ? `${entity.name} ${entity.surname}` : "Unknown",
-      amount: p.status === "PARTIAL" ? (p.deferredAmount || p.amount) : p.amount,
-      type: (p.userType.toLowerCase() === 'teacher' ? 'teacher' : 'staff') as 'teacher' | 'staff',
+      id: t.id,
+      name: `${t.name} ${t.surname}`,
+      amount: dueAmount,
+      type: 'teacher' as const,
+      phone: t.phone
     };
   });
+
+  const unpaidStaffMapped = uncollectedLists.unpaidStaff.map(s => {
+    let dueAmount = s.salary || 1500;
+    if (s.paymentStatus === "PARTIAL") {
+      dueAmount = s.deferredAmount || (dueAmount - s.paymentAmount);
+    } else if (s.paymentStatus === "PENDING") {
+      dueAmount = s.paymentAmount || dueAmount;
+    }
+    return {
+      id: s.id,
+      name: `${s.name} ${s.surname}`,
+      amount: dueAmount,
+      type: 'staff' as const,
+      phone: s.phone
+    };
+  });
+
+  const unpaidEmployees = [...unpaidTeachersMapped, ...unpaidStaffMapped];
 
   // Calculate trends
   const trendData = [];

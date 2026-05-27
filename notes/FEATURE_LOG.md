@@ -126,7 +126,22 @@ Subject records in the database store trilingual name labels separated by pipes 
 
 ---
 
-## 5. Guidelines for Future Database or Logic Modifications
+## 5. Dashboard Unpaid Employees & Multi-Tenancy Payment Isolation Fix
+
+### Context & Problem Statement
+The Admin Dashboard's Action Center was displaying `$0` unpaid employees and `0 Pending` records, despite there being multiple active teachers and staff with no `PAID` salary records in the current month. The cause was that the unpaid employee query fetched records solely from the `Payment` table matching `PENDING/PARTIAL` statuses. It did not handle teachers or staff who had no payment record yet generated for the current month, nor did it enforce multi-tenancy `schoolId` filters, posing a risk of cross-school data leakage.
+
+### Improvements Implemented
+1. **Teacher & Staff Left Join Queries:** Rewrote `getUncollectedData` inside `DashboardAppendage.tsx` to execute high-fidelity raw SQL `LEFT JOIN` queries for both teachers and staff:
+   - Queries all active `Teacher` and `Staff` profiles under the active `schoolId`.
+   - Performs a `LEFT JOIN` on the `Payment` table filtered by the current `month` and `year`.
+   - Filters rows where `pay.status IS NULL OR pay.status != 'PAID'`, identifying any personnel with missing or incomplete salary payouts.
+2. **True Database Metrics Representation:** Correctly mapped the resulting query rows, calculating proper deferred/due amounts and aggregating them to present the real unpaid employee balance and lists.
+3. **Multi-Tenancy Payment Isolation:** Hardened the student uncollected fee query by enforcing `s.schoolId = ${schoolId}` as a hard constraint, aligning it with multi-tenant data partitioning rules.
+
+---
+
+## 6. Guidelines for Future Database or Logic Modifications
 - **Never auto-create class records outside of this flow.** All class creation must run through `createClass` inside `crudActions.ts` to ensure consistent auto-level-mapping.
 - **If changing student enrollment logic:** Student creation retains `classId` assignment. Linking a student to `classId` automatically maps them to that class.
 
