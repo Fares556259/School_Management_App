@@ -161,10 +161,10 @@ export default function GradeSheetRecorder({
   }, []);
 
   useEffect(() => {
-    if (imgRef.current && imgRef.current.complete) {
+    if (isImageLoading && imgRef.current && imgRef.current.complete) {
       setIsImageLoading(false);
     }
-  }, [proofPreviewUrl]);
+  }, [proofPreviewUrl, isImageLoading]);
 
   // Sync proof URL for initial render or class change
   const fileRef = useRef<HTMLInputElement>(null);

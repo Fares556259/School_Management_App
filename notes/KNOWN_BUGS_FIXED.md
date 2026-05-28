@@ -96,22 +96,24 @@ If schema edits are pushed to the database in the future, always run `npx prisma
 **Date:** 2026-05-28
 
 **Root Cause:**
-Next.js's `<Image>` component wraps native `<img>` tags and binds an synthetic `onLoad` listener during React hydration. However, when an image is loaded instantly (e.g. from browser cache, memory cache, or dynamic blob URLs), the native browser `load` event fires **before** React can bind its synthetic event listeners to the DOM node. Consequently, the React `onLoad` prop never fires, causing `isImageLoading` to remain stuck at `true` infinitely and locking the user in a loading overlay screen.
+Next.js's `<Image>` component wraps native `<img>` tags and binds a synthetic `onLoad` listener during React hydration. However, when an image is loaded instantly (e.g. from browser cache, memory cache, or dynamic blob URLs), the native browser `load` event fires **before** React can bind its synthetic event listeners. Consequently, the React `onLoad` prop never fires, causing `isImageLoading` to remain stuck at `true` infinitely.
+
+*Secondary Race Condition:* If `isImageLoading` is successfully cleared but a subsequent database `sync` hook runs (triggered by class student roster or term updates), the code calls `setIsImageLoading(true)` again. However, if the `proofPreviewUrl` is identical to the previous one, the browser does not trigger a reload lifecycle, meaning `onLoad` is never called again, and since `proofPreviewUrl` didn't change, the cache-hit `useEffect` didn't run either. This resulted in an infinite loader overlay when navigating or updating grades.
 
 **Fix Applied:**
 1. Replaced the dynamic Next.js `<Image>` component inside the proof previewer viewport and the fullscreen preview modal with a standard HTML `<img>` tag. Standard HTML tags are lighter and perfectly suited for dynamic layout modifications (zoom, rotation).
 2. Defined an `imgRef` pointing to the HTML `<img>` element.
-3. Implemented a `useEffect` hook listening to `proofPreviewUrl` changes that checks if `imgRef.current && imgRef.current.complete` is `true` (meaning the image loaded instantly from cache). If true, it immediately toggles `isImageLoading(false)` to skip the infinite overlay.
+3. Implemented a `useEffect` cache detector sentinel that listens to **both** `proofPreviewUrl` and `isImageLoading`. If `isImageLoading` is ever toggled to `true` while the image is already fully complete (`imgRef.current.complete === true`), it immediately intercepts and resets `isImageLoading(false)` on the next microtask.
 
 **Files Modified:**
 - `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx`
 
 **Critical Note:**
-For highly dynamic file previews that load fast and support client-side controls (rotation, zoom), use standard HTML `<img>` tags coupled with an `img.complete` cached-hit verification effect instead of Next.js synthetic image elements.
+For highly dynamic file previews that load fast and support client-side controls (rotation, zoom), use standard HTML `<img>` tags coupled with a two-way reactive `[proofPreviewUrl, isImageLoading]` cached-hit verification sentinel effect.
 
 **Verification:**
 - [x] standard HTML `<img>` tags added with `imgRef` coverage.
-- [x] `useEffect` cache detector verified and implemented.
+- [x] `useEffect` reactive cache sentinel verified and implemented.
 - [x] Compiles with zero errors.
 - [x] Pushed successfully to git.
 
