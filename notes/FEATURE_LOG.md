@@ -170,6 +170,9 @@ Previously, the AI Scheduler was only capable of drafting and generating academi
      - **Capsule 2 (Approval):** Combines `Publish` and `Discard` together as draft review actions.
      - **Capsule 3 (Export):** Standalone outline icon button for `PDF` downloads.
    - **Compact Layout Integration:** Shortened action labels ("Approve & Publish" to "Publish", "Discard Suggestion" to "Discard", "AI Magic Generate" to "AI Generate", and "Download PDF" to "PDF") and refined padding configurations to ensure **all action controls fit beautifully on a single row** without any wrapping clutter.
+   - **Visual Hierarchy & Intentional Badging:** Cleaned up the floating mode badges (`View Mode`, `AI Scheduler`), merging them into a single, cohesive, light-grey inline metadata dot status pill on a single line. This prevents text competition and gives the bold, uppercase title complete breathing room.
+   - **Richer Identity Icon Card:** Redesigned the default icon boxes into rich, dual-tone card capsules (`bg-gradient-to-br from-indigo-500/10 via-purple-500/10 border border-indigo-100/80 rounded-3xl`) with glowing border gradients and micro-scale effects for a state-of-the-art SaaS look.
+   - **Connected Status Context Selectors:** Repositioned the disconnected Class Selector dropdown from the title level to a cohesive **Target Scope Metadata Bar** directly below the main title, displaying the class select pill and the Week Period context together. This establishes a clear target scope for the playground while keeping the main title area incredibly polished and minimal.
    - **Complete Banner Removal:** Completely removed the redundant yellow draft review alert banner, eliminating clutter and creating a clean, minimal, and premium layout matching modern SaaS design systems.
    - **Real-Time State Synchronization Fix:** Upgraded `onRefresh` to increment `refreshKey` instead of directly firing `fetchSlots`. This successfully triggers all linked react state hooks and correctly recalculates/displays the draft review elements immediately when slots are manually created, moved, or deleted.
    - **Decoupled AI Features from Official Registry Pages:** To centralize all AI schedule drafting and generation inside the sandbox **AI Scheduler Playground Portal** (`/admin/timetable/ai`), we conditionally removed the `AI Generate` button and its slate grouping capsule from both the official **Academic Exams** registry page (`/list/exams`) and the official **Academic Timetable** page (`/admin/timetable`). When loaded in standard view mode (`forceDraft={false}`), these pages now display a gorgeous, standalone outline `Edit Schedule` button instead of the design capsule, keeping production calendars pristine and strictly dedicated to manual edits and exports.
@@ -181,3 +184,51 @@ Previously, the AI Scheduler was only capable of drafting and generating academi
 - **If changing student enrollment logic:** Student creation retains `classId` assignment. Linking a student to `classId` automatically maps them to that class.
 - **Draft Status Constraints:** When querying or bulk writing timetables or exams under AI Scheduler routes, always pass `isDraft: true` to prevent active database pollution.
 - **Separation of Production vs. Sandbox Playgrounds:** Always enforce `forceDraft` separation. Keep AI generating and draft publishing actions restricted to `forceDraft={true}` scopes.
+
+---
+
+## 8. Grades Section Fix — Fake Student Cleanup & Arabic Subject Names
+
+### Context & Problem Statement
+The `/admin/grades` page had two critical data integrity issues:
+1. **100 fake mock students** (IDs `student1`–`student100`, names `StudentNameN StudentSurnameN`) existed in the `rayens-school` tenant database as leftover seeding artifacts. They were cluttering the grades page sidebar with fake data.
+2. **Trilingual subject names** stored as `الرياضيات | Mathématiques | Mathematics` were being displayed verbatim in the grades entry form and report card. The old code used a **hardcoded static translation map** (`subjectTranslations`) that guessed English names independently of the actual DB subjects — completely unreliable for any school that uses different subject names.
+3. **Hardcoded domain structure** in `report-card/route.ts` used fixed English subject lists (e.g., `["Arabic Communication", "Reading", "Writing", "Grammar"]`) to calculate domain averages. This broke for schools with non-English subject names.
+
+### Improvements Implemented
+
+#### A. DB Cleanup
+- Deleted all 21 `Grade` records attached to mock students.
+- Deleted all 109 `Notification` records and 9 `Result` records attached to mock students.
+- Deleted all 100 mock `Student` records from the database permanently.
+
+#### B. Arabic-Only Subject Name Display (`GradeEntryForm.tsx`)
+- Removed the static `subjectTranslations` map (random guessing, not from DB).
+- Added `parseArabicName(name: string): string` helper that splits by `|` and returns the first segment trimmed.
+- Applied `parseArabicName()` to all subject name displays in the grade entry grid.
+- Added `dir="rtl"` to subject name labels for correct RTL text rendering.
+
+#### C. Dynamic Domain-Based Report Card (`report-card/route.ts`)
+- Completely rewrote domain average calculation to be **fully dynamic from DB subjects**.
+- Groups all subjects by their `domain` field from the DB.
+- Calculates domain average = average score of all subjects in that domain.
+- Calculates general average = simple average of all domain averages.
+- Eliminated all hardcoded English subject name lists.
+
+#### D. Arabic Subject Names in Report Card (`ReportCardClient.tsx`)
+- Added `parseArabicName()` helper to the client.
+- Removed the hardcoded `domainLabelMap` dictionary that translated English domain names to Arabic.
+- Domain header now uses the DB `domain` value directly.
+- Subject rows now display Arabic-parsed names with `dir="rtl"`.
+- Simplified row rendering by removing special-cased French sub-header/sub-total grouping logic.
+
+### Affected Files
+- `src/app/(dashboard)/admin/grades/GradeEntryForm.tsx`
+- `src/app/(dashboard)/admin/grades/[studentId]/report-card/ReportCardClient.tsx`
+- `src/app/api/report-card/route.ts`
+- DB: Deleted 100 mock students and associated records from `rayens-school`
+
+### Guidelines
+- **Never hardcode subject names in UI or API.** Always query subjects from the DB and use `parseArabicName()` for display.
+- **Subject names must follow the `Arabic | French | English` pipe format** if trilingual. Single-language names work as-is.
+- **Domain grouping** is determined by the `domain` field on the `Subject` model, not by hardcoded arrays.
