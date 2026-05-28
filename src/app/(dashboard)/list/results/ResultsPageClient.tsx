@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
-import { getGradeSheet } from "../../admin/grades/actions";
+import { getGradeSheet, createGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, PlayCircle } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
@@ -42,6 +42,73 @@ export default function ResultsPageClient({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
+
+  const handleCardDrop = async (e: React.DragEvent, item: any, isPlaceholder: boolean) => {
+    e.preventDefault();
+    setDraggingCardId(null);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    // Supported formats check: PDF or Images
+    const isSupported = file.type === "application/pdf" || file.type.startsWith("image/");
+    if (!isSupported) {
+      alert("Unsupported file format. Please upload a PDF or an Image.");
+      return;
+    }
+
+    const cardId = isPlaceholder ? `p-${item.subject.id}` : item.data.id;
+    setUploadingCardId(cardId);
+
+    try {
+      // 1. Upload to Supabase Storage bucket 'uploads'
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
+      const fileName = `${Date.now()}-${file.name}`;
+      const filePath = `grades/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath);
+
+      // 2. Resolve baseline grades if placeholder sheet
+      let gradeEntries: any[] = [];
+      if (isPlaceholder) {
+        const studentRes = await fetch(`/api/students?classId=${item.class.id}`);
+        const studentsData = await studentRes.json();
+        gradeEntries = studentsData.map((s: any) => ({ studentId: s.id, score: 0 }));
+      } else {
+        gradeEntries = item.data.grades.map((g: any) => ({ studentId: g.studentId, score: g.score }));
+      }
+
+      // 3. Upsert GradeSheet in DB using createGradeSheet server action
+      await createGradeSheet({
+        classId: item.class.id,
+        subjectId: item.subject.id,
+        term: item.term,
+        proofUrl: publicUrl,
+        grades: gradeEntries,
+      });
+
+      // 4. Reload page to display changes
+      window.location.reload();
+    } catch (err) {
+      console.error("Direct card upload failed:", err);
+      alert("Direct upload failed. Please try using the 'Edit Recording' editor panel.");
+    } finally {
+      setUploadingCardId(null);
+    }
+  };
 
   const startNewRecording = () => {
     setEditingSheetId(null);
@@ -222,12 +289,51 @@ export default function ResultsPageClient({
           return (
             <div 
               key={isPlaceholder ? `p-${item.subject.id}` : sheet.id} 
-              className={`group p-6 rounded-[32px] border transition-all flex flex-col gap-6 relative ${
+              onDragOver={(e) => {
+                e.preventDefault();
+                const cardId = isPlaceholder ? `p-${item.subject.id}` : String(sheet.id);
+                if (draggingCardId !== cardId) setDraggingCardId(cardId);
+              }}
+              onDragLeave={() => setDraggingCardId(null)}
+              onDrop={(e) => handleCardDrop(e, item, isPlaceholder)}
+              className={`group p-6 rounded-[32px] border transition-all flex flex-col gap-6 relative overflow-hidden ${
                 isPlaceholder 
                   ? "bg-slate-50/50 border-dashed border-slate-200 opacity-80 hover:opacity-100 hover:bg-white hover:border-indigo-200" 
                   : "bg-white border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50"
               }`}
             >
+               {/* Drag-and-drop overlay */}
+               <AnimatePresence>
+                 {draggingCardId === (isPlaceholder ? `p-${item.subject.id}` : String(sheet.id)) && (
+                   <motion.div 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     className="absolute inset-0 z-30 bg-indigo-600/10 backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-indigo-500 rounded-[32px] p-6 text-center pointer-events-none animate-in fade-in duration-200"
+                   >
+                     <div className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-200 mb-2">
+                       📥
+                     </div>
+                     <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-none">Drop to attach proof</p>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
+               {/* Uploading progress spinner overlay */}
+               <AnimatePresence>
+                 {uploadingCardId === (isPlaceholder ? `p-${item.subject.id}` : String(sheet.id)) && (
+                   <motion.div 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[1px] flex flex-col items-center justify-center rounded-[32px] p-6 text-center animate-in fade-in duration-200"
+                   >
+                     <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                     <p className="text-[9px] font-black text-indigo-700 uppercase tracking-widest leading-none">Uploading Proof...</p>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
                {/* TERM TAG & BADGES */}
                <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
                   <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
@@ -363,12 +469,16 @@ export default function ResultsPageClient({
             </div>
             <div className="flex-1 overflow-auto p-12 flex items-center justify-center relative">
               {previewUrl && previewUrl.startsWith("http") ? (
-                <Image 
-                  src={previewUrl} 
-                  alt="Document Preview" 
-                  fill
-                  className="object-contain rounded-xl shadow-2xl shadow-black p-4"
-                />
+                previewUrl.toLowerCase().split('?')[0].endsWith('.pdf') || previewUrl.includes("/raw/upload/") ? (
+                  <iframe src={previewUrl} className="w-full h-full rounded-2xl border border-white/10 bg-white shadow-2xl" title="Quick Proof PDF" />
+                ) : (
+                  <Image 
+                    src={previewUrl} 
+                    alt="Document Preview" 
+                    fill
+                    className="object-contain rounded-xl shadow-2xl shadow-black p-4"
+                  />
+                )
               ) : (
                 <div className="bg-white/5 p-12 rounded-[40px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">
                    <div className="text-6xl">📭</div>

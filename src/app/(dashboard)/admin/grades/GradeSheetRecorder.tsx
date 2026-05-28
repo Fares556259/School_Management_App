@@ -120,11 +120,19 @@ export default function GradeSheetRecorder({
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [isScanning, setIsScanning] = useState(false);
+  const [scanStep, setScanStep] = useState(1);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanWarnings, setScanWarnings] = useState<string[]>([]);
   const [aiFilledIds, setAiFilledIds] = useState<Set<string>>(new Set());
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [contrastEnhance, setContrastEnhance] = useState(false);
+  const [isDraggingViewport, setIsDraggingViewport] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isBulkPasteOpen, setIsBulkPasteOpen] = useState(false);
+  const [bulkPasteText, setBulkPasteText] = useState("");
   const [leftWidth, setLeftWidth] = useState(50); // Percentage for the left panel
   const [isResizing, setIsResizing] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
@@ -183,6 +191,26 @@ export default function GradeSheetRecorder({
     setIsDirty(true);
   }, []);
 
+  const handleViewportMouseDown = (e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    setIsDraggingViewport(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    e.preventDefault();
+  };
+
+  const handleViewportMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingViewport || !viewportRef.current) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    viewportRef.current.scrollLeft -= dx;
+    viewportRef.current.scrollTop -= dy;
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleViewportMouseUp = () => {
+    setIsDraggingViewport(false);
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -235,9 +263,14 @@ export default function GradeSheetRecorder({
     }
     
     setIsScanning(true);
+    setScanStep(1);
     setScanError(null);
     setScanWarnings([]);
     setAiFilledIds(new Set());
+
+    const stepTimer = setInterval(() => {
+      setScanStep(s => Math.min(3, s + 1));
+    }, 1500);
 
     try {
       let imageInput: string;
@@ -299,6 +332,7 @@ export default function GradeSheetRecorder({
       console.error("Scan failed:", err);
       setScanError(err.message || "Failed to process image.");
     } finally {
+      clearInterval(stepTimer);
       setIsScanning(false);
     }
   };
@@ -357,7 +391,7 @@ export default function GradeSheetRecorder({
     });
   };
 
-  const isPdf = proofFile?.type === "application/pdf";
+  const isPdf = proofFile?.type === "application/pdf" || (proofPreviewUrl ? proofPreviewUrl.toLowerCase().split('?')[0].endsWith(".pdf") : false);
   const gradeCount = Object.values(grades).filter((v) => v !== "").length;
   const avgScore =
     gradeCount > 0
@@ -454,16 +488,36 @@ export default function GradeSheetRecorder({
             
             <div className="flex items-center gap-3">
               {proofPreviewUrl && !isPdf && (
-                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                  <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">-</button>
+                <>
                   <button 
-                    onClick={() => setZoom(1)}
-                    className="text-[9px] font-black text-slate-500 w-12 text-center bg-white hover:bg-slate-50 rounded h-6 flex items-center justify-center border-x border-slate-100"
+                    onClick={() => setRotation(r => (r + 90) % 360)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 transition-all font-black text-[9px] uppercase tracking-widest"
+                    title="Rotate 90° Clockwise"
                   >
-                    {zoom === 1 ? "FIT" : `${Math.round(zoom * 100)}%`}
+                    🔄 Rotate
                   </button>
-                  <button onClick={() => setZoom((z) => Math.min(4, z + 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">+</button>
-                </div>
+                  <button 
+                    onClick={() => setContrastEnhance(c => !c)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${
+                      contrastEnhance 
+                        ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
+                        : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                    }`}
+                    title="Enhance Faint Handwriting"
+                  >
+                    🌓 Enhance
+                  </button>
+                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">-</button>
+                    <button 
+                      onClick={() => setZoom(1)}
+                      className="text-[9px] font-black text-slate-500 w-12 text-center bg-white hover:bg-slate-50 rounded h-6 flex items-center justify-center border-x border-slate-100"
+                    >
+                      {zoom === 1 ? "FIT" : `${Math.round(zoom * 100)}%`}
+                    </button>
+                    <button onClick={() => setZoom((z) => Math.min(4, z + 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">+</button>
+                  </div>
+                </>
               )}
               
               {proofPreviewUrl && (
@@ -480,10 +534,65 @@ export default function GradeSheetRecorder({
           </div>
 
           <div
-            className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative scrollbar-thin scrollbar-thumb-slate-300 ${zoom === 1 ? 'items-center' : ''}`}
+            ref={viewportRef}
+            className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative scrollbar-thin scrollbar-thumb-slate-300 ${
+              zoom === 1 ? 'items-center' : 'cursor-grab active:cursor-grabbing select-none'
+            }`}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
+            onMouseDown={handleViewportMouseDown}
+            onMouseMove={handleViewportMouseMove}
+            onMouseUp={handleViewportMouseUp}
+            onMouseLeave={handleViewportMouseUp}
           >
+            {/* Inline keyframe animations for laser scanner */}
+            <style dangerouslySetInnerHTML={{__html: `
+              @keyframes scan {
+                0% { top: 0%; }
+                50% { top: 100%; }
+                100% { top: 0%; }
+              }
+              @keyframes scan-backdrop {
+                0% { top: -20%; }
+                50% { top: 80%; }
+                100% { top: -20%; }
+              }
+            `}} />
+
+            {/* Glowing Laser Scan Bar */}
+            {isScanning && (
+              <div className="absolute inset-x-8 top-8 bottom-8 z-10 pointer-events-none overflow-hidden rounded-xl border border-indigo-500/20">
+                {/* Neon scan line sweeping vertically */}
+                <div 
+                  className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_12px_#22d3ee,0_0_20px_#06b6d4] opacity-80"
+                  style={{
+                    animation: "scan 3s linear infinite",
+                  }}
+                />
+                {/* Glowing laser scan backdrop overlay */}
+                <div 
+                  className="absolute left-0 right-0 h-[20%] bg-gradient-to-b from-cyan-400/5 to-transparent pointer-events-none"
+                  style={{
+                    animation: "scan-backdrop 3s linear infinite",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* AI Scanning Timeline Floating Checklist */}
+            {isScanning && (
+              <div className="absolute bottom-6 right-6 z-20 bg-slate-900/95 backdrop-blur-xl border border-white/10 p-5 rounded-3xl shadow-2xl flex flex-col gap-3 max-w-xs animate-in slide-in-from-bottom duration-300">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></div>
+                  <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest leading-none">AI Scanning in Progress</span>
+                </div>
+                <div className="flex flex-col gap-2.5 mt-1">
+                  <TimelineStep label="Analyzing Page Layout" status={scanStep > 1 ? "completed" : "active"} />
+                  <TimelineStep label="Aligning Student Database" status={scanStep > 2 ? "completed" : scanStep === 2 ? "active" : "pending"} />
+                  <TimelineStep label="Transcribing Scores" status={scanStep === 3 ? "active" : "pending"} />
+                </div>
+              </div>
+            )}
             {isImageLoading && (
               <div className="absolute inset-0 z-10 bg-slate-100 flex flex-col items-center justify-center gap-4 animate-pulse">
                 <div className="w-24 h-32 bg-slate-200 rounded-xl shadow-inner"></div>
@@ -523,6 +632,11 @@ export default function GradeSheetRecorder({
                     onLoad={() => {
                       setIsImageLoading(false);
                       setHasImageError(false);
+                    }}
+                    style={{
+                      transform: `rotate(${rotation}deg)`,
+                      filter: contrastEnhance ? 'contrast(1.45) brightness(1.15) saturate(0.85)' : 'none',
+                      transition: 'transform 0.2s ease-out, filter 0.2s ease'
                     }}
                     onError={() => {
                       setIsImageLoading(false);
@@ -624,14 +738,22 @@ export default function GradeSheetRecorder({
           className="flex flex-col overflow-hidden transition-all"
           style={{ width: `${100 - leftWidth}%` }}
         >
-          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 shadow-sm shrink-0">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">✏️ Grade Entry</span>
-            <button
-              onClick={() => fillAll("")}
-              className="text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest"
-            >
-              Clear All
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsBulkPasteOpen(true)}
+                className="text-[10px] font-black text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-widest"
+              >
+                📋 Bulk Paste
+              </button>
+              <button
+                onClick={() => fillAll("")}
+                className="text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest"
+              >
+                Clear All
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-auto relative">
@@ -680,12 +802,24 @@ export default function GradeSheetRecorder({
                       </td>
                       <td className="px-4 py-3">
                         <input
+                          id={`grade-input-${idx}`}
                           type="number"
                           min={0}
                           max={20}
                           step={0.25}
                           value={raw}
                           onChange={(e) => handleGradeChange(student.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowDown" || e.key === "Enter") {
+                              e.preventDefault();
+                              const nextInput = document.getElementById(`grade-input-${idx + 1}`);
+                              if (nextInput) (nextInput as HTMLInputElement).focus();
+                            } else if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              const prevInput = document.getElementById(`grade-input-${idx - 1}`);
+                              if (prevInput) (prevInput as HTMLInputElement).focus();
+                            }
+                          }}
                           placeholder="—"
                           className="w-full text-center text-sm font-black rounded-xl border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
                         />
@@ -757,7 +891,70 @@ export default function GradeSheetRecorder({
                 />
               </div>
               )}
-            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+      {/* ─── BULK PASTE MODAL ─── */}
+      <AnimatePresence>
+        {isBulkPasteOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-2xl max-w-lg w-full flex flex-col gap-6"
+            >
+              <div>
+                <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">Excel Roster Bulk Paste</h2>
+                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Copy a column of scores from Excel/Sheets and paste below</p>
+              </div>
+              
+              <textarea
+                value={bulkPasteText}
+                onChange={(e) => setBulkPasteText(e.target.value)}
+                placeholder="e.g.&#10;15&#10;18.5&#10;12&#10;0&#10;14.75"
+                rows={8}
+                className="w-full text-sm text-slate-700 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all font-mono"
+              />
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => {
+                    setIsBulkPasteOpen(false);
+                    setBulkPasteText("");
+                  }}
+                  className="flex-1 py-3 text-slate-500 bg-slate-100 hover:bg-slate-200 transition-all rounded-xl font-black text-[10px] uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    // Parse lines and populate student grades
+                    const lines = bulkPasteText.split(/\r?\n/).map(line => line.trim()).filter(line => line !== "");
+                    const newGrades = { ...grades };
+                    students.forEach((student, idx) => {
+                      if (lines[idx] !== undefined) {
+                        newGrades[student.id] = lines[idx];
+                      }
+                    });
+                    setGrades(newGrades);
+                    setIsDirty(true);
+                    setIsBulkPasteOpen(false);
+                    setBulkPasteText("");
+                  }}
+                  className="flex-1 py-3 text-white bg-indigo-600 hover:bg-indigo-700 transition-all rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100"
+                >
+                  Apply Scores
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -790,6 +987,25 @@ function SelectField({
       >
         {children}
       </select>
+    </div>
+  );
+}
+
+function TimelineStep({ label, status }: { label: string; status: "completed" | "active" | "pending" }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold transition-all duration-300 ${
+        status === "completed" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
+        status === "active" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 animate-pulse" :
+        "bg-white/5 text-white/20 border border-white/5"
+      }`}>
+        {status === "completed" ? "✓" : status === "active" ? "⚡" : "○"}
+      </div>
+      <span className={`text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+        status === "completed" ? "text-emerald-400" :
+        status === "active" ? "text-white" :
+        "text-white/30"
+      }`}>{label}</span>
     </div>
   );
 }
