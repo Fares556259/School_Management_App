@@ -21,6 +21,7 @@ import {
 import ExamTimetablePrint from "../../admin/timetable/components/ExamTimetablePrint";
 import { defaultSessions } from "../../admin/timetable/components/ScheduleGrid";
 import { getSchoolConfig } from "../../admin/actions/schoolActions";
+import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
 
 const ExamTimetableClient = ({ 
   classes, 
