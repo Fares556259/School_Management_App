@@ -136,9 +136,30 @@ const TimetablePage = ({
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
-              {forceDraft ? "AI Scheduler Playground" : "Academic Timetable"}
-            </h1>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
+                {forceDraft ? "AI Scheduler Playground" : "Academic Timetable"}
+              </h1>
+              
+              {/* Sleek inline dropdown next to the title */}
+              <div className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-100 rounded-xl px-2.5 py-1 transition-all w-fit">
+                <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest pl-1">Class</span>
+                <select 
+                  className="bg-transparent border-0 text-[10px] font-black text-slate-700 focus:outline-none transition-all cursor-pointer uppercase tracking-wider pr-2"
+                  value={selectedClass?.id}
+                  onChange={(e) => {
+                    router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
+                  }}
+                >
+                  {classes.map(cls => (
+                    <option key={cls.id} value={cls.id} className="bg-white">
+                      Grade {cls.level.level} - {cls.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2.5 opacity-60">
               {forceDraft ? "Plan, generate, and optimize curriculum drafts." : "Manage weekly schedules for all grades."}
             </p>
@@ -157,25 +178,19 @@ const TimetablePage = ({
                 Download PDF
               </button>
 
-              <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
-
               {/* AI GENERATE BUTTON */}
               {forceDraft && (
-                <>
-                  <button 
-                    onClick={() => setIsAiOpen(true)}
-                    className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md group hover:scale-[1.02] active:scale-[0.98] ${
-                      isAiLocked 
-                      ? 'bg-slate-100 border border-slate-200 text-slate-400 shadow-none cursor-not-allowed'
-                      : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
-                    }`}
-                  >
-                    {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
-                    {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
-                  </button>
-
-                  <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
-                </>
+                <button 
+                  onClick={() => setIsAiOpen(true)}
+                  className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md group hover:scale-[1.02] active:scale-[0.98] ${
+                    isAiLocked 
+                    ? 'bg-slate-100 border border-slate-200 text-slate-400 shadow-none cursor-not-allowed'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
+                  }`}
+                >
+                  {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
+                  {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
+                </button>
               )}
 
               {/* EDIT TIMETABLE BUTTON */}
@@ -195,26 +210,6 @@ const TimetablePage = ({
               <Check size={14} className="stroke-[3px]"/> Done Editing
             </button>
           )}
-
-          <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
-
-          {/* CLASS SELECTOR */}
-          <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-3">Class</label>
-            <select 
-              className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-xs font-black text-slate-700 shadow-sm focus:outline-none focus:border-indigo-500 transition-all cursor-pointer hover:bg-white uppercase tracking-wider"
-              value={selectedClass?.id}
-              onChange={(e) => {
-                router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
-              }}
-            >
-              {classes.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  Grade {cls.level.level} - {cls.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
