@@ -144,6 +144,7 @@ export default function GradeSheetRecorder({
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBulkPasteOpen, setIsBulkPasteOpen] = useState(false);
   const [bulkPasteText, setBulkPasteText] = useState("");
@@ -158,6 +159,12 @@ export default function GradeSheetRecorder({
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      setIsImageLoading(false);
+    }
+  }, [proofPreviewUrl]);
 
   // Sync proof URL for initial render or class change
   const fileRef = useRef<HTMLInputElement>(null);
@@ -702,10 +709,10 @@ export default function GradeSheetRecorder({
                        width: "100%",
                        minHeight: "1000px"
                      } : {}}>
-                  <Image
+                  <img
+                    ref={imgRef}
                     src={proofPreviewUrl}
                     alt="Proof document"
-                    fill
                     onLoad={() => {
                       setIsImageLoading(false);
                       setHasImageError(false);
@@ -713,13 +720,16 @@ export default function GradeSheetRecorder({
                     style={{
                       transform: `rotate(${rotation}deg)`,
                       filter: contrastEnhance ? 'contrast(1.45) brightness(1.15) saturate(0.85)' : 'none',
-                      transition: 'transform 0.2s ease-out, filter 0.2s ease'
+                      transition: 'transform 0.2s ease-out, filter 0.2s ease',
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain"
                     }}
                     onError={() => {
                       setIsImageLoading(false);
                       setHasImageError(true);
                     }}
-                    className="object-contain rounded-xl shadow-2xl border border-white/50"
+                    className="rounded-xl shadow-2xl border border-white/50"
                   />
                 </div>
               )
@@ -963,11 +973,15 @@ export default function GradeSheetRecorder({
               <iframe src={proofPreviewUrl!} className="w-full h-full rounded-3xl border-none" title="Fullscreen Proof PDF" />
             ) : (
               <div className="w-full h-full relative p-12 overflow-auto">
-                <Image 
+                <img 
                   src={proofPreviewUrl!} 
                   alt="Fullscreen preview" 
-                  fill
-                  className="object-contain rounded-xl shadow-2xl"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain"
+                  }}
+                  className="rounded-xl shadow-2xl"
                 />
               </div>
               )}

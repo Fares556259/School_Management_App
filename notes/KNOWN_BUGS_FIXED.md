@@ -88,3 +88,30 @@ If schema edits are pushed to the database in the future, always run `npx prisma
 - [x] Missing imports added; no type errors in updated files during compilation check.
 - [x] Successfully committed and pushed to `completed` branch.
 
+---
+
+## Bug #004 — Infinite Loading on Proof Preview (Next.js Image onLoad Race Condition)
+
+**Status:** Fixed
+**Date:** 2026-05-28
+
+**Root Cause:**
+Next.js's `<Image>` component wraps native `<img>` tags and binds an synthetic `onLoad` listener during React hydration. However, when an image is loaded instantly (e.g. from browser cache, memory cache, or dynamic blob URLs), the native browser `load` event fires **before** React can bind its synthetic event listeners to the DOM node. Consequently, the React `onLoad` prop never fires, causing `isImageLoading` to remain stuck at `true` infinitely and locking the user in a loading overlay screen.
+
+**Fix Applied:**
+1. Replaced the dynamic Next.js `<Image>` component inside the proof previewer viewport and the fullscreen preview modal with a standard HTML `<img>` tag. Standard HTML tags are lighter and perfectly suited for dynamic layout modifications (zoom, rotation).
+2. Defined an `imgRef` pointing to the HTML `<img>` element.
+3. Implemented a `useEffect` hook listening to `proofPreviewUrl` changes that checks if `imgRef.current && imgRef.current.complete` is `true` (meaning the image loaded instantly from cache). If true, it immediately toggles `isImageLoading(false)` to skip the infinite overlay.
+
+**Files Modified:**
+- `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx`
+
+**Critical Note:**
+For highly dynamic file previews that load fast and support client-side controls (rotation, zoom), use standard HTML `<img>` tags coupled with an `img.complete` cached-hit verification effect instead of Next.js synthetic image elements.
+
+**Verification:**
+- [x] standard HTML `<img>` tags added with `imgRef` coverage.
+- [x] `useEffect` cache detector verified and implemented.
+- [x] Compiles with zero errors.
+- [x] Pushed successfully to git.
+

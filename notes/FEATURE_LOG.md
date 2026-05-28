@@ -258,11 +258,13 @@ The `/admin/grades` page had two critical data integrity issues:
 - Upgraded the static proof dropzone box to a gorgeous custom dotted container using dynamic scaling, smooth color blending transitions, and interactive floating icons.
 - Attached high-fidelity visual hover gradients (`scale-101`, `translate-y-[-2px]`, tap effects) and ambient background glow overlays.
 
-#### D. Elegant Glassmorphic Loaders
+#### D. Elegant Glassmorphic Loaders & Cache Race Condition Fix
 - Transformed boring loading spinners into high-end glassmorphic processing loaders featuring a glowing neon halo (`indigo-600/10`), breathing animations, micro-animated spinner wheels, and clean text indicators.
+- Replaced the dynamic Next.js `<Image>` component inside the proof previewer viewport and the fullscreen preview modal with a standard HTML `<img>` tag to resolve React synthetic `onLoad` event race conditions.
+- Integrated an `imgRef` with a dedicated `useEffect` cache detector that checks `imgRef.current.complete` on preview URL changes, instantly clearing the loading overlay if the image was cached.
 
 ### Affected Files
-- `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx` (Completed filters, empty-state, loaders, Arabic parser updates, and INITIALIZED_BULK note filter)
+- `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx` (Completed filters, empty-state, loaders, Arabic parser updates, INITIALIZED_BULK note filter, and standard img tag loading fix)
 - `src/app/(dashboard)/admin/grades/GradeEntryForm.tsx` (Updated parser to be robust)
 - `src/app/(dashboard)/list/results/ResultsPageClient.tsx` (Updated parser to be robust)
 - `src/app/(dashboard)/admin/grades/[studentId]/report-card/ReportCardClient.tsx` (Updated parser to be robust)
