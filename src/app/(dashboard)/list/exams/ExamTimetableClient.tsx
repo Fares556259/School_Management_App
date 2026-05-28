@@ -247,29 +247,39 @@ const ExamTimetableClient = ({
               <>
                 {/* 1. Design & Plan Capsule Group */}
                 {(role === "admin" || role === "teacher") && (
-                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
-                    {/* EDIT TOGGLE BUTTON */}
+                  forceDraft ? (
+                    <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                      {/* EDIT TOGGLE BUTTON */}
+                      <button 
+                        onClick={() => setIsEditMode(true)}
+                        className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                      </button>
+
+                      {/* AI GENERATE BUTTON */}
+                      <button 
+                        onClick={() => setIsAiOpen(true)}
+                        disabled={isAiLocked}
+                        className={`flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${
+                          isAiLocked 
+                          ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                          : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
+                        }`}
+                      >
+                        {isAiLocked ? <Lock size={12} /> : <Sparkles size={12} />}
+                        {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
+                      </button>
+                    </div>
+                  ) : (
+                    /* STANDALONE EDIT SCHEDULE BUTTON */
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                      className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/80 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
                     >
                       <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
                     </button>
-
-                    {/* AI GENERATE BUTTON */}
-                    <button 
-                      onClick={() => setIsAiOpen(true)}
-                      disabled={isAiLocked}
-                      className={`flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${
-                        isAiLocked 
-                        ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
-                      }`}
-                    >
-                      {isAiLocked ? <Lock size={12} /> : <Sparkles size={12} />}
-                      {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
-                    </button>
-                  </div>
+                  )
                 )}
 
                 {/* 2. Direct Header Publish / Discard Capsule Group */}

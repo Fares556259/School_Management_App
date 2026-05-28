@@ -163,17 +163,17 @@ const TimetablePage = ({
             {!isEditMode ? (
               <>
                 {/* 1. Design & Plan Capsule Group */}
-                <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
-                  {/* EDIT TIMETABLE BUTTON */}
-                  <button 
-                    onClick={() => setIsEditMode(true)}
-                    className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
-                  </button>
+                {forceDraft ? (
+                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                    {/* EDIT TIMETABLE BUTTON */}
+                    <button 
+                      onClick={() => setIsEditMode(true)}
+                      className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                    </button>
 
-                  {/* AI GENERATE BUTTON */}
-                  {forceDraft && (
+                    {/* AI GENERATE BUTTON */}
                     <button 
                       onClick={() => setIsAiOpen(true)}
                       disabled={isAiLocked}
@@ -186,8 +186,16 @@ const TimetablePage = ({
                       {isAiLocked ? <Lock size={12} /> : <Sparkles size={12} />}
                       {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
                     </button>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  /* STANDALONE EDIT SCHEDULE BUTTON */
+                  <button 
+                    onClick={() => setIsEditMode(true)}
+                    className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/80 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                  </button>
+                )}
 
                 {/* 2. Direct Header Publish / Discard Capsule Group */}
                 {forceDraft && hasDraft && (
