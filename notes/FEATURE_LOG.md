@@ -172,6 +172,7 @@ Previously, the AI Scheduler was only capable of drafting and generating academi
    - **Compact Layout Integration:** Shortened action labels ("Approve & Publish" to "Publish", "Discard Suggestion" to "Discard", "AI Magic Generate" to "AI Generate", and "Download PDF" to "PDF") and refined padding configurations to ensure **all action controls fit beautifully on a single row** without any wrapping clutter.
    - **Complete Banner Removal:** Completely removed the redundant yellow draft review alert banner, eliminating clutter and creating a clean, minimal, and premium layout matching modern SaaS design systems.
    - **Real-Time State Synchronization Fix:** Upgraded `onRefresh` to increment `refreshKey` instead of directly firing `fetchSlots`. This successfully triggers all linked react state hooks and correctly recalculates/displays the draft review elements immediately when slots are manually created, moved, or deleted.
+   - **Decoupled AI Features from Official Registry Pages:** To centralize all AI schedule drafting and generation inside the sandbox **AI Scheduler Playground Portal** (`/admin/timetable/ai`), we conditionally removed the `AI Generate` button and its slate grouping capsule from both the official **Academic Exams** registry page (`/list/exams`) and the official **Academic Timetable** page (`/admin/timetable`). When loaded in standard view mode (`forceDraft={false}`), these pages now display a gorgeous, standalone outline `Edit Schedule` button instead of the design capsule, keeping production calendars pristine and strictly dedicated to manual edits and exports.
 
 ---
 
@@ -179,4 +180,4 @@ Previously, the AI Scheduler was only capable of drafting and generating academi
 - **Never auto-create class records outside of this flow.** All class creation must run through `createClass` inside `crudActions.ts` to ensure consistent auto-level-mapping.
 - **If changing student enrollment logic:** Student creation retains `classId` assignment. Linking a student to `classId` automatically maps them to that class.
 - **Draft Status Constraints:** When querying or bulk writing timetables or exams under AI Scheduler routes, always pass `isDraft: true` to prevent active database pollution.
-
+- **Separation of Production vs. Sandbox Playgrounds:** Always enforce `forceDraft` separation. Keep AI generating and draft publishing actions restricted to `forceDraft={true}` scopes.
