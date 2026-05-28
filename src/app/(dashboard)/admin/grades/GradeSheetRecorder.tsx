@@ -80,6 +80,11 @@ export default function GradeSheetRecorder({
           });
           setGrades(newGrades);
           setProofPreviewUrl(sheet.proofUrl || null);
+          if (sheet.proofUrl) {
+            setIsImageLoading(true);
+          } else {
+            setIsImageLoading(false);
+          }
           setNotes(sheet.notes || "");
           setTeacherId(sheet.teacherId || "");
         } else {
@@ -87,6 +92,7 @@ export default function GradeSheetRecorder({
           students.forEach(s => { zeroGrades[s.id] = "0"; });
           setGrades(zeroGrades);
           setProofPreviewUrl(null);
+          setIsImageLoading(false);
           setNotes("");
           setTeacherId("");
         }
@@ -594,9 +600,9 @@ export default function GradeSheetRecorder({
               </div>
             )}
             {isImageLoading && (
-              <div className="absolute inset-0 z-10 bg-slate-100 flex flex-col items-center justify-center gap-4 animate-pulse">
-                <div className="w-24 h-32 bg-slate-200 rounded-xl shadow-inner"></div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Document...</span>
+              <div className="absolute inset-0 z-20 bg-slate-50/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 animate-in fade-in duration-300">
+                <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-indigo-100"></div>
+                <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-none drop-shadow-sm">Loading Document...</span>
               </div>
             )}
             
@@ -616,7 +622,12 @@ export default function GradeSheetRecorder({
               </div>
             ) : (
               isPdf ? (
-                <iframe src={proofPreviewUrl} className="w-full h-full rounded-2xl border border-slate-200 bg-white shadow-lg" title="Proof PDF" />
+                <iframe 
+                  src={proofPreviewUrl} 
+                  onLoad={() => setIsImageLoading(false)}
+                  className="w-full h-full rounded-2xl border border-slate-200 bg-white shadow-lg" 
+                  title="Proof PDF" 
+                />
               ) : (
                 <div className={`relative transition-transform duration-200 ${zoom === 1 ? 'w-full h-full' : ''}`}
                      style={zoom !== 1 ? { 
