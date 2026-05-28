@@ -242,57 +242,59 @@ const ExamTimetableClient = ({
           <div className="flex flex-wrap items-center gap-3">
             {!isEditMode ? (
               <>
-                {/* DOWNLOAD PDF BUTTON */}
-                <button 
-                  onClick={() => handlePrint()}
-                  className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-slate-800 text-white hover:bg-slate-900 shadow-slate-100 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <FileDown size={14} />
-                  Download PDF
-                </button>
-
+                {/* 1. Design & Plan Capsule Group */}
                 {(role === "admin" || role === "teacher") && (
-                  <>
-                    {/* AI GENERATE BUTTON */}
-                    <button 
-                      onClick={() => setIsAiOpen(true)}
-                      className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md group hover:scale-[1.02] active:scale-[0.98] ${
-                        isAiLocked 
-                        ? 'bg-slate-100 border border-slate-200 text-slate-400 shadow-none cursor-not-allowed'
-                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
-                      }`}
-                    >
-                      {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
-                      {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
-                    </button>
-
+                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
                     {/* EDIT TOGGLE BUTTON */}
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 bg-white border-slate-200 text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98]"
+                      className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
                     >
-                      <Edit2 size={14} className="stroke-[3px]"/> Edit Schedule
+                      <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
                     </button>
 
-                    {/* DIRECT HEADER PUBLISH/DISCARD DRAFTS */}
-                    {forceDraft && hasDraft && (
-                      <>
-                        <button
-                          onClick={handlePublishDraft}
-                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          Approve & Publish
-                        </button>
-                        <button
-                          onClick={handleDiscardDraft}
-                          className="px-5 py-2.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          Discard Suggestion
-                        </button>
-                      </>
-                    )}
-                  </>
+                    {/* AI GENERATE BUTTON */}
+                    <button 
+                      onClick={() => setIsAiOpen(true)}
+                      disabled={isAiLocked}
+                      className={`flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${
+                        isAiLocked 
+                        ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
+                      }`}
+                    >
+                      {isAiLocked ? <Lock size={12} /> : <Sparkles size={12} />}
+                      {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
+                    </button>
+                  </div>
                 )}
+
+                {/* 2. Direct Header Publish / Discard Capsule Group */}
+                {forceDraft && hasDraft && (role === "admin" || role === "teacher") && (
+                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                    <button
+                      onClick={handlePublishDraft}
+                      className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      Publish
+                    </button>
+                    <button
+                      onClick={handleDiscardDraft}
+                      className="px-4.5 py-2 bg-rose-50 border border-rose-200/55 hover:bg-rose-100 text-rose-700 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. Export Utility (Standalone Outline Button) */}
+                <button 
+                  onClick={() => handlePrint()}
+                  className="flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all shadow-sm border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <FileDown size={12} />
+                  PDF
+                </button>
               </>
             ) : (
               /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */
