@@ -65,7 +65,7 @@ export default function GradeSheetRecorder({
   const [subjectId, setSubjectId] = useState<number>(existingSheet?.subjectId ?? subjects[0]?.id ?? 0);
   const [term, setTerm] = useState<number>(existingSheet?.term ?? initialTerm);
   const [teacherId, setTeacherId] = useState<string>(existingSheet?.teacherId ?? "");
-  const [notes, setNotes] = useState(existingSheet?.notes ?? "");
+  const [notes, setNotes] = useState(existingSheet?.notes === "INITIALIZED_BULK" ? "" : (existingSheet?.notes ?? ""));
 
   const updateTeacherId = (id: string) => { setTeacherId(id); setIsDirty(true); };
   const updateNotes = (val: string) => { setNotes(val); setIsDirty(true); };
@@ -92,7 +92,7 @@ export default function GradeSheetRecorder({
           } else {
             setIsImageLoading(false);
           }
-          setNotes(sheet.notes || "");
+          setNotes(sheet.notes === "INITIALIZED_BULK" ? "" : (sheet.notes || ""));
           setTeacherId(sheet.teacherId || "");
         } else {
           const zeroGrades: Record<string, string> = {};

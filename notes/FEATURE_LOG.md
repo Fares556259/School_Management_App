@@ -262,7 +262,8 @@ The `/admin/grades` page had two critical data integrity issues:
 - Transformed boring loading spinners into high-end glassmorphic processing loaders featuring a glowing neon halo (`indigo-600/10`), breathing animations, micro-animated spinner wheels, and clean text indicators.
 
 ### Affected Files
-- `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx` (Completed filters, empty-state, loaders, and Arabic parser updates)
+- `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx` (Completed filters, empty-state, loaders, Arabic parser updates, and INITIALIZED_BULK note filter)
 - `src/app/(dashboard)/admin/grades/GradeEntryForm.tsx` (Updated parser to be robust)
 - `src/app/(dashboard)/list/results/ResultsPageClient.tsx` (Updated parser to be robust)
 - `src/app/(dashboard)/admin/grades/[studentId]/report-card/ReportCardClient.tsx` (Updated parser to be robust)
+- `src/app/(dashboard)/admin/grades/initializeAction.ts` (Removed INITIALIZED_BULK placeholder notes generation)

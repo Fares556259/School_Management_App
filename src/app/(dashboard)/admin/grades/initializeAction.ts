@@ -37,7 +37,7 @@ export async function initializeClassSheets(classId: number, term: number) {
           subjectId: s.id,
           term,
           proofUrl: "",
-          notes: "INITIALIZED_BULK",
+          notes: "",
           schoolId,
         })),
         skipDuplicates: true,
