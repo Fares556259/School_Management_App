@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
+import { getSchoolId } from "@/lib/school";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -50,6 +51,8 @@ export async function POST(req: NextRequest) {
     const validatedData = gradeSchema.parse(body);
     const { studentId, term, scores } = validatedData;
 
+    const schoolId = await getSchoolId();
+
     // 1. Find the student's class to look for corresponding sheets
     const student = await prisma.student.findUnique({
       where: { id: studentId },
@@ -60,17 +63,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (!student.classId) {
+      return NextResponse.json({ error: "Student is not assigned to a class" }, { status: 400 });
+    }
+
+    const classId = student.classId;
+
     // Use a transaction to ensure all grades are saved correctly
     const results = await prisma.$transaction(async (tx) => {
       // 2. Ensure GradeSheets exist for all subjects in this payload
       // This is the "Sync Bridge" that makes these grades visible in the Results dashboard
       await tx.gradeSheet.createMany({
         data: scores.map(s => ({
-          classId: student.classId,
+          classId: classId,
           subjectId: s.subjectId,
           term,
           proofUrl: "",
           notes: "AUTO_SYNCED_FROM_PROFILE",
+          schoolId,
         })),
         skipDuplicates: true,
       });
@@ -78,7 +88,7 @@ export async function POST(req: NextRequest) {
       // Fetch the sheets to get their IDs
       const relevantSheets = await tx.gradeSheet.findMany({
         where: {
-          classId: student.classId,
+          classId: classId,
           term,
           subjectId: { in: scores.map(s => s.subjectId) }
         },

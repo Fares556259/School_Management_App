@@ -8,6 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, PlayCircle } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
 
+/** Parse first segment of pipe-separated trilingual name to get Arabic only.
+ * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
+ * Falls back to original name if no pipe is present.
+ */
+const parseArabicName = (name: string): string => name.split("|")[0].trim();
+
 interface Props {
   role: string | undefined;
   classes: any[];
@@ -254,8 +260,8 @@ export default function ResultsPageClient({
                </div>
   
               <div className="flex flex-col gap-1">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`}>
-                  {item.subject.name}
+                <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`} dir="rtl">
+                  {parseArabicName(item.subject.name)}
                 </span>
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">{item.class.name}</h3>
               </div>
@@ -278,15 +284,15 @@ export default function ResultsPageClient({
                  </div>
   
                  {/* META */}
-                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xs">👤</div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-800">
-                        {isPlaceholder ? '—' : `${sheet.teacher?.name} ${sheet.teacher?.surname || 'N/A'}`}
-                      </p>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead Teacher</p>
-                    </div>
-                 </div>
+                  <div className="flex items-center gap-3">
+                     <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xs">👤</div>
+                     <div>
+                       <p className="text-[10px] font-black text-slate-800">
+                         {isPlaceholder ? '—' : (sheet.teacher ? `${sheet.teacher.name} ${sheet.teacher.surname}` : '—')}
+                       </p>
+                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead Teacher</p>
+                     </div>
+                  </div>
               </div>
   
               <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">

@@ -2,6 +2,7 @@
 
 import prisma from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 /**
  * Bulk initializes GradeSheets for all subjects in a given class and term.
@@ -9,12 +10,14 @@ import { revalidatePath } from "next/cache";
  */
 export async function initializeClassSheets(classId: number, term: number) {
   try {
-    // 1. Parallel Fetch of foundational data
+    const schoolId = await getSchoolId();
+
+    // 1. Parallel Fetch of foundational data — scoped to current school only
     const [subjects, students] = await Promise.all([
-      prisma.subject.findMany(),
-      prisma.student.findMany({ 
-        where: { classId },
-        select: { id: true } 
+      prisma.subject.findMany({ where: { schoolId } }),
+      prisma.student.findMany({
+        where: { classId, schoolId },
+        select: { id: true },
       }),
     ]);
 
@@ -27,7 +30,7 @@ export async function initializeClassSheets(classId: number, term: number) {
 
     // 2. Execute initialization within a single transaction for maximum performance
     await prisma.$transaction(async (tx) => {
-      // Step 1: Bulk Create missing GradeSheets
+      // Step 1: Bulk Create missing GradeSheets — scoped to current school
       await tx.gradeSheet.createMany({
         data: subjects.map(s => ({
           classId,
@@ -35,6 +38,7 @@ export async function initializeClassSheets(classId: number, term: number) {
           term,
           proofUrl: "",
           notes: "INITIALIZED_BULK",
+          schoolId,
         })),
         skipDuplicates: true,
       });
