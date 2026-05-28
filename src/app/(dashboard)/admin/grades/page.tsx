@@ -1,5 +1,6 @@
 import prisma from "../../../../lib/prisma";
 import { getRole } from "@/lib/role";
+import { getSchoolId } from "@/lib/school";
 import GradeEntryForm from "./GradeEntryForm";
 import GradeFilter from "./GradeFilter";
 import { getAllGradeSheets } from "./actions";
@@ -13,10 +14,12 @@ export default async function GradesPage({
   const role = await getRole();
   if (role !== "admin") return <div>Unauthorized</div>;
 
+  const schoolId = await getSchoolId();
+
   const [classes, subjects, teachers] = await Promise.all([
-    prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.subject.findMany({ orderBy: { domain: "asc" } }),
-    prisma.teacher.findMany({ select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
+    prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
   ]);
 
   const term = searchParams.term ? parseInt(searchParams.term) : 1;
@@ -27,7 +30,7 @@ export default async function GradesPage({
   let students: any[] = [];
   if (classId) {
     students = await prisma.student.findMany({
-      where: { classId },
+      where: { classId, schoolId },
       include: { grades: { where: { term } } },
       orderBy: { name: "asc" },
     });
