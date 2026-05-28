@@ -305,65 +305,6 @@ const ExamTimetableClient = ({
             )}
           </div>
         </div>
-
-        {/* Row 2: Draft Review Banner (nested) */}
-        {hasDraft && (
-          <div className={`p-5 rounded-[24px] border flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-300 w-full ${
-            isDraftView 
-            ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm shadow-amber-50/50' 
-            : 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-sm shadow-indigo-50/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg shadow-sm border ${
-                isDraftView ? 'bg-amber-100 border-amber-200 text-amber-700 font-bold' : 'bg-indigo-100 border-indigo-200 text-indigo-700 font-bold'
-              }`}>
-                {isDraftView ? "💡" : "⚡"}
-              </div>
-              <div>
-                <p className="text-sm font-bold tracking-tight">
-                  {isDraftView 
-                    ? "Reviewing Suggested Draft Plan (Draft Mode)" 
-                    : "An AI-generated draft suggestion is ready for review"}
-                </p>
-                <p className="text-xs font-semibold opacity-70 mt-0.5">
-                  {isDraftView 
-                    ? "This timetable is only visible to you. Students and parents still see the Active schedule." 
-                    : "Click the toggle above or the button to review the suggested schedule before publishing."}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsDraftView(!isDraftView)}
-                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border ${
-                  isDraftView 
-                  ? 'bg-white border-amber-200 text-amber-700 hover:bg-amber-100/50' 
-                  : 'bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-100/50'
-                }`}
-              >
-                {isDraftView ? "View Active Exams" : "View Suggested Draft"}
-              </button>
-
-              {isDraftView && (
-                <>
-                  <button
-                    onClick={handlePublishDraft}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100 transition-all"
-                  >
-                    Approve & Publish
-                  </button>
-                  <button
-                    onClick={handleDiscardDraft}
-                    className="px-4 py-2 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
-                  >
-                    Discard Suggestion
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* PERIOD SELECTOR SECTION */}
