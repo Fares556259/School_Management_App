@@ -369,7 +369,7 @@ export default function ResultsPageClient({
                 <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`}>
                   Class {item.class.name}
                 </span>
-                <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1" dir="rtl">
+                <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1">
                   {parseArabicName(item.subject.name)}
                 </h3>
               </div>
