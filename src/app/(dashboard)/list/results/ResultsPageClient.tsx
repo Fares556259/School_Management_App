@@ -366,10 +366,12 @@ export default function ResultsPageClient({
                </div>
   
               <div className="flex flex-col gap-1">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`} dir="rtl">
-                  {parseArabicName(item.subject.name)}
+                <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`}>
+                  Class {item.class.name}
                 </span>
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">{item.class.name}</h3>
+                <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1" dir="rtl">
+                  {parseArabicName(item.subject.name)}
+                </h3>
               </div>
   
               <div className="flex flex-col gap-4">
