@@ -167,6 +167,8 @@ Previously, the AI Scheduler was only capable of drafting and generating academi
    - Integrated full dynamic draft support: displays the fused **Draft Review Banner** inside the main card if drafts exist for review.
    - Enables toggling between active exams and drafts dynamically via `View Active Exams` / `View Suggested Draft` action triggers.
    - Automatically saves AI generations into draft status when accessed inside the playground, guaranteeing sandbox safety.
+   - **Direct Header Actions:** Placed secondary **Approve & Publish** (green) and **Discard Suggestion** (rose) action buttons directly inside the top header action toolbar when in draft playground mode and drafts exist. This keeps the primary publication actions immediately visible and accessible next to `Edit Schedule` and `AI Magic Generate`.
+   - **Real-Time State Synchronization Fix:** Upgraded `onRefresh` to increment `refreshKey` instead of directly firing `fetchSlots`. This successfully triggers all linked react state hooks and correctly recalculates/displays the draft review elements immediately when slots are manually created, moved, or deleted.
 
 ---
 
