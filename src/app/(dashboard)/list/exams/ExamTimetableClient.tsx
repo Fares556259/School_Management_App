@@ -263,7 +263,7 @@ const ExamTimetableClient = ({
                       }`}
                     >
                       {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
-                      {isAiLocked ? 'Limite AI Atteinte' : 'AI Magic Generate'}
+                      {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
                     </button>
 
                     {/* EDIT TOGGLE BUTTON */}
@@ -273,6 +273,24 @@ const ExamTimetableClient = ({
                     >
                       <Edit2 size={14} className="stroke-[3px]"/> Edit Schedule
                     </button>
+
+                    {/* DIRECT HEADER PUBLISH/DISCARD DRAFTS */}
+                    {forceDraft && hasDraft && (
+                      <>
+                        <button
+                          onClick={handlePublishDraft}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                          Approve & Publish
+                        </button>
+                        <button
+                          onClick={handleDiscardDraft}
+                          className="px-5 py-2.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                          Discard Suggestion
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </>
@@ -425,7 +443,7 @@ const ExamTimetableClient = ({
               onMoveAction={moveExam}
               onUpdateAction={(data) => updateExamSlot({ ...data, isDraft: isDraftView })}
               onDeleteAction={deleteExam}
-              onRefresh={fetchSlots}
+              onRefresh={() => setRefreshKey(prev => prev + 1)}
               sessions={dynamicSessions}
               isDraft={isDraftView}
             />
