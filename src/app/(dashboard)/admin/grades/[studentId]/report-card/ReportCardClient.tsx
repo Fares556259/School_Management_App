@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { Printer, ArrowLeft } from "lucide-react";
 import Link from "next/navigation";
 
+/** Parse first segment of pipe-separated trilingual name to get Arabic only.
+ * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
+ */
+const parseArabicName = (name: string): string => {
+  const parts = name.split("|");
+  return parts[0].trim();
+};
+
 interface ReportData {
   header: {
     studentName: string;
@@ -102,45 +110,16 @@ export default function ReportCardClient({
 
   // UI Domain rendering helpers
   const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
-    const domainLabelMap: Record<string, string> = {
-        "Arabic Language Domain": "مجال اللغة العربية",
-        "Science & Technology Domain": "مجال العلوم والتكنولوجيا",
-        "Discovery Domain": "مجال التنشئة",
-        "Foreign Languages Domain": "مجال اللغات الأجنبية",
-    };
-
-    let rows: any[] = [];
-    
-    // Handle French Grouping within Foreign Languages Domain
-    if (domainName === "Foreign Languages Domain") {
-      const frenchSubjects = subjects.filter(s => s.name.startsWith("French"));
-      const nonFrenchSubjects = subjects.filter(s => !s.name.startsWith("French"));
-      
-      if (frenchSubjects.length > 0) {
-        rows.push({ label: "* اللغة الفرنسية", type: "sub-header" });
-        frenchSubjects.forEach(s => rows.push({ ...s, label: s.name.replace("French ", "") }));
-        
-        const frenchTotal = frenchSubjects.reduce((acc, s) => acc + s.score, 0);
-        const frenchAvg = frenchTotal / frenchSubjects.length;
-        rows.push({ label: "معدل اللغة الفرنسية", score: frenchAvg, type: "sub-total" });
-      }
-      
-      nonFrenchSubjects.forEach(s => rows.push({ ...s, label: s.name }));
-    } else {
-      subjects.forEach(s => {
-        rows.push({ 
-          ...s,
-          label: s.name
-        });
-      });
-    }
+    // Domain name is passed directly from DB — no hardcoded mapping needed.
+    // It may be in Arabic or English depending on how the school set it up.
+    const rows: any[] = subjects.map((s) => ({ ...s, label: parseArabicName(s.name) }));
 
     if (rows.length === 0) return null;
 
     return (
       <div key={domainName} className="border-2 border-blue-600 mb-6 overflow-hidden rounded-md">
         <div className="bg-blue-600 text-white text-center font-bold py-1.5 text-sm uppercase">
-          {domainLabelMap[domainName] || domainName}
+          {domainName}
         </div>
         <table className="w-full text-sm border-collapse">
           <thead className="bg-slate-50 border-b border-blue-600 text-[10px] font-black text-slate-900">
@@ -154,57 +133,31 @@ export default function ReportCardClient({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => {
-              if (row.type === "sub-header") {
-                  return (
-                    <tr key={idx} className="bg-blue-50/20">
-                      <td colSpan={2} className="py-1 px-4 font-black text-blue-800 border-b border-blue-100 text-xs">{row.label}</td>
-                      <td colSpan={4} className="border-b border-blue-100"></td>
-                    </tr>
-                  );
-              }
-              if (row.type === "sub-total") {
-                return (
-                  <tr key={idx} className="bg-slate-50 border-b border-blue-100">
-                    <td className="py-1.5 px-6 font-black text-slate-900 border-l border-blue-100 text-xs italic">
-                        {row.label}
-                    </td>
-                    <td className="py-1.5 px-2 text-center font-black text-blue-700 border-l border-blue-100 bg-blue-50/50">
-                        {row.score.toFixed(2)}
-                    </td>
-                    <td className="border-l border-blue-100"></td>
-                    <td className="border-l border-blue-100 font-bold text-[10px] italic text-slate-400 text-center px-2">ـ</td>
-                    <td className="border-l border-blue-100"></td>
-                    <td></td>
-                  </tr>
-                );
-              }
-              return (
-                <tr key={idx} className="border-b border-blue-100 group">
-                    <td className="py-2 px-6 font-bold text-slate-700 border-l border-blue-100 text-[11px] bg-blue-600/[0.01]">
-                        {row.label}
-                    </td>
-                    <td className="py-2 px-2 text-center font-black text-slate-900 border-l border-blue-100">
-                        {row.score.toFixed(2)}
-                    </td>
-                    {idx === 0 && (
-                        <td 
-                            rowSpan={rows.length} 
-                            className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100"
-                        >
-                            {domainAvg.toFixed(2)}
-                        </td>
-                    )}
-                    <td className="py-2 px-2 border-l border-blue-100"></td>
-                    <td className="py-2 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">
-                        {row.maxScore?.toFixed(2) || "ـ"}
-                    </td>
-                    <td className="py-2 px-2 text-center text-red-600/70 text-[10px] font-bold">
-                        {row.minScore?.toFixed(2) || "ـ"}
-                    </td>
-                </tr>
-              );
-            })}
+            {rows.map((row, idx) => (
+              <tr key={idx} className="border-b border-blue-100 group">
+                <td className="py-2 px-6 font-bold text-slate-700 border-l border-blue-100 text-[11px] bg-blue-600/[0.01]" dir="rtl">
+                  {row.label}
+                </td>
+                <td className="py-2 px-2 text-center font-black text-slate-900 border-l border-blue-100">
+                  {row.score.toFixed(2)}
+                </td>
+                {idx === 0 && (
+                  <td
+                    rowSpan={rows.length}
+                    className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100"
+                  >
+                    {domainAvg.toFixed(2)}
+                  </td>
+                )}
+                <td className="py-2 px-2 border-l border-blue-100"></td>
+                <td className="py-2 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">
+                  {row.maxScore?.toFixed(2) || "ـ"}
+                </td>
+                <td className="py-2 px-2 text-center text-red-600/70 text-[10px] font-bold">
+                  {row.minScore?.toFixed(2) || "ـ"}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

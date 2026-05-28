@@ -25,30 +25,13 @@ interface Student {
   }[];
 }
 
-const subjectTranslations: Record<string, string> = {
-  // Arabic Language Domain
-  "Arabic Communication": "تواصل شفوي",
-  "Reading": "قراءة",
-  "Writing": "إنتاج كتابي",
-  "Grammar": "قواعد اللغة",
-  // Science & Technology Domain
-  "Mathematics": "رياضيات",
-  "Scientific Activities": "أيقاظ علمي",
-  "Technology": "تكنولوجيا",
-  // Discovery/Social Domain
-  "Islamic Education": "تربية إسلامية",
-  "History": "تاريخ",
-  "Geography": "جغرافيا",
-  "Civic Education": "تربية مدنية",
-  "Artistic Education": "تربية تشكيلية",
-  "Plastic Arts": "تربية تشكيلية",
-  "Music Education": "تربية موسيقية",
-  "Physical Education": "تربية بدنية",
-  // Foreign Languages
-  "French Oral Expression": "تواصل شفوي (فرنسية)",
-  "French Reading": "قراءة (فرنسية)",
-  "French Written Production": "إنتاج كتابي (فرنسية)",
-  "English": "إنقليزية",
+/** Parse the first segment of a pipe-separated trilingual subject name.
+ * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
+ * If no pipe exists, returns the name as-is.
+ */
+const parseArabicName = (name: string): string => {
+  const parts = name.split("|");
+  return parts[0].trim();
 };
 
 export default function GradeEntryForm({
@@ -266,14 +249,9 @@ export default function GradeEntryForm({
                             className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-indigo-100 transition-all"
                           >
                             <label className="flex flex-col">
-                              <span className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
-                                {subject.name}
+                              <span className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors" dir="rtl">
+                                {parseArabicName(subject.name)}
                               </span>
-                              {subjectTranslations[subject.name] && (
-                                <span className="text-[10px] font-bold text-slate-400">
-                                  {subjectTranslations[subject.name]}
-                                </span>
-                              )}
                             </label>
                             <div className="flex items-center gap-3">
                               <input

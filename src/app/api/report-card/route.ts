@@ -16,8 +16,19 @@ export async function GET(req: NextRequest) {
 
   try {
     const schoolId = await getSchoolId();
-    const allSubjects = await prisma.subject.findMany({ where: { schoolId } });
-    
+    // Fetch ALL subjects for this school, grouped by domain
+    const allSubjects = await prisma.subject.findMany({
+      where: { schoolId },
+      orderBy: [{ domain: "asc" }, { name: "asc" }],
+    });
+
+    // Group subjects by domain
+    const domainMap: Record<string, typeof allSubjects> = {};
+    allSubjects.forEach((s) => {
+      if (!domainMap[s.domain]) domainMap[s.domain] = [];
+      domainMap[s.domain].push(s);
+    });
+
     // 1. Fetch Students
     let studentsToProcess: any[] = [];
     let targetClassId: number = 0;
@@ -29,7 +40,7 @@ export async function GET(req: NextRequest) {
       });
       if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
       studentsToProcess = [student];
-      targetClassId = student.classId;
+      targetClassId = student.classId!;
     } else if (classId) {
       const classIdNum = parseInt(classId);
       const students = await prisma.student.findMany({
@@ -50,47 +61,27 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 3. Helper to calculate Tunisian General Average for any student
+    // 3. Helper: calculate domain averages dynamically from DB subjects
     const calculateStudentAverages = (grades: { score: number; subjectId: number }[]) => {
-      const scoreMap: Record<string, number> = {};
-      allSubjects.forEach(subject => {
-        const grade = grades.find(g => g.subjectId === subject.id);
-        scoreMap[subject.name] = grade ? grade.score : 0;
+      const gradeMap: Record<number, number> = {};
+      grades.forEach((g) => { gradeMap[g.subjectId] = g.score; });
+
+      // Domain averages: average of all subject scores in that domain
+      const domainAverages: Record<string, number> = {};
+      Object.entries(domainMap).forEach(([domain, subjects]) => {
+        const domainScores = subjects.map((s) => gradeMap[s.id] ?? 0);
+        domainAverages[domain] = domainScores.length > 0
+          ? domainScores.reduce((a, b) => a + b, 0) / domainScores.length
+          : 0;
       });
 
-      const arabicAvg = (
-        (scoreMap["Arabic Communication"] || 0) +
-        (scoreMap["Reading"] || 0) +
-        (scoreMap["Writing"] || 0) +
-        (scoreMap["Grammar"] || 0)
-      ) / 4;
+      // General average: simple average of domain averages
+      const domainAvgValues = Object.values(domainAverages);
+      const generalAverage = domainAvgValues.length > 0
+        ? domainAvgValues.reduce((a, b) => a + b, 0) / domainAvgValues.length
+        : 0;
 
-      const scienceAvg = (
-        (scoreMap["Mathematics"] || 0) +
-        (scoreMap["Scientific Activities"] || 0) +
-        (scoreMap["Technology"] || 0)
-      ) / 3;
-
-      const discoveryAvg = (
-        (scoreMap["Islamic Education"] || 0) +
-        (scoreMap["History"] || 0) +
-        (scoreMap["Geography"] || 0) +
-        (scoreMap["Civic Education"] || 0) +
-        (scoreMap["Artistic Education"] || 0) +
-        (scoreMap["Plastic Arts"] || 0) +
-        (scoreMap["Physical Education"] || 0)
-      ) / 7;
-
-      const frenchAvg = (
-        (scoreMap["French Oral Expression"] || 0) +
-        (scoreMap["French Reading"] || 0) +
-        (scoreMap["French Written Production"] || 0)
-      ) / 3;
-
-      const foreignAvg = (frenchAvg + (scoreMap["English"] || 0)) / 2;
-      const generalAverage = (arabicAvg + scienceAvg + discoveryAvg + foreignAvg) / 4;
-
-      return { arabicAvg, scienceAvg, discoveryAvg, frenchAvg, foreignAvg, generalAverage };
+      return { domainAverages, generalAverage };
     };
 
     // 4. Pre-calculate averages for all students in class for rank and max/min
@@ -99,27 +90,31 @@ export async function GET(req: NextRequest) {
       averages: calculateStudentAverages(s.grades),
     }));
 
-    const sortedAverages = [...studentAveragesList].sort((a, b) => b.averages.generalAverage - a.averages.generalAverage);
+    const sortedAverages = [...studentAveragesList].sort(
+      (a, b) => b.averages.generalAverage - a.averages.generalAverage
+    );
     const generalAverages = studentAveragesList.map((a) => a.averages.generalAverage);
     const maxAverage = generalAverages.length > 0 ? Math.max(...generalAverages) : 0;
     const minAverage = generalAverages.length > 0 ? Math.min(...generalAverages) : 0;
 
     // 5. Build full report for a specific student instance
     const generateFullReport = (targetStudent: any) => {
-      const studentDataWithGrades = classStudents.find(s => s.id === targetStudent.id);
+      const studentDataWithGrades = classStudents.find((s) => s.id === targetStudent.id);
       if (!studentDataWithGrades) return null;
 
       const studentGrades = studentDataWithGrades.grades;
-      const myAverages = studentAveragesList.find(s => s.id === targetStudent.id)!.averages;
+      const gradeMap: Record<number, number> = {};
+      studentGrades.forEach((g) => { gradeMap[g.subjectId] = g.score; });
+
+      const myAverages = studentAveragesList.find((s) => s.id === targetStudent.id)!.averages;
       const rank = sortedAverages.findIndex((a) => a.id === targetStudent.id) + 1;
 
-      const buildDomainData = (domainName: string, subjectNames: string[], domainAvg: number) => {
-        const subjectList = allSubjects.filter(s => subjectNames.includes(s.name));
-        const subjectsWithScores = subjectList.map((s) => {
-          const grade = studentGrades.find(g => g.subjectId === s.id);
-          const allGradesForSubject = classStudents.flatMap(st => 
-            st.grades.filter(g => g.subjectId === s.id)
-          ).map(g => g.score);
+      // Build domain data dynamically from DB subjects
+      const domains = Object.entries(domainMap).map(([domainName, subjects]) => {
+        const subjectsWithScores = subjects.map((s) => {
+          const allGradesForSubject = classStudents
+            .flatMap((st) => st.grades.filter((g) => g.subjectId === s.id))
+            .map((g) => g.score);
 
           const maxScore = allGradesForSubject.length > 0 ? Math.max(...allGradesForSubject) : 0;
           const minScore = allGradesForSubject.length > 0 ? Math.min(...allGradesForSubject) : 0;
@@ -127,33 +122,30 @@ export async function GET(req: NextRequest) {
           return {
             id: s.id,
             name: s.name,
-            score: grade ? grade.score : 0,
+            score: gradeMap[s.id] ?? 0,
             maxScore,
             minScore,
           };
         });
 
-        return { domain: domainName, subjects: subjectsWithScores, domainAverage: domainAvg };
-      };
-
-      const domains = [
-        buildDomainData("Arabic Language Domain", ["Arabic Communication", "Reading", "Writing", "Grammar"], myAverages.arabicAvg),
-        buildDomainData("Science & Technology Domain", ["Mathematics", "Scientific Activities", "Technology"], myAverages.scienceAvg),
-        buildDomainData("Discovery Domain", ["Islamic Education", "History", "Geography", "Civic Education", "Artistic Education", "Plastic Arts", "Physical Education"], myAverages.discoveryAvg),
-        buildDomainData("Foreign Languages Domain", ["French Oral Expression", "French Reading", "French Written Production", "English"], myAverages.foreignAvg)
-      ];
+        return {
+          domain: domainName,
+          subjects: subjectsWithScores,
+          domainAverage: myAverages.domainAverages[domainName] ?? 0,
+        };
+      });
 
       return {
         header: {
           studentName: `${targetStudent.name} ${targetStudent.surname}`,
-          class: targetStudent.class.name,
+          class: targetStudent.class?.name ?? "",
           term,
           generalAverage: myAverages.generalAverage,
           maxAverage,
           minAverage,
           rank,
         },
-        domains
+        domains,
       };
     };
 
@@ -162,10 +154,11 @@ export async function GET(req: NextRequest) {
       const report = generateFullReport(studentsToProcess[0]);
       return NextResponse.json(report);
     } else {
-      const reports = studentsToProcess.map(s => generateFullReport(s)).filter(r => r !== null);
+      const reports = studentsToProcess
+        .map((s) => generateFullReport(s))
+        .filter((r) => r !== null);
       return NextResponse.json(reports);
     }
-
   } catch (error) {
     console.error("Error generating report card data:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
