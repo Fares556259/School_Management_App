@@ -60,3 +60,31 @@ Do NOT attempt to "fix" these errors by modifying the Next.js middleware matcher
 ---
 
 *Add new entries below this line. Use sequential Bug IDs.*
+
+---
+
+## Bug #003 — AI Exam Scheduler ReferenceError & Prisma Schema Caching
+
+**Status:** Fixed
+**Date:** 2026-05-28
+
+**Root Cause:**
+1. **ReferenceError (`generateExamsFromPrompt is not defined`):** The `generateExamsFromPrompt` AI scheduler action was implemented inside `src/app/(dashboard)/admin/actions/examAiActions.ts`, but its import statement was omitted from the top of the client playground component `ExamTimetableClient.tsx` during its recent overhaul.
+2. **Prisma Client ValidationError (`Unknown argument isDraft`):** The database schema was successfully extended with the `isDraft` boolean column on the `Exam` model and pushed via `npx prisma db push`, but the local `node_modules` Prisma Client was outdated and cached inside Next.js dev server memory.
+
+**Fix Applied:**
+1. Added the missing import for `generateExamsFromPrompt` from `../../admin/actions/examAiActions` at the top of `src/app/(dashboard)/list/exams/ExamTimetableClient.tsx`.
+2. Regenerated the Prisma Client using `npx prisma generate` to rebuild the typed interface file structure with the new `isDraft` schema properties.
+3. Notified the Next.js dev server of client changes.
+
+**Files Modified:**
+- `src/app/(dashboard)/list/exams/ExamTimetableClient.tsx` (Added import on line 24)
+
+**Critical Note:**
+If schema edits are pushed to the database in the future, always run `npx prisma generate` immediately to sync the localized typings in `node_modules`.
+
+**Verification:**
+- [x] Prisma client successfully regenerated with `isDraft` support.
+- [x] Missing imports added; no type errors in updated files during compilation check.
+- [x] Successfully committed and pushed to `completed` branch.
+
