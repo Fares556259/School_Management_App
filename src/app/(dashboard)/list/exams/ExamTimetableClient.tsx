@@ -190,51 +190,54 @@ const ExamTimetableClient = ({
         <div className="flex flex-col xl:flex-row items-center justify-between gap-6 w-full">
           {/* Left Part: Icon, Title, and Scope Selector */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
-               <ClipboardCheck size={24} className="stroke-[2.5px]" />
+            <div className="w-14 h-14 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-slate-500/5 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-sm relative overflow-hidden group shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <ClipboardCheck size={26} className="stroke-[2px] text-indigo-600" />
             </div>
             <div>
-              <div className="mb-1.5 flex items-center gap-2">
-                <span className={`text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center ${isEditMode ? 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+              <div className="flex items-center gap-2 mb-2 text-[8px] font-black uppercase tracking-[0.25em] text-slate-400">
+                <span>{forceDraft ? "AI Exam Playground" : "Exams Registry"}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span className={`flex items-center gap-1 font-extrabold ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
                   {isEditMode ? 'Edit Mode' : 'View Mode'}
                 </span>
-                {forceDraft && (
-                  <span className="text-[8px] px-2.5 py-1 rounded-full uppercase tracking-[0.2em] font-black border whitespace-nowrap inline-flex items-center justify-center bg-purple-50 text-purple-600 border-purple-100 shadow-sm">
-                    AI Scheduler
-                  </span>
-                )}
               </div>
               
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">
-                  {forceDraft ? "AI Exam Scheduler Playground" : "Academic Exams"}
-                </h1>
-                
-                {/* Sleek inline dropdown next to the title */}
-                <div className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-100 rounded-xl px-2.5 py-1 transition-all w-fit">
-                  <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest pl-1">Class</span>
-                  <select 
-                    className="bg-transparent border-0 text-[10px] font-black text-slate-700 focus:outline-none transition-all cursor-pointer uppercase tracking-wider pr-2"
-                    value={selectedClass?.id}
-                    onChange={(e) => {
-                      const params = new URLSearchParams(searchParams);
-                      params.set("classId", e.target.value);
-                      startTransition(() => {
-                          router.push(`${forceDraft ? "/admin/timetable/ai?type=exam" : "/list/exams"}?${params.toString()}`);
-                      });
-                    }}
-                  >
-                    {classes.map(cls => (
-                      <option key={cls.id} value={cls.id} className="bg-white">
-                        Grade {cls.level.level} - {cls.name}
-                      </option>
-                    ))}
-                  </select>
+              <h1 className="text-2.5xl font-black text-slate-800 tracking-tight uppercase leading-none">
+                {forceDraft ? "AI Exam Scheduler" : "Academic Exams"}
+              </h1>
+              
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-extrabold text-[8.5px] tracking-widest">Target:</span>
+                  <div className="relative inline-flex items-center bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100/60 rounded-xl px-3 py-1 transition-all">
+                    <select 
+                      className="bg-transparent border-0 text-[10px] font-black text-indigo-700 focus:outline-none transition-all cursor-pointer uppercase tracking-wider pr-5 appearance-none"
+                      value={selectedClass?.id}
+                      onChange={(e) => {
+                        const params = new URLSearchParams(searchParams);
+                        params.set("classId", e.target.value);
+                        startTransition(() => {
+                            router.push(`${forceDraft ? "/admin/timetable/ai?type=exam" : "/list/exams"}?${params.toString()}`);
+                        });
+                      }}
+                    >
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
+                          Grade {cls.level.level} - {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none text-[6.5px]">▼</div>
+                  </div>
+                </div>
+                <span className="text-slate-200">|</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-extrabold text-[8.5px] tracking-widest">Period:</span>
+                  <span className="text-slate-600 font-black bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-xl tracking-widest text-[9px]">Week {selectedPeriod}</span>
                 </div>
               </div>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-60">
-                {forceDraft ? "Plan, generate, and optimize exam drafts." : "Manage and monitor examination calendars."}
-              </p>
             </div>
           </div>
 
