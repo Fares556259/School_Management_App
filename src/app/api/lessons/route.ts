@@ -4,6 +4,22 @@ import { getRole } from "@/lib/role";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// Helper to parse "08:00 AM" to dummy Date
+function parseTimeStr(timeStr: string) {
+  try {
+    const [time, modifier] = timeStr.split(" ");
+    let [hours, minutes] = time.split(":");
+    let h = parseInt(hours);
+    if (h === 12) h = 0;
+    if (modifier === "PM") h += 12;
+    const d = new Date();
+    d.setHours(h, parseInt(minutes), 0, 0);
+    return d;
+  } catch (e) {
+    return new Date();
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const schoolId = await getSchoolId();
@@ -14,14 +30,68 @@ export async function GET(request: Request) {
     let teacherId = searchParams.get("teacherId");
     const classId = searchParams.get("classId");
 
-    // If teacher role, force filter by their own ID unless specified (or even if specified for security)
+    // If teacher role, force filter by their own ID unless specified
     if (role === "teacher" && userId) {
       teacherId = userId;
     }
 
+    // --- AUTO SYNC TIMETABLE TO LESSONS ---
+    // This allows us to use TimetableSlots as "Lessons" without breaking DB foreign keys
+    const slots = await prisma.timetableSlot.findMany({
+      where: {
+        schoolId,
+        isDraft: false,
+        subjectId: { not: null },
+        teacherId: { not: null }
+      },
+      include: { subject: true, class: true }
+    });
+
+    // Deduplicate slots to form unique courses
+    const uniqueCourses = new Map<string, any>();
+    for (const slot of slots) {
+       const key = `${slot.subjectId}-${slot.classId}-${slot.teacherId}`;
+       if (!uniqueCourses.has(key)) {
+         uniqueCourses.set(key, slot);
+       }
+    }
+
+    const existingLessons = await prisma.lesson.findMany({ where: { schoolId } });
+    const validLessonIds: number[] = [];
+
+    for (const slot of uniqueCourses.values()) {
+       // Look for any existing lesson for this course combination (ignore exact day/time to prevent duplicates)
+       const exists = existingLessons.find(l => 
+          l.subjectId === slot.subjectId && 
+          l.classId === slot.classId && 
+          l.teacherId === slot.teacherId
+       );
+
+       if (!exists) {
+         const newLesson = await prisma.lesson.create({
+            data: {
+              name: `${slot.subject!.name} (${slot.class.name})`,
+              day: slot.day,
+              startTime: parseTimeStr(slot.startTime),
+              endTime: parseTimeStr(slot.endTime),
+              subjectId: slot.subjectId!,
+              classId: slot.classId,
+              teacherId: slot.teacherId!,
+              schoolId
+            }
+         });
+         existingLessons.push(newLesson);
+         validLessonIds.push(newLesson.id);
+       } else {
+         validLessonIds.push(exists.id);
+       }
+    }
+    // --------------------------------------
+
     const lessons = await prisma.lesson.findMany({
       where: {
         schoolId,
+        id: { in: validLessonIds },
         ...(teacherId && { teacherId }),
         ...(classId && { classId: parseInt(classId) }),
       },
@@ -30,9 +100,10 @@ export async function GET(request: Request) {
         class: true,
         teacher: true,
       },
-      orderBy: {
-        name: "asc",
-      },
+      orderBy: [
+        { day: "asc" },
+        { name: "asc" }
+      ],
     });
 
     return NextResponse.json(lessons);

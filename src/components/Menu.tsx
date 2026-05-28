@@ -80,182 +80,60 @@ interface MenuSection {
 
 const menuItems: MenuSection[] = [
   {
-    title: "MENU",
+    title: "MAIN",
     items: [
-      {
-        icon: Home,
-        label: "Home",
-        href: "/",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: TrendingDown,
-        label: "Expenses",
-        href: "/list/expenses",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: TrendingUp,
-        label: "Incomes",
-        href: "/list/incomes",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: Activity,
-        label: "Audit Log",
-        href: "/admin/audit",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: GraduationCap,
-        label: "Results",
-        href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Percent,
-        label: "Grades",
-        href: "/admin/grades",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: Calendar,
-        label: "Timetable",
-        href: "/admin/timetable",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Sparkles,
-        label: "AI Scheduler",
-        href: "/admin/timetable/ai",
-        visible: ["admin"],
-      },
-      {
-        icon: UserRound,
-        label: "Teachers",
-        href: "/list/teachers",
-        visible: ["admin", "teacher"],
-      },
-      {
-        icon: Contact,
-        label: "Staff",
-        href: "/list/staff",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: Users,
-        label: "Students",
-        href: "/list/students",
-        visible: ["admin", "teacher"],
-      },
-      {
-        icon: CalendarCheck,
-        label: "Attendance",
-        href: "/admin/attendance",
-        visible: ["admin", "teacher", "superuser"],
-      },
-      {
-        icon: CreditCard,
-        label: "Partial Payments",
-        href: "/list/payments-partial",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: Calculator,
-        label: "Profitability",
-        href: "/admin/finance/simulator",
-        visible: ["admin", "superuser"],
-      },
-
-      {
-        icon: UsersRound,
-        label: "Parents",
-        href: "/list/parents",
-        visible: ["admin", "teacher", "superuser"],
-      },
-      {
-        icon: BookOpen,
-        label: "Subjects",
-        href: "/list/subjects",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: DoorOpen,
-        label: "Classes",
-        href: "/list/classes",
-        visible: ["admin", "teacher", "superuser"],
-      },
-      {
-        icon: Presentation,
-        label: "Lessons",
-        href: "/list/lessons",
-        visible: ["admin", "teacher", "superuser"],
-      },
-      {
-        icon: FileText,
-        label: "Exams",
-        href: "/list/exams",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: ClipboardList,
-        label: "Assignments",
-        href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Library,
-        label: "Resources",
-        href: "/list/resources",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Megaphone,
-        label: "Announcements",
-        href: "/list/announcements",
-        visible: ["admin", "teacher", "superuser"],
-      },
-      {
-        icon: Settings2,
-        label: "Setup Requests",
-        href: "/admin/setup-requests",
-        visible: ["superuser"],
-      },
+      { icon: Home, label: "Home", href: "/", visible: ["admin", "teacher", "student", "parent"] }
     ],
   },
   {
-    title: "OTHER",
+    title: "ACADEMICS",
     items: [
-      {
-        icon: User,
-        label: "Profile",
-        href: "/profile",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: BarChart3,
-        label: "Daily Reports",
-        href: "/admin/reports",
-        visible: ["admin", "superuser"],
-      },
-      {
-        icon: Smartphone,
-        label: "Mobile App",
-        href: "/admin/mobile-app",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Settings,
-        label: "Settings",
-        href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: LogOut,
-        label: "Logout",
-        href: "/logout",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
+      { icon: Calendar, label: "Timetable", href: "/admin/timetable", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: FileText, label: "Exams", href: "/list/exams", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: Sparkles, label: "AI Scheduler", href: "/admin/timetable/ai", visible: ["admin"] },
+      { icon: DoorOpen, label: "Classes", href: "/list/classes", visible: ["admin", "teacher", "superuser"] },
+      { icon: BookOpen, label: "Subjects", href: "/list/subjects", visible: ["admin", "superuser"] },
+      { icon: ClipboardList, label: "Assignments", href: "/list/assignments", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: GraduationCap, label: "Results", href: "/list/results", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: Percent, label: "Grades", href: "/admin/grades", visible: ["admin", "superuser"] },
+      { icon: Library, label: "Resources", href: "/list/resources", visible: ["admin", "teacher", "student", "parent"] },
+    ],
+  },
+  {
+    title: "PEOPLE",
+    items: [
+      { icon: Users, label: "Students", href: "/list/students", visible: ["admin", "teacher"] },
+      { icon: UsersRound, label: "Parents", href: "/list/parents", visible: ["admin", "teacher", "superuser"] },
+      { icon: UserRound, label: "Teachers", href: "/list/teachers", visible: ["admin", "teacher"] },
+      { icon: Contact, label: "Staff", href: "/list/staff", visible: ["admin", "superuser"] },
+    ],
+  },
+  {
+    title: "FINANCE",
+    items: [
+      { icon: TrendingUp, label: "Incomes", href: "/list/incomes", visible: ["admin", "superuser"] },
+      { icon: TrendingDown, label: "Expenses", href: "/list/expenses", visible: ["admin", "superuser"] },
+      { icon: CreditCard, label: "Partial Payments", href: "/list/payments-partial", visible: ["admin", "superuser"] },
+      { icon: Calculator, label: "Profitability", href: "/admin/finance/simulator", visible: ["admin", "superuser"] },
+      { icon: Activity, label: "Audit Log", href: "/admin/audit", visible: ["admin", "superuser"] },
+    ],
+  },
+  {
+    title: "OPERATIONS",
+    items: [
+      { icon: CalendarCheck, label: "Attendance", href: "/admin/attendance", visible: ["admin", "teacher", "superuser"] },
+      { icon: Megaphone, label: "Announcements", href: "/list/announcements", visible: ["admin", "teacher", "superuser"] },
+      { icon: BarChart3, label: "Daily Reports", href: "/admin/reports", visible: ["admin", "superuser"] },
+      { icon: Smartphone, label: "Mobile App", href: "/admin/mobile-app", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: Settings2, label: "Setup Requests", href: "/admin/setup-requests", visible: ["superuser"] },
+    ],
+  },
+  {
+    title: "SYSTEM",
+    items: [
+      { icon: User, label: "Profile", href: "/profile", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: Settings, label: "Settings", href: "/settings", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: LogOut, label: "Logout", href: "/logout", visible: ["admin", "teacher", "student", "parent"] },
     ],
   },
 ];
@@ -269,18 +147,18 @@ const Menu = ({ role }: { role: string }) => {
       {menuItems.map((section) => (
         <div className="flex flex-col gap-2 mb-6" key={section.title}>
           <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
-            {section.title === "MENU" ? t.menu.home : t.menu.other}
+            {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
           </span>
           <div className="flex flex-col gap-1">
             {section.items.filter(item => item.visible.includes(role)).map((item) => {
+              const targetHref = item.href === "/" ? `/${role === "superuser" ? "admin" : role}` : item.href;
               const isActive = 
-                pathname === item.href || 
-                (item.href === "/" && pathname === "/admin") ||
+                pathname === targetHref || 
                 (item.href !== "/" && pathname.startsWith(item.href) && (item.href !== "/admin/timetable" || pathname === "/admin/timetable"));
               
               return (
                 <Link
-                  href={item.href}
+                  href={targetHref}
                   key={item.label}
                   className={`flex items-center justify-center lg:justify-start gap-4 py-2.5 px-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
                     isActive 

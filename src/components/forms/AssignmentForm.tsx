@@ -196,7 +196,7 @@ const AssignmentForm = ({
               <option value="">Select a lesson...</option>
               {lessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
-                  {lesson.subject.name} - {lesson.name} ({lesson.teacher.name} {lesson.teacher.surname})
+                  {lesson.subject.name} ({lesson.class.name}) - {lesson.teacher.name} {lesson.teacher.surname}
                 </option>
               ))}
             </select>

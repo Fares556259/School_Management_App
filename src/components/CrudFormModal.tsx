@@ -421,15 +421,15 @@ export default function CrudFormModal({
                               <span className="text-sm">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
                             </div>
                             {img && (
-                              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1">
-                                <Image 
-                                  src={
-                                    (typeof img === "string" ? img : img.secure_url).toLowerCase().endsWith(".pdf") 
-                                      ? (typeof img === "string" ? img : img.secure_url).replace(/\.pdf$/i, ".jpg")
-                                      : (typeof img === "string" ? img : img.secure_url)
-                                  } 
-                                  alt="Proof" fill className="object-cover" 
-                                />
+                              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1 flex items-center justify-center bg-slate-50">
+                                {(typeof img === "string" ? img : img.secure_url).toLowerCase().endsWith(".pdf") ? (
+                                  <span className="text-xs font-bold text-slate-400">PDF</span>
+                                ) : (
+                                  <Image 
+                                    src={(typeof img === "string" ? img : img.secure_url)} 
+                                    alt="Proof" fill className="object-cover" 
+                                  />
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => setImg(null)}

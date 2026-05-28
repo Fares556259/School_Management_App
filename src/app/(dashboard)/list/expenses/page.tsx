@@ -11,7 +11,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import FinanceDateFilter from "@/components/FinanceDateFilter";
 import { getSchoolId } from "@/lib/school";
 import FinanceExportButton from "@/components/FinanceExportButton";
-import { Receipt, Calendar, Image as ImageIcon, FileX, Info } from "lucide-react";
+import { Receipt, Calendar, Image as ImageIcon, FileX, Info, FileText } from "lucide-react";
 
 const columns = [
   {
@@ -130,13 +130,19 @@ const ExpenseListPage = async ({
       </td>
       <td className="">
         {item.img ? (
-          <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-9 h-9 block group/img rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all">
-            <Image
-              src={item.img.toLowerCase().endsWith(".pdf") ? item.img.replace(/\.pdf$/i, ".jpg") : item.img}
-              alt="Proof"
-              fill
-              className="object-cover group-hover/img:scale-110 transition-transform duration-500"
-            />
+          <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-9 h-9 flex items-center justify-center group/img rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all">
+            {item.img.toLowerCase().endsWith(".pdf") ? (
+              <div className="w-full h-full bg-slate-50 flex items-center justify-center group-hover/img:bg-slate-100 transition-colors">
+                <FileText className="w-4 h-4 text-slate-500" />
+              </div>
+            ) : (
+              <Image
+                src={item.img}
+                alt="Proof"
+                fill
+                className="object-cover group-hover/img:scale-110 transition-transform duration-500"
+              />
+            )}
             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors flex items-center justify-center">
               <ImageIcon className="w-4 h-4 text-white opacity-0 group-hover/img:opacity-100 transition-opacity drop-shadow-md" />
             </div>

@@ -761,6 +761,7 @@ export const createExpense = async (data: {
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to create expense." };
@@ -802,6 +803,7 @@ export const updateExpense = async (
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to update expense." };
@@ -823,6 +825,7 @@ export const deleteExpense = async (id: number) => {
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to delete expense." };
@@ -861,6 +864,7 @@ export const createIncome = async (data: {
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to create income." };
@@ -902,6 +906,7 @@ export const updateIncome = async (
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to update income." };
@@ -923,6 +928,7 @@ export const deleteIncome = async (id: number) => {
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to delete income." };
@@ -1326,7 +1332,6 @@ export const createResource = async (data: {
     // Trigger Notifications
     await createResourceNotification(resource.id);
 
-    revalidatePath("/list/lessons"); 
     revalidatePath("/admin/attendance");
     return { success: true };
   } catch (err: any) {
