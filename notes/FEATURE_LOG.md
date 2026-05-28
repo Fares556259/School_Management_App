@@ -165,7 +165,11 @@ Previously, the AI Scheduler was only capable of drafting and generating academi
    - **`discardDraftExams(classId, period)`**: Implemented transactional logic to wipe out all suggested exam draft rows cleanly.
 4. **Interactive Exam Client Playground (`ExamTimetableClient.tsx`):**
    - Automatically saves AI generations into draft status when accessed inside the playground, guaranteeing sandbox safety.
-   - **Direct Header Actions & Minimalist Design:** Added prominent **Approve & Publish** (green) and **Discard Suggestion** (rose) action buttons directly inside the top header action toolbar of both `TimetableClient.tsx` and `ExamTimetableClient.tsx` when in draft playground mode and drafts exist. This keeps the primary publication actions immediately visible and accessible next to `Edit Schedule` and `AI Magic Generate`.
+   - **Direct Header Actions & Premium Capsule Groups:** Replaced the unorganized single line of actions with grouped pill capsule containers (`bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1`) for both weekly timetables and exams.
+     - **Capsule 1 (Design):** Combines `Edit Schedule` and `AI Generate` / `Regenerate` together as curriculum drafting actions.
+     - **Capsule 2 (Approval):** Combines `Publish` and `Discard` together as draft review actions.
+     - **Capsule 3 (Export):** Standalone outline icon button for `PDF` downloads.
+   - **Compact Layout Integration:** Shortened action labels ("Approve & Publish" to "Publish", "Discard Suggestion" to "Discard", "AI Magic Generate" to "AI Generate", and "Download PDF" to "PDF") and refined padding configurations to ensure **all action controls fit beautifully on a single row** without any wrapping clutter.
    - **Complete Banner Removal:** Completely removed the redundant yellow draft review alert banner, eliminating clutter and creating a clean, minimal, and premium layout matching modern SaaS design systems.
    - **Real-Time State Synchronization Fix:** Upgraded `onRefresh` to increment `refreshKey` instead of directly firing `fetchSlots`. This successfully triggers all linked react state hooks and correctly recalculates/displays the draft review elements immediately when slots are manually created, moved, or deleted.
 
