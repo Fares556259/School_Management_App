@@ -61,12 +61,13 @@ async function getPeriodRange(period: number) {
   return { startDate, endDate };
 }
 
-export async function getExamsByClass(classId: number, examPeriod: number = 1) {
+export async function getExamsByClass(classId: number, examPeriod: number = 1, isDraft: boolean = false) {
   try {
     const exams = await prisma.exam.findMany({
       where: {
         lesson: { classId },
-        examPeriod
+        examPeriod,
+        isDraft
       },
       include: {
         lesson: {
@@ -118,6 +119,7 @@ export async function updateExamSlot(data: {
   room?: string | null;
   examPeriod: number;
   targetDate?: string; // Add ISO string for target date
+  isDraft?: boolean;
 }) {
   try {
     const { startDate } = await getPeriodRange(data.examPeriod);
@@ -170,6 +172,7 @@ export async function updateExamSlot(data: {
             endTime,
             examPeriod: data.examPeriod,
             lessonId: lesson.id,
+            isDraft: data.isDraft ?? false,
          }
        });
        revalidatePath("/list/exams");
@@ -242,14 +245,15 @@ export async function deleteExam(id: number) {
   }
 }
 
-export async function bulkUpdateExams(classId: number, period: number, slots: any[]) {
+export async function bulkUpdateExams(classId: number, period: number, slots: any[], isDraft: boolean = false) {
     try {
         await prisma.$transaction(async (tx) => {
             // 1. Delete existing exams for this class and period
             await tx.exam.deleteMany({
                 where: {
                     lesson: { classId },
-                    examPeriod: period
+                    examPeriod: period,
+                    isDraft
                 }
             });
 
@@ -304,6 +308,7 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
                         endTime,
                         examPeriod: period,
                         lessonId: lessonValue.id,
+                        isDraft
                     }
                 });
             }
@@ -315,5 +320,77 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
         console.error("bulkUpdateExams error:", error);
         return { success: false, error: error.message };
     }
+}
+
+export async function publishDraftExams(classId: number, period: number) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete existing published exams for this class and period
+      await tx.exam.deleteMany({
+        where: {
+          lesson: { classId },
+          examPeriod: period,
+          isDraft: false
+        }
+      });
+
+      // 2. Get drafts
+      const drafts = await tx.exam.findMany({
+        where: {
+          lesson: { classId },
+          examPeriod: period,
+          isDraft: true
+        }
+      });
+
+      // 3. Clone draft to published
+      for (const draft of drafts) {
+        await tx.exam.create({
+          data: {
+            title: draft.title,
+            startTime: draft.startTime,
+            endTime: draft.endTime,
+            examPeriod: draft.examPeriod,
+            lessonId: draft.lessonId,
+            schoolId: draft.schoolId,
+            isDraft: false
+          }
+        });
+      }
+
+      // 4. Delete drafts
+      await tx.exam.deleteMany({
+        where: {
+          lesson: { classId },
+          examPeriod: period,
+          isDraft: true
+        }
+      });
+    });
+
+    revalidatePath("/list/exams");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Publish draft exams error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function discardDraftExams(classId: number, period: number) {
+  try {
+    await prisma.exam.deleteMany({
+      where: {
+        lesson: { classId },
+        examPeriod: period,
+        isDraft: true
+      }
+    });
+
+    revalidatePath("/list/exams");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Discard draft exams error:", error);
+    return { success: false, error: error.message };
+  }
 }
 

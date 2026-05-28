@@ -149,7 +149,29 @@ The Admin Dashboard's Action Center was displaying `$0` unpaid employees and `0 
 
 ---
 
-## 6. Guidelines for Future Database or Logic Modifications
+## 6. AI Scheduler Portal (Timetables & Exams) Workspace Selection & Draft Publishing
+
+### Context & Problem Statement
+Previously, the AI Scheduler was only capable of drafting and generating academic lesson timetables. There was no support for drafting and generating examination schedules cleanly using separate draft and active database models, nor was there a selection entry point. If administrators wanted to schedule exams, they had to modify the active exam schedule directly with zero draft sandbox testing, making it high-risk.
+
+### Improvements Implemented
+1. **Selection Portal Landing Page:** Redesigned the `/admin/timetable/ai` page routing to serve as a stunning, high-fidelity **AI Scheduler Playground Portal** selection landing page.
+   - Built two large choice cards styled with custom gradients, premium decorative badges, sparkles, and arrow micro-interactions.
+   - Allows administrators to seamlessly choose between entering the **Weekly Timetables Playground** (`type=timetable`) or the **Exam Calendars Playground** (`type=exam`).
+2. **Database Draft Status for Exams:** Extended the database layer by adding `isDraft Boolean @default(false)` directly to the `Exam` model in `prisma/schema.prisma`. Verified and pushed schema sync to the active PostgreSQL database.
+3. **Draft-Aware Exam Server Actions (`examActions.ts`):**
+   - Added draft parameter support to `getExamsByClass`, `updateExamSlot`, and `bulkUpdateExams`.
+   - **`publishDraftExams(classId, period)`**: Implemented transactional query logic that drops the active exams schedule for the class/period, clones the drafts into active status (`isDraft: false`), and automatically clears the drafts.
+   - **`discardDraftExams(classId, period)`**: Implemented transactional logic to wipe out all suggested exam draft rows cleanly.
+4. **Interactive Exam Client Playground (`ExamTimetableClient.tsx`):**
+   - Integrated full dynamic draft support: displays the fused **Draft Review Banner** inside the main card if drafts exist for review.
+   - Enables toggling between active exams and drafts dynamically via `View Active Exams` / `View Suggested Draft` action triggers.
+   - Automatically saves AI generations into draft status when accessed inside the playground, guaranteeing sandbox safety.
+
+---
+
+## 7. Guidelines for Future Database or Logic Modifications
 - **Never auto-create class records outside of this flow.** All class creation must run through `createClass` inside `crudActions.ts` to ensure consistent auto-level-mapping.
 - **If changing student enrollment logic:** Student creation retains `classId` assignment. Linking a student to `classId` automatically maps them to that class.
+- **Draft Status Constraints:** When querying or bulk writing timetables or exams under AI Scheduler routes, always pass `isDraft: true` to prevent active database pollution.
 

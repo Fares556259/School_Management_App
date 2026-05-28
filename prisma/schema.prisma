@@ -246,6 +246,7 @@ model Exam {
   lessonId   Int
   examPeriod Int      @default(1)
   schoolId   String   @default("default_school")
+  isDraft    Boolean  @default(false)
   lesson     Lesson   @relation(fields: [lessonId], references: [id])
   School     School   @relation(fields: [schoolId], references: [id])
   results    Result[]
