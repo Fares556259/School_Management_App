@@ -146,73 +146,55 @@ const TimetablePage = ({
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {/* DOWNLOAD PDF BUTTON */}
-          <button 
-            onClick={() => handlePrint()}
-            className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-slate-800 text-white hover:bg-slate-900 shadow-slate-100 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <FileDown size={14} />
-            Download PDF
-          </button>
-
-          <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
-
-          {/* AI GENERATE BUTTON */}
-          {forceDraft && (
+          {!isEditMode ? (
             <>
+              {/* DOWNLOAD PDF BUTTON */}
               <button 
-                onClick={() => setIsAiOpen(true)}
-                className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md group hover:scale-[1.02] active:scale-[0.98] ${
-                  isAiLocked 
-                  ? 'bg-slate-100 border border-slate-200 text-slate-400 shadow-none cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
-                }`}
+                onClick={() => handlePrint()}
+                className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-slate-800 text-white hover:bg-slate-900 shadow-slate-100 hover:scale-[1.02] active:scale-[0.98]"
               >
-                {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
-                {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
+                <FileDown size={14} />
+                Download PDF
               </button>
 
               <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
-            </>
-          )}
 
-          {/* APPROVE / PUBLISH DRAFT (Visible on AI Scheduler page when draft exists) */}
-          {forceDraft && hasDraft && (
-            <>
+              {/* AI GENERATE BUTTON */}
+              {forceDraft && (
+                <>
+                  <button 
+                    onClick={() => setIsAiOpen(true)}
+                    className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md group hover:scale-[1.02] active:scale-[0.98] ${
+                      isAiLocked 
+                      ? 'bg-slate-100 border border-slate-200 text-slate-400 shadow-none cursor-not-allowed'
+                      : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
+                    }`}
+                  >
+                    {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />}
+                    {isAiLocked ? 'Limite AI Atteinte' : hasDraft ? 'Regenerate with AI' : 'AI Magic Generate'}
+                  </button>
+
+                  <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
+                </>
+              )}
+
+              {/* EDIT TIMETABLE BUTTON */}
               <button 
-                onClick={handlePublishDraft}
-                className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100 hover:scale-[1.02] active:scale-[0.98]"
+                onClick={() => setIsEditMode(true)}
+                className="px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 bg-white border-slate-200 text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Check size={14} className="stroke-[3px]" />
-                Publish to Active
+                <Edit2 size={14} className="stroke-[3px]"/> Edit Schedule
               </button>
-
-              <button 
-                onClick={handleDiscardDraft}
-                className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Discard Draft
-              </button>
-
-              <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
             </>
+          ) : (
+            /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */
+            <button 
+              onClick={() => setIsEditMode(false)}
+              className="px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Check size={14} className="stroke-[3px]"/> Done Editing
+            </button>
           )}
-
-          {/* EDIT TIMETABLE BUTTON */}
-          <button 
-            onClick={() => setIsEditMode(!isEditMode)}
-            className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 hover:scale-[1.02] active:scale-[0.98] ${
-              isEditMode 
-              ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100 hover:bg-emerald-700' 
-              : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-500 hover:text-indigo-600'
-            }`}
-          >
-            {isEditMode ? (
-              <><Check size={14} className="stroke-[3px]"/> Save Changes</>
-            ) : (
-              <><Edit2 size={14} className="stroke-[3px]"/> Edit Schedule</>
-            )}
-          </button>
 
           <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block"></div>
 

@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { Day } from "@prisma/client";
-import { Edit2, BookOpen, X, Check, Trash2 } from "lucide-react";
+import { Edit2, BookOpen, X, Check, Trash2, User, MapPin } from "lucide-react";
+
+const dayLabels: { [key in Day]: string } = {
+  [Day.MONDAY]: "Lundi",
+  [Day.TUESDAY]: "Mardi",
+  [Day.WEDNESDAY]: "Mercredi",
+  [Day.THURSDAY]: "Jeudi",
+  [Day.FRIDAY]: "Vendredi",
+  [Day.SATURDAY]: "Samedi",
+};
 
 interface SlotProps {
   slot: any;
@@ -91,7 +100,7 @@ const ScheduleSlot = ({
         setLoading(false);
     }
   };
- 
+  
   const handleDelete = async () => {
     if (!onDeleteAction || !slot?.id) return;
     
@@ -115,81 +124,11 @@ const ScheduleSlot = ({
 
   if (!slot && !isEditMode) return null;
 
-  if (!slot && isEditMode && !isEditing) return (
-    <button 
-        onClick={() => setIsEditing(true)}
-        className="w-full h-full border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-200 hover:border-indigo-100 hover:text-indigo-400 hover:bg-slate-50 transition-all group print:hidden"
-    >
-      <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-         <BookOpen size={16} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-      </div>
-      <span className="text-[9px] font-black uppercase tracking-widest mt-3">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
-    </button>
-  );
-
-  if (isEditing) {
-    return (
-      <div className="w-full h-full bg-white p-4 rounded-[24px] border border-indigo-200 shadow-xl shadow-indigo-50/50 flex flex-col gap-3">
-        <div className="flex flex-col gap-2">
-           <select 
-             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
-             value={subjectId}
-             onChange={(e) => setSubjectId(e.target.value)}
-           >
-             <option value="">Subject</option>
-             {subjects
-               .filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId)
-               .map(s => (
-                 <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
-               ))
-             }
-           </select>
-           <select 
-             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
-             value={teacherId}
-             onChange={(e) => setTeacherId(e.target.value)}
-           >
-             <option value="">Teacher</option>
-             {teachers.map(t => <option key={t.id} value={t.id}>{t.name} {t.surname}</option>)}
-           </select>
-           <select 
-             className="text-[10px] h-9 px-3 border border-slate-110 rounded-xl bg-slate-50 font-black text-slate-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all uppercase tracking-widest"
-             value={roomId}
-             onChange={(e) => setRoomId(e.target.value)}
-           >
-             <option value="">Room (TBA)</option>
-             {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-           </select>
-        </div>
-        <div className="flex gap-2 mt-auto">
-          <button 
-            disabled={loading}
-            onClick={handleUpdate}
-            className="flex-1 bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-100"
-          >
-            {loading ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : <Check size={14} className="stroke-[3px]"/>}
-          </button>
-          <button 
-            onClick={() => setIsEditing(false)}
-            className="px-3 bg-slate-100 text-slate-600 py-2 rounded-xl hover:bg-slate-200 transition-all border border-slate-200"
-          >
-            <X size={14} className="stroke-[3px]"/>
-          </button>
-          
-          {slot?.id && slot.id !== -1 && onDeleteAction && (
-            <button 
-              disabled={loading}
-              onClick={handleDelete}
-              className="px-3 bg-rose-50 text-rose-600 py-2 rounded-xl hover:bg-rose-100 transition-all border border-rose-100 ml-auto"
-              title="Delete session"
-            >
-              <Trash2 size={14} className="stroke-[2px]"/>
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const rawSubjectName = type === "timetable" ? slot?.subject?.name : slot?.lesson?.subject?.name;
+  const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+  const teacherName = type === "timetable" 
+    ? (slot?.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "No Teacher Assigned")
+    : (slot?.lesson?.teacher ? `${slot.lesson.teacher.name} ${slot.lesson.teacher.surname}` : "No Teacher Assigned");
 
   const handleDragStart = (e: React.DragEvent) => {
     if (slot?.id) {
@@ -198,49 +137,190 @@ const ScheduleSlot = ({
     }
   };
 
-  const rawSubjectName = type === "timetable" ? slot.subject?.name : slot.lesson?.subject?.name;
-  const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
-  const teacherName = type === "timetable" 
-    ? (slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "No Teacher Assigned")
-    : (slot.lesson?.teacher ? `${slot.lesson.teacher.name} ${slot.lesson.teacher.surname}` : "No Teacher Assigned");
-
   return (
-    <div 
-      draggable={isEditMode && !!slot}
-      onDragStart={handleDragStart}
-      className={`w-full h-full bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 hover:border-indigo-100 transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing' : ''}`}
-    >
-      <div className="flex items-start justify-between">
-        <h3 className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
-          {subjectName}
-        </h3>
-        {isEditMode && (
+    <>
+      {/* Background Cell Rendering */}
+      {!slot ? (
+        isEditMode && (
           <button 
-            onClick={() => setIsEditing(true)}
-            className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600 print:hidden"
+              onClick={() => setIsEditing(true)}
+              className="w-full h-full border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-200 hover:border-indigo-100 hover:text-indigo-400 hover:bg-slate-50 transition-all group print:hidden"
           >
-            <Edit2 size={12} />
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+               <BookOpen size={16} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest mt-3">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
           </button>
-        )}
-      </div>
-      
-      <div className="mt-2 flex flex-col gap-1">
-        <p className="text-[10px] italic font-medium text-slate-500 tracking-tight">
-          {teacherName}
-        </p>
-      </div>
+        )
+      ) : (
+        <div 
+          draggable={isEditMode && !!slot}
+          onDragStart={handleDragStart}
+          className={`w-full h-full bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 hover:border-indigo-100 transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        >
+          <div className="flex items-start justify-between">
+            <h3 className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
+              {subjectName || "Unscheduled Subject"}
+            </h3>
+            {isEditMode && (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600 print:hidden"
+              >
+                <Edit2 size={12} />
+              </button>
+            )}
+          </div>
+          
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[10px] italic font-medium text-slate-500 tracking-tight">
+              {teacherName}
+            </p>
+          </div>
 
-      <div className="mt-auto flex items-center justify-between pt-3">
-         <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{slot.room?.name || "Room TBA"}</span>
-         </div>
-         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="w-5 h-5 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-emerald-100">TD</div>
-            <div className="w-5 h-5 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-amber-100">C</div>
-         </div>
-      </div>
-    </div>
+          <div className="mt-auto flex items-center justify-between pt-3">
+             <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{slot.room?.name || "Room TBA"}</span>
+             </div>
+             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-5 h-5 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-emerald-100">TD</div>
+                <div className="w-5 h-5 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-amber-100">C</div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Fixed Popover Modal overlay */}
+      {isEditing && (
+        <div className="fixed inset-0 z-[150] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                  <BookOpen size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                    {slot?.id ? "Modifier Session" : "Ajouter Session"}
+                  </h3>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
+                    {dayLabels[day] || String(day)} · {startTime} - {endTime}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <div className="flex flex-col gap-4 py-6">
+              {/* Subject Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Subject</label>
+                <div className="relative">
+                  <select 
+                    className="text-xs h-11 pl-10 pr-4 border border-slate-200 rounded-2xl bg-slate-50/50 font-black text-slate-700 w-full focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 transition-all uppercase tracking-wider appearance-none cursor-pointer"
+                    value={subjectId}
+                    onChange={(e) => setSubjectId(e.target.value)}
+                  >
+                    <option value="">Select Subject</option>
+                    {subjects
+                      .filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId)
+                      .map(s => (
+                        <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
+                      ))
+                    }
+                  </select>
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <BookOpen size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Teacher Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Teacher</label>
+                <div className="relative">
+                  <select 
+                    className="text-xs h-11 pl-10 pr-4 border border-slate-200 rounded-2xl bg-slate-50/50 font-black text-slate-700 w-full focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 transition-all uppercase tracking-wider appearance-none cursor-pointer"
+                    value={teacherId}
+                    onChange={(e) => setTeacherId(e.target.value)}
+                  >
+                    <option value="">Select Teacher</option>
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
+                    ))}
+                  </select>
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <User size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Room Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Room</label>
+                <div className="relative">
+                  <select 
+                    className="text-xs h-11 pl-10 pr-4 border border-slate-200 rounded-2xl bg-slate-50/50 font-black text-slate-700 w-full focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 transition-all uppercase tracking-wider appearance-none cursor-pointer"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                  >
+                    <option value="">Room (TBA)</option>
+                    {rooms.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <MapPin size={14} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="flex items-center gap-3 pt-4 border-t border-slate-100 shrink-0">
+              {slot?.id && slot.id !== -1 && onDeleteAction && (
+                <button 
+                  disabled={loading}
+                  onClick={handleDelete}
+                  className="px-4 h-11 bg-rose-50 text-rose-600 hover:bg-rose-100 active:scale-95 transition-all border border-rose-200 rounded-2xl flex items-center justify-center shrink-0"
+                  title="Supprimer la session"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="flex-1 h-11 bg-slate-50 hover:bg-slate-100 active:scale-95 transition-all text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 text-center flex items-center justify-center"
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={loading}
+                onClick={handleUpdate}
+                className="flex-[2] h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                ) : (
+                  <>
+                    <Check size={14} className="stroke-[3px]" />
+                    Save Session
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -97,15 +97,22 @@ graph TD
 ## 3. AI Timetable Scheduler Playground Visual Overhaul & Redundancy Removal
 
 ### Context & Problem Statement
-The AI Scheduler Playground is dedicated to generating, viewing, and planning curriculum draft timetables before they are approved and published. However, the presence of the Active vs. Draft Suggestion toggle switcher on this playground page was redundant (since active schedules belong strictly to the main Timetable page) and crowded the premium top workspace bar.
+The AI Scheduler Playground is dedicated to generating, viewing, and planning curriculum draft timetables before they are approved and published. However, two significant UX limitations cluttered this workspace:
+1. **Redundant Actions & Switchers:** The presence of the Active vs. Draft Suggestion toggle switcher on this playground page was redundant (since active schedules belong strictly to the main Timetable page) and crowded the premium top workspace bar.
+2. **Cramped Inline Cell Editing:** In manual editing mode (`isEditMode={true}`), clicking "Add Session" or editing a slot squeezed three thick select inputs and multiple buttons inline inside the tiny `min-h-[140px]` table grid cell. This caused massive visual breakage, pushed columns out of alignment, and resulted in a cramped, ugly UI.
 
 ### Improvements Implemented
 1. **Redundancy Clean-Up:** Completely removed the Active vs. Draft Suggestion toggle switcher from the top bar when the page is rendered in draft mode (`forceDraft={true}`). This guarantees that the playground workspace is clean and focuses exclusively on curriculum draft optimization.
-2. **Transfer to Database & Menu Integration:**
+2. **Done Editing Navigation Flow:** Toggled button states dynamically so that when manual editing is active, irrelevant background actions (e.g. AI Magic Generate, Download PDF) are hidden, replacing them with a single clean, prominent **Done Editing** green action check to prevent flex-wrapping overflow clutter.
+3. **High-Fidelity Fixed Dialog Modals for Editing slots:**
+   - **Full Viewport Overlay Dialog:** Completely replaced the cramped inline editing card in `ScheduleSlot.tsx` with a premium, sleek modal overlay utilizing a frosted-glass background backdrop blur (`backdrop-blur-md bg-slate-900/40`) and soft scale transitions.
+   - **Roomy Form Layouts:** Built spacious, elegant field controls inside the modal container. Embedded decorative status icons (`BookOpen`, `User`, `MapPin`) next to selects with polished slate border outlines and custom drop shadows.
+   - **Refined Action Actions:** Provided spacious action buttons including a red trash can delete option, a neutral Cancel, and a primary purple checkmark **Save Session** button, keeping cells perfectly aligned in the main grid sheet.
+4. **Transfer to Database & Menu Integration:**
    - **Publish to Active Button:** Added a primary green `Publish to Active` button directly to the top bar when a draft is active on the AI Scheduler page. Clicking this triggers the database transaction (`publishDraftTimetable`) to clone draft slots into official active records.
    - **Automatic Redirection:** Updated the action completion callback to automatically route the administrator via Next.js router (`router.push`) to the official **Academic Timetable** page (`/admin/timetable?classId=...`) and trigger `router.refresh()`. This seamlessly transfers the draft to the database and shifts the active view to the official Menu calendar page.
    - **Discard Draft Action:** Added a dedicated `Discard Draft` button next to publish, allowing users to permanently wipe the draft and instantly reset the playground state.
-3. **Visual Enhancements & Premium Styling:**
+5. **Visual Enhancements & Premium Styling:**
    - **Dynamic Gradient Icon:** Replaced the generic clock icon with a vibrant gradient icon utilizing the `Sparkles` icon (`bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white`) when in AI mode.
    - **Clean Pill Badges:** Restructured the header pills, introducing a sleek purple `"AI Scheduler"` status badge to complement the `"View Mode" / "Edit Mode"` state pill.
    - **Micro-Interactions & Hover States:** Upgraded action buttons (`Download PDF`, `AI Magic Generate`, `Edit Schedule`) with subtle hover scaling (`hover:scale-[1.02] active:scale-[0.98]`) and enhanced shadow structures for a premium SaaS look.
