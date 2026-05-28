@@ -87,7 +87,8 @@ export default function GradeSheetRecorder({
           });
           setGrades(newGrades);
           setProofPreviewUrl(sheet.proofUrl || null);
-          if (sheet.proofUrl) {
+          const isUrlPdf = sheet.proofUrl ? sheet.proofUrl.toLowerCase().split('?')[0].endsWith(".pdf") : false;
+          if (sheet.proofUrl && !isUrlPdf) {
             setIsImageLoading(true);
           } else {
             setIsImageLoading(false);
@@ -197,7 +198,12 @@ export default function GradeSheetRecorder({
     const file = e.target.files?.[0];
     if (!file) return;
     setProofFile(file);
-    setIsImageLoading(true);
+    const isFilePdf = file.type === "application/pdf";
+    if (isFilePdf) {
+      setIsImageLoading(false);
+    } else {
+      setIsImageLoading(true);
+    }
     setProofPreviewUrl(URL.createObjectURL(file));
     setIsDirty(true);
   }, []);
@@ -207,7 +213,12 @@ export default function GradeSheetRecorder({
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
     setProofFile(file);
-    setIsImageLoading(true);
+    const isFilePdf = file.type === "application/pdf";
+    if (isFilePdf) {
+      setIsImageLoading(false);
+    } else {
+      setIsImageLoading(true);
+    }
     setProofPreviewUrl(URL.createObjectURL(file));
     setIsDirty(true);
   }, []);
