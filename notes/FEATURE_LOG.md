@@ -269,3 +269,19 @@ The `/admin/grades` page had two critical data integrity issues:
 - `src/app/(dashboard)/list/results/ResultsPageClient.tsx` (Updated parser to be robust)
 - `src/app/(dashboard)/admin/grades/[studentId]/report-card/ReportCardClient.tsx` (Updated parser to be robust)
 - `src/app/(dashboard)/admin/grades/initializeAction.ts` (Removed INITIALIZED_BULK placeholder notes generation)
+
+## 22. Premium Expenses Page UI Enhancement
+
+### Context & Problem Statement
+The "School Expenses" list page featured a generic table layout, making it look plain compared to the rest of the dashboard. The categories were styled with a standard gray badge, and the overall look lacked polish and depth.
+
+### New Logic Flow & Styling
+- **Premium Header**: Upgraded the title section with a larger font, an inline total count badge, and a subtle subtitle with an icon ("Manage and track all institutional spending").
+- **Glassmorphic Touches**: Added a soft background gradient decoration behind the main container.
+- **Interactive Rows**: Replaced standard table rows with interactive rows featuring `hover:bg-slate-50/80` and subtle scaling animations.
+- **Dynamic Category Badges**: Added a `getCategoryColor` helper to dynamically assign badge colors based on the expense type (e.g., green for salary, blue for utilities).
+- **Enhanced Proof Presentation**: Formatted "No proof" states as sleek pill badges. For uploaded proofs, added an image thumbnail that gently zooms and overlays an image icon on hover.
+- **Typography & Icons**: Integrated `lucide-react` icons (Receipt, Calendar, Info) to provide more visual structure to the text.
+
+### Affected Files
+- `src/app/(dashboard)/list/expenses/page.tsx` (Complete UI overhaul of the table rendering logic and layout)

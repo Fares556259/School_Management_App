@@ -11,6 +11,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import FinanceDateFilter from "@/components/FinanceDateFilter";
 import { getSchoolId } from "@/lib/school";
 import FinanceExportButton from "@/components/FinanceExportButton";
+import { Receipt, Calendar, Image as ImageIcon, FileX, Info } from "lucide-react";
 
 const columns = [
   {
@@ -88,37 +89,67 @@ const ExpenseListPage = async ({
     orderBy: { date: "desc" },
   });
 
+  const getCategoryColor = (category: string) => {
+    const c = category.toLowerCase();
+    if (c.includes("salary")) return "text-emerald-700 bg-emerald-50 border-emerald-200";
+    if (c.includes("utilit")) return "text-blue-700 bg-blue-50 border-blue-200";
+    if (c.includes("equip")) return "text-orange-700 bg-orange-50 border-orange-200";
+    if (c.includes("maintenance")) return "text-amber-700 bg-amber-50 border-amber-200";
+    return "text-slate-700 bg-slate-50 border-slate-200";
+  };
+
   const renderRow = (item: Expense) => (
     <tr
       key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      className="border-b border-slate-100 last:border-none transition-all duration-300 hover:bg-slate-50/80 group"
     >
-      <td className="p-4 font-semibold">{item.title}</td>
-      <td className="">${item.amount.toLocaleString()}</td>
+      <td className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-sm transition-all duration-300">
+            <Receipt className="w-4 h-4" />
+          </div>
+          <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.title}</span>
+        </div>
+      </td>
+      <td className="">
+        <div className="flex items-center font-bold text-slate-700">
+          <span className="text-slate-400 font-medium mr-1">$</span>
+          {item.amount.toLocaleString()}
+        </div>
+      </td>
       <td className="hidden md:table-cell">
-        <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wider">
+        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}>
           {item.category}
         </span>
       </td>
       <td className="hidden md:table-cell">
-        {new Date(item.date).toLocaleDateString()}
+        <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+          <Calendar className="w-3.5 h-3.5 opacity-70" />
+          {new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+        </div>
       </td>
       <td className="">
         {item.img ? (
-          <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-8 h-8 block group">
+          <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-9 h-9 block group/img rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all">
             <Image
               src={item.img.toLowerCase().endsWith(".pdf") ? item.img.replace(/\.pdf$/i, ".jpg") : item.img}
               alt="Proof"
               fill
-              className="object-cover rounded-md border border-slate-200 group-hover:scale-110 transition-transform"
+              className="object-cover group-hover/img:scale-110 transition-transform duration-500"
             />
+            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors flex items-center justify-center">
+              <ImageIcon className="w-4 h-4 text-white opacity-0 group-hover/img:opacity-100 transition-opacity drop-shadow-md" />
+            </div>
           </a>
         ) : (
-          <span className="text-slate-300 italic text-xs">No proof</span>
+          <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-md w-max">
+            <FileX className="w-3.5 h-3.5 opacity-70" />
+            <span className="italic text-xs font-medium">No proof</span>
+          </div>
         )}
       </td>
       <td>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
           {role === "admin" && (
             <>
               <CrudFormModal entity="expense" mode="update" data={item} id={item.id} />
@@ -131,13 +162,25 @@ const ExpenseListPage = async ({
   );
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden">
+      {/* BACKGROUND DECORATION */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-lamaPurpleLight/30 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
+      
       {/* TOP */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold">School Expenses</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-slate-100 pb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            School Expenses
+            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{count}</span>
+          </h1>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+            <Info className="w-4 h-4 opacity-70" />
+            Manage and track all institutional spending
+          </p>
+        </div>
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center gap-4 self-end">
+          <div className="flex items-center gap-3 self-end md:self-auto">
             <FinanceDateFilter />
             <FinanceExportButton data={allData} filename="Expenses" />
             {role === "admin" && <CrudFormModal entity="expense" mode="create" />}
@@ -145,9 +188,13 @@ const ExpenseListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+        <Table columns={columns} renderRow={renderRow} data={data} />
+      </div>
       {/* PAGINATION */}
-      <Pagination page={p} count={count} />
+      <div className="mt-6">
+        <Pagination page={p} count={count} />
+      </div>
     </div>
   );
 };
