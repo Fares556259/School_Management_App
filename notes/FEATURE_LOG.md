@@ -232,3 +232,37 @@ The `/admin/grades` page had two critical data integrity issues:
 - **Never hardcode subject names in UI or API.** Always query subjects from the DB and use `parseArabicName()` for display.
 - **Subject names must follow the `Arabic | French | English` pipe format** if trilingual. Single-language names work as-is.
 - **Domain grouping** is determined by the `domain` field on the `Subject` model, not by hardcoded arrays.
+
+---
+
+## 9. Premium GradeSheetRecorder UI & Robust Arabic Trilingual Parsing
+
+### Context & Problem Statement
+1. **Unreliable Arabic Subject Parsing**: The previous `parseArabicName` implementation split the trilingual subject name string by `|` and simply returned the first segment. However, in the database, trilingual subject names (e.g. `Arts Plastiques | Art Education | التربية التشكيلية`) often list French or English first, causing the parser to incorrectly display French names like "Arts Plastiques" instead of Arabic.
+2. **Plain Filter Selectors**: Native select fields look basic and clash with the high-fidelity school dashboard layout.
+3. **Plain Empty Dropzone UI**: When no proof was uploaded, the static "No Proof Available" box looked empty and lacked high-end micro-interactions.
+4. **Harsh Loading Screens**: Loading and syncing screens were standard spinners with basic opacity overlays.
+
+### Improvements Implemented
+
+#### A. Robust Arabic Segment Search
+- Redefined `parseArabicName` in `GradeSheetRecorder.tsx`, `GradeEntryForm.tsx`, `ResultsPageClient.tsx`, and `ReportCardClient.tsx` to search for segments containing Arabic unicode characters (`[\u0600-\u06FF]`).
+- If an Arabic segment is found, it is trimmed and displayed. Otherwise, it gracefully falls back to the first segment trimmed.
+
+#### B. Premium Custom Select Components
+- Implemented a custom-designed `CustomSelect` dropdown component replacing native select boxes in `GradeSheetRecorder.tsx`.
+- The new selectors utilize Framer Motion (`AnimatePresence` and `motion.div`) for smooth opening/closing transitions, hover indicator effects, custom options list cards, scrollbar styling, and icons (`ChevronDown` and `Check`).
+- Secured drop-down overlays with `relative z-30` wrapper containers to prevent clipping issues.
+
+#### C. Beautiful Drag-and-Drop Dropzone Card
+- Upgraded the static proof dropzone box to a gorgeous custom dotted container using dynamic scaling, smooth color blending transitions, and interactive floating icons.
+- Attached high-fidelity visual hover gradients (`scale-101`, `translate-y-[-2px]`, tap effects) and ambient background glow overlays.
+
+#### D. Elegant Glassmorphic Loaders
+- Transformed boring loading spinners into high-end glassmorphic processing loaders featuring a glowing neon halo (`indigo-600/10`), breathing animations, micro-animated spinner wheels, and clean text indicators.
+
+### Affected Files
+- `src/app/(dashboard)/admin/grades/GradeSheetRecorder.tsx` (Completed filters, empty-state, loaders, and Arabic parser updates)
+- `src/app/(dashboard)/admin/grades/GradeEntryForm.tsx` (Updated parser to be robust)
+- `src/app/(dashboard)/list/results/ResultsPageClient.tsx` (Updated parser to be robust)
+- `src/app/(dashboard)/admin/grades/[studentId]/report-card/ReportCardClient.tsx` (Updated parser to be robust)

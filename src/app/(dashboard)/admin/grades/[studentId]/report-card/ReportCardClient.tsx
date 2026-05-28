@@ -8,8 +8,10 @@ import Link from "next/navigation";
  * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
  */
 const parseArabicName = (name: string): string => {
+  if (!name) return "";
   const parts = name.split("|");
-  return parts[0].trim();
+  const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
+  return arabicPart ? arabicPart.trim() : parts[0].trim();
 };
 
 interface ReportData {

@@ -11,6 +11,13 @@ import { isAIQuotaReached } from "../actions/aiActions";
 import { Lock, Sparkles } from "lucide-react";
 
 
+const parseArabicName = (name: string): string => {
+  if (!name) return "";
+  const parts = name.split("|");
+  const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
+  return arabicPart ? arabicPart.trim() : parts[0].trim();
+};
+
 interface Student {
   id: string;
   name: string;
@@ -134,6 +141,7 @@ export default function GradeSheetRecorder({
   const [rotation, setRotation] = useState(0);
   const [contrastEnhance, setContrastEnhance] = useState(false);
   const [isDraggingViewport, setIsDraggingViewport] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -455,23 +463,40 @@ export default function GradeSheetRecorder({
       </div>
 
       {/* ─── FILTERS BAR ─── */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 bg-white border-b border-slate-100">
-        <SelectField label="Class" value={String(classId)} onChange={(v) => handleClassChange(Number(v))} disabled={!!existingSheet}>
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </SelectField>
+      <div className="flex flex-wrap items-center gap-4 px-6 py-3 bg-white border-b border-slate-100 relative z-30">
+        <CustomSelect
+          label="Class"
+          value={String(classId)}
+          onChange={(v) => handleClassChange(Number(v))}
+          options={classes.map((c) => ({ value: String(c.id), label: c.name }))}
+          disabled={!!existingSheet}
+        />
 
-        <SelectField label="Subject" value={String(subjectId)} onChange={(v) => setSubjectId(Number(v))} disabled={!!existingSheet}>
-          {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </SelectField>
+        <CustomSelect
+          label="Subject"
+          value={String(subjectId)}
+          onChange={(v) => setSubjectId(Number(v))}
+          options={subjects.map((s) => ({ value: String(s.id), label: parseArabicName(s.name) }))}
+          disabled={!!existingSheet}
+        />
 
-        <SelectField label="Term" value={String(term)} onChange={(v) => setTerm(Number(v))} disabled={!!existingSheet}>
-          {TERMS.map((t) => <option key={t} value={t}>Term {t}</option>)}
-        </SelectField>
+        <CustomSelect
+          label="Term"
+          value={String(term)}
+          onChange={(v) => setTerm(Number(v))}
+          options={TERMS.map((t) => ({ value: String(t), label: `Term ${t}` }))}
+          disabled={!!existingSheet}
+        />
 
-        <SelectField label="Teacher (opt.)" value={teacherId} onChange={setTeacherId}>
-          <option value="">— Not assigned —</option>
-          {teachers.map((t) => <option key={t.id} value={t.id}>{t.name} {t.surname}</option>)}
-        </SelectField>
+        <CustomSelect
+          label="Teacher (opt.)"
+          value={teacherId}
+          onChange={setTeacherId}
+          options={[
+            { value: "", label: "— Not assigned —" },
+            ...teachers.map((t) => ({ value: t.id, label: `${t.name} ${t.surname}` })),
+          ]}
+        />
 
         <div className="ml-auto flex items-center gap-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">
           <span className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">{students.length} students</span>
@@ -544,8 +569,15 @@ export default function GradeSheetRecorder({
             className={`flex-1 overflow-auto bg-slate-200/30 flex items-start justify-center p-8 relative scrollbar-thin scrollbar-thumb-slate-300 ${
               zoom === 1 ? 'items-center' : 'cursor-grab active:cursor-grabbing select-none'
             }`}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!isDraggingFile) setIsDraggingFile(true);
+            }}
+            onDragLeave={() => setIsDraggingFile(false)}
+            onDrop={(e) => {
+              handleDrop(e);
+              setIsDraggingFile(false);
+            }}
             onMouseDown={handleViewportMouseDown}
             onMouseMove={handleViewportMouseMove}
             onMouseUp={handleViewportMouseUp}
@@ -600,26 +632,60 @@ export default function GradeSheetRecorder({
               </div>
             )}
             {isImageLoading && (
-              <div className="absolute inset-0 z-20 bg-slate-50/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 animate-in fade-in duration-300">
-                <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-indigo-100"></div>
-                <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-none drop-shadow-sm">Loading Document...</span>
+              <div className="absolute inset-0 z-20 bg-white/75 backdrop-blur-[4px] flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-14 h-14 bg-indigo-600/10 rounded-full blur-xl animate-pulse" />
+                  <div className="w-12 h-12 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-indigo-100"></div>
+                  <div className="absolute w-2 h-2 bg-indigo-600 rounded-full" />
+                </div>
+                <div className="flex flex-col items-center gap-1 text-center">
+                  <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-none drop-shadow-sm animate-pulse">Loading Document</span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Checking resolution...</span>
+                </div>
               </div>
             )}
             
             {(hasImageError || !proofPreviewUrl || proofPreviewUrl === "pending_upload") ? (
-              <div className="flex flex-col items-center gap-6 p-12 bg-white rounded-[40px] border border-slate-100 shadow-sm text-center max-w-sm">
-                <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-3xl">📭</div>
-                <div>
-                   <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">No Proof Available</h3>
-                   <p className="text-[10px] text-slate-400 font-bold mt-2 leading-relaxed">The original grade sheet document hasn&apos;t been uploaded yet or the link has expired.</p>
+              <motion.div 
+                whileHover={{ scale: 1.01, translateY: -2 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => fileRef.current?.click()}
+                className={`flex flex-col items-center gap-6 p-12 bg-white rounded-[40px] border-2 border-dashed shadow-sm text-center max-w-sm cursor-pointer transition-all duration-300 relative overflow-hidden group ${
+                  isDraggingFile 
+                    ? 'border-indigo-500 bg-indigo-50/20 ring-4 ring-indigo-50/50 shadow-lg' 
+                    : 'border-slate-200 hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-50/20'
+                }`}
+              >
+                <div className="absolute -right-20 -top-20 w-40 h-40 bg-indigo-100/35 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-100/50 transition-all duration-500" />
+                <div className="absolute -left-20 -bottom-20 w-40 h-40 bg-cyan-100/25 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-100/40 transition-all duration-500" />
+                
+                <div className={`w-20 h-20 rounded-[28px] flex items-center justify-center text-3xl shadow-sm transition-all duration-300 ${
+                  isDraggingFile 
+                    ? 'bg-indigo-600 text-white scale-110 shadow-indigo-200 animate-bounce' 
+                    : 'bg-indigo-50 text-indigo-600 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-indigo-100'
+                }`}>
+                  {isDraggingFile ? (
+                    <motion.span animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 1 }}>📥</motion.span>
+                  ) : (
+                    <span>📤</span>
+                  )}
+                </div>
+                <div className="relative z-10">
+                   <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                     {isDraggingFile ? "Drop to Upload!" : "No Proof Available"}
+                   </h3>
+                   <p className="text-[10px] text-slate-400 font-bold mt-2.5 leading-relaxed max-w-[280px] mx-auto">
+                     {isDraggingFile 
+                       ? "Release your mouse to attach this sheet..." 
+                       : "Drag and drop your PDF/image here, or click to browse files from your computer."}
+                   </p>
                 </div>
                 <button
-                  onClick={() => fileRef.current?.click()}
-                  className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100"
+                  className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest group-hover:bg-indigo-600 group-hover:text-white transition-all border border-indigo-100 shadow-sm relative z-10"
                 >
-                  Upload Grade Sheet
+                  Browse Grade Sheet
                 </button>
-              </div>
+              </motion.div>
             ) : (
               isPdf ? (
                 <iframe 
@@ -769,12 +835,15 @@ export default function GradeSheetRecorder({
 
           <div className="flex-1 overflow-auto relative">
             {(isLoadingStudents || isSyncing) && (
-              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-                        {isLoadingStudents ? "Loading Students..." : "Syncing Records..."}
-                    </span>
+              <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] z-20 flex items-center justify-center animate-in fade-in duration-200">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-8 h-8 bg-indigo-600/10 rounded-full blur-md animate-pulse" />
+                    <div className="w-7 h-7 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">
+                    {isLoadingStudents ? "Loading Students..." : "Syncing Records..."}
+                  </span>
                 </div>
               </div>
             )}
@@ -973,31 +1042,76 @@ export default function GradeSheetRecorder({
   );
 }
 
-/* Helper compound select */
-function SelectField({
+import { ChevronDown, Check } from "lucide-react";
+
+function CustomSelect({
   label,
   value,
   onChange,
-  children,
+  options,
   disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
-  children: React.ReactNode;
+  options: { value: string; label: string }[];
   disabled?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((o) => o.value === value);
+
   return (
-    <div className={`flex flex-col gap-0.5 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
+    <div ref={containerRef} className={`relative flex flex-col gap-1 min-w-[140px] ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}>
       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</label>
-      <select
-        value={value}
+      <button
+        type="button"
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={`text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between gap-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 hover:bg-white hover:border-indigo-300 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer disabled:cursor-not-allowed w-full text-left"
       >
-        {children}
-      </select>
+        <span className="truncate">{selectedOption ? selectedOption.label : value}</span>
+        <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto py-1 scrollbar-thin"
+          >
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 text-left transition-all ${
+                  opt.value === value ? "bg-indigo-50/50 text-indigo-600 font-bold" : ""
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {opt.value === value && <Check size={12} className="text-indigo-600" />}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

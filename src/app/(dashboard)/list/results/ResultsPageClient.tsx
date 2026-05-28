@@ -12,7 +12,12 @@ import { initializeClassSheets } from "../../admin/grades/initializeAction";
  * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
  * Falls back to original name if no pipe is present.
  */
-const parseArabicName = (name: string): string => name.split("|")[0].trim();
+const parseArabicName = (name: string): string => {
+  if (!name) return "";
+  const parts = name.split("|");
+  const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
+  return arabicPart ? arabicPart.trim() : parts[0].trim();
+};
 
 interface Props {
   role: string | undefined;

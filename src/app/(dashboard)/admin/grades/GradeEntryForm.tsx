@@ -30,8 +30,10 @@ interface Student {
  * If no pipe exists, returns the name as-is.
  */
 const parseArabicName = (name: string): string => {
+  if (!name) return "";
   const parts = name.split("|");
-  return parts[0].trim();
+  const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
+  return arabicPart ? arabicPart.trim() : parts[0].trim();
 };
 
 export default function GradeEntryForm({
