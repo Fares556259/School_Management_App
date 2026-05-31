@@ -4,13 +4,12 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { auth } from "@clerk/nextjs/server";
-import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2 } from "lucide-react";
 
 type ClassList = Class & { supervisor: Teacher | null } & { level: Level } & {
   _count: { students: number };
@@ -80,31 +79,51 @@ const ClassListPage = async ({
   const renderRow = (item: ClassList) => (
     <tr
       key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      className="border-b border-[#dddddd] text-[15px] text-[#41454d] hover:bg-[#f8fafc] transition-colors group"
     >
-      <td className="font-bold text-indigo-600 hover:underline">
-        <Link href={`/list/classes/${item.id}`}>
+      <td className="py-4">
+        <Link href={`/list/classes/${item.id}`} className="font-medium text-[#181d26] hover:text-[#1b61c9] transition-colors">
           {item.name}
         </Link>
       </td>
-      <td className="hidden md:table-cell">{item.capacity}</td>
-      <td className="hidden md:table-cell">{item.level?.level}</td>
-      <td className="hidden md:table-cell">
+      <td className="hidden md:table-cell py-4">{item.capacity}</td>
+      <td className="hidden md:table-cell py-4">{item.level?.level}</td>
+      <td className="hidden md:table-cell py-4">
         {item.supervisor ? item.supervisor.name + " " + item.supervisor.surname : "-"}
       </td>
-      <td>
-        <div className="flex items-center gap-2">
+      <td className="py-4">
+        <div className="flex items-center gap-3">
           {role === "admin" && (
             <>
               <Link 
                 href={`/list/classes/${item.id}`}
-                className="flex items-center gap-1.5 bg-purple-50 text-purple-600 px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                className="flex items-center gap-1.5 bg-white border border-[#dddddd] text-[#181d26] px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-slate-50 hover:shadow-sm transition-all"
               >
                 <Users size={14} />
                 <span>View Students</span>
               </Link>
-              <CrudFormModal entity="class" mode="update" data={item} id={item.id} relatedData={classRelatedData} />
-              <CrudFormModal entity="class" mode="delete" id={item.id} />
+              <CrudFormModal 
+                entity="class" 
+                mode="update" 
+                data={item} 
+                id={item.id} 
+                relatedData={classRelatedData} 
+                trigger={
+                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors">
+                    <Edit2 size={14} />
+                  </button>
+                }
+              />
+              <CrudFormModal 
+                entity="class" 
+                mode="delete" 
+                id={item.id} 
+                trigger={
+                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                }
+              />
             </>
           )}
         </div>
@@ -160,20 +179,32 @@ const ClassListPage = async ({
   };
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0 selection:bg-[#1b61c9] selection:text-white">
       {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Classes</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="hidden md:block text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight">All Classes</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+          <div className="flex items-center gap-3 self-end">
+            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors shadow-sm">
+              <Filter size={16} strokeWidth={2} />
             </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors shadow-sm">
+              <ArrowUpDown size={16} strokeWidth={2} />
             </button>
-            {role === "admin" && <CrudFormModal entity="class" mode="create" relatedData={classRelatedData} />}
+            {role === "admin" && (
+              <CrudFormModal 
+                entity="class" 
+                mode="create" 
+                relatedData={classRelatedData} 
+                trigger={
+                  <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-full px-5 py-2.5 transition-colors shadow-sm">
+                    <Plus size={18} strokeWidth={2.5} />
+                    <span className="font-medium text-[15px]">Add Class</span>
+                  </button>
+                }
+              />
+            )}
           </div>
         </div>
       </div>
