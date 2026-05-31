@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown } from "lucide-react";
+import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown, ChevronDown } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "../../admin/timetable/components/ScheduleGrid";
 import AiScheduleModal from "../../admin/timetable/components/AiScheduleModal";
@@ -184,36 +184,35 @@ const ExamTimetableClient = ({
   };
 
   return (
-    <div className="p-4 flex flex-col gap-6 flex-1 bg-[#F7F8FA]">
+    <div className="p-6 lg:p-10 flex flex-col gap-8 flex-1 bg-white">
       {/* Unified Main Dashboard Header Card */}
-      <div className="flex flex-col gap-5 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 transition-all duration-300">
-        <div className="flex flex-col xl:flex-row items-center justify-between gap-6 w-full">
-          {/* Left Part: Icon, Title, and Scope Selector */}
+      <div className="flex flex-col gap-6 w-full">
+        {/* Row 1: Header title and action buttons */}
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 w-full">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-slate-500/5 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-sm relative overflow-hidden group shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <ClipboardCheck size={26} className="stroke-[2px] text-indigo-600" />
+            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 shadow-sm shrink-0">
+              <ClipboardCheck size={24} className="stroke-[2px]" />
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-2 text-[8px] font-black uppercase tracking-[0.25em] text-slate-400">
+              <div className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-500">
                 <span>{forceDraft ? "AI Exam Playground" : "Exams Registry"}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className={`flex items-center gap-1 font-extrabold ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
+                <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
                   {isEditMode ? 'Edit Mode' : 'View Mode'}
                 </span>
               </div>
               
-              <h1 className="text-2.5xl font-black text-slate-800 tracking-tight uppercase leading-none">
+              <h1 className="text-2xl xl:text-3xl font-bold text-slate-800 tracking-tight mt-0.5">
                 {forceDraft ? "AI Exam Scheduler" : "Academic Exams"}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-slate-500">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-extrabold text-[8.5px] tracking-widest">Target:</span>
-                  <div className="relative inline-flex items-center bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100/60 rounded-xl px-3 py-1 transition-all">
+                  <span className="font-medium text-[#41454d]">Target Class:</span>
+                  <div className="relative inline-flex items-center bg-slate-50 hover:bg-slate-100 border border-[#dddddd] rounded-lg px-3 py-1.5 transition-all">
                     <select 
-                      className="bg-transparent border-0 text-[10px] font-black text-indigo-700 focus:outline-none transition-all cursor-pointer uppercase tracking-wider pr-5 appearance-none"
+                      className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
                       value={selectedClass?.id}
                       onChange={(e) => {
                         const params = new URLSearchParams(searchParams);
@@ -229,13 +228,10 @@ const ExamTimetableClient = ({
                         </option>
                       ))}
                     </select>
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none text-[6.5px]">▼</div>
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                      <ChevronDown size={14} />
+                    </div>
                   </div>
-                </div>
-                <span className="text-slate-200">|</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-extrabold text-[8.5px] tracking-widest">Period:</span>
-                  <span className="text-slate-600 font-black bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-xl tracking-widest text-[9px]">Week {selectedPeriod}</span>
                 </div>
               </div>
             </div>
@@ -248,26 +244,26 @@ const ExamTimetableClient = ({
                 {/* 1. Design & Plan Capsule Group */}
                 {(role === "admin" || role === "teacher") && (
                   forceDraft ? (
-                    <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                    <div className="flex items-center gap-3">
                       {/* EDIT TOGGLE BUTTON */}
                       <button 
                         onClick={() => setIsEditMode(true)}
-                        className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                        className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm text-[#181d26] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center gap-2"
                       >
-                        <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                        <Edit2 size={16} /> Edit Schedule
                       </button>
 
                       {/* AI GENERATE BUTTON */}
                       <button 
                         onClick={() => setIsAiOpen(true)}
                         disabled={isAiLocked}
-                        className={`flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${
+                        className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all active:scale-[0.98] ${
                           isAiLocked 
-                          ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                          : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
+                          ? 'bg-slate-100 border border-[#dddddd] text-slate-400 cursor-not-allowed'
+                          : 'bg-[#181d26] text-white hover:bg-[#0d1218]'
                         }`}
                       >
-                        {isAiLocked ? <Lock size={12} /> : <Sparkles size={12} />}
+                        {isAiLocked ? <Lock size={16} /> : <Sparkles size={16} />}
                         {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
                       </button>
                     </div>
@@ -275,25 +271,25 @@ const ExamTimetableClient = ({
                     /* STANDALONE EDIT SCHEDULE BUTTON */
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/80 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                      className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm text-[#181d26] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center gap-2"
                     >
-                      <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                      <Edit2 size={16} /> Edit Schedule
                     </button>
                   )
                 )}
 
                 {/* 2. Direct Header Publish / Discard Capsule Group */}
                 {forceDraft && hasDraft && (role === "admin" || role === "teacher") && (
-                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                  <div className="flex items-center gap-3 ml-2 pl-5 border-l border-[#dddddd]">
                     <button
                       onClick={handlePublishDraft}
-                      className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="px-6 py-3 bg-[#181d26] hover:bg-[#0d1218] text-white text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
                     >
                       Publish
                     </button>
                     <button
                       onClick={handleDiscardDraft}
-                      className="px-4.5 py-2 bg-rose-50 border border-rose-200/55 hover:bg-rose-100 text-rose-700 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="px-6 py-3 bg-white border border-[#dddddd] hover:bg-slate-50 text-[#aa2d00] text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
                     >
                       Discard
                     </button>
@@ -303,19 +299,19 @@ const ExamTimetableClient = ({
                 {/* 3. Export Utility (Standalone Outline Button) */}
                 <button 
                   onClick={() => handlePrint()}
-                  className="flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all shadow-sm border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all border border-[#dddddd] bg-white text-[#181d26] hover:bg-slate-50 active:scale-[0.98]"
                 >
-                  <FileDown size={12} />
-                  PDF
+                  <FileDown size={16} />
+                  Export PDF
                 </button>
               </>
             ) : (
               /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */
               <button 
                 onClick={() => setIsEditMode(false)}
-                className="px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98]"
+                className="px-8 py-3 rounded-xl font-medium text-sm transition-all flex items-center gap-2 bg-[#181d26] text-white hover:bg-[#0d1218] active:scale-[0.98]"
               >
-                <Check size={14} className="stroke-[3px]"/> Done Editing
+                <Check size={16} /> Done Editing
               </button>
             )}
           </div>
@@ -323,18 +319,18 @@ const ExamTimetableClient = ({
       </div>
 
       {/* PERIOD SELECTOR SECTION */}
-      <div className="flex items-center justify-between gap-4 bg-white px-8 py-4 rounded-[24px] shadow-sm border border-slate-100">
+      <div className="flex items-center justify-between gap-4 py-6 mt-2 border-t border-[#dddddd]">
         <div className="flex items-center gap-4">
-           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-6">Exam Period</div>
-           <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100 gap-1">
+           <div className="text-sm font-medium text-[#181d26]">Exam Period</div>
+           <div className="flex bg-[#f8fafc] p-1 rounded-xl border border-[#dddddd] gap-1">
               {[1, 2, 3].map((p) => (
                 <button
                   key={p}
                   onClick={() => setSelectedPeriod(p)}
-                  className={`px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  className={`px-8 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedPeriod === p 
-                    ? 'bg-white text-indigo-600 shadow-md shadow-indigo-100/50 border border-indigo-100' 
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100/50'
+                    ? 'bg-white text-[#181d26] shadow-sm border border-[#dddddd]' 
+                    : 'text-[#41454d] hover:text-[#181d26] hover:bg-white'
                   }`}
                 >
                   Week {p}
@@ -342,35 +338,31 @@ const ExamTimetableClient = ({
               ))}
            </div>
         </div>
-        <div className="h-10 w-px bg-slate-100 mx-6"></div>
-         <div className="flex items-center gap-6">
-            <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-3 items-center">
-              <div className="flex items-center gap-6 px-3">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon size={14} className="text-slate-400" />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Start</span>
-                  <input 
-                    type="date" 
-                    value={toLocalISO(currentStartDate)}
-                    onChange={(e) => handleDateChange('startDate', e.target.value)}
-                    disabled={!isEditMode}
-                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
-                  />
-                </div>
-                <div className="w-px h-4 bg-slate-200"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">End</span>
-                  <input 
-                    type="date" 
-                    value={toLocalISO(currentEndDate)}
-                    onChange={(e) => handleDateChange('endDate', e.target.value)}
-                    disabled={!isEditMode}
-                    className={`bg-white border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-black text-indigo-600 shadow-sm focus:outline-none focus:border-indigo-400 transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-200'}`}
-                  />
-                </div>
+        <div className="flex items-center gap-6">
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <CalendarIcon size={16} className="text-[#9297a0]" />
+                <span className="text-sm font-medium text-[#41454d] whitespace-nowrap">Start</span>
+                <input 
+                  type="date" 
+                  value={toLocalISO(currentStartDate)}
+                  onChange={(e) => handleDateChange('startDate', e.target.value)}
+                  disabled={!isEditMode}
+                  className={`bg-white border border-[#dddddd] rounded-md px-3 py-1.5 text-sm font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                />
               </div>
-            </div>
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-[#41454d] whitespace-nowrap">End</span>
+                <input 
+                  type="date" 
+                  value={toLocalISO(currentEndDate)}
+                  onChange={(e) => handleDateChange('endDate', e.target.value)}
+                  disabled={!isEditMode}
+                  className={`bg-white border border-[#dddddd] rounded-md px-3 py-1.5 text-sm font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                />
+              </div>
+           </div>
+        </div>
       </div>
 
       {/* TIMETABLE GRID */}
