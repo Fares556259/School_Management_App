@@ -152,6 +152,7 @@ model Class {
   notices      Notice[]
   students     Student[]
   timetable    TimetableSlot[]
+  examPeriodConfigs ExamPeriodConfig[]
 
   @@unique([name, schoolId])
 }
@@ -286,12 +287,16 @@ model Resource {
 
 model ExamPeriodConfig {
   id        Int       @id @default(autoincrement())
-  period    Int       @unique
+  period    Int       
   startDate DateTime
   endDate   DateTime?
   pdfUrl    String?
+  classId   Int?
   schoolId  String    @default("default_school")
+  Class     Class?    @relation(fields: [classId], references: [id], onDelete: Cascade)
   School    School    @relation(fields: [schoolId], references: [id])
+
+  @@unique([period, classId])
 }
 
 model Institution {

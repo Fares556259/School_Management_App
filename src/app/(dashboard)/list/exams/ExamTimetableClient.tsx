@@ -85,9 +85,6 @@ const ExamTimetableClient = ({
 
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
-    getExamPeriodConfigs().then(res => {
-      if (res.success && res.data) setPeriodConfigs(res.data);
-    });
     getSchoolConfig().then(res => {
       if (res.success && res.data) {
         setSchoolConfig(res.data);
@@ -102,6 +99,14 @@ const ExamTimetableClient = ({
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (selectedClass?.id) {
+      getExamPeriodConfigs(selectedClass.id).then(res => {
+        if (res.success && res.data) setPeriodConfigs(res.data);
+      });
+    }
+  }, [selectedClass?.id]);
 
   // Check if draft exists
   useEffect(() => {
@@ -136,9 +141,9 @@ const ExamTimetableClient = ({
       else updatedStart = new Date(updatedEnd);
     }
 
-    const res = await upsertExamPeriodConfig(selectedPeriod, updatedStart, updatedEnd);
+    const res = await upsertExamPeriodConfig(selectedPeriod, updatedStart, updatedEnd, selectedClass?.id);
     if (res.success) {
-      getExamPeriodConfigs().then(r => {
+      getExamPeriodConfigs(selectedClass?.id).then(r => {
         if (r.success && r.data) setPeriodConfigs(r.data);
       });
       setRefreshKey(prev => prev + 1);

@@ -4,9 +4,11 @@ import prisma from "@/lib/prisma";
 import { Day } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-export async function getExamPeriodConfigs() {
+export async function getExamPeriodConfigs(classId?: number) {
   try {
-    const configs = await prisma.examPeriodConfig.findMany();
+    const configs = await prisma.examPeriodConfig.findMany({
+      where: classId ? { classId } : {}
+    });
     return { success: true, data: configs };
   } catch (error: any) {
     console.error("Error fetching period configs:", error);
@@ -14,10 +16,11 @@ export async function getExamPeriodConfigs() {
   }
 }
 
-export async function upsertExamPeriodConfig(period: number, startDate: Date, endDate?: Date) {
+export async function upsertExamPeriodConfig(period: number, startDate: Date, endDate?: Date, classId?: number) {
   try {
+    // If no classId is provided, we might still have old records without it, or it creates a global fallback
     const config = await prisma.examPeriodConfig.upsert({
-      where: { period },
+      where: classId ? { period_classId: { period, classId } } : { period },
       update: { 
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null
@@ -25,7 +28,8 @@ export async function upsertExamPeriodConfig(period: number, startDate: Date, en
       create: { 
         period, 
         startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null
+        endDate: endDate ? new Date(endDate) : null,
+        classId
       }
     });
     revalidatePath("/list/exams");
@@ -36,9 +40,10 @@ export async function upsertExamPeriodConfig(period: number, startDate: Date, en
   }
 }
 
-async function getPeriodRange(period: number) {
-  const config = await prisma.examPeriodConfig.findUnique({
-    where: { period }
+async function getPeriodRange(period: number, classId?: number) {
+  // If classId is provided, fetch specifically for it, otherwise global fallback
+  const config = await prisma.examPeriodConfig.findFirst({
+    where: classId ? { period, classId } : { period }
   });
   if (config) {
     return {
@@ -122,7 +127,7 @@ export async function updateExamSlot(data: {
   isDraft?: boolean;
 }) {
   try {
-    const { startDate } = await getPeriodRange(data.examPeriod);
+    const { startDate } = await getPeriodRange(data.examPeriod, data.classId);
     
     // Use targetDate if provided (most precise)
     const examDate = data.targetDate ? new Date(data.targetDate) : getDateForDay(data.day, startDate);
@@ -200,10 +205,13 @@ export async function moveExam(examId: number, targetDay: Day, targetSlotNumber:
     try {
     // We need the examPeriod to find the correct Monday. 
     // Let's fetch the exam first.
-    const exam = await prisma.exam.findUnique({ where: { id: examId } });
+    const exam = await prisma.exam.findUnique({ 
+      where: { id: examId },
+      include: { lesson: true }
+    });
     if (!exam) return { success: false, error: "Exam not found" };
 
-    const { startDate } = await getPeriodRange(exam.examPeriod);
+    const { startDate } = await getPeriodRange(exam.examPeriod, exam.lesson.classId);
     const monday = startDate;
     
         const examDate = getDateForDay(targetDay, monday);
@@ -260,7 +268,7 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
             // 2. Create new exams
             for (const slot of slots) {
                 // Map session to physical times (simplified logic matching updateExamSlot)
-                const { startDate } = await getPeriodRange(period);
+                const { startDate } = await getPeriodRange(period, classId);
                 const monday = startDate;
 
                 const daysMap: Record<Day, number> = {
