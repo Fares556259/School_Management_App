@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo } from "react";
 import {
   Search, X, Check, Loader2, Plus, Trash2, Edit, 
-  ChevronLeft, ChevronRight, Calendar, Users, ArrowLeft, Info
+  ChevronLeft, ChevronRight, Calendar, Users, ArrowLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -179,16 +179,6 @@ export default function ClassStudentsTable({
   return (
     <div className="flex-1 p-6 md:p-8 bg-[#f8fafc] min-h-screen overflow-y-auto selection:bg-[#1b61c9] selection:text-white">
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
-        
-        {/* TOP NOTICE BANNER */}
-        <div className="bg-white border border-[#dddddd] px-4 py-3 rounded-[12px] flex items-center gap-3 shadow-sm">
-          <div className="w-8 h-8 rounded-full bg-slate-50 border border-[#dddddd] flex items-center justify-center shrink-0">
-             <Info size={16} className="text-[#1b61c9]" />
-          </div>
-          <p className="text-[13px] font-medium text-[#41454d]">
-            Removing a student from this page only unenrolls them from this class. They will remain in your system and can be reassigned later.
-          </p>
-        </div>
 
         {/* HEADER AREA */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
