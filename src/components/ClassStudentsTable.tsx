@@ -313,20 +313,22 @@ export default function ClassStudentsTable({
         <div className="bg-white rounded-[24px] border border-[#dddddd] shadow-sm overflow-hidden">
           
           {/* CARD HEADER */}
-          <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none mb-2">
-                Students Information
-              </h2>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none">
+                  Students Information
+                </h2>
+                <div className="flex items-center gap-1.5 text-[#41454d] bg-slate-50 px-2.5 py-1 rounded-[6px] border border-[#dddddd]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#1b61c9]"></div>
+                  <p className="text-[12px] font-medium">
+                    Removing a student only unenrolls them from this class.
+                  </p>
+                </div>
+              </div>
               <p className="text-[#41454d] text-[14px] font-normal">
                 Manage all student details and enrollments for this class.
               </p>
-              <div className="flex items-center gap-2 text-[#41454d] mt-4 bg-slate-50 px-3 py-2 rounded-[8px] border border-[#dddddd] w-fit">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#1b61c9]"></div>
-                <p className="text-[12px] font-medium">
-                  Removing a student only unenrolls them from this class.
-                </p>
-              </div>
             </div>
 
             {/* SEARCH AND FILTERS */}
