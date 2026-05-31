@@ -198,10 +198,6 @@ const ScheduleSlot = ({
              <div className="bg-white/60 px-2 py-1 rounded-md flex items-center gap-1.5 border border-white/40">
                 <span className="text-xs font-medium text-[#181d26]">{slot.room?.name || "Room TBA"}</span>
              </div>
-             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-5 h-5 rounded-md bg-white/60 text-[#181d26] flex items-center justify-center text-[10px] font-medium border border-white/40">TD</div>
-                <div className="w-5 h-5 rounded-md bg-white/60 text-[#181d26] flex items-center justify-center text-[10px] font-medium border border-white/40">C</div>
-             </div>
           </div>
         </div>
       )}
