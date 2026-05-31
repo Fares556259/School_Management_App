@@ -125,10 +125,13 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     for (let i = 0; i < diffDays; i++) {
         const d = new Date(startDate);
         d.setDate(d.getDate() + i);
-        // Map native day (0-6, Sun-Sat) to our Day enum
-        const dayNames = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
         const nativeDay = d.getDay(); 
-        const mappedDay = nativeDay === 0 ? Day.SATURDAY : dayNames[nativeDay - 1] || Day.MONDAY;
+        
+        // Skip Sunday (0)
+        if (nativeDay === 0) continue;
+        
+        const dayNames = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
+        const mappedDay = dayNames[nativeDay - 1] || Day.MONDAY;
         
         result.push({ day: mappedDay, date: d });
     }

@@ -344,26 +344,26 @@ const ExamTimetableClient = ({
 
           {/* Date Range */}
           <div className="flex items-center gap-4 px-2 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <CalendarIcon size={14} className="text-[#9297a0]" />
-              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Start</span>
+            <div className="flex items-center gap-1.5 relative">
+              <CalendarIcon size={14} className="text-[#9297a0] pointer-events-none" />
+              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider pointer-events-none">Start</span>
               <input 
                 type="date" 
                 value={toLocalISO(currentStartDate)}
                 onChange={(e) => handleDateChange('startDate', e.target.value)}
                 disabled={!isEditMode}
-                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
+                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none w-[115px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
               />
             </div>
             <span className="text-[#9297a0] text-xs font-medium">→</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">End</span>
+            <div className="flex items-center gap-1.5 relative">
+              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider pointer-events-none">End</span>
               <input 
                 type="date" 
                 value={toLocalISO(currentEndDate)}
                 onChange={(e) => handleDateChange('endDate', e.target.value)}
                 disabled={!isEditMode}
-                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
+                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none w-[115px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
               />
             </div>
           </div>
