@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo } from "react";
 import {
   Search, X, Check, Loader2, Plus, Trash2, Edit, 
-  ChevronLeft, ChevronRight, Calendar, Users, ArrowLeft
+  ChevronLeft, ChevronRight, Users, ArrowLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -371,15 +371,6 @@ export default function ClassStudentsTable({
                   }}
                   className="w-full bg-white border border-[#dddddd] rounded-[8px] pl-10 pr-4 py-2.5 text-[13px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
                 />
-              </div>
-
-              {/* Fake Date Filter (mockup design match) */}
-              <div className="flex items-center gap-2 bg-white border border-[#dddddd] rounded-[8px] px-4 py-2.5 text-[#181d26] text-[13px] font-medium w-full sm:w-auto justify-between cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar size={15} className="text-[#41454d]" />
-                  <span>Last 30 days</span>
-                </div>
-                <ChevronRight size={14} className="rotate-90 text-[#41454d] ml-2" />
               </div>
             </div>
           </div>
