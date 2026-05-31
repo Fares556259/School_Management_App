@@ -177,7 +177,7 @@ export default function ClassStudentsTable({
   };
 
   return (
-    <div className="flex-1 p-6 md:p-10 bg-[#FAF9FF] min-h-screen overflow-y-auto">
+    <div className="flex-1 p-6 md:p-8 bg-[#f8fafc] min-h-screen overflow-y-auto selection:bg-[#1b61c9] selection:text-white">
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         
         {/* HEADER AREA */}
@@ -185,18 +185,18 @@ export default function ClassStudentsTable({
           <div className="flex items-center gap-4">
             <Link 
               href="/list/classes" 
-              className="p-3 bg-white hover:bg-purple-50 hover:text-purple-600 border border-slate-200/80 rounded-2xl text-slate-500 shadow-sm transition-all"
+              className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 border border-[#dddddd] rounded-full text-[#181d26] shadow-sm transition-all"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={18} strokeWidth={2} />
             </Link>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight leading-none">
-                Students List
+              <h1 className="text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight leading-none">
+                {activeClass.name} Students
               </h1>
-              <div className="flex items-center gap-2 mt-1.5 text-xs font-semibold text-slate-400">
-                <Link href="/list/classes" className="hover:text-purple-600 transition-colors">Home</Link>
+              <div className="flex items-center gap-2 mt-2 text-[13px] font-medium text-[#41454d]">
+                <Link href="/list/classes" className="hover:text-[#1b61c9] transition-colors">Classes</Link>
                 <span>/</span>
-                <span className="text-slate-500">Students</span>
+                <span className="text-slate-400">Students</span>
               </div>
             </div>
           </div>
@@ -215,33 +215,33 @@ export default function ClassStudentsTable({
 
         {/* INFO HIGHLIGHT BARS */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-white p-5 rounded-[24px] border border-slate-200/50 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold shrink-0">
+          <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
+            <div className="w-12 h-12 rounded-full bg-[#f5e9d4] flex items-center justify-center text-[#181d26] font-medium shrink-0 group-hover:scale-105 transition-transform">
               Lv
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Grade Level</span>
-              <span className="text-base font-black text-slate-700">Class Level {activeClass.level?.level || "-"}</span>
+              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">Grade Level</span>
+              <span className="text-[18px] font-normal text-[#181d26]">Class Level {activeClass.level?.level || "-"}</span>
             </div>
           </div>
-          <div className="bg-white p-5 rounded-[24px] border border-slate-200/50 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-500 font-bold shrink-0">
+          <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
+            <div className="w-12 h-12 rounded-full bg-[#a8d8c4] flex items-center justify-center text-[#181d26] font-medium shrink-0 group-hover:scale-105 transition-transform">
               {activeClass.students.length}
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Enrolled / Capacity</span>
-              <span className="text-base font-black text-slate-700">
+              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">Enrolled / Capacity</span>
+              <span className="text-[18px] font-normal text-[#181d26]">
                 {activeClass.students.length} / {activeClass.capacity} Students
               </span>
             </div>
           </div>
-          <div className="bg-white p-5 rounded-[24px] border border-slate-200/50 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-500 shrink-0">
-              <Users size={20} />
+          <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
+            <div className="w-12 h-12 rounded-full bg-[#ffc3a0] flex items-center justify-center text-[#181d26] shrink-0 group-hover:scale-105 transition-transform">
+              <Users size={18} strokeWidth={2} />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Supervisor</span>
-              <span className="text-base font-black text-slate-700 truncate max-w-[200px]">
+              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">Supervisor</span>
+              <span className="text-[18px] font-normal text-[#181d26] truncate max-w-[200px]">
                 {activeClass.supervisor ? `${activeClass.supervisor.name} ${activeClass.supervisor.surname}` : "No Supervisor"}
               </span>
             </div>
@@ -272,10 +272,10 @@ export default function ClassStudentsTable({
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-4 md:px-6 md:py-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4"
+              className="bg-[#181d26] border border-[#181d26] text-white rounded-[16px] p-4 md:px-6 md:py-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4"
             >
-              <div className="flex items-center gap-3 text-sm font-bold">
-                <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-xs text-white">
+              <div className="flex items-center gap-3 text-[14px] font-medium">
+                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[12px] text-[#181d26] font-bold">
                   {selectedIds.length}
                 </div>
                 <span>Student{selectedIds.length > 1 ? "s" : ""} selected for bulk action</span>
@@ -283,7 +283,7 @@ export default function ClassStudentsTable({
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => setSelectedIds([])}
-                  className="flex-1 sm:flex-none px-4 py-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                  className="flex-1 sm:flex-none px-4 py-2 hover:bg-white/10 text-slate-300 hover:text-white rounded-[8px] text-[13px] font-medium transition-all"
                 >
                   Clear Selection
                 </button>
@@ -291,7 +291,7 @@ export default function ClassStudentsTable({
                   <button
                     onClick={handleBulkRemove}
                     disabled={isPending}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-rose-900/10 disabled:opacity-50"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-[8px] text-[13px] font-medium transition-all shadow-sm disabled:opacity-50"
                   >
                     {isPending ? (
                       <Loader2 className="animate-spin" size={14} />
@@ -302,7 +302,7 @@ export default function ClassStudentsTable({
                   </button>
                 )}
               </div>
-              <p className="text-[10px] font-semibold text-slate-400 w-full sm:w-auto text-center sm:text-left">
+              <p className="text-[12px] text-slate-400 w-full sm:w-auto text-center sm:text-left">
                 Students will remain in the system — only removed from this class.
               </p>
             </motion.div>
@@ -310,19 +310,19 @@ export default function ClassStudentsTable({
         </AnimatePresence>
 
         {/* TABLE CONTAINER CARD */}
-        <div className="bg-white rounded-[32px] border border-slate-200/50 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-[24px] border border-[#dddddd] shadow-sm overflow-hidden">
           
           {/* CARD HEADER */}
-          <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none mb-1.5">
+              <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none mb-2">
                 Students Information
               </h2>
-              <p className="text-slate-400 text-xs font-semibold">
+              <p className="text-[#41454d] text-[14px] font-normal mb-2">
                 Manage all student details and enrollments for this class.
               </p>
-              <p className="mt-1.5 text-[10px] font-bold text-indigo-400 bg-indigo-50 border border-indigo-100 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
+              <p className="text-[12px] font-medium text-[#1b61c9] bg-[#1b61c9]/10 border border-[#1b61c9]/20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1b61c9] inline-block"></span>
                 Removing a student only unenrolls them from this class — they stay in the Students list.
               </p>
             </div>
@@ -331,7 +331,7 @@ export default function ClassStudentsTable({
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
               {/* Search */}
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-500" size={16} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#41454d]" size={16} />
                 <input
                   type="text"
                   placeholder="Search by name or roll..."
@@ -340,17 +340,17 @@ export default function ClassStudentsTable({
                     setSearch(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full bg-[#FAF9FF] border border-slate-200/60 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all"
+                  className="w-full bg-white border border-[#dddddd] rounded-full pl-10 pr-4 py-2.5 text-[14px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all"
                 />
               </div>
 
               {/* Fake Date Filter (mockup design match) */}
-              <div className="flex items-center gap-2 bg-[#FAF9FF] border border-slate-200/60 rounded-xl px-4 py-2.5 text-slate-500 text-sm font-semibold w-full sm:w-auto justify-between cursor-pointer hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2 bg-white border border-[#dddddd] rounded-full px-5 py-2.5 text-[#181d26] text-[14px] font-medium w-full sm:w-auto justify-between cursor-pointer hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-2">
-                  <Calendar size={15} className="text-slate-400" />
+                  <Calendar size={15} className="text-[#41454d]" />
                   <span>Last 30 days</span>
                 </div>
-                <ChevronRight size={14} className="rotate-90 text-slate-400 ml-2" />
+                <ChevronRight size={14} className="rotate-90 text-[#41454d] ml-2" />
               </div>
             </div>
           </div>
@@ -359,27 +359,27 @@ export default function ClassStudentsTable({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider bg-slate-50/50">
+                <tr className="border-b border-[#dddddd] text-[13px] font-medium text-[#41454d] bg-slate-50">
                   <th className="py-4 px-6 text-center w-16 select-none">
                     <div className="flex items-center justify-center">
                       <input
                         type="checkbox"
                         checked={isAllPageSelected}
                         onChange={toggleSelectAll}
-                        className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                        className="w-4 h-4 rounded border-slate-300 text-[#181d26] focus:ring-[#181d26] accent-[#181d26] cursor-pointer"
                       />
                     </div>
                   </th>
-                  <th className="py-4 px-6">Students Name</th>
-                  <th className="py-4 px-4 text-center w-20">Roll</th>
-                  <th className="py-4 px-6">Address</th>
-                  <th className="py-4 px-6 text-center w-24">Class</th>
-                  <th className="py-4 px-6">Date of Birth</th>
-                  <th className="py-4 px-6">Phone</th>
-                  {role === "admin" && <th className="py-4 px-6 text-right w-28">Action</th>}
+                  <th className="py-4 px-6 font-medium">Students Name</th>
+                  <th className="py-4 px-4 text-center w-20 font-medium">Roll</th>
+                  <th className="py-4 px-6 font-medium">Address</th>
+                  <th className="py-4 px-6 text-center w-24 font-medium">Class</th>
+                  <th className="py-4 px-6 font-medium">Date of Birth</th>
+                  <th className="py-4 px-6 font-medium">Phone</th>
+                  {role === "admin" && <th className="py-4 px-6 text-right w-28 font-medium">Action</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#dddddd]">
                 {paginatedStudents.map((student) => {
                   // Find the absolute/relative index in the active class to display consistent roll numbers
                   const originalIndex = activeClass.students.findIndex(s => s.id === student.id);
@@ -392,10 +392,10 @@ export default function ClassStudentsTable({
                   return (
                     <tr 
                       key={student.id} 
-                      className={`group transition-all duration-200 select-none ${
+                      className={`group transition-colors duration-200 select-none ${
                         isChecked 
-                          ? "bg-purple-50/40 hover:bg-purple-50/60" 
-                          : "hover:bg-slate-50/40"
+                          ? "bg-slate-50" 
+                          : "hover:bg-[#f8fafc]"
                       }`}
                     >
                       {/* Checkbox */}
@@ -405,7 +405,7 @@ export default function ClassStudentsTable({
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => toggleSelectRow(student.id)}
-                            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 accent-purple-600 cursor-pointer"
+                            className="w-4 h-4 rounded border-slate-300 text-[#181d26] focus:ring-[#181d26] accent-[#181d26] cursor-pointer"
                           />
                         </div>
                       </td>
@@ -413,7 +413,7 @@ export default function ClassStudentsTable({
                       {/* Photo & Name */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden relative border border-slate-100 shadow-inner bg-slate-50 shrink-0">
+                          <div className="w-10 h-10 rounded-full overflow-hidden relative bg-slate-100 shrink-0 border border-[#dddddd]">
                             <Image 
                               src={student.img || "/noavatar.png"} 
                               alt={`${student.name} ${student.surname}`} 
@@ -424,11 +424,11 @@ export default function ClassStudentsTable({
                           <div className="flex flex-col">
                             <Link 
                               href={`/list/students/${student.id}`}
-                              className="text-sm font-bold text-slate-700 hover:text-purple-600 transition-colors leading-snug"
+                              className="text-[14px] font-medium text-[#181d26] hover:text-[#1b61c9] transition-colors"
                             >
                               {student.name} {student.surname}
                             </Link>
-                            <span className="text-[10px] font-semibold text-slate-400 mt-0.5 leading-none">
+                            <span className="text-[12px] font-medium text-[#41454d] mt-0.5">
                               {student.username}
                             </span>
                           </div>
@@ -437,30 +437,30 @@ export default function ClassStudentsTable({
 
                       {/* Roll */}
                       <td className="py-4 px-4 text-center">
-                        <span className="font-bold text-slate-400 text-xs">
+                        <span className="font-medium text-[#41454d] text-[14px]">
                           {rollLabel}
                         </span>
                       </td>
 
                       {/* Address */}
-                      <td className="py-4 px-6 text-sm font-semibold text-slate-500">
+                      <td className="py-4 px-6 text-[14px] font-medium text-[#41454d]">
                         {student.address}
                       </td>
 
                       {/* Class */}
                       <td className="py-4 px-6 text-center">
-                        <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold">
+                        <span className="px-2.5 py-1 bg-slate-100 text-[#181d26] rounded-[6px] text-[12px] font-medium border border-[#dddddd]">
                           {activeClass.name}
                         </span>
                       </td>
 
                       {/* DOB */}
-                      <td className="py-4 px-6 text-sm font-semibold text-slate-500">
+                      <td className="py-4 px-6 text-[14px] font-medium text-[#41454d]">
                         {formatDate(student.birthday)}
                       </td>
 
                       {/* Phone */}
-                      <td className="py-4 px-6 text-sm font-semibold text-slate-500">
+                      <td className="py-4 px-6 text-[14px] font-medium text-[#41454d]">
                         {student.phone || "-"}
                       </td>
 
@@ -477,7 +477,7 @@ export default function ClassStudentsTable({
                             {/* Remove from Class button */}
                             <button
                               onClick={() => handleSingleRemove(student.id, `${student.name} ${student.surname}`)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
                               title="Unenroll from this class (student stays in the system)"
                             >
                               <X size={14} strokeWidth={2.5} />
@@ -526,7 +526,7 @@ export default function ClassStudentsTable({
 
           {/* TABLE FOOTER / PAGINATION */}
           {filteredStudents.length > 0 && (
-            <div className="p-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30">
+            <div className="p-6 border-t border-[#dddddd] flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
               
               {/* Pagination controls */}
               <div className="flex items-center gap-1.5 select-none">
@@ -534,7 +534,7 @@ export default function ClassStudentsTable({
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                   disabled={safeCurrentPage === 1}
-                  className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-400 transition-all cursor-pointer"
+                  className="w-8 h-8 rounded-[8px] border border-[#dddddd] bg-white flex items-center justify-center text-[#181d26] hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -548,10 +548,10 @@ export default function ClassStudentsTable({
                   if (totalPages > 6) {
                     if (pNum !== 1 && pNum !== totalPages && Math.abs(pNum - safeCurrentPage) > 1) {
                       if (pNum === 2 && safeCurrentPage > 3) {
-                        return <span key="dots-left" className="px-1 text-slate-400 text-xs font-black">...</span>;
+                        return <span key="dots-left" className="px-1 text-[#41454d] text-[14px]">...</span>;
                       }
                       if (pNum === totalPages - 1 && safeCurrentPage < totalPages - 2) {
-                        return <span key="dots-right" className="px-1 text-slate-400 text-xs font-black">...</span>;
+                        return <span key="dots-right" className="px-1 text-[#41454d] text-[14px]">...</span>;
                       }
                       return null;
                     }
@@ -561,10 +561,10 @@ export default function ClassStudentsTable({
                     <button
                       key={pNum}
                       onClick={() => setCurrentPage(pNum)}
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all cursor-pointer ${
+                      className={`w-8 h-8 rounded-[8px] flex items-center justify-center text-[13px] font-medium transition-all cursor-pointer border ${
                         isActive
-                          ? "bg-purple-600 text-white shadow-md shadow-purple-200"
-                          : "border border-transparent bg-transparent hover:bg-slate-100 text-slate-600"
+                          ? "bg-[#181d26] text-white border-[#181d26]"
+                          : "border-[#dddddd] bg-white hover:bg-slate-50 text-[#181d26]"
                       }`}
                     >
                       {pNum}
@@ -576,7 +576,7 @@ export default function ClassStudentsTable({
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                   disabled={safeCurrentPage === totalPages}
-                  className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-400 transition-all cursor-pointer"
+                  className="w-8 h-8 rounded-[8px] border border-[#dddddd] bg-white flex items-center justify-center text-[#181d26] hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer"
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -584,7 +584,7 @@ export default function ClassStudentsTable({
 
               {/* Page size options */}
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-slate-400">
+                <span className="text-[13px] font-medium text-[#41454d]">
                   Showing {(safeCurrentPage - 1) * pageSize + 1} to {Math.min(safeCurrentPage * pageSize, totalItems)} of {totalItems} items
                 </span>
 
@@ -594,7 +594,7 @@ export default function ClassStudentsTable({
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-white border border-slate-200 text-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer"
+                  className="bg-white border border-[#dddddd] text-[#181d26] rounded-[8px] px-3 py-1.5 text-[13px] font-medium focus:outline-none focus:border-[#181d26] cursor-pointer"
                 >
                   <option value={5}>5 / page</option>
                   <option value={10}>10 / page</option>

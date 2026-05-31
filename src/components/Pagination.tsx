@@ -22,15 +22,15 @@ const Pagination = ({
   };
 
   return (
-    <div className="p-4 flex items-center justify-between text-gray-500">
+    <div className="pt-6 mt-4 flex items-center justify-between text-[#41454d]">
       <button
         disabled={!hasPrev}
-        className="py-2 px-4 rounded-md bg-slate-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed"
         onClick={() => changePage(page - 1)}
       >
-        Prev
+        Previous
       </button>
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-1.5 text-[13px]">
         {(() => {
           const totalPages = Math.ceil(count / ITEM_PER_PAGE);
           const pages = [];
@@ -51,13 +51,13 @@ const Pagination = ({
 
           return pages.map((p, index) => {
             if (p === "...") {
-              return <span key={`dots-${index}`}>...</span>;
+              return <span key={`dots-${index}`} className="px-1 font-medium">...</span>;
             }
             return (
               <button
                 key={p}
-                className={`px-2 rounded-sm ${
-                  page === p ? "bg-lamaSky" : ""
+                className={`w-8 h-8 rounded-[8px] flex items-center justify-center text-[13px] font-medium transition-all border ${
+                  page === p ? "bg-[#181d26] text-white border-[#181d26]" : "border-transparent hover:bg-slate-100 text-[#41454d]"
                 }`}
                 onClick={() => changePage(p as number)}
               >
@@ -69,7 +69,7 @@ const Pagination = ({
       </div>
       <button
         disabled={!hasNext}
-        className="py-2 px-4 rounded-md bg-slate-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed"
         onClick={() => changePage(page + 1)}
       >
         Next

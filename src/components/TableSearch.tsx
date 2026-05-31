@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const TableSearch = () => {
@@ -24,13 +24,13 @@ const TableSearch = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full md:w-auto flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-2"
+      className="relative w-full sm:w-72"
     >
-      <Image src="/search.png" alt="" width={14} height={14} />
+      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#41454d]" size={16} />
       <input
         type="text"
         placeholder="Search..."
-        className="w-[200px] p-2 bg-transparent outline-none"
+        className="w-full bg-white border border-[#dddddd] rounded-full pl-10 pr-4 py-2.5 text-[14px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
       />
     </form>
   );

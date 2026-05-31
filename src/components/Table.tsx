@@ -8,16 +8,18 @@ const Table = ({
   data: any[];
 }) => {
   return (
-    <table className="w-full mt-4">
-      <thead>
-        <tr className="text-left text-gray-500 text-sm">
-          {columns.map((col) => (
-            <th key={col.accessor} className={col.className}>{col.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>{data.map((item) => renderRow(item))}</tbody>
-    </table>
+    <div className="overflow-x-auto w-full mt-6">
+      <table className="w-full text-left border-collapse min-w-[800px]">
+        <thead>
+          <tr className="border-y border-[#dddddd] text-[13px] font-medium text-[#41454d] bg-slate-50/50">
+            {columns.map((col) => (
+              <th key={col.accessor} className={`py-4 px-6 ${col.className || ""}`}>{col.header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#dddddd]">{data.map((item) => renderRow(item))}</tbody>
+      </table>
+    </div>
   );
 };
 

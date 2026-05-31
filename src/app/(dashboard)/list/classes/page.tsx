@@ -38,6 +38,7 @@ const columns = [
   {
     header: "Actions",
     accessor: "action",
+    className: "text-right",
   },
 ];
 
@@ -81,18 +82,18 @@ const ClassListPage = async ({
       key={item.id}
       className="border-b border-[#dddddd] text-[15px] text-[#41454d] hover:bg-[#f8fafc] transition-colors group"
     >
-      <td className="py-4">
+      <td className="py-4 px-6">
         <Link href={`/list/classes/${item.id}`} className="font-medium text-[#181d26] hover:text-[#1b61c9] transition-colors">
           {item.name}
         </Link>
       </td>
-      <td className="hidden md:table-cell py-4">{item.capacity}</td>
-      <td className="hidden md:table-cell py-4">{item.level?.level}</td>
-      <td className="hidden md:table-cell py-4">
+      <td className="hidden md:table-cell py-4 px-6">{item.capacity}</td>
+      <td className="hidden md:table-cell py-4 px-6">{item.level?.level}</td>
+      <td className="hidden md:table-cell py-4 px-6">
         {item.supervisor ? item.supervisor.name + " " + item.supervisor.surname : "-"}
       </td>
-      <td className="py-4">
-        <div className="flex items-center gap-3">
+      <td className="py-4 px-6">
+        <div className="flex items-center justify-end gap-3">
           {role === "admin" && (
             <>
               <Link 
