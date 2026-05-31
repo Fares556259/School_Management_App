@@ -207,79 +207,8 @@ const ExamTimetableClient = ({
                 {forceDraft ? "AI Exam Scheduler" : "Academic Exams"}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4 text-sm text-slate-500">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-[#41454d]">Target Class:</span>
-                  <div className="relative inline-flex items-center bg-slate-50 hover:bg-slate-100 border border-[#dddddd] rounded-lg px-3 py-1.5 transition-all">
-                    <select 
-                      className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
-                      value={selectedClass?.id}
-                      onChange={(e) => {
-                        const params = new URLSearchParams(searchParams);
-                        params.set("classId", e.target.value);
-                        startTransition(() => {
-                            router.push(`${forceDraft ? "/admin/timetable/ai?type=exam" : "/list/exams"}?${params.toString()}`);
-                        });
-                      }}
-                    >
-                      {classes.map(cls => (
-                        <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
-                          Grade {cls.level.level} - {cls.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                      <ChevronDown size={14} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-px h-5 bg-[#dddddd]"></div>
-
-                <div className="flex items-center gap-3">
-                   <span className="font-medium text-[#41454d]">Exam Period:</span>
-                   <div className="flex bg-[#f8fafc] p-1 rounded-lg border border-[#dddddd] gap-1">
-                      {[1, 2, 3].map((p) => (
-                        <button
-                          key={p}
-                          onClick={() => setSelectedPeriod(p)}
-                          className={`px-4 py-1 rounded-md text-xs font-medium transition-all ${
-                            selectedPeriod === p 
-                            ? 'bg-white text-[#181d26] shadow-sm border border-[#dddddd]' 
-                            : 'text-[#41454d] hover:text-[#181d26] hover:bg-white'
-                          }`}
-                        >
-                          Week {p}
-                        </button>
-                      ))}
-                   </div>
-                </div>
-
-                <div className="w-px h-5 bg-[#dddddd]"></div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon size={14} className="text-[#9297a0]" />
-                    <span className="text-xs font-medium text-[#41454d] whitespace-nowrap">Start:</span>
-                    <input 
-                      type="date" 
-                      value={toLocalISO(currentStartDate)}
-                      onChange={(e) => handleDateChange('startDate', e.target.value)}
-                      disabled={!isEditMode}
-                      className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[#41454d] whitespace-nowrap">End:</span>
-                    <input 
-                      type="date" 
-                      value={toLocalISO(currentEndDate)}
-                      onChange={(e) => handleDateChange('endDate', e.target.value)}
-                      disabled={!isEditMode}
-                      className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    />
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-slate-500 hidden">
+                {/* Removed messy inline controls */}
               </div>
             </div>
           </div>
@@ -361,6 +290,82 @@ const ExamTimetableClient = ({
                 <Check size={16} /> Done Editing
               </button>
             )}
+          </div>
+        </div>
+
+        {/* PRO VIEW BAR (Airtable-style filter bar) */}
+        <div className="flex items-center overflow-x-auto bg-[#f8fafc] border border-[#dddddd] rounded-lg px-2 py-1.5 gap-2 w-full">
+          {/* Target Class */}
+          <div className="flex items-center gap-2 px-2 border-r border-[#dddddd] pr-4 shrink-0">
+            <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Class</span>
+            <div className="relative inline-flex items-center">
+              <select 
+                className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
+                value={selectedClass?.id}
+                onChange={(e) => {
+                  const params = new URLSearchParams(searchParams);
+                  params.set("classId", e.target.value);
+                  startTransition(() => {
+                      router.push(`${forceDraft ? "/admin/timetable/ai?type=exam" : "/list/exams"}?${params.toString()}`);
+                  });
+                }}
+              >
+                {classes.map(cls => (
+                  <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
+                    Grade {cls.level.level} - {cls.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                <ChevronDown size={14} />
+              </div>
+            </div>
+          </div>
+
+          {/* Exam Period Segmented Control */}
+          <div className="flex items-center gap-2 px-2 border-r border-[#dddddd] pr-4 shrink-0">
+             <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Period</span>
+             <div className="flex bg-[#e2e8f0] p-0.5 rounded-md gap-0.5">
+                {[1, 2, 3].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setSelectedPeriod(p)}
+                    className={`px-4 py-1 rounded-[4px] text-xs font-medium transition-all ${
+                      selectedPeriod === p 
+                      ? 'bg-white text-[#181d26] shadow-sm' 
+                      : 'text-[#41454d] hover:text-[#181d26] hover:bg-slate-200'
+                    }`}
+                  >
+                    Week {p}
+                  </button>
+                ))}
+             </div>
+          </div>
+
+          {/* Date Range */}
+          <div className="flex items-center gap-4 px-2 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <CalendarIcon size={14} className="text-[#9297a0]" />
+              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Start</span>
+              <input 
+                type="date" 
+                value={toLocalISO(currentStartDate)}
+                onChange={(e) => handleDateChange('startDate', e.target.value)}
+                disabled={!isEditMode}
+                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
+              />
+            </div>
+            <span className="text-[#9297a0] text-xs font-medium">→</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">End</span>
+              <input 
+                type="date" 
+                value={toLocalISO(currentEndDate)}
+                onChange={(e) => handleDateChange('endDate', e.target.value)}
+                disabled={!isEditMode}
+                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
+              />
+            </div>
           </div>
         </div>
       </div>
