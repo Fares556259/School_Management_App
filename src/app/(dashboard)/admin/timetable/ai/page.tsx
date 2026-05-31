@@ -61,82 +61,78 @@ const AiTimetablePage = async ({
 
   // Render a gorgeous selection workspace portal
   return (
-    <div className="relative p-8 flex flex-col items-center justify-center flex-1 bg-slate-50/30 min-h-[85vh] overflow-hidden rounded-[40px] m-4 border border-white shadow-2xl shadow-slate-200/50">
-      {/* Animated Background Blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-400/20 blur-[120px] animate-pulse"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-400/20 blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-      <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-pink-400/20 blur-[100px] animate-pulse" style={{ animationDelay: '4s' }}></div>
+    <div className="relative flex flex-col items-center justify-center flex-1 w-full bg-[#f8fafc] overflow-hidden min-h-[calc(100vh-60px)]">
+      {/* Subtle Animated Background Gradients */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-200/40 rounded-full blur-[100px] opacity-60 animate-pulse mix-blend-multiply" style={{ animationDuration: '4s' }}></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[100px] opacity-60 animate-pulse mix-blend-multiply" style={{ animationDuration: '6s' }}></div>
 
-      {/* Hero Section */}
-      <div className="relative z-10 text-center max-w-2xl flex flex-col items-center gap-6 mb-16">
-        <div className="relative group cursor-default">
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-700 animate-pulse"></div>
-          <div className="relative w-24 h-24 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-[2rem] rotate-3 group-hover:rotate-12 transition-transform duration-700 flex items-center justify-center text-white shadow-2xl shadow-indigo-500/30 ring-4 ring-white">
-            <Sparkles size={40} className="stroke-[1.5px] -rotate-3 group-hover:-rotate-12 transition-transform duration-700" />
+      <div className="relative z-10 flex flex-col items-center max-w-5xl w-full px-6 py-12">
+        {/* Header Section */}
+        <div className="text-center flex flex-col items-center gap-4 mb-14">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-md shadow-indigo-100/50 border border-slate-100 ring-4 ring-white">
+            <Sparkles size={24} className="stroke-[2px]" />
           </div>
-        </div>
-        
-        <div className="mt-4">
-          <h1 className="text-5xl md:text-[64px] font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 tracking-tight uppercase leading-[1.1] drop-shadow-sm">
-            AI Scheduler<br/>Playground
-          </h1>
-          <p className="text-slate-500 text-sm md:text-base font-semibold mt-6 leading-relaxed max-w-lg mx-auto">
-            Experience the future of academic planning. Generate, optimize, and safely draft conflict-free curriculums and exam periods in seconds.
-          </p>
-        </div>
-      </div>
-
-      {/* Choice workspace cards */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl w-full px-4">
-        {/* Card 1: Timetable Scheduler */}
-        <Link 
-          href="/admin/timetable/ai?type=timetable"
-          className="group relative bg-white/70 backdrop-blur-2xl p-10 rounded-[32px] border border-white shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-2 active:scale-[0.98] transition-all duration-500 flex flex-col items-start text-left overflow-hidden"
-        >
-          {/* Hover Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           
-          <div className="relative z-10 w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 flex items-center justify-center text-indigo-600 shadow-inner border border-indigo-100/50 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
-            <Calendar size={36} className="stroke-[1.5px]" />
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight mt-2">
+              AI Scheduler Playground
+            </h1>
+            <p className="text-slate-500 text-sm font-medium mt-3 max-w-lg mx-auto leading-relaxed">
+              Plan, generate, and optimize conflict-free curriculum drafts for classes and assessment periods in a secure sandbox.
+            </p>
           </div>
+        </div>
 
-          <h2 className="relative z-10 text-2xl font-black text-slate-800 tracking-tight mt-8 group-hover:text-indigo-600 transition-colors duration-300">
-            Weekly Timetables
-          </h2>
-          <p className="relative z-10 text-slate-500 text-sm font-medium leading-relaxed mt-4">
-            Draft class lesson hours, assign teacher hours, prevent room double-bookings, and optimize subject distributions using advanced AI optimizations.
-          </p>
+        {/* Workspace Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+          {/* Card 1: Timetable Scheduler */}
+          <Link 
+            href="/admin/timetable/ai?type=timetable"
+            className="group relative bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 flex flex-col overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-transparent rounded-bl-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
+            
+            <div className="relative z-10 w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
+              <Calendar size={22} className="stroke-[2px]" />
+            </div>
 
-          <div className="relative z-10 flex items-center gap-3 mt-10 text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-5 py-3 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300 shadow-sm border border-indigo-100/50 group-hover:border-transparent">
-            Enter Workspace
-            <ArrowRight size={16} className="stroke-[2.5px] group-hover:translate-x-1 transition-transform duration-300" />
-          </div>
-        </Link>
+            <h2 className="relative z-10 text-lg font-bold text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors duration-300">
+              Weekly Timetables
+            </h2>
+            <p className="relative z-10 text-slate-500 text-xs font-medium leading-relaxed mt-2 flex-grow">
+              Draft class lesson hours, assign teacher hours, prevent room double-bookings, and optimize subject distributions.
+            </p>
 
-        {/* Card 2: Exam Scheduler */}
-        <Link 
-          href="/admin/timetable/ai?type=exam"
-          className="group relative bg-white/70 backdrop-blur-2xl p-10 rounded-[32px] border border-white shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-pink-500/20 hover:-translate-y-2 active:scale-[0.98] transition-all duration-500 flex flex-col items-start text-left overflow-hidden"
-        >
-          {/* Hover Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative z-10 flex items-center gap-2 mt-6 text-[11px] font-bold uppercase tracking-wider text-indigo-600 group-hover:gap-3 transition-all">
+              Enter Workspace
+              <ArrowRight size={14} className="stroke-[2.5px]" />
+            </div>
+          </Link>
 
-          <div className="relative z-10 w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50/50 flex items-center justify-center text-purple-600 shadow-inner border border-purple-100/50 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500">
-            <ClipboardCheck size={36} className="stroke-[1.5px]" />
-          </div>
+          {/* Card 2: Exam Scheduler */}
+          <Link 
+            href="/admin/timetable/ai?type=exam"
+            className="group relative bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 flex flex-col overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-50 to-transparent rounded-bl-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
 
-          <h2 className="relative z-10 text-2xl font-black text-slate-800 tracking-tight mt-8 group-hover:text-purple-600 transition-colors duration-300">
-            Exam Calendars
-          </h2>
-          <p className="relative z-10 text-slate-500 text-sm font-medium leading-relaxed mt-4">
-            Schedule test blocks, midterms, and final exam grids safely in drafts before publishing them. Build balanced, stress-free assessment periods for students.
-          </p>
+            <div className="relative z-10 w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300">
+              <ClipboardCheck size={22} className="stroke-[2px]" />
+            </div>
 
-          <div className="relative z-10 flex items-center gap-3 mt-10 text-xs font-black uppercase tracking-widest text-purple-600 bg-purple-50 px-5 py-3 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300 shadow-sm border border-purple-100/50 group-hover:border-transparent">
-            Enter Workspace
-            <ArrowRight size={16} className="stroke-[2.5px] group-hover:translate-x-1 transition-transform duration-300" />
-          </div>
-        </Link>
+            <h2 className="relative z-10 text-lg font-bold text-slate-800 tracking-tight group-hover:text-purple-600 transition-colors duration-300">
+              Exam Calendars
+            </h2>
+            <p className="relative z-10 text-slate-500 text-xs font-medium leading-relaxed mt-2 flex-grow">
+              Schedule test blocks, midterms, and final exam grids safely in drafts before publishing them. Build balanced assessment periods.
+            </p>
+
+            <div className="relative z-10 flex items-center gap-2 mt-6 text-[11px] font-bold uppercase tracking-wider text-purple-600 group-hover:gap-3 transition-all">
+              Enter Workspace
+              <ArrowRight size={14} className="stroke-[2.5px]" />
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );
