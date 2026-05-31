@@ -207,7 +207,7 @@ const ExamTimetableClient = ({
                 {forceDraft ? "AI Exam Scheduler" : "Academic Exams"}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-slate-500">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4 text-sm text-slate-500">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-[#41454d]">Target Class:</span>
                   <div className="relative inline-flex items-center bg-slate-50 hover:bg-slate-100 border border-[#dddddd] rounded-lg px-3 py-1.5 transition-all">
@@ -231,6 +231,53 @@ const ExamTimetableClient = ({
                     <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                       <ChevronDown size={14} />
                     </div>
+                  </div>
+                </div>
+
+                <div className="w-px h-5 bg-[#dddddd]"></div>
+
+                <div className="flex items-center gap-3">
+                   <span className="font-medium text-[#41454d]">Exam Period:</span>
+                   <div className="flex bg-[#f8fafc] p-1 rounded-lg border border-[#dddddd] gap-1">
+                      {[1, 2, 3].map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setSelectedPeriod(p)}
+                          className={`px-4 py-1 rounded-md text-xs font-medium transition-all ${
+                            selectedPeriod === p 
+                            ? 'bg-white text-[#181d26] shadow-sm border border-[#dddddd]' 
+                            : 'text-[#41454d] hover:text-[#181d26] hover:bg-white'
+                          }`}
+                        >
+                          Week {p}
+                        </button>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="w-px h-5 bg-[#dddddd]"></div>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon size={14} className="text-[#9297a0]" />
+                    <span className="text-xs font-medium text-[#41454d] whitespace-nowrap">Start:</span>
+                    <input 
+                      type="date" 
+                      value={toLocalISO(currentStartDate)}
+                      onChange={(e) => handleDateChange('startDate', e.target.value)}
+                      disabled={!isEditMode}
+                      className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[#41454d] whitespace-nowrap">End:</span>
+                    <input 
+                      type="date" 
+                      value={toLocalISO(currentEndDate)}
+                      onChange={(e) => handleDateChange('endDate', e.target.value)}
+                      disabled={!isEditMode}
+                      className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    />
                   </div>
                 </div>
               </div>
@@ -318,53 +365,7 @@ const ExamTimetableClient = ({
         </div>
       </div>
 
-      {/* PERIOD SELECTOR SECTION */}
-      <div className="flex items-center justify-between gap-4 py-6 mt-2 border-t border-[#dddddd]">
-        <div className="flex items-center gap-4">
-           <div className="text-sm font-medium text-[#181d26]">Exam Period</div>
-           <div className="flex bg-[#f8fafc] p-1 rounded-xl border border-[#dddddd] gap-1">
-              {[1, 2, 3].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setSelectedPeriod(p)}
-                  className={`px-8 py-2 rounded-lg text-sm font-medium transition-all ${
-                    selectedPeriod === p 
-                    ? 'bg-white text-[#181d26] shadow-sm border border-[#dddddd]' 
-                    : 'text-[#41454d] hover:text-[#181d26] hover:bg-white'
-                  }`}
-                >
-                  Week {p}
-                </button>
-              ))}
-           </div>
-        </div>
-        <div className="flex items-center gap-6">
-           <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <CalendarIcon size={16} className="text-[#9297a0]" />
-                <span className="text-sm font-medium text-[#41454d] whitespace-nowrap">Start</span>
-                <input 
-                  type="date" 
-                  value={toLocalISO(currentStartDate)}
-                  onChange={(e) => handleDateChange('startDate', e.target.value)}
-                  disabled={!isEditMode}
-                  className={`bg-white border border-[#dddddd] rounded-md px-3 py-1.5 text-sm font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[#41454d] whitespace-nowrap">End</span>
-                <input 
-                  type="date" 
-                  value={toLocalISO(currentEndDate)}
-                  onChange={(e) => handleDateChange('endDate', e.target.value)}
-                  disabled={!isEditMode}
-                  className={`bg-white border border-[#dddddd] rounded-md px-3 py-1.5 text-sm font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all outline-none ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                />
-              </div>
-           </div>
-        </div>
-      </div>
-
+      {/* PERIOD SELECTOR REMOVED - merged into top bar */}
       {/* TIMETABLE GRID */}
       {selectedClass && (
         <div className={(isPending || loading) ? "opacity-50 transition-opacity" : ""}>
