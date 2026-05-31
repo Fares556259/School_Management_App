@@ -18,18 +18,19 @@ export async function getExamPeriodConfigs(classId?: number) {
 
 export async function upsertExamPeriodConfig(period: number, startDate: Date, endDate?: Date, classId?: number) {
   try {
-    // If no classId is provided, we might still have old records without it, or it creates a global fallback
+    if (!classId) return { success: false, error: "Class ID is required" };
+
     const config = await prisma.examPeriodConfig.upsert({
-      where: classId ? { period_classId: { period, classId } } : { period },
+      where: { period_classId: { period, classId } },
       update: { 
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null
       },
       create: { 
         period, 
+        classId,
         startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-        classId
+        endDate: endDate ? new Date(endDate) : null
       }
     });
     revalidatePath("/list/exams");
