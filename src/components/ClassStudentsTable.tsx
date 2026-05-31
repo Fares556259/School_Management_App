@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { 
   Search, X, Check, Loader2, Plus, Trash2, Edit, 
-  ChevronLeft, ChevronRight, Calendar, Users, ArrowLeft 
+  ChevronLeft, ChevronRight, Calendar, Users, ArrowLeft, Info
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -180,6 +179,16 @@ export default function ClassStudentsTable({
     <div className="flex-1 p-6 md:p-8 bg-[#f8fafc] min-h-screen overflow-y-auto selection:bg-[#1b61c9] selection:text-white">
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         
+        {/* TOP NOTICE BANNER */}
+        <div className="bg-white border border-[#dddddd] px-4 py-3 rounded-[12px] flex items-center gap-3 shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-slate-50 border border-[#dddddd] flex items-center justify-center shrink-0">
+             <Info size={16} className="text-[#1b61c9]" />
+          </div>
+          <p className="text-[13px] font-medium text-[#41454d]">
+            Removing a student from this page only unenrolls them from this class. They will remain in your system and can be reassigned later.
+          </p>
+        </div>
+
         {/* HEADER AREA */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -315,17 +324,9 @@ export default function ClassStudentsTable({
           {/* CARD HEADER */}
           <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none">
-                  Students Information
-                </h2>
-                <div className="flex items-center gap-1.5 text-[#41454d] bg-slate-50 px-2.5 py-1 rounded-[6px] border border-[#dddddd]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#1b61c9]"></div>
-                  <p className="text-[12px] font-medium">
-                    Removing a student only unenrolls them from this class.
-                  </p>
-                </div>
-              </div>
+              <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none mb-2">
+                Students Information
+              </h2>
               <p className="text-[#41454d] text-[14px] font-normal">
                 Manage all student details and enrollments for this class.
               </p>
