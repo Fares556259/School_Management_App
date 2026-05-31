@@ -189,7 +189,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     <div ref={ref} className="bg-white overflow-hidden print:shadow-none print:border-none print:m-0 print:p-0">
       <div className="overflow-x-auto">
         <div className="min-w-[1200px] print:min-w-0 border border-[#dddddd] rounded-xl overflow-hidden">
-          <div className={`grid border-b border-[#dddddd] bg-[#f8fafc]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
+          <div className={`grid border-b border-[#dddddd] bg-[#f8fafc]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
             <div className="h-12 flex items-center justify-center border-r border-[#dddddd]">
                <span className="text-sm font-medium text-[#41454d]">Time</span>
             </div>
@@ -210,7 +210,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             })}
           </div>
 
-          <div className="flex flex-col gap-4 relative">
+          <div className="flex flex-col relative">
             {isLoading && (
               <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[40px]">
                 <div className="flex flex-col items-center gap-2">
@@ -220,7 +220,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               </div>
             )}
             {displaySessions.map((session, idx) => (
-              <div key={session.id || idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, 1fr)` }}>
+              <div key={session.id || idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
                 <div className="flex flex-col items-center justify-center bg-[#f8fafc] p-4 relative group border-r border-[#dddddd]">
                    <span className="text-[16px] font-medium text-[#181d26] leading-none">{idx + 1}</span>
                    <span className="text-xs font-normal text-[#41454d] mt-2 whitespace-nowrap">{session.time}</span>
