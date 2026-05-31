@@ -313,18 +313,20 @@ export default function ClassStudentsTable({
         <div className="bg-white rounded-[24px] border border-[#dddddd] shadow-sm overflow-hidden">
           
           {/* CARD HEADER */}
-          <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
             <div>
               <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none mb-2">
                 Students Information
               </h2>
-              <p className="text-[#41454d] text-[14px] font-normal mb-2">
+              <p className="text-[#41454d] text-[14px] font-normal">
                 Manage all student details and enrollments for this class.
               </p>
-              <p className="text-[12px] font-medium text-[#1b61c9] bg-[#1b61c9]/10 border border-[#1b61c9]/20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1b61c9] inline-block"></span>
-                Removing a student only unenrolls them from this class — they stay in the Students list.
-              </p>
+              <div className="flex items-center gap-2 text-[#41454d] mt-4 bg-slate-50 px-3 py-2 rounded-[8px] border border-[#dddddd] w-fit">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1b61c9]"></div>
+                <p className="text-[12px] font-medium">
+                  Removing a student only unenrolls them from this class.
+                </p>
+              </div>
             </div>
 
             {/* SEARCH AND FILTERS */}
@@ -340,12 +342,12 @@ export default function ClassStudentsTable({
                     setSearch(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full bg-white border border-[#dddddd] rounded-full pl-10 pr-4 py-2.5 text-[14px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all"
+                  className="w-full bg-white border border-[#dddddd] rounded-[8px] pl-10 pr-4 py-2.5 text-[13px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
                 />
               </div>
 
               {/* Fake Date Filter (mockup design match) */}
-              <div className="flex items-center gap-2 bg-white border border-[#dddddd] rounded-full px-5 py-2.5 text-[#181d26] text-[14px] font-medium w-full sm:w-auto justify-between cursor-pointer hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2 bg-white border border-[#dddddd] rounded-[8px] px-4 py-2.5 text-[#181d26] text-[13px] font-medium w-full sm:w-auto justify-between cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
                 <div className="flex items-center gap-2">
                   <Calendar size={15} className="text-[#41454d]" />
                   <span>Last 30 days</span>
