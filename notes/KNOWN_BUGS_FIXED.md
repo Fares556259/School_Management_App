@@ -117,3 +117,33 @@ For highly dynamic file previews that load fast and support client-side controls
 - [x] Compiles with zero errors.
 - [x] Pushed successfully to git.
 
+---
+
+### Bug 18: Assignment Dropdown Displaying Duplicate/Fake "Lessons"
+
+**Context:**
+The "Lessons" feature was previously removed from the application, meaning users no longer manually create Lessons. However, Assignments and Exams are hardcoded via Prisma to require a valid `lessonId`. Because of this, the `AssignmentForm` and `ExamForm` had blank dropdowns or dropdowns filled with old, obsolete dummy data (like "Exam Lesson"). 
+
+**Issue:**
+When a teacher selected "All Classes", the dropdown showed dozens of duplicate lessons because the Timetable has multiple slots for the same class/subject across different days of the week. Furthermore, legacy database names like "Exam Lesson" appeared instead of proper formatting.
+
+**Root Cause:**
+1. The `/api/lessons` endpoint wasn't syncing `TimetableSlot` to `Lesson` cleanly.
+2. The endpoint returned duplicate `Lesson` objects because a single course (e.g., Math 4C) meets multiple times a week.
+3. The UI relied on the database `lesson.name`, which contained old test data.
+
+**Fix Applied:**
+1. **Auto-Sync:** Overhauled `/api/lessons/route.ts` to automatically map and synchronize active published `TimetableSlots` to the `Lesson` table, resolving foreign-key restrictions natively without requiring a massive database migration.
+2. **Deduplication:** Added a grouping mechanism using a `Map` that deduplicates slots based on a unique `(subjectId, classId, teacherId)` combination, discarding day/time to ensure only 1 clean lesson is created/returned per course.
+3. **Strict Filtering:** Ensured `/api/lessons` *only* returns `Lesson` entries whose IDs match the freshly verified/synced `TimetableSlots`, implicitly ignoring any obsolete/fake legacy data.
+4. **Dynamic UI Formatting:** Updated `AssignmentForm.tsx` to completely ignore `lesson.name` and instead render the dropdown option dynamically using relational data: `{lesson.subject.name} ({lesson.class.name}) - {lesson.teacher.name} {lesson.teacher.surname}`.
+
+**Files Modified:**
+- `src/app/api/lessons/route.ts`
+- `src/components/forms/AssignmentForm.tsx`
+
+**Verification:**
+- [x] Selecting "All Classes" shows a clean, 1-to-1 deduplicated list of active courses.
+- [x] Old data (e.g., "Exam Lesson") is no longer displayed.
+- [x] DB Foreign Keys remain intact.
+- [x] Pushed successfully to git.
