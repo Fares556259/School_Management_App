@@ -127,8 +127,14 @@ const ExamTimetableClient = ({
     const newDate = new Date(year, month - 1, day);
 
     const currentConf = periodConfigs.find(c => c.period === selectedPeriod);
-    const updatedStart = field === 'startDate' ? newDate : (currentConf?.startDate ? new Date(currentConf.startDate) : newDate);
-    const updatedEnd = field === 'endDate' ? newDate : (currentConf?.endDate ? new Date(currentConf.endDate) : undefined);
+    let updatedStart = field === 'startDate' ? newDate : (currentConf?.startDate ? new Date(currentConf.startDate) : newDate);
+    let updatedEnd = field === 'endDate' ? newDate : (currentConf?.endDate ? new Date(currentConf.endDate) : undefined);
+
+    // Enforce Start <= End logic
+    if (updatedEnd && updatedStart > updatedEnd) {
+      if (field === 'startDate') updatedEnd = new Date(updatedStart);
+      else updatedStart = new Date(updatedEnd);
+    }
 
     const res = await upsertExamPeriodConfig(selectedPeriod, updatedStart, updatedEnd);
     if (res.success) {
@@ -358,10 +364,12 @@ const ExamTimetableClient = ({
               <input 
                 type="date" 
                 value={localStartDate}
+                max={localEndDate}
                 onChange={(e) => setLocalStartDate(e.target.value)}
                 onBlur={(e) => handleDateChange('startDate', e.target.value)}
+                onClick={(e) => { try { e.currentTarget.showPicker(); } catch(err) {} }}
                 disabled={!isEditMode}
-                className={`pl-[68px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[165px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`}
+                className={`pl-[68px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[165px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer focus:cursor-text'}`}
               />
             </div>
             
@@ -372,10 +380,12 @@ const ExamTimetableClient = ({
               <input 
                 type="date" 
                 value={localEndDate}
+                min={localStartDate}
                 onChange={(e) => setLocalEndDate(e.target.value)}
                 onBlur={(e) => handleDateChange('endDate', e.target.value)}
+                onClick={(e) => { try { e.currentTarget.showPicker(); } catch(err) {} }}
                 disabled={!isEditMode}
-                className={`pl-[42px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[138px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`}
+                className={`pl-[42px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[138px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer focus:cursor-text'}`}
               />
             </div>
           </div>
