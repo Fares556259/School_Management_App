@@ -122,25 +122,25 @@ const TimetablePage = ({
               {forceDraft ? <Sparkles size={26} className="stroke-[2px] text-indigo-600 animate-pulse" /> : <Clock size={26} className="stroke-[2px] text-indigo-600" />}
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-2 text-[8px] font-black uppercase tracking-[0.25em] text-slate-400">
+              <div className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-500">
                 <span>{forceDraft ? "AI Timetable Playground" : "Timetable Registry"}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className={`flex items-center gap-1 font-extrabold ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
+                <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
                   {isEditMode ? 'Edit Mode' : 'View Mode'}
                 </span>
               </div>
               
-              <h1 className="text-2.5xl font-black text-slate-800 tracking-tight uppercase leading-none">
+              <h1 className="text-2xl font-semibold text-slate-800">
                 {forceDraft ? "AI Timetable Scheduler" : "Academic Timetable"}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm text-slate-600">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-400 font-extrabold text-[8.5px] tracking-widest">Target:</span>
-                  <div className="relative inline-flex items-center bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100/60 rounded-xl px-3 py-1 transition-all">
+                  <span className="font-medium text-slate-500">Target Class:</span>
+                  <div className="relative inline-flex items-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 transition-all">
                     <select 
-                      className="bg-transparent border-0 text-[10px] font-black text-indigo-700 focus:outline-none transition-all cursor-pointer uppercase tracking-wider pr-5 appearance-none"
+                      className="bg-transparent border-0 text-sm font-medium text-slate-700 focus:outline-none transition-all cursor-pointer pr-6 appearance-none"
                       value={selectedClass?.id}
                       onChange={(e) => {
                         router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
@@ -152,7 +152,7 @@ const TimetablePage = ({
                         </option>
                       ))}
                     </select>
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none text-[6.5px]">▼</div>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</div>
                   </div>
                 </div>
               </div>
@@ -168,47 +168,47 @@ const TimetablePage = ({
                     {/* EDIT TIMETABLE BUTTON */}
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/60 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                      className="px-4 py-2 rounded-lg bg-white border border-slate-200 font-medium text-sm text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:shadow-sm transition-all flex items-center gap-2"
                     >
-                      <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                      <Edit2 size={14} className="stroke-[2.5px]"/> Edit Schedule
                     </button>
 
                     {/* AI GENERATE BUTTON */}
                     <button 
                       onClick={() => setIsAiOpen(true)}
                       disabled={isAiLocked}
-                      className={`flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${
+                      className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all hover:shadow-sm ${
                         isAiLocked 
                         ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-100/50'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent'
                       }`}
                     >
-                      {isAiLocked ? <Lock size={12} /> : <Sparkles size={12} />}
-                      {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
+                      {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} />}
+                      {isAiLocked ? 'Limit Reached' : hasDraft ? 'Regenerate' : 'AI Generate'}
                     </button>
                   </div>
                 ) : (
                   /* STANDALONE EDIT SCHEDULE BUTTON */
                   <button 
                     onClick={() => setIsEditMode(true)}
-                    className="px-4.5 py-2 rounded-xl bg-white border border-slate-200/80 font-black text-[9px] uppercase tracking-widest text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm"
+                    className="px-4 py-2 rounded-lg bg-white border border-slate-200 font-medium text-sm text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:shadow-sm transition-all flex items-center gap-2"
                   >
-                    <Edit2 size={12} className="stroke-[3px]"/> Edit Schedule
+                    <Edit2 size={14} className="stroke-[2.5px]"/> Edit Schedule
                   </button>
                 )}
 
                 {/* 2. Direct Header Publish / Discard Capsule Group */}
                 {forceDraft && hasDraft && (
-                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={handlePublishDraft}
-                      className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all"
                     >
                       Publish
                     </button>
                     <button
                       onClick={handleDiscardDraft}
-                      className="px-4.5 py-2 bg-rose-50 border border-rose-200/55 hover:bg-rose-100 text-rose-700 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="px-4 py-2 bg-white border border-slate-200 hover:bg-rose-50 text-rose-600 text-sm font-medium rounded-lg transition-all"
                     >
                       Discard
                     </button>
@@ -218,19 +218,19 @@ const TimetablePage = ({
                 {/* 3. Export Utility (Standalone Outline Button) */}
                 <button 
                   onClick={() => handlePrint()}
-                  className="flex items-center gap-1.5 px-4.5 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all shadow-sm border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:shadow-sm"
                 >
-                  <FileDown size={12} />
-                  PDF
+                  <FileDown size={14} />
+                  Export PDF
                 </button>
               </>
             ) : (
               /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */
               <button 
                 onClick={() => setIsEditMode(false)}
-                className="px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border-2 bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-100 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98]"
+                className="px-5 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
               >
-                <Check size={14} className="stroke-[3px]"/> Done Editing
+                <Check size={16} className="stroke-[2.5px]"/> Done Editing
               </button>
             )}
           </div>

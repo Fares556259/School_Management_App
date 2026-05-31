@@ -5,8 +5,10 @@ import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet, createGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, PlayCircle } from "lucide-react";
+import { X, PlayCircle, Sparkles } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
+import BulkAIUploadModal from "./BulkAIUploadModal";
+import { useRouter } from "next/navigation";
 
 /** Parse first segment of pipe-separated trilingual name to get Arabic only.
  * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
@@ -35,6 +37,7 @@ export default function ResultsPageClient({
   initialStudents,
   sheets,
 }: Props) {
+  const router = useRouter();
   const [activeView, setActiveView] = useState<"list" | "recorder">("list");
   const [editingSheetId, setEditingSheetId] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<any>(null);
@@ -49,6 +52,7 @@ export default function ResultsPageClient({
   const [isInitializing, setIsInitializing] = useState(false);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   const handleCardDrop = async (e: React.DragEvent, item: any, isPlaceholder: boolean) => {
     e.preventDefault();
@@ -106,7 +110,7 @@ export default function ResultsPageClient({
       });
 
       // 4. Reload page to display changes
-      window.location.reload();
+      router.refresh();
     } catch (err) {
       console.error("Direct card upload failed:", err);
       alert("Direct upload failed. Please try using the 'Edit Recording' editor panel.");
@@ -115,11 +119,7 @@ export default function ResultsPageClient({
     }
   };
 
-  const startNewRecording = () => {
-    setEditingSheetId(null);
-    setEditingData(null);
-    setActiveView("recorder");
-  };
+
 
   const editSheet = async (sheet: any) => {
     setLoadingSheet(true);
@@ -151,7 +151,7 @@ export default function ResultsPageClient({
         // or re-fetch server props. For now, we'll alert and the user can see the change on next interaction 
         // or through layout revalidation.
         alert("Success! All subjects have been initialized with 0 scores.");
-        window.location.reload(); // Simple way to force server re-fetch of sheets
+        router.refresh();
       } else {
         alert("Error: " + res.error);
       }
@@ -206,22 +206,20 @@ export default function ResultsPageClient({
   return (
     <div className="p-6 flex flex-col gap-8 bg-slate-50 min-h-screen">
       {/* HEADER */}
-      <div className="flex items-center justify-between bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-[24px] bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-100">
-             <span className="text-white text-2xl font-black">GS</span>
-          </div>
-          <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">GRADE SHEETS</h1>
-            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">Verified physical proof recording system</p>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">Grade Sheets</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage and verify physical proof of grades.</p>
         </div>
-        <button
-          onClick={startNewRecording}
-          className="px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all text-[12px] uppercase tracking-widest flex items-center gap-2"
-        >
-          <span className="text-lg">+</span> Record New Sheet
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsBulkUploadOpen(true)}
+            className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium rounded-lg hover:bg-indigo-100 transition-all text-sm flex items-center gap-2"
+          >
+            <Sparkles size={16} />
+            Bulk AI Scan
+          </button>
+        </div>
       </div>
 
       {/* FILTERS */}
@@ -233,14 +231,14 @@ export default function ResultsPageClient({
               placeholder="Filter by subject Name..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-4 bg-white rounded-[24px] border border-slate-100 shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all font-bold placeholder:text-slate-300"
+              className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-400"
             />
          </div>
          
          <select 
            value={selectedClassId} 
            onChange={(e) => setSelectedClassId(e.target.value)}
-           className="px-6 py-4 bg-white rounded-[24px] border border-slate-100 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
+           className="px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
          >
            {validClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
          </select>
@@ -248,7 +246,7 @@ export default function ResultsPageClient({
          <select 
            value={selectedTerm} 
            onChange={(e) => setSelectedTerm(e.target.value)}
-           className="px-6 py-4 bg-white rounded-[24px] border border-slate-100 shadow-sm text-[10px] font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
+           className="px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
          >
            <option value="1">Term 1</option>
            <option value="2">Term 2</option>
@@ -259,10 +257,10 @@ export default function ResultsPageClient({
            <button
              onClick={handleBulkInitialize}
              disabled={isInitializing}
-             className="px-6 py-4 bg-emerald-500 text-white rounded-[24px] shadow-lg shadow-emerald-100 hover:bg-emerald-600 hover:-translate-y-0.5 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+             className="px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2"
            >
-             <PlayCircle size={14} />
-             Initialize ALL Subjects (0)
+             <PlayCircle size={16} className="text-slate-400" />
+             Initialize Empty
            </button>
          )}
       </div>
@@ -410,20 +408,9 @@ export default function ResultsPageClient({
   
               <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">
                  {isPlaceholder ? (
-                   <button 
-                     onClick={() => {
-                        setEditingData({ 
-                          classId: item.class.id, 
-                          subjectId: item.subject.id, 
-                          term: item.term,
-                          grades: [] 
-                        });
-                        setActiveView("recorder");
-                     }}
-                     className="flex-1 py-3 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all border border-indigo-600"
-                   >
-                     Record Missing Sheet
-                   </button>
+                   <div className="flex-1 py-3 text-center text-slate-400 font-semibold text-xs rounded-lg border border-dashed border-slate-200">
+                     Awaiting Upload or Initialization
+                   </div>
                  ) : (
                    <>
                     <button 
@@ -505,6 +492,13 @@ export default function ResultsPageClient({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* BULK AI SCAN MODAL */}
+      <BulkAIUploadModal 
+        isOpen={isBulkUploadOpen} 
+        onClose={() => setIsBulkUploadOpen(false)} 
+        selectedTerm={selectedTerm}
+      />
     </div>
   );
 }
