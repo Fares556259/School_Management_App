@@ -374,6 +374,7 @@ const ExamTimetableClient = ({
               <input 
                 type="date" 
                 value={localStartDate}
+                min={toLocalISO(new Date())}
                 max={localEndDate}
                 onChange={(e) => setLocalStartDate(e.target.value)}
                 onClick={(e) => { try { e.currentTarget.showPicker(); } catch(err) {} }}
@@ -389,7 +390,7 @@ const ExamTimetableClient = ({
               <input 
                 type="date" 
                 value={localEndDate}
-                min={localStartDate}
+                min={localStartDate || toLocalISO(new Date())}
                 onChange={(e) => setLocalEndDate(e.target.value)}
                 onClick={(e) => { try { e.currentTarget.showPicker(); } catch(err) {} }}
                 disabled={!isEditMode}
