@@ -343,27 +343,29 @@ const ExamTimetableClient = ({
           </div>
 
           {/* Date Range */}
-          <div className="flex items-center gap-4 px-2 shrink-0">
-            <div className="flex items-center gap-1.5 relative">
-              <CalendarIcon size={14} className="text-[#9297a0] pointer-events-none" />
-              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider pointer-events-none">Start</span>
+          <div className="flex items-center gap-3 px-2 shrink-0">
+            <div className="flex items-center gap-2 relative group">
+              <CalendarIcon size={14} className="text-[#9297a0] group-hover:text-indigo-600 transition-colors pointer-events-none absolute left-2 z-10" />
+              <div className="absolute left-7 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">Start</div>
               <input 
                 type="date" 
                 value={toLocalISO(currentStartDate)}
                 onChange={(e) => handleDateChange('startDate', e.target.value)}
                 disabled={!isEditMode}
-                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none w-[115px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
+                className={`pl-[68px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[165px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`}
               />
             </div>
+            
             <span className="text-[#9297a0] text-xs font-medium">→</span>
-            <div className="flex items-center gap-1.5 relative">
-              <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider pointer-events-none">End</span>
+            
+            <div className="flex items-center gap-2 relative group">
+              <div className="absolute left-3 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">End</div>
               <input 
                 type="date" 
                 value={toLocalISO(currentEndDate)}
                 onChange={(e) => handleDateChange('endDate', e.target.value)}
                 disabled={!isEditMode}
-                className={`bg-transparent text-sm font-medium text-[#181d26] focus:outline-none transition-all outline-none w-[115px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:text-indigo-600'}`}
+                className={`pl-[42px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[138px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`}
               />
             </div>
           </div>
