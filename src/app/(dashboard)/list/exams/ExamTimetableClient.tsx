@@ -139,6 +139,24 @@ const ExamTimetableClient = ({
     }
   };
 
+  const toLocalISO = (date?: Date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const currentPeriodConfig = periodConfigs.find(c => c.period === selectedPeriod);
+  const currentStartDate = currentPeriodConfig ? new Date(currentPeriodConfig.startDate) : undefined;
+  const currentEndDate = currentPeriodConfig?.endDate ? new Date(currentPeriodConfig.endDate) : undefined;
+
+  const [localStartDate, setLocalStartDate] = useState<string>("");
+  const [localEndDate, setLocalEndDate] = useState<string>("");
+
+  useEffect(() => {
+    setLocalStartDate(toLocalISO(currentStartDate));
+    setLocalEndDate(toLocalISO(currentEndDate));
+  }, [currentPeriodConfig, selectedPeriod]);
+
   const handlePublishDraft = async () => {
     if (!selectedClass?.id) return;
     if (window.confirm("Are you sure you want to approve and publish this exam draft suggestion? It will replace the current active exams schedule and become visible to students and parents.")) {
@@ -168,16 +186,6 @@ const ExamTimetableClient = ({
       }
     }
   };
-
-  const toLocalISO = (date?: Date) => {
-    if (!date) return "";
-    const d = new Date(date);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
-
-  const currentPeriodConfig = periodConfigs.find(c => c.period === selectedPeriod);
-  const currentStartDate = currentPeriodConfig ? new Date(currentPeriodConfig.startDate) : undefined;
-  const currentEndDate = currentPeriodConfig?.endDate ? new Date(currentPeriodConfig.endDate) : undefined;
 
   const handleAiSuccess = () => {
     setRefreshKey(prev => prev + 1);
@@ -349,8 +357,9 @@ const ExamTimetableClient = ({
               <div className="absolute left-7 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">Start</div>
               <input 
                 type="date" 
-                value={toLocalISO(currentStartDate)}
-                onChange={(e) => handleDateChange('startDate', e.target.value)}
+                value={localStartDate}
+                onChange={(e) => setLocalStartDate(e.target.value)}
+                onBlur={(e) => handleDateChange('startDate', e.target.value)}
                 disabled={!isEditMode}
                 className={`pl-[68px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[165px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`}
               />
@@ -362,8 +371,9 @@ const ExamTimetableClient = ({
               <div className="absolute left-3 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">End</div>
               <input 
                 type="date" 
-                value={toLocalISO(currentEndDate)}
-                onChange={(e) => handleDateChange('endDate', e.target.value)}
+                value={localEndDate}
+                onChange={(e) => setLocalEndDate(e.target.value)}
+                onBlur={(e) => handleDateChange('endDate', e.target.value)}
                 disabled={!isEditMode}
                 className={`pl-[42px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[138px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}`}
               />
