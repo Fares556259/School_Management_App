@@ -7,6 +7,7 @@ import TimetableClient from "../TimetableClient";
 import ExamTimetableClient from "../../../list/exams/ExamTimetableClient";
 import Link from "next/link";
 import { Sparkles, ClipboardCheck, ArrowRight, Calendar } from "lucide-react";
+import AISchedulerWrapper from "./components/AISchedulerWrapper";
 
 const AiTimetablePage = async ({
   searchParams,
