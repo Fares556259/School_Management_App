@@ -318,63 +318,64 @@ export default function CrudFormModal({
       </div>
 
       {open && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[12px] shadow-xl border border-[#dddddd] max-w-lg w-full relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             {/* Header */}
-            <div className="sticky top-0 bg-white p-5 border-b border-slate-100 flex justify-between items-center rounded-t-xl z-10">
-              <h2 className="text-lg font-bold text-slate-800">
+            <div className="sticky top-0 bg-white p-6 border-b border-[#dddddd] flex justify-between items-center rounded-t-[12px] z-10">
+              <h2 className="text-[20px] font-medium text-[#181d26] tracking-tight">
                 {mode === "delete" ? "Delete" : mode === "create" ? "Add New" : "Edit"}{" "}
                 {entity.charAt(0).toUpperCase() + entity.slice(1)}
               </h2>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-[8px] hover:bg-[#f8fafc] hover:text-[#181d26] text-[#41454d] transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-5">
+            <div className="p-6">
               {mode === "delete" ? (
                 <div className="flex flex-col items-center gap-4 py-4">
                   <div className="text-4xl">⚠️</div>
-                  <p className="text-center text-slate-600 font-medium">
+                  <p className="text-center text-[#41454d] text-[14px] font-normal leading-relaxed">
                     Are you sure you want to delete this {entity}?
                     <br />
-                    <span className="text-sm text-slate-400">This action cannot be undone.</span>
+                    <span className="text-[#9297a0]">This action cannot be undone.</span>
                   </p>
-                  {error && <p className="text-rose-500 text-sm">{error}</p>}
-                  <div className="flex gap-3 mt-2">
+                  {error && <p className="text-rose-500 text-[14px] font-medium">{error}</p>}
+                  <div className="flex justify-end gap-3 mt-4 w-full border-t border-[#dddddd] pt-6">
                     <button
                       onClick={() => setOpen(false)}
                       disabled={isPending}
-                      className="px-5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="px-6 py-2.5 text-[16px] font-medium text-[#181d26] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[12px] transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDelete}
                       disabled={isPending}
-                      className="px-5 py-2 text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors disabled:opacity-50"
+                      className="px-6 py-2.5 text-[16px] font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-[12px] transition-colors disabled:opacity-50"
                     >
                       {isPending ? "Deleting..." : "Delete"}
                     </button>
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {fields.map((f) => (
                       <div key={f.name} className={f.name === "address" ? "sm:col-span-2" : ""}>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                          {f.label} {f.required && <span className="text-rose-400">*</span>}
+                        <label className="block text-[14px] font-medium text-[#181d26] mb-2">
+                          {f.label} {f.required && <span className="text-rose-500">*</span>}
                         </label>
                         {f.type === "select" ? (
                           <select
                             name={f.name}
                             defaultValue={data?.[f.name] || ""}
                             required={f.required}
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="w-full border border-[#dddddd] rounded-[6px] px-4 py-2.5 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm"
                           >
                             {/* <option value="">Select...</option> */}
                             {f.options?.map((o) => (
@@ -414,16 +415,16 @@ export default function CrudFormModal({
                               }}
                             />
                             <div
-                              className="flex items-center gap-2 cursor-pointer text-slate-500 hover:text-slate-800 transition-all p-3 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50"
+                              className="flex items-center gap-2 cursor-pointer text-[#41454d] hover:text-[#181d26] transition-all p-3 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc]"
                               onClick={() => document.getElementById(`upload-${f.name}`)?.click()}
                             >
-                              <Image src="/upload.png" alt="" width={24} height={24} />
-                              <span className="text-sm">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
+                              <Image src="/upload.png" alt="" width={20} height={20} className="opacity-70" />
+                              <span className="text-[14px] font-normal">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
                             </div>
                             {img && (
-                              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 mt-1 flex items-center justify-center bg-slate-50">
+                              <div className="relative w-20 h-20 rounded-[6px] overflow-hidden border border-[#dddddd] mt-1 flex items-center justify-center bg-[#f8fafc]">
                                 {(typeof img === "string" ? img : img.secure_url).toLowerCase().endsWith(".pdf") ? (
-                                  <span className="text-xs font-bold text-slate-400">PDF</span>
+                                  <span className="text-[12px] font-medium text-[#41454d]">PDF</span>
                                 ) : (
                                   <Image 
                                     src={(typeof img === "string" ? img : img.secure_url)} 
@@ -433,7 +434,7 @@ export default function CrudFormModal({
                                 <button
                                   type="button"
                                   onClick={() => setImg(null)}
-                                  className="absolute top-1 right-1 bg-rose-500 text-white p-1 rounded-full shadow-md hover:bg-rose-600 transition-colors"
+                                  className="absolute top-1 right-1 bg-rose-500 text-white p-1 rounded-full shadow-sm hover:bg-rose-600 transition-colors"
                                   title="Remove Photo"
                                 >
                                   ✕
@@ -460,7 +461,7 @@ export default function CrudFormModal({
                             }
                             required={f.required}
                             placeholder={f.placeholder}
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="w-full border border-[#dddddd] rounded-[6px] px-4 py-2.5 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm placeholder-[#9297a0]"
                           />
                         )}
                       </div>
@@ -469,81 +470,80 @@ export default function CrudFormModal({
 
                   {/* CHILDREN SECTION FOR PARENT ENROLLMENT */}
                   {entity === "parent" && mode === "create" && (
-                    <div className="flex flex-col gap-6 mt-4 pt-6 border-t border-slate-100">
+                    <div className="flex flex-col gap-6 mt-4 pt-6 border-t border-[#dddddd]">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-sm font-bold text-slate-800">Children</h3>
-                          <p className="text-[10px] text-slate-400 uppercase tracking-widest">Register at least one student</p>
+                          <h3 className="text-[16px] font-medium text-[#181d26]">Children</h3>
+                          <p className="text-[13px] font-normal text-[#41454d]">Register at least one student</p>
                         </div>
                         <button
                           type="button"
                           onClick={addStudent}
-                          className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 uppercase tracking-wider flex items-center gap-1"
+                          className="text-[14px] font-medium text-[#1b61c9] hover:text-[#1a3866] flex items-center gap-1 transition-colors"
                         >
-                          <span className="text-sm">+</span> Add Sibling
+                          <span className="text-[18px] leading-none">+</span> Add Sibling
                         </button>
                       </div>
 
-                      <div className="flex flex-col gap-8">
+                      <div className="flex flex-col gap-6">
                         {students.map((student, index) => (
-                          <div key={student.id} className="relative p-4 bg-slate-50 rounded-xl border border-slate-200">
+                          <div key={student.id} className="relative p-5 bg-[#f8fafc] rounded-[10px] border border-[#dddddd]">
                             {students.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => removeStudent(student.id)}
-                                className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-slate-200 text-rose-500 rounded-full flex items-center justify-center text-xs shadow-sm hover:bg-rose-50"
+                                className="absolute -top-3 -right-3 w-7 h-7 bg-white border border-[#dddddd] text-rose-500 rounded-[8px] flex items-center justify-center shadow-sm hover:bg-rose-50 transition-colors"
                               >
                                 ✕
                               </button>
                             )}
                             
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">First Name *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">First Name *</label>
                                 <input
                                   name={`student-${index}-name`}
                                   required
                                   placeholder="Child's Name"
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Last Name *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Last Name *</label>
                                 <input
                                   name={`student-${index}-surname`}
                                   required
                                   placeholder="Child's Surname"
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sex *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Sex *</label>
                                 <select
                                   name={`student-${index}-sex`}
                                   required
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                 >
                                   <option value="MALE">Male</option>
                                   <option value="FEMALE">Female</option>
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Birthday *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Birthday *</label>
                                 <input
                                   type="date"
                                   name={`student-${index}-birthday`}
                                   required
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Class *</label>
                                 <select
                                   name={`student-${index}-classId`}
                                   required
-                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                 >
-                                  {/* <option value="">Select Class...</option> */}
                                   {relatedData?.classId?.map(o => (
                                     <option key={o.value} value={o.value}>{o.label}</option>
                                   ))}
@@ -556,21 +556,21 @@ export default function CrudFormModal({
                     </div>
                   )}
 
-                  {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
+                  {error && <p className="text-rose-500 text-[14px] font-medium text-center">{error}</p>}
 
-                  <div className="flex justify-end gap-3 mt-2">
+                  <div className="flex justify-end gap-3 mt-4 pt-6 border-t border-[#dddddd]">
                     <button
                       type="button"
                       onClick={() => setOpen(false)}
                       disabled={isPending}
-                      className="px-5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="px-6 py-2.5 text-[16px] font-medium text-[#181d26] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[12px] transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isPending}
-                      className="px-5 py-2 text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors disabled:opacity-50"
+                      className="px-6 py-2.5 text-[16px] font-medium text-white bg-[#181d26] hover:bg-[#0d1218] rounded-[12px] transition-colors disabled:opacity-50"
                     >
                       {isPending ? "Saving..." : mode === "create" ? "Create" : "Save Changes"}
                     </button>
