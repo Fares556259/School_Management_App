@@ -11,8 +11,10 @@ import { getSchoolId } from "@/lib/school";
 import Link from "next/link";
 import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2 } from "lucide-react";
 
-type ClassList = Class & { supervisor: Teacher | null } & { level: Level } & {
+type ClassList = Class & { level: Level } & {
   _count: { students: number };
+} & {
+  lessons: { teacher: { id: string; name: string; surname: string; img: string | null } }[];
 };
 
 const columns = [
@@ -31,8 +33,8 @@ const columns = [
     className: "hidden md:table-cell",
   },
   {
-    header: "Supervisor",
-    accessor: "supervisor",
+    header: "Teachers",
+    accessor: "teachers",
     className: "hidden md:table-cell",
   },
   {
@@ -62,6 +64,8 @@ const ClassListPage = async ({
       if (value !== undefined) {
         switch (key) {
           case "supervisorId":
+            // supervisor is removed, maybe keep query logic if used elsewhere but we don't have supervisorId on Class anymore? 
+            // Wait, Class still has supervisorId in schema, but we don't show it here.
             query.supervisorId = value;
             break;
           case "levelId":
@@ -90,7 +94,23 @@ const ClassListPage = async ({
       <td className="hidden md:table-cell py-4 px-6">{item.capacity}</td>
       <td className="hidden md:table-cell py-4 px-6">{item.level?.level}</td>
       <td className="hidden md:table-cell py-4 px-6">
-        {item.supervisor ? item.supervisor.name + " " + item.supervisor.surname : "-"}
+        <div className="flex flex-wrap gap-1">
+          {Array.from(new Map(item.lessons.map(l => [l.teacher.id, l.teacher])).values()).map((teacher) => (
+            <div key={teacher.id} className="flex items-center gap-1.5 bg-[#f8fafc] border border-[#dddddd] px-2 py-1 rounded-md" title={`${teacher.name} ${teacher.surname}`}>
+              {teacher.img ? (
+                <img src={teacher.img} alt="" className="w-5 h-5 rounded-full object-cover" />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-[#1b61c9] text-white flex items-center justify-center text-[10px] font-bold">
+                  {teacher.name[0]}{teacher.surname[0]}
+                </div>
+              )}
+              <span className="text-[12px] font-medium text-[#41454d] truncate max-w-[80px]">
+                {teacher.name} {teacher.surname[0]}.
+              </span>
+            </div>
+          ))}
+          {item.lessons.length === 0 && <span className="text-[#9297a0] text-[13px]">-</span>}
+        </div>
       </td>
       <td className="py-4 px-6">
         <div className="flex items-center justify-end gap-3">
@@ -136,7 +156,18 @@ const ClassListPage = async ({
     prisma.class.findMany({
       where: query,
       include: {
-        supervisor: true,
+        lessons: {
+          select: {
+            teacher: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+                img: true,
+              }
+            }
+          }
+        },
         level: true,
         _count: {
           select: {
