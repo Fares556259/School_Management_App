@@ -59,80 +59,74 @@ const AiTimetablePage = async ({
     );
   }
 
-  // Render a gorgeous selection workspace portal
+  // Render editorial workflow-software interface (Airtable-style)
   return (
-    <div className="relative flex flex-col items-center justify-center flex-1 w-full bg-[#f8fafc] overflow-hidden min-h-[calc(100vh-60px)]">
-      {/* Subtle Animated Background Gradients */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-200/40 rounded-full blur-[100px] opacity-60 animate-pulse mix-blend-multiply" style={{ animationDuration: '4s' }}></div>
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[100px] opacity-60 animate-pulse mix-blend-multiply" style={{ animationDuration: '6s' }}></div>
-
-      <div className="relative z-10 flex flex-col items-center max-w-5xl w-full px-6 py-12">
-        {/* Header Section */}
-        <div className="text-center flex flex-col items-center gap-4 mb-14">
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-md shadow-indigo-100/50 border border-slate-100 ring-4 ring-white">
-            <Sparkles size={24} className="stroke-[2px]" />
-          </div>
-          
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight mt-2">
-              AI Scheduler Playground
-            </h1>
-            <p className="text-slate-500 text-sm font-medium mt-3 max-w-lg mx-auto leading-relaxed">
-              Plan, generate, and optimize conflict-free curriculum drafts for classes and assessment periods in a secure sandbox.
-            </p>
-          </div>
+    <div className="flex flex-col items-center w-full min-h-[calc(100vh-60px)] bg-white selection:bg-[#1b61c9] selection:text-white font-sans overflow-y-auto">
+      
+      {/* Hero Band */}
+      <div className="w-full max-w-[1280px] px-12 pt-[96px] pb-[64px] flex flex-col items-center text-center">
+        <div className="w-12 h-12 bg-[#181d26] rounded-full flex items-center justify-center text-white mb-8">
+          <Sparkles size={20} className="stroke-[2px]" />
         </div>
+        
+        <h1 className="text-[40px] md:text-[48px] font-normal text-[#181d26] leading-[1.1] tracking-normal max-w-3xl">
+          AI Scheduler Playground
+        </h1>
+        
+        <p className="text-[16px] font-medium text-[#41454d] mt-6 max-w-2xl leading-[1.4]">
+          Plan, generate, and optimize conflict-free curriculum drafts for classes and assessment periods in a secure sandbox.
+        </p>
+      </div>
 
-        {/* Workspace Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-          {/* Card 1: Timetable Scheduler */}
+      {/* Workspace Cards Grid */}
+      <div className="w-full max-w-[1280px] px-12 pb-[96px] grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Card 1: Timetable Scheduler (Signature Cream) */}
+        <div className="flex flex-col bg-[#f5e9d4] rounded-[12px] p-8 md:p-[48px] h-full relative group">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#181d26] mb-8 shadow-sm">
+            <Calendar size={20} className="stroke-[2px]" />
+          </div>
+
+          <h2 className="text-[24px] md:text-[32px] font-normal text-[#181d26] leading-[1.2] mb-4">
+            Weekly Timetables
+          </h2>
+          
+          <p className="text-[16px] font-medium text-[#333840] leading-[1.4] mb-12 flex-grow max-w-[400px]">
+            Draft class lesson hours, assign teacher hours, prevent room double-bookings, and optimize subject distributions.
+          </p>
+
           <Link 
             href="/admin/timetable/ai?type=timetable"
-            className="group relative bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 flex flex-col overflow-hidden"
+            className="inline-flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#0d1218] text-white text-[16px] font-medium rounded-[12px] px-6 py-4 transition-colors w-max"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-transparent rounded-bl-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-            
-            <div className="relative z-10 w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
-              <Calendar size={22} className="stroke-[2px]" />
-            </div>
-
-            <h2 className="relative z-10 text-lg font-bold text-slate-800 tracking-tight group-hover:text-indigo-600 transition-colors duration-300">
-              Weekly Timetables
-            </h2>
-            <p className="relative z-10 text-slate-500 text-xs font-medium leading-relaxed mt-2 flex-grow">
-              Draft class lesson hours, assign teacher hours, prevent room double-bookings, and optimize subject distributions.
-            </p>
-
-            <div className="relative z-10 flex items-center gap-2 mt-6 text-[11px] font-bold uppercase tracking-wider text-indigo-600 group-hover:gap-3 transition-all">
-              Enter Workspace
-              <ArrowRight size={14} className="stroke-[2.5px]" />
-            </div>
-          </Link>
-
-          {/* Card 2: Exam Scheduler */}
-          <Link 
-            href="/admin/timetable/ai?type=exam"
-            className="group relative bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-purple-100/50 hover:-translate-y-1 active:scale-[0.99] transition-all duration-300 flex flex-col overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-50 to-transparent rounded-bl-full opacity-50 group-hover:scale-125 transition-transform duration-500"></div>
-
-            <div className="relative z-10 w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300">
-              <ClipboardCheck size={22} className="stroke-[2px]" />
-            </div>
-
-            <h2 className="relative z-10 text-lg font-bold text-slate-800 tracking-tight group-hover:text-purple-600 transition-colors duration-300">
-              Exam Calendars
-            </h2>
-            <p className="relative z-10 text-slate-500 text-xs font-medium leading-relaxed mt-2 flex-grow">
-              Schedule test blocks, midterms, and final exam grids safely in drafts before publishing them. Build balanced assessment periods.
-            </p>
-
-            <div className="relative z-10 flex items-center gap-2 mt-6 text-[11px] font-bold uppercase tracking-wider text-purple-600 group-hover:gap-3 transition-all">
-              Enter Workspace
-              <ArrowRight size={14} className="stroke-[2.5px]" />
-            </div>
+            Enter Workspace
+            <ArrowRight size={18} className="stroke-[2px]" />
           </Link>
         </div>
+
+        {/* Card 2: Exam Scheduler (Signature Mint) */}
+        <div className="flex flex-col bg-[#a8d8c4] rounded-[12px] p-8 md:p-[48px] h-full relative group">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#181d26] mb-8 shadow-sm">
+            <ClipboardCheck size={20} className="stroke-[2px]" />
+          </div>
+
+          <h2 className="text-[24px] md:text-[32px] font-normal text-[#181d26] leading-[1.2] mb-4">
+            Exam Calendars
+          </h2>
+          
+          <p className="text-[16px] font-medium text-[#333840] leading-[1.4] mb-12 flex-grow max-w-[400px]">
+            Schedule test blocks, midterms, and final exam grids safely in drafts before publishing them. Build balanced assessment periods.
+          </p>
+
+          <Link 
+            href="/admin/timetable/ai?type=exam"
+            className="inline-flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#0d1218] text-white text-[16px] font-medium rounded-[12px] px-6 py-4 transition-colors w-max"
+          >
+            Enter Workspace
+            <ArrowRight size={18} className="stroke-[2px]" />
+          </Link>
+        </div>
+
       </div>
     </div>
   );
