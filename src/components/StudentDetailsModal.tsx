@@ -94,10 +94,11 @@ export default function StudentDetailsModal({
               </div>
 
               {/* CARD SPLIT CONTENT AREA */}
-              <div className="flex-1 overflow-y-auto p-6 bg-white flex flex-col md:flex-row gap-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto bg-white custom-scrollbar">
+                <div className="p-6 flex flex-col md:flex-row gap-6 min-h-full items-stretch">
                 
-                {/* LEFT CARD: ABOUT ME */}
-                <div className="flex-1 bg-[#f8fafc] p-6 rounded-[12px] flex flex-col gap-6">
+                  {/* LEFT CARD: ABOUT ME */}
+                  <div className="flex-1 bg-[#f8fafc] p-6 rounded-[12px] flex flex-col gap-6">
                   <div className="flex items-center gap-5">
                     <div className="w-20 h-20 rounded-full overflow-hidden relative border border-[#dddddd] bg-white shrink-0">
                       <Image
@@ -215,6 +216,7 @@ export default function StudentDetailsModal({
                   </div>
                 </div>
 
+                </div>
               </div>
 
               {/* FOOTER */}
