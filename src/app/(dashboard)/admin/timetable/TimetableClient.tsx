@@ -133,6 +133,32 @@ const TimetablePage = ({
               <h1 className="text-2xl xl:text-3xl font-bold text-slate-800 tracking-tight mt-0.5">
                 {forceDraft ? "AI Timetable Scheduler" : "Academic Timetable"}
               </h1>
+              
+              {/* PRO VIEW BAR (Airtable-style filter bar) */}
+              <div className="flex items-center bg-[#f8fafc] border border-[#dddddd] rounded-lg px-2 py-1.5 gap-2 w-fit mt-4">
+                {/* Target Class */}
+                <div className="flex items-center gap-2 px-2 shrink-0">
+                  <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Class</span>
+                  <div className="relative inline-flex items-center">
+                    <select 
+                      className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
+                      value={selectedClass?.id}
+                      onChange={(e) => {
+                        router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
+                      }}
+                    >
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
+                          Grade {cls.level.level} - {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                      <ChevronDown size={14} />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
                     {/* Right Part: Action buttons */}
@@ -210,33 +236,6 @@ const TimetablePage = ({
                 <Check size={16} /> Done Editing
               </button>
             )}
-          </div>
-          </div>
-        </div>
-
-        {/* PRO VIEW BAR (Airtable-style filter bar) */}
-        <div className="flex items-center overflow-x-auto bg-[#f8fafc] border border-[#dddddd] rounded-lg px-2 py-1.5 gap-2 w-full">
-          {/* Target Class */}
-          <div className="flex items-center gap-2 px-2 shrink-0">
-            <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Class</span>
-            <div className="relative inline-flex items-center">
-              <select 
-                className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
-                value={selectedClass?.id}
-                onChange={(e) => {
-                  router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
-                }}
-              >
-                {classes.map(cls => (
-                  <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
-                    Grade {cls.level.level} - {cls.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                <ChevronDown size={14} />
-              </div>
-            </div>
           </div>
         </div>
 
