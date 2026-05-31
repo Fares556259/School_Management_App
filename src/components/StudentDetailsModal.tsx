@@ -71,7 +71,7 @@ export default function StudentDetailsModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[12px] w-full max-w-4xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10"
+              className="bg-white rounded-[12px] w-full max-w-4xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10 text-left"
             >
               {/* HEADER */}
               <div className="px-8 py-6 border-b border-[#dddddd] flex items-center justify-between">
@@ -94,10 +94,10 @@ export default function StudentDetailsModal({
               </div>
 
               {/* CARD SPLIT CONTENT AREA */}
-              <div className="flex-1 overflow-y-auto p-8 bg-white flex flex-col md:flex-row gap-8">
+              <div className="flex-1 overflow-y-auto p-6 bg-white flex flex-col md:flex-row gap-6 custom-scrollbar">
                 
                 {/* LEFT CARD: ABOUT ME */}
-                <div className="flex-1 bg-[#f8fafc] p-8 rounded-[12px] flex flex-col gap-8">
+                <div className="flex-1 bg-[#f8fafc] p-6 rounded-[12px] flex flex-col gap-6">
                   <div className="flex items-center gap-5">
                     <div className="w-20 h-20 rounded-full overflow-hidden relative border border-[#dddddd] bg-white shrink-0">
                       <Image
@@ -122,50 +122,50 @@ export default function StudentDetailsModal({
                       About
                     </h4>
                     
-                    <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                    <div className="grid grid-cols-2 gap-y-6 gap-x-6">
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">First Name</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{student.name}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">First Name</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{student.name}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Last Name</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{student.surname}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Last Name</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{student.surname}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Parent / Guardian</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Parent / Guardian</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">
                           {student.parent ? `${student.parent.name} ${student.parent.surname}` : "Not Listed"}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Parent Contact</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Parent Contact</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">
                           {student.parent?.phone || "Not Listed"}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Date of Birth</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{formatDate(student.birthday)}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Date of Birth</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{formatDate(student.birthday)}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Gender</span>
-                        <span className="text-[14px] font-normal text-[#181d26] capitalize">{student.sex.toLowerCase()}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Gender</span>
+                        <span className="text-[15px] font-semibold text-[#181d26] capitalize">{student.sex.toLowerCase()}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Class</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{className}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Class</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{className}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Blood Type</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{student.bloodType}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Blood Type</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{student.bloodType}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Admission Date</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{formatDate(student.createdAt)}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Admission Date</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{formatDate(student.createdAt)}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Student ID</span>
-                        <span className="text-[14px] font-normal text-[#181d26] truncate" title={student.id}>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Student ID</span>
+                        <span className="text-[15px] font-semibold text-[#181d26] truncate" title={student.id}>
                           {student.id.substring(0, 8)}...
                         </span>
                       </div>
@@ -174,7 +174,7 @@ export default function StudentDetailsModal({
                 </div>
 
                 {/* RIGHT CARD: CONTACT INFORMATION */}
-                <div className="flex-1 bg-[#f8fafc] p-8 rounded-[12px] flex flex-col gap-8">
+                <div className="flex-1 bg-[#f8fafc] p-6 rounded-[12px] flex flex-col gap-6">
                   <div>
                     <h4 className="text-[20px] font-normal text-[#181d26] mb-2">
                       Contact Information
@@ -185,28 +185,28 @@ export default function StudentDetailsModal({
                   </div>
 
                   <div className="border-t border-[#dddddd] pt-6 flex flex-col gap-6">
-                    <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                    <div className="grid grid-cols-2 gap-y-6 gap-x-6">
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Student Phone</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{student.phone || "-"}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Student Phone</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{student.phone || "-"}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Parent Phone</span>
-                        <span className="text-[14px] font-normal text-[#181d26]">{student.parent?.phone || "-"}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Parent Phone</span>
+                        <span className="text-[15px] font-semibold text-[#181d26]">{student.parent?.phone || "-"}</span>
                       </div>
                       <div className="flex flex-col col-span-2">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Home Address</span>
-                        <span className="text-[14px] font-normal text-[#181d26] leading-snug">{student.address || "-"}</span>
+                        <span className="text-[13px] font-medium text-[#41454d] mb-1">Home Address</span>
+                        <span className="text-[15px] font-semibold text-[#181d26] leading-snug">{student.address || "-"}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-2">Username</span>
-                        <span className="font-normal text-[#1b61c9] bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px] text-[14px] w-fit">
+                        <span className="text-[13px] font-medium text-[#41454d] mb-2">Username</span>
+                        <span className="font-medium text-[#1b61c9] bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px] text-[14px] w-fit">
                           @{student.username}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#41454d] mb-2">Status</span>
-                        <span className="font-normal text-[#006400] bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px] text-[14px] w-fit flex items-center gap-1.5">
+                        <span className="text-[13px] font-medium text-[#41454d] mb-2">Status</span>
+                        <span className="font-medium text-[#006400] bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px] text-[14px] w-fit flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#006400]"></span>
                           Active
                         </span>
