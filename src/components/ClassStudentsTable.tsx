@@ -473,7 +473,7 @@ export default function ClassStudentsTable({
 
                       {/* Phone */}
                       <td className="py-4 px-6 text-[14px] font-medium text-[#41454d]">
-                        {student.phone || "-"}
+                        {student.parent?.phone || student.phone || "-"}
                       </td>
 
                       {/* Actions */}

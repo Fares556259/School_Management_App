@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, X, Mail, Phone, MapPin, User, Calendar, Award } from "lucide-react";
+import { Eye, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -48,7 +48,7 @@ export default function StudentDetailsModal({
       {/* TRIGGER EYE ICON BUTTON */}
       <button
         onClick={() => setOpen(true)}
-        className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-[#f8fafc] hover:border-[#9297a0] transition-colors"
         title="View Student Details"
       >
         <Eye size={14} />
@@ -63,7 +63,7 @@ export default function StudentDetailsModal({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#181d26]/40 backdrop-blur-sm"
             />
 
             {/* MODAL WINDOW */}
@@ -71,35 +71,35 @@ export default function StudentDetailsModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl w-full max-w-4xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden z-10"
+              className="bg-white rounded-[12px] w-full max-w-4xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10"
             >
               {/* HEADER */}
-              <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="px-8 py-6 border-b border-[#dddddd] flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-black text-slate-800 tracking-tight leading-none">
-                    Students Details
+                  <h3 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none mb-2">
+                    Student Details
                   </h3>
-                  <div className="flex items-center gap-2 mt-1.5 text-xs font-semibold text-slate-400">
+                  <div className="flex items-center gap-2 text-[14px] font-normal text-[#41454d]">
                     <span>Students</span>
-                    <span>/</span>
-                    <span className="text-slate-500">Students details</span>
+                    <span className="text-[#9297a0]">/</span>
+                    <span>{student.name} {student.surname}</span>
                   </div>
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f8fafc] text-[#181d26] transition-colors"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               </div>
 
               {/* CARD SPLIT CONTENT AREA */}
-              <div className="flex-1 overflow-y-auto p-6 bg-[#FAF9FF] flex flex-col md:flex-row gap-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-8 bg-white flex flex-col md:flex-row gap-8">
                 
                 {/* LEFT CARD: ABOUT ME */}
-                <div className="flex-1 bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm flex flex-col gap-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full overflow-hidden relative border-2 border-slate-100 bg-slate-50 shadow-inner shrink-0">
+                <div className="flex-1 bg-[#f8fafc] p-8 rounded-[12px] flex flex-col gap-8">
+                  <div className="flex items-center gap-5">
+                    <div className="w-20 h-20 rounded-full overflow-hidden relative border border-[#dddddd] bg-white shrink-0">
                       <Image
                         src={student.img || "/noavatar.png"}
                         alt={`${student.name} ${student.surname}`}
@@ -108,65 +108,65 @@ export default function StudentDetailsModal({
                       />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-lg font-black text-slate-800 leading-tight">
+                      <span className="text-[24px] font-normal text-[#181d26] leading-tight">
                         {student.name} {student.surname}
                       </span>
-                      <span className="text-xs font-bold text-slate-400 mt-0.5">
-                        Student / Users
+                      <span className="text-[14px] font-normal text-[#41454d] mt-1">
+                        Student / {className}
                       </span>
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-5">
-                    <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest mb-4">
-                      About Me
+                  <div className="border-t border-[#dddddd] pt-6">
+                    <h4 className="text-[20px] font-normal text-[#181d26] mb-6">
+                      About
                     </h4>
                     
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                    <div className="grid grid-cols-2 gap-y-6 gap-x-8">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">First Name</span>
-                        <span className="font-bold text-slate-700">{student.name}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">First Name</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{student.name}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Last Name</span>
-                        <span className="font-bold text-slate-700">{student.surname}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Last Name</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{student.surname}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Parent / Guardian</span>
-                        <span className="font-bold text-slate-700">
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Parent / Guardian</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">
                           {student.parent ? `${student.parent.name} ${student.parent.surname}` : "Not Listed"}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Parent Contact</span>
-                        <span className="font-bold text-slate-700">
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Parent Contact</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">
                           {student.parent?.phone || "Not Listed"}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Date of Birth</span>
-                        <span className="font-bold text-slate-700">{formatDate(student.birthday)}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Date of Birth</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{formatDate(student.birthday)}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Gender</span>
-                        <span className="font-bold text-slate-700 capitalize">{student.sex.toLowerCase()}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Gender</span>
+                        <span className="text-[14px] font-normal text-[#181d26] capitalize">{student.sex.toLowerCase()}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Class</span>
-                        <span className="font-bold text-slate-700">{className}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Class</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{className}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Blood Type</span>
-                        <span className="font-bold text-slate-700">{student.bloodType}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Blood Type</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{student.bloodType}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Admission Date</span>
-                        <span className="font-bold text-slate-700">{formatDate(student.createdAt)}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Admission Date</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{formatDate(student.createdAt)}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Student ID</span>
-                        <span className="font-mono text-xs font-bold text-slate-500 truncate" title={student.id}>
-                          {student.id}
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Student ID</span>
+                        <span className="text-[14px] font-normal text-[#181d26] truncate" title={student.id}>
+                          {student.id.substring(0, 8)}...
                         </span>
                       </div>
                     </div>
@@ -174,39 +174,40 @@ export default function StudentDetailsModal({
                 </div>
 
                 {/* RIGHT CARD: CONTACT INFORMATION */}
-                <div className="flex-1 bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm flex flex-col gap-6">
+                <div className="flex-1 bg-[#f8fafc] p-8 rounded-[12px] flex flex-col gap-8">
                   <div>
-                    <h4 className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">
+                    <h4 className="text-[20px] font-normal text-[#181d26] mb-2">
                       Contact Information
                     </h4>
-                    <span className="text-xs font-bold text-slate-400">
-                      Primary and secondary channels
+                    <span className="text-[14px] font-normal text-[#41454d]">
+                      Primary and secondary communication channels
                     </span>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-5 flex flex-col gap-5">
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                  <div className="border-t border-[#dddddd] pt-6 flex flex-col gap-6">
+                    <div className="grid grid-cols-2 gap-y-6 gap-x-8">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Primary Phone</span>
-                        <span className="font-bold text-slate-700">{student.phone || "-"}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Student Phone</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{student.phone || "-"}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Secondary Phone</span>
-                        <span className="font-bold text-slate-700">{student.parent?.phone || "-"}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Parent Phone</span>
+                        <span className="text-[14px] font-normal text-[#181d26]">{student.parent?.phone || "-"}</span>
                       </div>
                       <div className="flex flex-col col-span-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Home Address</span>
-                        <span className="font-bold text-slate-500 leading-snug">{student.address || "-"}</span>
+                        <span className="text-[14px] font-medium text-[#41454d] mb-1">Home Address</span>
+                        <span className="text-[14px] font-normal text-[#181d26] leading-snug">{student.address || "-"}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Username</span>
-                        <span className="font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg text-xs w-fit">
+                        <span className="text-[14px] font-medium text-[#41454d] mb-2">Username</span>
+                        <span className="font-normal text-[#1b61c9] bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px] text-[14px] w-fit">
                           @{student.username}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Status</span>
-                        <span className="font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg text-xs w-fit">
+                        <span className="text-[14px] font-medium text-[#41454d] mb-2">Status</span>
+                        <span className="font-normal text-[#006400] bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px] text-[14px] w-fit flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#006400]"></span>
                           Active
                         </span>
                       </div>
@@ -217,10 +218,10 @@ export default function StudentDetailsModal({
               </div>
 
               {/* FOOTER */}
-              <div className="p-6 border-t border-slate-100 flex items-center justify-end gap-3 bg-white">
+              <div className="px-8 py-6 border-t border-[#dddddd] flex items-center justify-end gap-4 bg-white">
                 <button
                   onClick={() => setOpen(false)}
-                  className="px-6 py-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 cursor-pointer"
+                  className="px-6 py-4 bg-[#181d26] text-white hover:bg-[#0d1218] rounded-[12px] text-[16px] font-medium transition-colors"
                 >
                   Close View
                 </button>
