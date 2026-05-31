@@ -11,6 +11,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AssignStudentsModal from "./AssignStudentsModal";
 import StudentDetailsModal from "./StudentDetailsModal";
+import ConfirmModal from "./ConfirmModal";
 import { assignStudentsToClass, removeStudentFromClass } from "@/lib/crudActions";
 
 interface Student {
@@ -62,6 +63,17 @@ export default function ClassStudentsTable({
   const [pageSize, setPageSize] = useState(10);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: React.ReactNode;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   // Clean format date helper
   const formatDate = (dateVal: Date | string) => {
@@ -141,39 +153,60 @@ export default function ClassStudentsTable({
     setError("");
 
     const count = selectedIds.length;
-    if (confirm(`Remove ${count} student${count > 1 ? "s" : ""} from this class?\n\nNote: They will remain in the system and can be assigned to another class later.`)) {
-      startTransition(async () => {
-        // Remove each student individually — only their classId is set to null
-        const results = await Promise.all(
-          selectedIds.map((id) => removeStudentFromClass(id))
-        );
-        const failed = results.filter((r) => !r.success);
-        if (failed.length === 0) {
-          setSelectedIds([]);
-          router.refresh();
-        } else {
-          setError(`Failed to remove ${failed.length} student(s). Please try again.`);
-          router.refresh();
-        }
-      });
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: `Remove ${count} student${count > 1 ? "s" : ""}`,
+      message: (
+        <>
+          <p className="mb-2">Are you sure you want to remove {count} student{count > 1 ? "s" : ""} from this class?</p>
+          <p>Note: They will remain in the system and can be assigned to another class later.</p>
+        </>
+      ),
+      onConfirm: () => {
+        startTransition(async () => {
+          const results = await Promise.all(
+            selectedIds.map((id) => removeStudentFromClass(id))
+          );
+          const failed = results.filter((r) => !r.success);
+          if (failed.length === 0) {
+            setSelectedIds([]);
+            router.refresh();
+          } else {
+            setError(`Failed to remove ${failed.length} student(s). Please try again.`);
+            router.refresh();
+          }
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        });
+      }
+    });
   };
 
   // Individual remove — unenrolls one student from this class only.
   // Student remains in the system and appears in the Students list.
   const handleSingleRemove = (studentId: string, studentName: string) => {
     setError("");
-    if (confirm(`Remove "${studentName}" from this class?\n\nNote: The student will remain in the system and can be re-assigned to a class at any time.`)) {
-      startTransition(async () => {
-        const result = await removeStudentFromClass(studentId);
-        if (result.success) {
-          setSelectedIds((prev) => prev.filter((id) => id !== studentId));
-          router.refresh();
-        } else {
-          setError(result.error || "Failed to remove student.");
-        }
-      });
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Remove Student",
+      message: (
+        <>
+          <p className="mb-2">Are you sure you want to remove <strong className="text-[#181d26]">{studentName}</strong> from this class?</p>
+          <p>Note: The student will remain in the system and can be re-assigned to a class at any time.</p>
+        </>
+      ),
+      onConfirm: () => {
+        startTransition(async () => {
+          const result = await removeStudentFromClass(studentId);
+          if (result.success) {
+            setSelectedIds((prev) => prev.filter((id) => id !== studentId));
+            router.refresh();
+          } else {
+            setError(result.error || "Failed to remove student.");
+          }
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        });
+      }
+    });
   };
 
   return (
@@ -605,6 +638,17 @@ export default function ClassStudentsTable({
         </div>
 
       </div>
+      
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        isPending={isPending}
+        confirmText="Remove"
+        variant="danger"
+      />
     </div>
   );
 }
