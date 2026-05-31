@@ -346,7 +346,7 @@ export default function ClassStudentsTable({
         <div className="bg-white rounded-[24px] border border-[#dddddd] shadow-sm overflow-hidden">
           
           {/* CARD HEADER */}
-          <div className="p-6 md:p-8 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="px-6 py-5 md:px-8 md:py-6 border-b border-[#dddddd] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
               <h2 className="text-[24px] font-normal text-[#181d26] tracking-tight leading-none mb-2">
                 Students Information
