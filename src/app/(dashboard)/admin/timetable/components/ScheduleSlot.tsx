@@ -60,6 +60,19 @@ const ScheduleSlot = ({
   const [teacherId, setTeacherId] = useState("");
   const [roomId, setRoomId] = useState("");
 
+  const pastelColors = [
+    "bg-[#a8d8c4]", // Mint
+    "bg-[#fcab79]", // Peach
+    "bg-[#f5e9d4]", // Cream
+    "bg-[#f4d35e]", // Yellow
+    "bg-[#dce4f5]", // Soft Blue
+    "bg-[#e8dff5]"  // Soft Purple
+  ];
+
+  const getSlotColor = (subjectId: number) => {
+    return pastelColors[subjectId % pastelColors.length];
+  };
+
   // Sync state when slot prop changes
   useEffect(() => {
     if (type === "timetable") {
@@ -144,48 +157,50 @@ const ScheduleSlot = ({
         isEditMode && (
           <button 
               onClick={() => setIsEditing(true)}
-              className="w-full h-full border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-200 hover:border-indigo-100 hover:text-indigo-400 hover:bg-slate-50 transition-all group print:hidden"
+              className="w-full h-full border-2 border-dashed border-[#dddddd] bg-[#f8fafc] rounded-[10px] flex flex-col items-center justify-center text-[#9297a0] hover:border-[#181d26] hover:text-[#181d26] hover:bg-white transition-all group print:hidden"
           >
-            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-               <BookOpen size={16} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+            <div className="w-10 h-10 rounded-full bg-white border border-[#dddddd] flex items-center justify-center transition-colors">
+               <BookOpen size={16} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest mt-3">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
+            <span className="text-sm font-medium mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
           </button>
         )
       ) : (
         <div 
           draggable={isEditMode && !!slot}
           onDragStart={handleDragStart}
-          className={`w-full h-full bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 hover:border-indigo-100 transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} p-4 rounded-[10px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.02] border border-black/10' : 'border border-black/5'} overflow-hidden`}
         >
-          <div className="flex items-start justify-between">
-            <h3 className="text-sm font-black text-slate-800 leading-tight tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
+          {/* Subtle gradient overlay for depth */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
+          
+          <div className="flex items-start justify-between relative z-10">
+            <h3 className="text-[16px] font-medium text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors">
               {subjectName || "Unscheduled Subject"}
             </h3>
             {isEditMode && (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-slate-50 rounded-lg transition-all text-slate-400 hover:text-indigo-600 print:hidden"
+                className="p-1.5 opacity-0 group-hover:opacity-100 bg-white/50 hover:bg-white rounded-md transition-all text-[#181d26] print:hidden"
               >
-                <Edit2 size={12} />
+                <Edit2 size={14} />
               </button>
             )}
           </div>
           
           <div className="mt-2 flex flex-col gap-1">
-            <p className="text-[10px] italic font-medium text-slate-500 tracking-tight">
+            <p className="text-sm font-normal text-[#41454d]">
               {teacherName}
             </p>
           </div>
 
-          <div className="mt-auto flex items-center justify-between pt-3">
-             <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
-                <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{slot.room?.name || "Room TBA"}</span>
+          <div className="mt-auto flex items-center justify-between pt-4 relative z-10">
+             <div className="bg-white/60 px-2 py-1 rounded-md flex items-center gap-1.5 border border-white/40">
+                <span className="text-xs font-medium text-[#181d26]">{slot.room?.name || "Room TBA"}</span>
              </div>
              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-5 h-5 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-emerald-100">TD</div>
-                <div className="w-5 h-5 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-[8px] font-black tracking-tighter border border-amber-100">C</div>
+                <div className="w-5 h-5 rounded-md bg-white/60 text-[#181d26] flex items-center justify-center text-[10px] font-medium border border-white/40">TD</div>
+                <div className="w-5 h-5 rounded-md bg-white/60 text-[#181d26] flex items-center justify-center text-[10px] font-medium border border-white/40">C</div>
              </div>
           </div>
         </div>
@@ -193,39 +208,39 @@ const ScheduleSlot = ({
 
       {/* Modern Fixed Popover Modal overlay */}
       {isEditing && (
-        <div className="fixed inset-0 z-[150] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[150] bg-[#181d26]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-lg border border-[#dddddd] overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-[#dddddd]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                <div className="w-10 h-10 rounded-md bg-[#f8fafc] flex items-center justify-center text-[#181d26] border border-[#dddddd]">
                   <BookOpen size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                  <h3 className="text-[20px] font-medium text-[#181d26]">
                     {slot?.id ? "Modifier Session" : "Ajouter Session"}
                   </h3>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
+                  <p className="text-sm text-[#41454d] mt-1">
                     {dayLabels[day] || String(day)} · {startTime} - {endTime}
                   </p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsEditing(false)}
-                className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors"
+                className="p-2 hover:bg-[#f8fafc] rounded-full text-[#9297a0] hover:text-[#181d26] transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Modal Form */}
-            <div className="flex flex-col gap-4 py-6">
+            <div className="flex flex-col gap-5 py-6">
               {/* Subject Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Subject</label>
+                <label className="text-sm font-medium text-[#181d26] ml-1">Subject</label>
                 <div className="relative">
                   <select 
-                    className="text-xs h-11 pl-10 pr-4 border border-slate-200 rounded-2xl bg-slate-50/50 font-black text-slate-700 w-full focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 transition-all uppercase tracking-wider appearance-none cursor-pointer"
+                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                     value={subjectId}
                     onChange={(e) => setSubjectId(e.target.value)}
                   >
@@ -237,18 +252,18 @@ const ScheduleSlot = ({
                       ))
                     }
                   </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                    <BookOpen size={14} />
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                    <BookOpen size={16} />
                   </div>
                 </div>
               </div>
 
               {/* Teacher Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Teacher</label>
+                <label className="text-sm font-medium text-[#181d26] ml-1">Teacher</label>
                 <div className="relative">
                   <select 
-                    className="text-xs h-11 pl-10 pr-4 border border-slate-200 rounded-2xl bg-slate-50/50 font-black text-slate-700 w-full focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 transition-all uppercase tracking-wider appearance-none cursor-pointer"
+                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                     value={teacherId}
                     onChange={(e) => setTeacherId(e.target.value)}
                   >
@@ -257,18 +272,18 @@ const ScheduleSlot = ({
                       <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
                     ))}
                   </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                    <User size={14} />
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                    <User size={16} />
                   </div>
                 </div>
               </div>
 
               {/* Room Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Room</label>
+                <label className="text-sm font-medium text-[#181d26] ml-1">Room</label>
                 <div className="relative">
                   <select 
-                    className="text-xs h-11 pl-10 pr-4 border border-slate-200 rounded-2xl bg-slate-50/50 font-black text-slate-700 w-full focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 transition-all uppercase tracking-wider appearance-none cursor-pointer"
+                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                     value={roomId}
                     onChange={(e) => setRoomId(e.target.value)}
                   >
@@ -277,20 +292,20 @@ const ScheduleSlot = ({
                       <option key={r.id} value={r.id}>{r.name}</option>
                     ))}
                   </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                    <MapPin size={14} />
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                    <MapPin size={16} />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="flex items-center gap-3 pt-4 border-t border-slate-100 shrink-0">
+            <div className="flex items-center gap-3 pt-4 border-t border-[#dddddd] shrink-0">
               {slot?.id && slot.id !== -1 && onDeleteAction && (
                 <button 
                   disabled={loading}
                   onClick={handleDelete}
-                  className="px-4 h-11 bg-rose-50 text-rose-600 hover:bg-rose-100 active:scale-95 transition-all border border-rose-200 rounded-2xl flex items-center justify-center shrink-0"
+                  className="px-4 h-11 bg-white text-[#aa2d00] hover:bg-rose-50 active:scale-95 transition-all border border-[#dddddd] rounded-md flex items-center justify-center shrink-0"
                   title="Supprimer la session"
                 >
                   <Trash2 size={16} />
@@ -298,20 +313,20 @@ const ScheduleSlot = ({
               )}
               <button 
                 onClick={() => setIsEditing(false)}
-                className="flex-1 h-11 bg-slate-50 hover:bg-slate-100 active:scale-95 transition-all text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 text-center flex items-center justify-center"
+                className="flex-1 h-11 bg-white hover:bg-[#f8fafc] active:scale-95 transition-all text-[#181d26] rounded-md text-sm font-medium border border-[#dddddd] text-center flex items-center justify-center"
               >
                 Cancel
               </button>
               <button 
                 disabled={loading}
                 onClick={handleUpdate}
-                className="flex-[2] h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                className="flex-[2] h-11 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-md text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
                 ) : (
                   <>
-                    <Check size={14} className="stroke-[3px]" />
+                    <Check size={16} />
                     Save Session
                   </>
                 )}

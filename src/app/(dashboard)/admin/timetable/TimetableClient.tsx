@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye } from "lucide-react";
+import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye, CalendarDays } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "./components/ScheduleGrid";
 import AiScheduleModal from "./components/AiScheduleModal";
@@ -111,15 +111,14 @@ const TimetablePage = ({
   };
 
   return (
-    <div className="p-4 flex flex-col gap-6 flex-1">
+    <div className="p-6 lg:p-10 flex flex-col gap-8 flex-1 bg-white">
        {/* Unified Main Dashboard Header Card */}
-      <div className="flex flex-col gap-5 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 transition-all duration-300">
+      <div className="flex flex-col gap-6 w-full">
         {/* Row 1: Header title and action buttons */}
-        <div className="flex flex-col xl:flex-row items-center justify-between gap-6 w-full">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 w-full">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-slate-500/5 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-sm relative overflow-hidden group shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              {forceDraft ? <Sparkles size={26} className="stroke-[2px] text-indigo-600 animate-pulse" /> : <Clock size={26} className="stroke-[2px] text-indigo-600" />}
+            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 shadow-sm shrink-0">
+              {forceDraft ? <Sparkles size={24} className="stroke-[2px]" /> : <CalendarDays size={24} className="stroke-[2px]" />}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-500">
@@ -131,28 +130,28 @@ const TimetablePage = ({
                 </span>
               </div>
               
-              <h1 className="text-2xl font-semibold text-slate-800">
+              <h1 className="text-2xl xl:text-3xl font-bold text-slate-800 tracking-tight mt-0.5">
                 {forceDraft ? "AI Timetable Scheduler" : "Academic Timetable"}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-slate-500">Target Class:</span>
-                  <div className="relative inline-flex items-center bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 transition-all">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm text-[#333840]">
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-[#41454d]">Target Class:</span>
+                  <div className="relative inline-flex items-center bg-[#f8fafc] hover:bg-slate-50 border border-[#dddddd] rounded-md px-3 py-2 transition-all">
                     <select 
-                      className="bg-transparent border-0 text-sm font-medium text-slate-700 focus:outline-none transition-all cursor-pointer pr-6 appearance-none"
+                      className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-6 appearance-none w-full"
                       value={selectedClass?.id}
                       onChange={(e) => {
                         router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
                       }}
                     >
                       {classes.map(cls => (
-                        <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
+                        <option key={cls.id} value={cls.id} className="bg-white text-[#181d26]">
                           Grade {cls.level.level} - {cls.name}
                         </option>
                       ))}
                     </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</div>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none text-xs">▼</div>
                   </div>
                 </div>
               </div>
@@ -164,26 +163,26 @@ const TimetablePage = ({
               <>
                 {/* 1. Design & Plan Capsule Group */}
                 {forceDraft ? (
-                  <div className="flex items-center bg-slate-50 border border-slate-200/50 rounded-2xl p-1 gap-1">
+                  <div className="flex items-center gap-3">
                     {/* EDIT TIMETABLE BUTTON */}
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="px-4 py-2 rounded-lg bg-white border border-slate-200 font-medium text-sm text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:shadow-sm transition-all flex items-center gap-2"
+                      className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-[16px] text-[#181d26] hover:bg-slate-50 transition-all flex items-center gap-2"
                     >
-                      <Edit2 size={14} className="stroke-[2.5px]"/> Edit Schedule
+                      <Edit2 size={16} /> Edit Schedule
                     </button>
 
                     {/* AI GENERATE BUTTON */}
                     <button 
                       onClick={() => setIsAiOpen(true)}
                       disabled={isAiLocked}
-                      className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all hover:shadow-sm ${
+                      className={`flex items-center gap-2 px-6 py-3 text-[16px] font-medium rounded-xl transition-all ${
                         isAiLocked 
-                        ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent'
+                        ? 'bg-[#f8fafc] border border-[#dddddd] text-[#9297a0] cursor-not-allowed'
+                        : 'bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent'
                       }`}
                     >
-                      {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} />}
+                      {isAiLocked ? <Lock size={16} /> : <Sparkles size={16} />}
                       {isAiLocked ? 'Limit Reached' : hasDraft ? 'Regenerate' : 'AI Generate'}
                     </button>
                   </div>
@@ -191,24 +190,24 @@ const TimetablePage = ({
                   /* STANDALONE EDIT SCHEDULE BUTTON */
                   <button 
                     onClick={() => setIsEditMode(true)}
-                    className="px-4 py-2 rounded-lg bg-white border border-slate-200 font-medium text-sm text-slate-600 hover:border-indigo-500 hover:text-indigo-600 hover:shadow-sm transition-all flex items-center gap-2"
+                    className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-[16px] text-[#181d26] hover:bg-slate-50 transition-all flex items-center gap-2"
                   >
-                    <Edit2 size={14} className="stroke-[2.5px]"/> Edit Schedule
+                    <Edit2 size={16} /> Edit Schedule
                   </button>
                 )}
 
                 {/* 2. Direct Header Publish / Discard Capsule Group */}
                 {forceDraft && hasDraft && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={handlePublishDraft}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all"
+                      className="px-6 py-3 bg-[#181d26] hover:bg-[#0d1218] text-white text-[16px] font-medium rounded-xl transition-all"
                     >
                       Publish
                     </button>
                     <button
                       onClick={handleDiscardDraft}
-                      className="px-4 py-2 bg-white border border-slate-200 hover:bg-rose-50 text-rose-600 text-sm font-medium rounded-lg transition-all"
+                      className="px-6 py-3 bg-white border border-[#dddddd] hover:bg-rose-50 text-[#aa2d00] text-[16px] font-medium rounded-xl transition-all"
                     >
                       Discard
                     </button>
@@ -218,9 +217,9 @@ const TimetablePage = ({
                 {/* 3. Export Utility (Standalone Outline Button) */}
                 <button 
                   onClick={() => handlePrint()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:shadow-sm"
+                  className="flex items-center gap-2 px-6 py-3 text-[16px] font-medium rounded-xl transition-all border border-[#dddddd] bg-white text-[#181d26] hover:bg-slate-50"
                 >
-                  <FileDown size={14} />
+                  <FileDown size={16} />
                   Export PDF
                 </button>
               </>
@@ -228,9 +227,9 @@ const TimetablePage = ({
               /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */
               <button 
                 onClick={() => setIsEditMode(false)}
-                className="px-5 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                className="px-6 py-3 rounded-xl font-medium text-[16px] transition-all flex items-center gap-2 bg-[#181d26] text-white hover:bg-[#0d1218]"
               >
-                <Check size={16} className="stroke-[2.5px]"/> Done Editing
+                <Check size={18} /> Done Editing
               </button>
             )}
           </div>
