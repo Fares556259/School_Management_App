@@ -393,7 +393,6 @@ export default function ClassStudentsTable({
                   <th className="py-4 px-6 font-medium">Students Name</th>
                   <th className="py-4 px-4 text-center w-20 font-medium">Roll</th>
                   <th className="py-4 px-6 font-medium">Address</th>
-                  <th className="py-4 px-6 text-center w-24 font-medium">Class</th>
                   <th className="py-4 px-6 font-medium">Date of Birth</th>
                   <th className="py-4 px-6 font-medium">Phone</th>
                   {role === "admin" && <th className="py-4 px-6 text-right w-28 font-medium">Action</th>}
@@ -467,13 +466,6 @@ export default function ClassStudentsTable({
                         {student.address}
                       </td>
 
-                      {/* Class */}
-                      <td className="py-4 px-6 text-center">
-                        <span className="px-2.5 py-1 bg-slate-100 text-[#181d26] rounded-[6px] text-[12px] font-medium border border-[#dddddd]">
-                          {activeClass.name}
-                        </span>
-                      </td>
-
                       {/* DOB */}
                       <td className="py-4 px-6 text-[14px] font-medium text-[#41454d]">
                         {formatDate(student.birthday)}
@@ -512,7 +504,7 @@ export default function ClassStudentsTable({
                 {/* Empty State */}
                 {filteredStudents.length === 0 && (
                   <tr>
-                    <td colSpan={role === "admin" ? 8 : 7} className="py-20 text-center">
+                    <td colSpan={role === "admin" ? 7 : 6} className="py-20 text-center">
                       <div className="max-w-md mx-auto flex flex-col items-center gap-4">
                         <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-300">
                           <Users size={32} />
