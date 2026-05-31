@@ -124,21 +124,22 @@ const ExamTimetableClient = ({
     }
   }, [selectedClass?.id, selectedPeriod, refreshKey, forceDraft]);
 
-  const handleDateChange = async (field: 'startDate' | 'endDate', dateStr: string) => {
-    if (!dateStr) return;
+  const handleSaveDates = async () => {
+    if (!localStartDate) return;
     
-    // Parse local date carefully to avoid TZ shift
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const newDate = new Date(year, month - 1, day);
+    const [yS, mS, dS] = localStartDate.split('-').map(Number);
+    let updatedStart = new Date(yS, mS - 1, dS);
 
-    const currentConf = periodConfigs.find(c => c.period === selectedPeriod);
-    let updatedStart = field === 'startDate' ? newDate : (currentConf?.startDate ? new Date(currentConf.startDate) : newDate);
-    let updatedEnd = field === 'endDate' ? newDate : (currentConf?.endDate ? new Date(currentConf.endDate) : undefined);
+    let updatedEnd: Date | undefined = undefined;
+    if (localEndDate) {
+      const [yE, mE, dE] = localEndDate.split('-').map(Number);
+      updatedEnd = new Date(yE, mE - 1, dE);
+    }
 
     // Enforce Start <= End logic
     if (updatedEnd && updatedStart > updatedEnd) {
-      if (field === 'startDate') updatedEnd = new Date(updatedStart);
-      else updatedStart = new Date(updatedEnd);
+      updatedEnd = new Date(updatedStart);
+      setLocalEndDate(toLocalISO(updatedEnd));
     }
 
     const res = await upsertExamPeriodConfig(selectedPeriod, updatedStart, updatedEnd, selectedClass?.id);
@@ -147,6 +148,8 @@ const ExamTimetableClient = ({
         if (r.success && r.data) setPeriodConfigs(r.data);
       });
       setRefreshKey(prev => prev + 1);
+    } else {
+      alert("Failed to save dates: " + res.error);
     }
   };
 
@@ -162,6 +165,8 @@ const ExamTimetableClient = ({
 
   const [localStartDate, setLocalStartDate] = useState<string>("");
   const [localEndDate, setLocalEndDate] = useState<string>("");
+
+  const hasUnsavedDates = localStartDate !== toLocalISO(currentStartDate) || localEndDate !== toLocalISO(currentEndDate);
 
   useEffect(() => {
     setLocalStartDate(toLocalISO(currentStartDate));
@@ -371,7 +376,6 @@ const ExamTimetableClient = ({
                 value={localStartDate}
                 max={localEndDate}
                 onChange={(e) => setLocalStartDate(e.target.value)}
-                onBlur={(e) => handleDateChange('startDate', e.target.value)}
                 onClick={(e) => { try { e.currentTarget.showPicker(); } catch(err) {} }}
                 disabled={!isEditMode}
                 className={`pl-[68px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[165px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer focus:cursor-text'}`}
@@ -387,12 +391,20 @@ const ExamTimetableClient = ({
                 value={localEndDate}
                 min={localStartDate}
                 onChange={(e) => setLocalEndDate(e.target.value)}
-                onBlur={(e) => handleDateChange('endDate', e.target.value)}
                 onClick={(e) => { try { e.currentTarget.showPicker(); } catch(err) {} }}
                 disabled={!isEditMode}
                 className={`pl-[42px] pr-2 py-1.5 bg-transparent hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 rounded-md text-sm font-medium text-[#181d26] transition-all outline-none w-[138px] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!isEditMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer focus:cursor-text'}`}
               />
             </div>
+
+            {hasUnsavedDates && isEditMode && (
+              <button
+                onClick={handleSaveDates}
+                className="px-4 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-all flex items-center gap-1 shadow-sm active:scale-95"
+              >
+                <Check size={14} /> Save Dates
+              </button>
+            )}
           </div>
         </div>
       </div>
