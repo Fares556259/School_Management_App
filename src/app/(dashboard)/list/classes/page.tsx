@@ -180,7 +180,7 @@ const ClassListPage = async ({
   };
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0 selection:bg-[#1b61c9] selection:text-white">
+    <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
       {/* TOP */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="hidden md:block text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight">All Classes</h1>
