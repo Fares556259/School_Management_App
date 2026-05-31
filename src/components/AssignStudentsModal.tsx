@@ -105,10 +105,10 @@ export default function AssignStudentsModal({
     <>
       <button
         onClick={handleOpen}
-        className="flex items-center gap-2 border border-purple-600 text-purple-600 bg-white hover:bg-purple-50 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 shrink-0"
+        className="flex items-center gap-2 border border-purple-600 text-purple-600 bg-white hover:bg-purple-50 px-4 py-2 rounded-[10px] text-[14px] font-medium transition-colors shadow-sm shrink-0"
         title="Assign existing students to this class"
       >
-        <Plus size={14} strokeWidth={3} />
+        <Plus size={16} strokeWidth={2.5} />
         <span>Add Students</span>
       </button>
 
@@ -129,30 +129,30 @@ export default function AssignStudentsModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl w-full max-w-xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-slate-100 flex flex-col max-h-[85vh] relative overflow-hidden z-10"
+              className="bg-white rounded-[12px] w-full max-w-xl shadow-xl border border-[#dddddd] flex flex-col max-h-[85vh] relative overflow-hidden z-10"
             >
               {/* HEADER */}
-              <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="p-6 border-b border-[#dddddd] flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                  <h3 className="text-[20px] font-medium text-[#181d26] tracking-tight">
                     Assign Students to {className}
                   </h3>
-                  <p className="text-slate-400 text-xs font-semibold mt-0.5">
+                  <p className="text-[#41454d] text-[13px] font-normal mt-1">
                     Search and select students to enroll them in this class.
                   </p>
                 </div>
                 <button
                   disabled={isPending}
                   onClick={() => setOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all disabled:opacity-50"
+                  className="p-2 text-slate-400 hover:text-[#181d26] hover:bg-slate-50 rounded-[10px] transition-colors disabled:opacity-50"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               </div>
 
               {/* SEARCH DROPDOWN INPUT */}
-              <div className="p-5 border-b border-slate-100 bg-slate-50/40 flex flex-col gap-2 relative z-20" ref={dropdownRef}>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">
+              <div className="p-5 border-b border-[#dddddd] bg-[#f8fafc] flex flex-col gap-2 relative z-20" ref={dropdownRef}>
+                <label className="text-[13px] font-medium text-[#41454d] mb-1">
                   Search student to add
                 </label>
                 
@@ -167,7 +167,7 @@ export default function AssignStudentsModal({
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
-                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all shadow-sm"
+                    className="w-full bg-white border border-[#dddddd] rounded-[8px] pl-10 pr-4 py-2.5 text-[14px] font-medium text-[#181d26] placeholder-[#9297a0] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors shadow-sm"
                   />
                   
                   {search && (
@@ -190,28 +190,28 @@ export default function AssignStudentsModal({
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-5 right-5 top-full mt-1 bg-white border border-slate-200/80 rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto z-50 divide-y divide-slate-100"
+                      className="absolute left-5 right-5 top-full mt-1 bg-white border border-[#dddddd] rounded-[10px] shadow-lg overflow-hidden max-h-60 overflow-y-auto z-50 divide-y divide-[#dddddd]"
                     >
                       {dropdownMatches.length > 0 ? (
                         dropdownMatches.map((student) => (
                           <div
                             key={student.id}
                             onClick={() => selectStudent(student.id)}
-                            className="px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors cursor-pointer flex items-center justify-between"
+                            className="px-4 py-3 text-[14px] font-medium text-[#181d26] hover:bg-purple-50 hover:text-purple-700 transition-colors cursor-pointer flex items-center justify-between"
                           >
                             <div className="flex flex-col">
                               <span>{student.name} {student.surname}</span>
-                              <span className="text-[10px] font-bold text-slate-400 mt-0.5">
+                              <span className="text-[12px] font-normal text-[#41454d] mt-0.5">
                                 {student.class ? `Current Class: ${student.class.name}` : "Unassigned"}
                               </span>
                             </div>
-                            <span className="text-[9px] font-black uppercase bg-purple-50 border border-purple-100 text-purple-600 px-2 py-0.5 rounded-md">
+                            <span className="text-[11px] font-medium bg-purple-50 border border-purple-100 text-purple-600 px-2 py-1 rounded-[6px]">
                               Select
                             </span>
                           </div>
                         ))
                       ) : (
-                        <div className="px-4 py-5 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 italic">
+                        <div className="px-4 py-5 text-center text-[13px] font-medium text-[#41454d] bg-[#f8fafc] italic">
                           No matching students found
                         </div>
                       )}
@@ -221,15 +221,15 @@ export default function AssignStudentsModal({
               </div>
 
               {/* LIST OF SELECTED STUDENTS */}
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-3 min-h-[300px] custom-scrollbar bg-[#FCFCFD]">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 min-h-[300px] custom-scrollbar bg-white">
+                <div className="flex items-center justify-between border-b border-[#dddddd] pb-3">
+                  <h4 className="text-[14px] font-medium text-[#41454d]">
                     Currently Selected Students ({selectedIds.length})
                   </h4>
                   {selectedIds.length > 0 && (
                     <button
                       onClick={() => setSelectedIds([])}
-                      className="text-[9px] font-black uppercase text-rose-500 hover:text-rose-700 hover:underline"
+                      className="text-[13px] font-medium text-rose-500 hover:text-rose-600 transition-colors"
                     >
                       Deselect All
                     </button>
@@ -245,19 +245,19 @@ export default function AssignStudentsModal({
                         <motion.div
                           layout
                           key={student.id}
-                          className="flex items-center justify-between p-3.5 bg-white border border-slate-100 rounded-2xl hover:border-slate-200 hover:shadow-sm transition-all"
+                          className="flex items-center justify-between p-3.5 bg-white border border-[#dddddd] rounded-[10px] hover:border-[#9297a0] transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             {/* Visual Indicator of Enrollment */}
-                            <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-xs shrink-0 border border-purple-100">
+                            <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 font-medium text-[14px] shrink-0 border border-purple-100">
                               {student.name.charAt(0)}{student.surname.charAt(0)}
                             </div>
 
-                            <div className="flex flex-col leading-none">
-                              <span className="text-sm font-bold text-slate-700">
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-[14px] font-medium text-[#181d26]">
                                 {student.name} {student.surname}
                               </span>
-                              <span className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+                              <span className="text-[12px] font-normal text-[#41454d] mt-1">
                                 {isCurrentlyInThisClass 
                                   ? "Already Enrolled" 
                                   : student.class 
@@ -269,31 +269,31 @@ export default function AssignStudentsModal({
 
                           <div className="flex items-center gap-3">
                             {isCurrentlyInThisClass && (
-                              <span className="text-[9px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md leading-none">
+                              <span className="text-[11px] font-medium text-purple-600 bg-purple-50 border border-purple-100 px-2 py-1 rounded-[6px] leading-none">
                                 Enrolled
                               </span>
                             )}
                             <button
                               type="button"
                               onClick={() => removeStudent(student.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-[8px] transition-colors"
                               title="Remove student from list"
                             >
-                              <X size={15} />
+                              <X size={16} />
                             </button>
                           </div>
                         </motion.div>
                       );
                     })
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-white p-6">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 mb-3">
-                        <Users size={24} />
+                    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-[#dddddd] rounded-[12px] bg-[#f8fafc] p-6">
+                      <div className="w-12 h-12 rounded-full bg-white border border-[#dddddd] flex items-center justify-center text-[#9297a0] mb-4">
+                        <Users size={20} />
                       </div>
-                      <h5 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                      <h5 className="text-[14px] font-medium text-[#181d26] mb-1">
                         No Students Selected
                       </h5>
-                      <p className="text-[11px] font-semibold text-slate-400 max-w-xs mx-auto">
+                      <p className="text-[13px] font-normal text-[#41454d] max-w-xs mx-auto">
                         Type a student name in the search bar above and select them from the dropdown matches to add them here.
                       </p>
                     </div>
@@ -302,24 +302,24 @@ export default function AssignStudentsModal({
               </div>
 
               {/* FOOTER */}
-              <div className="p-6 border-t border-slate-100 bg-white flex flex-col gap-3">
+              <div className="p-6 border-t border-[#dddddd] bg-white flex flex-col gap-4">
                 {error && (
-                  <p className="text-xs font-bold text-rose-500 text-center tracking-tight leading-none bg-rose-50 border border-rose-100 rounded-xl p-3">
+                  <p className="text-[13px] font-medium text-rose-500 text-center tracking-tight bg-rose-50 border border-rose-100 rounded-[8px] p-3">
                     {error}
                   </p>
                 )}
 
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500">
+                  <span className="text-[13px] font-medium text-[#41454d]">
                     {selectedIds.length} Student(s) Selected
                   </span>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       disabled={isPending}
                       onClick={() => setOpen(false)}
-                      className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+                      className="px-5 py-2.5 bg-white border border-[#dddddd] rounded-[10px] text-[14px] font-medium text-[#41454d] hover:bg-[#f8fafc] hover:text-[#181d26] transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -327,11 +327,11 @@ export default function AssignStudentsModal({
                       type="button"
                       disabled={isPending}
                       onClick={handleSave}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-[10px] text-[14px] font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
                     >
                       {isPending ? (
                         <>
-                          <Loader2 className="animate-spin" size={14} />
+                          <Loader2 className="animate-spin" size={16} />
                           <span>Saving...</span>
                         </>
                       ) : (
