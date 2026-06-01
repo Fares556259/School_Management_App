@@ -11,7 +11,7 @@ const ResultListPage = async () => {
   const schoolId = await getSchoolId();
 
   // 🐘 V3 Stabilization: Re-parallelize optimized queries with hardened pool settings
-  const [classesRaw, subjects, teachers, sheets, allStudents] = await Promise.all([
+  const [classesRaw, subjects, teachers, sheets, allStudents, lessons] = await Promise.all([
     prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
     prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
@@ -29,6 +29,14 @@ const ResultListPage = async () => {
       where: { schoolId, classId: { not: undefined } },
       select: { id: true, name: true, surname: true, classId: true }, 
       orderBy: { name: "asc" } 
+    }),
+    prisma.lesson.findMany({
+      where: { schoolId },
+      select: {
+        classId: true,
+        subjectId: true,
+        teacher: { select: { id: true, name: true, surname: true } }
+      }
     })
   ]);
 
@@ -47,6 +55,7 @@ const ResultListPage = async () => {
       teachers={teachers}
       initialStudents={initialStudents}
       sheets={sheets}
+      lessons={lessons}
     />
   );
 };

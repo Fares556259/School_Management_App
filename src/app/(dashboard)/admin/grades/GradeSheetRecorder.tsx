@@ -437,26 +437,26 @@ export default function GradeSheetRecorder({
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
       {/* ─── HEADER BAR ─── */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-100 shadow-sm">
+      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#dddddd] shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center">
-            <span className="text-white text-sm font-black">GS</span>
+          <div className="w-8 h-8 rounded-[6px] bg-[#181d26] flex items-center justify-center">
+            <span className="text-white text-[13px] font-medium">GS</span>
           </div>
           <div>
-            <h1 className="text-sm font-black text-slate-800 tracking-tight uppercase">Grade Sheet Recorder</h1>
-            <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Upload Proof · Record Marks · Verify</p>
+            <h1 className="text-[16px] font-medium text-[#181d26] tracking-tight">Grade Sheet Recorder</h1>
+            <p className="text-[12px] text-[#41454d]">Upload Proof · Record Marks · Verify</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Status indicator */}
           {saveStatus === "success" && (
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+            <span className="text-[12px] font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-[6px] border border-emerald-100">
               ✓ Saved Successfully
             </span>
           )}
           {saveStatus === "error" && (
-            <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100">
+            <span className="text-[12px] font-medium text-rose-600 bg-rose-50 px-3 py-1.5 rounded-[6px] border border-rose-100">
               ✗ Error Saving
             </span>
           )}
@@ -465,7 +465,7 @@ export default function GradeSheetRecorder({
             <button
               onClick={handleSave}
               disabled={isPending || isLoadingStudents}
-              className="px-5 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 uppercase tracking-widest shadow-lg shadow-indigo-100 animate-in fade-in zoom-in duration-300"
+              className="px-4 py-2.5 bg-[#181d26] hover:bg-[#0d1218] text-white text-[13px] font-medium rounded-[6px] transition-all disabled:opacity-50 animate-in fade-in zoom-in duration-300"
             >
               {isPending ? "Saving…" : "Save Sheet"}
             </button>
@@ -473,15 +473,15 @@ export default function GradeSheetRecorder({
           
           <button 
             onClick={handleClose} 
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-all text-slate-500 font-black"
+            className="w-9 h-9 flex items-center justify-center rounded-[6px] hover:bg-[#f8fafc] transition-all text-[#41454d] font-medium"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
       </div>
 
       {/* ─── FILTERS BAR ─── */}
-      <div className="flex flex-wrap items-center gap-4 px-6 py-3 bg-white border-b border-slate-100 relative z-30">
+      <div className="flex flex-wrap items-center gap-4 px-6 py-3 bg-white border-b border-[#dddddd] relative z-30">
         <CustomSelect
           label="Class"
           value={String(classId)}
@@ -516,10 +516,10 @@ export default function GradeSheetRecorder({
           ]}
         />
 
-        <div className="ml-auto flex items-center gap-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-          <span className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">{students.length} students</span>
-          <span className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">{gradeCount} graded</span>
-          <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">avg {avgScore}</span>
+        <div className="ml-auto flex items-center gap-2 text-[11px] font-medium text-[#41454d]">
+          <span className="px-2.5 py-1 bg-[#f8fafc] rounded-[4px] border border-[#dddddd]">{students.length} students</span>
+          <span className="px-2.5 py-1 bg-[#f8fafc] rounded-[4px] border border-[#dddddd]">{gradeCount} graded</span>
+          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-[4px] border border-emerald-100">avg {avgScore}</span>
         </div>
       </div>
 
@@ -1098,16 +1098,16 @@ function CustomSelect({
   const selectedOption = options.find((o) => o.value === value);
 
   return (
-    <div ref={containerRef} className={`relative flex flex-col gap-1 min-w-[140px] ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}>
-      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{label}</label>
+    <div ref={containerRef} className={`relative flex flex-col gap-1.5 min-w-[140px] ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}>
+      <label className="text-[12px] font-medium text-[#181d26] px-1">{label}</label>
       <button
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 hover:bg-white hover:border-indigo-300 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer disabled:cursor-not-allowed w-full text-left"
+        className="flex items-center justify-between gap-3 text-[13px] font-medium text-[#181d26] bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 hover:border-[#1b61c9] transition-all focus:outline-none cursor-pointer disabled:cursor-not-allowed w-full text-left"
       >
         <span className="truncate">{selectedOption ? selectedOption.label : value}</span>
-        <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`text-[#9297a0] transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence>
         {isOpen && (
@@ -1116,7 +1116,7 @@ function CustomSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto py-1 scrollbar-thin"
+            className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#dddddd] rounded-[6px] shadow-sm z-50 overflow-hidden max-h-60 overflow-y-auto py-1 scrollbar-thin"
           >
             {options.map((opt) => (
               <button
@@ -1126,12 +1126,12 @@ function CustomSelect({
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 text-left transition-all ${
-                  opt.value === value ? "bg-indigo-50/50 text-indigo-600 font-bold" : ""
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-[13px] font-medium text-[#41454d] hover:bg-[#f8fafc] hover:text-[#181d26] text-left transition-all ${
+                  opt.value === value ? "bg-[#f8fafc] text-[#181d26] font-semibold" : ""
                 }`}
               >
                 <span className="truncate">{opt.label}</span>
-                {opt.value === value && <Check size={12} className="text-indigo-600" />}
+                {opt.value === value && <Check size={14} className="text-[#181d26]" />}
               </button>
             ))}
           </motion.div>

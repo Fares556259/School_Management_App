@@ -28,6 +28,7 @@ interface Props {
   teachers: any[];
   initialStudents: any[];
   sheets: any[];
+  lessons: any[];
 }
 
 export default function ResultsPageClient({
@@ -36,6 +37,7 @@ export default function ResultsPageClient({
   teachers,
   initialStudents,
   sheets,
+  lessons,
 }: Props) {
   const router = useRouter();
   const [activeView, setActiveView] = useState<"list" | "recorder">("list");
@@ -398,9 +400,14 @@ export default function ResultsPageClient({
                      <div className="w-8 h-8 rounded-[6px] bg-[#ffffff] border border-[#dddddd] flex items-center justify-center text-[12px] font-medium text-[#181d26]">👤</div>
                      <div>
                        <p className="text-[12px] font-medium text-[#181d26]">
-                         {isPlaceholder ? '—' : (sheet.teacher ? `${sheet.teacher.name} ${sheet.teacher.surname}` : '—')}
+                         {(() => {
+                           const lesson = lessons?.find((l: any) => l.classId === item.class.id && l.subjectId === item.subject.id);
+                           if (lesson?.teacher) return `${lesson.teacher.name} ${lesson.teacher.surname}`;
+                           if (!isPlaceholder && sheet.teacher) return `${sheet.teacher.name} ${sheet.teacher.surname}`;
+                           return '—';
+                         })()}
                        </p>
-                       <p className="text-[11px] font-normal text-[#5a5a5a] tracking-wide">Lead Teacher</p>
+                       <p className="text-[11px] font-normal text-[#5a5a5a] tracking-wide">Teacher</p>
                      </div>
                   </div>
               </div>
