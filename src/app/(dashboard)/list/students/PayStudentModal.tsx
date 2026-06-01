@@ -49,7 +49,8 @@ export default function PayStudentModal({
       // Always reset additional amount to the remaining balance for the current target month
       setAdditionalAmount(remainingBalance);
     }
-  }, [isOpen, selectedMonth, paidMonths, monthsList, remainingBalance]); // Include all dependencies to satisfy linter
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handlePay = () => {
     if (!isAdmin || !selectedMonth || (isSkipping && !isPartial)) return;
