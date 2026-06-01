@@ -22,6 +22,8 @@ interface StudentDetailsModalProps {
       name: string;
       surname: string;
       phone: string;
+      username?: string | null;
+      address?: string | null;
     } | null;
   };
   className: string;
@@ -133,18 +135,6 @@ export default function StudentDetailsModal({
                         <span className="text-[14px] font-medium text-[#181d26]">{student.surname}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Parent / Guardian</span>
-                        <span className="text-[14px] font-medium text-[#181d26]">
-                          {student.parent ? `${student.parent.name} ${student.parent.surname}` : "Not Listed"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Parent Contact</span>
-                        <span className="text-[14px] font-medium text-[#181d26]">
-                          {student.parent?.phone || "Not Listed"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">Date of Birth</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{formatDate(student.birthday)}</span>
                       </div>
@@ -181,19 +171,15 @@ export default function StudentDetailsModal({
                       Contact Information
                     </h4>
                     <span className="text-[13px] font-normal text-[#41454d]">
-                      Primary and secondary communication channels
+                      Primary communication channels
                     </span>
                   </div>
 
                   <div className="border-t border-[#dddddd] pt-5 flex flex-col gap-5">
                     <div className="grid grid-cols-2 gap-y-5 gap-x-5">
-                      <div className="flex flex-col">
+                      <div className="flex flex-col col-span-2">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">Student Phone</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{student.phone || "-"}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Parent Phone</span>
-                        <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.phone || "-"}</span>
                       </div>
                       <div className="flex flex-col col-span-2">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">Home Address</span>
@@ -216,6 +202,36 @@ export default function StudentDetailsModal({
                   </div>
                 </div>
 
+                </div>
+
+                {/* ROW 2: PARENT INFORMATION */}
+                <div className="px-5 pb-5">
+                  <div className="bg-[#f8fafc] p-5 rounded-[12px] flex flex-col gap-5">
+                    <div>
+                      <h4 className="text-[18px] font-medium text-[#181d26] mb-1">Parent / Guardian</h4>
+                      <span className="text-[13px] font-normal text-[#41454d]">Primary contact and family details</span>
+                    </div>
+                    <div className="border-t border-[#dddddd] pt-5">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-5">
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Full Name</span>
+                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent ? `${student.parent.name} ${student.parent.surname}` : "Not Listed"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Phone Number</span>
+                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.phone || "-"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Username</span>
+                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.username ? `@${student.parent.username}` : "-"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Address</span>
+                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.address || "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
