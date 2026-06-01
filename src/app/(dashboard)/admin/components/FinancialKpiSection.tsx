@@ -26,22 +26,19 @@ const KpiCard: React.FC<KpiCardProps> = ({
   const diff = prevValue === 0 ? 0 : ((value - prevValue) / Math.abs(prevValue)) * 100;
   const isPositive = diff >= 0;
   
-  // For expenses, positive diff is "bad" (red), negative is "good" (green)
-  let statusColor = isPositive ? 'text-emerald-500 bg-emerald-50' : 'text-rose-500 bg-rose-50';
-  if (inverseColors) {
-    statusColor = isPositive ? 'text-rose-500 bg-rose-50' : 'text-emerald-500 bg-emerald-50';
-  }
+  const isGood = inverseColors ? !isPositive : isPositive;
+  const statusColor = isGood ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50';
+  const strokeColor = isGood ? '#10b981' : '#f43f5e';
 
   const formattedValue = isPercentage 
     ? `${value.toFixed(1)}%` 
     : `${isCurrency ? '$' : ''}${Math.round(value).toLocaleString()}`;
 
-  // Simple SVG Sparkline based on trend
+  // Mini line chart
   const generatePath = () => {
-    const points = isPositive 
-      ? "0,20 10,18 20,22 30,15 40,18 50,10 60,12" // Upward trend
-      : "0,10 10,12 20,8 30,15 40,12 50,20 60,18"; // Downward trend
-    return points;
+    return isPositive 
+      ? "M 0,20 L 10,18 L 20,22 L 30,15 L 40,18 L 50,10 L 60,12"
+      : "M 0,10 L 10,12 L 20,8 L 30,15 L 40,12 L 50,20 L 60,18";
   };
 
   return (
@@ -49,43 +46,27 @@ const KpiCard: React.FC<KpiCardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="bg-[#ffffff] p-6 rounded-[8px] border border-[#d8d8d8] flex flex-col gap-1 relative overflow-hidden group transition-all"
+      className="bg-[#ffffff] p-4 rounded-[8px] border border-[#d8d8d8] flex flex-col group transition-all"
     >
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-[14px] font-medium text-[#5a5a5a]">
+      <div className="flex justify-between items-start mb-1">
+        <span className="text-[13px] font-medium text-[#5a5a5a]">
           {title}
         </span>
-      </div>
-      
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-[32px] font-medium text-[#080808] tracking-[-0.5px]">
-          {formattedValue}
-        </h3>
-        
-        {/* Decorative Sparkline */}
-        <div className="w-16 h-8 opacity-40 group-hover:opacity-100 transition-opacity">
-            <svg viewBox="0 0 60 30" width="100%" height="100%" preserveAspectRatio="none">
-                <path 
-                    d={`M ${generatePath()}`} 
-                    fill="none" 
-                    stroke={isPositive ? '#10b981' : '#f43f5e'} 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                />
-            </svg>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-2 mt-3">
-        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[12px] font-medium ${statusColor}`}>
+        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[11px] font-medium ${statusColor}`}>
           <span>{isPositive ? '↑' : '↓'}</span>
           <span>{Math.abs(Math.round(diff))}%</span>
         </div>
-        <span className="text-[12px] font-medium text-[#898989]">
-          {compareLabel}
-        </span>
       </div>
+      
+      <div className="flex items-center justify-between gap-4 mt-1">
+        <h3 className="text-[24px] font-semibold text-[#080808] tracking-[-0.5px] leading-none">
+          {formattedValue}
+        </h3>
+      </div>
+      
+      <span className="text-[11px] font-medium text-[#898989] mt-2 block">
+        {compareLabel}
+      </span>
     </motion.div>
   );
 };
