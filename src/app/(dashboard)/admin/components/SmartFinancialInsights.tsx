@@ -198,44 +198,41 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               key="content"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch w-full"
+              className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
               {[
-                { type: 'action', label: t.smartInsights.actionableSteps, bg: 'bg-[#a8d8c4]' }, // signature-mint
-                { type: 'opportunity', label: t.smartInsights.opportunities, bg: 'bg-[#f5e9d4]' }, // signature-cream
-                { type: 'performance', label: t.smartInsights.performance, bg: 'bg-[#f8fafc]' }, // surface-soft
-                { type: 'risk', label: t.smartInsights.risks, bg: 'bg-[#fcab79]' }, // signature-peach
-                { type: 'trend', label: t.smartInsights.trends, bg: 'bg-[#ffffff] border border-[#dddddd]' } // canvas with hairline
+                { type: 'performance', label: t.smartInsights.performance, iconColor: 'text-emerald-600', bgIcon: 'bg-emerald-50' },
+                { type: 'risk', label: t.smartInsights.risks, iconColor: 'text-rose-600', bgIcon: 'bg-rose-50' },
+                { type: 'opportunity', label: t.smartInsights.opportunities, iconColor: 'text-amber-600', bgIcon: 'bg-amber-50' },
+                { type: 'trend', label: t.smartInsights.trends, iconColor: 'text-indigo-600', bgIcon: 'bg-indigo-50' },
+                { type: 'action', label: t.smartInsights.actionableSteps, iconColor: 'text-orange-600', bgIcon: 'bg-orange-50' }
               ].map((category) => {
                 const categoryInsights = insights.filter(i => i.type === category.type);
                 
                 if (categoryInsights.length === 0) return null;
 
                 return (
-                  <div key={category.type} className={`rounded-[10px] p-6 flex flex-col gap-4 ${category.bg} shadow-sm`}>
-                    <div className="flex items-center justify-between border-b border-[#181d26]/10 pb-3">
-                      <h3 className="text-[16px] font-medium text-[#181d26] capitalize">
+                  <div key={category.type} className={`min-w-[280px] max-w-[320px] snap-start rounded-[8px] p-4 flex flex-col gap-3 bg-[#ffffff] border border-[#dddddd] shadow-sm`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-md ${category.bgIcon}`}>
+                        {React.cloneElement(getLucideIcon(categoryInsights[0]?.icon) as React.ReactElement, { className: category.iconColor, size: 16 })}
+                      </div>
+                      <h3 className="text-[13px] font-semibold text-[#181d26] uppercase tracking-wide">
                         {category.label}
                       </h3>
                     </div>
                     
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       {categoryInsights.map((insight, idx) => (
                         <motion.div 
                            key={idx}
                            initial={{ opacity: 0, y: 5 }}
                            animate={{ opacity: 1, y: 0 }}
                            transition={{ delay: idx * 0.1 }}
-                           className="flex flex-col gap-2"
                         >
-                          <div className="flex items-start gap-3">
-                             <div className="mt-0.5">
-                               {getLucideIcon(insight.icon)}
-                             </div>
-                             <p className="text-[14px] font-normal text-[#181d26] leading-[1.4]">
-                               {insight.text}
-                             </p>
-                          </div>
+                          <p className="text-[13px] font-normal text-[#333840] leading-relaxed">
+                            {insight.text}
+                          </p>
                         </motion.div>
                       ))}
                     </div>
