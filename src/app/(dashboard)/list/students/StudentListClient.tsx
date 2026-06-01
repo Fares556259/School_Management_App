@@ -8,6 +8,7 @@ import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
+import StudentDetailsModal from "@/components/StudentDetailsModal";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { Sparkles, Users, Eye } from "lucide-react";
@@ -40,7 +41,7 @@ export default function StudentListClient({
   const [isBulkOpen, setIsBulkOpen] = useState(false);
 
   const renderRow = (
-    item: Student & { class: Class | null; level: Level; payments: Payment[] }
+    item: Student & { class: Class | null; level: Level; payments: Payment[]; parent?: any }
   ) => {
     const [mName, yStr] = selectedMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
@@ -95,11 +96,7 @@ export default function StudentListClient({
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
-            <Link href={`/list/students/${item.id}`}>
-              <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="View Profile">
-                <Eye size={16} strokeWidth={2} />
-              </button>
-            </Link>
+            <StudentDetailsModal student={item} className={item.class?.name ?? "No class"} />
             {role === "admin" && (
               <>
                 <CrudFormModal entity="student" mode="update" data={item} id={item.id} relatedData={relatedData} />

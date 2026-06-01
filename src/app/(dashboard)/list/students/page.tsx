@@ -175,6 +175,7 @@ const StudentListPage = async ({
       include: {
         class: true,
         level: true,
+        parent: true,
         payments: { select: { month: true, year: true, status: true, paidAt: true } },
       },
       take: ITEM_PER_PAGE,

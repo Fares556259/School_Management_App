@@ -48,10 +48,10 @@ export default function StudentDetailsModal({
       {/* TRIGGER EYE ICON BUTTON */}
       <button
         onClick={() => setOpen(true)}
-        className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-[#f8fafc] hover:border-[#9297a0] transition-colors"
+        className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]"
         title="View Student Details"
       >
-        <Eye size={14} />
+        <Eye size={16} strokeWidth={2} />
       </button>
 
       <AnimatePresence>
