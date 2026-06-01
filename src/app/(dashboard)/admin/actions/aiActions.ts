@@ -132,7 +132,8 @@ async function unifiedAIRouter(params: {
   systemPrompt?: string;
   userPrompt: string;
   history?: any[];
-  imageBase64?: string;
+  fileBase64?: string;
+  fileMimeType?: string;
   jsonMode?: boolean;
 }) {
   const primaryKey = process.env.OPENROUTER_API_KEY;
@@ -157,7 +158,7 @@ async function unifiedAIRouter(params: {
       console.log("🛰️ [ROUTER] Using Google Native SDK...");
       const genAI = new GoogleGenerativeAI(key);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash", // Updated to latest gemini-2.5-flash which has great document understanding
         generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
       });
       
@@ -165,7 +166,9 @@ async function unifiedAIRouter(params: {
       if (params.systemPrompt) contents.push({ role: "user", parts: [{ text: `SYSTEM_INSTRUCTION: ${params.systemPrompt}` }] });
       if (params.history) contents.push(...params.history.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })));
       const userParts: any[] = [{ text: params.userPrompt }];
-      if (params.imageBase64) userParts.push({ inlineData: { data: params.imageBase64, mimeType: "image/jpeg" } });
+      if (params.fileBase64) {
+        userParts.push({ inlineData: { data: params.fileBase64, mimeType: params.fileMimeType || "image/jpeg" } });
+      }
       contents.push({ role: "user", parts: userParts });
 
       const result = await model.generateContent({ contents });
@@ -181,10 +184,10 @@ async function unifiedAIRouter(params: {
       
       messages.push({
         role: "user",
-        content: params.imageBase64 
+        content: params.fileBase64 
           ? [
               { type: "text", text: params.userPrompt },
-              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${params.imageBase64}` } }
+              { type: "image_url", image_url: { url: `data:${params.fileMimeType || 'image/jpeg'};base64,${params.fileBase64}` } }
             ]
           : params.userPrompt
       });
@@ -198,7 +201,7 @@ async function unifiedAIRouter(params: {
           "X-Title": "SnapSchool AI", 
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-001",
+          model: "google/gemini-2.5-flash", // Update to latest model
           messages,
           max_tokens: 2000, // Economy limit
           response_format: params.jsonMode ? { type: "json_object" } : undefined
@@ -271,11 +274,11 @@ async function unifiedAIRouter(params: {
   throw lastErr;
 }
 
-export async function callGeminiDirect(prompt: string, imageBase64?: string) {
+export async function callGeminiDirect(prompt: string, fileBase64?: string, fileMimeType?: string) {
   const usage = await checkAndIncrementUsage();
   if (!usage.allowed) throw new Error(`DAILY_QUOTA_REACHED|${usage.quota}`);
 
-  return await unifiedAIRouter({ userPrompt: prompt, imageBase64 });
+  return await unifiedAIRouter({ userPrompt: prompt, fileBase64, fileMimeType });
 }
 
 export async function getChatResponse(

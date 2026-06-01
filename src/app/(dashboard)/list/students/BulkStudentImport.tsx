@@ -122,19 +122,28 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                     className="w-full h-64 p-6 rounded-3xl border border-slate-200 bg-white focus:ring-4 focus:ring-indigo-50 focus:border-indigo-400 outline-none transition-all text-sm font-medium leading-relaxed resize-none shadow-sm"
                   />
                 ) : (
-                  <div className="w-full h-64 rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-4 group hover:border-indigo-400 transition-colors overflow-hidden">
+                  <div className="w-full h-64 rounded-3xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center gap-4 group hover:border-indigo-400 hover:bg-indigo-50/30 transition-all overflow-hidden relative cursor-pointer"
+                       onClick={() => !imageUrl && document.getElementById('bulk-import-upload')?.click()}>
                     {imageUrl ? (
-                      <div className="relative w-full h-full">
-                        <Image src={imageUrl} alt="Document" fill className="object-contain" />
+                      <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+                        {imageUrl.includes('.pdf') ? (
+                          <div className="flex flex-col items-center justify-center gap-3 bg-red-50 p-6 rounded-2xl border border-red-100">
+                            <FileText size={48} className="text-red-500" />
+                            <p className="font-bold text-red-700 text-sm">PDF Document Ready</p>
+                          </div>
+                        ) : (
+                          <Image src={imageUrl} alt="Document" fill className="object-contain p-4" />
+                        )}
                         <button 
-                           onClick={() => setImageUrl(null)}
-                           className="absolute top-4 right-4 p-2 bg-slate-900/50 text-white rounded-full backdrop-blur-sm hover:bg-slate-900/80 transition-all"
+                           onClick={(e) => { e.stopPropagation(); setImageUrl(null); }}
+                           className="absolute top-4 right-4 p-2.5 bg-slate-900/50 text-white rounded-full backdrop-blur-md hover:bg-rose-500 transition-all shadow-xl z-10"
+                           title="Remove file"
                         >
                           <X size={16} />
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-3">
+                      <div className="flex flex-col items-center gap-3 pointer-events-none">
                         <input
                           type="file"
                           id="bulk-import-upload"
@@ -146,7 +155,8 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                             
                             try {
                               const supabase = (await import('@/utils/supabase/client')).createClient();
-                              const fileName = `bulk-import-${Date.now()}`;
+                              const ext = file.name.split('.').pop()?.toLowerCase() || 'jpeg';
+                              const fileName = `bulk-import-${Date.now()}.${ext}`;
                               const filePath = `imports/${fileName}`;
 
                               const { data, error: uploadError } = await supabase.storage
@@ -162,22 +172,17 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                               setImageUrl(publicUrl);
                             } catch (err: any) {
                               console.error("Bulk upload failed:", err);
-                              setError(err.message || "Failed to upload image.");
+                              setError(err.message || "Failed to upload file.");
                             }
                           }}
                         />
-                        <button
-                          onClick={() => document.getElementById('bulk-import-upload')?.click()}
-                          className="flex flex-col items-center gap-3"
-                        >
-                          <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
-                            <ImageIcon size={24} />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Select Image</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PNG, JPG, OR PDF SCAN</p>
-                          </div>
-                        </button>
+                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                          <ImageIcon size={26} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold text-slate-700">Click to upload document</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PNG, JPG, OR PDF SCAN</p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -192,9 +197,9 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 <button
                   onClick={handleParse}
                   disabled={importMode === "text" ? !rawText.trim() : !imageUrl}
-                  className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 disabled:opacity-50 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                 >
-                   {importMode === "image" ? <ImageIcon size={14} /> : <FileText size={14} />}
+                   {importMode === "image" ? <ImageIcon size={16} /> : <FileText size={16} />}
                    ✨ Start AI Extraction
                 </button>
               </motion.div>

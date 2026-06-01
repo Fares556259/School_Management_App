@@ -55,12 +55,12 @@ export async function parseStudentsFromText(text: string) {
 
 export async function parseStudentsFromImage(imageUrl: string) {
   if (!imageUrl) {
-    return { error: "Please provide a valid image of a student list." };
+    return { error: "Please provide a valid image or document of a student list." };
   }
 
   const prompt = `
     You are an expert school administrative assistant with high-performance OCR skills.
-    I will provide you with an image of a student list or enrollment document. 
+    I will provide you with an image or document of a student list or enrollment document. 
     Your task is to parse this list into a JSON array of student objects.
     
     Each student object MUST follow this structure:
@@ -86,12 +86,19 @@ export async function parseStudentsFromImage(imageUrl: string) {
   `;
 
   try {
-    const response = await callGeminiDirect(prompt, imageUrl);
+    const res = await fetch(imageUrl);
+    if (!res.ok) throw new Error("Failed to fetch image from storage.");
+    
+    const arrayBuffer = await res.arrayBuffer();
+    const base64Str = Buffer.from(arrayBuffer).toString('base64');
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+
+    const response = await callGeminiDirect(prompt, base64Str, contentType);
     const cleaned = response.replace(/```json/g, "").replace(/```/g, "").trim();
     const data = JSON.parse(cleaned);
     return { data };
   } catch (err: any) {
     console.error("AI Vision Parse Error:", err);
-    return { error: "Failed to parse image. Please ensure it is clear and readable." };
+    return { error: "Failed to parse document. Please ensure it is clear and readable." };
   }
 }
