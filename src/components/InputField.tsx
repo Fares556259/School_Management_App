@@ -26,13 +26,13 @@ const InputField = ({
   className,
 }: InputFieldProps) => {
   return (
-    <div className={`flex flex-col gap-2 ${className || "w-full"}`}>
-      <label className="text-xs text-gray-500">{label}</label>
+    <div className={`flex flex-col gap-1.5 ${className || "w-full"}`}>
+      <label className="text-[12px] font-medium text-[#181d26]">{label}</label>
       <input
         type={type}
         name={name}
         {...(register ? register(name) : {})}
-        className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+        className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white"
         {...inputProps}
         placeholder={placeholder}
         defaultValue={defaultValue}
