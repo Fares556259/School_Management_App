@@ -102,16 +102,16 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
     <button 
       onClick={handleSendSms}
       disabled={isSending || disabled}
-      className={`w-full py-2.5 border rounded-[4px] text-[13px] font-medium flex items-center justify-center gap-2 shadow-sm group/sms transition-all ${
+      className={`w-full py-2.5 border rounded-[6px] text-[13px] font-medium flex items-center justify-center gap-2 shadow-sm transition-all ${
         disabled 
-          ? "bg-[#f9f9f9] border-[#d8d8d8] text-[#898989] cursor-not-allowed" 
-          : "bg-[#ffffff] border-[#d8d8d8] text-indigo-600 hover:bg-indigo-50"
+          ? "bg-[#f9f9f9] border-[#dddddd] text-[#898989] cursor-not-allowed" 
+          : "bg-[#ffffff] border-[#dddddd] text-[#181d26] hover:bg-[#f8fafc]"
       }`}
     >
       {isSending ? (
-        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-4 h-4 border-2 border-[#181d26] border-t-transparent rounded-full animate-spin" />
       ) : (
-        <MessageSquare size={14} className={disabled ? "text-[#898989]" : "text-indigo-400 group-hover/sms:scale-110 transition-transform"} />
+        <MessageSquare size={14} className={disabled ? "text-[#898989]" : "text-[#41454d]"} />
       )}
       {isSending ? t.actionCenter.sendingReminders : "Send Payment Reminders (App & SMS)"}
     </button>
@@ -149,24 +149,24 @@ const ActionList = ({
   };
 
   return (
-    <div className="flex-1 min-w-[300px] bg-[#ffffff] rounded-[8px] shadow-sm border border-[#d8d8d8] flex flex-col overflow-hidden group">
-      <div className={`p-5 border-b border-[#d8d8d8] bg-[#f9f9f9] flex justify-between items-center`}>
-        <div className="flex flex-col gap-0.5">
-          <h3 className="font-semibold text-[#080808] text-[14px] uppercase tracking-wider">{title}</h3>
-          <span className="text-[11px] font-medium text-[#5a5a5a] uppercase tracking-tighter">{monthLabel} {t.actionCenter.only}</span>
+    <div className="flex-1 min-w-[300px] bg-[#ffffff] rounded-[8px] shadow-sm border border-[#dddddd] flex flex-col overflow-hidden">
+      <div className={`p-5 border-b border-[#dddddd] bg-[#ffffff] flex justify-between items-center`}>
+        <div className="flex flex-col gap-1">
+          <h3 className="font-medium text-[#181d26] text-[16px] capitalize tracking-wide">{title.toLowerCase()}</h3>
+          <span className="text-[12px] font-normal text-[#5a5a5a] capitalize tracking-wide">{monthLabel} {t.actionCenter.only?.toLowerCase()}</span>
         </div>
         <div className="flex items-center gap-2">
             {items.length > 0 && (
                 <button 
                   onClick={handleExport}
                   title="Export List"
-                  className="p-1.5 bg-white rounded-lg border border-slate-100 text-slate-400 hover:text-indigo-500 hover:border-indigo-100 transition-all shadow-sm"
+                  className="p-1.5 bg-[#ffffff] rounded-[6px] border border-[#dddddd] text-[#5a5a5a] hover:text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                 >
-                    <Download size={12} />
+                    <Download size={14} />
                 </button>
             )}
-            <span className="text-[10px] font-black bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-full text-slate-500 shadow-sm border border-slate-100">
-                {items.length} {t.actionCenter.pending}
+            <span className="text-[12px] font-medium bg-[#f8fafc] px-2.5 py-1 rounded-[6px] text-[#41454d] border border-[#dddddd]">
+                {items.length} pending
             </span>
         </div>
       </div>
@@ -175,29 +175,25 @@ const ActionList = ({
         {items.length > 0 ? (
           <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3 scrollbar-slim">
             {items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 group/item">
+              <div key={item.id} className="flex justify-between items-center p-3 border-b border-[#dddddd]/50 last:border-0 hover:bg-[#f8fafc] transition-all">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100 text-slate-400 group-hover/item:text-indigo-500 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-[#f8fafc] flex items-center justify-center border border-[#dddddd] text-[#5a5a5a]">
                     <User size={14} />
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-700">{item.name}</span>
-                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest ${
-                        item.type === 'student' ? 'bg-amber-100 text-amber-600' :
-                        item.type === 'teacher' ? 'bg-rose-100 text-rose-600' :
-                        'bg-indigo-100 text-indigo-600'
-                      }`}>
+                      <span className="text-[14px] font-medium text-[#181d26]">{item.name}</span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] uppercase tracking-wide border border-[#dddddd] text-[#41454d] bg-[#f8fafc]">
                         {item.type}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-tight">
-                        {item.phone || <span className="text-rose-400 opacity-60">{t.actionCenter.noContact}</span>}
+                    <span className="text-[12px] text-[#5a5a5a] font-normal tracking-wide">
+                        {item.phone || <span className="opacity-60">{t.actionCenter.noContact}</span>}
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                   <span className="text-sm font-black text-slate-800">${item.amount.toLocaleString()}</span>
+                <div className="flex items-center gap-4">
+                   <span className="text-[14px] font-semibold text-[#181d26]">${item.amount.toLocaleString()}</span>
                    <QuickPayButton 
                      id={item.id} 
                      name={item.name} 
@@ -220,17 +216,17 @@ const ActionList = ({
         )}
       </div>
 
-      <div className="p-4 bg-[#f9f9f9] border-t border-[#d8d8d8] mt-auto space-y-3">
-        <button className="w-full py-2.5 bg-[#ffffff] border border-[#d8d8d8] rounded-[4px] text-[13px] font-medium text-[#080808] hover:bg-[#f9f9f9] transition-all flex items-center justify-center gap-2 shadow-sm">
-          <CtaIcon size={14} className="text-[#5a5a5a]" />
+      <div className="p-4 bg-[#f8fafc] border-t border-[#dddddd] mt-auto space-y-3">
+        <button className="w-full py-2.5 bg-[#ffffff] border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center justify-center gap-2 shadow-sm">
+          <CtaIcon size={14} className="text-[#41454d]" />
           {ctaLabel}
         </button>
         
         {showSmsAction && <SendSmsButton listType={title.toLowerCase().replace(' ', '_')} disabled={items.length === 0} />}
         
-        <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[11px] font-medium text-[#5a5a5a] hover:text-[#080808] cursor-pointer transition-colors uppercase tracking-widest">
+        <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[12px] font-medium text-[#5a5a5a] hover:text-[#181d26] cursor-pointer transition-colors capitalize tracking-wide">
           <span>{t.actionCenter.viewHistory}</span>
-          <ExternalLink size={10} />
+          <ArrowRight size={14} />
         </Link>
       </div>
     </div>
@@ -248,30 +244,20 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
     <div className="flex flex-col gap-6 w-full">
       {/* Summary Totals */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
-        <div className="bg-[#ffffff] rounded-[8px] p-5 border border-[#d8d8d8] shadow-sm flex items-center justify-between group overflow-hidden relative border-l-[4px] border-l-indigo-600">
-          <div className="absolute right-[-2%] top-[-10%] opacity-5 group-hover:rotate-6 transition-transform duration-700">
-             <Wallet size={80} strokeWidth={1} />
+        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-[#41454d]">
+             <Wallet size={16} />
+             <p className="text-[14px] font-medium capitalize tracking-wide">{t.actionCenter.unpaidEmployees}</p>
           </div>
-          <div className="relative z-10">
-            <p className="text-[#5a5a5a] text-[11px] font-medium uppercase tracking-widest mb-1">{t.actionCenter.unpaidEmployees}</p>
-            <h2 className="text-[24px] font-semibold tracking-tight text-[#080808]">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
-          </div>
-          <div className="w-11 h-11 rounded-[8px] bg-indigo-50 border border-indigo-100 flex items-center justify-center relative z-10">
-             <Wallet size={22} className="text-indigo-600" />
-          </div>
+          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
         </div>
 
-        <div className="bg-[#ffffff] rounded-[8px] p-5 border border-[#d8d8d8] shadow-sm flex items-center justify-between group overflow-hidden relative border-l-[4px] border-l-amber-500">
-          <div className="absolute right-[-2%] top-[-10%] opacity-5 group-hover:-rotate-6 transition-transform duration-700">
-             <HandCoins size={80} strokeWidth={1} />
+        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-[#41454d]">
+             <HandCoins size={16} />
+             <p className="text-[14px] font-medium capitalize tracking-wide">{t.actionCenter.uncollectedFees}</p>
           </div>
-          <div className="relative z-10">
-            <p className="text-[#5a5a5a] text-[11px] font-medium uppercase tracking-widest mb-1">{t.actionCenter.uncollectedFees}</p>
-            <h2 className="text-[24px] font-semibold tracking-tight text-[#080808]">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
-          </div>
-          <div className="w-11 h-11 rounded-[8px] bg-amber-50 border border-amber-100 flex items-center justify-center relative z-10">
-             <HandCoins size={22} className="text-amber-600" />
-          </div>
+          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
         </div>
       </div>
 

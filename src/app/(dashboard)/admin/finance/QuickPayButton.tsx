@@ -44,7 +44,7 @@ export default function QuickPayButton({ id, name, amount, monthYear, type }: { 
         e.stopPropagation();
         handlePay();
       }} 
-      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black rounded-lg shadow-sm transition-all disabled:opacity-50 tracking-wider min-w-[70px] flex items-center justify-center"
+      className="px-3 py-1.5 bg-[#181d26] hover:bg-[#333840] text-white text-[12px] font-medium rounded-[6px] shadow-sm transition-all disabled:opacity-50 min-w-[70px] flex items-center justify-center"
     >
       {loading ? (
         <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
