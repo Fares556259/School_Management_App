@@ -160,21 +160,16 @@ const Menu = ({ role }: { role: string }) => {
                 <Link
                   href={targetHref}
                   key={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-4 py-2.5 px-3 rounded-2xl transition-all duration-300 group relative overflow-hidden ${
+                  className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-[12px] transition-all duration-200 group relative ${
                     isActive 
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                      : "text-slate-500 hover:bg-primary/5 hover:text-primary"
+                      ? "bg-white text-[#181d26] shadow-sm font-semibold border border-[#e5e7eb]" 
+                      : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 font-medium"
                   }`}
                 >
-                  {/* Active Indicator */}
-                  <div className={`absolute left-0 top-1/4 bottom-1/4 w-1 bg-white rounded-r-full transition-transform duration-300 ${
-                    isActive ? "scale-y-100" : "scale-y-0 group-hover:scale-y-100 group-hover:bg-primary/40"
-                  }`} />
-                  
-                  <div className={`transition-all duration-300 ${
+                  <div className={`transition-all duration-200 ${
                     isActive 
-                      ? "opacity-100 scale-110 text-white" 
-                      : "opacity-60 group-hover:opacity-100 group-hover:scale-110 text-slate-500 group-hover:text-primary"
+                      ? "text-[#181d26]" 
+                      : "text-slate-500 group-hover:text-slate-900"
                   }`}>
                     {typeof item.icon === 'string' ? (
                       <div className="relative w-[22px] h-[22px]">
@@ -182,14 +177,14 @@ const Menu = ({ role }: { role: string }) => {
                            src={item.icon} 
                            alt="" 
                            fill
-                           className={isActive ? "brightness-200" : ""}
+                           className={isActive ? "brightness-0" : "opacity-60"}
                          />
                       </div>
                     ) : (
-                      <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                      <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                     )}
                   </div>
-                  <span className={`hidden lg:block font-bold tracking-tight ${isActive ? "translate-x-1" : ""} transition-transform duration-300`}>
+                  <span className={`hidden lg:block tracking-tight transition-transform duration-200`}>
                     {(t.menu as any)[labelToKey[item.label]] || item.label}
                   </span>
                 </Link>
