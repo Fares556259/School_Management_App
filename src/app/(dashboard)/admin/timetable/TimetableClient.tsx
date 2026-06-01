@@ -117,38 +117,38 @@ const TimetablePage = ({
         {/* Row 1: Header title and action buttons */}
         <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 w-full">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 shadow-sm shrink-0">
-              {forceDraft ? <Sparkles size={24} className="stroke-[2px]" /> : <CalendarDays size={24} className="stroke-[2px]" />}
-            </div>
             <div>
-              <div className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-500">
+              <div className="flex items-center gap-2 mb-1 text-[12px] font-medium text-[#5a5a5a]">
                 <span>{forceDraft ? "AI Timetable Playground" : "Timetable Registry"}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                <span className="w-1 h-1 rounded-full bg-[#dddddd]"></span>
+                <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-600 animate-pulse' : 'bg-emerald-600'}`}></span>
                   {isEditMode ? 'Edit Mode' : 'View Mode'}
                 </span>
               </div>
               
-              <h1 className="text-2xl xl:text-3xl font-bold text-slate-800 tracking-tight mt-0.5">
-                {forceDraft ? "AI Timetable Scheduler" : "Academic Timetable"}
-              </h1>
+              <div className="flex items-center gap-2">
+                {forceDraft ? <Sparkles size={24} className="text-[#181d26]" /> : <CalendarDays size={24} className="text-[#181d26]" />}
+                <h1 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">
+                  {forceDraft ? "AI Timetable Scheduler" : "Academic Timetable"}
+                </h1>
+              </div>
               
               {/* PRO VIEW BAR (Airtable-style filter bar) */}
-              <div className="flex items-center bg-[#f8fafc] border border-[#dddddd] rounded-lg px-2 py-1.5 gap-2 w-fit mt-4">
+              <div className="flex items-center bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-2 py-1.5 gap-2 w-fit mt-4">
                 {/* Target Class */}
                 <div className="flex items-center gap-2 px-2 shrink-0">
-                  <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Class</span>
+                  <span className="text-[12px] font-medium text-[#41454d] capitalize tracking-wide">Class</span>
                   <div className="relative inline-flex items-center">
                     <select 
-                      className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
+                      className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
                       value={selectedClass?.id}
                       onChange={(e) => {
                         router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
                       }}
                     >
                       {classes.map(cls => (
-                        <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
+                        <option key={cls.id} value={cls.id} className="bg-white text-[#181d26]">
                           Grade {cls.level.level} - {cls.name}
                         </option>
                       ))}
@@ -171,22 +171,22 @@ const TimetablePage = ({
                     {/* EDIT TIMETABLE BUTTON */}
                     <button 
                       onClick={() => setIsEditMode(true)}
-                      className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm active:scale-[0.98] text-[#181d26] hover:bg-slate-50 transition-all flex items-center gap-2"
+                      className="px-4 py-2.5 rounded-[6px] bg-[#ffffff] border border-[#dddddd] font-medium text-[13px] active:scale-[0.98] text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                     >
-                      <Edit2 size={16} /> Edit Schedule
+                      <Edit2 size={14} className="text-[#41454d]" /> Edit Schedule
                     </button>
 
                     {/* AI GENERATE BUTTON */}
                     <button 
                       onClick={() => setIsAiOpen(true)}
                       disabled={isAiLocked}
-                      className={`flex items-center gap-2 px-6 py-3 text-sm active:scale-[0.98] font-medium rounded-xl transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2.5 text-[13px] active:scale-[0.98] font-medium rounded-[6px] transition-all shadow-sm ${
                         isAiLocked 
                         ? 'bg-[#f8fafc] border border-[#dddddd] text-[#9297a0] cursor-not-allowed'
                         : 'bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent'
                       }`}
                     >
-                      {isAiLocked ? <Lock size={16} /> : <Sparkles size={16} />}
+                      {isAiLocked ? <Lock size={14} /> : <Sparkles size={14} />}
                       {isAiLocked ? 'Limit Reached' : hasDraft ? 'Regenerate' : 'AI Generate'}
                     </button>
                   </div>
@@ -194,9 +194,9 @@ const TimetablePage = ({
                   /* STANDALONE EDIT SCHEDULE BUTTON */
                   <button 
                     onClick={() => setIsEditMode(true)}
-                    className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm active:scale-[0.98] text-[#181d26] hover:bg-slate-50 transition-all flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-[6px] bg-[#ffffff] border border-[#dddddd] font-medium text-[13px] active:scale-[0.98] text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                   >
-                    <Edit2 size={16} /> Edit Schedule
+                    <Edit2 size={14} className="text-[#41454d]" /> Edit Schedule
                   </button>
                 )}
 
@@ -205,13 +205,13 @@ const TimetablePage = ({
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handlePublishDraft}
-                      className="px-6 py-3 bg-[#181d26] hover:bg-[#0d1218] text-white text-sm active:scale-[0.98] font-medium rounded-xl transition-all"
+                      className="px-4 py-2.5 bg-[#181d26] hover:bg-[#0d1218] text-white text-[13px] active:scale-[0.98] font-medium rounded-[6px] transition-all shadow-sm"
                     >
                       Publish
                     </button>
                     <button
                       onClick={handleDiscardDraft}
-                      className="px-6 py-3 bg-white border border-[#dddddd] hover:bg-rose-50 text-[#aa2d00] text-sm active:scale-[0.98] font-medium rounded-xl transition-all"
+                      className="px-4 py-2.5 bg-[#ffffff] border border-[#dddddd] hover:bg-rose-50 text-rose-600 text-[13px] active:scale-[0.98] font-medium rounded-[6px] transition-all shadow-sm"
                     >
                       Discard
                     </button>
@@ -221,9 +221,9 @@ const TimetablePage = ({
                 {/* 3. Export Utility (Standalone Outline Button) */}
                 <button 
                   onClick={() => handlePrint()}
-                  className="flex items-center gap-2 px-6 py-3 text-sm active:scale-[0.98] font-medium rounded-xl transition-all border border-[#dddddd] bg-white text-[#181d26] hover:bg-slate-50"
+                  className="flex items-center gap-2 px-4 py-2.5 text-[13px] active:scale-[0.98] font-medium rounded-[6px] transition-all border border-[#dddddd] bg-[#ffffff] text-[#181d26] hover:bg-[#f8fafc] shadow-sm"
                 >
-                  <FileDown size={16} />
+                  <FileDown size={14} className="text-[#41454d]" />
                   Export PDF
                 </button>
               </>
@@ -231,9 +231,9 @@ const TimetablePage = ({
               /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */
               <button 
                 onClick={() => setIsEditMode(false)}
-                className="px-6 py-3 rounded-xl font-medium text-sm active:scale-[0.98] transition-all flex items-center gap-2 bg-[#181d26] text-white hover:bg-[#0d1218]"
+                className="px-4 py-2.5 rounded-[6px] font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 bg-[#181d26] text-white hover:bg-[#0d1218] shadow-sm"
               >
-                <Check size={16} /> Done Editing
+                <Check size={14} /> Done Editing
               </button>
             )}
           </div>

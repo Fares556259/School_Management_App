@@ -157,25 +157,25 @@ const ScheduleSlot = ({
         isEditMode && (
           <button 
               onClick={() => setIsEditing(true)}
-              className="w-full h-full border border-dashed border-[#dddddd] bg-[#F9FAFB] rounded-xl flex flex-col items-center justify-center text-[#9297a0] hover:border-[#a0a5b0] hover:text-[#181d26] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all group print:hidden"
+              className="w-full h-full border border-dashed border-[#dddddd] bg-[#f8fafc] rounded-[6px] flex flex-col items-center justify-center text-[#9297a0] hover:border-[#a0a5b0] hover:text-[#181d26] hover:bg-[#ffffff] hover:shadow-sm transition-all group print:hidden"
           >
-            <div className="w-9 h-9 rounded-full bg-white border border-[#e5e7eb] shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-center transition-colors">
-               <BookOpen size={16} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="w-8 h-8 rounded-full bg-[#ffffff] border border-[#dddddd] flex items-center justify-center transition-colors">
+               <BookOpen size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="text-[12px] font-semibold mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
+            <span className="text-[12px] font-medium mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
           </button>
         )
       ) : (
         <div 
           draggable={isEditMode && !!slot}
           onDragStart={handleDragStart}
-          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border p-3.5 rounded-xl transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:-translate-y-0.5' : ''} overflow-hidden`}
+          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border p-3.5 rounded-[6px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-sm' : ''} overflow-hidden`}
         >
           {/* Subtle gradient overlay for depth */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
           
           <div className="flex items-start justify-between relative z-10 mb-2">
-            <h3 className="text-[14px] font-semibold text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors line-clamp-2">
+            <h3 className="text-[14px] font-medium text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors line-clamp-2">
               {subjectName || "Unscheduled Subject"}
             </h3>
             {isEditMode && (
@@ -195,8 +195,8 @@ const ScheduleSlot = ({
           </div>
 
           <div className="mt-auto flex items-center justify-between pt-3 relative z-10">
-             <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-[#41454d]">{slot.room?.name || "Room TBA"}</span>
+             <div className="bg-[#ffffff]/80 px-2 py-1 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1.5">
+                <span className="text-[11px] font-medium text-[#41454d]">{slot.room?.name || "Room TBA"}</span>
              </div>
           </div>
         </div>
