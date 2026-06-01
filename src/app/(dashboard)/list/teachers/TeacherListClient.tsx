@@ -51,45 +51,45 @@ export default function TeacherListClient({
     return (
       <tr
         key={item.id}
-        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+        className="border-b border-[#dddddd] hover:bg-[#f8fafc] transition-colors group"
       >
-        <td className="flex items-center gap-4 p-4">
+        <td className="flex items-center gap-4 py-4 px-6">
           <Image
             src={item.img || "/noavatar.png"}
             alt=""
             width={40}
             height={40}
-            className="w-10 h-10 rounded-full object-cover"
+            className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd]"
           />
           <div className="flex flex-col">
-            <h3 className="font-semibold">{item.name}</h3>
+            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name}</h3>
           </div>
         </td>
-        <td className="hidden md:table-cell">{item.username}</td>
-        <td className="hidden md:table-cell p-4">
+        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
+        <td className="hidden md:table-cell py-4 px-6">
           {item.subjects.length > 0 ? (
-            <div className="relative group">
-              <div className="flex items-center gap-2 cursor-default bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors w-fit">
+            <div className="relative group/subject">
+              <div className="flex items-center gap-2 cursor-default bg-blue-50 text-blue-700 px-3 py-1.5 rounded-[6px] border border-blue-100 hover:bg-blue-100 transition-colors w-fit">
                 <BookOpen size={14} className="text-blue-500" />
-                <span className="font-bold text-[11px] uppercase tracking-wide">
+                <span className="font-medium text-[12px] tracking-wide">
                   {item.subjects[0].name}
                 </span>
                 {item.subjects.length > 1 && (
                   <div className="flex items-center gap-1 ml-1 pl-1 border-l border-blue-200">
-                    <span className="text-[10px] text-blue-600">+{item.subjects.length - 1}</span>
-                    <ChevronDown size={12} className="group-hover:rotate-180 transition-transform" />
+                    <span className="text-[11px] text-blue-600">+{item.subjects.length - 1}</span>
+                    <ChevronDown size={12} className="group-hover/subject:rotate-180 transition-transform" />
                   </div>
                 )}
               </div>
               
               {item.subjects.length > 1 && (
-                <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-50 bg-white border border-slate-100 rounded-2xl shadow-2xl p-2 min-w-[160px] animate-in fade-in zoom-in duration-200">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">Assigned Subjects</p>
+                <div className="absolute top-full left-0 mt-2 hidden group-hover/subject:block z-50 bg-white border border-[#dddddd] rounded-[8px] shadow-lg p-2 min-w-[160px] animate-in fade-in zoom-in duration-200">
+                  <p className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2 px-2">Assigned Subjects</p>
                   <div className="space-y-1">
                     {item.subjects.map((s) => (
-                      <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 rounded-xl transition-colors group/item">
+                      <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover/item:scale-125 transition-transform" />
-                        <span className="text-xs font-bold text-slate-600">{s.name}</span>
+                        <span className="text-[13px] font-medium text-[#41454d]">{s.name}</span>
                       </div>
                     ))}
                   </div>
@@ -97,33 +97,33 @@ export default function TeacherListClient({
               )}
             </div>
           ) : (
-            <span className="text-slate-400 italic text-xs">No subjects</span>
+            <span className="text-[#a1a1aa] italic text-[13px]">No subjects</span>
           )}
         </td>
-        <td className="hidden md:table-cell p-4">
+        <td className="hidden md:table-cell py-4 px-6">
           {item.classes.length > 0 ? (
-            <div className="relative group">
-              <div className="flex items-center gap-2 cursor-default bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl border border-purple-100 hover:bg-purple-100 transition-colors w-fit">
+            <div className="relative group/class">
+              <div className="flex items-center gap-2 cursor-default bg-purple-50 text-purple-700 px-3 py-1.5 rounded-[6px] border border-purple-100 hover:bg-purple-100 transition-colors w-fit">
                 <Layers size={14} className="text-purple-500" />
-                <span className="font-bold text-[11px] uppercase tracking-wide">
+                <span className="font-medium text-[12px] tracking-wide">
                   {item.classes[0].name}
                 </span>
                 {item.classes.length > 1 && (
                   <div className="flex items-center gap-1 ml-1 pl-1 border-l border-purple-200">
-                    <span className="text-[10px] text-purple-600">+{item.classes.length - 1}</span>
-                    <ChevronDown size={12} className="group-hover:rotate-180 transition-transform" />
+                    <span className="text-[11px] text-purple-600">+{item.classes.length - 1}</span>
+                    <ChevronDown size={12} className="group-hover/class:rotate-180 transition-transform" />
                   </div>
                 )}
               </div>
               
               {item.classes.length > 1 && (
-                <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-50 bg-white border border-slate-100 rounded-2xl shadow-2xl p-2 min-w-[140px] animate-in fade-in zoom-in duration-200">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-2">Teaching Classes</p>
+                <div className="absolute top-full left-0 mt-2 hidden group-hover/class:block z-50 bg-white border border-[#dddddd] rounded-[8px] shadow-lg p-2 min-w-[140px] animate-in fade-in zoom-in duration-200">
+                  <p className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2 px-2">Teaching Classes</p>
                   <div className="space-y-1">
                     {item.classes.map((c) => (
-                      <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 rounded-xl transition-colors group/item">
+                      <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
                         <div className="w-1.5 h-1.5 rounded-full bg-purple-400 group-hover/item:scale-125 transition-transform" />
-                        <span className="text-xs font-bold text-slate-600">{c.name}</span>
+                        <span className="text-[13px] font-medium text-[#41454d]">{c.name}</span>
                       </div>
                     ))}
                   </div>
@@ -131,23 +131,23 @@ export default function TeacherListClient({
               )}
             </div>
           ) : (
-            <span className="text-slate-400 italic text-xs">No classes</span>
+            <span className="text-[#a1a1aa] italic text-[13px]">No classes</span>
           )}
         </td>
-        <td className="hidden lg:table-cell">{item.phone}</td>
-        <td className="hidden lg:table-cell">{item.address}</td>
-        <td className="hidden lg:table-cell">
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>{item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
+        <td className="hidden lg:table-cell py-4 px-6">
           {item.activated ? (
-            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+            <span className="px-2 py-1 rounded-[4px] bg-green-50 border border-green-200 text-green-700 text-[12px] font-medium">
               Activated
             </span>
           ) : (
-            <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-bold">
+            <span className="px-2 py-1 rounded-[4px] bg-slate-50 border border-slate-200 text-slate-500 text-[12px] font-medium">
               Pending
             </span>
           )}
         </td>
-        <td>
+        <td className="py-4 px-6">
           <PaySalaryModal 
             teacherId={item.id} 
             teacherName={item.name + " " + item.surname}
@@ -160,13 +160,13 @@ export default function TeacherListClient({
               .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
           />
         </td>
-        <td className="hidden xl:table-cell">
+        <td className="hidden xl:table-cell py-4 px-6">
           <PaymentTimeline payments={item.payments} selectedMonthKey={selectedMonthKey} />
         </td>
-        <td>
+        <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <Link href={`/list/teachers/${item.id}`}>
-              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors">
                 <Image src="/view.png" alt="" width={16} height={16} />
               </button>
             </Link>
@@ -195,26 +195,26 @@ export default function TeacherListClient({
       </div>
 
       {/* 2. TOP ACTIONS HEADER */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-black text-slate-800 uppercase tracking-tight">All Teachers</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Teachers</h1>
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center gap-3 self-end">
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-lamaYellow border border-amber-200 shadow-sm hover:shadow transition-all">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-lamaYellow border border-amber-200 shadow-sm hover:shadow transition-all">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
-            
+          <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-2 ml-1">
                 <button 
                   onClick={() => setIsBulkOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group shrink-0"
+                  className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
                 >
-                  <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
+                  <Sparkles size={16} className="text-[#41454d] group-hover:rotate-12 transition-transform" />
                   AI Bulk Enroll
+                </button>
+                <button 
+                  onClick={() => setIsBulkOpen(true)}
+                  className="lg:hidden w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]"
+                  title="AI Bulk Enroll"
+                >
+                  <Sparkles size={16} />
                 </button>
                 <CrudFormModal entity="teacher" mode="create" />
               </div>
