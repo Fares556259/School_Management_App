@@ -102,16 +102,16 @@ const SendSmsButton = ({ listType, disabled = false }: { listType: string; disab
     <button 
       onClick={handleSendSms}
       disabled={isSending || disabled}
-      className={`w-full py-3 border rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm group/sms transition-all ${
+      className={`w-full py-2.5 border rounded-[4px] text-[13px] font-medium flex items-center justify-center gap-2 shadow-sm group/sms transition-all ${
         disabled 
-          ? "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed" 
-          : "bg-white border-slate-200 text-[#4F46E5] hover:bg-indigo-50 hover:border-indigo-200"
+          ? "bg-[#f9f9f9] border-[#d8d8d8] text-[#898989] cursor-not-allowed" 
+          : "bg-[#ffffff] border-[#d8d8d8] text-indigo-600 hover:bg-indigo-50"
       }`}
     >
       {isSending ? (
         <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
       ) : (
-        <MessageSquare size={14} className={disabled ? "text-slate-300" : "text-indigo-400 group-hover/sms:scale-110 transition-transform"} />
+        <MessageSquare size={14} className={disabled ? "text-[#898989]" : "text-indigo-400 group-hover/sms:scale-110 transition-transform"} />
       )}
       {isSending ? t.actionCenter.sendingReminders : "Send Payment Reminders (App & SMS)"}
     </button>
@@ -149,11 +149,11 @@ const ActionList = ({
   };
 
   return (
-    <div className="flex-1 min-w-[300px] bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden group">
-      <div className={`p-5 border-b border-slate-50 flex justify-between items-center ${color}`}>
+    <div className="flex-1 min-w-[300px] bg-[#ffffff] rounded-[8px] shadow-sm border border-[#d8d8d8] flex flex-col overflow-hidden group">
+      <div className={`p-5 border-b border-[#d8d8d8] bg-[#f9f9f9] flex justify-between items-center`}>
         <div className="flex flex-col gap-0.5">
-          <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">{title}</h3>
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter opacity-70">{monthLabel} {t.actionCenter.only}</span>
+          <h3 className="font-semibold text-[#080808] text-[14px] uppercase tracking-wider">{title}</h3>
+          <span className="text-[11px] font-medium text-[#5a5a5a] uppercase tracking-tighter">{monthLabel} {t.actionCenter.only}</span>
         </div>
         <div className="flex items-center gap-2">
             {items.length > 0 && (
@@ -220,15 +220,15 @@ const ActionList = ({
         )}
       </div>
 
-      <div className="p-4 bg-slate-50/50 border-t border-slate-50 mt-auto space-y-3">
-        <button className="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 shadow-sm">
-          <CtaIcon size={14} className="text-slate-400" />
+      <div className="p-4 bg-[#f9f9f9] border-t border-[#d8d8d8] mt-auto space-y-3">
+        <button className="w-full py-2.5 bg-[#ffffff] border border-[#d8d8d8] rounded-[4px] text-[13px] font-medium text-[#080808] hover:bg-[#f9f9f9] transition-all flex items-center justify-center gap-2 shadow-sm">
+          <CtaIcon size={14} className="text-[#5a5a5a]" />
           {ctaLabel}
         </button>
         
         {showSmsAction && <SendSmsButton listType={title.toLowerCase().replace(' ', '_')} disabled={items.length === 0} />}
         
-        <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 hover:text-indigo-500 cursor-pointer transition-colors uppercase tracking-widest">
+        <Link href="/admin" className="mt-3 flex items-center justify-center gap-1 text-[11px] font-medium text-[#5a5a5a] hover:text-[#080808] cursor-pointer transition-colors uppercase tracking-widest">
           <span>{t.actionCenter.viewHistory}</span>
           <ExternalLink size={10} />
         </Link>
@@ -248,29 +248,29 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
     <div className="flex flex-col gap-6 w-full">
       {/* Summary Totals */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
-        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl p-5 text-white shadow-lg shadow-indigo-100 flex items-center justify-between group overflow-hidden relative border border-white/5">
-          <div className="absolute right-[-2%] top-[-10%] opacity-10 group-hover:rotate-6 transition-transform duration-700">
+        <div className="bg-[#ffffff] rounded-[8px] p-5 border border-[#d8d8d8] shadow-sm flex items-center justify-between group overflow-hidden relative border-l-[4px] border-l-indigo-600">
+          <div className="absolute right-[-2%] top-[-10%] opacity-5 group-hover:rotate-6 transition-transform duration-700">
              <Wallet size={80} strokeWidth={1} />
           </div>
           <div className="relative z-10">
-            <p className="text-indigo-100/70 text-[9px] font-black uppercase tracking-wider mb-1">{t.actionCenter.unpaidEmployees}</p>
-            <h2 className="text-2xl font-black tracking-tight">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
+            <p className="text-[#5a5a5a] text-[11px] font-medium uppercase tracking-widest mb-1">{t.actionCenter.unpaidEmployees}</p>
+            <h2 className="text-[24px] font-semibold tracking-tight text-[#080808]">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
-             <Wallet size={22} className="text-white" />
+          <div className="w-11 h-11 rounded-[8px] bg-indigo-50 border border-indigo-100 flex items-center justify-center relative z-10">
+             <Wallet size={22} className="text-indigo-600" />
           </div>
         </div>
 
-        <div className="bg-amber-500/95 rounded-3xl p-5 text-white shadow-lg shadow-amber-100 flex items-center justify-between group overflow-hidden relative border border-white/5">
-          <div className="absolute right-[-2%] top-[-10%] opacity-10 group-hover:-rotate-6 transition-transform duration-700">
+        <div className="bg-[#ffffff] rounded-[8px] p-5 border border-[#d8d8d8] shadow-sm flex items-center justify-between group overflow-hidden relative border-l-[4px] border-l-amber-500">
+          <div className="absolute right-[-2%] top-[-10%] opacity-5 group-hover:-rotate-6 transition-transform duration-700">
              <HandCoins size={80} strokeWidth={1} />
           </div>
           <div className="relative z-10">
-            <p className="text-amber-50/70 text-[9px] font-black uppercase tracking-wider mb-1">{t.actionCenter.uncollectedFees}</p>
-            <h2 className="text-2xl font-black tracking-tight">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
+            <p className="text-[#5a5a5a] text-[11px] font-medium uppercase tracking-widest mb-1">{t.actionCenter.uncollectedFees}</p>
+            <h2 className="text-[24px] font-semibold tracking-tight text-[#080808]">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center relative z-10">
-             <HandCoins size={22} className="text-white" />
+          <div className="w-11 h-11 rounded-[8px] bg-amber-50 border border-amber-100 flex items-center justify-center relative z-10">
+             <HandCoins size={22} className="text-amber-600" />
           </div>
         </div>
       </div>

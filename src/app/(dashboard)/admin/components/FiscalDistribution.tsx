@@ -29,33 +29,33 @@ const FiscalDistribution: React.FC<FiscalDistributionProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden h-[480px]">
+    <div className="bg-[#ffffff] rounded-[8px] border border-[#d8d8d8] shadow-sm flex flex-col overflow-hidden h-[480px]">
       {/* Header with Integrated Toggle */}
-      <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+      <div className="p-6 border-b border-[#d8d8d8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">{t.fiscalDistribution.title}</h2>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{t.fiscalDistribution.subtitle}</p>
+          <h2 className="text-[16px] font-semibold text-[#080808] tracking-[-0.2px]">{t.fiscalDistribution.title}</h2>
+          <p className="text-[11px] text-[#5a5a5a] font-medium uppercase tracking-widest mt-1">{t.fiscalDistribution.subtitle}</p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Segmented View Toggle */}
-          <div className="flex p-1 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="flex p-1 bg-[#f9f9f9] rounded-[6px] border border-[#d8d8d8]">
             <button
               onClick={() => setViewMode('chart')}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`px-4 py-1.5 rounded-[4px] text-[12px] font-medium transition-all ${
                 viewMode === 'chart' 
-                ? 'bg-white text-indigo-600 shadow-sm' 
-                : 'text-slate-400 hover:text-slate-600'
+                ? 'bg-[#ffffff] text-[#080808] shadow-sm border border-[#d8d8d8]' 
+                : 'text-[#5a5a5a] hover:text-[#080808] border border-transparent'
               }`}
             >
               {t.fiscalDistribution.visual}
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`px-4 py-1.5 rounded-[4px] text-[12px] font-medium transition-all ${
                 viewMode === 'list' 
-                ? 'bg-white text-indigo-600 shadow-sm' 
-                : 'text-slate-400 hover:text-slate-600'
+                ? 'bg-[#ffffff] text-[#080808] shadow-sm border border-[#d8d8d8]' 
+                : 'text-[#5a5a5a] hover:text-[#080808] border border-transparent'
               }`}
             >
               {t.fiscalDistribution.detailed}

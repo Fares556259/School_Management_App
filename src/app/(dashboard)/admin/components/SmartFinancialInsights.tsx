@@ -141,7 +141,7 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
   }, [fetchAiInsights]);
 
   return (
-    <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden ${className || ''}`}>
+    <div className={`bg-[#ffffff] p-6 rounded-[8px] border border-[#d8d8d8] shadow-sm flex flex-col gap-4 relative overflow-hidden ${className || ''}`}>
       {isLocked && (
         <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center border-2 border-indigo-100/50 rounded-[32px] animate-in fade-in duration-500">
            <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
@@ -159,11 +159,11 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
       
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-black text-slate-800 tracking-tighter uppercase opacity-50 italic">
+          <h2 className="text-[16px] font-semibold text-[#080808] tracking-[-0.2px]">
             {t.smartInsights.title}
           </h2>
           <div className="px-2 py-0.5 bg-indigo-50 rounded-md">
-            <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">{t.smartInsights.aiPowered}</span>
+            <span className="text-[10px] font-medium text-indigo-500 uppercase tracking-widest">{t.smartInsights.aiPowered}</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -222,13 +222,13 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
                 return (
                   <div key={category.type} className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="text-xs">{category.icon}</span>
-                      <h3 className={`text-[10px] font-black uppercase tracking-widest ${
-                          category.type === 'performance' ? 'text-emerald-500' :
-                          category.type === 'risk' ? 'text-rose-500' :
-                          category.type === 'opportunity' ? 'text-amber-500' :
-                          category.type === 'action' ? 'text-orange-500' :
-                          'text-indigo-500'
+                      <span className="text-[14px]">{category.icon}</span>
+                      <h3 className={`text-[12px] font-semibold uppercase tracking-wider ${
+                          category.type === 'performance' ? 'text-emerald-600' :
+                          category.type === 'risk' ? 'text-rose-600' :
+                          category.type === 'opportunity' ? 'text-amber-600' :
+                          category.type === 'action' ? 'text-orange-600' :
+                          'text-indigo-600'
                       }`}>
                         {category.label}
                       </h3>
@@ -241,29 +241,23 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
                            animate={{ opacity: 1, scale: 1, y: 0 }}
                            transition={{ delay: idx * 0.1 }}
-                           className={`p-4 rounded-[20px] flex flex-col gap-3 border shadow-sm transition-all hover:shadow-md ${
-                               category.type === 'performance' ? 'bg-emerald-50 border-emerald-100' :
-                               category.type === 'risk' ? 'bg-rose-50 border-rose-100' :
-                               category.type === 'opportunity' ? 'bg-amber-50 border-amber-200' :
-                               category.type === 'action' ? 'bg-orange-50 border-orange-100' :
-                               'bg-indigo-50 border-indigo-100'
+                           className={`p-4 rounded-[8px] flex flex-col gap-3 bg-[#ffffff] border border-[#d8d8d8] shadow-sm transition-all hover:shadow-md border-l-[4px] ${
+                               category.type === 'performance' ? 'border-l-emerald-500' :
+                               category.type === 'risk' ? 'border-l-rose-500' :
+                               category.type === 'opportunity' ? 'border-l-amber-500' :
+                               category.type === 'action' ? 'border-l-orange-500' :
+                               'border-l-indigo-500'
                            }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                              <span className="text-xl leading-none">{getEmoji(insight.icon)}</span>
                              {insight.confidence && (
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-[#898989]">
                                     {insight.confidence}
                                 </span>
                              )}
                           </div>
-                          <p className={`text-xs font-bold leading-relaxed ${
-                              category.type === 'performance' ? 'text-emerald-700' :
-                              category.type === 'risk' ? 'text-rose-700' :
-                              category.type === 'opportunity' ? 'text-amber-800' :
-                              category.type === 'action' ? 'text-orange-700' :
-                              'text-indigo-700'
-                          }`}>
+                          <p className={`text-[13px] font-medium leading-relaxed text-[#080808]`}>
                             {insight.text}
                           </p>
                         </motion.div>

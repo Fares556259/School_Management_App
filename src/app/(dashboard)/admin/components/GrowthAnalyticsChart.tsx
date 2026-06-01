@@ -21,10 +21,15 @@ interface GrowthData {
   isPredictive?: boolean;
 }
 
-const SummaryItem = ({ label, value, color }: { label: string, value: number, color: string }) => (
+const SummaryItem = ({ label, value, colorHex }: { label: string, value: number, colorHex: string }) => (
   <div>
-    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-    <p className={`text-2xl font-black tracking-tighter ${color}`}>${Math.round(value).toLocaleString()}</p>
+    <p className="text-[12px] font-medium text-[#5a5a5a] mb-1 flex items-center gap-1.5">
+      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colorHex }} />
+      {label}
+    </p>
+    <p className="text-[24px] font-semibold text-[#080808] tracking-[-0.5px]">
+      ${Math.round(value).toLocaleString()}
+    </p>
   </div>
 );
 
@@ -158,20 +163,20 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
       {/* 🔝 Summary & Insights */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex gap-8">
-          <SummaryItem label={t.analyticsChart.revenue} value={lastIncome} color="text-emerald-500" />
-          <SummaryItem label={t.analyticsChart.expenses} value={lastExpense} color="text-rose-500" />
-          <SummaryItem label={t.analyticsChart.netProfit} value={lastIncome - lastExpense} color="text-indigo-600" />
+          <SummaryItem label={t.analyticsChart.revenue} value={lastIncome} colorHex="#10b981" />
+          <SummaryItem label={t.analyticsChart.expenses} value={lastExpense} colorHex="#f43f5e" />
+          <SummaryItem label={t.analyticsChart.netProfit} value={lastIncome - lastExpense} colorHex="#6366f1" />
         </div>
         
         <div className="flex flex-col items-end gap-3">
-           <div className="px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+           <div className="px-3 py-1.5 bg-[#f9f9f9] rounded-[4px] border border-[#d8d8d8]">
+              <span className="text-[11px] font-medium text-[#5a5a5a] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                 {trend}
               </span>
            </div>
            
-           <div className="bg-slate-100/50 p-1 rounded-xl flex gap-1 border border-slate-100">
+           <div className="bg-[#f9f9f9] p-1 rounded-[6px] flex gap-1 border border-[#d8d8d8]">
               {["all", "income", "expense", "profit"].map((v) => {
                 const labelMap: Record<string, string> = {
                   "all": t.analyticsChart.filterAll,
@@ -183,10 +188,10 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
                 <button
                   key={v}
                   onClick={() => setView(v as any)}
-                  className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                  className={`px-3 py-1.5 text-[12px] font-medium transition-all rounded-[4px] ${
                     view === v 
-                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200" 
-                      : "text-slate-400 hover:text-slate-600"
+                      ? "bg-[#ffffff] text-[#080808] shadow-sm border border-[#d8d8d8]" 
+                      : "text-[#5a5a5a] hover:text-[#080808] border border-transparent"
                   }`}
                 >
                   {labelMap[v]}
