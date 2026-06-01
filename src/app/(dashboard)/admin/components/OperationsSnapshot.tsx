@@ -14,28 +14,22 @@ interface OperationsSnapshotProps {
 
 type ColorTheme = {
   bg: string;
-  text: string;
-  bar: string;
 };
 
 const StatItem = ({ label, value, icon: Icon, theme }: { label: string, value: number, icon: any, theme: ColorTheme }) => (
-  <div className="flex flex-col p-6 bg-white rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-xl group relative overflow-hidden">
-    {/* Subtle Background Glow */}
-    <div className={`absolute -right-12 -top-12 w-32 h-32 rounded-full ${theme.bg} blur-[40px] opacity-40 group-hover:opacity-80 transition-opacity pointer-events-none`} />
-
-    <div className="flex justify-between items-start mb-6">
-      <div className={`w-12 h-12 rounded-2xl ${theme.bg} ${theme.text} flex items-center justify-center transition-transform group-hover:scale-110 duration-300 relative z-10`}>
-        <Icon size={24} strokeWidth={2.5} />
+  <div className="flex items-center justify-between p-5 bg-[#ffffff] rounded-[8px] border border-[#d8d8d8] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] group relative overflow-hidden">
+    <div className="flex items-center gap-4 relative z-10">
+      <div className="w-12 h-12 flex items-center justify-center rounded-full bg-[#146ef5]/10 text-[#146ef5] transition-transform group-hover:scale-110 duration-300 shrink-0">
+        <Icon size={24} strokeWidth={2} />
       </div>
-      <button className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-300 hover:text-indigo-500 relative z-10">
-        <ArrowRight size={16} />
-      </button>
+      <div className="flex flex-col">
+        <span className="text-[32px] font-medium tracking-[-0.5px] text-[#080808] leading-none">{value.toLocaleString()}</span>
+        <span className="text-[13px] font-medium text-[#5a5a5a] mt-1">{label}</span>
+      </div>
     </div>
-    
-    <div className="flex flex-col relative z-10">
-      <span className="text-3xl font-black text-slate-800 tracking-tighter">{value.toLocaleString()}</span>
-      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">{label}</span>
-    </div>
+    <button className="p-1.5 hover:bg-black/5 rounded-[4px] transition-colors text-[#080808]/40 hover:text-[#080808] relative z-10 self-start">
+      <ArrowRight size={16} />
+    </button>
   </div>
 );
 
@@ -71,25 +65,25 @@ const OperationsSnapshot = ({ students, teachers, staff, classes }: OperationsSn
         label={t.adminWidgets.studentsEnrolled}
         value={students} 
         icon={GraduationCap} 
-        theme={{ bg: "bg-indigo-50", text: "text-indigo-600", bar: "bg-indigo-500" }} 
+        theme={{ bg: "bg-[#fcab79]" }} 
       />
       <StatItem 
         label={t.adminWidgets.activeTeachers}
         value={teachers} 
         icon={Users} 
-        theme={{ bg: "bg-emerald-50", text: "text-emerald-600", bar: "bg-emerald-500" }} 
+        theme={{ bg: "bg-[#a8d8c4]" }} 
       />
       <StatItem 
         label={t.adminWidgets.supportStaff}
         value={staff} 
         icon={UserRound} 
-        theme={{ bg: "bg-amber-50", text: "text-amber-600", bar: "bg-amber-500" }} 
+        theme={{ bg: "bg-[#f5e9d4]" }} 
       />
       <StatItem 
         label={t.adminWidgets.activeClasses}
         value={classes} 
         icon={LayoutDashboard} 
-        theme={{ bg: "bg-rose-50", text: "text-rose-600", bar: "bg-rose-500" }} 
+        theme={{ bg: "bg-[#f4d35e]" }} 
       />
             </div>
           </motion.div>

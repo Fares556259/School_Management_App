@@ -34,8 +34,10 @@ import {
   Smartphone,
   Library,
   Sparkles,
-  CircleHelp
+  CircleHelp,
+  MoreVertical
 } from "lucide-react";
+import { useUser, UserButton } from "@clerk/nextjs";
 
 const labelToKey: Record<string, any> = {
   "Home": "home",
@@ -140,17 +142,22 @@ const menuItems: MenuSection[] = [
   },
 ];
 
-const Menu = ({ role }: { role: string }) => {
+const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { user } = useUser();
+
+  const fullName = adminData?.name || adminData?.surname 
+    ? `${adminData.name || ""} ${adminData.surname || ""}`.trim() 
+    : user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
 
   return (
     <div className="flex flex-col min-h-full h-full text-sm pb-4">
       {menuItems.map((section) => {
         const isSystem = section.title === "SYSTEM";
         return (
-        <div className={`flex flex-col gap-1.5 ${isSystem ? 'mt-auto pt-6' : 'mb-8'}`} key={section.title}>
-          <span className="hidden lg:block text-[#9297a0] font-semibold text-[11px] tracking-widest uppercase ml-2 mb-1.5">
+        <div className={`flex flex-col gap-1.5 ${isSystem ? 'mb-4' : 'mb-8'}`} key={section.title}>
+          <span className="hidden lg:block text-white/60 font-semibold text-[11px] tracking-widest uppercase ml-2 mb-1.5">
             {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
           </span>
           <div className="flex flex-col gap-1">
@@ -164,16 +171,17 @@ const Menu = ({ role }: { role: string }) => {
                 <Link
                   href={targetHref}
                   key={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-[12px] transition-all duration-200 group relative ${
+                  className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${
                     isActive 
-                      ? "bg-white text-[#181d26] shadow-sm font-semibold border border-[#e5e7eb]" 
-                      : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-900 font-medium"
+                      ? "bg-white/10 text-white shadow-sm font-semibold" 
+                      : "text-white/70 hover:bg-white/10 hover:text-white font-medium"
                   }`}
                 >
+                  {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#7eb8f7]"></div>}
                   <div className={`transition-all duration-200 ${
                     isActive 
-                      ? "text-[#181d26]" 
-                      : "text-slate-500 group-hover:text-slate-900"
+                      ? "text-white" 
+                      : "text-white/70 group-hover:text-white"
                   }`}>
                     {typeof item.icon === 'string' ? (
                       <div className="relative w-[22px] h-[22px]">
@@ -197,6 +205,27 @@ const Menu = ({ role }: { role: string }) => {
           </div>
         </div>
       )})}
+
+      {/* USER PROFILE FOOTER */}
+      <div className="mt-auto pt-4 border-t border-white/10 hidden lg:flex items-center gap-3 px-3">
+        {adminData?.img ? (
+          <Image src={adminData.img} alt="" width={32} height={32} className="rounded-full object-cover w-8 h-8" />
+        ) : (
+          <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }} />
+        )}
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="text-[13px] font-semibold text-white truncate">
+            {fullName}
+          </span>
+          <span className="text-[10px] text-white/70 font-medium uppercase tracking-wider truncate">
+            {role || "User"}
+          </span>
+        </div>
+        <div className="text-white/70 hover:text-white cursor-pointer ml-auto shrink-0 transition-colors">
+          <MoreVertical size={16} />
+        </div>
+      </div>
+
     </div>
   );
 };

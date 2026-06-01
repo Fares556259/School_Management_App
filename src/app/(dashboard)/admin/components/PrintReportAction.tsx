@@ -20,10 +20,10 @@ const PrintReportAction: React.FC<PrintReportActionProps> = ({ month }) => {
   return (
     <button 
       onClick={handlePrint}
-      className="group flex items-center gap-3 px-6 py-2.5 bg-white border-2 border-slate-100 text-slate-700 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 shadow-sm"
+      className="group flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] border border-[#d8d8d8] text-[#080808] rounded-[4px] font-medium hover:bg-[#f9f9f9] transition-all"
     >
-      <FileText size={16} className="text-indigo-500 group-hover:scale-110 transition-transform" />
-      <span>{t.adminWidgets.printReport}</span>
+      <FileText size={16} className="text-[#080808] group-hover:scale-110 transition-transform" />
+      <span className="text-[14px]">Export</span>
     </button>
   );
 };

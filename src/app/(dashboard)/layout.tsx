@@ -49,18 +49,18 @@ export default async function DashboardLayout({
   return (
     <div className="h-screen flex text-slate-900 print:h-auto print:block bg-[#F5F6F8]">
       {/* LEFT */}
-      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4 print:hidden z-30 sticky top-0 h-screen flex flex-col">
+      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4 print:hidden z-30 sticky top-0 h-screen flex flex-col bg-[#1e3a5f] text-white">
         <div className="flex items-center justify-center lg:justify-between mb-8 px-2 shrink-0">
           <Link href="/" className="flex items-center gap-2">
-            <Image src={schoolConfig?.schoolLogo || "/logo.png"} alt="logo" width={28} height={28} className="w-7 h-7 object-contain rounded-md border border-[#dddddd]/50 shadow-sm" />
-            <span className="hidden lg:block font-semibold text-[15px] text-[#181d26] tracking-tight truncate max-w-[120px]">{schoolConfig?.schoolName || "SnapSchool"}</span>
+            <Image src={schoolConfig?.schoolLogo || "/logo.png"} alt="logo" width={28} height={28} className="w-7 h-7 object-contain rounded-md border border-white/10 shadow-sm bg-white" />
+            <span className="hidden lg:block font-semibold text-[15px] text-white tracking-tight truncate max-w-[120px]">{schoolConfig?.schoolName || "SnapSchool"}</span>
           </Link>
-          <div className="hidden lg:flex w-5 h-5 bg-white border border-[#dddddd] shadow-sm hover:border-[#181d26] transition-colors rounded items-center justify-center cursor-pointer text-[#41454d]">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+          <div className="hidden lg:flex w-5 h-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all rounded items-center justify-center cursor-pointer text-white/70 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2">
-          <Menu role={role!} />
+          <Menu role={role!} adminData={adminProfile} />
         </div>
       </div>
       {/* RIGHT */}

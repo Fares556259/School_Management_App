@@ -46,10 +46,10 @@ const MonthYearFilter: React.FC<MonthYearFilterProps> = ({ activeMonth, activeYe
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm border transition-all ${isFiltered ? 'border-indigo-200 ring-2 ring-indigo-50/50' : 'border-slate-100 hover:border-slate-200'}`}
+        className={`flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] rounded-[4px] border transition-all ${isFiltered ? 'border-[#080808] ring-1 ring-[#080808]' : 'border-[#d8d8d8] hover:bg-[#f9f9f9]'}`}
       >
-        <Calendar size={16} className={isFiltered ? 'text-indigo-500' : 'text-slate-400'} />
-        <span className="text-sm font-black text-slate-700 italic tracking-tight">
+        <Calendar size={16} className={isFiltered ? 'text-[#080808]' : 'text-[#080808]'} />
+        <span className="text-[14px] font-medium text-[#080808] tracking-tight">
           {isFiltered ? `${MONTHS[currentMonth]} ${currentYear}` : t.adminWidgets.selectPeriod}
         </span>
         <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />

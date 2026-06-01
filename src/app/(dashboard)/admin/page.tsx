@@ -161,14 +161,14 @@ const AdminPage = async ({
   };
 
   return (
-    <div className="p-6 flex flex-col gap-6 bg-[#F7F8FA] min-h-screen">
+    <div className="p-6 md:p-8 flex flex-col gap-8 bg-[#ffffff] min-h-screen">
       {/* 1. HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tighter">{t.adminDashboard.commandCenter}</h1>
-          <p className="text-slate-400 text-sm font-medium mt-1">{t.adminDashboard.commandCenterDesc}</p>
+          <h1 className="text-[32px] font-semibold text-[#080808] tracking-[-0.5px] leading-tight">{t.adminDashboard.commandCenter}</h1>
+          <p className="text-[#5a5a5a] text-[15px] max-w-[600px] leading-relaxed mt-2">{t.adminDashboard.commandCenterDesc}</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
            <PrintReportAction month={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`} />
            <div className="h-10 w-[1px] bg-slate-200 hidden md:block mx-2" />
            <MonthYearFilter activeMonth={queryMonth} activeYear={queryYear} />

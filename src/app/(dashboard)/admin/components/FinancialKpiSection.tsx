@@ -49,27 +49,27 @@ const KpiCard: React.FC<KpiCardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-1 relative overflow-hidden group transition-all hover:shadow-xl hover:shadow-indigo-50/50"
+      className="bg-[#ffffff] p-6 rounded-[8px] border border-[#d8d8d8] flex flex-col gap-1 relative overflow-hidden group transition-all"
     >
       <div className="flex justify-between items-start mb-2">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-70">
+        <span className="text-[14px] font-medium text-[#5a5a5a]">
           {title}
         </span>
       </div>
       
       <div className="flex items-center justify-between gap-4">
-        <h3 className="text-3xl font-black text-slate-800 tracking-tight">
+        <h3 className="text-[32px] font-medium text-[#080808] tracking-[-0.5px]">
           {formattedValue}
         </h3>
         
         {/* Decorative Sparkline */}
-        <div className="w-16 h-8 opacity-30 group-hover:opacity-100 transition-opacity">
+        <div className="w-16 h-8 opacity-40 group-hover:opacity-100 transition-opacity">
             <svg viewBox="0 0 60 30" width="100%" height="100%" preserveAspectRatio="none">
                 <path 
                     d={`M ${generatePath()}`} 
                     fill="none" 
                     stroke={isPositive ? '#10b981' : '#f43f5e'} 
-                    strokeWidth="3" 
+                    strokeWidth="2" 
                     strokeLinecap="round" 
                     strokeLinejoin="round" 
                 />
@@ -78,11 +78,11 @@ const KpiCard: React.FC<KpiCardProps> = ({
       </div>
       
       <div className="flex items-center gap-2 mt-3">
-        <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${statusColor}`}>
+        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[12px] font-medium ${statusColor}`}>
           <span>{isPositive ? '↑' : '↓'}</span>
           <span>{Math.abs(Math.round(diff))}%</span>
         </div>
-        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+        <span className="text-[12px] font-medium text-[#898989]">
           {compareLabel}
         </span>
       </div>
