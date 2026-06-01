@@ -38,7 +38,7 @@ const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
     <div className='flex items-center justify-between px-6 py-4 bg-[#F5F6F8]/80 backdrop-blur-md sticky top-0 z-50 border-b border-transparent transition-all'>
       {/* LEFT: PAGE TITLE */}
       <div className="hidden md:flex items-center flex-1">
-        <h1 className="text-[24px] font-extrabold text-[#080808] tracking-[-1px]">
+        <h1 className="text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px]">
           {pathSegments.length > 0 ? pathSegments[pathSegments.length - 1].charAt(0).toUpperCase() + pathSegments[pathSegments.length - 1].slice(1) : "Dashboard"}
         </h1>
       </div>
@@ -46,9 +46,9 @@ const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
       {/* RIGHT: UTILITIES */}
       <div className='flex items-center gap-3 justify-end flex-1'>
         {/* COMMAND BAR */}
-        <div className='hidden md:flex items-center gap-3 text-[13px] rounded-[6px] bg-[#f9f9f9] border border-[#d8d8d8] px-3 py-1.5 hover:bg-[#ffffff] transition-all group w-[220px] cursor-pointer shadow-sm'>
-          <Search size={15} className="text-[#898989] group-hover:text-[#080808] transition-colors" />
-          <span className="text-[#5a5a5a] font-medium group-hover:text-[#080808] transition-colors flex-1">{(t.navbar as any)?.search || "Search"}</span>
+        <div className='hidden md:flex items-center gap-3 text-[14px] rounded-[6px] bg-[#ffffff] border border-[#dddddd] px-4 h-[44px] hover:border-[#9297a0] transition-all group w-[240px] cursor-pointer'>
+          <Search size={15} className="text-[#9297a0] group-hover:text-[#181d26] transition-colors" />
+          <span className="text-[#333840] font-normal group-hover:text-[#181d26] transition-colors flex-1">{(t.navbar as any)?.search || "Search"}</span>
         </div>
 
         {/* NOTIFICATIONS */}

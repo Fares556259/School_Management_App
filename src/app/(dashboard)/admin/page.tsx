@@ -165,8 +165,8 @@ const AdminPage = async ({
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-          <h1 className="text-[32px] font-extrabold text-[#080808] tracking-[-1px] leading-tight">{t.adminDashboard.commandCenter}</h1>
-          <p className="text-[#5a5a5a] text-[15px] font-medium tracking-tight max-w-[600px] leading-relaxed mt-1">{t.adminDashboard.commandCenterDesc}</p>
+          <h1 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{t.adminDashboard.commandCenter}</h1>
+          <p className="text-[#333840] text-[14px] font-normal max-w-[600px] leading-[1.25] mt-2">{t.adminDashboard.commandCenterDesc}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
            <PrintReportAction month={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`} />

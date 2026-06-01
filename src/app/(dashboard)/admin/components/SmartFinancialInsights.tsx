@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/lib/translations/LanguageContext';
-import { Lock, RefreshCw, AlertCircle } from 'lucide-react';
+import { Lock, RefreshCw, AlertCircle, TrendingUp, AlertTriangle, Lightbulb, CheckCircle2, BarChart2 } from 'lucide-react';
 
 interface Insight {
   text: string;
@@ -23,27 +23,17 @@ interface SmartFinancialInsightsProps {
   className?: string;
 }
 
-const getEmoji = (icon: string) => {
-  const mapping: Record<string, string> = {
-    'bar-chart': '📈',
-    'warning': '⚠️',
-    'alert': '🚨',
-    'lightbulb': '💡',
-    'search': '🔍',
-    'trending-up': '↗️',
-    'trending-down': '↘️',
-    'dollar-sign': '💰',
-    'pie-chart': '📊',
-    'check': '✅',
-    'x': '❌',
-    'info': 'ℹ️',
-    'clock': '🕒',
-    'user': '👤',
-    'users': '👥',
-    'calendar': '📅',
-    'zap': '⚡',
+const getLucideIcon = (icon: string) => {
+  const mapping: Record<string, React.ReactNode> = {
+    'bar-chart': <BarChart2 size={20} className="text-[#181d26]" strokeWidth={1.5} />,
+    'warning': <AlertTriangle size={20} className="text-[#181d26]" strokeWidth={1.5} />,
+    'alert': <AlertTriangle size={20} className="text-[#181d26]" strokeWidth={1.5} />,
+    'lightbulb': <Lightbulb size={20} className="text-[#181d26]" strokeWidth={1.5} />,
+    'trending-up': <TrendingUp size={20} className="text-[#181d26]" strokeWidth={1.5} />,
+    'trending-down': <TrendingUp size={20} className="text-[#181d26]" strokeWidth={1.5} />,
+    'check': <CheckCircle2 size={20} className="text-[#181d26]" strokeWidth={1.5} />,
   };
-  return mapping[icon.toLowerCase()] || icon;
+  return mapping[icon.toLowerCase()] || <Lightbulb size={20} className="text-[#181d26]" strokeWidth={1.5} />;
 };
 
 const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
@@ -157,13 +147,13 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
         </div>
       )}
       
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[16px] font-semibold text-[#080808] tracking-[-0.2px]">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px]">
             {t.smartInsights.title}
           </h2>
-          <div className="px-2 py-0.5 bg-indigo-50 rounded-md">
-            <span className="text-[10px] font-medium text-indigo-500 uppercase tracking-widest">{t.smartInsights.aiPowered}</span>
+          <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[6px]">
+            <span className="text-[12px] font-medium text-[#41454d] tracking-wide">AI POWERED</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -208,65 +198,47 @@ const SmartFinancialInsights: React.FC<SmartFinancialInsightsProps> = ({
               key="content"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start w-full"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch w-full"
             >
               {[
-                { type: 'performance', label: t.smartInsights.performance, icon: '🟢', color: 'emerald' },
-                { type: 'risk', label: t.smartInsights.risks, icon: '🔴', color: 'rose' },
-                { type: 'opportunity', label: t.smartInsights.opportunities, icon: '🟡', color: 'amber' },
-                { type: 'trend', label: t.smartInsights.trends, icon: '🔵', color: 'indigo' },
-                { type: 'action', label: t.smartInsights.actionableSteps, icon: '⚡', color: 'orange' }
+                { type: 'action', label: t.smartInsights.actionableSteps, bg: 'bg-[#a8d8c4]' }, // signature-mint
+                { type: 'opportunity', label: t.smartInsights.opportunities, bg: 'bg-[#f5e9d4]' }, // signature-cream
+                { type: 'performance', label: t.smartInsights.performance, bg: 'bg-[#f8fafc]' }, // surface-soft
+                { type: 'risk', label: t.smartInsights.risks, bg: 'bg-[#fcab79]' }, // signature-peach
+                { type: 'trend', label: t.smartInsights.trends, bg: 'bg-[#ffffff] border border-[#dddddd]' } // canvas with hairline
               ].map((category) => {
                 const categoryInsights = insights.filter(i => i.type === category.type);
                 
+                if (categoryInsights.length === 0) return null;
+
                 return (
-                  <div key={category.type} className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="text-[14px]">{category.icon}</span>
-                      <h3 className={`text-[12px] font-semibold uppercase tracking-wider ${
-                          category.type === 'performance' ? 'text-emerald-600' :
-                          category.type === 'risk' ? 'text-rose-600' :
-                          category.type === 'opportunity' ? 'text-amber-600' :
-                          category.type === 'action' ? 'text-orange-600' :
-                          'text-indigo-600'
-                      }`}>
+                  <div key={category.type} className={`rounded-[10px] p-6 flex flex-col gap-4 ${category.bg} shadow-sm`}>
+                    <div className="flex items-center justify-between border-b border-[#181d26]/10 pb-3">
+                      <h3 className="text-[16px] font-medium text-[#181d26] capitalize">
                         {category.label}
                       </h3>
                     </div>
                     
-                    {categoryInsights.length > 0 ? (
-                      categoryInsights.map((insight, idx) => (
+                    <div className="flex flex-col gap-4">
+                      {categoryInsights.map((insight, idx) => (
                         <motion.div 
                            key={idx}
-                           initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                           animate={{ opacity: 1, scale: 1, y: 0 }}
+                           initial={{ opacity: 0, y: 5 }}
+                           animate={{ opacity: 1, y: 0 }}
                            transition={{ delay: idx * 0.1 }}
-                           className={`p-4 rounded-[8px] flex flex-col gap-3 bg-[#ffffff] border border-[#d8d8d8] shadow-sm transition-all hover:shadow-md border-l-[4px] ${
-                               category.type === 'performance' ? 'border-l-emerald-500' :
-                               category.type === 'risk' ? 'border-l-rose-500' :
-                               category.type === 'opportunity' ? 'border-l-amber-500' :
-                               category.type === 'action' ? 'border-l-orange-500' :
-                               'border-l-indigo-500'
-                           }`}
+                           className="flex flex-col gap-2"
                         >
-                          <div className="flex items-start justify-between gap-2">
-                             <span className="text-xl leading-none">{getEmoji(insight.icon)}</span>
-                             {insight.confidence && (
-                                <span className="text-[10px] font-medium uppercase tracking-wider text-[#898989]">
-                                    {insight.confidence}
-                                </span>
-                             )}
+                          <div className="flex items-start gap-3">
+                             <div className="mt-0.5">
+                               {getLucideIcon(insight.icon)}
+                             </div>
+                             <p className="text-[14px] font-normal text-[#181d26] leading-[1.4]">
+                               {insight.text}
+                             </p>
                           </div>
-                          <p className={`text-[13px] font-medium leading-relaxed text-[#080808]`}>
-                            {insight.text}
-                          </p>
                         </motion.div>
-                      ))
-                    ) : (
-                       <div className="p-4 rounded-[20px] border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center h-24">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50">{t.smartInsights.noExt} {category.label} {t.smartInsights.detected}</span>
-                       </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 );
               })}
