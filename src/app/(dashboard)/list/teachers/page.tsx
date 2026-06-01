@@ -138,7 +138,7 @@ const TeacherListPage = async ({
   ).length;
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
       <TeacherListClient 
         key={selectedMonthKey}
         initialData={data} 
