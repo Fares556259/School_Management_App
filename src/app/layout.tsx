@@ -9,6 +9,13 @@ import { Suspense } from "react";
 
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
 
+import { Plus_Jakarta_Sans, Inter, Montserrat } from "next/font/google";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: '--font-jakarta',
+});
+
 const inter = Inter({ 
   subsets: ["latin"],
   variable: '--font-inter',
@@ -32,7 +39,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${inter.variable} ${montserrat.variable} ${inter.className}`}>
+        <body className={`${jakarta.variable} ${inter.variable} ${montserrat.variable} ${jakarta.className} antialiased`}>
           <LanguageProvider>
             <NextTopLoader color="#4f46e5" showSpinner={true} />
             <Suspense fallback={null}>

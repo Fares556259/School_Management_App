@@ -90,8 +90,9 @@ const config: Config = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       fontFamily: {
-        inter: ["Inter", "sans-serif"],
-        montserrat: ["Montserrat", "sans-serif"],
+        sans: ["var(--font-jakarta)", "Inter", "sans-serif"],
+        inter: ["var(--font-inter)", "sans-serif"],
+        montserrat: ["var(--font-montserrat)", "sans-serif"],
       },
       boxShadow: {
         'premium': '0 10px 40px -15px rgba(0, 0, 0, 0.2)',
