@@ -206,15 +206,15 @@ export default function ResultsPageClient({
   return (
     <div className="p-6 flex flex-col gap-8 bg-slate-50 min-h-screen">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm">
         <div className="flex flex-col">
-          <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">Grade Sheets</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage and verify physical proof of grades.</p>
+          <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Grade Sheets</h1>
+          <p className="text-[13px] text-[#41454d] mt-1">Manage and verify physical proof of grades.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setIsBulkUploadOpen(true)}
-            className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium rounded-lg hover:bg-indigo-100 transition-all text-sm flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#181d26] text-white border border-transparent font-medium rounded-[6px] hover:bg-[#0d1218] transition-all text-[13px] flex items-center gap-2"
           >
             <Sparkles size={16} />
             Bulk AI Scan
@@ -225,20 +225,20 @@ export default function ResultsPageClient({
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-4 px-2">
          <div className="flex-1 min-w-[300px] relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔍</div>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9297a0] text-[14px]">🔍</div>
             <input 
               type="text" 
               placeholder="Filter by subject Name..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-slate-400"
+              className="w-full pl-11 pr-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] focus:outline-none focus:border-[#1b61c9] transition-all placeholder:text-[#9297a0] text-[#181d26]"
             />
          </div>
          
          <select 
            value={selectedClassId} 
            onChange={(e) => setSelectedClassId(e.target.value)}
-           className="px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
+           className="px-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] transition-all cursor-pointer"
          >
            {validClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
          </select>
@@ -246,7 +246,7 @@ export default function ResultsPageClient({
          <select 
            value={selectedTerm} 
            onChange={(e) => setSelectedTerm(e.target.value)}
-           className="px-4 py-3 bg-white rounded-xl border border-slate-200 shadow-sm text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer"
+           className="px-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] transition-all cursor-pointer"
          >
            <option value="1">Term 1</option>
            <option value="2">Term 2</option>
@@ -257,9 +257,9 @@ export default function ResultsPageClient({
            <button
              onClick={handleBulkInitialize}
              disabled={isInitializing}
-             className="px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2"
+             className="px-4 py-2.5 bg-white border border-[#dddddd] text-[#181d26] rounded-[6px] shadow-sm hover:bg-[#f8fafc] transition-all text-[13px] font-medium flex items-center gap-2"
            >
-             <PlayCircle size={16} className="text-slate-400" />
+             <PlayCircle size={16} className="text-[#41454d]" />
              Initialize Empty
            </button>
          )}
@@ -299,10 +299,10 @@ export default function ResultsPageClient({
               }}
               onDragLeave={() => setDraggingCardId(null)}
               onDrop={(e) => handleCardDrop(e, item, isPlaceholder)}
-              className={`group p-6 rounded-[32px] border transition-all flex flex-col gap-6 relative overflow-hidden ${
+              className={`group p-6 rounded-[8px] border border-[#dddddd] transition-all flex flex-col gap-6 relative overflow-hidden ${
                 isPlaceholder 
-                  ? "bg-slate-50/50 border-dashed border-slate-200 opacity-80 hover:opacity-100 hover:bg-white hover:border-indigo-200" 
-                  : "bg-white border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50"
+                  ? "bg-[#f8fafc] border-dashed opacity-80 hover:opacity-100 hover:bg-white" 
+                  : "bg-white shadow-sm hover:shadow-md"
               }`}
             >
                {/* Drag-and-drop overlay */}
@@ -339,56 +339,55 @@ export default function ResultsPageClient({
 
                {/* TERM TAG & BADGES */}
                <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
-                  <div className="px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                  <div className="px-2.5 py-1 bg-[#ffffff] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#41454d] uppercase tracking-wide leading-none">
                     Term {item.term}
                   </div>
                   {!isPlaceholder && (
                     <>
                       {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
-                         <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-lg text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                         <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-[4px] text-[10px] font-semibold text-emerald-600 uppercase tracking-wide leading-none flex items-center gap-1">
                             Proof Attached
                          </div>
                       ) : (
-                         <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-lg text-[8px] font-black text-amber-600 uppercase tracking-widest leading-none flex items-center gap-1">
-                            ⚠️ Missing Proof
+                         <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-[4px] text-[10px] font-semibold text-amber-600 uppercase tracking-wide leading-none flex items-center gap-1">
+                            Missing Proof
                          </div>
                       )}
                       {sheet.grades.length < (sheet.class._count?.students || 1) && (
-                         <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
-                            🕒 Incomplete
+                         <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#5a5a5a] uppercase tracking-wide leading-none flex items-center gap-1">
+                            Incomplete
                          </div>
                       )}
                     </>
                   )}
                   {isPlaceholder && (
-                     <div className="px-2 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1">
-                        ⚪ No Data
+                     <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#5a5a5a] uppercase tracking-wide leading-none flex items-center gap-1">
+                        No Data
                      </div>
                   )}
                </div>
   
               <div className="flex flex-col gap-1">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${isPlaceholder ? 'text-slate-400' : 'text-indigo-500'}`}>
+                <span className={`text-[11px] font-medium tracking-wide ${isPlaceholder ? 'text-[#9297a0]' : 'text-[#458fff]'}`}>
                   Class {item.class.name}
                 </span>
-                <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1">
+                <h3 className="text-[18px] font-medium text-[#181d26] tracking-tight mt-1">
                   {parseArabicName(item.subject.name)}
                 </h3>
               </div>
   
               <div className="flex flex-col gap-4">
                  {/* STATS / PLACEHOLDER PROGRESS */}
-                 <div className={`${isPlaceholder ? 'bg-slate-100/50' : 'bg-slate-50'} p-4 rounded-2xl border border-slate-100`}>
+                 <div className={`${isPlaceholder ? 'bg-[#ffffff]' : 'bg-[#f8fafc]'} p-4 rounded-[6px] border border-[#dddddd]`}>
                     <div className="flex items-center justify-between mb-2">
-                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recording Progress</span>
-                       <span className={`text-[10px] font-black ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-slate-800'}`}>
+                       <span className="text-[11px] font-medium text-[#41454d] tracking-wide">Recording Progress</span>
+                       <span className={`text-[12px] font-medium ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-[#181d26]'}`}>
                           {isPlaceholder ? '0' : sheet.grades.length} Graded
                        </span>
                     </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-[#e5e7eb] rounded-full overflow-hidden">
                        <div 
-                         className={`h-full rounded-full transition-all duration-1000 ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'bg-emerald-500' : 'bg-indigo-500/40'}`} 
+                         className={`h-full rounded-full transition-all duration-1000 ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'bg-emerald-500' : 'bg-[#1b61c9]'}`} 
                          style={{ width: isPlaceholder ? '0%' : `${Math.min(100, (sheet.grades.length / (sheet.class._count?.students || 1)) * 100)}%` }}
                        ></div>
                     </div>
@@ -396,26 +395,26 @@ export default function ResultsPageClient({
   
                  {/* META */}
                   <div className="flex items-center gap-3">
-                     <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xs">👤</div>
+                     <div className="w-8 h-8 rounded-[6px] bg-[#ffffff] border border-[#dddddd] flex items-center justify-center text-[12px] font-medium text-[#181d26]">👤</div>
                      <div>
-                       <p className="text-[10px] font-black text-slate-800">
+                       <p className="text-[12px] font-medium text-[#181d26]">
                          {isPlaceholder ? '—' : (sheet.teacher ? `${sheet.teacher.name} ${sheet.teacher.surname}` : '—')}
                        </p>
-                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead Teacher</p>
+                       <p className="text-[11px] font-normal text-[#5a5a5a] tracking-wide">Lead Teacher</p>
                      </div>
                   </div>
               </div>
   
-              <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-50">
+              <div className="mt-auto flex items-center gap-2 pt-4 border-t border-[#dddddd]">
                  {isPlaceholder ? (
-                   <div className="flex-1 py-3 text-center text-slate-400 font-semibold text-xs rounded-lg border border-dashed border-slate-200">
-                     Awaiting Upload or Initialization
+                   <div className="flex-1 py-2.5 text-center text-[#9297a0] font-medium text-[13px] rounded-[6px] border border-dashed border-[#dddddd]">
+                     Awaiting Data
                    </div>
                  ) : (
                    <>
                     <button 
                       onClick={() => editSheet(sheet)}
-                      className="flex-1 py-3 bg-slate-50 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-100 border border-slate-200 transition-all"
+                      className="flex-1 py-2.5 bg-[#ffffff] text-[#181d26] font-medium text-[13px] rounded-[6px] hover:bg-[#f8fafc] border border-[#dddddd] shadow-sm transition-all"
                     >
                       Edit Recording
                     </button>
@@ -424,14 +423,14 @@ export default function ResultsPageClient({
                         setPreviewUrl(sheet.proofUrl);
                         setIsPreviewOpen(true);
                       }}
-                      className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all border group ${
+                      className={`w-10 h-10 rounded-[6px] flex items-center justify-center transition-all border group shadow-sm ${
                         sheet.proofUrl?.startsWith('http') 
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm shadow-emerald-50' 
-                          : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                          : 'bg-[#ffffff] text-[#41454d] border-[#dddddd]'
                       }`}
                       title={sheet.proofUrl?.startsWith('http') ? "View Original Proof" : "No Proof Available"}
                     >
-                      <span className={`group-hover:scale-125 transition-transform text-lg ${sheet.proofUrl?.startsWith('http') ? 'animate-bounce-subtle' : ''}`}>
+                      <span className={`group-hover:scale-110 transition-transform text-[14px]`}>
                         👁️
                       </span>
                     </button>
