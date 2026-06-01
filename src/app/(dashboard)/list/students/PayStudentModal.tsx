@@ -97,8 +97,14 @@ export default function PayStudentModal({
         {isPaid ? "Paid" : isPartial ? "Partial" : "Receive Fee"}
       </button>
 
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-[12px] shadow-2xl max-w-sm w-full relative overflow-hidden animate-in zoom-in-95 duration-200">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+      onClick={() => setIsOpen(false)}
+    >
+          <div 
+            className="bg-white rounded-[12px] shadow-2xl max-w-sm w-full relative overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-6 border-b border-[#f1f5f9] flex flex-col gap-1">
               <h2 className="text-[18px] font-semibold text-[#181d26] tracking-tight">
@@ -206,6 +212,7 @@ export default function PayStudentModal({
 
               <div className="flex gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={() => setIsOpen(false)}
                   className="flex-1 px-4 py-2.5 text-[13px] font-medium text-[#41454d] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[8px] transition-all"
                   disabled={isPending}
@@ -213,6 +220,7 @@ export default function PayStudentModal({
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handlePay}
                   disabled={isPending || !selectedMonth || (isSkipping && !isPartial) || additionalAmount <= 0}
                   className="flex-1 px-4 py-2.5 text-[13px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-50 shadow-sm"
