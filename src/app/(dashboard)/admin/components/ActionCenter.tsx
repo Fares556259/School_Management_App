@@ -244,18 +244,20 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
     <div className="flex flex-col gap-6 w-full">
       {/* Summary Totals */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
-        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-[#41454d]">
+        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-[4px] h-full bg-rose-500 rounded-l-[8px]" />
+          <div className="flex items-center gap-2 text-rose-600">
              <Wallet size={16} />
-             <p className="text-[14px] font-medium capitalize tracking-wide">{t.actionCenter.unpaidEmployees}</p>
+             <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.unpaidEmployees}</p>
           </div>
           <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
         </div>
 
-        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-[#41454d]">
+        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-[4px] h-full bg-emerald-500 rounded-l-[8px]" />
+          <div className="flex items-center gap-2 text-emerald-600">
              <HandCoins size={16} />
-             <p className="text-[14px] font-medium capitalize tracking-wide">{t.actionCenter.uncollectedFees}</p>
+             <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.uncollectedFees}</p>
           </div>
           <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
         </div>
