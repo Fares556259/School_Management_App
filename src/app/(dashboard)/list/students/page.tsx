@@ -46,11 +46,6 @@ const columns = [
     accessor: "isPaid",
   },
   {
-    header: "Timeline",
-    accessor: "timeline",
-    className: "hidden xl:table-cell",
-  },
-  {
     header: "Actions",
     accessor: "action",
   },
@@ -100,74 +95,6 @@ const StudentListPage = async ({
       }
     }
   }
-
-  const renderRow = (item: StudentList) => {
-    const [mName, yStr] = selectedMonthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName) + 1;
-    const yearVal = parseInt(yStr);
-
-    // Check if paid for the currently selected month in the navigator
-    const isPaidThisMonth = item.payments.some(
-      (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
-    );
-
-    return (
-      <tr
-        key={item.id}
-        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-      >
-        <td className="flex items-center gap-4 p-4">
-          <Image
-            src={item.img || "/noavatar.png"}
-            alt=""
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div className="flex flex-col">
-            <h3 className="font-semibold">{item.name}</h3>
-            <p className="text-xs text-gray-500">{item.class?.name ?? "No class assigned"}</p>
-          </div>
-        </td>
-        <td className="hidden md:table-cell">{item.username}</td>
-        <td className="hidden md:table-cell">{item.phone}</td>
-        <td className="hidden md:table-cell">{item.address}</td>
-        <td>
-          <div className="flex items-center gap-2">
-            <PayStudentModal
-              studentId={item.id}
-              studentName={item.name + " " + item.surname}
-              gradeLevel={item.level.level}
-              isPaid={isPaidThisMonth}
-              isAdmin={role === "admin"}
-              monthName={selectedMonthKey}
-              paidMonths={item.payments
-                .filter(p => p.status === "PAID")
-                .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
-            />
-          </div>
-        </td>
-        <td className="hidden xl:table-cell">
-          <PaymentTimeline payments={item.payments} />
-        </td>
-        <td>
-          <div className="flex items-center gap-2">
-            <Link href={`/list/students/${item.id}`}>
-              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-                <Image src="/view.png" alt="" width={16} height={16} />
-              </button>
-            </Link>
-            {role === "admin" && (
-              <>
-                <CrudFormModal entity="student" mode="update" data={item} id={item.id} relatedData={studentRelatedData} />
-                <CrudFormModal entity="student" mode="delete" id={item.id} />
-              </>
-            )}
-          </div>
-        </td>
-      </tr>
-    );
-  };
 
   const [data, count, parents, classes, levels] = await Promise.all([
     prisma.student.findMany({

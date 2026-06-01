@@ -91,9 +91,6 @@ export default function StudentListClient({
               .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
           />
         </td>
-        <td className="hidden xl:table-cell py-4 px-6">
-          <PaymentTimeline payments={item.payments} selectedMonthKey={selectedMonthKey} />
-        </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <StudentDetailsModal student={item} className={item.class?.name ?? "No class"} />

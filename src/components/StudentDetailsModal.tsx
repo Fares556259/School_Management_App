@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Eye, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
+import PaymentTimeline from "@/components/PaymentTimeline";
 
 interface StudentDetailsModalProps {
   student: {
@@ -25,6 +27,7 @@ interface StudentDetailsModalProps {
       username?: string | null;
       address?: string | null;
     } | null;
+    payments?: any[];
   };
   className: string;
 }
@@ -230,6 +233,23 @@ export default function StudentDetailsModal({
                           <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.address || "-"}</span>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ROW 3: PAYMENT TIMELINE */}
+                <div className="px-5 pb-5">
+                  <div className="bg-[#f8fafc] p-5 rounded-[12px] flex flex-col gap-5">
+                    <div>
+                      <h4 className="text-[18px] font-medium text-[#181d26] mb-1">Financial History</h4>
+                      <span className="text-[13px] font-normal text-[#41454d]">Payment timeline for the current academic year</span>
+                    </div>
+                    <div className="border-t border-[#dddddd] pt-5">
+                      {student.payments && student.payments.length > 0 ? (
+                        <PaymentTimeline payments={student.payments} />
+                      ) : (
+                        <span className="text-[14px] text-[#41454d]">No payment records found.</span>
+                      )}
                     </div>
                   </div>
                 </div>
