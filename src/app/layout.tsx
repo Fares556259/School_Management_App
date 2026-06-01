@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito, Montserrat } from "next/font/google";
+import { Plus_Jakarta_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import NextTopLoader from "nextjs-toploader";
@@ -9,9 +9,9 @@ import { Suspense } from "react";
 
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
 
-const nunito = Nunito({ 
+const jakarta = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
-  variable: '--font-nunito',
+  variable: '--font-jakarta',
   display: 'swap',
 });
 
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${nunito.variable} ${montserrat.variable} ${nunito.className} antialiased`}>
+        <body className={`${jakarta.variable} ${montserrat.variable} ${jakarta.className} antialiased`}>
           <LanguageProvider>
             <NextTopLoader color="#4f46e5" showSpinner={true} />
             <Suspense fallback={null}>
