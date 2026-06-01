@@ -49,7 +49,7 @@ export default function PaymentTimeline({
           <div
             key={m.key}
             title={`${m.key}: ${m.status.charAt(0).toUpperCase() + m.status.slice(1)}`}
-            className="relative group"
+            className="relative group/timeline"
           >
             <div
               className={`w-5 h-5 rounded-full text-[8px] font-black flex items-center justify-center transition-all cursor-default ${
@@ -65,7 +65,7 @@ export default function PaymentTimeline({
               {m.short.charAt(0)}
             </div>
             {/* Tooltip */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-50">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/timeline:block z-50">
               <div className="bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap">
                 {m.key}: {m.status === "paid" ? "✅ Paid" : m.status === "partial" ? "⚠️ Partial" : "❌ Unpaid"}
               </div>
