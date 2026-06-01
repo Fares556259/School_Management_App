@@ -10,7 +10,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
-import { Sparkles, Users } from "lucide-react";
+import { Sparkles, Users, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { MONTHS } from "@/lib/dateUtils";
@@ -96,8 +96,8 @@ export default function StudentListClient({
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <Link href={`/list/students/${item.id}`}>
-              <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors" title="View Profile">
-                <Image src="/view.png" alt="" width={16} height={16} className="opacity-70" />
+              <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="View Profile">
+                <Eye size={16} strokeWidth={2} />
               </button>
             </Link>
             {role === "admin" && (

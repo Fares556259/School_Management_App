@@ -14,6 +14,7 @@ import {
   createIncome, updateIncome, deleteIncome,
   enrollFamily, 
 } from "@/lib/crudActions";
+import { Pencil, Trash2 } from "lucide-react";
 
 
 
@@ -299,14 +300,14 @@ export default function CrudFormModal({
     }
     if (mode === "update") {
       return (
-        <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors" title="Edit">
-          <Image src="/update.png" alt="Edit" width={16} height={16} className="opacity-70" />
+        <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="Edit">
+          <Pencil size={14} strokeWidth={2} />
         </button>
       );
     }
     return (
-      <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group" title="Delete">
-        <Image src="/delete.png" alt="Delete" width={16} height={16} className="opacity-70 group-hover:opacity-100" />
+      <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title="Delete">
+        <Trash2 size={16} strokeWidth={2} className="group-hover:text-rose-600" />
       </button>
     );
   })();
