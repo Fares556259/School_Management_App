@@ -9,7 +9,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import Link from "next/link";
-import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2 } from "lucide-react";
+import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen } from "lucide-react";
 
 type ClassList = Class & { level: Level } & {
   _count: { students: number };
@@ -213,15 +213,23 @@ const ClassListPage = async ({
   return (
     <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
       {/* TOP */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="hidden md:block text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight">All Classes</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 border-b border-[#e5e7eb] pb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-white border border-[#e5e7eb] shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-center text-[#181d26]">
+            <DoorOpen size={20} strokeWidth={2.5} />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[11px] font-bold text-[#9297a0] tracking-widest uppercase mb-0.5">Academics</span>
+            <h1 className="text-[24px] font-semibold text-[#181d26] tracking-tight">Classes</h1>
+          </div>
+        </div>
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center gap-3 self-end">
-            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors shadow-sm">
+          <div className="flex items-center gap-2 self-end">
+            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <Filter size={16} strokeWidth={2} />
             </button>
-            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors shadow-sm">
+            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <ArrowUpDown size={16} strokeWidth={2} />
             </button>
             {role === "admin" && (
@@ -230,9 +238,9 @@ const ClassListPage = async ({
                 mode="create" 
                 relatedData={classRelatedData} 
                 trigger={
-                  <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-full px-5 py-2.5 transition-colors shadow-sm">
-                    <Plus size={18} strokeWidth={2.5} />
-                    <span className="font-medium text-[15px]">Add Class</span>
+                  <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#000000] text-white rounded-lg px-4 h-9 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] ml-1 active:scale-95">
+                    <Plus size={16} strokeWidth={2.5} />
+                    <span className="font-medium text-[13px]">Add Class</span>
                   </button>
                 }
               />

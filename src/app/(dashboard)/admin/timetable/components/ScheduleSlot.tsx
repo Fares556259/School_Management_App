@@ -61,12 +61,12 @@ const ScheduleSlot = ({
   const [roomId, setRoomId] = useState("");
 
   const pastelColors = [
-    "bg-[#a8d8c4]", // Mint
-    "bg-[#fcab79]", // Peach
-    "bg-[#f5e9d4]", // Cream
-    "bg-[#f4d35e]", // Yellow
-    "bg-[#dce4f5]", // Soft Blue
-    "bg-[#e8dff5]"  // Soft Purple
+    "bg-[#F0F4FF] border-[#D6E4FF]", // Blue
+    "bg-[#F0FDF4] border-[#DCFCE7]", // Green
+    "bg-[#FEF2F2] border-[#FEE2E2]", // Red
+    "bg-[#FFFBEB] border-[#FEF3C7]", // Yellow
+    "bg-[#FAF5FF] border-[#F3E8FF]", // Purple
+    "bg-[#F0FDFB] border-[#CCFBF1]"  // Teal
   ];
 
   const getSlotColor = (subjectId: number) => {
@@ -157,46 +157,46 @@ const ScheduleSlot = ({
         isEditMode && (
           <button 
               onClick={() => setIsEditing(true)}
-              className="w-full h-full border-2 border-dashed border-[#dddddd] bg-[#f8fafc] rounded-[10px] flex flex-col items-center justify-center text-[#9297a0] hover:border-[#181d26] hover:text-[#181d26] hover:bg-white transition-all group print:hidden"
+              className="w-full h-full border border-dashed border-[#dddddd] bg-[#F9FAFB] rounded-xl flex flex-col items-center justify-center text-[#9297a0] hover:border-[#a0a5b0] hover:text-[#181d26] hover:bg-white hover:shadow-sm hover:-translate-y-0.5 transition-all group print:hidden"
           >
-            <div className="w-10 h-10 rounded-full bg-white border border-[#dddddd] flex items-center justify-center transition-colors">
+            <div className="w-9 h-9 rounded-full bg-white border border-[#e5e7eb] shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-center transition-colors">
                <BookOpen size={16} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="text-sm font-medium mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
+            <span className="text-[12px] font-semibold mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
           </button>
         )
       ) : (
         <div 
           draggable={isEditMode && !!slot}
           onDragStart={handleDragStart}
-          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} p-4 rounded-[10px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.02] border border-black/10' : 'border border-black/5'} overflow-hidden`}
+          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border p-3.5 rounded-xl transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] hover:-translate-y-0.5' : ''} overflow-hidden`}
         >
           {/* Subtle gradient overlay for depth */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
           
-          <div className="flex items-start justify-between relative z-10">
-            <h3 className="text-[16px] font-medium text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors">
+          <div className="flex items-start justify-between relative z-10 mb-2">
+            <h3 className="text-[14px] font-semibold text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors line-clamp-2">
               {subjectName || "Unscheduled Subject"}
             </h3>
             {isEditMode && (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="p-1.5 opacity-0 group-hover:opacity-100 bg-white/50 hover:bg-white rounded-md transition-all text-[#181d26] print:hidden"
+                className="p-1.5 opacity-0 group-hover:opacity-100 bg-white/80 hover:bg-white rounded-lg shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden"
               >
                 <Edit2 size={14} />
               </button>
             )}
           </div>
           
-          <div className="mt-2 flex flex-col gap-1">
-            <p className="text-sm font-normal text-[#41454d]">
+          <div className="mt-1 flex flex-col gap-1">
+            <p className="text-[12px] font-medium text-[#41454d] opacity-80">
               {teacherName}
             </p>
           </div>
 
-          <div className="mt-auto flex items-center justify-between pt-4 relative z-10">
-             <div className="bg-white/60 px-2 py-1 rounded-md flex items-center gap-1.5 border border-white/40">
-                <span className="text-xs font-medium text-[#181d26]">{slot.room?.name || "Room TBA"}</span>
+          <div className="mt-auto flex items-center justify-between pt-3 relative z-10">
+             <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-[#41454d]">{slot.room?.name || "Room TBA"}</span>
              </div>
           </div>
         </div>

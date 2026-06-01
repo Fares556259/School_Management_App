@@ -188,10 +188,10 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   return (
     <div ref={ref} className="bg-white overflow-hidden print:shadow-none print:border-none print:m-0 print:p-0">
       <div className="overflow-x-auto">
-        <div className="min-w-[1200px] print:min-w-0 border border-[#dddddd] rounded-xl overflow-hidden">
-          <div className={`grid border-b border-[#dddddd] bg-[#f8fafc]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
-            <div className="h-12 flex items-center justify-center border-r border-[#dddddd]">
-               <span className="text-sm font-medium text-[#41454d]">Time</span>
+        <div className="min-w-[1200px] print:min-w-0 border border-[#e5e7eb] rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className={`grid border-b border-[#e5e7eb] bg-[#F9FAFB]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
+            <div className="h-10 flex items-center justify-center border-r border-[#e5e7eb]">
+               <span className="text-[11px] font-semibold text-[#9297a0] tracking-wider uppercase">Time</span>
             </div>
             {displayDays.map((item) => {
               const d = typeof item === 'string' ? item : item.day;
@@ -201,9 +201,9 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 label += ` ${date.getDate()}`;
               }
               return (
-                <div key={label} className="h-12 flex items-center justify-center border-r border-[#dddddd] last:border-r-0">
-                   <span className="text-sm font-medium text-[#181d26] whitespace-nowrap px-4 overflow-hidden text-ellipsis capitalize">
-                     {label.toLowerCase()}
+                <div key={label} className="h-10 flex items-center justify-center border-r border-[#e5e7eb] last:border-r-0">
+                   <span className="text-[11px] font-semibold text-[#9297a0] tracking-wider uppercase whitespace-nowrap px-4 overflow-hidden text-ellipsis">
+                     {label}
                    </span>
                 </div>
               );
@@ -220,10 +220,10 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               </div>
             )}
             {displaySessions.map((session, idx) => (
-              <div key={session.id || idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
-                <div className="flex flex-col items-center justify-center bg-[#f8fafc] p-4 relative group border-r border-[#dddddd]">
-                   <span className="text-[16px] font-medium text-[#181d26] leading-none">{idx + 1}</span>
-                   <span className="text-xs font-normal text-[#41454d] mt-2 whitespace-nowrap">{session.time}</span>
+              <div key={session.id || idx} className={`grid items-stretch border-b border-[#e5e7eb] last:border-b-0 group/row`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
+                <div className="flex flex-col items-center justify-center bg-[#F9FAFB] p-4 relative border-r border-[#e5e7eb] group-hover/row:bg-[#f3f4f6] transition-colors">
+                   <span className="text-[13px] font-semibold text-[#181d26] leading-none">{idx + 1}</span>
+                   <span className="text-[11px] font-medium text-[#9297a0] mt-1.5 whitespace-nowrap">{session.time}</span>
                 </div>
 
                 {displayDays.map((item) => {
@@ -234,7 +234,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   return (
                     <div 
                       key={`${d}-${idx + 1}`} 
-                      className={`min-h-[140px] flex items-stretch transition-all border-r border-[#dddddd] last:border-r-0 ${isDraggedOver ? 'bg-[#f0f4ff]' : 'bg-white p-2'}`}
+                      className={`min-h-[140px] flex items-stretch transition-all border-r border-[#e5e7eb] last:border-r-0 ${isDraggedOver ? 'bg-[#f0f4ff]' : 'bg-white p-2.5 hover:bg-slate-50/50'}`}
                       onDragOver={(e) => handleDragOver(e, d as Day, idx + 1)}
                       onDragLeave={() => setDraggedOver(null)}
                       onDrop={(e) => handleDrop(e, d as Day, idx + 1)}

@@ -33,7 +33,8 @@ import {
   Calculator,
   Smartphone,
   Library,
-  Sparkles
+  Sparkles,
+  CircleHelp
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
@@ -133,6 +134,7 @@ const menuItems: MenuSection[] = [
     items: [
       { icon: User, label: "Profile", href: "/profile", visible: ["admin", "teacher", "student", "parent"] },
       { icon: Settings, label: "Settings", href: "/settings", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: CircleHelp, label: "Help & Support", href: "/help", visible: ["admin", "teacher", "student", "parent"] },
       { icon: LogOut, label: "Logout", href: "/logout", visible: ["admin", "teacher", "student", "parent"] },
     ],
   },
@@ -143,10 +145,12 @@ const Menu = ({ role }: { role: string }) => {
   const { t } = useLanguage();
 
   return (
-    <div className="text-sm">
-      {menuItems.map((section) => (
-        <div className="flex flex-col gap-2 mb-6" key={section.title}>
-          <span className="hidden lg:block text-slate-400 font-bold text-[10px] tracking-widest uppercase ml-2 mb-2">
+    <div className="flex flex-col min-h-full h-full text-sm pb-4">
+      {menuItems.map((section) => {
+        const isSystem = section.title === "SYSTEM";
+        return (
+        <div className={`flex flex-col gap-1.5 ${isSystem ? 'mt-auto pt-6' : 'mb-8'}`} key={section.title}>
+          <span className="hidden lg:block text-[#9297a0] font-semibold text-[11px] tracking-widest uppercase ml-2 mb-1.5">
             {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
           </span>
           <div className="flex flex-col gap-1">
@@ -192,7 +196,7 @@ const Menu = ({ role }: { role: string }) => {
             })}
           </div>
         </div>
-      ))}
+      )})}
     </div>
   );
 };
