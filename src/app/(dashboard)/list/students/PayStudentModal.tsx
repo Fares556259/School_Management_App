@@ -98,10 +98,11 @@ export default function PayStudentModal({
         {isPaid ? "Paid" : isPartial ? "Partial" : "Receive Fee"}
       </button>
 
-    <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-      onClick={() => setIsOpen(false)}
-    >
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          onClick={() => setIsOpen(false)}
+        >
           <div 
             className="bg-white rounded-[12px] shadow-2xl max-w-sm w-full relative overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
