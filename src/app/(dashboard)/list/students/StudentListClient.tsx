@@ -74,8 +74,12 @@ export default function StudentListClient({
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">Level {item.level.level}</td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || "-"}</td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>{item.address || "-"}</td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
+          {item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}
+        </td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>
+          {item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}
+        </td>
         <td className="py-4 px-6">
           <PayStudentModal
             studentId={item.id}
