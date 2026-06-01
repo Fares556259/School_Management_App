@@ -41,6 +41,7 @@ const FormModal = ({
   type,
   data,
   id,
+  trigger,
 }: {
   table:
     | "teacher"
@@ -59,6 +60,7 @@ const FormModal = ({
   type: "create" | "update" | "delete";
   data?: any;
   id?: string | number;
+  trigger?: React.ReactNode;
 }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
@@ -132,12 +134,18 @@ const FormModal = ({
 
   return (
     <>
-      <button
-        className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
-        onClick={() => setOpen(true)}
-      >
-        <Image src={`/${type}.png`} alt="" width={16} height={16} />
-      </button>
+      {trigger ? (
+        <div onClick={() => setOpen(true)} className="cursor-pointer inline-block">
+          {trigger}
+        </div>
+      ) : (
+        <button
+          className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
+          onClick={() => setOpen(true)}
+        >
+          <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        </button>
+      )}
       {open && (
         <div className="w-screen h-screen fixed left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className={`bg-white p-4 rounded-md relative w-[95%] ${(table === "assignment" || table === "resource") ? "md:w-[80%] lg:w-[70%] xl:w-[60%]" : "md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]"}`}>
