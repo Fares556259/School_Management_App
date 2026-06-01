@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Montserrat } from "next/font/google";
+import { Nunito, Montserrat } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import NextTopLoader from "nextjs-toploader";
@@ -9,9 +9,9 @@ import { Suspense } from "react";
 
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
 
-const inter = Inter({ 
+const nunito = Nunito({ 
   subsets: ["latin"],
-  variable: '--font-inter',
+  variable: '--font-nunito',
   display: 'swap',
 });
 
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${inter.variable} ${montserrat.variable} ${inter.className} antialiased`}>
+        <body className={`${nunito.variable} ${montserrat.variable} ${nunito.className} antialiased`}>
           <LanguageProvider>
             <NextTopLoader color="#4f46e5" showSpinner={true} />
             <Suspense fallback={null}>
