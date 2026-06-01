@@ -292,21 +292,21 @@ export default function CrudFormModal({
   const defaultTrigger = (() => {
     if (mode === "create") {
       return (
-        <button className="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-600 transition-colors shadow-sm">
+        <button className="flex items-center gap-2 bg-[#181d26] text-white px-4 py-2.5 rounded-[6px] text-[13px] font-medium hover:bg-[#0d1218] transition-colors shadow-sm">
           <span className="text-lg leading-none">+</span> Add {entity.charAt(0).toUpperCase() + entity.slice(1)}
         </button>
       );
     }
     if (mode === "update") {
       return (
-        <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky hover:bg-blue-300 transition-colors">
-          <Image src="/update.png" alt="Edit" width={16} height={16} />
+        <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors" title="Edit">
+          <Image src="/update.png" alt="Edit" width={16} height={16} className="opacity-70" />
         </button>
       );
     }
     return (
-      <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple hover:bg-purple-300 transition-colors">
-        <Image src="/delete.png" alt="Delete" width={16} height={16} />
+      <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group" title="Delete">
+        <Image src="/delete.png" alt="Delete" width={16} height={16} className="opacity-70 group-hover:opacity-100" />
       </button>
     );
   })();

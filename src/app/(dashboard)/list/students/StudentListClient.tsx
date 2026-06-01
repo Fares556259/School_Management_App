@@ -56,26 +56,26 @@ export default function StudentListClient({
     return (
       <tr
         key={item.id}
-        className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+        className="border-b border-[#dddddd] hover:bg-[#f8fafc] transition-colors group"
       >
-        <td className="flex items-center gap-4 p-4">
+        <td className="flex items-center gap-4 py-4 px-6">
           <Image
             src={item.img || "/noavatar.png"}
             alt=""
             width={40}
             height={40}
-            className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
+            className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd]"
           />
           <div className="flex flex-col">
-            <h3 className="font-semibold">{item.name}</h3>
-            <p className="text-xs text-gray-500">{item.class?.name ?? "No class assigned"}</p>
+            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name}</h3>
+            <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? "No class assigned"}</p>
           </div>
         </td>
-        <td className="hidden md:table-cell">{item.username}</td>
-        <td className="hidden md:table-cell">{item.level.level}</td>
-        <td className="hidden lg:table-cell">{item.phone}</td>
-        <td className="hidden lg:table-cell">{item.address}</td>
-        <td>
+        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
+        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">Level {item.level.level}</td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone}</td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address}>{item.address}</td>
+        <td className="py-4 px-6">
           <PayStudentModal
             studentId={item.id}
             studentName={item.name + " " + item.surname}
@@ -90,14 +90,14 @@ export default function StudentListClient({
               .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
           />
         </td>
-        <td className="hidden xl:table-cell">
+        <td className="hidden xl:table-cell py-4 px-6">
           <PaymentTimeline payments={item.payments} selectedMonthKey={selectedMonthKey} />
         </td>
-        <td>
+        <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <Link href={`/list/students/${item.id}`}>
-              <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-                <Image src="/view.png" alt="" width={16} height={16} />
+              <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors" title="View Profile">
+                <Image src="/view.png" alt="" width={16} height={16} className="opacity-70" />
               </button>
             </Link>
             {role === "admin" && (
@@ -125,27 +125,36 @@ export default function StudentListClient({
       </div>
 
       {/* 2. TOP ACTIONS HEADER */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-black text-slate-800 uppercase tracking-tight">All Students</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Students</h1>
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center gap-3 self-end">
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-lamaYellow border border-amber-200 shadow-sm hover:shadow transition-all">
-              <Image src="/filter.png" alt="" width={14} height={14} />
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <button className="w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]" title="Filter">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
             </button>
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-lamaYellow border border-amber-200 shadow-sm hover:shadow transition-all">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+            <button className="w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]" title="Sort">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
             </button>
             
             {role === "admin" && (
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-2 ml-1">
                 <button 
                   onClick={() => setIsBulkOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 group shrink-0"
+                  className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
                 >
-                  <Sparkles size={14} className="group-hover:rotate-12 transition-transform" />
-                  AI Bulk Enroll Students
+                  <Sparkles size={16} className="text-[#41454d] group-hover:rotate-12 transition-transform" />
+                  AI Bulk Enroll
                 </button>
+                <button 
+                  onClick={() => setIsBulkOpen(true)}
+                  className="lg:hidden w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]"
+                  title="AI Bulk Enroll"
+                >
+                  <Sparkles size={16} />
+                </button>
+                {/* CrudFormModal for create will need custom styling inside its own component if possible, 
+                    but for now we leave it here. */}
                 <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
               </div>
             )}

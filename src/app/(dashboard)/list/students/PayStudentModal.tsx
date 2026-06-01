@@ -86,12 +86,12 @@ export default function PayStudentModal({
       <button
         onClick={() => setIsOpen(true)}
         disabled={!isAdmin}
-        className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors w-24 ${
+        className={`px-3 py-1 text-[13px] font-medium rounded-[6px] transition-colors w-24 text-center ${
           isPaid
-            ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
             : isPartial
-              ? "bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 cursor-pointer"
-              : "bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 cursor-pointer"
+              ? "bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 cursor-pointer"
+              : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 cursor-pointer"
         }`}
       >
         {isPaid ? "Paid" : isPartial ? "Partial" : "Receive Fee"}
