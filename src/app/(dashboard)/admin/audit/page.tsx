@@ -16,8 +16,8 @@ const columns = [
   { header: "Performed By", accessor: "performedBy", className: "hidden md:table-cell" },
   { header: "Entity", accessor: "entityType", className: "hidden md:table-cell" },
   { header: "Description", accessor: "description" },
-  { header: "Amount", accessor: "amount", className: "hidden md:table-cell" },
-  { header: "Log Time", accessor: "timestamp", className: "hidden lg:table-cell" },
+  { header: "Amount", accessor: "amount", className: "hidden md:table-cell text-right" },
+  { header: "Log Time", accessor: "timestamp", className: "hidden lg:table-cell whitespace-nowrap" },
 ];
 
 const AuditPage = async ({
@@ -89,25 +89,35 @@ const AuditPage = async ({
   }
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0 border border-slate-100 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden min-h-[calc(100vh-100px)]">
+      {/* BACKGROUND DECORATION */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-slate-200/50 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
+
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 border-b border-slate-100 pb-5">
         <div className="space-y-1">
-          <h1 className="text-xl font-black text-slate-800 tracking-tight">Master Audit Trail</h1>
-          <p className="text-xs text-slate-400 font-medium">Immutable log of financial and administrative actions</p>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            Master Audit Trail
+            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{count}</span>
+          </h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">Immutable log of financial and administrative actions</p>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center gap-3 self-end">
+          <div className="flex items-center gap-3 self-end md:self-auto">
             <AuditFilter />
             <div className="w-px h-6 bg-slate-200 hidden md:block" />
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow hover:scale-110 transition-transform shadow-sm">
-              <Image src="/sort.png" alt="" width={14} height={14} />
+            <button className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-sm">
+              <Image src="/sort.png" alt="" width={14} height={14} className="opacity-70" />
             </button>
           </div>
         </div>
       </div>
-      <AuditLogTableClient logs={logs} performerMap={performerMap} columns={columns} />
-      <Pagination page={p} count={count} />
+      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
+        <AuditLogTableClient logs={logs} performerMap={performerMap} columns={columns} />
+      </div>
+      <div className="mt-6">
+        <Pagination page={p} count={count} />
+      </div>
     </div>
   );
 };

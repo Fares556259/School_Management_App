@@ -33,41 +33,44 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
         ...item,
         performer: performerMap[item.performedBy] || { name: item.performedBy, role: "System" }
       })}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-indigo-50/50 cursor-pointer transition-all group"
+      className="border-b border-slate-100 last:border-none text-sm hover:bg-slate-50/80 cursor-pointer transition-colors group"
     >
       <td className="p-4">
         {(() => {
-          let bgColor = "bg-indigo-50 text-indigo-600";
+          let bgColor = "bg-slate-50 text-slate-600 border border-slate-100";
           if (item.action.includes("CREATE") || item.action.includes("POST")) bgColor = "bg-emerald-50 text-emerald-600 border border-emerald-100";
           if (item.action.includes("UPDATE") || item.action.includes("MARK")) bgColor = "bg-amber-50 text-amber-600 border border-amber-100";
           if (item.action.includes("DELETE")) bgColor = "bg-rose-50 text-rose-600 border border-rose-100";
           
           return (
-            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-colors ${bgColor}`}>
+            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${bgColor}`}>
               {item.action.replace(/_/g, " ")}
             </span>
           );
         })()}
       </td>
-      <td className="hidden md:table-cell px-4 py-4">
+      <td className="p-4 hidden md:table-cell">
         <div className="flex flex-col">
-          <span className="font-bold text-slate-700">{performerMap[item.performedBy]?.name || item.performedBy}</span>
-          <span className="text-[10px] text-slate-400 font-mono">{item.performedBy}</span>
+          <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{performerMap[item.performedBy]?.name || item.performedBy}</span>
+          <span className="text-[10px] text-slate-400 font-mono tracking-tighter truncate max-w-[120px]">{item.performedBy}</span>
         </div>
       </td>
-      <td className="hidden md:table-cell px-4">
-        <span className="text-xs text-slate-500 uppercase font-bold bg-slate-100 px-2 py-0.5 rounded-full">{item.entityType}</span>
+      <td className="p-4 hidden md:table-cell">
+        <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-md">{item.entityType}</span>
       </td>
       <td className="p-4 text-slate-600 max-w-xs truncate" title={item.description}>{item.description}</td>
-      <td className="hidden md:table-cell font-bold px-4">
+      <td className="p-4 hidden md:table-cell font-bold text-right">
         {item.amount !== null && item.amount !== undefined ? (
           <span className={item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}>
-            {item.type === 'income' ? '+' : '-'}${item.amount.toLocaleString()}
+            {item.type === 'income' ? '+' : '-'}{item.amount.toLocaleString()} <span className="text-xs ml-0.5 opacity-70">DT</span>
           </span>
-        ) : "-"}
+        ) : <span className="text-slate-300">-</span>}
       </td>
-      <td className="hidden lg:table-cell text-xs text-slate-400 px-4">
-        {new Date(item.timestamp).toLocaleString()}
+      <td className="p-4 hidden lg:table-cell whitespace-nowrap text-xs text-slate-500 font-medium">
+        {new Date(item.timestamp).toLocaleString(undefined, {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: 'numeric'
+        })}
       </td>
     </tr>
   );
