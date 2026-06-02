@@ -135,22 +135,9 @@ const ExpenseListPage = async ({
       </td>
       <td className="p-4">
         {item.img ? (
-          <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-9 h-9 flex items-center justify-center group/img rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all">
-            {item.img.toLowerCase().endsWith(".pdf") ? (
-              <div className="w-full h-full bg-slate-50 flex items-center justify-center group-hover/img:bg-slate-100 transition-colors">
-                <FileText className="w-4 h-4 text-slate-500" />
-              </div>
-            ) : (
-              <Image
-                src={item.img}
-                alt="Proof"
-                fill
-                className="object-cover group-hover/img:scale-110 transition-transform duration-500"
-              />
-            )}
-            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors flex items-center justify-center">
-              <ImageIcon className="w-4 h-4 text-white opacity-0 group-hover/img:opacity-100 transition-opacity drop-shadow-md" />
-            </div>
+          <a href={item.img} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md w-max hover:bg-emerald-100 hover:shadow-sm transition-all">
+            <FileText className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold">View Proof</span>
           </a>
         ) : (
           <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-md w-max">
