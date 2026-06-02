@@ -137,17 +137,6 @@ export default function TeacherListClient({
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>{item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
-        <td className="hidden lg:table-cell py-4 px-6">
-          {item.activated ? (
-            <span className="px-2 py-1 rounded-[4px] bg-green-50 border border-green-200 text-green-700 text-[12px] font-medium">
-              Activated
-            </span>
-          ) : (
-            <span className="px-2 py-1 rounded-[4px] bg-slate-50 border border-slate-200 text-slate-500 text-[12px] font-medium">
-              Pending
-            </span>
-          )}
-        </td>
         <td className="py-4 px-6">
           <PaySalaryModal 
             teacherId={item.id} 
