@@ -23,7 +23,7 @@ type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subjec
 interface FieldDef {
   name: string;
   label: string;
-  type: "text" | "email" | "number" | "date" | "select" | "image" | "searchable-select";
+  type: "text" | "email" | "number" | "date" | "select" | "multi-select" | "image" | "searchable-select";
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -41,6 +41,8 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
     { name: "salary", label: "Salary ($)", type: "number" },
+    { name: "subjects", label: "Subjects", type: "multi-select", parseAsNumber: true },
+    { name: "classes", label: "Classes", type: "multi-select", parseAsNumber: true },
   ],
   student: [
     { name: "name", label: "First Name", type: "text", required: true },
@@ -200,7 +202,7 @@ export default function CrudFormModal({
   // Merge dynamic relatedData options into field definitions
   const fields = entityFields[entity].map((f) => {
     let options = f.options;
-    if (relatedData && relatedData[f.name] && (f.type === "select" || f.type === "searchable-select") && !f.options) {
+    if (relatedData && relatedData[f.name] && (f.type === "select" || f.type === "searchable-select" || f.type === "multi-select") && !f.options) {
       options = relatedData[f.name];
     }
     // For Class dropdown in update mode, ensure current name is in the list
@@ -223,11 +225,16 @@ export default function CrudFormModal({
 
     fields.forEach((f) => {
       if (f.type === "image") return; // Manual handle
-      const val = formData.get(f.name) as string;
-      if ((f.type === "number" || f.parseAsNumber) && val) {
-        values[f.name] = parseFloat(val);
-      } else if (val) {
-        values[f.name] = val;
+      if (f.type === "multi-select") {
+        const vals = formData.getAll(f.name);
+        values[f.name] = vals.map(v => f.parseAsNumber ? parseInt(v as string, 10) : v);
+      } else {
+        const val = formData.get(f.name) as string;
+        if ((f.type === "number" || f.parseAsNumber) && val) {
+          values[f.name] = parseFloat(val);
+        } else if (val) {
+          values[f.name] = val;
+        }
       }
     });
 
@@ -383,6 +390,21 @@ export default function CrudFormModal({
                               <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                           </select>
+                        ) : f.type === "multi-select" ? (
+                          <div className="relative pb-5">
+                            <select
+                              multiple
+                              name={f.name}
+                              defaultValue={data?.[f.name]?.map((item: any) => item.id.toString()) || []}
+                              required={f.required}
+                              className="w-full border border-[#dddddd] rounded-[6px] px-4 py-2.5 text-[14px] font-normal text-[#181d26] bg-white h-[80px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm custom-scrollbar"
+                            >
+                              {f.options?.map((o) => (
+                                <option key={o.value} value={o.value} className="py-1">{o.label}</option>
+                              ))}
+                            </select>
+                            <span className="text-[11px] text-[#9297a0] absolute bottom-0 left-0">Hold Ctrl/Cmd to select multiple</span>
+                          </div>
                         ) : f.type === "image" ? (
                           <div className="flex flex-col gap-2">
                             <input

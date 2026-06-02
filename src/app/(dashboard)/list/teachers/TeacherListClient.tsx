@@ -25,6 +25,7 @@ interface Props {
   role: string | undefined;
   selectedMonthKey: string;
   paidThisMonth: number;
+  relatedData?: Record<string, { value: string; label: string }[]>;
 }
 
 export default function TeacherListClient({
@@ -35,6 +36,7 @@ export default function TeacherListClient({
   role,
   selectedMonthKey,
   paidThisMonth,
+  relatedData,
 }: Props) {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
 
@@ -164,7 +166,7 @@ export default function TeacherListClient({
             />
             {role === "admin" && (
               <>
-                <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} />
+                <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} relatedData={relatedData} />
                 <CrudFormModal entity="teacher" mode="delete" id={item.id} />
               </>
             )}
@@ -208,7 +210,7 @@ export default function TeacherListClient({
                 >
                   <Sparkles size={16} />
                 </button>
-                <CrudFormModal entity="teacher" mode="create" />
+                <CrudFormModal entity="teacher" mode="create" relatedData={relatedData} />
               </div>
             )}
           </div>

@@ -104,7 +104,7 @@ const TeacherListPage = async ({
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
 
-  const [data, count] = await Promise.all([
+  const [data, count, subjectsData, classesData] = await Promise.all([
     prisma.teacher.findMany({
       where: query,
       include: {
@@ -116,6 +116,8 @@ const TeacherListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.teacher.count({ where: query }),
+    prisma.subject.findMany({ where: { schoolId }, select: { id: true, name: true } }),
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true } })
   ]);
 
   // Compute month-based payment stats for the summary bar
@@ -126,6 +128,11 @@ const TeacherListPage = async ({
   const paidThisMonth = data.filter((t) =>
     t.payments.some((p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
   ).length;
+
+  const relatedData = {
+    subjects: subjectsData.map(s => ({ value: s.id.toString(), label: s.name })),
+    classes: classesData.map(c => ({ value: c.id.toString(), label: c.name }))
+  };
 
   return (
     <div className="bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
@@ -138,6 +145,7 @@ const TeacherListPage = async ({
         role={role}
         selectedMonthKey={selectedMonthKey}
         paidThisMonth={paidThisMonth}
+        relatedData={relatedData}
       />
     </div>
   );

@@ -22,6 +22,8 @@ export const createTeacher = async (data: {
   sex: "MALE" | "FEMALE";
   salary?: number;
   img?: string;
+  subjects?: number[];
+  classes?: number[];
 }) => {
   try {
     const schoolId = await getSchoolId();
@@ -42,6 +44,8 @@ export const createTeacher = async (data: {
         sex: data.sex,
         salary: data.salary ?? 3000,
         img: data.img || null,
+        subjects: data.subjects ? { connect: data.subjects.map(sId => ({ id: sId })) } : undefined,
+        classes: data.classes ? { connect: data.classes.map(cId => ({ id: cId })) } : undefined,
       },
     });
     await createAuditLog({
@@ -122,15 +126,26 @@ export const updateTeacher = async (
     sex: "MALE" | "FEMALE";
     salary: number;
     img: string | null;
+    subjects: number[];
+    classes: number[];
   }>
 ) => {
   try {
+    const updateData: any = {
+      ...data,
+      birthday: data.birthday ? new Date(data.birthday) : undefined,
+    };
+    
+    if (data.subjects !== undefined) {
+      updateData.subjects = { set: data.subjects.map(sId => ({ id: sId })) };
+    }
+    if (data.classes !== undefined) {
+      updateData.classes = { set: data.classes.map(cId => ({ id: cId })) };
+    }
+
     await prisma.teacher.update({
       where: { id },
-      data: {
-        ...data,
-        birthday: data.birthday ? new Date(data.birthday) : undefined,
-      },
+      data: updateData,
     });
     await createAuditLog({
       action: "UPDATE_TEACHER",
