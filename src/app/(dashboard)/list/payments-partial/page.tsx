@@ -39,19 +39,26 @@ export default async function PartialPaymentsPage() {
   const totalPending = payments.reduce((acc: number, curr: any) => acc + (curr.deferredAmount || 0), 0);
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-sm min-h-screen">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+    <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden min-h-[calc(100vh-100px)]">
+      {/* BACKGROUND DECORATION */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-100/50 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
+
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 border-b border-slate-100 pb-5">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Recovery Queue</h1>
-          <p className="text-sm text-slate-500 font-medium">Manage and recover partially paid tuition fees</p>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            Recovery Queue
+          </h1>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+            Manage and recover partially paid tuition fees
+          </p>
         </div>
-        <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center gap-4">
-          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white font-bold text-xl hover:rotate-6 transition-transform">
-            DT
-          </div>
-          <div>
-            <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">Total to Recover</p>
-            <p className="text-xl font-black text-orange-700 leading-none">{totalPending} DT</p>
+        
+        <div className="bg-white border border-orange-200 p-4 rounded-xl shadow-sm flex flex-col relative overflow-hidden group min-w-[200px]">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-orange-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Total to Recover</span>
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-black text-orange-600">{totalPending.toLocaleString()}</span>
+            <span className="text-xl font-bold text-slate-400 mb-0.5">DT</span>
           </div>
         </div>
       </div>

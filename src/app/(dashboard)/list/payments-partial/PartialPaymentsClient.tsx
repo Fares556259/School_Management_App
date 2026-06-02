@@ -26,8 +26,8 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
   const columns = [
     { header: "Student", accessor: "student" },
     { header: "Fee Month", accessor: "month", className: "hidden md:table-cell" },
-    { header: "Paid", accessor: "amount" },
-    { header: "Gap (Pending)", accessor: "deferredAmount", className: "hidden lg:table-cell" },
+    { header: "Paid", accessor: "amount", className: "text-right" },
+    { header: "Gap (Pending)", accessor: "deferredAmount", className: "hidden lg:table-cell text-right" },
     { header: "Recovery Schedule", accessor: "deferredUntil" },
     { header: "Actions", accessor: "action" },
   ];
@@ -72,49 +72,49 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
   };
 
   const renderRow = (item: ExtendedPayment) => (
-    <tr key={item.id} className="border-b border-gray-100 hover:bg-orange-50/30 transition-colors group">
+    <tr key={item.id} className="border-b border-slate-100 last:border-none hover:bg-orange-50/40 transition-colors group">
       <td className="p-4 flex items-center gap-3">
-        <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-xs">
+        <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-sm border border-slate-200">
           {item.student?.name.charAt(0)}
         </div>
         <div>
-          <p className="font-bold text-slate-700">{item.student?.name} {item.student?.surname}</p>
-          <p className="text-[10px] text-slate-500 uppercase font-black">{item.student?.class.name} • Level {item.student?.level.level}</p>
+          <p className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.student?.name} {item.student?.surname}</p>
+          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{item.student?.class.name} • Level {item.student?.level.level}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell">
-        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase">
+      <td className="p-4 hidden md:table-cell">
+        <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider">
           {MONTHS[item.month - 1]} {item.year}
         </span>
       </td>
-      <td>
-        <div className="flex items-center gap-1 text-emerald-600 font-bold">
-          <span className="text-xs">DT</span>
-          <span>{item.amount}</span>
+      <td className="p-4 text-right">
+        <div className="flex items-center justify-end font-bold text-emerald-600">
+          {item.amount.toLocaleString()}
+          <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
-      <td className="hidden lg:table-cell">
-        <div className="flex items-center gap-1 text-rose-500 font-bold">
-          <span className="text-xs">DT</span>
-          <span>{item.deferredAmount}</span>
+      <td className="p-4 hidden lg:table-cell text-right">
+        <div className="flex items-center justify-end font-bold text-rose-500">
+          {item.deferredAmount?.toLocaleString()}
+          <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
-      <td>
-        <div className="flex items-center gap-2 text-orange-600">
-          <Calendar size={14} />
-          <span className="text-xs font-bold whitespace-nowrap">
-            {item.deferredUntil ? new Date(item.deferredUntil).toLocaleDateString() : "Not Scheduled"}
+      <td className="p-4 whitespace-nowrap">
+        <div className="flex items-center gap-2 text-orange-600 font-medium text-sm">
+          <Calendar size={14} className="opacity-70" />
+          <span>
+            {item.deferredUntil ? new Date(item.deferredUntil).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "Not Scheduled"}
           </span>
         </div>
       </td>
-      <td>
+      <td className="p-4">
         <button
           onClick={() => handleOpenRecovery(item)}
           disabled={isPending}
-          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 group-hover:scale-105 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-600 rounded-lg hover:bg-orange-500 hover:text-white transition-all shadow-sm group-hover:scale-105 disabled:opacity-50"
         >
           <Wallet size={14} />
-          <span className="text-[10px] font-black uppercase tracking-wider">Recover</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Recover</span>
         </button>
       </td>
     </tr>
@@ -127,18 +127,18 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         <input
           type="text"
           placeholder="Search debtor name..."
-          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
         <Table columns={columns} renderRow={renderRow} data={filteredData} />
         {filteredData.length === 0 && (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="text-slate-300" size={32} />
+              <CheckCircle className="text-emerald-500" size={32} />
             </div>
             <h3 className="text-lg font-bold text-slate-700">All Gaps Recovered!</h3>
             <p className="text-sm text-slate-500">There are no pending partial payments to collect.</p>
