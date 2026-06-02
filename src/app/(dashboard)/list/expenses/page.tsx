@@ -21,6 +21,7 @@ const columns = [
   {
     header: "Amount",
     accessor: "amount",
+    className: "text-right",
   },
   {
     header: "Category",
@@ -48,7 +49,7 @@ const ExpenseListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
-  const { page, search, from, to, ...queryParams } = searchParams;
+  const { page, search, from, to, category, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -61,6 +62,10 @@ const ExpenseListPage = async ({
       { title: { contains: search, mode: "insensitive" } },
       { category: { contains: search, mode: "insensitive" } },
     ];
+  }
+
+  if (category) {
+    query.category = { equals: category, mode: "insensitive" };
   }
 
   if (from || to) {
@@ -111,24 +116,24 @@ const ExpenseListPage = async ({
           <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.title}</span>
         </div>
       </td>
-      <td className="">
-        <div className="flex items-center font-bold text-slate-700">
-          <span className="text-slate-400 font-medium mr-1">$</span>
+      <td className="p-4 text-right">
+        <div className="flex items-center justify-end font-bold text-slate-700">
           {item.amount.toLocaleString()}
+          <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
-      <td className="hidden md:table-cell">
+      <td className="p-4 hidden md:table-cell">
         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}>
           {item.category}
         </span>
       </td>
-      <td className="hidden md:table-cell">
+      <td className="p-4 hidden md:table-cell whitespace-nowrap">
         <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-          <Calendar className="w-3.5 h-3.5 opacity-70" />
+          <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
           {new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </td>
-      <td className="">
+      <td className="p-4">
         {item.img ? (
           <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-9 h-9 flex items-center justify-center group/img rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all">
             {item.img.toLowerCase().endsWith(".pdf") ? (
@@ -148,13 +153,13 @@ const ExpenseListPage = async ({
             </div>
           </a>
         ) : (
-          <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-md w-max">
+          <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-md w-max">
             <FileX className="w-3.5 h-3.5 opacity-70" />
-            <span className="italic text-xs font-medium">No proof</span>
+            <span className="text-xs font-semibold">Missing Proof</span>
           </div>
         )}
       </td>
-      <td>
+      <td className="p-4">
         <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
           {role === "admin" && (
             <>
@@ -166,6 +171,36 @@ const ExpenseListPage = async ({
       </td>
     </tr>
   );
+
+  // Compute stats
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  let thisMonthTotal = 0;
+  let lastMonthTotal = 0;
+  let ytdTotal = 0;
+
+  allData.forEach(expense => {
+    const d = new Date(expense.date);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    
+    if (y === currentYear) {
+      ytdTotal += expense.amount;
+      if (m === currentMonth) {
+        thisMonthTotal += expense.amount;
+      } else if (m === currentMonth - 1 || (currentMonth === 0 && m === 11 && y === currentYear - 1)) {
+        lastMonthTotal += expense.amount;
+      }
+    } else if (currentMonth === 0 && m === 11 && y === currentYear - 1) {
+       lastMonthTotal += expense.amount;
+    }
+  });
+
+  const percentChange = lastMonthTotal === 0 
+    ? 100 
+    : Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
 
   return (
     <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden">
@@ -193,6 +228,54 @@ const ExpenseListPage = async ({
           </div>
         </div>
       </div>
+
+      {/* SUMMARY CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-emerald-200 transition-colors">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-semibold text-slate-500 mb-2">Total Expenses (This Month)</span>
+          <div className="flex items-end gap-3">
+            <span className="text-3xl font-bold text-slate-800">{thisMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+            <span className={`text-sm font-semibold mb-1 flex items-center gap-0.5 ${percentChange >= 0 ? "text-rose-600" : "text-emerald-600"}`}>
+              {percentChange >= 0 ? "+" : ""}{percentChange}%
+            </span>
+          </div>
+        </div>
+        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-200 transition-colors">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-semibold text-slate-500 mb-2">Total Expenses (Last Month)</span>
+          <div className="flex items-end gap-3">
+            <span className="text-3xl font-bold text-slate-800">{lastMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+          </div>
+        </div>
+        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-fuchsia-200 transition-colors">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-fuchsia-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-semibold text-slate-500 mb-2">Total Expenses (YTD)</span>
+          <div className="flex items-end gap-3">
+            <span className="text-3xl font-bold text-slate-800">{ytdTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* QUICK CATEGORY TABS */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <Link href="/list/expenses" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          All Expenses
+        </Link>
+        <Link href="/list/expenses?category=Salary" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Salary' ? "bg-emerald-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Salary
+        </Link>
+        <Link href="/list/expenses?category=Utility" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Utility' ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Utilities
+        </Link>
+        <Link href="/list/expenses?category=Maintenance" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Maintenance' ? "bg-amber-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Maintenance
+        </Link>
+        <Link href="/list/expenses?category=Equipment" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Equipment' ? "bg-orange-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Equipment
+        </Link>
+      </div>
+
       {/* LIST */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
         <Table columns={columns} renderRow={renderRow} data={data} />
