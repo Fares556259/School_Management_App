@@ -79,33 +79,25 @@ export default function TeacherListClient({
           </div>
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
-        <td className="hidden md:table-cell py-4 px-6">
+        <td className="hidden md:table-cell py-4 px-6 max-w-[200px]">
           {allSubjects.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-              {allSubjects.map((s) => (
-                <div key={s.id} className="flex items-center gap-1.5 cursor-default bg-blue-50 text-blue-700 px-2 py-1 rounded-[4px] border border-blue-100 hover:bg-blue-100 transition-colors">
-                  <BookOpen size={12} className="text-blue-500" />
-                  <span className="font-medium text-[11px] tracking-wide whitespace-nowrap">
-                    {s.name.split('|')[0].trim()}
-                  </span>
-                </div>
-              ))}
+            <div 
+              className="text-[13px] font-medium text-[#41454d] truncate bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px]"
+              title={allSubjects.map(s => s.name.split('|')[0].trim()).join(', ')}
+            >
+              {allSubjects.map(s => s.name.split('|')[0].trim()).join(', ')}
             </div>
           ) : (
             <span className="text-[#a1a1aa] italic text-[13px]">No subjects</span>
           )}
         </td>
-        <td className="hidden md:table-cell py-4 px-6">
+        <td className="hidden md:table-cell py-4 px-6 max-w-[150px]">
           {allClasses.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-              {allClasses.map((c) => (
-                <div key={c.id} className="flex items-center gap-1.5 cursor-default bg-purple-50 text-purple-700 px-2 py-1 rounded-[4px] border border-purple-100 hover:bg-purple-100 transition-colors">
-                  <Layers size={12} className="text-purple-500" />
-                  <span className="font-medium text-[11px] tracking-wide whitespace-nowrap">
-                    {c.name}
-                  </span>
-                </div>
-              ))}
+            <div 
+              className="text-[13px] font-medium text-[#41454d] truncate bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px]"
+              title={allClasses.map(c => c.name).join(', ')}
+            >
+              {allClasses.map(c => c.name).join(', ')}
             </div>
           ) : (
             <span className="text-[#a1a1aa] italic text-[13px]">No classes</span>

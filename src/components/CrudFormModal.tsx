@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import SearchableSelect from "./SearchableSelect";
+import MultiSelect from "./MultiSelect";
 import {
   createTeacher, updateTeacher, deleteTeacher,
   createStudent, updateStudent, deleteStudent,
@@ -391,19 +392,13 @@ export default function CrudFormModal({
                             ))}
                           </select>
                         ) : f.type === "multi-select" ? (
-                          <div className="relative pb-5">
-                            <select
-                              multiple
+                          <div className="relative pb-2">
+                            <MultiSelect
                               name={f.name}
+                              options={f.options || []}
                               defaultValue={data?.[f.name]?.map((item: any) => item.id.toString()) || []}
-                              required={f.required}
-                              className="w-full border border-[#dddddd] rounded-[6px] px-4 py-2.5 text-[14px] font-normal text-[#181d26] bg-white h-[80px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm custom-scrollbar"
-                            >
-                              {f.options?.map((o) => (
-                                <option key={o.value} value={o.value} className="py-1">{o.label}</option>
-                              ))}
-                            </select>
-                            <span className="text-[11px] text-[#9297a0] absolute bottom-0 left-0">Hold Ctrl/Cmd to select multiple</span>
+                              placeholder={`Select ${f.label.toLowerCase()}...`}
+                            />
                           </div>
                         ) : f.type === "image" ? (
                           <div className="flex flex-col gap-2">
