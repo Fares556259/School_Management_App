@@ -106,7 +106,7 @@ export default function PayStaffModal({
                         type="number" 
                         value={amountToPay} 
                         onChange={(e) => setAmountToPay(e.target.value)}
-                        className="w-full text-[20px] font-semibold text-[#181d26] bg-white border border-[#dddddd] rounded-[6px] px-3 py-1 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all"
+                        className="w-full text-[20px] font-semibold text-[#181d26] bg-white border border-[#dddddd] rounded-[6px] pl-3 pr-10 py-1 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <span className="absolute right-3 text-[14px] font-normal text-[#64748b]">DT</span>
                     </div>
