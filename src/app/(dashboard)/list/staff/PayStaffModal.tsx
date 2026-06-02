@@ -35,13 +35,13 @@ export default function PayStaffModal({
   const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
 
   useEffect(() => {
-    if (isOpen && (!selectedMonth || paidMonths.includes(selectedMonth))) {
-      setSelectedMonth(monthsList[0] || "");
-    }
     if (isOpen) {
       setAmountToPay(salary);
+      if (!selectedMonth || paidMonths.includes(selectedMonth)) {
+        setSelectedMonth(monthsList[0] || "");
+      }
     }
-  }, [isOpen, monthsList, selectedMonth, paidMonths, salary]);
+  }, [isOpen]);
 
   const handlePay = () => {
     const finalAmount = Number(amountToPay);
