@@ -82,7 +82,7 @@ export default function TeacherListClient({
         <td className="hidden md:table-cell py-4 px-6 max-w-[200px]">
           {allSubjects.length > 0 ? (
             <div 
-              className="text-[13px] font-medium text-[#41454d] truncate bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px]"
+              className="text-[13px] font-medium text-blue-700 truncate bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-[6px]"
               title={allSubjects.map(s => s.name.split('|')[0].trim()).join(', ')}
             >
               {allSubjects.map(s => s.name.split('|')[0].trim()).join(', ')}
@@ -94,7 +94,7 @@ export default function TeacherListClient({
         <td className="hidden md:table-cell py-4 px-6 max-w-[150px]">
           {allClasses.length > 0 ? (
             <div 
-              className="text-[13px] font-medium text-[#41454d] truncate bg-[#f8fafc] border border-[#dddddd] px-3 py-1.5 rounded-[6px]"
+              className="text-[13px] font-medium text-purple-700 truncate bg-purple-50 border border-purple-100 px-3 py-1.5 rounded-[6px]"
               title={allClasses.map(c => c.name).join(', ')}
             >
               {allClasses.map(c => c.name).join(', ')}

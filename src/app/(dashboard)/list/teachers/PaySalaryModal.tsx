@@ -28,6 +28,7 @@ export default function PaySalaryModal({
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
+  const [amountToPay, setAmountToPay] = useState<number>(salary);
   const [isPending, startTransition] = useTransition();
 
   const earliestUnpaid = monthsList[0];
@@ -37,16 +38,19 @@ export default function PaySalaryModal({
     if (isOpen && (!selectedMonth || paidMonths.includes(selectedMonth))) {
       setSelectedMonth(monthsList[0] || "");
     }
-  }, [isOpen, monthsList, selectedMonth, paidMonths]);
+    if (isOpen) {
+      setAmountToPay(salary);
+    }
+  }, [isOpen, monthsList, selectedMonth, paidMonths, salary]);
 
   const handlePay = () => {
-    if (!isAdmin || !selectedMonth || isSkipping) return;
+    if (!isAdmin || !selectedMonth || isSkipping || !amountToPay) return;
 
     startTransition(async () => {
       const result = await payTeacherSalary(
         teacherId,
         teacherName,
-        salary,
+        amountToPay,
         selectedMonth
       );
       if (result.success) {
@@ -91,12 +95,20 @@ export default function PaySalaryModal({
               {/* Financial Summary */}
               <div className="mb-5 p-4 bg-[#f8fafc] rounded-[8px] border border-[#e2e8f0]">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">Base Salary</span>
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">Payment Amount</span>
                 </div>
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[12px] font-medium text-[#64748b]">Monthly Rate</p>
-                    <p className="text-[20px] font-semibold text-[#181d26]">{salary} <span className="text-[12px] font-normal text-[#64748b]">DT</span></p>
+                <div className="flex justify-between items-center">
+                  <div className="flex-1">
+                    <p className="text-[12px] font-medium text-[#64748b] mb-1">Base Salary: {salary} DT</p>
+                    <div className="relative flex items-center max-w-[200px]">
+                      <input 
+                        type="number" 
+                        value={amountToPay} 
+                        onChange={(e) => setAmountToPay(Number(e.target.value))}
+                        className="w-full text-[20px] font-semibold text-[#181d26] bg-white border border-[#dddddd] rounded-[6px] px-3 py-1 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all"
+                      />
+                      <span className="absolute right-3 text-[14px] font-normal text-[#64748b]">DT</span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -24,6 +24,7 @@ interface TeacherDetailsModalProps {
     subjects?: { id: number; name: string }[];
     classes?: { id: number; name: string }[];
     payments?: any[];
+    timetable?: any[];
   };
 }
 
@@ -41,6 +42,16 @@ export default function TeacherDetailsModal({
       return "-";
     }
   };
+
+  const allSubjectsMap = new Map();
+  teacher.subjects?.forEach(s => allSubjectsMap.set(s.id, s));
+  teacher.timetable?.forEach(t => { if (t.subject) allSubjectsMap.set(t.subject.id, t.subject); });
+  const allSubjects = Array.from(allSubjectsMap.values());
+
+  const allClassesMap = new Map();
+  teacher.classes?.forEach(c => allClassesMap.set(c.id, c));
+  teacher.timetable?.forEach(t => { if (t.class) allClassesMap.set(t.class.id, t.class); });
+  const allClasses = Array.from(allClassesMap.values());
 
   return (
     <>
@@ -220,10 +231,10 @@ export default function TeacherDetailsModal({
                         <div className="flex flex-col">
                           <span className="text-[12px] font-medium text-[#41454d] mb-2">Subjects</span>
                           <div className="flex flex-wrap gap-2">
-                            {teacher.subjects && teacher.subjects.length > 0 ? (
-                              teacher.subjects.map(s => (
+                            {allSubjects.length > 0 ? (
+                              allSubjects.map(s => (
                                 <span key={s.id} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-[6px] border border-blue-100 text-[13px] font-medium">
-                                  {s.name}
+                                  {s.name.split('|')[0].trim()}
                                 </span>
                               ))
                             ) : (
@@ -234,8 +245,8 @@ export default function TeacherDetailsModal({
                         <div className="flex flex-col">
                           <span className="text-[12px] font-medium text-[#41454d] mb-2">Classes</span>
                           <div className="flex flex-wrap gap-2">
-                            {teacher.classes && teacher.classes.length > 0 ? (
-                              teacher.classes.map(c => (
+                            {allClasses.length > 0 ? (
+                              allClasses.map(c => (
                                 <span key={c.id} className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-[6px] border border-purple-100 text-[13px] font-medium">
                                   {c.name}
                                 </span>
