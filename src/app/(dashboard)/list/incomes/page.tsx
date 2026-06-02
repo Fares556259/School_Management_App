@@ -21,6 +21,7 @@ const columns = [
   {
     header: "Amount",
     accessor: "amount",
+    className: "text-right",
   },
   {
     header: "Category",
@@ -48,7 +49,7 @@ const IncomeListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
-  const { page, search, from, to, ...queryParams } = searchParams;
+  const { page, search, from, to, category, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -61,6 +62,10 @@ const IncomeListPage = async ({
       { title: { contains: search, mode: "insensitive" } },
       { category: { contains: search, mode: "insensitive" } },
     ];
+  }
+
+  if (category) {
+    query.category = { equals: category, mode: "insensitive" };
   }
 
   if (from || to) {
@@ -111,10 +116,10 @@ const IncomeListPage = async ({
           <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.title}</span>
         </div>
       </td>
-      <td className="">
-        <div className="flex items-center font-bold text-slate-700">
-          <span className="text-slate-400 font-medium mr-1">$</span>
+      <td className="text-right">
+        <div className="flex items-center justify-end font-bold text-slate-700">
           {item.amount.toLocaleString()}
+          <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
       <td className="hidden md:table-cell">
@@ -148,9 +153,9 @@ const IncomeListPage = async ({
             </div>
           </a>
         ) : (
-          <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-md w-max">
+          <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-md w-max">
             <FileX className="w-3.5 h-3.5 opacity-70" />
-            <span className="italic text-xs font-medium">No proof</span>
+            <span className="text-xs font-semibold">Missing Proof</span>
           </div>
         )}
       </td>
@@ -166,6 +171,36 @@ const IncomeListPage = async ({
       </td>
     </tr>
   );
+
+  // Compute stats
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  let thisMonthTotal = 0;
+  let lastMonthTotal = 0;
+  let ytdTotal = 0;
+
+  allData.forEach(income => {
+    const d = new Date(income.date);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    
+    if (y === currentYear) {
+      ytdTotal += income.amount;
+      if (m === currentMonth) {
+        thisMonthTotal += income.amount;
+      } else if (m === currentMonth - 1 || (currentMonth === 0 && m === 11 && y === currentYear - 1)) {
+        lastMonthTotal += income.amount;
+      }
+    } else if (currentMonth === 0 && m === 11 && y === currentYear - 1) {
+       lastMonthTotal += income.amount;
+    }
+  });
+
+  const percentChange = lastMonthTotal === 0 
+    ? 100 
+    : Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
 
   return (
     <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden">
@@ -193,6 +228,51 @@ const IncomeListPage = async ({
           </div>
         </div>
       </div>
+
+      {/* SUMMARY CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-emerald-200 transition-colors">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-semibold text-slate-500 mb-2">Total Income (This Month)</span>
+          <div className="flex items-end gap-3">
+            <span className="text-3xl font-bold text-slate-800">{thisMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+            <span className={`text-sm font-semibold mb-1 flex items-center gap-0.5 ${percentChange >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+              {percentChange >= 0 ? "+" : ""}{percentChange}%
+            </span>
+          </div>
+        </div>
+        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-200 transition-colors">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-semibold text-slate-500 mb-2">Total Income (Last Month)</span>
+          <div className="flex items-end gap-3">
+            <span className="text-3xl font-bold text-slate-800">{lastMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+          </div>
+        </div>
+        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-fuchsia-200 transition-colors">
+          <div className="absolute right-0 top-0 w-16 h-16 bg-fuchsia-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-semibold text-slate-500 mb-2">Total Income (YTD)</span>
+          <div className="flex items-end gap-3">
+            <span className="text-3xl font-bold text-slate-800">{ytdTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* QUICK CATEGORY TABS */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <Link href="/list/incomes" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          All Incomes
+        </Link>
+        <Link href="/list/incomes?category=Tuition" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Tuition' ? "bg-emerald-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Tuition
+        </Link>
+        <Link href="/list/incomes?category=Donation" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Donation' ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Donations
+        </Link>
+        <Link href="/list/incomes?category=Event" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Event' ? "bg-fuchsia-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+          Events
+        </Link>
+      </div>
+
       {/* LIST */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
         <Table columns={columns} renderRow={renderRow} data={data} />
