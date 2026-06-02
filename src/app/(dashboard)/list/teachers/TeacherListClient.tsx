@@ -81,33 +81,15 @@ export default function TeacherListClient({
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
         <td className="hidden md:table-cell py-4 px-6">
           {allSubjects.length > 0 ? (
-            <div className="relative group/subject">
-              <div className="flex items-center gap-2 cursor-default bg-blue-50 text-blue-700 px-3 py-1.5 rounded-[6px] border border-blue-100 hover:bg-blue-100 transition-colors w-fit">
-                <BookOpen size={14} className="text-blue-500" />
-                <span className="font-medium text-[12px] tracking-wide">
-                  {allSubjects[0].name.split('|')[0].trim()}
-                </span>
-                {allSubjects.length > 1 && (
-                  <div className="flex items-center gap-1 ml-1 pl-1 border-l border-blue-200">
-                    <span className="text-[11px] text-blue-600">+{allSubjects.length - 1}</span>
-                    <ChevronDown size={12} className="group-hover/subject:rotate-180 transition-transform" />
-                  </div>
-                )}
-              </div>
-              
-              {allSubjects.length > 1 && (
-                <div className="absolute top-full left-0 mt-2 hidden group-hover/subject:block z-50 bg-white border border-[#dddddd] rounded-[8px] shadow-lg p-2 min-w-[160px] animate-in fade-in zoom-in duration-200">
-                  <p className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2 px-2">Assigned Subjects</p>
-                  <div className="space-y-1">
-                    {allSubjects.map((s) => (
-                      <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover/item:scale-125 transition-transform" />
-                        <span className="text-[13px] font-medium text-[#41454d]">{s.name.split('|')[0].trim()}</span>
-                      </div>
-                    ))}
-                  </div>
+            <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+              {allSubjects.map((s) => (
+                <div key={s.id} className="flex items-center gap-1.5 cursor-default bg-blue-50 text-blue-700 px-2 py-1 rounded-[4px] border border-blue-100 hover:bg-blue-100 transition-colors">
+                  <BookOpen size={12} className="text-blue-500" />
+                  <span className="font-medium text-[11px] tracking-wide whitespace-nowrap">
+                    {s.name.split('|')[0].trim()}
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
           ) : (
             <span className="text-[#a1a1aa] italic text-[13px]">No subjects</span>
@@ -115,33 +97,15 @@ export default function TeacherListClient({
         </td>
         <td className="hidden md:table-cell py-4 px-6">
           {allClasses.length > 0 ? (
-            <div className="relative group/class">
-              <div className="flex items-center gap-2 cursor-default bg-purple-50 text-purple-700 px-3 py-1.5 rounded-[6px] border border-purple-100 hover:bg-purple-100 transition-colors w-fit">
-                <Layers size={14} className="text-purple-500" />
-                <span className="font-medium text-[12px] tracking-wide">
-                  {allClasses[0].name}
-                </span>
-                {allClasses.length > 1 && (
-                  <div className="flex items-center gap-1 ml-1 pl-1 border-l border-purple-200">
-                    <span className="text-[11px] text-purple-600">+{allClasses.length - 1}</span>
-                    <ChevronDown size={12} className="group-hover/class:rotate-180 transition-transform" />
-                  </div>
-                )}
-              </div>
-              
-              {allClasses.length > 1 && (
-                <div className="absolute top-full left-0 mt-2 hidden group-hover/class:block z-50 bg-white border border-[#dddddd] rounded-[8px] shadow-lg p-2 min-w-[140px] animate-in fade-in zoom-in duration-200">
-                  <p className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2 px-2">Teaching Classes</p>
-                  <div className="space-y-1">
-                    {allClasses.map((c) => (
-                      <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 group-hover/item:scale-125 transition-transform" />
-                        <span className="text-[13px] font-medium text-[#41454d]">{c.name}</span>
-                      </div>
-                    ))}
-                  </div>
+            <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+              {allClasses.map((c) => (
+                <div key={c.id} className="flex items-center gap-1.5 cursor-default bg-purple-50 text-purple-700 px-2 py-1 rounded-[4px] border border-purple-100 hover:bg-purple-100 transition-colors">
+                  <Layers size={12} className="text-purple-500" />
+                  <span className="font-medium text-[11px] tracking-wide whitespace-nowrap">
+                    {c.name}
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
           ) : (
             <span className="text-[#a1a1aa] italic text-[13px]">No classes</span>
