@@ -81,23 +81,36 @@ export default function StudentListClient({
           {item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}
         </td>
         <td className="py-4 px-6">
-          <PayStudentModal
-            studentId={item.id}
-            studentName={item.name + " " + item.surname}
-            gradeLevel={item.level.level}
-            isPaid={isPaidThisMonth}
-            isPartial={isPartialThisMonth}
-            initialPaidAmount={currentPayment?.amount || 0}
-            isAdmin={role === "admin"}
-            monthName={selectedMonthKey}
-            paidMonths={item.payments
-              .filter(p => p.status === "PAID" || p.status === "PARTIAL")
-              .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
-          />
+          {isPaidThisMonth ? (
+            <span className="px-2 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium">
+              Paid
+            </span>
+          ) : isPartialThisMonth ? (
+            <span className="px-2 py-1 rounded-[4px] bg-orange-50 border border-orange-200 text-orange-700 text-[12px] font-medium">
+              Partial
+            </span>
+          ) : (
+            <span className="px-2 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
+              Unpaid
+            </span>
+          )}
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <StudentDetailsModal student={item} className={item.class?.name ?? "No class"} />
+            <PayStudentModal
+              studentId={item.id}
+              studentName={item.name + " " + item.surname}
+              gradeLevel={item.level.level}
+              isPaid={isPaidThisMonth}
+              isPartial={isPartialThisMonth}
+              initialPaidAmount={currentPayment?.amount || 0}
+              isAdmin={role === "admin"}
+              monthName={selectedMonthKey}
+              paidMonths={item.payments
+                .filter(p => p.status === "PAID" || p.status === "PARTIAL")
+                .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
+            />
             {role === "admin" && (
               <>
                 <CrudFormModal entity="student" mode="update" data={item} id={item.id} relatedData={relatedData} />

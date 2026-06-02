@@ -138,21 +138,30 @@ export default function TeacherListClient({
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>{item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
         <td className="py-4 px-6">
-          <PaySalaryModal 
-            teacherId={item.id} 
-            teacherName={item.name + " " + item.surname}
-            salary={item.salary}
-            isPaid={isPaidThisMonth} 
-            isAdmin={role === "admin"} 
-            monthName={selectedMonthKey}
-            paidMonths={item.payments
-              .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
-              .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
-          />
+          {isPaidThisMonth ? (
+            <span className="px-2 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium">
+              Paid
+            </span>
+          ) : (
+            <span className="px-2 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
+              Unpaid
+            </span>
+          )}
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <TeacherDetailsModal teacher={item} />
+            <PaySalaryModal 
+              teacherId={item.id} 
+              teacherName={item.name + " " + item.surname}
+              salary={item.salary}
+              isPaid={isPaidThisMonth} 
+              isAdmin={role === "admin"} 
+              monthName={selectedMonthKey}
+              paidMonths={item.payments
+                .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
+                .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
+            />
             {role === "admin" && (
               <>
                 <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} />

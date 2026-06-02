@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { receiveStudentPayment } from "./actions";
 import { getSchoolYearMonths, isMonthBefore } from "@/lib/dateUtils";
+import { Banknote } from "lucide-react";
 
 export default function PayStudentModal({
   studentId,
@@ -87,15 +88,10 @@ export default function PayStudentModal({
       <button
         onClick={() => setIsOpen(true)}
         disabled={!isAdmin}
-        className={`px-3 py-1 text-[13px] font-medium rounded-[6px] transition-colors w-24 text-center ${
-          isPaid
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-            : isPartial
-              ? "bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 cursor-pointer"
-              : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 cursor-pointer"
-        }`}
+        className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d] disabled:opacity-50"
+        title="Receive Tuition Fee"
       >
-        {isPaid ? "Paid" : isPartial ? "Partial" : "Receive Fee"}
+        <Banknote size={16} strokeWidth={2} />
       </button>
 
       {isOpen && (
