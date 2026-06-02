@@ -6,6 +6,7 @@ import Pagination from "@/components/Pagination";
 import BulkTeacherImport from "./BulkTeacherImport";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
+import TeacherDetailsModal from "@/components/TeacherDetailsModal";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
 
@@ -165,11 +166,7 @@ export default function TeacherListClient({
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
-            <Link href={`/list/teachers/${item.id}`}>
-              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors">
-                <Image src="/view.png" alt="" width={16} height={16} />
-              </button>
-            </Link>
+            <TeacherDetailsModal teacher={item} />
             {role === "admin" && (
               <>
                 <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} />
