@@ -41,7 +41,7 @@ export default function TeacherListClient({
   const [isBulkOpen, setIsBulkOpen] = useState(false);
 
   const renderRow = (
-    item: Teacher & { subjects: Subject[]; classes: Class[]; payments: Payment[] }
+    item: Teacher & { subjects: Subject[]; classes: Class[]; payments: Payment[]; timetable?: any[] }
   ) => {
     const [mName, yStr] = selectedMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
@@ -50,6 +50,16 @@ export default function TeacherListClient({
     const isPaidThisMonth = item.payments.some(
       (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
     );
+
+    const allSubjectsMap = new Map();
+    item.subjects?.forEach(s => allSubjectsMap.set(s.id, s));
+    item.timetable?.forEach(t => { if (t.subject) allSubjectsMap.set(t.subject.id, t.subject); });
+    const allSubjects = Array.from(allSubjectsMap.values());
+
+    const allClassesMap = new Map();
+    item.classes?.forEach(c => allClassesMap.set(c.id, c));
+    item.timetable?.forEach(t => { if (t.class) allClassesMap.set(t.class.id, t.class); });
+    const allClasses = Array.from(allClassesMap.values());
 
     return (
       <tr
@@ -70,26 +80,26 @@ export default function TeacherListClient({
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
         <td className="hidden md:table-cell py-4 px-6">
-          {item.subjects.length > 0 ? (
+          {allSubjects.length > 0 ? (
             <div className="relative group/subject">
               <div className="flex items-center gap-2 cursor-default bg-blue-50 text-blue-700 px-3 py-1.5 rounded-[6px] border border-blue-100 hover:bg-blue-100 transition-colors w-fit">
                 <BookOpen size={14} className="text-blue-500" />
                 <span className="font-medium text-[12px] tracking-wide">
-                  {item.subjects[0].name}
+                  {allSubjects[0].name}
                 </span>
-                {item.subjects.length > 1 && (
+                {allSubjects.length > 1 && (
                   <div className="flex items-center gap-1 ml-1 pl-1 border-l border-blue-200">
-                    <span className="text-[11px] text-blue-600">+{item.subjects.length - 1}</span>
+                    <span className="text-[11px] text-blue-600">+{allSubjects.length - 1}</span>
                     <ChevronDown size={12} className="group-hover/subject:rotate-180 transition-transform" />
                   </div>
                 )}
               </div>
               
-              {item.subjects.length > 1 && (
+              {allSubjects.length > 1 && (
                 <div className="absolute top-full left-0 mt-2 hidden group-hover/subject:block z-50 bg-white border border-[#dddddd] rounded-[8px] shadow-lg p-2 min-w-[160px] animate-in fade-in zoom-in duration-200">
                   <p className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2 px-2">Assigned Subjects</p>
                   <div className="space-y-1">
-                    {item.subjects.map((s) => (
+                    {allSubjects.map((s) => (
                       <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover/item:scale-125 transition-transform" />
                         <span className="text-[13px] font-medium text-[#41454d]">{s.name}</span>
@@ -104,26 +114,26 @@ export default function TeacherListClient({
           )}
         </td>
         <td className="hidden md:table-cell py-4 px-6">
-          {item.classes.length > 0 ? (
+          {allClasses.length > 0 ? (
             <div className="relative group/class">
               <div className="flex items-center gap-2 cursor-default bg-purple-50 text-purple-700 px-3 py-1.5 rounded-[6px] border border-purple-100 hover:bg-purple-100 transition-colors w-fit">
                 <Layers size={14} className="text-purple-500" />
                 <span className="font-medium text-[12px] tracking-wide">
-                  {item.classes[0].name}
+                  {allClasses[0].name}
                 </span>
-                {item.classes.length > 1 && (
+                {allClasses.length > 1 && (
                   <div className="flex items-center gap-1 ml-1 pl-1 border-l border-purple-200">
-                    <span className="text-[11px] text-purple-600">+{item.classes.length - 1}</span>
+                    <span className="text-[11px] text-purple-600">+{allClasses.length - 1}</span>
                     <ChevronDown size={12} className="group-hover/class:rotate-180 transition-transform" />
                   </div>
                 )}
               </div>
               
-              {item.classes.length > 1 && (
+              {allClasses.length > 1 && (
                 <div className="absolute top-full left-0 mt-2 hidden group-hover/class:block z-50 bg-white border border-[#dddddd] rounded-[8px] shadow-lg p-2 min-w-[140px] animate-in fade-in zoom-in duration-200">
                   <p className="text-[11px] font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2 px-2">Teaching Classes</p>
                   <div className="space-y-1">
-                    {item.classes.map((c) => (
+                    {allClasses.map((c) => (
                       <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
                         <div className="w-1.5 h-1.5 rounded-full bg-purple-400 group-hover/item:scale-125 transition-transform" />
                         <span className="text-[13px] font-medium text-[#41454d]">{c.name}</span>

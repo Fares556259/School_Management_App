@@ -110,6 +110,7 @@ const TeacherListPage = async ({
       include: {
         subjects: true,
         classes: true,
+        timetable: { include: { subject: true, class: true } },
         payments: { select: { month: true, year: true, status: true, paidAt: true } },
       },
       take: ITEM_PER_PAGE,
