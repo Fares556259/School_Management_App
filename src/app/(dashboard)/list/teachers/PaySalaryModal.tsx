@@ -28,7 +28,7 @@ export default function PaySalaryModal({
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
-  const [amountToPay, setAmountToPay] = useState<number>(salary);
+  const [amountToPay, setAmountToPay] = useState<number | string>(salary);
   const [isPending, startTransition] = useTransition();
 
   const earliestUnpaid = monthsList[0];
@@ -44,13 +44,14 @@ export default function PaySalaryModal({
   }, [isOpen, monthsList, selectedMonth, paidMonths, salary]);
 
   const handlePay = () => {
-    if (!isAdmin || !selectedMonth || isSkipping || !amountToPay) return;
+    const finalAmount = Number(amountToPay);
+    if (!isAdmin || !selectedMonth || isSkipping || !finalAmount || finalAmount <= 0) return;
 
     startTransition(async () => {
       const result = await payTeacherSalary(
         teacherId,
         teacherName,
-        amountToPay,
+        finalAmount,
         selectedMonth
       );
       if (result.success) {
@@ -104,7 +105,7 @@ export default function PaySalaryModal({
                       <input 
                         type="number" 
                         value={amountToPay} 
-                        onChange={(e) => setAmountToPay(Number(e.target.value))}
+                        onChange={(e) => setAmountToPay(e.target.value)}
                         className="w-full text-[20px] font-semibold text-[#181d26] bg-white border border-[#dddddd] rounded-[6px] px-3 py-1 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all"
                       />
                       <span className="absolute right-3 text-[14px] font-normal text-[#64748b]">DT</span>
