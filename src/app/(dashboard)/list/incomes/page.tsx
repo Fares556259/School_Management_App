@@ -116,24 +116,24 @@ const IncomeListPage = async ({
           <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.title}</span>
         </div>
       </td>
-      <td className="text-right">
+      <td className="p-4 text-right">
         <div className="flex items-center justify-end font-bold text-slate-700">
           {item.amount.toLocaleString()}
           <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
-      <td className="hidden md:table-cell">
+      <td className="p-4 hidden md:table-cell">
         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}>
           {item.category}
         </span>
       </td>
-      <td className="hidden md:table-cell">
+      <td className="p-4 hidden md:table-cell whitespace-nowrap">
         <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-          <Calendar className="w-3.5 h-3.5 opacity-70" />
+          <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
           {new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </td>
-      <td className="">
+      <td className="p-4">
         {item.img ? (
           <a href={item.img} target="_blank" rel="noopener noreferrer" className="relative w-9 h-9 flex items-center justify-center group/img rounded-lg overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all">
             {item.img.toLowerCase().endsWith(".pdf") ? (
@@ -159,7 +159,7 @@ const IncomeListPage = async ({
           </div>
         )}
       </td>
-      <td>
+      <td className="p-4">
         <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
           {role === "admin" && (
             <>
