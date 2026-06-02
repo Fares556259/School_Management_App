@@ -58,11 +58,6 @@ const columns = [
     accessor: "isPaid",
   },
   {
-    header: "Timeline",
-    accessor: "timeline",
-    className: "hidden xl:table-cell",
-  },
-  {
     header: "Actions",
     accessor: "action",
   },

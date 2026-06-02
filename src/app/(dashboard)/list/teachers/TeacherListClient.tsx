@@ -161,9 +161,6 @@ export default function TeacherListClient({
               .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
           />
         </td>
-        <td className="hidden xl:table-cell py-4 px-6">
-          <PaymentTimeline payments={item.payments} selectedMonthKey={selectedMonthKey} />
-        </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <TeacherDetailsModal teacher={item} />
