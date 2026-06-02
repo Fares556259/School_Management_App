@@ -131,7 +131,7 @@ const TeacherListPage = async ({
   ).length;
 
   const relatedData = {
-    subjects: subjectsData.map(s => ({ value: s.id.toString(), label: s.name })),
+    subjects: subjectsData.map(s => ({ value: s.id.toString(), label: s.name.split('|')[0].trim() })),
     classes: classesData.map(c => ({ value: c.id.toString(), label: c.name }))
   };
 

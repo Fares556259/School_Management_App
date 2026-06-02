@@ -85,7 +85,7 @@ export default function TeacherListClient({
               <div className="flex items-center gap-2 cursor-default bg-blue-50 text-blue-700 px-3 py-1.5 rounded-[6px] border border-blue-100 hover:bg-blue-100 transition-colors w-fit">
                 <BookOpen size={14} className="text-blue-500" />
                 <span className="font-medium text-[12px] tracking-wide">
-                  {allSubjects[0].name}
+                  {allSubjects[0].name.split('|')[0].trim()}
                 </span>
                 {allSubjects.length > 1 && (
                   <div className="flex items-center gap-1 ml-1 pl-1 border-l border-blue-200">
@@ -102,7 +102,7 @@ export default function TeacherListClient({
                     {allSubjects.map((s) => (
                       <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8fafc] rounded-[6px] transition-colors group/item">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover/item:scale-125 transition-transform" />
-                        <span className="text-[13px] font-medium text-[#41454d]">{s.name}</span>
+                        <span className="text-[13px] font-medium text-[#41454d]">{s.name.split('|')[0].trim()}</span>
                       </div>
                     ))}
                   </div>
