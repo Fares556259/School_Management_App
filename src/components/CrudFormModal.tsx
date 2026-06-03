@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
 import SearchableSelect from "./SearchableSelect";
 import MultiSelect from "./MultiSelect";
@@ -15,7 +16,7 @@ import {
   createIncome, updateIncome, deleteIncome,
   enrollFamily, 
 } from "@/lib/crudActions";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2 } from "lucide-react";
 
 
 
@@ -24,7 +25,7 @@ type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subjec
 interface FieldDef {
   name: string;
   label: string;
-  type: "text" | "email" | "number" | "date" | "select" | "multi-select" | "image" | "searchable-select";
+  type: "text" | "email" | "number" | "date" | "select" | "multi-select" | "image" | "searchable-select" | "creatable-select";
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -106,7 +107,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   expense: [
     { name: "title", label: "Description", type: "text", required: true, placeholder: "e.g., Bus Fuel - Route A" },
     { name: "amount", label: "Amount ($)", type: "number", required: true, parseAsNumber: true },
-    { name: "category", label: "Category", type: "select", required: true, options: [
+    { name: "category", label: "Category", type: "creatable-select", required: true, placeholder: "Select or type new...", options: [
       {value: "FUEL", label: "FUEL"},
       {value: "MAINTENANCE", label: "MAINTENANCE"},
       {value: "SUPPLIES", label: "SUPPLIES"},
@@ -120,7 +121,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   income: [
     { name: "title", label: "Source/Description", type: "text", required: true, placeholder: "e.g., Annual Charity Event" },
     { name: "amount", label: "Amount ($)", type: "number", required: true, parseAsNumber: true },
-    { name: "category", label: "Category", type: "select", required: true, options: [
+    { name: "category", label: "Category", type: "creatable-select", required: true, placeholder: "Select or type new...", options: [
       {value: "TUITION", label: "TUITION"},
       {value: "DONATION", label: "DONATION"},
       {value: "EVENT", label: "EVENT"},
@@ -184,11 +185,26 @@ export default function CrudFormModal({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [img, setImg] = useState<any>(data?.img || null);
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Unified Enrollment State
   const [students, setStudents] = useState<any[]>([
     { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
   ]);
+
+  // Reset state when modal is closed in create mode
+  useEffect(() => {
+    if (!open && mode === "create") {
+      setImg(null);
+      setError("");
+      setUploadingImg(false);
+      setUploadProgress(0);
+      setStudents([
+        { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
+      ]);
+    }
+  }, [open, mode]);
 
   const addStudent = () => {
     setStudents([...students, { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }]);
@@ -201,10 +217,16 @@ export default function CrudFormModal({
   };
 
   // Merge dynamic relatedData options into field definitions
-  const fields = entityFields[entity].map((f) => {
+  const fields = entityFields[entity].map(f => {
     let options = f.options;
-    if (relatedData && relatedData[f.name] && (f.type === "select" || f.type === "searchable-select" || f.type === "multi-select") && !f.options) {
-      options = relatedData[f.name];
+    if (relatedData && relatedData[f.name]) {
+      if (options) {
+        const existingValues = new Set(options.map(o => o.value.toLowerCase()));
+        const newOptions = relatedData[f.name].filter(o => !existingValues.has(o.value.toLowerCase()));
+        options = [...options, ...newOptions];
+      } else {
+        options = relatedData[f.name];
+      }
     }
     // For Class dropdown in update mode, ensure current name is in the list
     if (entity === "class" && f.name === "name" && data?.name) {
@@ -404,45 +426,133 @@ export default function CrudFormModal({
                           <div className="flex flex-col gap-2">
                             <input
                               type="file"
-                              id={`upload-${f.name}`}
+                              id={`upload-${f.name}-${entity}-${mode}-${id || 'new'}`}
                               className="hidden"
                               onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
                                 
-                                try {
-                                  const supabase = (await import('@/utils/supabase/client')).createClient();
-                                  const fileName = `${entity}-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-                                  const filePath = `uploads/${fileName}`;
+                                setUploadingImg(true);
+                                setUploadProgress(0);
+                                setError("");
+                                
+                                // We use XMLHttpRequest for true, byte-accurate network progress reporting
+                                const supabase = createClient();
+                                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+                                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+                                
+                                const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+                                const fileName = `${entity}-${Date.now()}-${safeName}`;
+                                const filePath = `${fileName}`; // The bucket is 'uploads', the path is fileName
 
-                                  const { data, error: uploadError } = await supabase.storage
-                                    .from('uploads')
-                                    .upload(filePath, file);
+                                // Get session token if authenticated, fallback to anonKey
+                                supabase.auth.getSession().then(({ data: { session } }) => {
+                                  const token = session?.access_token || anonKey;
 
-                                  if (uploadError) throw uploadError;
+                                  const xhr = new XMLHttpRequest();
+                                  xhr.open('POST', `${supabaseUrl}/storage/v1/object/uploads/${filePath}`);
+                                  xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                                  xhr.setRequestHeader('apikey', anonKey);
+                                  if (file.type) {
+                                    xhr.setRequestHeader('Content-Type', file.type);
+                                  }
 
-                                  const { data: { publicUrl } } = supabase.storage
-                                    .from('uploads')
-                                    .getPublicUrl(filePath);
+                                  xhr.upload.onprogress = (event) => {
+                                    if (event.lengthComputable) {
+                                      const percentComplete = Math.round((event.loaded / event.total) * 100);
+                                      // Keep it at max 99% until the response is fully processed
+                                      setUploadProgress(Math.min(percentComplete, 99));
+                                    }
+                                  };
 
-                                  setImg(publicUrl);
-                                } catch (err: any) {
-                                  console.error("Bulk upload failed:", err);
-                                  setError(err.message || "Failed to upload image.");
-                                }
+                                  xhr.onload = () => {
+                                    if (xhr.status >= 200 && xhr.status < 300) {
+                                      // Get public URL using JS client for convenience
+                                      const { data: { publicUrl } } = supabase.storage
+                                        .from('uploads')
+                                        .getPublicUrl(filePath);
+                                      
+                                      setUploadProgress(100);
+                                      setImg(publicUrl);
+                                      
+                                      setTimeout(() => {
+                                        setUploadingImg(false);
+                                        setUploadProgress(0);
+                                      }, 500);
+                                    } else {
+                                      console.error("Upload failed with status:", xhr.status, xhr.responseText);
+                                      setError(`Failed to upload: Server returned ${xhr.status}`);
+                                      setUploadingImg(false);
+                                      setUploadProgress(0);
+                                    }
+                                    // Reset input so the same file can be selected again
+                                    e.target.value = '';
+                                  };
+
+                                  xhr.onerror = () => {
+                                    console.error("Upload network error.");
+                                    setError("Network error occurred during upload. Please check your connection.");
+                                    setUploadingImg(false);
+                                    setUploadProgress(0);
+                                    e.target.value = '';
+                                  };
+
+                                  xhr.send(file);
+                                }).catch(err => {
+                                  console.error("Failed to get session for upload:", err);
+                                  setError("Failed to authenticate upload request.");
+                                  setUploadingImg(false);
+                                  setUploadProgress(0);
+                                  e.target.value = '';
+                                });
                               }}
                             />
                             <div
-                              className="flex items-center gap-2 cursor-pointer text-[#41454d] hover:text-[#181d26] transition-all p-3 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc]"
-                              onClick={() => document.getElementById(`upload-${f.name}`)?.click()}
+                              className={`relative overflow-hidden flex items-center justify-center gap-2 cursor-pointer transition-all p-3 border rounded-[8px] ${
+                                uploadingImg 
+                                  ? "border-indigo-200 bg-indigo-50 text-indigo-700 pointer-events-none" 
+                                  : img 
+                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" 
+                                    : "border-dashed border-slate-300 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-slate-100"
+                              }`}
+                              onClick={() => {
+                                if (!uploadingImg) document.getElementById(`upload-${f.name}-${entity}-${mode}-${id || 'new'}`)?.click();
+                              }}
                             >
-                              <Image src="/upload.png" alt="" width={20} height={20} className="opacity-70" />
-                              <span className="text-[14px] font-normal">{img ? "Image Uploaded ✅" : "Upload Proof"}</span>
+                              {uploadingImg && (
+                                <div className="absolute inset-0 bg-indigo-100/30">
+                                  <div 
+                                    className="h-full bg-indigo-200/60 transition-all duration-300 ease-out" 
+                                    style={{ width: `${uploadProgress}%` }} 
+                                  />
+                                </div>
+                              )}
+                              
+                              <div className="relative z-10 flex items-center gap-2 text-[14px] font-medium">
+                                {uploadingImg ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : "Finalizing..."}
+                                  </>
+                                ) : img ? (
+                                  <>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    Image Uploaded
+                                  </>
+                                ) : (
+                                  <>
+                                    <UploadCloud className="w-4 h-4" />
+                                    Upload Proof
+                                  </>
+                                )}
+                              </div>
                             </div>
                             {img && (
-                              <div className="relative w-20 h-20 rounded-[6px] overflow-hidden border border-[#dddddd] mt-1 flex items-center justify-center bg-[#f8fafc]">
+                              <div className="relative w-full h-40 rounded-[8px] overflow-hidden border border-[#dddddd] mt-2 flex items-center justify-center bg-[#f8fafc] group shadow-sm">
                                 {(typeof img === "string" ? img : img.secure_url).toLowerCase().endsWith(".pdf") ? (
-                                  <span className="text-[12px] font-medium text-[#41454d]">PDF</span>
+                                  <div className="flex flex-col items-center gap-2">
+                                    <span className="text-[13px] font-medium text-[#41454d]">PDF Document Uploaded</span>
+                                  </div>
                                 ) : (
                                   <Image 
                                     src={(typeof img === "string" ? img : img.secure_url)} 
@@ -452,10 +562,10 @@ export default function CrudFormModal({
                                 <button
                                   type="button"
                                   onClick={() => setImg(null)}
-                                  className="absolute top-1 right-1 bg-rose-500 text-white p-1 rounded-full shadow-sm hover:bg-rose-600 transition-colors"
+                                  className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm border border-[#dddddd] text-rose-500 w-8 h-8 flex items-center justify-center rounded-[6px] shadow-sm hover:bg-rose-50 hover:border-rose-200 transition-colors opacity-0 group-hover:opacity-100"
                                   title="Remove Photo"
                                 >
-                                  ✕
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             )}
@@ -467,6 +577,15 @@ export default function CrudFormModal({
                             defaultValue={data?.[f.name]}
                             required={f.required}
                             placeholder={`Search ${f.label}...`}
+                          />
+                        ) : f.type === "creatable-select" ? (
+                          <SearchableSelect
+                            name={f.name}
+                            options={f.options || []}
+                            defaultValue={data?.[f.name]}
+                            required={f.required}
+                            placeholder={f.placeholder || `Select or type ${f.label}...`}
+                            allowCreate={true}
                           />
                         ) : (
                           <input
@@ -587,10 +706,10 @@ export default function CrudFormModal({
                     </button>
                     <button
                       type="submit"
-                      disabled={isPending}
+                      disabled={isPending || uploadingImg}
                       className="px-6 py-2.5 text-[16px] font-medium text-white bg-[#181d26] hover:bg-[#0d1218] rounded-[12px] transition-colors disabled:opacity-50"
                     >
-                      {isPending ? "Saving..." : mode === "create" ? "Create" : "Save Changes"}
+                      {isPending ? "Saving..." : uploadingImg ? "Uploading..." : mode === "create" ? "Create" : "Save Changes"}
                     </button>
                   </div>
                 </form>

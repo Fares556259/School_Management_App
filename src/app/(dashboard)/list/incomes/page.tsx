@@ -85,6 +85,17 @@ const IncomeListPage = async ({
 
   const count = await prisma.income.count({ where: query });
 
+  // Fetch unique categories created by the admin for this school
+  const uniqueCategoriesData = await prisma.income.findMany({
+    where: { schoolId },
+    select: { category: true },
+    distinct: ['category']
+  });
+
+  const relatedData = {
+    category: uniqueCategoriesData.map(c => ({ value: c.category, label: c.category }))
+  };
+
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
@@ -150,7 +161,7 @@ const IncomeListPage = async ({
         <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
           {role === "admin" && (
             <>
-              <CrudFormModal entity="income" mode="update" data={item} id={item.id} />
+              <CrudFormModal entity="income" mode="update" data={item} id={item.id} relatedData={relatedData} />
               <CrudFormModal entity="income" mode="delete" id={item.id} />
             </>
           )}
@@ -211,7 +222,7 @@ const IncomeListPage = async ({
           <div className="flex items-center gap-3 self-end md:self-auto">
             <FinanceDateFilter />
             <FinanceExportButton data={allData} filename="Incomes" />
-            {role === "admin" && <CrudFormModal entity="income" mode="create" />}
+            {role === "admin" && <CrudFormModal entity="income" mode="create" relatedData={relatedData} />}
           </div>
         </div>
       </div>

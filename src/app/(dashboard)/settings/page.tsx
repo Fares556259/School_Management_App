@@ -347,20 +347,13 @@ const SettingsPage = () => {
 
 
   return (
-    <div className="flex-1 p-8 bg-[#F7F8FA] overflow-y-auto">
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
+    <div className="p-6 md:p-8 flex flex-col flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">
+      <div className="w-full max-w-[1000px] mx-auto flex flex-col gap-8 pb-32">
         
         {/* HEADER */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-             <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-100">
-                <LayoutDashboard size={24} />
-             </div>
-             <div>
-                <h1 className="text-3xl font-black text-slate-800 tracking-tight">System Settings</h1>
-                <p className="text-slate-400 text-sm font-medium">Configure institutional branding and academic parameters.</p>
-             </div>
-          </div>
+        <div className="flex flex-col gap-1 border-b border-[#dddddd] pb-4">
+          <h1 className="text-[24px] font-normal text-[#181d26]">System Settings</h1>
+          <p className="text-[14px] text-[#5a5a5a]">Configure institutional branding and academic parameters.</p>
         </div>
 
         {message && (
@@ -377,34 +370,34 @@ const SettingsPage = () => {
         <form onSubmit={handleUpdate} className="flex flex-col gap-10 pb-20">
           
           {/* INSTITUTIONAL NAMES */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center gap-2 mb-2">
                <Building2 className="text-indigo-600" size={18} />
-               <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Institutional Identity</h2>
+               <h2 className="text-[16px] font-medium text-[#181d26]">Institutional Identity</h2>
             </div>
             
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Name</label>
+                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">School Name</label>
                 <input 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                  className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
                   value={config?.schoolName || ""}
                   onChange={e => setConfig({...config, schoolName: e.target.value})}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Phone Number</label>
+                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">School Phone Number</label>
                 <input 
-                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                   className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
                    value={config?.phone || ""}
                    onChange={e => setConfig({...config, phone: e.target.value})}
                    placeholder="+216 71 000 000"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">School Address</label>
+                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">School Address</label>
                 <input 
-                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                   className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
                    value={config?.address || ""}
                    onChange={e => setConfig({...config, address: e.target.value})}
                    placeholder="123 Education Ave, Tunis"
@@ -414,10 +407,10 @@ const SettingsPage = () => {
           </div>
 
           {/* BRANDING LOGOS */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center gap-2 mb-2">
                <ImageIcon className="text-indigo-600" size={18} />
-               <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Branding Assets</h2>
+               <h2 className="text-[16px] font-medium text-[#181d26]">Branding Assets</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -426,7 +419,7 @@ const SettingsPage = () => {
                 { label: 'Ministry Logo', field: 'ministryLogo' },
                 { label: 'University Logo', field: 'universityLogo' }
               ].map((logo) => (
-                <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-slate-50 rounded-[28px] border border-slate-100/50 group hover:border-indigo-100 transition-all">
+                <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-white rounded-[12px] border border-[#dddddd] group hover:border-[#9297a0] transition-all">
                     <div className="w-24 h-24 rounded-2xl bg-white shadow-sm border border-slate-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300 relative">
                     {config?.[logo.field] ? (
                       <Image src={config[logo.field]} alt="Logo Preview" fill className="object-contain p-3" />
@@ -447,7 +440,7 @@ const SettingsPage = () => {
                     <button 
                       type="button"
                       onClick={() => document.getElementById(`upload-${logo.field}`)?.click()}
-                      className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                      className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                     >
                       {config[logo.field] ? 'Change Logo' : 'Upload Logo'}
                     </button>
@@ -458,16 +451,16 @@ const SettingsPage = () => {
           </div>
 
           {/* CLASSROOMS MANAGER */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <DoorOpen className="text-indigo-600" size={18} />
-                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Physical Classrooms</h2>
+                <h2 className="text-[16px] font-medium text-[#181d26]">Physical Classrooms</h2>
               </div>
               <button 
                   type="button"
                   onClick={handleAddRoom}
-                  className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2"
+                  className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                 >
                   <Plus size={14} />
                   <span>Add Room</span>
@@ -483,7 +476,7 @@ const SettingsPage = () => {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl"
+                      className="flex items-center gap-3 p-3 bg-white border border-[#dddddd] rounded-[12px]"
                     >
                       <div className="p-2 bg-white rounded-lg text-slate-400">
                         <Hash size={14} />
@@ -504,7 +497,7 @@ const SettingsPage = () => {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-6 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                  <div className="flex flex-col items-center justify-center py-6 text-center bg-[#f8fafc] rounded-[12px] border border-dashed border-[#dddddd]">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No rooms defined</p>
                   </div>
                 )}
@@ -513,12 +506,12 @@ const SettingsPage = () => {
           </div>
 
           {/* TUITION FEES PER LEVEL */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
               <div className="flex items-center justify-between w-full md:w-auto gap-4">
                 <div className="flex items-center gap-2">
                   <HandCoins className="text-emerald-600" size={18} />
-                  <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Tuition Fees per Academic Level</h2>
+                  <h2 className="text-[16px] font-medium text-[#181d26]">Tuition Fees per Academic Level</h2>
                 </div>
               </div>
             </div>
@@ -528,7 +521,7 @@ const SettingsPage = () => {
               {levelFees.map((lvl: any) => (
                 <div 
                   key={lvl.id}
-                  className="flex flex-col gap-4 p-5 bg-slate-50 border border-slate-100 rounded-[24px] group hover:border-emerald-200 hover:bg-emerald-50/5 transition-all shadow-sm"
+                  className="flex flex-col gap-4 p-5 bg-white border border-[#dddddd] rounded-[12px] group hover:border-[#9297a0] transition-all shadow-sm"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
@@ -539,7 +532,7 @@ const SettingsPage = () => {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">$</span>
                       <input 
                         type="number"
-                        className="w-full bg-white border border-slate-100 rounded-lg pl-6 pr-2 py-1.5 text-xs font-black text-slate-800 focus:outline-none focus:border-emerald-500 transition-all text-right"
+                        className="w-full bg-white border border-[#dddddd] rounded-[6px] pl-6 pr-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-right"
                         value={lvl.tuitionFee}
                         onChange={(e) => handleUpdateLevelFee(lvl.id, e.target.value)}
                       />
@@ -564,7 +557,7 @@ const SettingsPage = () => {
               ))}
               
               {levelFees.length === 0 && !isAddingLevel && (
-                <div className="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[32px] gap-3 bg-slate-50/25">
+                <div className="col-span-full py-12 flex flex-col items-center justify-center border border-dashed border-[#dddddd] rounded-[12px] gap-3 bg-[#f8fafc]">
                    <div className="p-3 bg-white rounded-2xl text-slate-200 shadow-sm">
                      <AlertCircle size={24} />
                    </div>
@@ -575,15 +568,15 @@ const SettingsPage = () => {
           </div>
 
           {/* ACADEMIC STRUCTURE & VARIATIONS */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center gap-2 mb-2">
               <Columns className="text-blue-600" size={18} />
-              <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Academic Structure & Variations</h2>
+              <h2 className="text-[16px] font-medium text-[#181d26]">Academic Structure & Variations</h2>
             </div>
 
             <div className="flex flex-col gap-4">
               {levelFees.map((lvl: any) => (
-                <div key={lvl.id} className="flex items-center justify-between p-5 bg-slate-50 border border-slate-100 rounded-[24px] hover:border-blue-100 hover:bg-blue-50/10 transition-all shadow-sm">
+                <div key={lvl.id} className="flex items-center justify-between p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-[#9297a0] transition-all shadow-sm">
                    <div className="flex flex-col gap-0.5">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Primary Grade</span>
                       <span className="text-sm font-black text-slate-700">Level {lvl.level}</span>
@@ -596,7 +589,7 @@ const SettingsPage = () => {
                           type="number"
                           min={0}
                           max={26}
-                          className="w-20 bg-white border border-slate-100 rounded-xl px-3 py-2 text-sm font-black text-slate-700 focus:outline-none focus:border-blue-500 transition-all text-center"
+                          className="w-20 bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-center"
                           value={variationCounts[lvl.id] !== undefined ? variationCounts[lvl.id] : 0}
                           onChange={e => setVariationCounts({...variationCounts, [lvl.id]: parseInt(e.target.value) || 0})}
                         />
@@ -608,16 +601,16 @@ const SettingsPage = () => {
           </div>
 
           {/* ACADEMIC PERIOD */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
              <div className="flex items-center gap-2 mb-2">
                <Calendar className="text-indigo-600" size={18} />
-               <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Academic Period</h2>
+               <h2 className="text-[16px] font-medium text-[#181d26]">Academic Period</h2>
             </div>
             <div className="flex flex-col gap-6">
                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Academic Year</label>
+                  <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Academic Year</label>
                   <input 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+                    className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                     value={config?.academicYear || ""}
                     onChange={e => setConfig({...config, academicYear: e.target.value})}
                   />
@@ -625,19 +618,19 @@ const SettingsPage = () => {
                
                <div className="grid grid-cols-2 gap-4">
                  <div className="flex flex-col gap-1.5">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Year Starts</label>
+                   <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Year Starts</label>
                    <input 
                      type="date"
-                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+                     className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                      value={config?.yearStart ? new Date(config.yearStart).toISOString().split('T')[0] : ""}
                      onChange={e => setConfig({...config, yearStart: e.target.value})}
                    />
                  </div>
                  <div className="flex flex-col gap-1.5">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Year Ends</label>
+                   <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Year Ends</label>
                    <input 
                      type="date"
-                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+                     className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                      value={config?.yearEnd ? new Date(config.yearEnd).toISOString().split('T')[0] : ""}
                      onChange={e => setConfig({...config, yearEnd: e.target.value})}
                    />
@@ -645,9 +638,9 @@ const SettingsPage = () => {
                </div>
 
                <div className="flex flex-col gap-1.5">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Current Semester</label>
+                 <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Current Semester</label>
                  <select 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 transition-all appearance-none"
+                    className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all appearance-none"
                     value={config?.currentSemester || 1}
                     onChange={e => setConfig({...config, currentSemester: parseInt(e.target.value)})}
                  >
@@ -659,16 +652,16 @@ const SettingsPage = () => {
           </div>
 
           {/* HOLIDAYS MANAGER */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
              <div className="flex items-center justify-between mb-2">
                <div className="flex items-center gap-2">
                  <Calendar className="text-rose-500" size={18} />
-                 <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Holidays & Closures</h2>
+                 <h2 className="text-[16px] font-medium text-[#181d26]">Holidays & Closures</h2>
                </div>
                <button 
                   type="button"
                   onClick={addHoliday}
-                  className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center gap-2"
+                  className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                 >
                   <Plus size={14} />
                   <span>Add Holiday</span>
@@ -684,13 +677,13 @@ const SettingsPage = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="group flex flex-col gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-rose-100 hover:bg-rose-50/10 transition-all relative overflow-hidden"
+                      className="group flex flex-col gap-3 p-4 bg-white border border-[#dddddd] rounded-[12px] hover:border-[#9297a0] transition-all relative overflow-hidden"
                     >
                       <div className="flex flex-col sm:flex-row items-center gap-4">
                         <div className="flex flex-col gap-1.5 flex-[2] w-full">
                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Name</label>
                            <input 
-                              className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
+                              className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                               value={holiday.name}
                               onChange={e => updateHoliday(holiday.id, 'name', e.target.value)}
                               placeholder="e.g. Independence Day"
@@ -700,7 +693,7 @@ const SettingsPage = () => {
                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
                            <input 
                               type="date"
-                              className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
+                              className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                               value={holiday.startDate || holiday.date}
                               onChange={e => updateHoliday(holiday.id, 'startDate', e.target.value)}
                            />
@@ -709,7 +702,7 @@ const SettingsPage = () => {
                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">End Date</label>
                            <input 
                               type="date"
-                              className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-300 transition-all"
+                              className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                               value={holiday.endDate || holiday.date}
                               onChange={e => updateHoliday(holiday.id, 'endDate', e.target.value)}
                            />
@@ -725,7 +718,7 @@ const SettingsPage = () => {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+                  <div className="flex flex-col items-center justify-center py-8 text-center bg-[#f8fafc] rounded-[12px] border border-dashed border-[#dddddd]">
                      <Calendar className="text-slate-200 mb-2" size={32} />
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No holidays scheduled yet</p>
                   </div>
@@ -735,16 +728,16 @@ const SettingsPage = () => {
           </div>
 
           {/* SESSIONS CONFIG */}
-          <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col gap-6">
+          <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
              <div className="flex items-center justify-between mb-2">
                <div className="flex items-center gap-2">
                 <Clock className="text-indigo-600" size={18} />
-                <h2 className="text-xs font-black uppercase text-slate-400 tracking-[0.15em]">Daily Sessions</h2>
+                <h2 className="text-[16px] font-medium text-[#181d26]">Daily Sessions</h2>
                </div>
                <button 
                 type="button"
                 onClick={addSession}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                >
                  <Plus size={14} /> Add Session
                </button>
@@ -758,11 +751,11 @@ const SettingsPage = () => {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, x: -20 }}
                     layout
-                    className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-slate-50 rounded-2xl border border-slate-100 group relative"
+                    className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-white rounded-[12px] border border-[#dddddd] group relative"
                   >
                       <div className="flex flex-col gap-1.5 flex-1 w-full">
                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Session Label</label>
-                        <div className="w-full bg-white/50 border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-black text-slate-400 cursor-not-allowed">
+                        <div className="w-full bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-3 py-2.5 text-[14px] font-medium text-[#9297a0] cursor-not-allowed">
                           {`Session ${idx + 1}`}
                         </div>
                       </div>
@@ -788,12 +781,12 @@ const SettingsPage = () => {
                           <option value="16:00 - 18:00">16:00 - 18:00</option>
                         </select>
                       </div>
-                      <button 
-                        type="button"
-                        onClick={() => removeSession(idx)}
-                        className="p-2.5 bg-white border border-slate-100 rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm mb-0.5"
-                        title="Remove Session"
-                      >
+                        <button 
+                          type="button"
+                          onClick={() => removeSession(idx)}
+                          className="p-2.5 bg-white border border-[#dddddd] rounded-[6px] text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-sm mb-0.5"
+                          title="Remove Session"
+                        >
                         <Trash2 size={16} />
                       </button>
                   </motion.div>
@@ -801,7 +794,7 @@ const SettingsPage = () => {
                </AnimatePresence>
 
                {config.sessions.length === 0 && (
-                 <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl gap-4 bg-slate-50/50">
+                 <div className="py-12 flex flex-col items-center justify-center border border-dashed border-[#dddddd] rounded-[12px] gap-4 bg-[#f8fafc]">
                     <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200">
                       <Clock size={24} />
                     </div>
@@ -809,7 +802,7 @@ const SettingsPage = () => {
                     <button 
                       type="button"
                       onClick={addSession}
-                      className="px-6 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-all"
+                      className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                     >
                       Initialize first session
                     </button>
@@ -827,35 +820,34 @@ const SettingsPage = () => {
                 exit={{ opacity: 0, y: 100 }}
                 className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-2xl"
               >
-                 <div className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 p-3 pl-8 rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex items-center justify-between group overflow-hidden">
-                    <div className="flex flex-col gap-0.5">
-                       <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] leading-none">System Settings</h3>
-                       <p className="text-xs font-bold text-emerald-400 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Unsaved Changes
+                 <div className="bg-[#181d26] border border-[#333840] p-4 px-6 rounded-[12px] shadow-2xl flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                       <p className="text-[14px] font-medium text-white flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                          Unsaved changes
                        </p>
+                       <p className="text-[12px] text-[#9297a0]">You have pending changes to your system settings.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                        <button 
                           type="button"
                           onClick={() => window.location.reload()}
-                          className="px-6 py-3.5 text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+                          className="px-4 py-2 text-[#9297a0] hover:text-white text-[13px] font-medium transition-colors"
                        >
                           Discard
                        </button>
                        <button 
                           type="submit"
                           disabled={saving}
-                          className="flex items-center gap-3 px-10 py-4 bg-white text-slate-900 font-black text-xs uppercase tracking-[0.15em] rounded-[2.5rem] hover:bg-emerald-400 hover:text-white transition-all shadow-xl disabled:opacity-50 group/save relative overflow-hidden"
+                          className="flex items-center gap-2 px-5 py-2.5 bg-white text-[#181d26] font-medium text-[13px] rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm disabled:opacity-50"
                        >
-                          <span className="relative z-10 flex items-center gap-2">
-                             {saving ? <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div> : <Save size={18} />}
-                             {saving ? 'Saving...' : 'Save Configuration'}
+                          <span className="flex items-center gap-2">
+                             {saving ? <div className="w-3.5 h-3.5 border-2 border-[#181d26]/30 border-t-[#181d26] rounded-full animate-spin"></div> : <Save size={14} />}
+                             {saving ? 'Saving...' : 'Save changes'}
                           </span>
                        </button>
                     </div>
-
                     {/* Background glow effects */}
                     <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px]"></div>
                     <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]"></div>

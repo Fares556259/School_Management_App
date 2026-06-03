@@ -15,6 +15,7 @@ interface SearchableSelectProps {
   required?: boolean;
   onSelect?: (value: string) => void;
   className?: string;
+  allowCreate?: boolean;
 }
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -25,6 +26,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   required = false,
   onSelect,
   className = "",
+  allowCreate = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,14 +56,16 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         const currentOption = options.find(o => o.value === selectedValue);
         if (currentOption) {
           setSearchTerm(currentOption.label);
-        } else if (!selectedValue) {
+        } else if (!selectedValue && !allowCreate) {
           setSearchTerm("");
+        } else if (allowCreate && selectedValue) {
+          setSearchTerm(selectedValue);
         }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [selectedValue, options]);
+  }, [selectedValue, options, allowCreate]);
 
   const handleSelect = (option: Option) => {
     setSelectedValue(option.value);
@@ -141,9 +145,19 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   )}
                 </div>
               ))
-            ) : (
+            ) : !allowCreate ? (
               <div className="px-3 py-5 text-sm text-slate-400 text-center bg-slate-50/50 italic">
                 {searchTerm ? `No matches for "${searchTerm}"` : "Start typing to search..."}
+              </div>
+            ) : null}
+
+            {allowCreate && searchTerm && !options.some(o => o.label.toLowerCase() === searchTerm.toLowerCase()) && (
+              <div
+                className="px-3 py-2.5 text-sm cursor-pointer hover:bg-emerald-50 transition-colors flex items-center gap-2 border-t border-slate-100 text-emerald-600 font-medium sticky bottom-0 bg-white"
+                onClick={() => handleSelect({ value: searchTerm.toUpperCase(), label: searchTerm.toUpperCase() })}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                Create "{searchTerm.toUpperCase()}"
               </div>
             )}
           </div>
