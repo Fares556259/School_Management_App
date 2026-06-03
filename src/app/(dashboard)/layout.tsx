@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import PageTransition from "@/components/PageTransition";
 import prisma from "@/lib/prisma";
 import { cache } from "react";
+import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
 
 // Request-level caching for school configuration
 const getSchoolConfig = cache(async () => {
@@ -43,8 +44,16 @@ export default async function DashboardLayout({
     console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", (error as any).message);
   }
   
-  // Note: adminProfile fetch moved to the Page to reduce Layout pressure
-  const adminProfile = null;
+  // Fetch admin profile so the Menu and Navbar can display the custom photo and name
+  let adminProfile = null;
+  if (role === "admin") {
+    try {
+      const res = await getAdminProfile();
+      if (res.data) adminProfile = res.data;
+    } catch (error) {
+      console.warn("⚠️ [LAYOUT] Failed to fetch admin profile:", (error as any).message);
+    }
+  }
 
   return (
     <div className="h-screen flex text-slate-900 print:h-auto print:block bg-[#F5F6F8]">

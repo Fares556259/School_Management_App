@@ -61,6 +61,15 @@ const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
         <div className="scale-90 origin-right">
           <LanguageSwitcher />
         </div>
+
+        {/* USER PROFILE */}
+        <div className="flex items-center ml-2 border-l border-[#dddddd] pl-4">
+          {adminData?.img ? (
+            <Image src={adminData.img} alt="Profile" width={32} height={32} className="rounded-full object-cover w-8 h-8 shadow-sm border border-[#dddddd]" />
+          ) : (
+            <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8 shadow-sm border border-[#dddddd]" } }} />
+          )}
+        </div>
       </div>
     </div>
   )

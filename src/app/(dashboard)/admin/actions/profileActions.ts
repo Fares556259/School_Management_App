@@ -72,6 +72,7 @@ export async function updateAdminProfile(data: {
       update: {
         name: data.name,
         surname: data.surname,
+        email: data.email,
         phone: data.phone,
         img: data.img,
       },
@@ -80,6 +81,7 @@ export async function updateAdminProfile(data: {
         username: userId, // Fallback if no username
         name: data.name,
         surname: data.surname,
+        email: data.email,
         phone: data.phone,
         img: data.img,
       },

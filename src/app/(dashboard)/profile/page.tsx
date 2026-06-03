@@ -40,8 +40,8 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="bg-[#F7F8FA] min-h-screen">
+    <>
        <ProfileClient initialData={adminProfile} />
-    </div>
+    </>
   );
 }

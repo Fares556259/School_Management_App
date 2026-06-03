@@ -14,6 +14,7 @@ model Admin {
   aiQuota           Int      @default(10)
   aiUsage           Int      @default(0)
   img               String?
+  email             String?  @unique
   lastAiUpdate      DateTime @default(now())
   name              String?
   phone             String?
