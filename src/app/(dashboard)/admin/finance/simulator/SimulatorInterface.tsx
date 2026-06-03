@@ -10,6 +10,7 @@ import {
   Lightbulb, Megaphone, FileText, Shield, Package, GraduationCap,
   BarChart3, RefreshCw, Crosshair,
 } from "lucide-react";
+import HiringAdvisor from "./HiringAdvisor";
 
 /* ─── types ── */
 interface SimulatorBaseline {
@@ -457,9 +458,36 @@ export default function SimulatorInterface({ baseline, autofill, initialScenario
 
   const hasSyncedData = !!autofill && Object.values(autofill).some(v => v > 0);
 
+  const [activeTab, setActiveTab] = useState<"advisor" | "full">("advisor");
+
   return (
-    <div className="space-y-4 pb-20">
-      {/* DB Sync Badge */}
+    <div className="space-y-6">
+      <div className="flex p-1 bg-[#ffffff] rounded-[4px] w-fit border border-[#d8d8d8]">
+        <button
+          onClick={() => setActiveTab("advisor")}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-[2px] text-[14px] font-medium transition-all ${
+            activeTab === "advisor" ? "bg-[#080808] text-[#ffffff]" : "text-[#5a5a5a] hover:text-[#080808]"
+          }`}
+        >
+          <Users size={16} />
+          Hiring Advisor
+        </button>
+        <button
+          onClick={() => setActiveTab("full")}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-[2px] text-[14px] font-medium transition-all ${
+            activeTab === "full" ? "bg-[#080808] text-[#ffffff]" : "text-[#5a5a5a] hover:text-[#080808]"
+          }`}
+        >
+          <Calculator size={16} />
+          Full Simulator
+        </button>
+      </div>
+
+      {activeTab === "advisor" ? (
+        <HiringAdvisor baseline={baseline} autofill={autofill} />
+      ) : (
+        <div className="space-y-4 pb-20">
+          {/* DB Sync Badge */}
       {hasSyncedData && (
         <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5 w-fit">
           <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -706,6 +734,8 @@ export default function SimulatorInterface({ baseline, autofill, initialScenario
           SnapSchool · Financial Scenario Simulator
         </p>
       </div>
+    </div>
+      )}
     </div>
   );
 }

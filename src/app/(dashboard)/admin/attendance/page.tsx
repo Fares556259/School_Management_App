@@ -184,7 +184,7 @@ export default function AttendancePage() {
   const highAbsenceStudents = filtered.filter(s => s.monthlyAbsences > 2);
 
   return (
-    <div className="p-6 lg:p-10 flex flex-col gap-8 flex-1 bg-white min-h-screen">
+    <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">
       
       {/* Header Section */}
       <div className="flex flex-col gap-6 w-full mb-2">

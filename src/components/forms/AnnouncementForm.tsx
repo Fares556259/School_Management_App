@@ -134,9 +134,9 @@ const AnnouncementForm = ({
   };
 
   return (
-    <form className="flex flex-col gap-6 p-4 max-h-[85vh] overflow-y-auto" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-slate-800">
-        {type === "create" ? "📢 Create New Announcement" : "✏️ Update Announcement"}
+    <form className="flex flex-col gap-6 p-4 md:p-6 max-h-[85vh] overflow-y-auto" onSubmit={onSubmit}>
+      <h1 className="text-[20px] font-semibold text-[#181d26] tracking-tight">
+        {type === "create" ? "Create Announcement" : "Update Announcement"}
       </h1>
       
       <div className="flex flex-col gap-4">
@@ -151,11 +151,11 @@ const AnnouncementForm = ({
         />
 
         {/* Message */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-gray-500 font-bold">Content / Message</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[12px] font-medium text-[#41454d]">Content</label>
           <textarea
             {...register("message")}
-            className="ring-[1.5px] ring-gray-300 p-3 rounded-xl text-sm w-full min-h-[120px] focus:ring-indigo-500 outline-none transition-all"
+            className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] font-medium text-[#181d26] w-full min-h-[120px] focus:border-indigo-500 focus:outline-none transition-all placeholder:font-normal placeholder:text-[#9297a0]"
             placeholder="Write your announcement details here..."
           />
           {errors.message?.message && (
@@ -165,17 +165,17 @@ const AnnouncementForm = ({
 
         <div className="flex gap-4 flex-wrap">
           {/* Class Visibility */}
-          <div className="flex flex-col gap-2 w-full md:w-[48%]">
-            <label className="text-xs text-gray-500 font-bold">Class Scope</label>
+          <div className="flex flex-col gap-1.5 w-full md:w-[48%]">
+            <label className="text-[12px] font-medium text-[#41454d]">Class Scope</label>
             <select
-              className="ring-[1.5px] ring-gray-300 p-3 rounded-xl text-sm w-full focus:ring-indigo-500 outline-none bg-white transition-all appearance-none"
+              className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] font-medium text-[#181d26] w-full focus:border-indigo-500 focus:outline-none bg-white transition-all appearance-none"
               {...register("classId")}
               defaultValue={data?.classId || ""}
             >
-              {/* <option value="">🌍 Global (All Classes)</option> */}
+              {/* <option value="">Global (All Classes)</option> */}
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  📚 Class {c.name}
+                  Class {c.name}
                 </option>
               ))}
             </select>
@@ -183,18 +183,18 @@ const AnnouncementForm = ({
 
           {/* Student Targeting (Conditional) */}
           {classId && (
-            <div className="flex flex-col gap-2 w-full md:w-[48%] animate-in fade-in slide-in-from-left-2 duration-300">
-              <label className="text-xs text-gray-500 font-bold">Student Target (Optional)</label>
+            <div className="flex flex-col gap-1.5 w-full md:w-[48%] animate-in fade-in slide-in-from-left-2 duration-300">
+              <label className="text-[12px] font-medium text-[#41454d]">Student Target (Optional)</label>
               <select
-                className="ring-[1.5px] ring-gray-300 p-3 rounded-xl text-sm w-full focus:ring-indigo-500 outline-none bg-white transition-all appearance-none disabled:opacity-50"
+                className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] font-medium text-[#181d26] w-full focus:border-indigo-500 focus:outline-none bg-white transition-all appearance-none disabled:opacity-50"
                 {...register("targetStudentId")}
                 defaultValue={data?.targetStudentId || ""}
                 disabled={fetchingStudents}
               >
-                {/* <option value="">👤 All Students in Class</option> */}
+                {/* <option value="">All Students in Class</option> */}
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
-                    🎓 {s.name} {s.surname}
+                    {s.name} {s.surname}
                   </option>
                 ))}
               </select>
@@ -203,23 +203,23 @@ const AnnouncementForm = ({
           )}
 
           {/* Important Toggle */}
-          <div className="flex items-center gap-3 w-full md:w-[48%] mt-6 px-2">
+          <div className="flex items-center gap-2.5 w-full md:w-[48%] mt-6 px-1">
             <input
               type="checkbox"
               id="important"
               {...register("important")}
-              className="w-5 h-5 accent-red-500 cursor-pointer"
+              className="w-4 h-4 accent-rose-600 cursor-pointer rounded border-[#dddddd]"
             />
-            <label htmlFor="important" className="text-sm font-bold text-slate-700 cursor-pointer">
-              Mark as URGENT 🚨
+            <label htmlFor="important" className="text-[13px] font-medium text-rose-700 cursor-pointer select-none">
+              Mark as URGENT
             </label>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           {/* Cover Image Upload */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-gray-800 font-bold">Cover Image (Full width on mobile)</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-medium text-[#41454d]">Cover Image</label>
             <input
               type="file"
               id="notice-img"
@@ -230,26 +230,26 @@ const AnnouncementForm = ({
             <button
               type="button"
               onClick={() => document.getElementById('notice-img')?.click()}
-              className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
+              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
             >
               {img ? (
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                <div className="relative w-full aspect-video rounded overflow-hidden">
                   <Image src={img} alt="Preview" fill className="object-cover" />
                 </div>
               ) : (
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                  <Image src="/upload.png" alt="" width={24} height={24} className="opacity-50" />
+                <div className="w-10 h-10 bg-white border border-[#dddddd] shadow-sm rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                  <Image src="/upload.png" alt="" width={18} height={18} className="opacity-60" />
                 </div>
               )}
-              <span className="text-xs font-bold text-slate-500">
-                {img ? "Change Cover Image" : "Upload Cover Image"}
+              <span className="text-[12px] font-medium text-[#5a5a5a]">
+                {img ? "Change Cover Image" : "Upload Image"}
               </span>
             </button>
           </div>
 
           {/* PDF attachment */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-gray-800 font-bold">PDF Attachment (Exam schedule, etc.)</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-medium text-[#41454d]">PDF Attachment</label>
             <input
               type="file"
               id="notice-pdf"
@@ -260,19 +260,19 @@ const AnnouncementForm = ({
             <button
               type="button"
               onClick={() => document.getElementById('notice-pdf')?.click()}
-              className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-slate-200 rounded-2xl hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
+              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
             >
               {pdfUrl ? (
-                <div className="flex items-center gap-2 bg-emerald-100 p-3 rounded-lg text-emerald-700 font-bold text-xs max-w-full">
-                  <span className="truncate">📄 PDF Attached</span>
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-700 font-medium text-[12px] max-w-full">
+                  <span className="truncate">PDF Attached</span>
                 </div>
               ) : (
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                  <span className="text-2xl">📁</span>
+                <div className="w-10 h-10 bg-white border border-[#dddddd] shadow-sm rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                  <span className="text-lg opacity-60">📄</span>
                 </div>
               )}
-              <span className="text-xs font-bold text-slate-500">
-                {pdfUrl ? "Change Attachment" : "Attach PDF Document"}
+              <span className="text-[12px] font-medium text-[#5a5a5a]">
+                {pdfUrl ? "Change Attachment" : "Attach PDF"}
               </span>
             </button>
           </div>
@@ -280,10 +280,10 @@ const AnnouncementForm = ({
       </div>
 
       <button
-        className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all mt-4 disabled:opacity-50"
+        className="bg-[#181d26] hover:bg-[#0d1218] text-white p-3 rounded-[6px] font-medium text-[13px] shadow-sm transition-all mt-4 disabled:opacity-50"
         disabled={isPending}
       >
-        {isPending ? "🚀 Publishing..." : type === "create" ? "Publish Announcement" : "Update Announcement"}
+        {isPending ? "Publishing..." : type === "create" ? "Publish Announcement" : "Update Announcement"}
       </button>
     </form>
   );
