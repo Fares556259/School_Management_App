@@ -26,7 +26,11 @@ export async function POST(request: NextRequest) {
       include: {
         students: {
           include: { 
-            class: true,
+            class: {
+              include: {
+                level: true,
+              },
+            },
             payments: true,
           },
         },
