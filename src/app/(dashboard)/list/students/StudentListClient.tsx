@@ -102,6 +102,7 @@ export default function StudentListClient({
               studentId={item.id}
               studentName={item.name + " " + item.surname}
               gradeLevel={item.level.level}
+              tuitionFee={item.level.tuitionFee}
               isPaid={isPaidThisMonth}
               isPartial={isPartialThisMonth}
               initialPaidAmount={currentPayment?.amount || 0}

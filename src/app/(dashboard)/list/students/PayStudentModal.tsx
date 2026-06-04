@@ -15,6 +15,7 @@ export default function PayStudentModal({
   isAdmin,
   monthName,
   paidMonths = [],
+  tuitionFee = 450,
 }: {
   studentId: string;
   studentName: string;
@@ -25,12 +26,12 @@ export default function PayStudentModal({
   isAdmin: boolean;
   monthName?: string;
   paidMonths?: string[];
+  tuitionFee?: number;
 }) {
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
 
-  // "1 to 6 the monthly paiment change" mapping logic
-  const tuitionAmount = 80 + gradeLevel * 20; // Grade 1 = 100, Grade 6 = 200
+  const tuitionAmount = tuitionFee;
   const remainingBalance = tuitionAmount - initialPaidAmount;
 
   const [isOpen, setIsOpen] = useState(false);
