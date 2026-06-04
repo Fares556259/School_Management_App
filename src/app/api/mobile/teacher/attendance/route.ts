@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     for (const record of records) {
       // Notify parent if student is absent or late
       if (record.status === 'ABSENT' || record.status === 'LATE') {
-        createAttendanceNotification(record.studentId, record.status, attendanceDate).catch(console.error);
+        createAttendanceNotification(record.studentId, record.status, attendanceDate, effectiveLessonId).catch(console.error);
       }
 
       // Notify parent if a remark note was left for this student

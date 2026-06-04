@@ -200,7 +200,7 @@ export async function processPaymentReminders(force: boolean = false) {
 /**
  * Creates a notification for a parent when a student is marked as ABSENT or LATE.
  */
-export async function createAttendanceNotification(studentId: string, status: string, date: Date) {
+export async function createAttendanceNotification(studentId: string, status: string, date: Date, lessonId?: number | null) {
   try {
     if (status === 'PRESENT') return;
 
@@ -212,6 +212,18 @@ export async function createAttendanceNotification(studentId: string, status: st
 
     const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     const statusLabel = status === 'ABSENT' ? 'absent' : 'late';
+    
+    let lessonInfo = '';
+    if (lessonId) {
+      const lesson = await prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { subject: true, teacher: true }
+      });
+      if (lesson && lesson.subject && lesson.teacher) {
+        const timeStr = lesson.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        lessonInfo = ` for ${lesson.subject.name} session at ${timeStr} by ${lesson.teacher.name} ${lesson.teacher.surname}`;
+      }
+    }
     
     // Deduplication: Don't send the same status alert twice in the same day for the same student
     const START_OF_DAY = new Date();
@@ -235,7 +247,7 @@ export async function createAttendanceNotification(studentId: string, status: st
         studentId: studentId,
         type: "ATTENDANCE",
         title: `Attendance Alert: ${status}`,
-        message: `${student.name} has been marked as ${statusLabel} on ${dateStr}.`,
+        message: `${student.name} has been marked as ${statusLabel} on ${dateStr}${lessonInfo}.`,
       }
     });
 
@@ -243,7 +255,7 @@ export async function createAttendanceNotification(studentId: string, status: st
     sendPush(
       student.parentId,
       `📍 Attendance: ${status}`,
-      `${student.name} is ${statusLabel} today (${dateStr}).`,
+      `${student.name} is ${statusLabel}${lessonInfo ? lessonInfo : ` today (${dateStr})`}.`,
       { type: "ATTENDANCE", studentId, channelId: "emergency" }
     );
 
