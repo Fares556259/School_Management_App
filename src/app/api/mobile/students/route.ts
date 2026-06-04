@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
                 level: true, // Needed for grade/level display
               },
             },
+            payments: true,
           },
         },
       },

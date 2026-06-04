@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
       orderBy: { id: "asc" },
       include: {
         students: {
-          include: { class: true },
+          include: { 
+            class: true,
+            payments: true,
+          },
         },
       },
     });
