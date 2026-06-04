@@ -27,13 +27,13 @@ const ResourceForm = dynamic(() => import("./forms/ResourceForm"), {
 });
 
 const forms: {
-  [key: string]: (type: "create" | "update", data?: any) => JSX.Element;
+  [key: string]: (type: "create" | "update", data?: any, relatedData?: any) => JSX.Element;
 } = {
-  teacher: (type, data) => <TeacherForm type={type} data={data} />,
-  student: (type, data) => <StudentForm type={type} data={data} />,
-  announcement: (type, data) => <AnnouncementForm type={type} data={data} />,
-  assignment: (type, data) => <AssignmentForm type={type} data={data} />,
-  resource: (type, data) => <ResourceForm type={type} data={data} />,
+  teacher: (type, data, relatedData) => <TeacherForm type={type} data={data} relatedData={relatedData} />,
+  student: (type, data, relatedData) => <StudentForm type={type} data={data} relatedData={relatedData} />,
+  announcement: (type, data, relatedData) => <AnnouncementForm type={type} data={data} relatedData={relatedData} />,
+  assignment: (type, data, relatedData) => <AssignmentForm type={type} data={data} relatedData={relatedData} />,
+  resource: (type, data, relatedData) => <ResourceForm type={type} data={data} relatedData={relatedData} />,
 };
 
 const FormModal = ({
@@ -42,6 +42,7 @@ const FormModal = ({
   data,
   id,
   trigger,
+  relatedData,
 }: {
   table:
     | "teacher"
@@ -61,6 +62,7 @@ const FormModal = ({
   data?: any;
   id?: string | number;
   trigger?: React.ReactNode;
+  relatedData?: any;
 }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
@@ -121,7 +123,7 @@ const FormModal = ({
       </div>
     ) : type === "create" || type === "update" ? (
       forms[table] ? (
-        forms[table](type, data)
+        forms[table](type, data, relatedData)
       ) : (
         <div className="p-8 text-center text-slate-400 font-bold">
           Form for &quot;{table}&quot; is not implemented yet.
