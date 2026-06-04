@@ -263,7 +263,7 @@ const AnnouncementForm = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           {/* Cover Image Upload */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 h-full">
             <label className="text-[12px] font-medium text-[#41454d]">Cover Image</label>
             <input
               type="file"
@@ -276,7 +276,7 @@ const AnnouncementForm = ({
               type="button"
               onClick={() => document.getElementById('notice-img')?.click()}
               disabled={uploadingTarget === 'image'}
-              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all group relative overflow-hidden"
+              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all group relative overflow-hidden flex-1"
             >
               {uploadingTarget === 'image' && (
                 <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-4 backdrop-blur-sm">
@@ -304,7 +304,7 @@ const AnnouncementForm = ({
           </div>
 
           {/* PDF attachment */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 h-full">
             <label className="text-[12px] font-medium text-[#41454d]">PDF Attachment</label>
             <input
               type="file"
@@ -317,7 +317,7 @@ const AnnouncementForm = ({
               type="button"
               onClick={() => document.getElementById('notice-pdf')?.click()}
               disabled={uploadingTarget === 'pdf'}
-              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all group relative overflow-hidden"
+              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all group relative overflow-hidden flex-1"
             >
               {uploadingTarget === 'pdf' && (
                 <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-4 backdrop-blur-sm">
