@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
       console.log(`[FILE-PROXY] Proxying remote URL: ${remoteUrl}`);
       
       try {
-        // Simple security check: Ensure it's the known Supabase storage provider
-        const isAllowedHost = remoteUrl.includes("supabase.co") || remoteUrl.includes("localhost") || remoteUrl.includes("127.0.0.1");
+        // Simple security check: Ensure it's the known Supabase storage provider or the w3 dummy URL
+        const isAllowedHost = remoteUrl.includes("supabase.co") || remoteUrl.includes("localhost") || remoteUrl.includes("127.0.0.1") || remoteUrl.includes("w3.org");
 
         if (!isAllowedHost) {
           console.warn(`[FILE-PROXY-SECURITY] Blocked request to untrusted host: ${remoteUrl}`);
