@@ -21,16 +21,18 @@ type Inputs = z.infer<typeof schema>;
 const AnnouncementForm = ({
   type,
   data,
+  relatedData,
 }: {
   type: "create" | "update";
   data?: any;
+  relatedData?: any;
 }) => {
   const [isPending, startTransition] = useTransition();
   const [img, setImg] = useState<string | null>(data?.img || null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(data?.pdfUrl || null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingTarget, setUploadingTarget] = useState<'image' | 'pdf' | null>(null);
-  const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
+  const classes = relatedData?.classes || [];
   const [students, setStudents] = useState<{ id: string; name: string; surname: string }[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
 
@@ -52,19 +54,6 @@ const AnnouncementForm = ({
   });
 
   const classId = watch("classId");
-
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const response = await fetch('/api/classes');
-        const result = await response.json();
-        setClasses(result);
-      } catch (err) {
-        console.error("Failed to fetch classes:", err);
-      }
-    };
-    fetchClasses();
-  }, []);
 
   useEffect(() => {
     if (classId) {
