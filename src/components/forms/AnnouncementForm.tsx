@@ -28,6 +28,8 @@ const AnnouncementForm = ({
   const [isPending, startTransition] = useTransition();
   const [img, setImg] = useState<string | null>(data?.img || null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(data?.pdfUrl || null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingTarget, setUploadingTarget] = useState<'image' | 'pdf' | null>(null);
   const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
   const [students, setStudents] = useState<{ id: string; name: string; surname: string }[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
@@ -111,25 +113,68 @@ const AnnouncementForm = ({
     if (!file) return;
 
     try {
+      setUploadingTarget(type);
+      setUploadProgress(0);
+
       const supabase = (await import('@/utils/supabase/client')).createClient();
-      const fileName = `${type}-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const fileName = `${type}-${Date.now()}-${safeName}`;
       const filePath = `notices/${type}s/${fileName}`;
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(filePath, file);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || anonKey;
 
-      if (uploadError) throw uploadError;
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${supabaseUrl}/storage/v1/object/uploads/${filePath}`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('apikey', anonKey);
+      if (file.type) {
+        xhr.setRequestHeader('Content-Type', file.type);
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(filePath);
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(Math.min(percentComplete, 99));
+        }
+      };
 
-      if (type === 'image') setImg(publicUrl);
-      else setPdfUrl(publicUrl);
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('uploads')
+            .getPublicUrl(filePath);
+          
+          setUploadProgress(100);
+          if (type === 'image') setImg(publicUrl);
+          else setPdfUrl(publicUrl);
+
+          setTimeout(() => {
+            setUploadingTarget(null);
+            setUploadProgress(0);
+          }, 800);
+        } else {
+          alert(`Upload failed: ${xhr.statusText}`);
+          setUploadingTarget(null);
+          setUploadProgress(0);
+        }
+      };
+
+      xhr.onerror = () => {
+        alert("Upload failed. Please check your connection.");
+        setUploadingTarget(null);
+        setUploadProgress(0);
+      };
+
+      xhr.send(file);
     } catch (err: any) {
       console.error(`${type} upload failed:`, err);
       alert(err.message || `Failed to upload ${type}.`);
+      setUploadingTarget(null);
+      setUploadProgress(0);
     }
   };
 
@@ -230,8 +275,19 @@ const AnnouncementForm = ({
             <button
               type="button"
               onClick={() => document.getElementById('notice-img')?.click()}
-              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
+              disabled={uploadingTarget === 'image'}
+              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all group relative overflow-hidden"
             >
+              {uploadingTarget === 'image' && (
+                <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-4 backdrop-blur-sm">
+                  <div className="text-white text-[24px] font-bold tracking-tight mb-2">
+                    {uploadProgress}%
+                  </div>
+                  <div className="w-3/4 max-w-[120px] bg-white/20 h-1.5 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-400 transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
+                </div>
+              )}
               {img ? (
                 <div className="relative w-full aspect-video rounded overflow-hidden">
                   <Image src={img} alt="Preview" fill className="object-cover" />
@@ -260,8 +316,19 @@ const AnnouncementForm = ({
             <button
               type="button"
               onClick={() => document.getElementById('notice-pdf')?.click()}
-              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
+              disabled={uploadingTarget === 'pdf'}
+              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all group relative overflow-hidden"
             >
+              {uploadingTarget === 'pdf' && (
+                <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-4 backdrop-blur-sm">
+                  <div className="text-white text-[24px] font-bold tracking-tight mb-2">
+                    {uploadProgress}%
+                  </div>
+                  <div className="w-3/4 max-w-[120px] bg-white/20 h-1.5 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
+                </div>
+              )}
               {pdfUrl ? (
                 <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-700 font-medium text-[12px] max-w-full">
                   <span className="truncate">PDF Attached</span>

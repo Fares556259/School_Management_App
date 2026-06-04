@@ -8,6 +8,7 @@ import { Notice, Class, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import { Megaphone, Plus, FileText, Image as ImageIcon } from "lucide-react";
 import AnnouncementFilters from "./AnnouncementFilters";
+import AnnouncementPreviewModal from "./AnnouncementPreviewModal";
 
 type NoticeList = Notice & { class: Class | null };
 
@@ -140,6 +141,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                   {(role === "admin" || role === "teacher") && (
                     <td className="px-4 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <AnnouncementPreviewModal item={item} />
                         <FormModal 
                            table="announcement" 
                            type="update" 
