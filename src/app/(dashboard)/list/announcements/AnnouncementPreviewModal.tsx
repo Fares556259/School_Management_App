@@ -25,7 +25,7 @@ export default function AnnouncementPreviewModal({ item }: { item: NoticeWithCla
           onClick={() => setIsOpen(false)}
         >
           <div 
-            className="bg-white rounded-[16px] shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col relative animate-in zoom-in-95 duration-200"
+            className="bg-white rounded-[16px] shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col relative animate-in zoom-in-95 duration-200 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
