@@ -246,7 +246,7 @@ export default function StudentDetailsModal({
                     </div>
                     <div className="border-t border-[#dddddd] pt-5">
                       {student.payments && student.payments.length > 0 ? (
-                        <PaymentTimeline payments={student.payments} />
+                        <PaymentTimeline payments={student.payments} student={student} />
                       ) : (
                         <span className="text-[14px] text-[#41454d]">No payment records found.</span>
                       )}
