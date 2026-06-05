@@ -2,6 +2,7 @@
 import { getSchoolYearMonths, isMonthBefore, getMonthKey, MONTHS } from "@/lib/dateUtils";
 import { Payment } from "@prisma/client";
 import { Check, X, AlertCircle } from "lucide-react";
+import { getReceiptContext } from "@/lib/receiptActions";
 
 /**
  * A sleek, horizontal stepper UI showing the payment timeline for the academic year.
@@ -11,10 +12,14 @@ export default function PaymentTimeline({
   payments,
   selectedMonthKey,
   student,
+  schoolName,
+  adminName,
 }: {
   payments: Payment[];
   selectedMonthKey?: string;
   student?: any;
+  schoolName?: string;
+  adminName?: string;
 }) {
   const now = new Date();
   const paidPayments = new Map<string, Payment>();
@@ -47,64 +52,72 @@ export default function PaymentTimeline({
   const handleDownloadReceipt = async (payment: Payment, monthKey: string) => {
     if (!student) return;
     const { jsPDF } = await import("jspdf");
+    const { schoolName, adminName } = await getReceiptContext();
     const doc = new jsPDF();
     
     // Title
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("CASH PAYMENT RECEIPT", 105, 30, { align: "center" });
+    doc.setTextColor(24, 29, 38);
+    doc.text("REÇU DE PAIEMENT", 105, 33, { align: "center" });
     
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
 
     // Receipt No & Date
-    const receiptNo = payment.id.toString().padStart(6, "0");
-    const dateStr = new Intl.DateTimeFormat("en-GB").format(new Date(payment.createdAt || new Date()));
+    const receiptNo = (payment.id || Math.floor(Math.random() * 900000) + 100000).toString().padStart(6, "0");
+    const dateStr = new Intl.DateTimeFormat("fr-FR").format(new Date(payment.paidAt || new Date()));
     
+    // Draw fields
     doc.setFont("helvetica", "bold");
-    doc.text("Receipt No: ", 20, 55);
+    doc.text("N° de reçu : ", 20, 50);
     doc.setFont("helvetica", "normal");
-    doc.text(receiptNo, 45, 55);
-    doc.line(44, 56, 80, 56); // underline
+    doc.text(receiptNo, 50, 50);
+    doc.setDrawColor(180, 180, 180);
+    doc.line(48, 51, 90, 51); // underline
 
     doc.setFont("helvetica", "bold");
-    doc.text("Date: ", 120, 55);
+    doc.text("Date : ", 120, 50);
     doc.setFont("helvetica", "normal");
-    doc.text(dateStr, 132, 55);
-    doc.line(131, 56, 180, 56); // underline
+    doc.text(dateStr, 135, 50);
+    doc.line(133, 51, 190, 51); // underline
 
     // Dynamic info
-    const receivedFrom = student.parent ? `${student.parent.name} ${student.parent.surname}` : `${student.name} ${student.surname}`;
-    const amountStr = payment.amount ? `$${payment.amount}` : "______________";
-    const paymentFor = `Tuition Fees - ${monthKey}`;
-    const address = student.parent?.address || student.address || "____________________";
-    const phone = student.parent?.phone || student.phone || "____________________";
+    const parentName = student.parent ? `${student.parent.name} ${student.parent.surname}` : "____________________";
+    const studentName = `${student.name} ${student.surname}`;
+    const amountStr = payment.amount ? `${payment.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} TND` : "______________ TND";
+    
+    // Format month for French display (e.g. "Sep 2026" -> "Septembre 2026")
+    const [mName, yStr] = monthKey.split(" ");
+    const frenchMonths: Record<string, string> = { "Jan": "Janvier", "Feb": "Février", "Mar": "Mars", "Apr": "Avril", "May": "Mai", "Jun": "Juin", "Jul": "Juillet", "Aug": "Août", "Sep": "Septembre", "Oct": "Octobre", "Nov": "Novembre", "Dec": "Décembre" };
+    const frenchMonth = frenchMonths[mName] || mName;
+    const paymentFor = `Frais de scolarité - ${frenchMonth} ${yStr}`;
 
-    const addField = (label: string, value: string, yPos: number, xOffset = 50, lineEnd = 180) => {
+    const addField = (label: string, value: string, yPos: number, xOffset = 60, lineEnd = 190) => {
       doc.setFont("helvetica", "bold");
       doc.text(label, 20, yPos);
       doc.setFont("helvetica", "normal");
       doc.text(value, xOffset, yPos);
-      doc.line(xOffset - 1, yPos + 1, lineEnd, yPos + 1);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(xOffset - 2, yPos + 2, lineEnd, yPos + 2);
     };
 
-    addField("Received From: ", receivedFrom, 80);
-    addField("Amount: ", amountStr, 100);
-    addField("Payment For: ", paymentFor, 120);
-    addField("Received By: ", "SnapSchool Admin", 140);
-    addField("Address: ", address, 160);
-    addField("Phone Number: ", phone, 180);
+    addField("Reçu de (Parent) : ", parentName, 75);
+    addField("Nom de l'élève : ", studentName, 95);
+    addField("Montant payé : ", amountStr, 115);
+    addField("Motif du paiement : ", paymentFor, 135);
+    addField("Reçu par : ", adminName || "Administration", 155);
 
     // Signatures at the bottom
     doc.setFont("helvetica", "bold");
-    doc.text("Signature:", 20, 240);
-    doc.line(42, 241, 90, 241);
+    doc.text("Signature du parent :", 20, 205);
+    doc.line(65, 206, 100, 206);
 
-    doc.text("Authorized Person:", 110, 240);
-    doc.line(148, 241, 190, 241);
+    doc.text("Cachet de l'école :", 120, 205);
+    doc.line(155, 206, 190, 206);
 
     // Save PDF
-    doc.save(`Receipt-${receiptNo}.pdf`);
+    doc.save(`Recu-${receiptNo}.pdf`);
   };
 
   return (
