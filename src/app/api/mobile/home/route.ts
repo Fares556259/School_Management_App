@@ -114,9 +114,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 1. Attendance boundaries
-    // Use UTC to avoid timezone issues when filtering by date
-    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+    // We must use local date components to construct the UTC bounds, otherwise the timezone offset shifts it to yesterday.
+    const todayStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const todayEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
     // Group 1: Sequential lookups to respect connection pool
     const slots = await prisma.timetableSlot.findMany({

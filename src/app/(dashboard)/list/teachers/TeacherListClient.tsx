@@ -11,6 +11,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import { Sparkles, ChevronDown, BookOpen, Layers } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -117,6 +118,17 @@ export default function TeacherListClient({
           )}
         </td>
         <td className="py-4 px-6">
+          {item.password ? (
+            <span className="px-2 py-1 rounded-[4px] bg-indigo-50 border border-indigo-200 text-indigo-700 text-[12px] font-medium">
+              Activated
+            </span>
+          ) : (
+            <span className="px-2 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium">
+              Non-activated
+            </span>
+          )}
+        </td>
+        <td className="py-4 px-6">
           <div className="flex items-center gap-2">
             <TeacherDetailsModal teacher={item} />
             <PaySalaryModal 
@@ -132,6 +144,7 @@ export default function TeacherListClient({
             />
             {role === "admin" && (
               <>
+                <ResetPasswordButton teacherId={item.id} />
                 <CrudFormModal entity="teacher" mode="update" data={item} id={item.id} relatedData={relatedData} />
                 <CrudFormModal entity="teacher" mode="delete" id={item.id} />
               </>

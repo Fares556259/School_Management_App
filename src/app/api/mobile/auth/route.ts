@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, password, action, schoolId } = body;
+    const { phone, password, action, schoolId, role } = body;
 
     if (!phone || !password || !action) {
       return NextResponse.json(
@@ -18,35 +18,35 @@ export async function POST(request: NextRequest) {
     // Resolve school — use provided schoolId, or fall back to "default_school"
     const resolvedSchoolId = schoolId || "default_school";
 
-    let user: any = await prisma.parent.findFirst({
-      where: {
-        OR: [{ phone: phone.trim() }, { username: phone.trim() }],
-      },
-      orderBy: { id: "asc" },
-      include: {
-        students: {
-          include: { 
-            class: {
-              include: {
-                level: true,
+    let user: any = null;
+    let userType = role || "parent"; // Default to parent if role is missing
+
+    if (userType === "parent") {
+      user = await prisma.parent.findFirst({
+        where: {
+          OR: [{ phone: phone.trim() }, { username: phone.trim() }],
+        },
+        orderBy: { id: "asc" },
+        include: {
+          students: {
+            include: { 
+              class: {
+                include: {
+                  level: true,
+                },
               },
+              payments: true,
             },
-            payments: true,
           },
         },
-      },
-    });
-
-    let userType = "parent";
-
-    if (!user) {
+      });
+    } else if (userType === "teacher") {
       user = await prisma.teacher.findFirst({
         where: {
           OR: [{ phone: phone.trim() }, { username: phone.trim() }],
         },
         orderBy: { id: "asc" },
       });
-      if (user) userType = "teacher";
     }
 
     if (!user) {

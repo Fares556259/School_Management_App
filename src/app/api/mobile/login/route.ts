@@ -6,25 +6,26 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone } = body;
+    const { phone, role } = body;
 
     if (!phone) {
       return new NextResponse("Phone number is required", { status: 400 });
     }
 
-    let user: any = await prisma.parent.findFirst({
-      where: {
-        OR: [
-          { phone: phone.trim() },
-          { username: phone.trim() }
-        ]
-      },
-      orderBy: { id: 'asc' }
-    });
+    let user: any = null;
+    let userType = role || "parent"; // Default to parent if role is missing
 
-    let userType = "parent";
-
-    if (!user) {
+    if (userType === "parent") {
+      user = await prisma.parent.findFirst({
+        where: {
+          OR: [
+            { phone: phone.trim() },
+            { username: phone.trim() }
+          ]
+        },
+        orderBy: { id: 'asc' }
+      });
+    } else if (userType === "teacher") {
       user = await prisma.teacher.findFirst({
         where: {
           OR: [
@@ -34,7 +35,6 @@ export async function POST(request: NextRequest) {
         },
         orderBy: { id: 'asc' }
       });
-      if (user) userType = "teacher";
     }
 
     if (!user) {

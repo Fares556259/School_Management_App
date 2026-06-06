@@ -53,6 +53,10 @@ const columns = [
     accessor: "isPaid",
   },
   {
+    header: "Activation",
+    accessor: "isActivated",
+  },
+  {
     header: "Actions",
     accessor: "action",
   },

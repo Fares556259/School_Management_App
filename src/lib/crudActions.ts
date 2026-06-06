@@ -1141,6 +1141,33 @@ export const resetParentPassword = async (parentId: string) => {
   }
 };
 
+export const resetTeacherPassword = async (teacherId: string) => {
+  try {
+    console.log(`[SECURITY] Initiating password reset for Teacher ID: ${teacherId}`);
+
+    const teacher = await prisma.teacher.update({
+      where: { id: teacherId },
+      data: { password: null }
+    });
+
+    await createAuditLog({
+      action: "RESET_TEACHER_PASSWORD",
+      entityType: "Teacher",
+      entityId: teacherId,
+      description: `Administrative password reset for: ${teacher.name} ${teacher.surname} (${teacher.phone || 'No phone'})`,
+    });
+
+    revalidatePath("/list/teachers");
+    return { success: true };
+  } catch (err: any) {
+    console.error("[SECURITY_ERROR] resetTeacherPassword failed:", err);
+    if (err.code === 'P2025') {
+      return { success: false, error: "Account record not found in database." };
+    }
+    return { success: false, error: err?.message || "Database connection error." };
+  }
+};
+
 // ===================== UNIFIED ENROLLMENT =====================
 export const enrollFamily = async (parentData: any, children: any[]) => {
   try {

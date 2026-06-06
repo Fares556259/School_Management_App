@@ -1,9 +1,9 @@
 "use client";
 
-import { resetParentPassword } from "@/lib/crudActions";
+import { resetParentPassword, resetTeacherPassword } from "@/lib/crudActions";
 import { useState } from "react";
 
-const ResetPasswordButton = ({ parentId }: { parentId: string }) => {
+const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teacherId?: string }) => {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -12,7 +12,17 @@ const ResetPasswordButton = ({ parentId }: { parentId: string }) => {
   const handleReset = async () => {
     setLoading(true);
     setStatus("idle");
-    const result = await resetParentPassword(parentId);
+    
+    let result;
+    if (parentId) {
+      result = await resetParentPassword(parentId);
+    } else if (teacherId) {
+      result = await resetTeacherPassword(teacherId);
+    } else {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(false);
 
     if (result.success) {
@@ -57,7 +67,7 @@ const ResetPasswordButton = ({ parentId }: { parentId: string }) => {
                 </div>
                 <h2 className="text-[20px] font-semibold text-[#181d26] mb-2">Password Reset!</h2>
                 <p className="text-[14px] text-[#5a5a5a]">
-                  The parent's security has been cleared. They will create a new password upon their next login.
+                  The user's security has been cleared. They will create a new password upon their next login.
                 </p>
               </div>
             ) : (
@@ -71,7 +81,7 @@ const ResetPasswordButton = ({ parentId }: { parentId: string }) => {
                   <div>
                     <h2 className="text-[18px] font-semibold text-[#181d26] mb-1.5">Reset Security Access?</h2>
                     <p className="text-[14px] text-[#5a5a5a] leading-relaxed">
-                      Are you sure you want to reset this parent's security? They will be forced to create a new password on their mobile app.
+                      Are you sure you want to reset this user's security? They will be forced to create a new password on their mobile app.
                     </p>
                   </div>
                 </div>
