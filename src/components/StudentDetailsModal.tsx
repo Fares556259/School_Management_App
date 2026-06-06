@@ -30,11 +30,15 @@ interface StudentDetailsModalProps {
     payments?: any[];
   };
   className: string;
+  schoolName?: string;
+  adminName?: string;
 }
 
 export default function StudentDetailsModal({
   student,
   className,
+  schoolName,
+  adminName,
 }: StudentDetailsModalProps) {
   const [open, setOpen] = useState(false);
 
@@ -246,7 +250,12 @@ export default function StudentDetailsModal({
                     </div>
                     <div className="border-t border-[#dddddd] pt-5">
                       {student.payments && student.payments.length > 0 ? (
-                        <PaymentTimeline payments={student.payments} student={student} />
+                        <PaymentTimeline 
+                          payments={student.payments} 
+                          student={student} 
+                          schoolName={schoolName}
+                          adminName={adminName}
+                        />
                       ) : (
                         <span className="text-[14px] text-[#41454d]">No payment records found.</span>
                       )}

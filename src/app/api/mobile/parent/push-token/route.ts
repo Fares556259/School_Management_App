@@ -7,17 +7,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { parentId, pushToken } = body;
 
-    if (!parentId || !pushToken) {
+    if (!parentId) {
       return NextResponse.json(
-        { success: false, error: "Missing parentId or pushToken" },
+        { success: false, error: "Missing parentId" },
         { status: 400 }
       );
     }
 
-    // Save the token to the parent record
+    // Save the token to the parent record (can be empty/null to unregister)
     await prisma.parent.update({
       where: { id: parentId },
-      data: { expoPushToken: pushToken },
+      data: { expoPushToken: pushToken || null },
     });
 
     console.log(`[PUSH-TOKEN] Saved token for parent ${parentId}`);

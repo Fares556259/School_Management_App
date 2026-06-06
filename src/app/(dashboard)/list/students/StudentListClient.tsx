@@ -97,7 +97,12 @@ export default function StudentListClient({
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
-            <StudentDetailsModal student={item} className={item.class?.name ?? "No class"} />
+            <StudentDetailsModal 
+              student={item} 
+              className={item.class?.name ?? "No class"} 
+              schoolName={relatedData.schoolName}
+              adminName={relatedData.adminName}
+            />
             <PayStudentModal
               studentId={item.id}
               studentName={item.name + " " + item.surname}

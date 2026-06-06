@@ -108,7 +108,7 @@ const StudentListPage = async ({
         class: true,
         level: true,
         parent: true,
-        payments: { select: { month: true, year: true, status: true, paidAt: true } },
+        payments: { select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -130,10 +130,15 @@ const StudentListPage = async ({
     }),
   ]);
 
+  const admin = role === "admin" ? await prisma.admin.findUnique({ where: { id: userId! }, select: { name: true, surname: true } }) : null;
+  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } });
+
   const studentRelatedData = {
     parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
     classId: classes.map((c) => ({ value: String(c.id), label: c.name })),
     levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
+    schoolName: school?.name || "SnapSchool",
+    adminName: admin ? `${admin.name} ${admin.surname}` : "Administration",
   };
 
   // Compute month-based payment stats

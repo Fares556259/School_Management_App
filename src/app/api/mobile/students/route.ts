@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { id, img } = await request.json();
+    const { id, img, name, surname } = await request.json();
 
     if (!id) {
       return new NextResponse("Missing id", { status: 400 });
@@ -50,7 +50,11 @@ export async function PATCH(request: NextRequest) {
 
     const updatedStudent = await prisma.student.update({
       where: { id },
-      data: { img: img || null },
+      data: { 
+        ...(img !== undefined && { img: img || null }),
+        ...(name !== undefined && { name }),
+        ...(surname !== undefined && { surname })
+      },
     });
 
     return NextResponse.json(updatedStudent);

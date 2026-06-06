@@ -69,6 +69,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
               <FormModal 
                 table="announcement" 
                 type="create" 
+                relatedData={{ classes }}
                 trigger={
                   <button className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm">
                     <Plus size={14} className="text-white/80" /> Create Announcement
@@ -146,6 +147,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                            table="announcement" 
                            type="update" 
                            data={item}
+                           relatedData={{ classes }}
                            trigger={
                              <button className="text-[11px] font-medium text-[#5a5a5a] hover:text-[#181d26] px-2 py-1 rounded-[4px] border border-transparent hover:border-[#dddddd] bg-transparent hover:bg-[#f8fafc] transition-all">
                                Edit
