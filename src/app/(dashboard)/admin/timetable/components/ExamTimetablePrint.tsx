@@ -86,80 +86,25 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
   return (
     <div ref={ref} className="bg-white p-8 text-slate-900 hidden print:block" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       <style type="text/css" media="print">{"\
-        @page { size: landscape; margin: 10mm; }\
-        body { -webkit-print-color-adjust: exact; font-family: 'Times New Roman', Times, serif; }\
+        @page { size: landscape; margin: 0; }\
+        body { -webkit-print-color-adjust: exact; font-family: 'Times New Roman', Times, serif; margin: 10mm; }\
       "}</style>
       
-      {/* HEADER SECTION */}
-      <div className="flex justify-between items-start mb-10">
-        <div className="w-1/3 text-[10px] leading-tight flex flex-col items-start gap-2">
-          <p className="font-bold whitespace-pre-line">{schoolConfig.schoolName}</p>
-          {schoolConfig.schoolLogo ? (
-            <div className="w-16 h-16 relative">
-              <Image src={schoolConfig.schoolLogo} alt="School Logo" fill className="object-contain" />
-            </div>
-          ) : (
-            <div className="w-16 h-16 bg-slate-50 border border-slate-200 flex items-center justify-center">
-              <span className="text-[8px] text-slate-400 font-sans uppercase">Logo</span>
-            </div>
-          )}
-        </div>
-
-        <div className="w-1/3 flex flex-col items-center gap-2">
-            <div className="text-center font-bold text-[10px] uppercase leading-tight whitespace-pre-line">
-                {schoolConfig.ministryName}
-            </div>
-            <div className="w-12 h-12 flex flex-col items-center justify-center">
-                {schoolConfig.ministryLogo ? (
-                   <div className="w-10 h-10 relative">
-                     <Image src={schoolConfig.ministryLogo} alt="Ministry Logo" fill className="object-contain" />
-                   </div>
-                ) : (
-                  <>
-                    <div className="w-8 h-8 rounded-full border border-slate-300"></div>
-                    <span className="text-[6px] text-slate-400 mt-1 uppercase font-sans">Logo</span>
-                  </>
-                )}
-            </div>
-        </div>
-
-        <div className="w-1/3 text-[10px] leading-tight flex flex-col items-end gap-2 text-right">
-          <div className="flex flex-col items-end gap-2">
-             <p className="font-bold uppercase tracking-tighter whitespace-pre-line">{schoolConfig.universityName}</p>
-             {schoolConfig.universityLogo ? (
-                <div className="w-12 h-12 relative">
-                  <Image src={schoolConfig.universityLogo} alt="University Logo" fill className="object-contain" />
-                </div>
-             ) : (
-               <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center">
-                  <span className="text-[6px] text-slate-400 font-sans uppercase">Logo</span>
-               </div>
-             )}
-          </div>
-        </div>
-      </div>
-
       {/* TITLE SECTION */}
-      <div className="flex flex-col items-center gap-2 mb-8 text-center uppercase">
-        <h1 className="text-xl font-black underline decoration-2 underline-offset-4">
-          Calendrier des Examens {schoolConfig.currentSemester}{schoolConfig.currentSemester === 1 ? 'er' : 'ème'} Semestre - Période {examPeriod}
-        </h1>
-        <h2 className="text-base font-bold">
-          Année Universitaire {schoolConfig.academicYear}
-        </h2>
-        <h3 className="text-sm font-bold opacity-80 mt-1">
+      <div className="flex flex-col items-center mb-8 text-center text-black">
+        <h1 className="text-[20px] font-bold leading-tight">
           {classInfo.level}{classInfo.level === 1 ? 'ère' : 'ème'} Année - {classInfo.name}
-        </h3>
+        </h1>
       </div>
 
       {/* TABLE SECTION */}
-      <table className="w-full border-collapse border-2 border-slate-900 text-[10px]">
+      <table className="w-full border-collapse border-2 border-black text-[12px]">
         <thead>
           <tr>
-            <th className="border border-slate-900 p-2 bg-slate-50 font-black uppercase w-[100px]">Horaire</th>
+            <th className="border border-black p-2 font-bold w-[120px]">Horaire</th>
             {displayDays.map((item, idx) => (
-              <th key={idx} className="border border-slate-900 p-2 bg-slate-50 font-black uppercase">
-                {dayLabels[item.day]} {item.date?.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              <th key={idx} className="border border-black p-2 font-bold">
+                {dayLabels[item.day]} {item.date?.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
               </th>
             ))}
           </tr>
@@ -167,24 +112,26 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
         <tbody>
           {sessions.map((session) => (
             <tr key={session.id}>
-              <td className="border border-slate-900 p-3 font-black text-center whitespace-nowrap bg-white">
-                {session.time.replace(" - ", " - ")}
+              <td className="border border-black p-3 font-bold text-center whitespace-nowrap bg-white text-[12px]">
+                {session.time.split(" - ").map(t => t.replace(/^0/, "").replace(/:00/, "h").replace(/:30/, "h30")).join("-")}
               </td>
               {displayDays.map((item, idx) => {
                 const s = findSlot(session.id, item.date);
                 const teacherNames = s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "";
-                const subjectName = s?.lesson?.subject?.name || "";
-                const examType = s?.title?.includes("DS") ? "DS" : s?.title?.includes("EX") ? "EX" : "EX";
+                
+                let subjectName = s?.lesson?.subject?.name || "";
+                if (subjectName.includes("|")) {
+                  const parts = subjectName.split("|").map((p: string) => p.trim());
+                  const arabicPart = parts.find((p: string) => /[\u0600-\u06FF]/.test(p));
+                  subjectName = arabicPart || parts[0];
+                }
 
                 return (
-                  <td key={idx} className="border border-slate-900 p-3 text-center align-middle min-h-[60px]">
+                  <td key={idx} className="border border-black p-3 text-center align-middle min-h-[60px] text-[14px]">
                     {s ? (
                       <div className="flex flex-col gap-1">
-                        <span className="font-bold leading-tight uppercase">
-                          {examType}:{subjectName}
-                        </span>
-                        <span className="text-[8px] italic opacity-70">
-                          {teacherNames}
+                        <span className="font-bold leading-tight">
+                          {subjectName}
                         </span>
                       </div>
                     ) : null}
@@ -196,11 +143,6 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
         </tbody>
       </table>
 
-      {/* FOOTER */}
-      <div className="mt-10 flex justify-between items-end">
-        <div className="text-[8px] opacity-40">Généré le {new Date().toLocaleDateString('fr-FR')}</div>
-        <div className="text-[8px] font-black underline">1</div>
-      </div>
     </div>
   );
 });

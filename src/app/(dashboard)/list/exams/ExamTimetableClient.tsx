@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown, ChevronDown } from "lucide-react";
+import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown, ChevronDown, Send } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { toast } from "react-toastify";
+import { createClient } from "@/utils/supabase/client";
 import ScheduleGrid from "../../admin/timetable/components/ScheduleGrid";
 import AiScheduleModal from "../../admin/timetable/components/AiScheduleModal";
 import { isAIQuotaReached } from "../../admin/actions/aiActions";
@@ -16,7 +20,8 @@ import {
   getExamPeriodConfigs,
   upsertExamPeriodConfig,
   publishDraftExams,
-  discardDraftExams
+  discardDraftExams,
+  publishExamScheduleToStudents
 } from "../../admin/actions/examActions";
 import ExamTimetablePrint from "../../admin/timetable/components/ExamTimetablePrint";
 import { defaultSessions } from "../../admin/timetable/components/ScheduleGrid";
@@ -55,6 +60,7 @@ const ExamTimetableClient = ({
   // Draft States
   const [isDraftView, setIsDraftView] = useState(forceDraft);
   const [hasDraft, setHasDraft] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // PDF Export Ref
   const printRef = useRef<HTMLDivElement>(null);
@@ -203,6 +209,62 @@ const ExamTimetableClient = ({
     }
   };
 
+  const handlePublishToStudents = async () => {
+    if (!selectedClass?.id) return;
+    if (!printRef.current) return;
+
+    if (!window.confirm("Are you sure you want to generate the PDF and publish it to all students in this class? They will receive a notification immediately.")) return;
+
+    setIsPublishing(true);
+    const toastId = toast.loading("Generating PDF...");
+    
+    try {
+      // 1. Generate PDF (temporarily make print block visible for html2canvas if needed, but react-to-print uses iframe. For html2canvas we need it in DOM. Since it has `hidden print:block`, we need to temporarily unhide it)
+      const el = printRef.current;
+      const originalDisplay = el.style.display;
+      el.classList.remove("hidden");
+      el.style.display = "block";
+
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+      
+      // restore
+      el.classList.add("hidden");
+      el.style.display = originalDisplay;
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      const pdfBlob = pdf.output('blob');
+
+      // 2. Upload to Supabase
+      toast.update(toastId, { render: "Uploading PDF...", type: "info", isLoading: true });
+      const supabase = createClient();
+      const fileName = `exam_timetable_${selectedClass.id}_period_${selectedPeriod}_${Date.now()}.pdf`;
+      
+      const { error: uploadError } = await supabase.storage.from('uploads').upload(fileName, pdfBlob);
+      if (uploadError) throw new Error("Failed to upload PDF: " + uploadError.message);
+
+      const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(fileName);
+
+      // 3. Update database and send notifications
+      toast.update(toastId, { render: "Notifying students...", type: "info", isLoading: true });
+      const res = await publishExamScheduleToStudents(selectedClass.id, selectedPeriod, publicUrl);
+      
+      if (!res.success) throw new Error(res.error || "Failed to notify students");
+
+      toast.update(toastId, { render: "Successfully published to students!", type: "success", isLoading: false, autoClose: 3000 });
+    } catch (err: any) {
+      console.error(err);
+      toast.update(toastId, { render: err.message || "An error occurred", type: "error", isLoading: false, autoClose: 4000 });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const handleAiSuccess = () => {
     setRefreshKey(prev => prev + 1);
   };
@@ -297,13 +359,23 @@ const ExamTimetableClient = ({
                 )}
 
                 {/* 3. Export Utility (Standalone Outline Button) */}
-                <button 
-                  onClick={() => handlePrint()}
-                  className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all border border-[#dddddd] bg-white text-[#181d26] hover:bg-slate-50 active:scale-[0.98]"
-                >
-                  <FileDown size={16} />
-                  Export PDF
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handlePrint()}
+                    className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all border border-[#dddddd] bg-white text-[#181d26] hover:bg-slate-50 active:scale-[0.98]"
+                  >
+                    <FileDown size={16} />
+                    Export PDF
+                  </button>
+                  <button 
+                    onClick={handlePublishToStudents}
+                    disabled={isPublishing || slots.length === 0}
+                    className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send size={16} />
+                    {isPublishing ? "Publishing..." : "Publish to Students"}
+                  </button>
+                </div>
               </>
             ) : (
               /* EDITING MODE ACTIVE - SHOW ONLY DONE EDITING */

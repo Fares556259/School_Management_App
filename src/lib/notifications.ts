@@ -453,3 +453,55 @@ export async function createRemarkNotification(studentId: string, subjectName: s
     console.error("[NOTIFICATIONS] Error creating remark notification:", error);
   }
 }
+
+/**
+ * Creates notifications for parents when an exam schedule is published/updated.
+ */
+export async function createExamScheduleNotification(classId: number, period: number) {
+  try {
+    const students = await prisma.student.findMany({
+      where: { classId },
+      select: { parentId: true, id: true, name: true, schoolId: true },
+    });
+
+    if (!students || students.length === 0) return;
+
+    // We can just notify per parent
+    const parentMap = new Map<string, string>(); // parentId -> schoolId
+    for (const s of students) {
+      if (!parentMap.has(s.parentId)) {
+        parentMap.set(s.parentId, s.schoolId);
+      }
+    }
+
+    const title = `📅 Exam Schedule Updated`;
+    const message = `The official exam schedule for Term ${period} is now available.`;
+
+    const parentIds = Array.from(parentMap.keys());
+
+    // Create database notifications
+    await prisma.notification.createMany({
+      data: parentIds.map((parentId) => ({
+        parentId,
+        type: "ANNOUNCEMENT",
+        title,
+        message,
+        schoolId: parentMap.get(parentId) || "default_school"
+      })),
+    });
+
+    // Send push notifications
+    for (const parentId of parentIds) {
+      sendPush(
+        parentId,
+        title,
+        message,
+        { type: "EXAM_SCHEDULE", period }
+      );
+    }
+
+    console.log(`[NOTIFICATIONS] Created ${parentIds.length} exam schedule notifications for class ${classId}`);
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error creating exam schedule notification:", error);
+  }
+}

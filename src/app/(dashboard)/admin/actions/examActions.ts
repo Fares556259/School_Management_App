@@ -403,3 +403,37 @@ export async function discardDraftExams(classId: number, period: number) {
   }
 }
 
+import { createExamScheduleNotification } from "@/lib/notifications";
+
+export async function publishExamScheduleToStudents(classId: number, period: number, pdfUrl: string) {
+  try {
+    // 1. Get the current config or create a dummy start date if it doesn't exist
+    const existing = await prisma.examPeriodConfig.findUnique({
+      where: { period_classId: { period, classId } }
+    });
+
+    // 2. Upsert the exam config with the PDF URL
+    const config = await prisma.examPeriodConfig.upsert({
+      where: { period_classId: { period, classId } },
+      update: { 
+        pdfUrl
+      },
+      create: { 
+        period, 
+        classId,
+        startDate: existing?.startDate || new Date(),
+        pdfUrl
+      }
+    });
+
+    // 3. Send notifications to students' parents
+    await createExamScheduleNotification(classId, period);
+
+    revalidatePath("/list/exams");
+    return { success: true, data: config };
+  } catch (error: any) {
+    console.error("Error publishing exam schedule to students:", error);
+    return { success: false, error: error.message };
+  }
+}
+
