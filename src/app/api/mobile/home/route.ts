@@ -126,8 +126,9 @@ export async function GET(request: NextRequest) {
     });
     
     const attendance = await prisma.attendance.findMany({
-      where: { studentId, date: { gte: todayStart, lt: todayEnd } },
+      where: { studentId, schoolId, date: { gte: todayStart, lt: todayEnd } },
       orderBy: { id: "desc" },
+      include: { lesson: { include: { subject: true, teacher: true } } }
     });
     
     const todayLessons = await prisma.lesson.findMany({
@@ -208,8 +209,9 @@ export async function GET(request: NextRequest) {
         const lessonObj = todayLessons.find(l => l.id === a.lessonId);
         const slot = slots.find(s => s.subjectId === lessonObj?.subjectId);
         
-        const realSubject = slot?.subject?.name || "General";
-        const realTeacher = slot?.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "Teacher";
+        // Use direct relation if available, otherwise fallback to timetable slot logic
+        const realSubject = a.lesson?.subject?.name || slot?.subject?.name || "General";
+        const realTeacher = a.lesson?.teacher ? `${a.lesson.teacher.name} ${a.lesson.teacher.surname}` : (slot?.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : "Teacher");
 
         const rawText = a.note!;
         try {
@@ -223,6 +225,7 @@ export async function GET(request: NextRequest) {
                   subject: realSubject,
                   teacher: realTeacher,
                   date: a.date,
+                  time: slot?.startTime || undefined,
                 });
               }
             });
@@ -242,6 +245,7 @@ export async function GET(request: NextRequest) {
           subject: realSubject,
           teacher: realTeacher,
           date: a.date,
+          time: slot?.startTime || undefined,
         });
       });
 

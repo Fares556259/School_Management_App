@@ -10,13 +10,24 @@ export async function GET(request: NextRequest) {
     const classId = searchParams.get("classId");
     const teacherId = searchParams.get("teacherId");
     const date = searchParams.get("date");
+    const subjectIdParam = searchParams.get("subjectId");
 
     if (!classId) {
       return new NextResponse("Missing classId", { status: 400 });
     }
 
-    const today = date ? new Date(date) : new Date();
-    today.setHours(0, 0, 0, 0);
+    let today = new Date();
+    if (date) {
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        today = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+      } else {
+        today = new Date(date);
+        today.setUTCHours(0, 0, 0, 0);
+      }
+    } else {
+      today = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    }
 
     // Identify the specific lesson context for this teacher and class
     const dayName = moment(date || new Date()).format('dddd').toUpperCase();
@@ -34,12 +45,39 @@ export async function GET(request: NextRequest) {
           teacherId: teacherId || undefined,
           day: dayName as any,
           isDraft: false
-        }
+        },
+        orderBy: { slotNumber: "asc" }
       })
     ]);
 
-    const lessonId = lessons[0]?.id || null;
+    const parsedSubjectId = subjectIdParam ? parseInt(subjectIdParam) : null;
+
+    // Build the sessions array for the UI to render the pills
+    const sessions = timetableSlots.map(slot => ({
+      slotId: slot.id,
+      subjectId: slot.subjectId,
+      subjectName: slot.subject?.name || "Session",
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    }));
+
+    // Determine the active slot
+    let activeSlot = timetableSlots[0] || null;
+    if (parsedSubjectId) {
+      activeSlot = timetableSlots.find(s => s.subjectId === parsedSubjectId) || timetableSlots[0];
+    }
+    
+    // Use the active slot to figure out which lesson to match
+    let lesson = null;
+    if (activeSlot) {
+      lesson = lessons.find(l => l.subjectId === activeSlot.subjectId) || null;
+    } else if (lessons.length > 0) {
+      lesson = lessons[0];
+    }
+    
+    const lessonId = lesson?.id || null;
     const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
+    const activeSubjectId = activeSlot?.subjectId || null;
 
     const students = await prisma.student.findMany({
       where: { classId: parseInt(classId) },
@@ -114,7 +152,9 @@ export async function GET(request: NextRequest) {
       assignments,
       resources,
       hasLesson,
-      lessonId
+      lessonId,
+      sessions,
+      activeSubjectId
     });
   } catch (error: any) {
     console.error("[Teacher Students API Error]", error);

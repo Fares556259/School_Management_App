@@ -5,7 +5,7 @@ import { createAttendanceNotification, createAssignmentNotification, createResou
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { teacherId, classId, records, date, lessonId, task, resource } = body;
+    const { teacherId, classId, records, date, lessonId, task, resource, subjectId } = body;
 
     if (!teacherId || !records || !Array.isArray(records)) {
       return new NextResponse("Missing required fields", { status: 400 });
@@ -21,9 +21,19 @@ export async function POST(request: NextRequest) {
     }
 
     const schoolId = teacher.schoolId;
-    const attendanceDate = date ? new Date(date) : new Date();
-    // Normalize date to YYYY-MM-DD
-    attendanceDate.setHours(0, 0, 0, 0);
+    
+    let attendanceDate = new Date();
+    if (date) {
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        attendanceDate = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+      } else {
+        attendanceDate = new Date(date);
+        attendanceDate.setUTCHours(0, 0, 0, 0);
+      }
+    } else {
+      attendanceDate = new Date(Date.UTC(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate()));
+    }
 
     let effectiveLessonId = lessonId ? parseInt(lessonId) : null;
 
@@ -32,29 +42,34 @@ export async function POST(request: NextRequest) {
       const moment = (await import('moment')).default;
       const dayName = moment(attendanceDate).format('dddd').toUpperCase();
       
+      const parsedSubjectId = subjectId ? parseInt(subjectId) : undefined;
+
+      const slot = await prisma.timetableSlot.findFirst({
+        where: {
+          schoolId,
+          classId: parseInt(classId),
+          teacherId,
+          day: dayName as any,
+          isDraft: false,
+          ...(parsedSubjectId ? { subjectId: parsedSubjectId } : {})
+        },
+        orderBy: { slotNumber: "asc" },
+        include: { subject: true }
+      });
+
       const lesson = await prisma.lesson.findFirst({
         where: {
           schoolId,
           classId: parseInt(classId),
           teacherId,
-          day: dayName as any
+          day: dayName as any,
+          ...(slot ? { subjectId: slot.subjectId } : {})
         }
       });
 
       if (lesson) {
         effectiveLessonId = lesson.id;
       } else {
-        const slot = await prisma.timetableSlot.findFirst({
-          where: {
-            schoolId,
-            classId: parseInt(classId),
-            teacherId,
-            day: dayName as any,
-            isDraft: false
-          },
-          include: { subject: true }
-        });
-
         if (slot && slot.subjectId) {
           const newLesson = await prisma.lesson.create({
             data: {

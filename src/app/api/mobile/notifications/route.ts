@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
           { studentId: null }
         ]
       },
-      include: { student: true },
+      include: { student: { include: { class: true } } },
       orderBy: { createdAt: "desc" },
       take: 50
     });
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
         id: n.id,
         type: n.type,
         student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
+        className: n.student?.class?.name || "School",
         message: n.message,
         time: formatRelativeTime(n.createdAt),
         rawDate: n.createdAt,
