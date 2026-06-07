@@ -31,20 +31,10 @@ export async function GET(request: NextRequest) {
       where: { classId: parseInt(classId), teacherId: teacherId || undefined, isDraft: false },
       include: { subject: true }
     });
-    const lessons: any[] = await prisma.lesson.findMany({
-      where: { classId: parseInt(classId), teacherId: teacherId || undefined },
-      include: { subject: true }
-    });
-    
     const subjectMap = new Map();
     slots.forEach(s => {
       if (s.subject) {
         subjectMap.set(s.subject.id, { id: s.subject.id, name: s.subject.name });
-      }
-    });
-    lessons.forEach(l => {
-      if (l.subject) {
-        subjectMap.set(l.subject.id, { id: l.subject.id, name: l.subject.name });
       }
     });
     const classSubjects = Array.from(subjectMap.values());
