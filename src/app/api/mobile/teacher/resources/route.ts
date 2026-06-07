@@ -39,16 +39,19 @@ export async function GET(request: NextRequest) {
     });
     const classSubjects = Array.from(subjectMap.values());
 
-    const formatted = resources.map(r => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      url: r.url,
-      createdAt: r.createdAt,
-      subject: r.lesson.subject?.name || "General",
-      teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}`,
-      lessonId: r.lessonId,
-    }));
+    const formatted = resources.flatMap(r => {
+      const urls = r.url ? r.url.split(',') : [];
+      return urls.map((url, idx) => ({
+        id: urls.length > 1 ? `${r.id}-${idx}` : r.id,
+        title: urls.length > 1 ? `${r.title} (${idx + 1})` : r.title,
+        description: r.description,
+        url: url,
+        createdAt: r.createdAt,
+        subject: r.lesson.subject?.name || "General",
+        teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}`,
+        lessonId: r.lessonId,
+      }));
+    });
 
     return NextResponse.json({
       resources: formatted,
@@ -144,16 +147,19 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({
-      id: resource.id,
-      title: resource.title,
+    const urls = resource.url ? resource.url.split(',') : [];
+    const expanded = urls.map((u, idx) => ({
+      id: urls.length > 1 ? `${resource.id}-${idx}` : resource.id,
+      title: urls.length > 1 ? `${resource.title} (${idx + 1})` : resource.title,
       description: resource.description,
-      url: resource.url,
+      url: u,
       createdAt: resource.createdAt,
       subject: resource.lesson.subject?.name || "General",
       teacher: `${resource.lesson.teacher.name} ${resource.lesson.teacher.surname}`,
       lessonId: resource.lessonId,
-    });
+    }));
+
+    return NextResponse.json(expanded);
   } catch (error: any) {
     console.error("[Teacher Resources POST Error]", error);
     return new NextResponse(JSON.stringify({ error: error.message }), {

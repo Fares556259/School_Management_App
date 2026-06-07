@@ -57,14 +57,17 @@ export async function GET(request: NextRequest) {
       );
 
       const allResources = subject.lessons.flatMap(l => 
-        l.resources.map(r => ({
-          id: r.id,
-          title: r.title,
-          description: r.description,
-          url: r.url,
-          createdAt: r.createdAt,
-          teacher: `${l.teacher?.name} ${l.teacher?.surname}`
-        }))
+        l.resources.flatMap(r => {
+          const urls = r.url ? r.url.split(',') : [];
+          return urls.map((url, idx) => ({
+            id: urls.length > 1 ? `${r.id}-${idx}` : r.id,
+            title: urls.length > 1 ? `${r.title} (${idx + 1})` : r.title,
+            description: r.description,
+            url: url,
+            createdAt: r.createdAt,
+            teacher: `${l.teacher?.name} ${l.teacher?.surname}`
+          }));
+        })
       );
 
       return {
