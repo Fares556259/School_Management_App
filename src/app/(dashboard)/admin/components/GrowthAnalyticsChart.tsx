@@ -28,7 +28,7 @@ const SummaryItem = ({ label, value, colorHex }: { label: string, value: number,
       {label}
     </p>
     <p className="text-[24px] font-semibold text-[#080808] tracking-[-0.5px]">
-      ${Math.round(value).toLocaleString()}
+      {`\u202A${value < 0 ? '-' : ''}${Math.abs(Math.round(value)).toLocaleString()} DT\u202C`}
     </p>
   </div>
 );
@@ -147,7 +147,7 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
                   <span className="text-xs font-bold text-slate-500">{entry.label}</span>
                 </div>
                 <span className={`text-sm font-black tracking-tight ${entry.isBold ? 'text-indigo-600' : 'text-slate-800'}`}>
-                  ${Math.round(entry.value).toLocaleString()}
+                  {`\u202A${entry.value < 0 ? '-' : ''}${Math.abs(Math.round(entry.value)).toLocaleString()} DT\u202C`}
                 </span>
               </div>
             ))}
@@ -236,7 +236,7 @@ const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
               axisLine={false} 
               tickLine={false} 
               tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
-              tickFormatter={(v) => `$${v / 1000}k`}
+              tickFormatter={(v) => `\u202A${v < 0 ? '-' : ''}${Math.abs(v / 1000).toFixed(0)}k DT\u202C`}
             />
 
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366F1', strokeWidth: 1, strokeDasharray: '4 4' }} />

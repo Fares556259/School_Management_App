@@ -522,8 +522,10 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
     );
   }
 
+  const isRtl = locale === 'ar';
+
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] font-sans">
+    <div className={`fixed bottom-6 z-[9999] font-sans ${isRtl ? 'left-6' : 'right-6'}`}>
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -753,9 +755,9 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         
         {/* Sleek Tooltip */}
         {!isOpen && (
-          <div className="absolute right-full mr-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap uppercase tracking-widest shadow-xl">
+          <div className={`absolute ${isRtl ? 'left-full ml-4 -translate-x-4' : 'right-full mr-4 translate-x-4'} px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0 pointer-events-none whitespace-nowrap uppercase tracking-widest shadow-xl`}>
             {t.zbiba.askZbiba}
-            <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45" />
+            <div className={`absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45 ${isRtl ? '-left-1' : '-right-1'}`} />
           </div>
         )}
       </motion.button>

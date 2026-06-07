@@ -6,6 +6,7 @@ import { MONTHS } from "@/lib/dateUtils";
 import { useState, useTransition } from "react";
 import { CheckCircle, Calendar, Wallet, Search, ArrowUpRight, X } from "lucide-react";
 import { receiveStudentPayment } from "../students/actions";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface ExtendedPayment extends Payment {
   student: {
@@ -22,14 +23,15 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
   const [isPending, startTransition] = useTransition();
   const [selectedRecovery, setSelectedRecovery] = useState<ExtendedPayment | null>(null);
   const [recoveryAmount, setRecoveryAmount] = useState(0);
+  const { t, locale } = useLanguage();
 
   const columns = [
-    { header: "Student", accessor: "student" },
-    { header: "Fee Month", accessor: "month", className: "hidden md:table-cell" },
-    { header: "Paid", accessor: "amount", className: "text-right" },
-    { header: "Gap (Pending)", accessor: "deferredAmount", className: "hidden lg:table-cell text-right" },
-    { header: "Recovery Schedule", accessor: "deferredUntil" },
-    { header: "Actions", accessor: "action" },
+    { header: (t as any).recovery?.table?.student || "Student", accessor: "student" },
+    { header: (t as any).recovery?.table?.feeMonth || "Fee Month", accessor: "month", className: "hidden md:table-cell" },
+    { header: (t as any).recovery?.table?.paid || "Paid", accessor: "amount", className: "text-right" },
+    { header: (t as any).recovery?.table?.gapPending || "Gap (Pending)", accessor: "deferredAmount", className: "hidden lg:table-cell text-right" },
+    { header: (t as any).recovery?.table?.recoverySchedule || "Recovery Schedule", accessor: "deferredUntil" },
+    { header: (t as any).recovery?.table?.actions || "Actions", accessor: "action" },
   ];
 
   const filteredData = data.filter(item => 
@@ -79,12 +81,22 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         </div>
         <div>
           <p className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.student?.name} {item.student?.surname}</p>
-          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{item.student?.class.name} • Level {item.student?.level.level}</p>
+          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{item.student?.class.name} • {(t as any).recovery?.table?.level || "Level"} {item.student?.level.level}</p>
         </div>
       </td>
       <td className="p-4 hidden md:table-cell">
         <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider">
-          {MONTHS[item.month - 1]} {item.year}
+          {(() => {
+            const m = MONTHS[item.month - 1];
+            if (locale === "ar") {
+              const arMonths: Record<string, string> = { "January": "يناير", "February": "فبراير", "March": "مارس", "April": "أبريل", "May": "مايو", "June": "يونيو", "July": "يوليو", "August": "أغسطس", "September": "سبتمبر", "October": "أكتوبر", "November": "نوفمبر", "December": "ديسمبر" };
+              return arMonths[m] || m;
+            } else if (locale === "fr") {
+              const frMonths: Record<string, string> = { "January": "Janvier", "February": "Février", "March": "Mars", "April": "Avril", "May": "Mai", "June": "Juin", "July": "Juillet", "August": "Août", "September": "Septembre", "October": "Octobre", "November": "Novembre", "December": "Décembre" };
+              return frMonths[m] || m;
+            }
+            return m;
+          })()} {item.year}
         </span>
       </td>
       <td className="p-4 text-right">
@@ -103,7 +115,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         <div className="flex items-center gap-2 text-orange-600 font-medium text-sm">
           <Calendar size={14} className="opacity-70" />
           <span>
-            {item.deferredUntil ? new Date(item.deferredUntil).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "Not Scheduled"}
+            {item.deferredUntil ? new Date(item.deferredUntil).toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : ((t as any).recovery?.table?.notScheduled || "Not Scheduled")}
           </span>
         </div>
       </td>
@@ -114,7 +126,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
           className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-600 rounded-lg hover:bg-orange-500 hover:text-white transition-all shadow-sm group-hover:scale-105 disabled:opacity-50"
         >
           <Wallet size={14} />
-          <span className="text-xs font-bold uppercase tracking-wider">Recover</span>
+          <span className="text-xs font-bold uppercase tracking-wider">{(t as any).recovery?.table?.recover || "Recover"}</span>
         </button>
       </td>
     </tr>
@@ -126,7 +138,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
         <input
           type="text"
-          placeholder="Search debtor name..."
+          placeholder={(t as any).recovery?.searchPlaceholder || "Search debtor name..."}
           className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/50 transition-all text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -140,8 +152,8 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="text-emerald-500" size={32} />
             </div>
-            <h3 className="text-lg font-bold text-slate-700">All Gaps Recovered!</h3>
-            <p className="text-sm text-slate-500">There are no pending partial payments to collect.</p>
+            <h3 className="text-lg font-bold text-slate-700">{(t as any).recovery?.empty?.title || "All Gaps Recovered!"}</h3>
+            <p className="text-sm text-slate-500">{(t as any).recovery?.empty?.subtitle || "There are no pending partial payments to collect."}</p>
           </div>
         )}
       </div>
@@ -157,12 +169,12 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               <X size={20} />
             </button>
 
-            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Recover Fee</h2>
-            <p className="text-sm text-slate-500 mb-6 font-medium">Recording payment for {selectedRecovery.student?.name}</p>
+            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">{(t as any).recovery?.modal?.title || "Recover Fee"}</h2>
+            <p className="text-sm text-slate-500 mb-6 font-medium">{(t as any).recovery?.modal?.recordingFor || "Recording payment for"} {selectedRecovery.student?.name}</p>
 
             <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Current Pending</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{(t as any).recovery?.modal?.currentPending || "Current Pending"}</span>
                 <span className="text-xs font-black text-rose-500">{selectedRecovery.deferredAmount} DT</span>
               </div>
               <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden">
@@ -171,7 +183,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             </div>
 
             <div className="mb-6">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Recovery Amount (DT)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{(t as any).recovery?.modal?.recoveryAmount || "Recovery Amount"} (DT)</label>
               <input
                 type="number"
                 value={recoveryAmount}
@@ -186,9 +198,9 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               disabled={isPending || recoveryAmount <= 0}
               className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
             >
-              {isPending ? "Processing..." : (
+              {isPending ? ((t as any).recovery?.modal?.processing || "Processing...") : (
                 <>
-                  Confirm Recovery
+                  {(t as any).recovery?.modal?.confirm || "Confirm Recovery"}
                   <ArrowUpRight size={18} />
                 </>
               )}

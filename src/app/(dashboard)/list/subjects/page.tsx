@@ -5,7 +5,8 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { seedDefaultSubjects } from "@/lib/crudActions";
-import TableSearch from "@/components/TableSearch";
+import { cookies } from "next/headers";
+import { translations, Locale } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,10 @@ const SubjectListPage = async ({
   auth();
   const role = await getRole();
   const schoolId = await getSchoolId();
+
+  const langCookie = cookies().get("NEXT_LOCALE")?.value || "en";
+  const lang = (["en", "fr", "ar"].includes(langCookie) ? langCookie : "en") as Locale;
+  const t = translations[lang];
 
   await seedDefaultSubjects();
 
@@ -69,23 +74,32 @@ const SubjectListPage = async ({
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 border-b border-slate-100 pb-5">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Subjects</h1>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t.subjectsPage.pageTitle}</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Configure and manage your curriculum subjects and trilingual naming formats.
+              {t.subjectsPage.pageDesc}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <TableSearch />
-            {role === "admin" && <CrudFormModal entity="subject" mode="create" />}
+            {role === "admin" && (
+              <CrudFormModal 
+                entity="subject" 
+                mode="create" 
+                trigger={
+                  <button className="flex items-center gap-2 bg-[#181d26] text-white px-4 py-2.5 rounded-[6px] text-[13px] font-medium hover:bg-[#0d1218] transition-colors shadow-sm">
+                    <span className="text-lg leading-none">+</span> {t.subjectsPage.addSubject}
+                  </button>
+                }
+              />
+            )}
           </div>
         </div>
 
         {/* ── STATS BAR (PREMIUM MINIMALIST) ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
-            { label: "Total Curriculum Subjects", value: subjects.length, emoji: "📚" },
-            { label: "Active Subject Teachers", value: totalTeachers, emoji: "👩‍🏫" },
-            { label: "Scheduled Subject Lessons", value: totalLessons, emoji: "🗓️" },
+            { label: t.subjectsPage.totalSubjects, value: subjects.length, emoji: "📚" },
+            { label: t.subjectsPage.activeTeachers, value: totalTeachers, emoji: "👩‍🏫" },
+            { label: t.subjectsPage.scheduledLessons, value: totalLessons, emoji: "🗓️" },
           ].map((stat) => (
             <div 
               key={stat.label} 
@@ -106,6 +120,7 @@ const SubjectListPage = async ({
         <div className="flex flex-col gap-6">
           {Object.entries(grouped).map(([domain, domainSubjects]) => {
             const emoji = DOMAIN_EMOJIS[domain] || DOMAIN_EMOJIS["General"];
+            const translatedDomain = t.subjectsPage.domains[domain as keyof typeof t.subjectsPage.domains] || domain;
 
             return (
               <section 
@@ -119,9 +134,9 @@ const SubjectListPage = async ({
                       {emoji}
                     </span>
                     <div>
-                      <h2 className="text-slate-800 font-bold text-base tracking-tight">{domain}</h2>
+                      <h2 className="text-slate-800 font-bold text-base tracking-tight">{translatedDomain}</h2>
                       <p className="text-slate-400 text-xs font-medium mt-0.5">
-                        {domainSubjects.length} subject{domainSubjects.length !== 1 ? "s" : ""} in this category
+                        {domainSubjects.length} {domainSubjects.length !== 1 ? t.subjectsPage.subjectsInCategory : t.subjectsPage.subjectInCategory}
                       </p>
                     </div>
                   </div>
@@ -167,8 +182,8 @@ const SubjectListPage = async ({
 
                         {/* Teachers */}
                         <div className="hidden lg:flex flex-col items-end min-w-[140px] max-w-[180px]">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Assigned Teachers</span>
-                          <span className="text-xs font-semibold text-slate-500 text-right truncate w-full" title={teacherNames || "No teachers assigned"}>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{t.subjectsPage.assignedTeachers}</span>
+                          <span className="text-xs font-semibold text-slate-500 text-right truncate w-full" title={teacherNames || t.subjectsPage.noTeachersAssigned}>
                             {teacherNames || "—"}
                           </span>
                         </div>
@@ -177,7 +192,7 @@ const SubjectListPage = async ({
                         <div className="flex items-center gap-2 shrink-0">
                           <div className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100 flex items-center gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
                             <span className="text-xs font-extrabold text-slate-700">{subject._count.lessons}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">lessons</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{t.subjectsPage.lessons}</span>
                           </div>
                         </div>
 
@@ -201,9 +216,9 @@ const SubjectListPage = async ({
           <div className="bg-white rounded-2xl border border-slate-100 flex flex-col items-center justify-center py-20 gap-4 text-center shadow-sm">
             <span className="text-5xl">📚</span>
             <div>
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-1">No Subjects Found</h3>
+              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-1">{t.subjectsPage.noSubjectsFound}</h3>
               <p className="text-xs font-medium text-slate-400 max-w-xs mx-auto">
-                {searchValue ? "Try a different search term." : "Click + Add Subject to get started."}
+                {searchValue ? t.subjectsPage.tryDifferentSearch : t.subjectsPage.clickToAdd}
               </p>
             </div>
           </div>

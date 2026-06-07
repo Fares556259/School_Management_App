@@ -200,7 +200,7 @@ export default async function DashboardAppendage({
   const trendData = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthName = MONTHS[d.getMonth()];
+    const monthName = t.months[d.getMonth()];
     const inc = (secondaryStats.income_trend || []).find((x: any) => new Date(x.month).getMonth() === d.getMonth() && new Date(x.month).getFullYear() === d.getFullYear())?.total || 0;
     const exp = (secondaryStats.expense_trend || []).find((x: any) => new Date(x.month).getMonth() === d.getMonth() && new Date(x.month).getFullYear() === d.getFullYear())?.total || 0;
     trendData.push({ month: monthName, income: inc, expense: exp });
@@ -256,7 +256,7 @@ export default async function DashboardAppendage({
           expense={currentExpense}
           breakdown={fullBreakdown}
           prevIncome={prevIncome}
-          month={MONTHS[now.getMonth()]}
+          month={t.months[now.getMonth()]}
           dailyData={[]}
           unpaidCount={unpaidFees.length}
         />
@@ -266,7 +266,7 @@ export default async function DashboardAppendage({
         <ActionCenter 
           unpaidFees={unpaidFees}
           unpaidEmployees={unpaidEmployees}
-          monthLabel={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`}
+          monthLabel={`${t.months[startDate.getMonth()]} ${startDate.getFullYear()}`}
         />
       </section>
     </>

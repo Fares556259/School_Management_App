@@ -5,6 +5,7 @@ import { parseStudentsFromText, parseStudentsFromImage } from "../../admin/actio
 import { bulkCreateStudents } from "@/lib/crudActions";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud } from "lucide-react";
 import Image from "next/image";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export default function BulkStudentImport({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
@@ -14,6 +15,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const handleParse = async () => {
     if (importMode === "text" && !rawText.trim()) return;
@@ -59,8 +61,8 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-[17px] font-bold text-[#181d26]">AI Bulk Enroll</h2>
-              <p className="text-[13px] text-indigo-600/80 font-medium">Extract students from text or documents instantly</p>
+              <h2 className="text-[17px] font-bold text-[#181d26]">{t.students.modal.title}</h2>
+              <p className="text-[13px] text-indigo-600/80 font-medium">{t.students.modal.subtitle}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2.5 hover:bg-indigo-100/50 rounded-[8px] text-indigo-900/40 hover:text-indigo-600 transition-colors">
@@ -81,7 +83,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   }`}
                 >
                   <Type size={16} />
-                  Paste Text
+                  {t.students.modal.pasteText}
                 </button>
                 <button
                   onClick={() => setImportMode("image")}
@@ -90,26 +92,26 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   }`}
                 >
                   <UploadCloud size={16} />
-                  Upload Document
+                  {t.students.modal.uploadDocument}
                 </button>
               </div>
 
-              <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
+               <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
                  <AlertCircle size={18} className="text-indigo-500 mt-0.5 shrink-0" />
                  <p className="text-[13px] text-indigo-900/80 leading-relaxed font-medium">
                    {importMode === "text" 
-                      ? "Paste your unstructured list of students below. The AI will intelligently extract and format the data into the correct fields."
-                      : "Upload a clear photo, screenshot, or PDF scan of your student list. The AI will read and extract all details automatically."}
+                      ? t.students.modal.textInfo
+                      : t.students.modal.imageInfo}
                  </p>
               </div>
               
               {importMode === "text" ? (
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">Raw Text Data</label>
+                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">{t.students.modal.rawTextLabel}</label>
                   <textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder="Example: John Doe, Male, Class 1A, Parent: Robert Doe, Phone: 555-1234..."
+                    placeholder={t.students.modal.rawTextPlaceholder}
                     className="w-full h-[240px] p-5 rounded-[12px] border border-slate-200 bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-[14px] text-slate-700 resize-none shadow-sm placeholder:text-slate-400"
                   />
                 </div>
@@ -199,7 +201,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   className="px-7 py-3 bg-indigo-600 text-white text-[14.5px] font-semibold rounded-[10px] hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   <Sparkles size={18} />
-                  Start Extraction
+                  {t.students.modal.startExtraction}
                 </button>
               </div>
             </div>

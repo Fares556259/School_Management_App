@@ -1,4 +1,5 @@
 import React, { useEffect, useState, forwardRef } from "react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 import ScheduleSlot from "./ScheduleSlot";
 import { Day } from "@prisma/client";
 
@@ -54,6 +55,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const [localSlots, setLocalSlots] = useState<any[]>(propSlots || []);
   const [isLoading, setIsLoading] = useState(!propSlots && !!fetchDataAction);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const displaySessions = propSessions || defaultSessions;
   const displaySlots = propSlots || localSlots;
@@ -99,12 +101,12 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   };
 
   const dayLabels: { [key in Day]: string } = {
-    [Day.MONDAY]: "Lundi",
-    [Day.TUESDAY]: "Mardi",
-    [Day.WEDNESDAY]: "Mercredi",
-    [Day.THURSDAY]: "Jeudi",
-    [Day.FRIDAY]: "Vendredi",
-    [Day.SATURDAY]: "Samedi",
+    [Day.MONDAY]: t.timetable.monday,
+    [Day.TUESDAY]: t.timetable.tuesday,
+    [Day.WEDNESDAY]: t.timetable.wednesday,
+    [Day.THURSDAY]: t.timetable.thursday,
+    [Day.FRIDAY]: t.timetable.friday,
+    [Day.SATURDAY]: t.timetable.saturday,
   };
 
   // Determine which days to show
@@ -191,7 +193,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
         <div className="min-w-[1200px] print:min-w-0 border border-[#dddddd] rounded-[8px] overflow-hidden bg-white shadow-sm">
           <div className={`grid border-b border-[#dddddd] bg-[#ffffff]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
             <div className="h-10 flex items-center justify-center border-r border-[#dddddd]">
-               <span className="text-[12px] font-medium text-[#5a5a5a] capitalize tracking-wide">Time</span>
+               <span className="text-[12px] font-medium text-[#5a5a5a] capitalize tracking-wide">{t.timetable.time}</span>
             </div>
             {displayDays.map((item) => {
               const d = typeof item === 'string' ? item : item.day;
@@ -215,7 +217,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[40px]">
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Loading...</span>
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{t.timetable.loading}</span>
                 </div>
               </div>
             )}

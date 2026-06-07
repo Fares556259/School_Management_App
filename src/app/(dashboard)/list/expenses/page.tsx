@@ -12,42 +12,47 @@ import FinanceDateFilter from "@/components/FinanceDateFilter";
 import { getSchoolId } from "@/lib/school";
 import FinanceExportButton from "@/components/FinanceExportButton";
 import { Receipt, Calendar, Image as ImageIcon, FileX, Info, FileText } from "lucide-react";
+import { cookies } from "next/headers";
+import { translations, Locale } from "@/lib/translations";
 
-const columns = [
+const getColumns = (t: any) => [
   {
-    header: "Description",
+    header: t.expensesPage.table.description,
     accessor: "title",
   },
   {
-    header: "Amount",
+    header: t.expensesPage.table.amount,
     accessor: "amount",
     className: "text-right",
   },
   {
-    header: "Category",
+    header: t.expensesPage.table.category,
     accessor: "category",
     className: "hidden md:table-cell",
   },
   {
-    header: "Date",
+    header: t.expensesPage.table.date,
     accessor: "date",
     className: "hidden md:table-cell",
   },
   {
-    header: "Proof",
+    header: t.expensesPage.table.proof,
     accessor: "img",
   },
   {
-    header: "Actions",
+    header: t.expensesPage.table.actions,
     accessor: "action",
   },
 ];
 
 const ExpenseListPage = async ({
+
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
+  const locale = (cookies().get("NEXT_LOCALE")?.value || "en") as Locale;
+  const t = translations[locale];
   const role = await getRole();
   const { page, search, from, to, category, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
@@ -114,6 +119,44 @@ const ExpenseListPage = async ({
     return "text-slate-700 bg-slate-50 border-slate-200";
   };
 
+  const translateTitle = (title: string) => {
+    let tTitle = title;
+    if (locale === "ar") {
+      tTitle = tTitle.replace(/^Tuition:/i, "رسوم دراسية:");
+      tTitle = tTitle.replace(/^Salary:/i, "الراتب:");
+      tTitle = tTitle.replace(/Recovery/i, "استرداد");
+      tTitle = tTitle.replace(/January/i, "يناير");
+      tTitle = tTitle.replace(/February/i, "فبراير");
+      tTitle = tTitle.replace(/March/i, "مارس");
+      tTitle = tTitle.replace(/April/i, "أبريل");
+      tTitle = tTitle.replace(/May/i, "مايو");
+      tTitle = tTitle.replace(/June/i, "يونيو");
+      tTitle = tTitle.replace(/July/i, "يوليو");
+      tTitle = tTitle.replace(/August/i, "أغسطس");
+      tTitle = tTitle.replace(/September/i, "سبتمبر");
+      tTitle = tTitle.replace(/October/i, "أكتوبر");
+      tTitle = tTitle.replace(/November/i, "نوفمبر");
+      tTitle = tTitle.replace(/December/i, "ديسمبر");
+    } else if (locale === "fr") {
+      tTitle = tTitle.replace(/^Tuition:/i, "Frais Scolaires:");
+      tTitle = tTitle.replace(/^Salary:/i, "Salaire:");
+      tTitle = tTitle.replace(/Recovery/i, "Recouvrement");
+      tTitle = tTitle.replace(/January/i, "Janvier");
+      tTitle = tTitle.replace(/February/i, "Février");
+      tTitle = tTitle.replace(/March/i, "Mars");
+      tTitle = tTitle.replace(/April/i, "Avril");
+      tTitle = tTitle.replace(/May/i, "Mai");
+      tTitle = tTitle.replace(/June/i, "Juin");
+      tTitle = tTitle.replace(/July/i, "Juillet");
+      tTitle = tTitle.replace(/August/i, "Août");
+      tTitle = tTitle.replace(/September/i, "Septembre");
+      tTitle = tTitle.replace(/October/i, "Octobre");
+      tTitle = tTitle.replace(/November/i, "Novembre");
+      tTitle = tTitle.replace(/December/i, "Décembre");
+    }
+    return tTitle;
+  };
+
   const renderRow = (item: Expense) => (
     <tr
       key={item.id}
@@ -124,7 +167,7 @@ const ExpenseListPage = async ({
           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-sm transition-all duration-300">
             <Receipt className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.title}</span>
+          <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{translateTitle(item.title)}</span>
         </div>
       </td>
       <td className="p-4 text-right">
@@ -134,26 +177,26 @@ const ExpenseListPage = async ({
         </div>
       </td>
       <td className="p-4 hidden md:table-cell">
-        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}>
-          {item.category}
+        <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}>
+          {t.categories[item.category.toUpperCase() as keyof typeof t.categories] || item.category}
         </span>
       </td>
       <td className="p-4 hidden md:table-cell whitespace-nowrap">
         <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
           <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
-          {new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+          {new Date(item.date).toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US", { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </td>
       <td className="p-4">
         {item.img ? (
           <a href={item.img} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md w-max hover:bg-emerald-100 hover:shadow-sm transition-all">
             <FileText className="w-3.5 h-3.5" />
-            <span className="text-xs font-semibold">View Proof</span>
+            <span className="text-xs font-semibold">{t.expensesPage.viewProof}</span>
           </a>
         ) : (
           <div className="flex items-center gap-1.5 text-rose-500 bg-rose-50 border border-rose-100 px-2.5 py-1 rounded-md w-max">
             <FileX className="w-3.5 h-3.5 opacity-70" />
-            <span className="text-xs font-semibold">Missing Proof</span>
+            <span className="text-xs font-semibold">{t.expensesPage.missingProof}</span>
           </div>
         )}
       </td>
@@ -209,12 +252,12 @@ const ExpenseListPage = async ({
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            School Expenses
+            {t.expensesPage.pageTitle}
             <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{count}</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
             <Info className="w-4 h-4 opacity-70" />
-            Manage and track all institutional spending
+            {t.expensesPage.pageDesc}
           </p>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
@@ -231,7 +274,7 @@ const ExpenseListPage = async ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-emerald-200 transition-colors">
           <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold text-slate-500 mb-2">Total Expenses (This Month)</span>
+          <span className="text-sm font-semibold text-slate-500 mb-2">{t.expensesPage.totalThisMonth}</span>
           <div className="flex items-end gap-3">
             <span className="text-3xl font-bold text-slate-800">{thisMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
             <span className={`text-sm font-semibold mb-1 flex items-center gap-0.5 ${percentChange >= 0 ? "text-rose-600" : "text-emerald-600"}`}>
@@ -241,14 +284,14 @@ const ExpenseListPage = async ({
         </div>
         <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-200 transition-colors">
           <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold text-slate-500 mb-2">Total Expenses (Last Month)</span>
+          <span className="text-sm font-semibold text-slate-500 mb-2">{t.expensesPage.totalLastMonth}</span>
           <div className="flex items-end gap-3">
             <span className="text-3xl font-bold text-slate-800">{lastMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
           </div>
         </div>
         <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-fuchsia-200 transition-colors">
           <div className="absolute right-0 top-0 w-16 h-16 bg-fuchsia-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold text-slate-500 mb-2">Total Expenses (YTD)</span>
+          <span className="text-sm font-semibold text-slate-500 mb-2">{t.expensesPage.totalYTD}</span>
           <div className="flex items-end gap-3">
             <span className="text-3xl font-bold text-slate-800">{ytdTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
           </div>
@@ -258,25 +301,25 @@ const ExpenseListPage = async ({
       {/* QUICK CATEGORY TABS */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
         <Link href="/list/expenses" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          All Expenses
+          {t.expensesPage.allExpenses}
         </Link>
         <Link href="/list/expenses?category=Salary" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Salary' ? "bg-emerald-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          Salary
+          {t.expensesPage.salary}
         </Link>
         <Link href="/list/expenses?category=Utility" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Utility' ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          Utilities
+          {t.expensesPage.utilities}
         </Link>
         <Link href="/list/expenses?category=Maintenance" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Maintenance' ? "bg-amber-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          Maintenance
+          {t.expensesPage.maintenance}
         </Link>
         <Link href="/list/expenses?category=Equipment" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Equipment' ? "bg-orange-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          Equipment
+          {t.expensesPage.equipment}
         </Link>
       </div>
 
       {/* LIST */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
-        <Table columns={columns} renderRow={renderRow} data={data} />
+        <Table columns={getColumns(t)} renderRow={renderRow} data={data} />
       </div>
       {/* PAGINATION */}
       <div className="mt-6">

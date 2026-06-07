@@ -166,7 +166,7 @@ const ActionList = ({
                 </button>
             )}
             <span className="text-[12px] font-medium bg-[#f8fafc] px-2.5 py-1 rounded-[6px] text-[#41454d] border border-[#dddddd]">
-                {items.length} pending
+                {items.length} {t.actionCenter.pending}
             </span>
         </div>
       </div>
@@ -193,7 +193,7 @@ const ActionList = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                   <span className="text-[14px] font-semibold text-[#181d26]">${item.amount.toLocaleString()}</span>
+                   <span className="text-[14px] font-semibold text-[#181d26]">{`\u202A${item.amount.toLocaleString()} DT\u202C`}</span>
                    <QuickPayButton 
                      id={item.id} 
                      name={item.name} 
@@ -250,7 +250,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
              <Wallet size={16} />
              <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.unpaidEmployees}</p>
           </div>
-          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">${calculatedUnpaidEmployeesTotal.toLocaleString()}</h2>
+          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{`\u202A${calculatedUnpaidEmployeesTotal.toLocaleString()} DT\u202C`}</h2>
         </div>
 
         <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
@@ -259,7 +259,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
              <HandCoins size={16} />
              <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.uncollectedFees}</p>
           </div>
-          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">${calculatedUncollectedFeesTotal.toLocaleString()}</h2>
+          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{`\u202A${calculatedUncollectedFeesTotal.toLocaleString()} DT\u202C`}</h2>
         </div>
       </div>
 

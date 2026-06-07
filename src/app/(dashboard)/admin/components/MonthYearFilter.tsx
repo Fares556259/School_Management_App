@@ -50,7 +50,7 @@ const MonthYearFilter: React.FC<MonthYearFilterProps> = ({ activeMonth, activeYe
       >
         <Calendar size={16} className={isFiltered ? 'text-[#080808]' : 'text-[#080808]'} />
         <span className="text-[14px] font-medium text-[#080808] tracking-tight">
-          {isFiltered ? `${MONTHS[currentMonth]} ${currentYear}` : t.adminWidgets.selectPeriod}
+          {isFiltered ? `${t.months[currentMonth]} ${currentYear}` : t.adminWidgets.selectPeriod}
         </span>
         <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -71,7 +71,7 @@ const MonthYearFilter: React.FC<MonthYearFilterProps> = ({ activeMonth, activeYe
 
           <div className="flex gap-4">
             <div className="flex-1 flex flex-col gap-1 max-h-48 overflow-y-auto no-scrollbar">
-              {MONTHS.map((m, idx) => (
+              {t.months.map((m, idx) => (
                 <button
                   key={m}
                   onClick={() => handleUpdate(idx, currentYear)}

@@ -11,6 +11,7 @@ import TableSearch from "@/components/TableSearch";
 import StudentDetailsModal from "@/components/StudentDetailsModal";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Sparkles, Users, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,6 +40,20 @@ export default function StudentListClient({
   relatedData,
 }: Props) {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const { t } = useLanguage();
+
+  const translatedColumns = columns
+    .filter(c => c.accessor !== "studentId")
+    .map(c => ({
+      ...c,
+      header: c.accessor === "info" ? t.students.info 
+            : c.accessor === "grade" ? t.students.grade 
+            : c.accessor === "phone" ? t.students.phone 
+            : c.accessor === "address" ? t.students.address 
+            : c.accessor === "isPaid" ? t.students.paidStatus 
+            : c.accessor === "action" ? t.students.actions 
+            : c.header
+    }));
 
   const renderRow = (
     item: Student & { class: Class | null; level: Level; payments: Payment[]; parent?: any }
@@ -69,29 +84,28 @@ export default function StudentListClient({
           />
           <div className="flex flex-col">
             <h3 className="text-[14px] font-medium text-[#181d26]">{item.name}</h3>
-            <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? "No class assigned"}</p>
+            <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? t.students.noClass}</p>
           </div>
         </td>
-        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">Level {item.level.level}</td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
-          {item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}
+          {item.phone || <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>}
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>
-          {item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}
+          {item.address || <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>}
         </td>
         <td className="py-4 px-6">
           {isPaidThisMonth ? (
             <span className="px-2 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium">
-              Paid
+              {t.students.paid}
             </span>
           ) : isPartialThisMonth ? (
             <span className="px-2 py-1 rounded-[4px] bg-orange-50 border border-orange-200 text-orange-700 text-[12px] font-medium">
-              Partial
+              {t.students.partial}
             </span>
           ) : (
             <span className="px-2 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
-              Unpaid
+              {t.students.unpaid}
             </span>
           )}
         </td>
@@ -143,9 +157,8 @@ export default function StudentListClient({
 
       {/* 2. TOP ACTIONS HEADER */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Students</h1>
+        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.students.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch />
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
@@ -154,12 +167,12 @@ export default function StudentListClient({
                   className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
                 >
                   <Sparkles size={16} className="text-[#41454d] group-hover:rotate-12 transition-transform" />
-                  AI Bulk Enroll
+                  {t.students.bulkEnroll}
                 </button>
                 <button 
                   onClick={() => setIsBulkOpen(true)}
                   className="lg:hidden w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]"
-                  title="AI Bulk Enroll"
+                  title={t.students.bulkEnroll}
                 >
                   <Sparkles size={16} />
                 </button>
@@ -173,7 +186,7 @@ export default function StudentListClient({
       </div>
 
       {/* 3. TABLE & PAGINATION */}
-      <Table columns={columns} renderRow={renderRow} data={initialData} />
+      <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
       <Pagination page={page} count={count} />
 
       {/* MODALS */}

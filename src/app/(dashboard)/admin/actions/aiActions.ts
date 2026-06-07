@@ -304,7 +304,7 @@ export async function getChatResponse(
 
     const systemPrompt = `
       You are Zbiba, an expert AI administrator for SnapSchool. 
-      Language: ${locale === "fr" ? "French" : "English"}.
+      Language: ${locale === "fr" ? "French" : locale === "ar" ? "Arabic" : "English"}.
       
       CONTEXT: ${JSON.stringify({ ...context, unpaidPayments: maskedUnpaid })}
       
@@ -404,7 +404,8 @@ export async function getFinancialInsights(data: any, locale = "fr") {
     thisMonthIncome: data.income || 0,
     thisMonthExpense: data.expense || 0,
     unpaidAmount: data.breakdown?.find((b:any) => b.type === 'unpaid')?.value || 0,
-    unpaidCount: data.unpaidCount || 0 
+    unpaidCount: data.unpaidCount || 0,
+    locale: locale // Include locale so caching works per-language
   };
   const hash = generateHash(dataPayload);
   const cached = getCachedInsights(hash);
@@ -432,6 +433,8 @@ export async function getFinancialInsights(data: any, locale = "fr") {
     TASK: Provide exactly 5 concise, strategic insights. 
     Ensure you cover: 1 Performance, 1 Risk, 1 Opportunity, 1 Economic Trend, and 1 Actionable Step.
     
+    CRITICAL LANGUAGE INSTRUCTION: You MUST write the "text" field of the insights entirely in ${locale === "fr" ? "French" : locale === "ar" ? "Arabic" : "English"}.
+
     DATA BLOCKS: ${JSON.stringify(data)}
     
     RETURN ONLY a JSON array of objects: [{ "text": "...", "type": "performance" | "risk" | "opportunity" | "trend" | "action", "icon": "...", "confidence": "..." }]
@@ -463,14 +466,21 @@ export async function getFinancialInsights(data: any, locale = "fr") {
   } catch (error: any) {
     console.error("❌ [AI-INSIGHTS] Insight Generation Error:", error);
     
-    // ON FAILURE: Return the stale cache if we have ANY
-    if (cached && cached.insights && cached.insights.length > 0) {
-      console.log("🛰️ [CACHE] Fallback: Serving stale insights after provider failure.");
-      return cached.insights;
-    }
-    
-    // HARD FALLBACKS: Never return an empty UI
-    return [
+    // ON FAILURE: Always return localized fallbacks so we never leak a different language's stale cache
+    const fallbacks: Record<string, any[]> = {
+      fr: [
+        { text: "Le recouvrement des revenus est inférieur aux prévisions pour ce mois. Concentrez-vous sur les frais de scolarité en attente.", type: "risk", icon: "warning", confidence: "HIGH" },
+        { text: "Surveillance saine des dépenses détectée. Les coûts opérationnels sont stables.", type: "performance", icon: "check", confidence: "MEDIUM" },
+        { text: "Opportunité d'optimiser le budget du T3 selon les tendances des écoles tunisiennes.", type: "opportunity", icon: "zap", confidence: "AI_ESTIMATED" }
+      ],
+      ar: [
+        { text: "تحصيل الإيرادات أقل من المتوقع لهذا الشهر. ركز على الرسوم الدراسية المعلقة.", type: "risk", icon: "warning", confidence: "HIGH" },
+        { text: "تم اكتشاف مراقبة صحية للمصاريف. التكاليف التشغيلية مستقرة.", type: "performance", icon: "check", confidence: "MEDIUM" },
+        { text: "فرصة لتحسين ميزانية الربع الثالث بناءً على اتجاهات المدارس التونسية.", type: "opportunity", icon: "zap", confidence: "AI_ESTIMATED" }
+      ]
+    };
+
+    return fallbacks[locale] || [
       { text: "Revenue collection is lower than expected for " + (data.month || "this month") + ". Focus on pending student tuition.", type: "risk", icon: "warning", confidence: "HIGH" },
       { text: "Healthy expense monitoring detected. Operational costs are stable.", type: "performance", icon: "check", confidence: "MEDIUM" },
       { text: "Opportunity to optimize Q3 budget based on historical Tunisian school trends.", type: "opportunity", icon: "zap", confidence: "AI_ESTIMATED" }

@@ -17,6 +17,7 @@ import {
   enrollFamily, 
 } from "@/lib/crudActions";
 import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 
 
@@ -42,7 +43,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "bloodType", label: "Blood Type", type: "text", required: true },
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "salary", label: "Salary ($)", type: "number" },
+    { name: "salary", label: "Salary (DT)", type: "number" },
     { name: "subjects", label: "Subjects", type: "multi-select", parseAsNumber: true },
     { name: "classes", label: "Classes", type: "multi-select", parseAsNumber: true },
   ],
@@ -67,7 +68,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "bloodType", label: "Blood Type", type: "text", required: true },
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "salary", label: "Salary ($)", type: "number" },
+    { name: "salary", label: "Salary (DT)", type: "number" },
   ],
   parent: [
     { name: "name", label: "First Name", type: "text", required: true },
@@ -106,7 +107,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   ],
   expense: [
     { name: "title", label: "Description", type: "text", required: true, placeholder: "e.g., Bus Fuel - Route A" },
-    { name: "amount", label: "Amount ($)", type: "number", required: true, parseAsNumber: true },
+    { name: "amount", label: "Amount (DT)", type: "number", required: true, parseAsNumber: true },
     { name: "category", label: "Category", type: "creatable-select", required: true, placeholder: "Select or type new...", options: [
       {value: "FUEL", label: "FUEL"},
       {value: "MAINTENANCE", label: "MAINTENANCE"},
@@ -120,7 +121,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   ],
   income: [
     { name: "title", label: "Source/Description", type: "text", required: true, placeholder: "e.g., Annual Charity Event" },
-    { name: "amount", label: "Amount ($)", type: "number", required: true, parseAsNumber: true },
+    { name: "amount", label: "Amount (DT)", type: "number", required: true, parseAsNumber: true },
     { name: "category", label: "Category", type: "creatable-select", required: true, placeholder: "Select or type new...", options: [
       {value: "TUITION", label: "TUITION"},
       {value: "DONATION", label: "DONATION"},
@@ -187,6 +188,7 @@ export default function CrudFormModal({
   const [img, setImg] = useState<any>(data?.img || null);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { t } = useLanguage();
 
   // Unified Enrollment State
   const [students, setStudents] = useState<any[]>([
@@ -324,7 +326,7 @@ export default function CrudFormModal({
     if (mode === "create") {
       return (
         <button className="flex items-center gap-2 bg-[#181d26] text-white px-4 py-2.5 rounded-[6px] text-[13px] font-medium hover:bg-[#0d1218] transition-colors shadow-sm">
-          <span className="text-lg leading-none">+</span> Add {entity.charAt(0).toUpperCase() + entity.slice(1)}
+          <span className="text-lg leading-none">+</span> {t.crud.add} {t.crud.entities[entity] || (entity.charAt(0).toUpperCase() + entity.slice(1))}
         </button>
       );
     }
@@ -354,8 +356,8 @@ export default function CrudFormModal({
             {/* Header */}
             <div className="sticky top-0 bg-white p-6 border-b border-[#dddddd] flex justify-between items-center rounded-t-[12px] z-10">
               <h2 className="text-[20px] font-medium text-[#181d26] tracking-tight">
-                {mode === "delete" ? "Delete" : mode === "create" ? "Add New" : "Edit"}{" "}
-                {entity.charAt(0).toUpperCase() + entity.slice(1)}
+                {mode === "delete" ? t.crud.delete : mode === "create" ? t.crud.add : t.crud.edit}{" "}
+                {t.crud.entities[entity] || (entity.charAt(0).toUpperCase() + entity.slice(1))}
               </h2>
               <button
                 type="button"
@@ -371,9 +373,9 @@ export default function CrudFormModal({
                 <div className="flex flex-col items-center gap-4 py-4">
                   <div className="text-4xl">⚠️</div>
                   <p className="text-center text-[#41454d] text-[14px] font-normal leading-relaxed">
-                    Are you sure you want to delete this {entity}?
+                    {t.crud.deleteConfirm} {t.crud.entities[entity] || entity}?
                     <br />
-                    <span className="text-[#9297a0]">This action cannot be undone.</span>
+                    <span className="text-[#9297a0]">{t.crud.cannotUndo}</span>
                   </p>
                   {error && <p className="text-rose-500 text-[14px] font-medium">{error}</p>}
                   <div className="flex justify-end gap-3 mt-4 w-full border-t border-[#dddddd] pt-6">
@@ -382,14 +384,14 @@ export default function CrudFormModal({
                       disabled={isPending}
                       className="px-6 py-2.5 text-[16px] font-medium text-[#181d26] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[12px] transition-colors"
                     >
-                      Cancel
+                      {t.crud.cancel}
                     </button>
                     <button
                       onClick={handleDelete}
                       disabled={isPending}
                       className="px-6 py-2.5 text-[16px] font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-[12px] transition-colors disabled:opacity-50"
                     >
-                      {isPending ? "Deleting..." : "Delete"}
+                      {isPending ? t.crud.deleting : t.crud.delete}
                     </button>
                   </div>
                 </div>
@@ -399,7 +401,7 @@ export default function CrudFormModal({
                     {fields.map((f) => (
                       <div key={f.name} className={f.name === "address" ? "sm:col-span-2" : ""}>
                         <label className="block text-[14px] font-medium text-[#181d26] mb-2">
-                          {f.label} {f.required && <span className="text-rose-500">*</span>}
+                          {t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label} {f.required && <span className="text-rose-500">*</span>}
                         </label>
                         {f.type === "select" ? (
                           <select
@@ -410,7 +412,9 @@ export default function CrudFormModal({
                           >
                             {/* <option value="">Select...</option> */}
                             {f.options?.map((o) => (
-                              <option key={o.value} value={o.value}>{o.label}</option>
+                              <option key={o.value} value={o.value}>
+                                {t.crud.fields[o.label as keyof typeof t.crud.fields] || o.label}
+                              </option>
                             ))}
                           </select>
                         ) : f.type === "multi-select" ? (
@@ -419,7 +423,7 @@ export default function CrudFormModal({
                               name={f.name}
                               options={f.options || []}
                               defaultValue={data?.[f.name]?.map((item: any) => item.id.toString()) || []}
-                              placeholder={`Select ${f.label.toLowerCase()}...`}
+                              placeholder={`Select ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`}
                             />
                           </div>
                         ) : f.type === "image" ? (
@@ -542,7 +546,7 @@ export default function CrudFormModal({
                                 ) : (
                                   <>
                                     <UploadCloud className="w-4 h-4" />
-                                    Upload Proof
+                                    {entity === "parent" ? t.parents?.form?.uploadProof || "Upload Photo" : (t.crud.fields["Proof Image"] || "Upload Proof")}
                                   </>
                                 )}
                               </div>
@@ -576,15 +580,18 @@ export default function CrudFormModal({
                             options={f.options || []}
                             defaultValue={data?.[f.name]}
                             required={f.required}
-                            placeholder={`Search ${f.label}...`}
+                            placeholder={`...Search ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}`}
                           />
                         ) : f.type === "creatable-select" ? (
                           <SearchableSelect
                             name={f.name}
-                            options={f.options || []}
+                            options={f.options?.map(o => ({
+                              ...o,
+                              label: t.categories?.[o.label as keyof typeof t.categories] || t.crud.fields?.[o.label as keyof typeof t.crud.fields] || o.label
+                            })) || []}
                             defaultValue={data?.[f.name]}
                             required={f.required}
-                            placeholder={f.placeholder || `Select or type ${f.label}...`}
+                            placeholder={f.placeholder === "Select or type new..." ? t.placeholders?.selectOrType || f.placeholder : f.placeholder || `Select or type ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`}
                             allowCreate={true}
                           />
                         ) : (
@@ -594,11 +601,21 @@ export default function CrudFormModal({
                             defaultValue={
                               f.type === "date"
                                 ? formatDate(data?.[f.name])
-                                : data?.[f.name] ?? ""
+                                : data?.[f.name] || ""
                             }
                             required={f.required}
-                            placeholder={f.placeholder}
-                            className="w-full border border-[#dddddd] rounded-[6px] px-4 py-2.5 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm placeholder-[#9297a0]"
+                            placeholder={(() => {
+                              if (f.placeholder === "e.g., Annual Charity Event") return t.placeholders?.incomeDesc || f.placeholder;
+                              if (f.placeholder === "e.g., Bus Fuel - Route A") return t.placeholders?.expenseDesc || f.placeholder;
+                              if (f.placeholder === "e.g. Secretary, Guard, Janitor") return t.placeholders?.staffRole || f.placeholder;
+                              return t.crud.fields[f.placeholder as keyof typeof t.crud.fields] || f.placeholder;
+                            })()}
+                            step={f.type === "number" ? "0.01" : undefined}
+                            className={`w-full border ${
+                              error && f.name === error.split(" ")[0].toLowerCase()
+                                ? "border-rose-500 focus:ring-rose-500"
+                                : "border-[#dddddd] focus:border-[#458fff] focus:ring-[#458fff]"
+                            } rounded-[6px] px-4 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder-[#9297a0]`}
                           />
                         )}
                       </div>
@@ -610,15 +627,15 @@ export default function CrudFormModal({
                     <div className="flex flex-col gap-6 mt-4 pt-6 border-t border-[#dddddd]">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-[16px] font-medium text-[#181d26]">Children</h3>
-                          <p className="text-[13px] font-normal text-[#41454d]">Register at least one student</p>
+                          <h3 className="text-[16px] font-medium text-[#181d26]">{t.parents?.form?.children || "Children"}</h3>
+                          <p className="text-[13px] font-normal text-[#41454d]">{t.parents?.form?.registerChild || "Register at least one student"}</p>
                         </div>
                         <button
                           type="button"
                           onClick={addStudent}
                           className="text-[14px] font-medium text-[#1b61c9] hover:text-[#1a3866] flex items-center gap-1 transition-colors"
                         >
-                          <span className="text-[18px] leading-none">+</span> Add Sibling
+                          <span className="text-[18px] leading-none">+</span> {t.parents?.form?.addSibling || "Add Sibling"}
                         </button>
                       </div>
 
@@ -637,36 +654,36 @@ export default function CrudFormModal({
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                               <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">First Name *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.firstName || "First Name"} *</label>
                                 <input
                                   name={`student-${index}-name`}
                                   required
-                                  placeholder="Child's Name"
+                                  placeholder={t.parents?.form?.childName || "Child's Name"}
                                   className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Last Name *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.lastName || "Last Name"} *</label>
                                 <input
                                   name={`student-${index}-surname`}
                                   required
-                                  placeholder="Child's Surname"
+                                  placeholder={t.parents?.form?.childSurname || "Child's Surname"}
                                   className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Sex *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.sex || "Sex"} *</label>
                                 <select
                                   name={`student-${index}-sex`}
                                   required
                                   className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                 >
-                                  <option value="MALE">Male</option>
-                                  <option value="FEMALE">Female</option>
+                                  <option value="MALE">{t.parents?.form?.male || "Male"}</option>
+                                  <option value="FEMALE">{t.parents?.form?.female || "Female"}</option>
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Birthday *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.birthday || "Birthday"} *</label>
                                 <input
                                   type="date"
                                   name={`student-${index}-birthday`}
@@ -675,7 +692,7 @@ export default function CrudFormModal({
                                 />
                               </div>
                               <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">Class *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.class || "Class"} *</label>
                                 <select
                                   name={`student-${index}-classId`}
                                   required
@@ -702,14 +719,14 @@ export default function CrudFormModal({
                       disabled={isPending}
                       className="px-6 py-2.5 text-[16px] font-medium text-[#181d26] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[12px] transition-colors"
                     >
-                      Cancel
+                      {t.crud.cancel}
                     </button>
                     <button
                       type="submit"
                       disabled={isPending || uploadingImg}
                       className="px-6 py-2.5 text-[16px] font-medium text-white bg-[#181d26] hover:bg-[#0d1218] rounded-[12px] transition-colors disabled:opacity-50"
                     >
-                      {isPending ? "Saving..." : uploadingImg ? "Uploading..." : mode === "create" ? "Create" : "Save Changes"}
+                      {isPending ? t.crud.saving : uploadingImg ? t.crud.uploading : mode === "create" ? t.crud.create : t.crud.saveChanges}
                     </button>
                   </div>
                 </form>

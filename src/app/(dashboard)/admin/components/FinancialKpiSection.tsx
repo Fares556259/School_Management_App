@@ -30,9 +30,9 @@ const KpiCard: React.FC<KpiCardProps> = ({
   const statusColor = isGood ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50';
   const strokeColor = isGood ? '#10b981' : '#f43f5e';
 
-  const formattedValue = isPercentage 
-    ? `${value.toFixed(1)}%` 
-    : `${isCurrency ? '$' : ''}${Math.round(value).toLocaleString()}`;
+  const formattedValue = `\u202A${isPercentage 
+    ? `${value < 0 ? '-' : ''}${Math.abs(value).toFixed(1)}%` 
+    : `${value < 0 ? '-' : ''}${Math.abs(Math.round(value)).toLocaleString()}${isCurrency ? ' DT' : ''}`}\u202C`;
 
   // Mini line chart
   const generatePath = () => {
@@ -129,11 +129,11 @@ const FinancialKpiSection: React.FC<FinancialKpiSectionProps> = ({
         compareLabel={compareLabel}
       />
       <KpiCard 
-        title="Revenue Gap (Lost)"
+        title={t.adminWidgets.revenueGap}
         value={revenueGap} 
         prevValue={0} 
         inverseColors
-        compareLabel="Allocated to June"
+        compareLabel={t.adminWidgets.allocatedToJune}
       />
     </div>
   );

@@ -67,7 +67,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                 </div>
                 <h2 className="text-[20px] font-semibold text-[#181d26] mb-2">Password Reset!</h2>
                 <p className="text-[14px] text-[#5a5a5a]">
-                  The user's security has been cleared. They will create a new password upon their next login.
+                  The user&apos;s security has been cleared. They will create a new password upon their next login.
                 </p>
               </div>
             ) : (
@@ -81,7 +81,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                   <div>
                     <h2 className="text-[18px] font-semibold text-[#181d26] mb-1.5">Reset Security Access?</h2>
                     <p className="text-[14px] text-[#5a5a5a] leading-relaxed">
-                      Are you sure you want to reset this user's security? They will be forced to create a new password on their mobile app.
+                      Are you sure you want to reset this user&apos;s security? They will be forced to create a new password on their mobile app.
                     </p>
                   </div>
                 </div>

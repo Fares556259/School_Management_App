@@ -21,9 +21,10 @@ interface AuditLogTableClientProps {
   logs: any[];
   performerMap: Record<string, any>;
   columns: any[];
+  locale: string;
 }
 
-const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, performerMap, columns }) => {
+const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, performerMap, columns, locale }) => {
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
 
   const renderRow = (item: any) => (
@@ -67,7 +68,7 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
         ) : <span className="text-slate-300">-</span>}
       </td>
       <td className="p-4 hidden lg:table-cell whitespace-nowrap text-xs text-slate-500 font-medium">
-        {new Date(item.timestamp).toLocaleString(undefined, {
+        {new Date(item.timestamp).toLocaleString(locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US", {
           month: 'short', day: 'numeric', year: 'numeric',
           hour: 'numeric', minute: 'numeric'
         })}

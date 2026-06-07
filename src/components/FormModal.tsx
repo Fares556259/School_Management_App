@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { deleteNotice, deleteAssignment, deleteResource } from "@/lib/crudActions";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 // USE LAZY LOADING
 
@@ -74,6 +75,7 @@ const FormModal = ({
 
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const handleDelete = () => {
     if (!id) return;
@@ -102,7 +104,7 @@ const FormModal = ({
     return type === "delete" && id ? (
       <div className="p-4 flex flex-col gap-4">
         <span className="text-center font-medium">
-          All data will be lost. Are you sure you want to delete this {table}?
+          {t.crud.deleteConfirm} {t.crud.entities[table as keyof typeof t.crud.entities] || table}?
         </span>
         <div className="flex gap-4 justify-center">
           <button 
@@ -110,14 +112,14 @@ const FormModal = ({
             onClick={() => setOpen(false)}
             disabled={isPending}
           >
-            Cancel
+            {t.crud.cancel}
           </button>
           <button 
             className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max disabled:opacity-50"
             onClick={handleDelete}
             disabled={isPending}
           >
-            {isPending ? "Deleting..." : "Delete"}
+            {isPending ? t.crud.deleting : t.crud.delete}
           </button>
         </div>
       </div>

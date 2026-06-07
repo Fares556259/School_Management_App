@@ -6,6 +6,18 @@ import { z } from "zod";
 import { useTransition, useState, useEffect } from "react";
 import InputField from "../InputField";
 import { createAssignment, updateAssignment } from "@/lib/crudActions";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+
+function getTranslatedSubject(subjectStr: string, locale: string): string {
+  if (!subjectStr) return "";
+  const parts = subjectStr.split('|').map(p => p.trim());
+  if (parts.length >= 3) {
+    if (locale === 'ar') return parts[0];
+    if (locale === 'fr') return parts[1];
+    return parts[2];
+  }
+  return subjectStr;
+}
 
 const schema = z.object({
   title: z.string().min(1, { message: "Assignment title is required!" }),
@@ -31,6 +43,7 @@ const AssignmentForm = ({
   const [imgs, setImgs] = useState<string[]>(data?.img ? data.img.split(",") : []);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const { t, locale } = useLanguage();
 
   const {
     register,
@@ -144,38 +157,38 @@ const AssignmentForm = ({
     <form className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto" onSubmit={onSubmit}>
       <div>
         <h1 className="text-[20px] font-medium text-[#181d26] tracking-tight">
-          {type === "create" ? "Create New Task" : "Update Task"}
+          {type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}
         </h1>
-        <p className="text-[13px] text-[#41454d] mt-1">Assign homework and academic tasks to your students</p>
+        <p className="text-[13px] text-[#41454d] mt-1">{t.assignmentsPage.modal.subtitle}</p>
       </div>
 
       <div className="flex flex-col gap-4">
         <InputField
-          label="Task Title"
+          label={t.assignmentsPage.modal.taskTitle}
           name="title"
           register={register}
           error={errors.title}
-          placeholder="e.g. Mathematics Chapter 5 Exercises"
+          placeholder={t.assignmentsPage.modal.taskTitlePlaceholder}
         />
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">Task Instructions / Description</label>
+          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.taskDesc}</label>
           <textarea
             {...register("description")}
             className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white min-h-[100px] text-[#181d26]"
-            placeholder="Describe what the students need to do..."
+            placeholder={t.assignmentsPage.modal.taskDescPlaceholder}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">Select Class</label>
+          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.selectClass}</label>
           <div className="relative">
             <select
               className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white appearance-none text-[#181d26] cursor-pointer pr-10"
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
             >
-              <option value="">All Classes</option>
+              <option value="">{t.assignmentsPage.modal.allClasses}</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -187,16 +200,16 @@ const AssignmentForm = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">Select Lesson</label>
+          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.selectLesson}</label>
           <div className="relative">
             <select
               {...register("lessonId")}
               className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white appearance-none text-[#181d26] cursor-pointer pr-10"
             >
-              <option value="">Select a lesson...</option>
+              <option value="">{t.assignmentsPage.modal.selectLessonPlaceholder}</option>
               {lessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
-                  {lesson.subject.name} ({lesson.class.name}) - {lesson.teacher.name} {lesson.teacher.surname}
+                  {getTranslatedSubject(lesson.subject?.name, locale)} ({lesson.class?.name}) - {lesson.teacher?.name} {lesson.teacher?.surname}
                 </option>
               ))}
             </select>
@@ -212,18 +225,18 @@ const AssignmentForm = ({
         {selectedLesson && (
           <div className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-[6px] border border-[#dddddd] animate-in fade-in slide-in-from-top-2">
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#181d26] border border-[#dddddd] text-[12px] font-medium">
-               {selectedLesson.teacher.name.charAt(0)}{selectedLesson.teacher.surname.charAt(0)}
+               {selectedLesson.teacher?.name?.charAt(0)}{selectedLesson.teacher?.surname?.charAt(0)}
             </div>
             <div>
-              <p className="text-[11px] text-[#41454d]">Assigned Teacher</p>
-              <p className="text-[13px] font-medium text-[#181d26]">{selectedLesson.teacher.name} {selectedLesson.teacher.surname}</p>
+              <p className="text-[11px] text-[#41454d]">{t.assignmentsPage.modal.assignedTeacher}</p>
+              <p className="text-[13px] font-medium text-[#181d26]">{selectedLesson.teacher?.name} {selectedLesson.teacher?.surname}</p>
             </div>
           </div>
         )}
 
         <div className="flex gap-4 flex-wrap">
           <InputField
-            label="Start Date"
+            label={t.assignmentsPage.modal.startDate}
             name="startDate"
             type="date"
             register={register}
@@ -231,7 +244,7 @@ const AssignmentForm = ({
             className="w-full md:w-[48%]"
           />
           <InputField
-            label="Due Date"
+            label={t.assignmentsPage.modal.dueDate}
             name="dueDate"
             type="date"
             register={register}
@@ -241,7 +254,7 @@ const AssignmentForm = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">Attachments (PDF or Image)</label>
+          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.attachments}</label>
           <input
             type="file"
             id="assignment-file"
@@ -264,7 +277,7 @@ const AssignmentForm = ({
               )}
             </div>
             <span className="text-[12px] text-[#41454d]">
-              {isUploading ? "Uploading..." : "Upload Task Sheets (Multiple allowed)"}
+              {isUploading ? t.assignmentsPage.modal.uploading : t.assignmentsPage.modal.uploadSheets}
             </span>
           </button>
 
@@ -281,7 +294,7 @@ const AssignmentForm = ({
                     onClick={() => removeFile(index)}
                     className="text-rose-500 hover:bg-rose-50 p-1 rounded-md transition-colors"
                   >
-                    <span className="text-[12px] font-medium">Remove</span>
+                    <span className="text-[12px] font-medium">{t.assignmentsPage.modal.remove}</span>
                   </button>
                 </div>
               ))}
@@ -294,7 +307,7 @@ const AssignmentForm = ({
         className="bg-[#181d26] hover:bg-[#0d1218] text-white py-2.5 px-4 rounded-[6px] text-[13px] font-medium transition-all mt-4 disabled:opacity-50"
         disabled={isPending || isUploading}
       >
-        {isPending ? "Processing..." : type === "create" ? "Assign Task" : "Update Task"}
+        {isPending ? t.assignmentsPage.modal.processing : type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}
       </button>
     </form>
   );

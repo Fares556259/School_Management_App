@@ -64,6 +64,7 @@ const labelToKey: Record<string, any> = {
   "Announcements": "announcements",
   "Daily Reports": "dailyReports",
   "Mobile App": "mobileApp",
+  "Help & Support": "helpSupport",
   "Profile": "profile",
   "Settings": "settings",
   "Logout": "logout"
@@ -218,7 +219,7 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
             {fullName}
           </span>
           <span className="text-[10px] text-white/70 font-medium uppercase tracking-wider truncate">
-            {role || "User"}
+            {(t.navbar as any)?.[role?.toLowerCase()] || role || "User"}
           </span>
         </div>
         <div className="text-white/70 hover:text-white cursor-pointer ml-auto shrink-0 transition-colors">

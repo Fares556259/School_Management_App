@@ -12,6 +12,7 @@ export type InsightPayload = {
   thisMonthExpense: number;
   unpaidAmount: number;
   unpaidCount: number;
+  locale?: string;
 };
 
 export type CachedInsight = {
@@ -27,9 +28,8 @@ const ensureCacheDir = () => {
   }
 };
 
-// Generate a deterministic hash based on financial data
 export const generateHash = (payload: InsightPayload): string => {
-  const dataString = `${payload.totalBalance}_${payload.thisMonthIncome}_${payload.thisMonthExpense}_${payload.unpaidAmount}_${payload.unpaidCount}`;
+  const dataString = `${payload.totalBalance}_${payload.thisMonthIncome}_${payload.thisMonthExpense}_${payload.unpaidAmount}_${payload.unpaidCount}_${payload.locale || 'fr'}`;
   return crypto.createHash('sha256').update(dataString).digest('hex');
 };
 

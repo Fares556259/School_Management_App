@@ -6,6 +6,7 @@ import { X, UploadCloud, FileImage, Sparkles, CheckCircle2, AlertCircle } from "
 import { processBulkGrades } from "../../admin/actions/aiBulkGradeActions";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface Props {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
   const [status, setStatus] = useState<"idle" | "uploading" | "processing" | "done">("idle");
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any[]>([]);
+  const { t } = useLanguage();
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -121,8 +123,8 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                 <Sparkles size={18} />
               </div>
               <div>
-                <h2 className="text-[20px] font-medium text-[#181d26] tracking-tight">AI Bulk Grade Scan</h2>
-                <p className="text-[13px] text-[#41454d] mt-1">Upload teacher notes. AI handles the rest.</p>
+                <h2 className="text-[20px] font-medium text-[#181d26] tracking-tight">{t.resultsPage.modal.title}</h2>
+                <p className="text-[13px] text-[#41454d] mt-1">{t.resultsPage.modal.subtitle}</p>
               </div>
             </div>
             <button 
@@ -146,11 +148,11 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                   <div className="w-12 h-12 bg-white border border-[#dddddd] rounded-full flex items-center justify-center text-[#181d26] shadow-sm mb-4 pointer-events-none">
                     <UploadCloud size={24} />
                   </div>
-                  <h3 className="text-[16px] font-medium text-[#181d26] mb-2">Drag & Drop Grade Sheets</h3>
-                  <p className="text-[13px] text-[#41454d] mb-6 max-w-md">Upload images (JPG, PNG) of physical grade sheets. The AI will read the handwriting, match students, and sync grades to Term {selectedTerm === 'all' ? 1 : selectedTerm}.</p>
+                  <h3 className="text-[16px] font-medium text-[#181d26] mb-2">{t.resultsPage.modal.dragDrop}</h3>
+                  <p className="text-[13px] text-[#41454d] mb-6 max-w-md">{t.resultsPage.modal.dragDropDesc} {selectedTerm === 'all' ? 1 : selectedTerm}.</p>
                   
                   <label className="px-4 py-2.5 bg-white border border-[#dddddd] text-[#181d26] font-medium text-[13px] rounded-[6px] hover:bg-[#f8fafc] cursor-pointer transition-all shadow-sm">
-                    Browse Files
+                    {t.resultsPage.modal.browseFiles}
                     <input type="file" multiple accept="image/png, image/jpeg" className="hidden" onChange={handleFileChange} />
                   </label>
                 </div>
@@ -264,7 +266,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                   onClick={onClose}
                   className="px-4 py-2.5 text-[#41454d] font-medium text-[13px] hover:bg-[#f8fafc] border border-transparent rounded-[6px] transition-colors"
                 >
-                  Cancel
+                  {t.resultsPage.modal.cancel}
                 </button>
                 <button 
                   onClick={processFiles}
@@ -272,7 +274,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                   className="px-4 py-2.5 bg-[#181d26] hover:bg-[#0d1218] text-white font-medium text-[13px] rounded-[6px] transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                   <Sparkles size={16} />
-                  Process {files.length} Files
+                  {t.resultsPage.modal.processFiles} {files.length}
                 </button>
               </>
             )}

@@ -9,16 +9,20 @@ import { X, PlayCircle, Sparkles } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
 import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
-/** Parse first segment of pipe-separated trilingual name to get Arabic only.
- * e.g. "الرياضيات | Mathématiques | Mathematics" → "الرياضيات"
- * Falls back to original name if no pipe is present.
+/** Parse first segment of pipe-separated trilingual name to get localized string.
+ * e.g. "الرياضيات | Mathématiques | Mathematics"
  */
-const parseArabicName = (name: string): string => {
+const parseLocalizedName = (name: string, locale: string): string => {
   if (!name) return "";
-  const parts = name.split("|");
-  const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
-  return arabicPart ? arabicPart.trim() : parts[0].trim();
+  const parts = name.split("|").map(p => p.trim());
+  if (parts.length >= 3) {
+    if (locale === 'ar') return parts[0];
+    if (locale === 'fr') return parts[1];
+    return parts[2];
+  }
+  return name;
 };
 
 interface Props {
@@ -44,8 +48,7 @@ export default function ResultsPageClient({
   const [editingSheetId, setEditingSheetId] = useState<number | null>(null);
   const [editingData, setEditingData] = useState<any>(null);
   const [loadingSheet, setLoadingSheet] = useState(false);
-  
-  const [searchQuery, setSearchQuery] = useState("");
+  const { t, locale } = useLanguage();
   const validClasses = classes.filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes");
   const [selectedClassId, setSelectedClassId] = useState<string>(String(validClasses[0]?.id || ""));
   const [selectedTerm, setSelectedTerm] = useState<string>("1");
@@ -173,7 +176,6 @@ export default function ResultsPageClient({
     const activeTerm = Number(selectedTerm);
 
     return subjects
-      .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
       .map(subj => {
         const matchingSheet = sheets.find(
           sheet => String(sheet.classId) === selectedClassId && 
@@ -210,8 +212,8 @@ export default function ResultsPageClient({
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm">
         <div className="flex flex-col">
-          <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Grade Sheets</h1>
-          <p className="text-[13px] text-[#41454d] mt-1">Manage and verify physical proof of grades.</p>
+          <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.resultsPage.pageTitle}</h1>
+          <p className="text-[13px] text-[#41454d] mt-1">{t.resultsPage.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -219,24 +221,13 @@ export default function ResultsPageClient({
             className="px-4 py-2.5 bg-[#181d26] text-white border border-transparent font-medium rounded-[6px] hover:bg-[#0d1218] transition-all text-[13px] flex items-center gap-2"
           >
             <Sparkles size={16} />
-            Bulk AI Scan
+            {t.resultsPage.bulkAiScan}
           </button>
         </div>
       </div>
 
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-4 px-2">
-         <div className="flex-1 min-w-[300px] relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9297a0] text-[14px]">🔍</div>
-            <input 
-              type="text" 
-              placeholder="Filter by subject Name..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] focus:outline-none focus:border-[#1b61c9] transition-all placeholder:text-[#9297a0] text-[#181d26]"
-            />
-         </div>
-         
          <select 
            value={selectedClassId} 
            onChange={(e) => setSelectedClassId(e.target.value)}
@@ -250,9 +241,9 @@ export default function ResultsPageClient({
            onChange={(e) => setSelectedTerm(e.target.value)}
            className="px-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] transition-all cursor-pointer"
          >
-           <option value="1">Term 1</option>
-           <option value="2">Term 2</option>
-           <option value="3">Term 3</option>
+           <option value="1">{t.resultsPage.term} 1</option>
+           <option value="2">{t.resultsPage.term} 2</option>
+           <option value="3">{t.resultsPage.term} 3</option>
          </select>
 
          {selectedClassId && (
@@ -262,7 +253,7 @@ export default function ResultsPageClient({
              className="px-4 py-2.5 bg-white border border-[#dddddd] text-[#181d26] rounded-[6px] shadow-sm hover:bg-[#f8fafc] transition-all text-[13px] font-medium flex items-center gap-2"
            >
              <PlayCircle size={16} className="text-[#41454d]" />
-             Initialize Empty
+             {t.resultsPage.initializeEmpty}
            </button>
          )}
       </div>
@@ -283,7 +274,7 @@ export default function ResultsPageClient({
         {displayItems.length === 0 && (
           <div className="col-span-full bg-white p-20 rounded-[40px] border border-slate-100 flex flex-col items-center gap-4 opacity-60">
              <div className="text-6xl text-slate-200">📄</div>
-             <p className="font-black text-slate-400 uppercase tracking-widest text-xs">No subjects match your current selection</p>
+             <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t.resultsPage.noSubjectsMatch}</p>
           </div>
         )}
 
@@ -342,39 +333,39 @@ export default function ResultsPageClient({
                {/* TERM TAG & BADGES */}
                <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
                   <div className="px-2.5 py-1 bg-[#ffffff] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#41454d] uppercase tracking-wide leading-none">
-                    Term {item.term}
+                    {t.resultsPage.term} {item.term}
                   </div>
                   {!isPlaceholder && (
                     <>
                       {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
                          <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-[4px] text-[10px] font-semibold text-emerald-600 uppercase tracking-wide leading-none flex items-center gap-1">
-                            Proof Attached
+                            {t.resultsPage.proofAttached}
                          </div>
                       ) : (
                          <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-[4px] text-[10px] font-semibold text-amber-600 uppercase tracking-wide leading-none flex items-center gap-1">
-                            Missing Proof
+                            {t.resultsPage.missingProof}
                          </div>
                       )}
                       {sheet.grades.length < (sheet.class._count?.students || 1) && (
                          <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#5a5a5a] uppercase tracking-wide leading-none flex items-center gap-1">
-                            Incomplete
+                            {t.resultsPage.incomplete}
                          </div>
                       )}
                     </>
                   )}
                   {isPlaceholder && (
                      <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#5a5a5a] uppercase tracking-wide leading-none flex items-center gap-1">
-                        No Data
+                        {t.resultsPage.noData}
                      </div>
                   )}
                </div>
   
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 pr-24">
                 <span className={`text-[11px] font-medium tracking-wide ${isPlaceholder ? 'text-[#9297a0]' : 'text-[#458fff]'}`}>
-                  Class {item.class.name}
+                  {t.resultsPage.class} {item.class.name}
                 </span>
-                <h3 className="text-[18px] font-medium text-[#181d26] tracking-tight mt-1">
-                  {parseArabicName(item.subject.name)}
+                <h3 className="text-[18px] font-medium text-[#181d26] tracking-tight mt-1 truncate" title={parseLocalizedName(item.subject.name, locale)}>
+                  {parseLocalizedName(item.subject.name, locale)}
                 </h3>
               </div>
   
@@ -382,9 +373,9 @@ export default function ResultsPageClient({
                  {/* STATS / PLACEHOLDER PROGRESS */}
                  <div className={`${isPlaceholder ? 'bg-[#ffffff]' : 'bg-[#f8fafc]'} p-4 rounded-[6px] border border-[#dddddd]`}>
                     <div className="flex items-center justify-between mb-2">
-                       <span className="text-[11px] font-medium text-[#41454d] tracking-wide">Recording Progress</span>
+                       <span className="text-[11px] font-medium text-[#41454d] tracking-wide">{t.resultsPage.recordingProgress}</span>
                        <span className={`text-[12px] font-medium ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-[#181d26]'}`}>
-                          {isPlaceholder ? '0' : sheet.grades.length} Graded
+                          {isPlaceholder ? '0' : sheet.grades.length} {t.resultsPage.graded}
                        </span>
                     </div>
                     <div className="w-full h-1.5 bg-[#e5e7eb] rounded-full overflow-hidden">
@@ -407,7 +398,7 @@ export default function ResultsPageClient({
                            return '—';
                          })()}
                        </p>
-                       <p className="text-[11px] font-normal text-[#5a5a5a] tracking-wide">Teacher</p>
+                       <p className="text-[11px] font-normal text-[#5a5a5a] tracking-wide">{t.resultsPage.teacher}</p>
                      </div>
                   </div>
               </div>
@@ -415,7 +406,7 @@ export default function ResultsPageClient({
               <div className="mt-auto flex items-center gap-2 pt-4 border-t border-[#dddddd]">
                  {isPlaceholder ? (
                    <div className="flex-1 py-2.5 text-center text-[#9297a0] font-medium text-[13px] rounded-[6px] border border-dashed border-[#dddddd]">
-                     Awaiting Data
+                     {t.resultsPage.awaitingData}
                    </div>
                  ) : (
                    <>
@@ -423,7 +414,7 @@ export default function ResultsPageClient({
                       onClick={() => editSheet(sheet)}
                       className="flex-1 py-2.5 bg-[#ffffff] text-[#181d26] font-medium text-[13px] rounded-[6px] hover:bg-[#f8fafc] border border-[#dddddd] shadow-sm transition-all"
                     >
-                      Edit Recording
+                      {t.resultsPage.editRecording}
                     </button>
                     <button 
                       onClick={() => {

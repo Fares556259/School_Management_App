@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown, ChevronDown, Send } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
@@ -45,6 +46,7 @@ const ExamTimetableClient = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -281,16 +283,16 @@ const ExamTimetableClient = ({
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1 text-xs font-medium text-slate-500">
-                <span>{forceDraft ? "AI Exam Playground" : "Exams Registry"}</span>
+                <span>{forceDraft ? t.exams.aiPlayground : t.exams.registry}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                 <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-500' : 'text-emerald-500'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
-                  {isEditMode ? 'Edit Mode' : 'View Mode'}
+                  {isEditMode ? t.timetable.editMode : t.timetable.viewMode}
                 </span>
               </div>
               
               <h1 className="text-2xl xl:text-3xl font-bold text-slate-800 tracking-tight mt-0.5">
-                {forceDraft ? "AI Exam Scheduler" : "Academic Exams"}
+                {forceDraft ? t.exams.aiScheduler : t.exams.academicExams}
               </h1>
               
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-slate-500 hidden">
@@ -312,7 +314,7 @@ const ExamTimetableClient = ({
                         onClick={() => setIsEditMode(true)}
                         className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm text-[#181d26] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center gap-2"
                       >
-                        <Edit2 size={16} /> Edit Schedule
+                        <Edit2 size={16} /> {t.timetable.editSchedule}
                       </button>
 
                       {/* AI GENERATE BUTTON */}
@@ -326,7 +328,7 @@ const ExamTimetableClient = ({
                         }`}
                       >
                         {isAiLocked ? <Lock size={16} /> : <Sparkles size={16} />}
-                        {isAiLocked ? 'Limit' : hasDraft ? 'Regenerate' : 'AI Generate'}
+                        {isAiLocked ? t.timetable.limitReached : hasDraft ? t.timetable.regenerate : t.timetable.aiGenerate}
                       </button>
                     </div>
                   ) : (
@@ -335,7 +337,7 @@ const ExamTimetableClient = ({
                       onClick={() => setIsEditMode(true)}
                       className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm text-[#181d26] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center gap-2"
                     >
-                      <Edit2 size={16} /> Edit Schedule
+                      <Edit2 size={16} /> {t.timetable.editSchedule}
                     </button>
                   )
                 )}
@@ -347,13 +349,13 @@ const ExamTimetableClient = ({
                       onClick={handlePublishDraft}
                       className="px-6 py-3 bg-[#181d26] hover:bg-[#0d1218] text-white text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
                     >
-                      Publish
+                      {t.timetable.publish}
                     </button>
                     <button
                       onClick={handleDiscardDraft}
                       className="px-6 py-3 bg-white border border-[#dddddd] hover:bg-slate-50 text-[#aa2d00] text-sm font-medium rounded-xl transition-all active:scale-[0.98]"
                     >
-                      Discard
+                      {t.timetable.discard}
                     </button>
                   </div>
                 )}
@@ -365,7 +367,7 @@ const ExamTimetableClient = ({
                     className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all border border-[#dddddd] bg-white text-[#181d26] hover:bg-slate-50 active:scale-[0.98]"
                   >
                     <FileDown size={16} />
-                    Export PDF
+                    {t.timetable.exportPdf}
                   </button>
                   <button 
                     onClick={handlePublishToStudents}
@@ -373,7 +375,7 @@ const ExamTimetableClient = ({
                     className="flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-xl transition-all border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send size={16} />
-                    {isPublishing ? "Publishing..." : "Publish to Students"}
+                    {isPublishing ? t.exams.publishing : t.exams.publishToStudents}
                   </button>
                 </div>
               </>
@@ -383,7 +385,7 @@ const ExamTimetableClient = ({
                 onClick={() => setIsEditMode(false)}
                 className="px-8 py-3 rounded-xl font-medium text-sm transition-all flex items-center gap-2 bg-[#181d26] text-white hover:bg-[#0d1218] active:scale-[0.98]"
               >
-                <Check size={16} /> Done Editing
+                <Check size={16} /> {t.timetable.doneEditing}
               </button>
             )}
           </div>
@@ -393,7 +395,7 @@ const ExamTimetableClient = ({
         <div className="flex items-center overflow-x-auto bg-[#f8fafc] border border-[#dddddd] rounded-lg px-2 py-1.5 gap-2 w-full">
           {/* Target Class */}
           <div className="flex items-center gap-2 px-2 border-r border-[#dddddd] pr-4 shrink-0">
-            <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Class</span>
+            <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">{t.timetable.class}</span>
             <div className="relative inline-flex items-center">
               <select 
                 className="bg-transparent border-0 text-sm font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
@@ -408,7 +410,7 @@ const ExamTimetableClient = ({
               >
                 {classes.map(cls => (
                   <option key={cls.id} value={cls.id} className="bg-white text-slate-700">
-                    Grade {cls.level.level} - {cls.name}
+                    {t.timetable.grade} {cls.level.level} - {cls.name}
                   </option>
                 ))}
               </select>
@@ -420,7 +422,7 @@ const ExamTimetableClient = ({
 
           {/* Exam Period Segmented Control */}
           <div className="flex items-center gap-2 px-2 border-r border-[#dddddd] pr-4 shrink-0">
-             <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">Period</span>
+             <span className="text-xs font-semibold text-[#41454d] uppercase tracking-wider">{t.exams.period}</span>
              <div className="flex bg-[#e2e8f0] p-0.5 rounded-md gap-0.5">
                 {[1, 2, 3].map((p) => (
                   <button
@@ -432,7 +434,7 @@ const ExamTimetableClient = ({
                       : 'text-[#41454d] hover:text-[#181d26] hover:bg-slate-200'
                     }`}
                   >
-                    Week {p}
+                    {t.exams.week} {p}
                   </button>
                 ))}
              </div>
@@ -442,7 +444,7 @@ const ExamTimetableClient = ({
           <div className="flex items-center gap-3 px-2 shrink-0">
             <div className="flex items-center gap-2 relative group">
               <CalendarIcon size={14} className="text-[#9297a0] group-hover:text-indigo-600 transition-colors pointer-events-none absolute left-2 z-10" />
-              <div className="absolute left-7 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">Start</div>
+              <div className="absolute left-7 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">{t.exams.start}</div>
               <input 
                 type="date" 
                 value={localStartDate}
@@ -458,7 +460,7 @@ const ExamTimetableClient = ({
             <span className="text-[#9297a0] text-xs font-medium">→</span>
             
             <div className="flex items-center gap-2 relative group">
-              <div className="absolute left-3 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">End</div>
+              <div className="absolute left-3 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">{t.exams.end}</div>
               <input 
                 type="date" 
                 value={localEndDate}
@@ -475,7 +477,7 @@ const ExamTimetableClient = ({
                 onClick={handleSaveDates}
                 className="px-4 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 transition-all flex items-center gap-1 shadow-sm active:scale-95"
               >
-                <Check size={14} /> Save Dates
+                <Check size={14} /> {t.exams.saveDates}
               </button>
             )}
           </div>
@@ -490,7 +492,7 @@ const ExamTimetableClient = ({
              <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[40px] border border-slate-100 animate-pulse">
                 <div className="w-16 h-16 border-[6px] border-slate-50 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
                 <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
-                   Synchronizing Exam Schedule...
+                   {t.exams.syncing}
                 </p>
              </div>
           ) : (

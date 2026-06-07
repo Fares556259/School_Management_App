@@ -154,7 +154,7 @@ const AdminPage = async ({
        expense: currentExpense,
        balance: currentBalance,
        prevBalance,
-       month: MONTHS[startDate.getMonth()],
+       month: t.months[startDate.getMonth()],
        year: startDate.getFullYear()
      }
      // Note: Detailed census and unpaid lists moved to lazy-load inside SnapAssistant
@@ -169,7 +169,7 @@ const AdminPage = async ({
           <p className="text-[#333840] text-[14px] font-normal max-w-[600px] leading-[1.25] mt-2">{t.adminDashboard.commandCenterDesc}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-           <PrintReportAction month={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`} />
+           <PrintReportAction month={`${t.months[startDate.getMonth()]} ${startDate.getFullYear()}`} />
            <div className="h-10 w-[1px] bg-slate-200 hidden md:block mx-2" />
            <MonthYearFilter activeMonth={queryMonth} activeYear={queryYear} />
            <QuickActionBar />

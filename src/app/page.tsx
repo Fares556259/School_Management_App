@@ -161,7 +161,7 @@ export default function Homepage() {
             Everything you need in one workspace
           </h2>
           <p className="text-[18px] text-[#363636] max-w-2xl mx-auto leading-[1.5]">
-            Explore our specialized modules designed to cover every aspect of your school's daily operations. Stop juggling multiple disjointed tools.
+            Explore our specialized modules designed to cover every aspect of your school&apos;s daily operations. Stop juggling multiple disjointed tools.
           </p>
         </div>
       </section>
@@ -280,7 +280,7 @@ export default function Homepage() {
               Keep parents in the loop, anywhere.
             </h2>
             <p className="text-[16px] text-[#363636] leading-[1.5] mb-8">
-              Our dedicated mobile solution for parents ensures they never miss an update about their child's academic journey.
+              Our dedicated mobile solution for parents ensures they never miss an update about their child&apos;s academic journey.
             </p>
             <div className="flex flex-col gap-6">
               <div className="flex gap-4 items-start">

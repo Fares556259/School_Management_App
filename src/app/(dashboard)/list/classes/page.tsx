@@ -9,7 +9,9 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import Link from "next/link";
-import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen } from "lucide-react";
+import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen, GraduationCap } from "lucide-react";
+import { cookies } from "next/headers";
+import { translations, Locale } from "@/lib/translations";
 
 type ClassList = Class & { level: Level } & {
   _count: { students: number };
@@ -17,38 +19,41 @@ type ClassList = Class & { level: Level } & {
   lessons: { teacher: { id: string; name: string; surname: string; img: string | null } }[];
 };
 
-const columns = [
-  {
-    header: "Class Name",
-    accessor: "name",
-  },
-  {
-    header: "Capacity",
-    accessor: "capacity",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Level",
-    accessor: "level",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teachers",
-    accessor: "teachers",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Actions",
-    accessor: "action",
-    className: "text-right",
-  },
-];
-
 const ClassListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
+  const lang = cookies().get("NEXT_LOCALE")?.value || "en";
+  const t = translations[lang as Locale];
+
+  const columns = [
+    {
+      header: t.classes.className,
+      accessor: "name",
+    },
+    {
+      header: t.classes.capacity,
+      accessor: "capacity",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: t.classes.level,
+      accessor: "level",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: t.classes.teachers,
+      accessor: "teachers",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: t.classes.actions,
+      accessor: "action",
+      className: "text-right",
+    },
+  ];
+
   const { userId } = auth();
   const role = await getRole();
   const { page, ...queryParams } = searchParams;
@@ -121,7 +126,14 @@ const ClassListPage = async ({
                 className="flex items-center gap-1.5 bg-white border border-[#dddddd] text-[#181d26] px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-slate-50 hover:shadow-sm transition-all"
               >
                 <Users size={14} />
-                <span>View Students</span>
+                <span>{t.classes.viewStudents}</span>
+              </Link>
+              <Link 
+                href={`/list/classes/${item.id}/teachers`}
+                className="flex items-center gap-1.5 bg-white border border-[#dddddd] text-[#181d26] px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-slate-50 hover:shadow-sm transition-all"
+              >
+                <GraduationCap size={14} />
+                <span>{t.classes.viewTeachers}</span>
               </Link>
               <CrudFormModal 
                 entity="class" 
@@ -219,8 +231,8 @@ const ClassListPage = async ({
             <DoorOpen size={20} strokeWidth={2.5} />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-[11px] font-bold text-[#9297a0] tracking-widest uppercase mb-0.5">Academics</span>
-            <h1 className="text-[24px] font-semibold text-[#181d26] tracking-tight">Classes</h1>
+            <span className="text-[11px] font-bold text-[#9297a0] tracking-widest uppercase mb-0.5">{t.classes.academics}</span>
+            <h1 className="text-[24px] font-semibold text-[#181d26] tracking-tight">{t.classes.pageTitle}</h1>
           </div>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
@@ -240,7 +252,7 @@ const ClassListPage = async ({
                 trigger={
                   <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#000000] text-white rounded-lg px-4 h-9 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] ml-1 active:scale-95">
                     <Plus size={16} strokeWidth={2.5} />
-                    <span className="font-medium text-[13px]">Add Class</span>
+                    <span className="font-medium text-[13px]">{t.classes.addClass}</span>
                   </button>
                 }
               />

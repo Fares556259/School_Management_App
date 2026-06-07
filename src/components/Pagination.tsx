@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 const Pagination = ({
   page = 1,
@@ -11,6 +12,7 @@ const Pagination = ({
   count?: number;
 }) => {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const hasPrev = ITEM_PER_PAGE * (page - 1) > 0;
   const hasNext = ITEM_PER_PAGE * (page - 1) + ITEM_PER_PAGE < count;
@@ -28,7 +30,7 @@ const Pagination = ({
         className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed"
         onClick={() => changePage(page - 1)}
       >
-        Previous
+        {t.pagination.previous}
       </button>
       <div className="flex items-center gap-1.5 text-[13px]">
         {(() => {
@@ -72,7 +74,7 @@ const Pagination = ({
         className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed"
         onClick={() => changePage(page + 1)}
       >
-        Next
+        {t.pagination.next}
       </button>
     </div>
   );

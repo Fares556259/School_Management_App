@@ -56,7 +56,7 @@ export default function AISchedulerIntro({ onComplete }: { onComplete: () => voi
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">Total Control. Zero Conflicts.</h2>
           <p className="text-lg text-slate-500 font-medium max-w-xl mx-auto">
-            Define your constraints, generate drafts in a secure sandbox, and publish only when you're 100% satisfied.
+            Define your constraints, generate drafts in a secure sandbox, and publish only when you&apos;re 100% satisfied.
           </p>
         </div>
 
