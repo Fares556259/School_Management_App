@@ -762,5 +762,17 @@ export const en = {
     updateButton: "Update Announcement",
     titleRequired: "Title is required!",
     contentRequired: "Content is required!"
+  },
+  resourcesPage: {
+    title: "Course Resources",
+    viewFile: "View File",
+    table: {
+      title: "Title",
+      subject: "Subject",
+      class: "Class",
+      teacher: "Teacher",
+      date: "Date",
+      actions: "Actions"
+    }
   }
 };

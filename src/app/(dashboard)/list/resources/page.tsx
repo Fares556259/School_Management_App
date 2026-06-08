@@ -9,6 +9,8 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Resource, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
+import { cookies } from "next/headers";
+import { translations, Locale } from "@/lib/translations";
 
 type ResourceList = Resource & {
   lesson: Lesson & {
@@ -18,35 +20,6 @@ type ResourceList = Resource & {
   };
 };
 
-const columns = [
-  {
-    header: "Title",
-    accessor: "title",
-  },
-  {
-    header: "Subject",
-    accessor: "subject",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
-    className: "hidden lg:table-cell",
-  },
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Actions",
-    accessor: "action",
-  },
-];
 
 const ResourceListPage = async ({
   searchParams,
@@ -59,6 +32,40 @@ const ResourceListPage = async ({
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
+
+  const cookieStore = cookies();
+  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
+  const t = translations[locale];
+
+  const columns = [
+    {
+      header: t.resourcesPage?.table?.title || "Title",
+      accessor: "title",
+    },
+    {
+      header: t.resourcesPage?.table?.subject || "Subject",
+      accessor: "subject",
+    },
+    {
+      header: t.resourcesPage?.table?.class || "Class",
+      accessor: "class",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: t.resourcesPage?.table?.teacher || "Teacher",
+      accessor: "teacher",
+      className: "hidden lg:table-cell",
+    },
+    {
+      header: t.resourcesPage?.table?.date || "Date",
+      accessor: "date",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: t.resourcesPage?.table?.actions || "Actions",
+      accessor: "action",
+    },
+  ];
 
   // URL QUERY PARAMS CONDITION
   const query: Prisma.ResourceWhereInput = { schoolId };
@@ -94,16 +101,16 @@ const ResourceListPage = async ({
       <td className="p-4">
         <div className="flex flex-col">
           <span className="font-bold text-slate-700">{item.title}</span>
-          <a href={item.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">View File</a>
+          <a href={item.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">{t.resourcesPage?.viewFile || "View File"}</a>
         </div>
       </td>
-      <td>{item.lesson.subject.name}</td>
+      <td>{item.lesson.subject.name.split('|')[0].trim()}</td>
       <td className="hidden md:table-cell">{item.lesson.class.name}</td>
       <td className="hidden lg:table-cell">
         {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("en-GB").format(item.createdAt)}
+        {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.createdAt)}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -142,7 +149,7 @@ const ResourceListPage = async ({
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Course Resources
+          {t.resourcesPage?.title || "Course Resources"}
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />

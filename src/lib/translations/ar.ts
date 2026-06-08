@@ -762,5 +762,17 @@ export const ar = {
     updateButton: "تحديث الإعلان",
     titleRequired: "العنوان مطلوب!",
     contentRequired: "المحتوى مطلوب!"
+  },
+  resourcesPage: {
+    title: "موارد المقرر",
+    viewFile: "عرض الملف",
+    table: {
+      title: "العنوان",
+      subject: "المادة",
+      class: "الفصل",
+      teacher: "المعلم",
+      date: "التاريخ",
+      actions: "إجراءات"
+    }
   }
 };

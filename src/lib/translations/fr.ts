@@ -761,5 +761,17 @@ export const fr = {
     updateButton: "Mettre à jour l'Annonce",
     titleRequired: "Le titre est requis!",
     contentRequired: "Le contenu est requis!"
+  },
+  resourcesPage: {
+    title: "Ressources du Cours",
+    viewFile: "Voir le fichier",
+    table: {
+      title: "Titre",
+      subject: "Matière",
+      class: "Classe",
+      teacher: "Enseignant",
+      date: "Date",
+      actions: "Actions"
+    }
   }
 };
