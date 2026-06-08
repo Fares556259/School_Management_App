@@ -773,5 +773,25 @@ export const fr = {
       date: "Date",
       actions: "Actions"
     }
+  },
+  profileSettings: {
+    title: "Paramètres du Profil",
+    subtitle: "Gérez vos informations personnelles et préférences",
+    saved: "Enregistré",
+    saveChanges: "Enregistrer",
+    saving: "Enregistrement...",
+    failedToUpdate: "Échec de la mise à jour du profil.",
+    unexpectedError: "Une erreur inattendue est survenue.",
+    failedToUpload: "Échec du téléchargement de l'image de profil.",
+    administrator: "Administrateur",
+    changePicture: "Changer la photo",
+    uploading: "Téléchargement...",
+    firstName: "Prénom",
+    firstNamePlaceholder: "Entrez votre prénom",
+    lastName: "Nom",
+    lastNamePlaceholder: "Entrez votre nom",
+    emailAddress: "Adresse Email",
+    phoneNumber: "Numéro de téléphone",
+    phonePlaceholder: "+216 -- --- ---"
   }
 };

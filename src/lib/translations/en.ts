@@ -774,5 +774,25 @@ export const en = {
       date: "Date",
       actions: "Actions"
     }
+  },
+  profileSettings: {
+    title: "Profile Settings",
+    subtitle: "Manage your personal information and preferences",
+    saved: "Saved",
+    saveChanges: "Save Changes",
+    saving: "Saving...",
+    failedToUpdate: "Failed to update profile.",
+    unexpectedError: "An unexpected error occurred.",
+    failedToUpload: "Failed to upload profile image.",
+    administrator: "Administrator",
+    changePicture: "Change Picture",
+    uploading: "Uploading...",
+    firstName: "First Name",
+    firstNamePlaceholder: "Enter your name",
+    lastName: "Last Name",
+    lastNamePlaceholder: "Enter your surname",
+    emailAddress: "Email Address",
+    phoneNumber: "Phone Number",
+    phonePlaceholder: "+216 -- --- ---"
   }
 };

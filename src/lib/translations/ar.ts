@@ -774,5 +774,25 @@ export const ar = {
       date: "التاريخ",
       actions: "إجراءات"
     }
+  },
+  profileSettings: {
+    title: "إعدادات الملف الشخصي",
+    subtitle: "إدارة معلوماتك الشخصية وتفضيلاتك",
+    saved: "تم الحفظ",
+    saveChanges: "حفظ التغييرات",
+    saving: "جاري الحفظ...",
+    failedToUpdate: "فشل في تحديث الملف الشخصي.",
+    unexpectedError: "حدث خطأ غير متوقع.",
+    failedToUpload: "فشل في رفع صورة الملف الشخصي.",
+    administrator: "مسؤول النظام",
+    changePicture: "تغيير الصورة",
+    uploading: "جاري الرفع...",
+    firstName: "الاسم",
+    firstNamePlaceholder: "أدخل اسمك",
+    lastName: "اللقب",
+    lastNamePlaceholder: "أدخل لقبك",
+    emailAddress: "البريد الإلكتروني",
+    phoneNumber: "رقم الهاتف",
+    phonePlaceholder: "+216 -- --- ---"
   }
 };

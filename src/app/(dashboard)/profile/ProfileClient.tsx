@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { updateAdminProfile } from "../admin/actions/profileActions";
 import { User, Mail, Phone, Camera, Check, AlertCircle, UploadCloud } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface ProfileClientProps {
   initialData: any;
@@ -12,6 +13,7 @@ interface ProfileClientProps {
 
 const ProfileClient = ({ initialData }: ProfileClientProps) => {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -55,10 +57,10 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
         router.refresh(); // Sync header and sidebar immediately
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(res.error || "Failed to update profile.");
+        setError(res.error || t.profileSettings?.failedToUpdate || "Failed to update profile.");
       }
     } catch (err) {
-      setError("An unexpected error occurred.");
+      setError(t.profileSettings?.unexpectedError || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -94,11 +96,11 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
         setServerData(prev => ({ ...prev, img: publicUrl }));
         router.refresh();
       } else {
-        throw new Error(res.error || "Failed to save profile picture");
+        throw new Error(res.error || t.profileSettings?.failedToUpload || "Failed to save profile picture");
       }
     } catch (err: any) {
       console.error("Profile upload failed:", err);
-      setError(err.message || "Failed to upload profile image.");
+      setError(err.message || t.profileSettings?.failedToUpload || "Failed to upload profile image.");
     } finally {
       setUploadingImage(false);
     }
@@ -114,9 +116,9 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
             <User size={22} className="text-white" />
           </div>
           <div>
-            <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">Profile Settings</h1>
+            <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">{t.profileSettings?.title || "Profile Settings"}</h1>
             <div className="flex items-center gap-2 text-[13px] font-medium text-[#5a5a5a]">
-              <span>Manage your personal information and preferences</span>
+              <span>{t.profileSettings?.subtitle || "Manage your personal information and preferences"}</span>
             </div>
           </div>
         </div>
@@ -124,7 +126,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
         <div className="flex items-center gap-3">
           {success && (
             <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-[6px] border border-emerald-200/50 text-[12px] font-bold tracking-wide">
-              <Check size={14} /> Saved
+              <Check size={14} /> {t.profileSettings?.saved || "Saved"}
             </div>
           )}
           <button 
@@ -132,7 +134,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
             disabled={!hasChanges || loading}
             className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? (t.profileSettings?.saving || "Saving...") : (t.profileSettings?.saveChanges || "Save Changes")}
           </button>
         </div>
       </div>
@@ -168,7 +170,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
             <h2 className="text-[16px] font-semibold text-[#181d26]">
               {name || surname ? `${name} ${surname}` : initialData?.username}
             </h2>
-            <p className="text-[12px] font-medium text-[#5a5a5a] uppercase tracking-wider mt-1">Administrator</p>
+            <p className="text-[12px] font-medium text-[#5a5a5a] uppercase tracking-wider mt-1">{t.profileSettings?.administrator || "Administrator"}</p>
             
             <div className="w-full h-px bg-[#dddddd] my-5"></div>
             
@@ -186,7 +188,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
               className="w-full bg-[#ffffff] border border-[#dddddd] text-[#181d26] hover:bg-[#f8fafc] px-4 py-2 rounded-[6px] text-[12px] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <UploadCloud size={14} />
-              {uploadingImage ? "Uploading..." : "Change Picture"}
+              {uploadingImage ? (t.profileSettings?.uploading || "Uploading...") : (t.profileSettings?.changePicture || "Change Picture")}
             </button>
           </div>
         </div>
@@ -196,57 +198,57 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-medium text-[#41454d]">First Name</label>
+              <label className="text-[12px] font-medium text-[#41454d]">{t.profileSettings?.firstName || "First Name"}</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
+                <User className="absolute start-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
                 <input 
                   type="text" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 pl-9 pr-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
-                  placeholder="Enter your name"
+                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 ps-9 pe-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
+                  placeholder={t.profileSettings?.firstNamePlaceholder || "Enter your name"}
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-medium text-[#41454d]">Last Name</label>
+              <label className="text-[12px] font-medium text-[#41454d]">{t.profileSettings?.lastName || "Last Name"}</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
+                <User className="absolute start-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
                 <input 
                   type="text" 
                   value={surname}
                   onChange={(e) => setSurname(e.target.value)}
-                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 pl-9 pr-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
-                  placeholder="Enter your surname"
+                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 ps-9 pe-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
+                  placeholder={t.profileSettings?.lastNamePlaceholder || "Enter your surname"}
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-medium text-[#41454d]">Email Address</label>
+              <label className="text-[12px] font-medium text-[#41454d]">{t.profileSettings?.emailAddress || "Email Address"}</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
+                <Mail className="absolute start-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
                 <input 
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 pl-9 pr-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
+                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 ps-9 pe-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
                   placeholder="email@snapschool.com"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-medium text-[#41454d]">Phone Number</label>
+              <label className="text-[12px] font-medium text-[#41454d]">{t.profileSettings?.phoneNumber || "Phone Number"}</label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
+                <Phone className="absolute start-3 top-1/2 -translate-y-1/2 text-[#9297a0]" size={16} />
                 <input 
                   type="text" 
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 pl-9 pr-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
-                  placeholder="+216 -- --- ---"
+                  className="w-full bg-[#ffffff] border border-[#dddddd] rounded-[6px] py-2.5 ps-9 pe-3 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#9297a0] placeholder:font-normal"
+                  placeholder={t.profileSettings?.phonePlaceholder || "+216 -- --- ---"}
                 />
               </div>
             </div>
