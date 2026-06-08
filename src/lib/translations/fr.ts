@@ -842,5 +842,31 @@ export const fr = {
     discard: "Annuler",
     saving: "Enregistrement...",
     saveChanges: "Enregistrer les modifications"
+  },
+  helpPage: {
+    title: "Aide et Support",
+    subtitle: "Trouvez des réponses, explorez les guides ou contactez notre équipe.",
+    searchPlaceholder: "Rechercher de l'aide...",
+    quickLinks: "Liens Rapides",
+    gettingStarted: "Commencer",
+    gettingStartedDesc: "Apprenez les bases de la configuration de votre tableau de bord.",
+    accountBilling: "Compte et Facturation",
+    accountBillingDesc: "Gérez votre abonnement, factures et paiements.",
+    studentManagement: "Gestion des Élèves",
+    studentManagementDesc: "Comment inscrire, noter et gérer les étudiants.",
+    technicalSupport: "Support Technique",
+    technicalSupportDesc: "Signalez des problèmes, des bugs ou des pannes.",
+    faq: "Questions Fréquemment Posées",
+    faq1Title: "Comment ajouter un nouvel enseignant ?",
+    faq1Desc: "Accédez à la section Enseignants dans la barre latérale et cliquez sur 'Ajouter un Enseignant'.",
+    faq2Title: "Puis-je personnaliser le système de notation ?",
+    faq2Desc: "Oui. Allez dans Paramètres > Structure Académique pour modifier le calcul des notes.",
+    faq3Title: "Que faire si j'oublie mon mot de passe ?",
+    faq3Desc: "Cliquez sur 'Mot de passe oublié' sur l'écran de connexion, ou demandez à l'administrateur de le réinitialiser.",
+    contactUs: "Encore besoin d'aide ?",
+    contactUsDesc: "Notre équipe de support est disponible 24/7 pour vous aider.",
+    emailUs: "Nous envoyer un e-mail",
+    callUs: "Nous appeler",
+    liveChat: "Chat en direct"
   }
 };

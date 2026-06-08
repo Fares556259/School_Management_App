@@ -843,5 +843,31 @@ export const en = {
     discard: "Discard",
     saving: "Saving...",
     saveChanges: "Save changes"
+  },
+  helpPage: {
+    title: "Help & Support",
+    subtitle: "Find answers, explore guides, or contact our support team.",
+    searchPlaceholder: "Search for help...",
+    quickLinks: "Quick Links",
+    gettingStarted: "Getting Started",
+    gettingStartedDesc: "Learn the basics of setting up your school dashboard.",
+    accountBilling: "Account & Billing",
+    accountBillingDesc: "Manage your subscription, invoices, and payment methods.",
+    studentManagement: "Student Management",
+    studentManagementDesc: "How to enroll, grade, and manage students.",
+    technicalSupport: "Technical Support",
+    technicalSupportDesc: "Report issues, bugs, or system downtime.",
+    faq: "Frequently Asked Questions",
+    faq1Title: "How do I add a new teacher?",
+    faq1Desc: "Navigate to the Teachers section from the sidebar and click on the 'Add Teacher' button. Fill in their personal details and assigned subjects.",
+    faq2Title: "Can I customize the grading system?",
+    faq2Desc: "Yes. Go to Settings > Academic Structure to modify how grades and terms are calculated.",
+    faq3Title: "What happens if I forget my password?",
+    faq3Desc: "Click the 'Forgot Password' link on the login screen, or ask your system administrator to reset it via the Admin Dashboard.",
+    contactUs: "Still need help?",
+    contactUsDesc: "Our support team is available 24/7 to assist you.",
+    emailUs: "Email Us",
+    callUs: "Call Us",
+    liveChat: "Live Chat"
   }
 };
