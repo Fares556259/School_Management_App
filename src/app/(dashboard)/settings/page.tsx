@@ -43,7 +43,7 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 
 const SettingsPage = () => {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [config, setConfig] = useState<any>(null);
   const [levelFees, setLevelFees] = useState<any[]>([]);
   const [levels, setLevels] = useState<any[]>([]);
@@ -390,7 +390,8 @@ const SettingsPage = () => {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.schoolPhone || "School Phone Number"}</label>
                 <input 
-                   className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
+                   dir="ltr"
+                   className={`w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all ${locale === 'ar' ? 'text-right' : 'text-left'}`}
                    value={config?.phone || ""}
                    onChange={e => setConfig({...config, phone: e.target.value})}
                    placeholder="+216 71 000 000"
