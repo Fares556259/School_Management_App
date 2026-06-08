@@ -39,9 +39,11 @@ import {
   deleteRoom, 
   updateRoom 
 } from "../admin/actions/infrastructureActions";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 const SettingsPage = () => {
   const router = useRouter();
+  const { t } = useLanguage();
   const [config, setConfig] = useState<any>(null);
   const [levelFees, setLevelFees] = useState<any[]>([]);
   const [levels, setLevels] = useState<any[]>([]);
@@ -352,8 +354,8 @@ const SettingsPage = () => {
         
         {/* HEADER */}
         <div className="flex flex-col gap-1 border-b border-[#dddddd] pb-4">
-          <h1 className="text-[24px] font-normal text-[#181d26]">System Settings</h1>
-          <p className="text-[14px] text-[#5a5a5a]">Configure institutional branding and academic parameters.</p>
+          <h1 className="text-[24px] font-normal text-[#181d26]">{t.systemSettings?.title || "System Settings"}</h1>
+          <p className="text-[14px] text-[#5a5a5a]">{t.systemSettings?.subtitle || "Configure institutional branding and academic parameters."}</p>
         </div>
 
         {message && (
@@ -373,12 +375,12 @@ const SettingsPage = () => {
           <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center gap-2 mb-2">
                <Building2 className="text-indigo-600" size={18} />
-               <h2 className="text-[16px] font-medium text-[#181d26]">Institutional Identity</h2>
+               <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.institutionalIdentity || "Institutional Identity"}</h2>
             </div>
             
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">School Name</label>
+                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.schoolName || "School Name"}</label>
                 <input 
                   className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
                   value={config?.schoolName || ""}
@@ -386,7 +388,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">School Phone Number</label>
+                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.schoolPhone || "School Phone Number"}</label>
                 <input 
                    className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
                    value={config?.phone || ""}
@@ -395,7 +397,7 @@ const SettingsPage = () => {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">School Address</label>
+                <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.schoolAddress || "School Address"}</label>
                 <input 
                    className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-[#9297a0] transition-all"
                    value={config?.address || ""}
@@ -410,14 +412,14 @@ const SettingsPage = () => {
           <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center gap-2 mb-2">
                <ImageIcon className="text-indigo-600" size={18} />
-               <h2 className="text-[16px] font-medium text-[#181d26]">Branding Assets</h2>
+               <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.brandingAssets || "Branding Assets"}</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { label: 'School Logo', field: 'schoolLogo' },
-                { label: 'Ministry Logo', field: 'ministryLogo' },
-                { label: 'University Logo', field: 'universityLogo' }
+                { label: t.systemSettings?.schoolLogo || 'School Logo', field: 'schoolLogo' },
+                { label: t.systemSettings?.ministryLogo || 'Ministry Logo', field: 'ministryLogo' },
+                { label: t.systemSettings?.universityLogo || 'University Logo', field: 'universityLogo' }
               ].map((logo) => (
                 <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-white rounded-[12px] border border-[#dddddd] group hover:border-[#9297a0] transition-all">
                     <div className="w-24 h-24 rounded-2xl bg-white shadow-sm border border-slate-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-300 relative">
@@ -442,7 +444,7 @@ const SettingsPage = () => {
                       onClick={() => document.getElementById(`upload-${logo.field}`)?.click()}
                       className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                     >
-                      {config[logo.field] ? 'Change Logo' : 'Upload Logo'}
+                      {config[logo.field] ? (t.systemSettings?.changeLogo || 'Change Logo') : (t.systemSettings?.uploadLogo || 'Upload Logo')}
                     </button>
                   </div>
                 </div>
@@ -529,10 +531,10 @@ const SettingsPage = () => {
                       <span className="text-sm font-black text-slate-700">Level {lvl.level}</span>
                     </div>
                     <div className="relative max-w-[100px]">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">$</span>
+                      <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">$</span>
                       <input 
                         type="number"
-                        className="w-full bg-white border border-[#dddddd] rounded-[6px] pl-6 pr-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-right"
+                        className="w-full bg-white border border-[#dddddd] rounded-[6px] ps-6 pe-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-end"
                         value={lvl.tuitionFee}
                         onChange={(e) => handleUpdateLevelFee(lvl.id, e.target.value)}
                       />

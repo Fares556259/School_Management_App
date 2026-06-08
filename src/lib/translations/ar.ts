@@ -794,5 +794,19 @@ export const ar = {
     emailAddress: "البريد الإلكتروني",
     phoneNumber: "رقم الهاتف",
     phonePlaceholder: "+216 -- --- ---"
+  },
+  systemSettings: {
+    title: "إعدادات النظام",
+    subtitle: "تكوين العلامة التجارية المؤسسية والمعلمات الأكاديمية.",
+    institutionalIdentity: "الهوية المؤسسية",
+    schoolName: "اسم المدرسة",
+    schoolPhone: "رقم هاتف المدرسة",
+    schoolAddress: "عنوان المدرسة",
+    brandingAssets: "أصول العلامة التجارية",
+    schoolLogo: "شعار المدرسة",
+    ministryLogo: "شعار الوزارة",
+    universityLogo: "شعار الجامعة",
+    uploadLogo: "رفع الشعار",
+    changeLogo: "تغيير الشعار"
   }
 };

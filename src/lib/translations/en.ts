@@ -794,5 +794,19 @@ export const en = {
     emailAddress: "Email Address",
     phoneNumber: "Phone Number",
     phonePlaceholder: "+216 -- --- ---"
+  },
+  systemSettings: {
+    title: "System Settings",
+    subtitle: "Configure institutional branding and academic parameters.",
+    institutionalIdentity: "Institutional Identity",
+    schoolName: "School Name",
+    schoolPhone: "School Phone Number",
+    schoolAddress: "School Address",
+    brandingAssets: "Branding Assets",
+    schoolLogo: "School Logo",
+    ministryLogo: "Ministry Logo",
+    universityLogo: "University Logo",
+    uploadLogo: "Upload Logo",
+    changeLogo: "Change Logo"
   }
 };

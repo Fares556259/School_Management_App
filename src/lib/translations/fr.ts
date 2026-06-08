@@ -793,5 +793,19 @@ export const fr = {
     emailAddress: "Adresse Email",
     phoneNumber: "Numéro de téléphone",
     phonePlaceholder: "+216 -- --- ---"
+  },
+  systemSettings: {
+    title: "Paramètres du Système",
+    subtitle: "Configurez l'image de marque et les paramètres académiques.",
+    institutionalIdentity: "Identité Institutionnelle",
+    schoolName: "Nom de l'École",
+    schoolPhone: "Numéro de Téléphone de l'École",
+    schoolAddress: "Adresse de l'École",
+    brandingAssets: "Actifs de Marque",
+    schoolLogo: "Logo de l'École",
+    ministryLogo: "Logo du Ministère",
+    universityLogo: "Logo de l'Université",
+    uploadLogo: "Télécharger le Logo",
+    changeLogo: "Changer le Logo"
   }
 };
