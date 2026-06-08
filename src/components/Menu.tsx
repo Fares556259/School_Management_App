@@ -128,7 +128,7 @@ const menuItems: MenuSection[] = [
       { icon: CalendarCheck, label: "Attendance", href: "/admin/attendance", visible: ["admin", "teacher", "superuser"] },
       { icon: Megaphone, label: "Announcements", href: "/list/announcements", visible: ["admin", "teacher", "superuser"] },
       { icon: BarChart3, label: "Daily Reports", href: "/admin/reports", visible: ["admin", "superuser"] },
-      { icon: Smartphone, label: "Mobile App", href: "/admin/mobile-app", visible: ["admin", "teacher", "student", "parent"] },
+
       { icon: Settings2, label: "Setup Requests", href: "/admin/setup-requests", visible: ["superuser"] },
     ],
   },
