@@ -101,7 +101,7 @@ const AuditPage = async ({
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 border-b border-slate-100 pb-5">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            Master Audit Trail
+            {(t as any).auditLogPage?.pageTitle || "Master Audit Trail"}
             <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{count}</span>
           </h1>
           <p className="text-sm text-slate-500 font-medium mt-1">{t.auditLogPage.pageDesc}</p>

@@ -9,6 +9,8 @@ import { getSchoolId } from "@/lib/school";
 import { Megaphone, Plus, FileText, Image as ImageIcon } from "lucide-react";
 import AnnouncementFilters from "./AnnouncementFilters";
 import AnnouncementPreviewModal from "./AnnouncementPreviewModal";
+import { cookies } from "next/headers";
+import { translations, Locale } from "@/lib/translations";
 
 type NoticeList = Notice & { class: Class | null };
 
@@ -17,6 +19,10 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
   const { page, search, classId } = searchParams;
   const p = page ? parseInt(page) : 1;
   const schoolId = await getSchoolId();
+
+  const cookieStore = cookies();
+  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
+  const t = translations[locale];
 
   const query: Prisma.NoticeWhereInput = { schoolId };
   if (search) {
@@ -55,11 +61,11 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
               <Megaphone size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">Announcements</h1>
+              <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">{t.announcementsPage?.title || "Announcements"}</h1>
               <div className="flex items-center gap-2 text-[13px] font-medium text-[#5a5a5a]">
-                <span>School Communications</span>
+                <span>{t.announcementsPage?.communications || "School Communications"}</span>
                 <span className="w-1 h-1 rounded-full bg-[#dddddd]"></span>
-                <span className="text-indigo-600 font-medium">{count} Total</span>
+                <span className="text-indigo-600 font-medium">{count} {t.announcementsPage?.total || "Total"}</span>
               </div>
             </div>
           </div>
@@ -72,7 +78,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                 relatedData={{ classes }}
                 trigger={
                   <button className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm">
-                    <Plus size={14} className="text-white/80" /> Create Announcement
+                    <Plus size={14} className="text-white/80" /> {t.announcementsPage?.createAnnouncement || "Create Announcement"}
                   </button>
                 }
               />
@@ -90,15 +96,15 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
 
       {/* Table Area */}
       <div className="bg-[#ffffff] border border-[#dddddd] rounded-[8px] overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-start border-collapse">
           <thead>
             <tr className="border-b border-[#dddddd] bg-[#f8fafc]">
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[40%]">Title</th>
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">Target</th>
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] hidden sm:table-cell">Date</th>
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">Attachments</th>
+              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[40%]">{t.announcementsPage?.table?.title || "Title"}</th>
+              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.target || "Target"}</th>
+              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] hidden sm:table-cell">{t.announcementsPage?.table?.date || "Date"}</th>
+              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.attachments || "Attachments"}</th>
               {(role === "admin" || role === "teacher") && (
-                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] text-right">Actions</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] text-end">{t.announcementsPage?.table?.actions || "Actions"}</th>
               )}
             </tr>
           </thead>
@@ -106,7 +112,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
             {data.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-[13px] text-[#9297a0]">
-                  No announcements found. Try adjusting your filters.
+                  {t.announcementsPage?.noAnnouncements || "No announcements found. Try adjusting your filters."}
                 </td>
               </tr>
             ) : (
@@ -121,17 +127,17 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wide uppercase ${item.class ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/50' : 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'}`}>
-                        {item.class ? item.class.name : "GLOBAL"}
+                        {item.class ? `${t.announcementsPage?.filters?.classPrefix || "Class "}${item.class.name}` : (t.announcementsPage?.global || "GLOBAL")}
                       </span>
                       {item.important && (
                         <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wide uppercase bg-rose-50 text-rose-700 border border-rose-200/50">
-                          URGENT
+                          {t.announcementsPage?.urgent || "URGENT"}
                         </span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-4 text-[12px] font-medium text-[#5a5a5a] hidden sm:table-cell">
-                    {new Intl.DateTimeFormat("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).format(item.date)}
+                    {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.date)}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2.5">
@@ -140,7 +146,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                     </div>
                   </td>
                   {(role === "admin" || role === "teacher") && (
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-4 py-4 text-end">
                       <div className="flex items-center justify-end gap-1.5">
                         <AnnouncementPreviewModal item={item} />
                         <FormModal 
@@ -150,7 +156,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                            relatedData={{ classes }}
                            trigger={
                              <button className="text-[11px] font-medium text-[#5a5a5a] hover:text-[#181d26] px-2 py-1 rounded-[4px] border border-transparent hover:border-[#dddddd] bg-transparent hover:bg-[#f8fafc] transition-all">
-                               Edit
+                               {t.announcementsPage?.actions?.edit || "Edit"}
                              </button>
                            } 
                         />
@@ -160,7 +166,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                            id={item.id}
                            trigger={
                              <button className="text-[11px] font-medium text-rose-600 hover:text-rose-800 px-2 py-1 rounded-[4px] border border-transparent hover:border-rose-200 bg-transparent hover:bg-rose-50 transition-all">
-                               Delete
+                               {t.announcementsPage?.actions?.delete || "Delete"}
                              </button>
                            }
                         />

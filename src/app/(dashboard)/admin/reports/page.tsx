@@ -55,7 +55,7 @@ export default async function ReportsManagementPage() {
                 type="text"
                 id="name"
                 name="name"
-                placeholder="e.g. John Doe"
+                placeholder={t.dailyReports.namePlaceholder}
                 className="w-full px-3 py-2.5 border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] focus:border-indigo-500 focus:outline-none transition-all placeholder:font-normal placeholder:text-[#9297a0] bg-white"
               />
             </div>
@@ -65,7 +65,7 @@ export default async function ReportsManagementPage() {
                 type="email"
                 id="email"
                 name="email"
-                placeholder="director@school.com"
+                placeholder={t.dailyReports.emailPlaceholder}
                 required
                 className="w-full px-3 py-2.5 border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] focus:border-indigo-500 focus:outline-none transition-all placeholder:font-normal placeholder:text-[#9297a0] bg-white"
               />
@@ -87,7 +87,7 @@ export default async function ReportsManagementPage() {
               <h2 className="text-[14px] font-semibold text-[#181d26]">{t.dailyReports.activeRecipients}</h2>
             </div>
             <span className="bg-indigo-50 text-indigo-700 font-bold text-[10px] px-2 py-0.5 rounded-[4px] border border-indigo-200/50">
-              {subscribers.length} TOTAL
+              {subscribers.length} {t.dailyReports.total}
             </span>
           </div>
           
@@ -107,7 +107,7 @@ export default async function ReportsManagementPage() {
                         {sub.name ? sub.name[0].toUpperCase() : sub.email[0].toUpperCase()}
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <p className="text-[13px] font-medium text-[#181d26]">{sub.name || "Unknown Name"}</p>
+                        <p className="text-[13px] font-medium text-[#181d26]">{sub.name || t.dailyReports.unknownName}</p>
                         <p className="text-[12px] text-[#5a5a5a]">{sub.email}</p>
                       </div>
                     </div>
@@ -118,7 +118,7 @@ export default async function ReportsManagementPage() {
                       <button 
                         type="submit"
                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-[4px] transition-colors border border-transparent hover:border-rose-200 flex items-center justify-center"
-                        title="Remove Subscriber"
+                        title={t.dailyReports.removeSubscriber}
                       >
                         <Trash2 size={16} />
                       </button>

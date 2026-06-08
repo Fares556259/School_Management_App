@@ -7,16 +7,18 @@ import { useTransition, useState, useEffect } from "react";
 import InputField from "../InputField";
 import Image from "next/image";
 import { createNotice, updateNotice } from "@/lib/crudActions";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
-const schema = z.object({
-  title: z.string().min(1, { message: "Title is required!" }),
-  message: z.string().min(1, { message: "Content is required!" }),
+// We'll move schema creation inside the component since we need translations for error messages
+const createSchema = (t: any) => z.object({
+  title: z.string().min(1, { message: t.announcementForm?.titleRequired || "Title is required!" }),
+  message: z.string().min(1, { message: t.announcementForm?.contentRequired || "Content is required!" }),
   important: z.boolean().default(false),
   classId: z.coerce.number().optional().nullable(),
   targetStudentId: z.string().optional().nullable(),
 });
 
-type Inputs = z.infer<typeof schema>;
+type Inputs = z.infer<ReturnType<typeof createSchema>>;
 
 const AnnouncementForm = ({
   type,
@@ -35,6 +37,9 @@ const AnnouncementForm = ({
   const classes = relatedData?.classes || [];
   const [students, setStudents] = useState<{ id: string; name: string; surname: string }[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
+
+  const { t } = useLanguage();
+  const schema = createSchema(t);
 
   const {
     register,
@@ -170,27 +175,27 @@ const AnnouncementForm = ({
   return (
     <form className="flex flex-col gap-6 p-4 md:p-6 max-h-[85vh] overflow-y-auto" onSubmit={onSubmit}>
       <h1 className="text-[20px] font-semibold text-[#181d26] tracking-tight">
-        {type === "create" ? "Create Announcement" : "Update Announcement"}
+        {type === "create" ? t.announcementForm?.createTitle || "Create Announcement" : t.announcementForm?.updateTitle || "Update Announcement"}
       </h1>
       
       <div className="flex flex-col gap-4">
         {/* Title */}
         <InputField
-          label="Announcement Title"
+          label={t.announcementForm?.titleLabel || "Announcement Title"}
           name="title"
           defaultValue={data?.title}
           register={register}
           error={errors?.title}
-          placeholder="e.g. End of Term Examination Schedule"
+          placeholder={t.announcementForm?.titlePlaceholder || "e.g. End of Term Examination Schedule"}
         />
 
         {/* Message */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#41454d]">Content</label>
+          <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.contentLabel || "Content"}</label>
           <textarea
             {...register("message")}
             className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] font-medium text-[#181d26] w-full min-h-[120px] focus:border-indigo-500 focus:outline-none transition-all placeholder:font-normal placeholder:text-[#9297a0]"
-            placeholder="Write your announcement details here..."
+            placeholder={t.announcementForm?.contentPlaceholder || "Write your announcement details here..."}
           />
           {errors.message?.message && (
             <p className="text-xs text-red-500">{errors.message.message.toString()}</p>
@@ -200,16 +205,16 @@ const AnnouncementForm = ({
         <div className="flex gap-4 flex-wrap">
           {/* Class Visibility */}
           <div className="flex flex-col gap-1.5 w-full md:w-[48%]">
-            <label className="text-[12px] font-medium text-[#41454d]">Class Scope</label>
+            <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.classScopeLabel || "Class Scope"}</label>
             <select
               className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] font-medium text-[#181d26] w-full focus:border-indigo-500 focus:outline-none bg-white transition-all appearance-none"
               {...register("classId")}
               defaultValue={data?.classId || ""}
             >
-              <option value="">Global (All Classes)</option>
-              {classes.map((c) => (
+              <option value="">{t.announcementForm?.globalOption || "Global (All Classes)"}</option>
+              {classes.map((c: any) => (
                 <option key={c.id} value={c.id}>
-                  Class {c.name}
+                  {t.announcementForm?.classPrefix || "Class "}{c.name}
                 </option>
               ))}
             </select>
@@ -218,21 +223,21 @@ const AnnouncementForm = ({
           {/* Student Targeting (Conditional) */}
           {classId && (
             <div className="flex flex-col gap-1.5 w-full md:w-[48%] animate-in fade-in slide-in-from-left-2 duration-300">
-              <label className="text-[12px] font-medium text-[#41454d]">Student Target (Optional)</label>
+              <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.studentTargetLabel || "Student Target (Optional)"}</label>
               <select
                 className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] font-medium text-[#181d26] w-full focus:border-indigo-500 focus:outline-none bg-white transition-all appearance-none disabled:opacity-50"
                 {...register("targetStudentId")}
                 defaultValue={data?.targetStudentId || ""}
                 disabled={fetchingStudents}
               >
-                <option value="">All Students in Class</option>
+                <option value="">{t.announcementForm?.allStudentsOption || "All Students in Class"}</option>
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.surname}
                   </option>
                 ))}
               </select>
-              {fetchingStudents && <p className="text-[10px] text-indigo-500 animate-pulse font-medium ml-1">Loading students...</p>}
+              {fetchingStudents && <p className="text-[10px] text-indigo-500 animate-pulse font-medium ml-1">{t.announcementForm?.loadingStudents || "Loading students..."}</p>}
             </div>
           )}
 
@@ -245,7 +250,7 @@ const AnnouncementForm = ({
               className="w-4 h-4 accent-rose-600 cursor-pointer rounded border-[#dddddd]"
             />
             <label htmlFor="important" className="text-[13px] font-medium text-rose-700 cursor-pointer select-none">
-              Mark as URGENT
+              {t.announcementForm?.markUrgent || "Mark as URGENT"}
             </label>
           </div>
         </div>
@@ -253,7 +258,7 @@ const AnnouncementForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
           {/* Cover Image Upload */}
           <div className="flex flex-col gap-1.5 h-full">
-            <label className="text-[12px] font-medium text-[#41454d]">Cover Image</label>
+            <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.coverImage || "Cover Image"}</label>
             <input
               type="file"
               id="notice-img"
@@ -287,14 +292,14 @@ const AnnouncementForm = ({
                 </div>
               )}
               <span className="text-[12px] font-medium text-[#5a5a5a]">
-                {img ? "Change Cover Image" : "Upload Image"}
+                {img ? (t.announcementForm?.changeCoverImage || "Change Cover Image") : (t.announcementForm?.uploadImage || "Upload Image")}
               </span>
             </button>
           </div>
 
           {/* PDF attachment */}
           <div className="flex flex-col gap-1.5 h-full">
-            <label className="text-[12px] font-medium text-[#41454d]">PDF Attachment</label>
+            <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.pdfAttachment || "PDF Attachment"}</label>
             <input
               type="file"
               id="notice-pdf"
@@ -320,7 +325,7 @@ const AnnouncementForm = ({
               )}
               {pdfUrl ? (
                 <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-700 font-medium text-[12px] max-w-full">
-                  <span className="truncate">PDF Attached</span>
+                  <span className="truncate">{t.announcementForm?.pdfAttached || "PDF Attached"}</span>
                 </div>
               ) : (
                 <div className="w-10 h-10 bg-white border border-[#dddddd] shadow-sm rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
@@ -328,7 +333,7 @@ const AnnouncementForm = ({
                 </div>
               )}
               <span className="text-[12px] font-medium text-[#5a5a5a]">
-                {pdfUrl ? "Change Attachment" : "Attach PDF"}
+                {pdfUrl ? (t.announcementForm?.changeAttachment || "Change Attachment") : (t.announcementForm?.attachPdf || "Attach PDF")}
               </span>
             </button>
           </div>
@@ -339,7 +344,7 @@ const AnnouncementForm = ({
         className="bg-[#181d26] hover:bg-[#0d1218] text-white p-3 rounded-[6px] font-medium text-[13px] shadow-sm transition-all mt-4 disabled:opacity-50"
         disabled={isPending}
       >
-        {isPending ? "Publishing..." : type === "create" ? "Publish Announcement" : "Update Announcement"}
+        {isPending ? (t.announcementForm?.publishing || "Publishing...") : type === "create" ? (t.announcementForm?.publishButton || "Publish Announcement") : (t.announcementForm?.updateButton || "Update Announcement")}
       </button>
     </form>
   );

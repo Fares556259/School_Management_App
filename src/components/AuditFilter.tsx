@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import { X, Search, Calendar, Activity, User } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 const ACTION_TYPES = [
   "GENERAL_INCOME",
@@ -28,6 +29,7 @@ const ACTION_TYPES = [
 export default function AuditFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   // Current values from URL
   const currentFrom = searchParams.get("from") || "";
@@ -85,7 +87,7 @@ export default function AuditFilter() {
           height={14} 
           className={isActive ? "invert" : ""} 
         />
-        <span>{isActive ? "Filters Active" : "Filter Logs"}</span>
+        <span>{isActive ? ((t as any).auditLogPage?.filtersActive || "Filters Active") : ((t as any).auditLogPage?.filterLogs || "Filter Logs")}</span>
         {isActive && (
           <span className="w-5 h-5 bg-white text-indigo-600 rounded-full flex items-center justify-center text-[10px]">
             {[currentFrom, currentTo, currentUser, currentAction].filter(Boolean).length}
@@ -98,7 +100,7 @@ export default function AuditFilter() {
           <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity size={16} className="text-indigo-600" />
-              <h3 className="font-bold text-slate-800 text-sm">Audit Trail Filters</h3>
+              <h3 className="font-bold text-slate-800 text-sm">{(t as any).auditLogPage?.filters?.title || "Audit Trail Filters"}</h3>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-white rounded-full transition-colors">
               <X size={16} />
@@ -109,12 +111,12 @@ export default function AuditFilter() {
             {/* PERFORMED BY */}
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                <User size={12} /> Performed By
+                <User size={12} /> {(t as any).auditLogPage?.filters?.performedBy || "Performed By"}
               </label>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Username or Role..."
+                  placeholder={(t as any).auditLogPage?.filters?.usernameOrRole || "Username or Role..."}
                   value={tempUser}
                   onChange={(e) => setTempUser(e.target.value)}
                   className="w-full text-sm border border-slate-200 rounded-xl p-2.5 pl-9 focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300"
@@ -126,17 +128,17 @@ export default function AuditFilter() {
             {/* ACTION TYPE */}
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                <Activity size={12} /> Action Type
+                <Activity size={12} /> {(t as any).auditLogPage?.filters?.actionType || "Action Type"}
               </label>
               <select
                 value={tempAction}
                 onChange={(e) => setTempAction(e.target.value)}
                 className="w-full text-sm border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               >
-                <option value="">All Actions</option>
+                <option value="">{(t as any).auditLogPage?.filters?.allActions || "All Actions"}</option>
                 {ACTION_TYPES.map(type => (
                   <option key={type} value={type}>
-                    {type.replace(/_/g, ' ')}
+                    {(t as any).auditLogPage?.actions?.[type] || type.replace(/_/g, ' ')}
                   </option>
                 ))}
               </select>
@@ -145,11 +147,11 @@ export default function AuditFilter() {
             {/* DATE RANGE */}
             <div className="space-y-2">
               <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
-                <Calendar size={12} /> Log Time Range
+                <Calendar size={12} /> {(t as any).auditLogPage?.filters?.logTimeRange || "Log Time Range"}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold text-slate-400 ml-1">From</span>
+                  <span className="text-[10px] font-bold text-slate-400 ml-1">{(t as any).auditLogPage?.filters?.from || "From"}</span>
                   <input
                     type="date"
                     value={tempFrom}
@@ -158,7 +160,7 @@ export default function AuditFilter() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold text-slate-400 ml-1">To</span>
+                  <span className="text-[10px] font-bold text-slate-400 ml-1">{(t as any).auditLogPage?.filters?.to || "To"}</span>
                   <input
                     type="date"
                     value={tempTo}
@@ -175,13 +177,13 @@ export default function AuditFilter() {
                 onClick={applyFilters}
                 className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-[0.98]"
               >
-                Apply Filters
+                {(t as any).auditLogPage?.filters?.apply || "Apply Filters"}
               </button>
               <button
                 onClick={clearAll}
                 className="w-full py-2.5 bg-slate-50 text-slate-500 rounded-xl text-xs font-bold hover:bg-rose-50 hover:text-rose-600 transition-all"
               >
-                Clear All Filters
+                {(t as any).auditLogPage?.filters?.clear || "Clear All Filters"}
               </button>
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
   Clock,
   AlertCircle
 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 type Status = "PRESENT" | "ABSENT" | "LATE" | null;
 
@@ -39,13 +40,14 @@ interface ClassOption {
   name: string;
 }
 
-const STATUS_CONFIG = {
-  PRESENT: { label: "Present", pill: "bg-emerald-50 text-emerald-600 border border-emerald-200/50" },
-  LATE:    { label: "Late",    pill: "bg-amber-50 text-amber-600 border border-amber-200/50" },
-  ABSENT:  { label: "Absent",  pill: "bg-rose-50 text-rose-600 border border-rose-200/50" },
-};
+const getStatusConfig = (t: any) => ({
+  PRESENT: { label: t.attendancePage?.present || "Present", pill: "bg-emerald-50 text-emerald-600 border border-emerald-200/50" },
+  LATE:    { label: t.attendancePage?.late || "Late",    pill: "bg-amber-50 text-amber-600 border border-amber-200/50" },
+  ABSENT:  { label: t.attendancePage?.absent || "Absent",  pill: "bg-rose-50 text-rose-600 border border-rose-200/50" },
+});
 
 export default function AttendancePage() {
+  const { t } = useLanguage();
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -196,13 +198,13 @@ export default function AttendancePage() {
               <Users size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">Attendance</h1>
+              <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">{t.attendancePage?.title || "Attendance"}</h1>
               <div className="flex items-center gap-2 text-[13px] font-medium text-[#5a5a5a]">
-                <span>Daily Logs</span>
+                <span>{t.attendancePage?.dailyLogs || "Daily Logs"}</span>
                 <span className="w-1 h-1 rounded-full bg-[#dddddd]"></span>
                 <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-600' : 'text-emerald-600'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-600 animate-pulse' : 'bg-emerald-600'}`}></span>
-                  {isEditMode ? 'Edit Mode' : 'View Mode'}
+                  {isEditMode ? (t.attendancePage?.editMode || "Edit Mode") : (t.attendancePage?.viewMode || "View Mode")}
                 </span>
               </div>
             </div>
@@ -215,12 +217,12 @@ export default function AttendancePage() {
                   onClick={() => setIsEditMode(true)}
                   className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm"
                 >
-                  <Edit2 size={14} className="text-white/80" /> Override Records
+                  <Edit2 size={14} className="text-white/80" /> {t.attendancePage?.overrideRecords || "Override Records"}
                 </button>
                 <button 
                   className="flex items-center gap-2 px-4 py-2.5 text-[13px] active:scale-[0.98] font-medium rounded-[6px] transition-all border border-[#dddddd] bg-[#ffffff] text-[#181d26] hover:bg-[#f8fafc] shadow-sm"
                 >
-                  <FileDown size={14} className="text-[#41454d]" /> Export PDF
+                  <FileDown size={14} className="text-[#41454d]" /> {t.attendancePage?.exportPdf || "Export PDF"}
                 </button>
               </>
             ) : (
@@ -232,14 +234,14 @@ export default function AttendancePage() {
                   }}
                   className="px-4 py-2.5 rounded-[6px] font-medium text-[13px] active:scale-[0.98] transition-all border border-[#dddddd] bg-[#ffffff] text-[#181d26] hover:bg-[#f8fafc] shadow-sm"
                 >
-                  Cancel
+                  {t.attendancePage?.cancel || "Cancel"}
                 </button>
                 <button 
                   onClick={handleSave}
                   disabled={saving || !isDirty}
                   className="px-4 py-2.5 rounded-[6px] font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? "Saving..." : saved ? "Saved!" : <><Check size={14} /> Save Changes</>}
+                  {saving ? (t.attendancePage?.saving || "Saving...") : saved ? (t.attendancePage?.saved || "Saved!") : <><Check size={14} /> {t.attendancePage?.saveChanges || "Save Changes"}</>}
                 </button>
               </>
             )}
@@ -251,7 +253,7 @@ export default function AttendancePage() {
           
           {/* Class */}
           <div className="flex items-center gap-3 px-2 border-r border-[#dddddd] pr-6">
-            <span className="text-[13px] font-medium text-[#41454d]">Class</span>
+            <span className="text-[13px] font-medium text-[#41454d]">{t.attendancePage?.class || "Class"}</span>
             <div className="relative inline-flex items-center">
               <select 
                 className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none cursor-pointer pr-5 appearance-none"
@@ -266,7 +268,7 @@ export default function AttendancePage() {
 
           {/* Date */}
           <div className="flex items-center gap-3 px-2 border-r border-[#dddddd] pr-6">
-            <span className="text-[13px] font-medium text-[#41454d]">Date</span>
+            <span className="text-[13px] font-medium text-[#41454d]">{t.attendancePage?.date || "Date"}</span>
             <input 
               type="date" 
               value={date}
@@ -277,7 +279,7 @@ export default function AttendancePage() {
 
           {/* Session */}
           <div className="flex items-center gap-3 px-2">
-            <span className="text-[13px] font-medium text-[#41454d]">Session</span>
+            <span className="text-[13px] font-medium text-[#41454d]">{t.attendancePage?.session || "Session"}</span>
             <div className="relative inline-flex items-center">
               <select 
                 className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none cursor-pointer pr-5 appearance-none disabled:opacity-50"
@@ -285,7 +287,7 @@ export default function AttendancePage() {
                 onChange={(e) => setSelectedLesson(e.target.value)}
                 disabled={lessons.length === 0}
               >
-                {lessons.length === 0 && <option value="">No sessions</option>}
+                {lessons.length === 0 && <option value="">{t.attendancePage?.noSessions || "No sessions"}</option>}
                 {lessons.map((l) => {
                   const fullName = l.subject?.name || l.name || "";
                   const arabicName = fullName.split("|")[0].trim();
@@ -307,10 +309,10 @@ export default function AttendancePage() {
       {/* KPI Stats Section with Elegant Colors */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
         {[
-          { title: "Total Enrolled", value: total, icon: <Users size={16} />, iconBg: "bg-slate-100 text-slate-600" },
-          { title: "Present", value: presentCount, color: "text-emerald-700 bg-emerald-50", icon: <CheckCircle2 size={16} />, iconBg: "bg-emerald-100 text-emerald-600 border border-emerald-200/50" },
-          { title: "Late", value: lateCount, color: "text-amber-700 bg-amber-50", icon: <Clock size={16} />, iconBg: "bg-amber-100 text-amber-600 border border-amber-200/50" },
-          { title: "Absent", value: absentCount, color: "text-rose-700 bg-rose-50", icon: <AlertCircle size={16} />, iconBg: "bg-rose-100 text-rose-600 border border-rose-200/50" },
+          { title: t.attendancePage?.totalEnrolled || "Total Enrolled", value: total, icon: <Users size={16} />, iconBg: "bg-slate-100 text-slate-600" },
+          { title: t.attendancePage?.present || "Present", value: presentCount, color: "text-emerald-700 bg-emerald-50", icon: <CheckCircle2 size={16} />, iconBg: "bg-emerald-100 text-emerald-600 border border-emerald-200/50" },
+          { title: t.attendancePage?.late || "Late", value: lateCount, color: "text-amber-700 bg-amber-50", icon: <Clock size={16} />, iconBg: "bg-amber-100 text-amber-600 border border-amber-200/50" },
+          { title: t.attendancePage?.absent || "Absent", value: absentCount, color: "text-rose-700 bg-rose-50", icon: <AlertCircle size={16} />, iconBg: "bg-rose-100 text-rose-600 border border-rose-200/50" },
         ].map((stat, i) => (
           <div key={i} className="bg-[#ffffff] p-5 rounded-[12px] border border-[#dddddd] shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow group">
             <div className="flex items-center justify-between mb-4">
@@ -337,11 +339,13 @@ export default function AttendancePage() {
           <div className="px-5 py-3 border-b border-rose-200 flex items-center justify-between">
             <div className="flex items-center gap-2 text-rose-800">
               <AlertTriangle size={16} />
-              <h3 className="text-[13px] font-semibold">Intervention Required</h3>
-              <span className="text-[13px] font-medium opacity-80">— {highAbsenceStudents.length} students have 3+ absences</span>
+              <h3 className="text-[13px] font-semibold">{t.attendancePage?.interventionRequired || "Intervention Required"}</h3>
+              <span className="text-[13px] font-medium opacity-80">
+                {(t.attendancePage?.absencesWarning || "— {count} students have 3+ absences").replace('{count}', highAbsenceStudents.length.toString())}
+              </span>
             </div>
             <button onClick={() => setShowAlerts(false)} className="text-[11px] font-medium text-rose-600 hover:text-rose-800 uppercase tracking-wider">
-              Dismiss
+              {t.attendancePage?.dismiss || "Dismiss"}
             </button>
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -352,13 +356,13 @@ export default function AttendancePage() {
                   <p className="text-[12px] text-[#5a5a5a]">{s.parent?.name} ({s.parent?.phone})</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[12px] font-semibold text-rose-600">{s.monthlyAbsences} Absences</span>
+                  <span className="text-[12px] font-semibold text-rose-600">{s.monthlyAbsences} {t.attendancePage?.absences || "Absences"}</span>
                   <button
                     disabled={sendingAlertId === s.id}
                     onClick={() => sendDetailedAlert(s.id, s.absenceHistory || [])}
                     className="bg-[#ffffff] border border-[#dddddd] hover:bg-[#f8fafc] text-[#181d26] px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-colors disabled:opacity-50"
                   >
-                    {sendingAlertId === s.id ? "Sending..." : "Notify"}
+                    {sendingAlertId === s.id ? (t.attendancePage?.sending || "Sending...") : (t.attendancePage?.notify || "Notify")}
                   </button>
                 </div>
               </div>
@@ -375,7 +379,7 @@ export default function AttendancePage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9297a0]" />
             <input
               type="text"
-              placeholder="Search student..."
+              placeholder={t.attendancePage?.searchStudent || "Search student..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-[#ffffff] border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#181d26] transition-colors"
@@ -392,7 +396,7 @@ export default function AttendancePage() {
                     : "text-[#5a5a5a] hover:text-[#181d26] border border-transparent"
                 }`}
               >
-                {f === "ALL" ? "All" : STATUS_CONFIG[f].label}
+                {f === "ALL" ? (t.attendancePage?.all || "All") : getStatusConfig(t)[f].label}
               </button>
             ))}
           </div>
@@ -403,28 +407,28 @@ export default function AttendancePage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[#dddddd] bg-[#f8fafc]">
-                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[30%]">Student</th>
-                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[30%]">Status</th>
-                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">Notes</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[30%]">{t.attendancePage?.student || "Student"}</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[30%]">{t.attendancePage?.status || "Status"}</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.attendancePage?.notes || "Notes"}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={3} className="px-4 py-12 text-center text-[13px] text-[#9297a0]">
-                    Loading records...
+                    {t.attendancePage?.loadingRecords || "Loading records..."}
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-4 py-12 text-center text-[13px] text-[#9297a0]">
-                    No students found.
+                    {t.attendancePage?.noStudentsFound || "No students found."}
                   </td>
                 </tr>
               ) : (
                 filtered.map((student) => {
                   const status = statuses[student.id];
-                  const config = status ? STATUS_CONFIG[status] : null;
+                  const config = status ? getStatusConfig(t)[status] : null;
 
                   return (
                     <tr key={student.id} className="border-b border-[#f0f0f0] last:border-none hover:bg-[#fafafa]">
@@ -453,11 +457,11 @@ export default function AttendancePage() {
                                   }}
                                   className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-all border ${
                                     isSelected 
-                                      ? STATUS_CONFIG[s].pill
+                                      ? getStatusConfig(t)[s].pill
                                       : "bg-[#ffffff] text-[#5a5a5a] border-[#dddddd] hover:bg-[#f8fafc]"
                                   }`}
                                 >
-                                  {STATUS_CONFIG[s].label}
+                                  {getStatusConfig(t)[s].label}
                                 </button>
                               );
                             })}
@@ -469,7 +473,7 @@ export default function AttendancePage() {
                             </span>
                           ) : (
                             <span className="inline-block px-2.5 py-1 rounded-[4px] text-[11px] font-medium bg-[#f8fafc] text-[#9297a0] border border-[#dddddd]">
-                              Unmarked
+                              {t.attendancePage?.unmarked || "Unmarked"}
                             </span>
                           )
                         )}
@@ -478,7 +482,7 @@ export default function AttendancePage() {
                         {isEditMode ? (
                           <input
                             type="text"
-                            placeholder="Add remark..."
+                            placeholder={t.attendancePage?.addRemark || "Add remark..."}
                             value={notes[student.id]?.[0]?.text || ""}
                             onChange={(e) => {
                               const newNotes = [{ author: "Admin", text: e.target.value }];
