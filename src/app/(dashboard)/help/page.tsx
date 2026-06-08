@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { BookOpen, CreditCard, Users, Wrench, ChevronDown, Mail, Phone, MessageCircle } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 const HelpPage = () => {
   const { t, locale } = useLanguage();
@@ -14,25 +15,29 @@ const HelpPage = () => {
       icon: <BookOpen className="text-indigo-500" size={24} />,
       title: t.helpPage?.gettingStarted || "Getting Started",
       description: t.helpPage?.gettingStartedDesc || "Learn the basics of setting up your school dashboard.",
-      bg: "bg-indigo-50"
+      bg: "bg-indigo-50",
+      href: "/settings"
     },
     {
       icon: <CreditCard className="text-emerald-500" size={24} />,
       title: t.helpPage?.accountBilling || "Account & Billing",
       description: t.helpPage?.accountBillingDesc || "Manage your subscription, invoices, and payment methods.",
-      bg: "bg-emerald-50"
+      bg: "bg-emerald-50",
+      href: "/list/incomes"
     },
     {
       icon: <Users className="text-blue-500" size={24} />,
       title: t.helpPage?.studentManagement || "Student Management",
       description: t.helpPage?.studentManagementDesc || "How to enroll, grade, and manage students.",
-      bg: "bg-blue-50"
+      bg: "bg-blue-50",
+      href: "/list/students"
     },
     {
       icon: <Wrench className="text-rose-500" size={24} />,
       title: t.helpPage?.technicalSupport || "Technical Support",
       description: t.helpPage?.technicalSupportDesc || "Report issues, bugs, or system downtime.",
-      bg: "bg-rose-50"
+      bg: "bg-rose-50",
+      href: "mailto:support@snapschool.com"
     }
   ];
 
@@ -48,6 +53,18 @@ const HelpPage = () => {
     {
       title: t.helpPage?.faq3Title || "What happens if I forget my password?",
       description: t.helpPage?.faq3Desc || "Click the 'Forgot Password' link on the login screen, or ask your system administrator to reset it via the Admin Dashboard."
+    },
+    {
+      title: t.helpPage?.faq4Title || "How do I generate student report cards?",
+      description: t.helpPage?.faq4Desc || "Go to the Results page. You can either enter grades manually or use the AI Bulk Scan to process physical grade sheets."
+    },
+    {
+      title: t.helpPage?.faq5Title || "How do I communicate with parents?",
+      description: t.helpPage?.faq5Desc || "Use the Announcements section to create a global or class-specific notice. You can attach PDFs and mark it as Urgent."
+    },
+    {
+      title: t.helpPage?.faq6Title || "Can I export the timetable to PDF?",
+      description: t.helpPage?.faq6Desc || "Yes, navigate to the Timetable view and click the 'Export PDF' button at the top right of the schedule."
     }
   ];
 
@@ -79,7 +96,7 @@ const HelpPage = () => {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {categories.map((cat, idx) => (
-                <div key={idx} className="group p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-indigo-300 transition-all cursor-pointer shadow-sm hover:shadow-md">
+                <Link key={idx} href={cat.href} className="group p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-indigo-300 transition-all cursor-pointer shadow-sm hover:shadow-md block">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${cat.bg}`}>
                     {cat.icon}
                   </div>
@@ -89,7 +106,7 @@ const HelpPage = () => {
                   <p className="text-[13px] text-[#9297a0] leading-relaxed">
                     {cat.description}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
