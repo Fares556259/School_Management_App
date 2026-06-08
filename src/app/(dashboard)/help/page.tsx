@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, BookOpen, CreditCard, Users, Wrench, ChevronDown, Mail, Phone, MessageCircle } from "lucide-react";
+import { BookOpen, CreditCard, Users, Wrench, ChevronDown, Mail, Phone, MessageCircle } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const HelpPage = () => {
   const { t, locale } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const categories = [
@@ -63,22 +62,9 @@ const HelpPage = () => {
         <h1 className="text-[28px] md:text-[32px] font-bold text-[#181d26] relative z-10">
           {t.helpPage?.title || "Help & Support"}
         </h1>
-        <p className="text-[#5a5a5a] text-[15px] max-w-lg relative z-10">
+        <p className="text-[#5a5a5a] text-[15px] max-w-lg relative z-10 mt-2">
           {t.helpPage?.subtitle || "Find answers, explore guides, or contact our support team."}
         </p>
-        
-        <div className="relative mt-4 w-full max-w-md z-10">
-          <div className="absolute inset-y-0 flex items-center px-4 pointer-events-none text-slate-400">
-            <Search size={18} className={locale === 'ar' ? 'ms-auto' : ''} />
-          </div>
-          <input 
-            type="text" 
-            className={`w-full py-3.5 bg-white border border-[#dddddd] rounded-full text-[14px] text-[#181d26] placeholder:text-[#9297a0] focus:outline-none focus:border-indigo-500 transition-all shadow-sm ${locale === 'ar' ? 'pe-12 ps-6' : 'ps-12 pe-6'}`}
-            placeholder={t.helpPage?.searchPlaceholder || "Search for help..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
@@ -176,7 +162,7 @@ const HelpPage = () => {
                   </button>
                   <button className="w-full flex items-center justify-center gap-3 py-3 bg-white/10 text-white border border-white/20 rounded-[8px] font-bold text-[13px] hover:bg-white/20 transition-all">
                     <Phone size={16} />
-                    {t.helpPage?.callUs || "Call Us"}
+                    <span dir="ltr">+216 23 889 444</span>
                   </button>
                   <button className="w-full flex items-center justify-center gap-3 py-3 bg-transparent text-slate-300 rounded-[8px] font-medium text-[13px] hover:text-white transition-all">
                     <MessageCircle size={16} />
