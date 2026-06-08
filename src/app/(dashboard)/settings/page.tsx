@@ -458,7 +458,7 @@ const SettingsPage = () => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <DoorOpen className="text-indigo-600" size={18} />
-                <h2 className="text-[16px] font-medium text-[#181d26]">Physical Classrooms</h2>
+                <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.physicalClassrooms || "Physical Classrooms"}</h2>
               </div>
               <button 
                   type="button"
@@ -466,7 +466,7 @@ const SettingsPage = () => {
                   className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                 >
                   <Plus size={14} />
-                  <span>Add Room</span>
+                  <span>{t.systemSettings?.addRoom || "Add Room"}</span>
               </button>
             </div>
 
@@ -488,7 +488,7 @@ const SettingsPage = () => {
                         className="flex-1 bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none"
                         value={room.name}
                         onChange={e => handleUpdateRoom(room.id, e.target.value)}
-                        placeholder="e.g. Salle 1"
+                        placeholder={t.systemSettings?.roomPlaceholder || "e.g. Salle 1"}
                       />
                       <button 
                         type="button"
@@ -501,7 +501,7 @@ const SettingsPage = () => {
                   ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-6 text-center bg-[#f8fafc] rounded-[12px] border border-dashed border-[#dddddd]">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No rooms defined</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.systemSettings?.noRoomsDefined || "No rooms defined"}</p>
                   </div>
                 )}
               </AnimatePresence>
@@ -514,7 +514,7 @@ const SettingsPage = () => {
               <div className="flex items-center justify-between w-full md:w-auto gap-4">
                 <div className="flex items-center gap-2">
                   <HandCoins className="text-emerald-600" size={18} />
-                  <h2 className="text-[16px] font-medium text-[#181d26]">Tuition Fees per Academic Level</h2>
+                  <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.tuitionFeesPerLevel || "Tuition Fees per Academic Level"}</h2>
                 </div>
               </div>
             </div>
@@ -528,8 +528,8 @@ const SettingsPage = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Primary</span>
-                      <span className="text-sm font-black text-slate-700">Level {lvl.level}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.systemSettings?.primary || "Primary"}</span>
+                      <span className="text-sm font-black text-slate-700">{t.systemSettings?.level || "Level"} {lvl.level}</span>
                     </div>
                     <div className="relative max-w-[100px]">
                       <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">$</span>
@@ -564,7 +564,7 @@ const SettingsPage = () => {
                    <div className="p-3 bg-white rounded-2xl text-slate-200 shadow-sm">
                      <AlertCircle size={24} />
                    </div>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pricing data not initialized</p>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.systemSettings?.pricingDataNotInitialized || "Pricing data not initialized"}</p>
                 </div>
               )}
             </div>
@@ -574,20 +574,20 @@ const SettingsPage = () => {
           <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
             <div className="flex items-center gap-2 mb-2">
               <Columns className="text-blue-600" size={18} />
-              <h2 className="text-[16px] font-medium text-[#181d26]">Academic Structure & Variations</h2>
+              <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.academicStructure || "Academic Structure & Variations"}</h2>
             </div>
 
             <div className="flex flex-col gap-4">
               {levelFees.map((lvl: any) => (
                 <div key={lvl.id} className="flex items-center justify-between p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-[#9297a0] transition-all shadow-sm">
                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Primary Grade</span>
-                      <span className="text-sm font-black text-slate-700">Level {lvl.level}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.systemSettings?.primaryGrade || "Primary Grade"}</span>
+                      <span className="text-sm font-black text-slate-700">{t.systemSettings?.level || "Level"} {lvl.level}</span>
                    </div>
                    
                    <div className="flex items-center gap-4">
                       <div className="flex flex-col gap-1 items-end">
-                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Variations (A-Z)</label>
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{t.systemSettings?.variations || "Variations (A-Z)"}</label>
                         <input 
                           type="number"
                           min={0}
@@ -607,11 +607,11 @@ const SettingsPage = () => {
           <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
              <div className="flex items-center gap-2 mb-2">
                <Calendar className="text-indigo-600" size={18} />
-               <h2 className="text-[16px] font-medium text-[#181d26]">Academic Period</h2>
+               <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.academicPeriod || "Academic Period"}</h2>
             </div>
             <div className="flex flex-col gap-6">
                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Academic Year</label>
+                  <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.academicYear || "Academic Year"}</label>
                   <input 
                     className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                     value={config?.academicYear || ""}
@@ -621,7 +621,7 @@ const SettingsPage = () => {
                
                <div className="grid grid-cols-2 gap-4">
                  <div className="flex flex-col gap-1.5">
-                   <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Year Starts</label>
+                   <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.yearStarts || "Year Starts"}</label>
                    <input 
                      type="date"
                      className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
@@ -630,7 +630,7 @@ const SettingsPage = () => {
                    />
                  </div>
                  <div className="flex flex-col gap-1.5">
-                   <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Year Ends</label>
+                   <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.yearEnds || "Year Ends"}</label>
                    <input 
                      type="date"
                      className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
@@ -641,14 +641,14 @@ const SettingsPage = () => {
                </div>
 
                <div className="flex flex-col gap-1.5">
-                 <label className="text-[13px] font-medium text-[#5a5a5a] px-1">Current Semester</label>
+                 <label className="text-[13px] font-medium text-[#5a5a5a] px-1">{t.systemSettings?.currentSemester || "Current Semester"}</label>
                  <select 
                     className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all appearance-none"
                     value={config?.currentSemester || 1}
                     onChange={e => setConfig({...config, currentSemester: parseInt(e.target.value)})}
                  >
-                    <option value={1}>Semester 1</option>
-                    <option value={2}>Semester 2</option>
+                    <option value={1}>{t.systemSettings?.semester1 || "Semester 1"}</option>
+                    <option value={2}>{t.systemSettings?.semester2 || "Semester 2"}</option>
                  </select>
                </div>
             </div>
@@ -659,7 +659,7 @@ const SettingsPage = () => {
              <div className="flex items-center justify-between mb-2">
                <div className="flex items-center gap-2">
                  <Calendar className="text-rose-500" size={18} />
-                 <h2 className="text-[16px] font-medium text-[#181d26]">Holidays & Closures</h2>
+                 <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.holidaysClosures || "Holidays & Closures"}</h2>
                </div>
                <button 
                   type="button"
@@ -667,7 +667,7 @@ const SettingsPage = () => {
                   className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                 >
                   <Plus size={14} />
-                  <span>Add Holiday</span>
+                  <span>{t.systemSettings?.addHoliday || "Add Holiday"}</span>
                </button>
             </div>
 
@@ -684,7 +684,7 @@ const SettingsPage = () => {
                     >
                       <div className="flex flex-col sm:flex-row items-center gap-4">
                         <div className="flex flex-col gap-1.5 flex-[2] w-full">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Name</label>
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.systemSettings?.eventName || "Event Name"}</label>
                            <input 
                               className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
                               value={holiday.name}
@@ -693,7 +693,7 @@ const SettingsPage = () => {
                            />
                         </div>
                         <div className="flex flex-col gap-1.5 flex-1 w-full">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.systemSettings?.startDate || "Start Date"}</label>
                            <input 
                               type="date"
                               className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
@@ -702,7 +702,7 @@ const SettingsPage = () => {
                            />
                         </div>
                         <div className="flex flex-col gap-1.5 flex-1 w-full">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">End Date</label>
+                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.systemSettings?.endDate || "End Date"}</label>
                            <input 
                               type="date"
                               className="w-full px-3 py-2 text-[14px] bg-white border border-[#dddddd] rounded-[6px] text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all"
@@ -723,7 +723,7 @@ const SettingsPage = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center bg-[#f8fafc] rounded-[12px] border border-dashed border-[#dddddd]">
                      <Calendar className="text-slate-200 mb-2" size={32} />
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No holidays scheduled yet</p>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.systemSettings?.noHolidaysScheduled || "No holidays scheduled yet"}</p>
                   </div>
                 )}
               </AnimatePresence>
@@ -735,14 +735,14 @@ const SettingsPage = () => {
              <div className="flex items-center justify-between mb-2">
                <div className="flex items-center gap-2">
                 <Clock className="text-indigo-600" size={18} />
-                <h2 className="text-[16px] font-medium text-[#181d26]">Daily Sessions</h2>
+                <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.dailySessions || "Daily Sessions"}</h2>
                </div>
                <button 
                 type="button"
                 onClick={addSession}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                >
-                 <Plus size={14} /> Add Session
+                 <Plus size={14} /> {t.systemSettings?.addSession || "Add Session"}
                </button>
             </div>
             <div className="flex flex-col gap-4">
@@ -757,13 +757,13 @@ const SettingsPage = () => {
                     className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-white rounded-[12px] border border-[#dddddd] group relative"
                   >
                       <div className="flex flex-col gap-1.5 flex-1 w-full">
-                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Session Label</label>
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{t.systemSettings?.sessionLabel || "Session Label"}</label>
                         <div className="w-full bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-3 py-2.5 text-[14px] font-medium text-[#9297a0] cursor-not-allowed">
                           {`Session ${idx + 1}`}
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5 flex-[2] w-full">
-                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Time Window</label>
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{t.systemSettings?.timeWindow || "Time Window"}</label>
                         <select 
                           className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
                           value={session.time}
@@ -801,13 +801,13 @@ const SettingsPage = () => {
                     <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200">
                       <Clock size={24} />
                     </div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No sessions defined</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.systemSettings?.noSessionsDefined || "No sessions defined"}</p>
                     <button 
                       type="button"
                       onClick={addSession}
                       className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
                     >
-                      Initialize first session
+                      {t.systemSettings?.initializeFirstSession || "Initialize first session"}
                     </button>
                  </div>
                )}
@@ -827,9 +827,9 @@ const SettingsPage = () => {
                     <div className="flex flex-col gap-1">
                        <p className="text-[14px] font-medium text-white flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                          Unsaved changes
+                          {t.systemSettings?.unsavedChanges || "Unsaved changes"}
                        </p>
-                       <p className="text-[12px] text-[#9297a0]">You have pending changes to your system settings.</p>
+                       <p className="text-[12px] text-[#9297a0]">{t.systemSettings?.pendingChanges || "You have pending changes to your system settings."}</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -838,7 +838,7 @@ const SettingsPage = () => {
                           onClick={() => window.location.reload()}
                           className="px-4 py-2 text-[#9297a0] hover:text-white text-[13px] font-medium transition-colors"
                        >
-                          Discard
+                          {t.systemSettings?.discard || "Discard"}
                        </button>
                        <button 
                           type="submit"
@@ -847,7 +847,7 @@ const SettingsPage = () => {
                        >
                           <span className="flex items-center gap-2">
                              {saving ? <div className="w-3.5 h-3.5 border-2 border-[#181d26]/30 border-t-[#181d26] rounded-full animate-spin"></div> : <Save size={14} />}
-                             {saving ? 'Saving...' : 'Save changes'}
+                             {saving ? (t.systemSettings?.saving || 'Saving...') : (t.systemSettings?.saveChanges || 'Save changes')}
                           </span>
                        </button>
                     </div>
