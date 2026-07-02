@@ -57,6 +57,15 @@
   }
 }
 
+@layer utilities {
+  .shadow-premium {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 4px 6px -1px rgba(0,0,0,0.06), 0 10px 30px -5px rgba(0,0,0,0.1), 0 30px 60px -15px rgba(0,0,0,0.08);
+  }
+  .shadow-premium-hover {
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 16px -4px rgba(0,0,0,0.08), 0 20px 50px -8px rgba(0,0,0,0.14), 0 40px 80px -20px rgba(0,0,0,0.10);
+  }
+}
+
 @layer components {
   .glass-card {
     @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-premium transition-all duration-300;

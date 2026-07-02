@@ -38,6 +38,20 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const getPasswordStrength = (pwd: string): { score: number; label: string; color: string } => {
+    if (!pwd) return { score: 0, label: "", color: "" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 2) return { score, label: "Weak", color: "bg-rose-400" };
+    if (score <= 3) return { score, label: "Fair", color: "bg-amber-400" };
+    return { score, label: "Strong", color: "bg-emerald-500" };
+  };
+  const pwdStrength = getPasswordStrength(formData.password);
+
   // 0. SESSION DETECTION
   // If the user returns to the page and is already verified, skip to step 2
   useEffect(() => {
@@ -302,6 +316,26 @@ export default function SignUpPage() {
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                     />
                   </div>
+                  {formData.password && (
+                    <div className="mt-3">
+                      <div className="flex gap-1.5 mb-1.5">
+                        {[1,2,3,4,5].map((i) => (
+                          <div
+                            key={i}
+                            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                              i <= pwdStrength.score ? pwdStrength.color : "bg-slate-100"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className={`text-[11px] font-black uppercase tracking-widest ${
+                        pwdStrength.label === "Weak" ? "text-rose-400" :
+                        pwdStrength.label === "Fair" ? "text-amber-500" : "text-emerald-600"
+                      }`}>
+                        {pwdStrength.label} password
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <button 
