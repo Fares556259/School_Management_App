@@ -34,6 +34,8 @@
     "test-data.js",
     "test-login.js",
     "test-parent.js",
-    "check_data.js"
+    "check_data.js",
+    "prisma/seed*.ts",
+    "prisma/seeds.ts"
   ]
 }
