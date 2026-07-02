@@ -7,7 +7,6 @@ async function main() {
       schoolName: "Fares Academy",
       ownerName: "Fares",
       phoneNumber: "123456789",
-      email: "unleashedfares@gmail.com",
       city: "Online",
       status: "PENDING"
     }
