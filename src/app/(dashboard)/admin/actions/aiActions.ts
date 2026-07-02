@@ -335,7 +335,7 @@ export async function getChatResponse(
       systemPrompt,
       userPrompt: userMessage,
       history: history.slice(-3),
-      imageBase64,
+      fileBase64: imageBase64,
       jsonMode: true
     });
     
