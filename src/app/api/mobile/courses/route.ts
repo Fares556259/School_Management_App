@@ -21,6 +21,10 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Student not found", { status: 404 });
     }
 
+    if (!student.classId) {
+      return NextResponse.json([]);
+    }
+
     // 1. Get all subjects for this class
     const subjects = await prisma.subject.findMany({
       where: { 

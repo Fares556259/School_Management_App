@@ -93,7 +93,7 @@ export default async function ClassStudentsPage({
         })),
       }}
       allStudents={allStudents}
-      role={role}
+      role={role || ""}
     />
   );
 }

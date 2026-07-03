@@ -32,6 +32,7 @@ const TeacherForm = ({
 }: {
   type: "create" | "update";
   data?: any;
+  relatedData?: any;
 }) => {
   const [isPending, startTransition] = useTransition();
   const [img, setImg] = useState<string | null>(data?.img || null);

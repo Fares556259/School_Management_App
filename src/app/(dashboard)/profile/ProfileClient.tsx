@@ -93,7 +93,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
       // Auto-save the profile with the new image
       const res = await updateAdminProfile({ img: publicUrl });
       if (res.success) {
-        setServerData(prev => ({ ...prev, img: publicUrl }));
+        setServerData((prev: any) => ({ ...prev, img: publicUrl }));
         router.refresh();
       } else {
         throw new Error(res.error || t.profileSettings?.failedToUpload || "Failed to save profile picture");

@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     const existingLessons = await prisma.lesson.findMany({ where: { schoolId } });
     const validLessonIds: number[] = [];
 
-    for (const slot of uniqueCourses.values()) {
+    for (const slot of Array.from(uniqueCourses.values())) {
        // Look for any existing lesson for this course combination (ignore exact day/time to prevent duplicates)
        const exists = existingLessons.find(l => 
           l.subjectId === slot.subjectId && 

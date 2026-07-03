@@ -107,7 +107,7 @@ export default async function ClassTeachersPage({
         supervisor: activeClass.supervisor,
         teachers: uniqueTeachers,
       }}
-      role={role}
+      role={role || ""}
     />
   );
 }

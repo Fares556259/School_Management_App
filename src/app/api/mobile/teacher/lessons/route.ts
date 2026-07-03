@@ -31,12 +31,14 @@ export async function POST(request: NextRequest) {
     const lesson = await prisma.lesson.create({
       data: {
         name: title,
-        description: description || "",
+
         classId: parseInt(classId),
         teacherId: teacherId,
         subjectId: finalSubjectId || 1, // Fallback if no subject
         schoolId: teacher.schoolId,
         day: "MONDAY", // We should probably determine the day from the date
+        startTime: new Date(date),
+        endTime: new Date(new Date(date).getTime() + 60 * 60 * 1000), // Default 1 hour
       }
     });
 

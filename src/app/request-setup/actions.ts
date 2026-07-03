@@ -18,7 +18,7 @@ export async function submitSetupRequest(
   const email = formData.get("email") as string;
   const city = formData.get("city") as string;
 
-  if (!schoolName || !ownerName || !phoneNumber || !email || !city) {
+  if (!schoolName || !ownerName || !phoneNumber || !city) {
     return { error: "All fields are required." };
   }
 
@@ -28,7 +28,6 @@ export async function submitSetupRequest(
         schoolName,
         ownerName,
         phoneNumber,
-        email,
         city,
       },
     });

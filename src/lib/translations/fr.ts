@@ -405,7 +405,7 @@ export const fr = {
     fields: {
       "Subject Name": "Nom de la matière",
       "Domain / Category": "Domaine / Catégorie",
-      "Arabic | Français | English  e.g. الرياضيات | Mathématiques | Mathematics": "Arabe | Français | Anglais (ex: الرياضيات | Mathématiques | Mathematics)",
+      "Arabic | Français | English e.g. الرياضيات | Mathématiques | Mathematics": "Arabe | Français | Anglais (ex: الرياضيات | Mathématiques | Mathematics)",
       "Description": "Description",
       "Amount (DT)": "Montant (DT)",
       "Category": "Catégorie",
@@ -494,6 +494,7 @@ export const fr = {
     teacher: "Enseignant",
     awaitingData: "En attente de données",
     editRecording: "Modifier l'enregistrement",
+    noSubjectsMatch: "Aucune matière ne correspond à votre sélection",
     modal: {
       title: "Analyse IA en masse",
       subtitle: "Téléchargez les notes. L'IA s'occupe du reste.",

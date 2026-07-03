@@ -141,8 +141,8 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2.5">
-                      {item.img ? <ImageIcon size={16} className="text-indigo-500" title="Image Attached" /> : <span className="text-[#dddddd] font-medium text-[12px]">-</span>}
-                      {item.pdfUrl ? <FileText size={16} className="text-emerald-500" title="PDF Attached" /> : null}
+                      {item.img ? <ImageIcon size={16} className="text-indigo-500" /> : <span className="text-[#dddddd] font-medium text-[12px]">-</span>}
+                      {item.pdfUrl ? <FileText size={16} className="text-emerald-500" /> : null}
                     </div>
                   </td>
                   {(role === "admin" || role === "teacher") && (

@@ -64,7 +64,11 @@ export async function GET(request: NextRequest) {
     });
 
     const studentCountMap: Record<string, number> = {};
-    studentCounts.forEach(c => studentCountMap[c.classId] = c._count.id);
+    studentCounts.forEach(c => {
+      if (c.classId !== null) {
+        studentCountMap[c.classId] = c._count.id;
+      }
+    });
 
     mappedTasks.forEach((task, index) => {
       const classId = assignments[index].lesson.classId;

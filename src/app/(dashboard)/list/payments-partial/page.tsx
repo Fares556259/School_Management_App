@@ -68,7 +68,13 @@ export default async function PartialPaymentsPage() {
         </div>
       </div>
 
-      <PartialPaymentsClient initialData={payments} />
+      <PartialPaymentsClient initialData={payments.map((p: any) => ({
+        ...p,
+        student: p.student ? {
+          ...p.student,
+          class: p.student.class || { name: "N/A" }
+        } : null
+      }))} />
     </div>
   );
 }

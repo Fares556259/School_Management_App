@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
           day: dayName as any,
           isDraft: false
         },
+        include: { subject: true },
         orderBy: { slotNumber: "asc" }
       })
     ]);

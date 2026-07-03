@@ -26,9 +26,8 @@ export async function provisionSchool(setupRequestId: string) {
       return { success: false, error: "This school has already been provisioned." };
     }
 
-    if (!request.email) {
-      return { success: false, error: "Cannot provision school without an email address." };
-    }
+    // Generate a dummy email since email is not collected in the setup request
+    const adminEmail = `admin_${setupRequestId}@snapschool.local`;
 
     // 3. Generate a Unique School ID (Slug)
     let baseSlug = slugify(request.schoolName, { lower: true, strict: true });
@@ -52,7 +51,7 @@ export async function provisionSchool(setupRequestId: string) {
         tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + "9!aA";
         
         const newUser = await client.users.createUser({
-            emailAddress: [request.email],
+            emailAddress: [adminEmail],
             password: tempPassword,
             firstName: request.ownerName.split(' ')[0] || "Director",
             lastName: request.ownerName.split(' ').slice(1).join(' ') || "",
@@ -69,7 +68,7 @@ export async function provisionSchool(setupRequestId: string) {
         console.error("Clerk User Creation Error:", clerkError);
         // If the user already exists, update their metadata
         if (clerkError.errors && clerkError.errors.some((e: any) => e.code === 'form_identifier_exists')) {
-            const users = await client.users.getUserList({ emailAddress: [request.email] });
+            const users = await client.users.getUserList({ emailAddress: [adminEmail] });
             if (users.data.length > 0) {
                clerkUserId = users.data[0].id;
                await client.users.updateUserMetadata(clerkUserId, {
@@ -105,7 +104,7 @@ export async function provisionSchool(setupRequestId: string) {
       await tx.admin.create({
           data: {
               id: clerkUserId,
-              username: request.email.split('@')[0], 
+              username: adminEmail.split('@')[0], 
               schoolId: schoolId,
           }
       });

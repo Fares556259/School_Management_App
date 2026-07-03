@@ -19,7 +19,7 @@ const SingleStudentPage = async ({
   const role = await getRole();
   const student:
     | (Student & {
-        class: Class & { _count: { lessons: number } };
+        class: (Class & { _count: { lessons: number } }) | null;
         payments: any[];
       })
     | null = await prisma.student.findUnique({
@@ -67,7 +67,7 @@ const SingleStudentPage = async ({
                 {student.name + " " + student.surname}
               </h1>
               <p className="text-sm text-gray-500">
-                Student at our school in class {student.class.name}.
+                Student at our school in class {student.class?.name || "Unassigned"}.
               </p>
               <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
@@ -128,7 +128,7 @@ const SingleStudentPage = async ({
               />
               <div className="">
                 <h1 className="text-xl font-semibold">
-                  {student.class._count.lessons}
+                  {student.class?._count?.lessons || 0}
                 </h1>
                 <span className="text-sm text-gray-400">Lessons</span>
               </div>
@@ -156,7 +156,7 @@ const SingleStudentPage = async ({
         {/* BOTTOM */}
         <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
           <h1>Student&apos;s Schedule</h1>
-          <BigCalendarContainer type="classId" id={student.classId} />
+          <BigCalendarContainer type="classId" id={student.classId || 0} />
         </div>
       </div>
       {/* RIGHT */}

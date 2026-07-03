@@ -5,11 +5,28 @@ import { motion } from "framer-motion";
 import { Clock, ShieldCheck, LogOut, Mail, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 
 export default function WaitingApprovalPage() {
   const { user, isLoaded, isSignedIn } = useUser();
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const router = useRouter();
+  const { signOut } = useClerk();
+
+  const handleForceSignOut = async () => {
+    try {
+      await signOut();
+      // Fallback manual cookie clear just in case Clerk gets stuck
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      window.location.href = "/sign-in";
+    } catch (e) {
+      window.location.href = "/sign-in";
+    }
+  };
 
   useEffect(() => {
     // 🚀 AUTO-REDIRECT IF ACTIVE
@@ -113,12 +130,12 @@ export default function WaitingApprovalPage() {
         </div>
 
         <div className="flex flex-col gap-3 w-full">
-            <SignOutButton>
-                <button className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                </button>
-            </SignOutButton>
+            <button 
+                onClick={handleForceSignOut}
+                className="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+                <LogOut className="w-4 h-4" />
+                Force Sign Out
+            </button>
             
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mt-4">
               © 2025 SnapSchool Platform

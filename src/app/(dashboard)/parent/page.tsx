@@ -18,7 +18,7 @@ const ParentPage = async () => {
         {students.map((student) => (
           <div className="h-full bg-white p-4 rounded-md mb-8" key={student.id}>
             <h1 className="text-xl font-semibold">Schedule ({student.name + " " + student.surname})</h1>
-            <BigCalendarContainer type="classId" id={student.classId} />
+            <BigCalendarContainer type="classId" id={student.classId || 0} />
           </div>
         ))}
       </div>

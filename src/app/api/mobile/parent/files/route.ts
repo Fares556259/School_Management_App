@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     }
 
     const studentIds = students.map((s) => s.id);
-    const classIds = students.map((s) => s.classId);
+    const classIds = students.map((s) => s.classId).filter((id): id is number => id !== null);
 
     // 2. Fetch Report Cards (GradeSheets)
     const reportCards = await prisma.gradeSheet.findMany({

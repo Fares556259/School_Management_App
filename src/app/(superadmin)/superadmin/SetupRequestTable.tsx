@@ -80,7 +80,7 @@ const SetupRequestTable = ({ data }: { data: SetupRequest[] }) => {
                 <div className="flex flex-col">
                   <span className="font-black text-slate-800 tracking-tight">{item.schoolName}</span>
                   <span className="text-xs text-slate-500 font-medium">{item.ownerName}</span>
-                  <span className="text-xs text-slate-400 font-mono mt-0.5">{item.email}</span>
+                  <span className="text-xs text-slate-400 font-mono mt-0.5">{item.phoneNumber}</span>
                 </div>
               </td>
               <td className="px-6 py-4 border-t border-b border-slate-50">

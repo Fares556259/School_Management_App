@@ -33,6 +33,22 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Student not found", { status: 404 });
     }
 
+    if (!student.classId) {
+      return NextResponse.json({
+        sessions: [],
+        examPeriods: [],
+        holidayName: null,
+        tasksDue: [],
+        homeworkDue: [],
+        tasksGiven: [],
+        homeworkGiven: [],
+        upcomingExams: [],
+        teacherRemarks: [],
+        resources: [],
+        files: [],
+      });
+    }
+
     const schoolId = student.schoolId;
 
     // Determine today's day correctly ignoring timezone shifts

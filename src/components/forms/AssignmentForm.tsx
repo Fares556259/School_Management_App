@@ -35,6 +35,7 @@ const AssignmentForm = ({
 }: {
   type: "create" | "update";
   data?: any;
+  relatedData?: any;
 }) => {
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>(data?.classId ? data.classId.toString() : "");

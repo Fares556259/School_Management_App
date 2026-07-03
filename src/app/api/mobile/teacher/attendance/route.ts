@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
           classId: parseInt(classId),
           teacherId,
           day: dayName as any,
-          ...(slot ? { subjectId: slot.subjectId } : {})
+          ...(slot && slot.subjectId ? { subjectId: slot.subjectId } : {})
         }
       });
 

@@ -32,6 +32,7 @@ const StudentForm = ({
 }: {
   type: "create" | "update";
   data?: any;
+  relatedData?: any;
 }) => {
   const {
     register,

@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
       },
       include: { 
         class: true, 
-        subject: true 
+        subject: true,
+        room: true
       },
       orderBy: { startTime: "asc" }
     });
@@ -106,10 +107,10 @@ export async function GET(request: NextRequest) {
 
       return {
         id: slot.id,
-        subject: slot.subject.name,
+        subject: slot.subject?.name || "Free Period",
         className: slot.class.name,
         time: `${slot.startTime} - ${slot.endTime}`,
-        room: slot.room || "TBD",
+        room: slot.room?.name || "TBD",
         students: 0, // We could count students in slot.class
         status
       };
@@ -124,8 +125,11 @@ export async function GET(request: NextRequest) {
     });
 
     const studentCountMap: Record<string, number> = {};
-    studentCounts.forEach(c => studentCountMap[c.classId] = c._count.id);
-
+    studentCounts.forEach(c => {
+      if (c.classId !== null) {
+        studentCountMap[c.classId] = c._count.id;
+      }
+    });
     todayClasses.forEach(c => {
       const slot = slots.find(s => s.id === c.id);
       if (slot) c.students = studentCountMap[slot.classId] || 0;
