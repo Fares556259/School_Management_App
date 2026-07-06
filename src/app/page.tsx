@@ -1,8 +1,8 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, Variants } from "framer-motion";
@@ -71,15 +71,24 @@ const Navbar = ({ isSignedIn, handleLoginClick, router }: { isSignedIn: boolean;
 // --- Page Main ---
 
 export default function Homepage() {
-  const { isSignedIn, user, isLoaded } = useUser();
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
-      const role = user.publicMetadata?.role as string | undefined;
-      if (role === "admin" || role === "superuser") router.push("/admin");
-    }
-  }, [isLoaded, isSignedIn, user, router]);
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsSignedIn(true);
+        const role = user.user_metadata?.role as string | undefined;
+        if (role === "admin") router.push("/admin");
+        if (role === "superadmin") router.push("/superadmin");
+      }
+      setIsLoaded(true);
+    };
+    fetchUser();
+  }, [router, supabase]);
 
   const handleLoginClick = () => {
     if (isSignedIn) {

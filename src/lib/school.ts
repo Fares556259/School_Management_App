@@ -1,18 +1,20 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import prisma from "./prisma";
 
 /**
  * Resolves the schoolId for the currently authenticated web admin.
  *
  * Priority chain:
- *   1. Clerk session claims (fast — no extra network call)
- *   2. Clerk API user lookup
- *   3. DB Admin.schoolId lookup
- *   4. Fallback: "default_school" (keeps existing single-school installs working)
+ *   1. DB Admin.schoolId lookup (allows manual overrides)
+ *   2. Supabase user_metadata.schoolId (set at provisioning time)
+ *   3. Fallback: "default_school"
  */
 export async function getSchoolId(): Promise<string> {
   try {
-    const { userId, sessionClaims } = auth();
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
     console.log(`[getSchoolId] Resolving for User: ${userId}`);
 
     if (!userId) {
@@ -25,27 +27,28 @@ export async function getSchoolId(): Promise<string> {
       where: { id: userId },
       select: { schoolId: true },
     });
-    if (admin?.schoolId) {
+    if (admin?.schoolId && admin.schoolId !== "default_school") {
       console.log(`[getSchoolId] Resolved from DB for ${userId}: ${admin.schoolId}`);
       return admin.schoolId;
     }
 
-    // 2. Fallback to JWT session claims
-    const schoolIdFromClaims = (sessionClaims as any)?.metadata?.schoolId as string | undefined;
-    if (schoolIdFromClaims) {
-      console.log(`[getSchoolId] Resolved from CLAIMS for ${userId}: ${schoolIdFromClaims}`);
-      return schoolIdFromClaims;
+    // 2. Fallback to Supabase user_metadata
+    const schoolIdFromMeta = user?.user_metadata?.schoolId as string | undefined;
+    if (schoolIdFromMeta) {
+      console.log(`[getSchoolId] Resolved from metadata for ${userId}: ${schoolIdFromMeta}`);
+      return schoolIdFromMeta;
     }
+
+    // 3. Try Supabase Admin API (in case session metadata is stale)
     try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      const schoolIdFromClerk = user.publicMetadata?.schoolId as string | undefined;
-      if (schoolIdFromClerk) {
-        console.log(`[getSchoolId] Resolved from CLERK API for ${userId}: ${schoolIdFromClerk}`);
-        return schoolIdFromClerk;
+      const { data: { user: adminUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const schoolIdFromAdmin = adminUser?.user_metadata?.schoolId as string | undefined;
+      if (schoolIdFromAdmin) {
+        console.log(`[getSchoolId] Resolved from Supabase Admin API for ${userId}: ${schoolIdFromAdmin}`);
+        return schoolIdFromAdmin;
       }
     } catch (e) {
-      console.log(`[getSchoolId] Clerk API check failed for ${userId}`);
+      console.log(`[getSchoolId] Supabase Admin API check failed for ${userId}`);
     }
 
   } catch (err) {

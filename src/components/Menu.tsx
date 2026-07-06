@@ -37,7 +37,6 @@ import {
   CircleHelp,
   MoreVertical
 } from "lucide-react";
-import { useUser, UserButton } from "@clerk/nextjs";
 
 const labelToKey: Record<string, any> = {
   "Home": "home",
@@ -146,11 +145,10 @@ const menuItems: MenuSection[] = [
 const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
   const pathname = usePathname();
   const { t } = useLanguage();
-  const { user } = useUser();
 
   const fullName = adminData?.name || adminData?.surname 
     ? `${adminData.name || ""} ${adminData.surname || ""}`.trim() 
-    : user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
+    : "User";
 
   return (
     <div className="flex flex-col min-h-full h-full text-sm pb-4">
@@ -212,7 +210,9 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
         {adminData?.img ? (
           <Image src={adminData.img} alt="" width={32} height={32} className="rounded-full object-cover w-8 h-8" />
         ) : (
-          <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }} />
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <span className="text-white text-xs font-bold">U</span>
+          </div>
         )}
         <div className="flex flex-col flex-1 min-w-0">
           <span className="text-[13px] font-semibold text-white truncate">

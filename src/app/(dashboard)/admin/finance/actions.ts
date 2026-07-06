@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 export const addFinanceEntry = async (formData: FormData) => {
   const title = formData.get("title") as string;
@@ -11,7 +11,9 @@ export const addFinanceEntry = async (formData: FormData) => {
   const type = formData.get("type") as string;
   const dateStr = formData.get("date") as string;
   const date = dateStr ? new Date(dateStr) : new Date();
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   try {
     if (type === "income") {

@@ -540,6 +540,9 @@ model School {
   subdomain             String                  @unique
   createdAt             DateTime                @default(now())
   updatedAt             DateTime
+  status                String                  @default("ACTIVE")
+  plan                  String                  @default("FREE")
+  activatedAt           DateTime?
   Admin                 Admin[]
   Assignment            Assignment[]
   Attendance            Attendance[]

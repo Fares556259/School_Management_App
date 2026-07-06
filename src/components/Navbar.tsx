@@ -1,6 +1,5 @@
 "use client";
 
-import { UserButton, useUser } from "@clerk/nextjs";
 import Image from "next/image"
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -10,15 +9,13 @@ import { Sparkles, Lock, Unlock, RefreshCw, Search, Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 
-const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
-  const { user } = useUser();
+const Navbar = ({ adminData: initialAdminData, role = "User" }: { adminData?: any, role?: string }) => {
   const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(initialAdminData);
   const [aiStats, setAiStats] = useState<{usage: number, quota: number} | null>(null);
   const [isToggling, setIsToggling] = useState(false);
   const router = useRouter();
 
-  const role = (user?.publicMetadata?.role as string) || "User";
   const pathname = usePathname();
   
   const pathSegments = pathname?.split('/').filter(Boolean) || [];
@@ -65,8 +62,15 @@ const Navbar = ({ adminData: initialAdminData }: { adminData?: any }) => {
           {adminData?.img ? (
             <Image src={adminData.img} alt="Profile" width={32} height={32} className="rounded-full object-cover w-8 h-8 shadow-sm border border-[#dddddd]" />
           ) : (
-            <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8 shadow-sm border border-[#dddddd]" } }} />
+            <div className="w-8 h-8 rounded-full bg-gray-200 border border-[#dddddd] flex items-center justify-center">
+              <span className="text-gray-500 text-xs font-bold">U</span>
+            </div>
           )}
+          <form action="/api/auth/signout" method="POST" className="ml-3">
+            <button type="submit" className="text-xs text-red-500 hover:underline">
+              Sign out
+            </button>
+          </form>
         </div>
       </div>
     </div>

@@ -2,13 +2,15 @@
 
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { getRole } from "@/lib/role";
 
 export async function getReceiptContext() {
   try {
     const schoolId = await getSchoolId();
-    const { userId } = auth();
+    const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
     const role = await getRole();
 
     const school = await prisma.school.findUnique({

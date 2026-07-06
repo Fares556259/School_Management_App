@@ -1,13 +1,15 @@
 import React from 'react';
 import { getFinancialReportData, getAIFinancialReport } from '../../../(dashboard)/admin/actions';
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import AuditView from './AuditView';
 
 export const dynamic = "force-dynamic";
 
 const AuditPage = async ({ params }: { params: { month: string } }) => {
-    const { userId } = auth();
+    const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
     if (!userId) {
         return redirect("/sign-in");

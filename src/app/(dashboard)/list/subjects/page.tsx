@@ -1,7 +1,7 @@
 import { getRole } from "@/lib/role";
 import CrudFormModal from "@/components/CrudFormModal";
 import { getSchoolId } from "@/lib/school";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { seedDefaultSubjects } from "@/lib/crudActions";
@@ -31,7 +31,8 @@ const SubjectListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  auth();
+  const supabase = createClient();
+  await supabase.auth.getUser();
   const role = await getRole();
   const schoolId = await getSchoolId();
 

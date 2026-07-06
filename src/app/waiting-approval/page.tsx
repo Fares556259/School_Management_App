@@ -1,27 +1,30 @@
 "use client";
 
-import { useUser, SignOutButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { Clock, ShieldCheck, LogOut, Mail, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useClerk } from "@clerk/nextjs";
+import { createClient } from "@/utils/supabase/client";
 
 export default function WaitingApprovalPage() {
-  const { user, isLoaded, isSignedIn } = useUser();
+  const [user, setUser] = useState<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const router = useRouter();
-  const { signOut } = useClerk();
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setIsLoaded(true);
+    };
+    fetchUser();
+  }, [supabase]);
 
   const handleForceSignOut = async () => {
     try {
-      await signOut();
-      // Fallback manual cookie clear just in case Clerk gets stuck
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, "")
-          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      });
+      await supabase.auth.signOut();
       window.location.href = "/sign-in";
     } catch (e) {
       window.location.href = "/sign-in";
@@ -30,9 +33,9 @@ export default function WaitingApprovalPage() {
 
   useEffect(() => {
     // 🚀 AUTO-REDIRECT IF ACTIVE
-    if (isLoaded && isSignedIn && user) {
-      const status = user.publicMetadata?.status as string | undefined;
-      const role = user.publicMetadata?.role as string | undefined;
+    if (isLoaded && user) {
+      const status = user.user_metadata?.status as string | undefined;
+      const role = user.user_metadata?.role as string | undefined;
       
       if (status === "active" || role === "superadmin") {
         router.push("/admin");
@@ -41,41 +44,18 @@ export default function WaitingApprovalPage() {
 
     // 🔄 REFRESH USER DATA PERIODICALLY 
     // This catches the moment the superadmin approves the account
-    const interval = setInterval(() => {
-      if (isSignedIn && user) {
-        user.reload().catch(e => console.error("Poll fail:", e));
+    const interval = setInterval(async () => {
+      if (user) {
+        // Force refresh session
+        const { data } = await supabase.auth.refreshSession();
+        if (data.user) {
+           setUser(data.user);
+        }
       }
     }, 10000); // Check every 10s
 
     return () => clearInterval(interval);
-  }, [isLoaded, isSignedIn, user, router]);
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn && user && syncStatus === "idle") {
-      setSyncStatus("syncing");
-      
-      const schoolName = (user.unsafeMetadata?.schoolName as string) 
-                      || (user.publicMetadata?.schoolName as string) 
-                      || `${user.firstName || "Unknown"}'s School`;
-      
-      const phoneNumber = (user.unsafeMetadata?.phoneNumber as string) || "N/A";
-      const city = (user.unsafeMetadata?.city as string) || "Online";
-                      
-      fetch("/api/auth/sync-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schoolName, phoneNumber, city }),
-      })
-      .then(async res => {
-          if (res.ok) setSyncStatus("success");
-          else setSyncStatus("error");
-      })
-      .catch((err) => {
-          console.error("Sync backup failed", err);
-          setSyncStatus("error");
-      });
-    }
-  }, [isLoaded, isSignedIn, user, syncStatus]);
+  }, [isLoaded, user, router, supabase]);
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -107,7 +87,7 @@ export default function WaitingApprovalPage() {
         </h1>
         
         <p className="text-slate-500 font-medium leading-relaxed mb-8">
-          Welcome to SnapSchool, <span className="font-bold text-slate-800">{user?.firstName || "Educator"}</span>! 
+          Welcome to SnapSchool, <span className="font-bold text-slate-800">{user?.user_metadata?.name || "Educator"}</span>! 
           Your account is currently being reviewed by our team.
         </p>
 

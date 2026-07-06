@@ -1,6 +1,6 @@
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import Image from "next/image";
@@ -14,13 +14,15 @@ import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions"
 // Request-level caching for school configuration
 const getSchoolConfig = cache(async () => {
   const schoolId = await getSchoolId();
-  return await prisma.institution.findFirst({ 
-    where: { schoolId },
-    select: {
-      schoolName: true,
-      schoolLogo: true,
-    }
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    include: { Institution: true }
   });
+  return {
+    schoolName: school?.Institution?.schoolName,
+    schoolLogo: school?.Institution?.schoolLogo,
+    status: school?.status,
+  };
 });
 
 export default async function DashboardLayout({
@@ -28,7 +30,9 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   if (!userId) {
     return redirect("/sign-in");
@@ -42,6 +46,10 @@ export default async function DashboardLayout({
     schoolConfig = await getSchoolConfig();
   } catch (error) {
     console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", (error as any).message);
+  }
+
+  if (schoolConfig?.status === "SUSPENDED" && role !== "superadmin") {
+    return redirect("/suspended");
   }
   
   // Fetch admin profile so the Menu and Navbar can display the custom photo and name
@@ -75,7 +83,7 @@ export default async function DashboardLayout({
       {/* RIGHT */}
       <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] overflow-scroll flex flex-col print:w-full print:p-0 print:bg-white print:overflow-visible print:h-auto print:block relative">
         <div className="print:hidden sticky top-0 bg-[#F5F6F8]/80 backdrop-blur-md z-20">
-          <Navbar adminData={adminProfile} />
+          <Navbar adminData={adminProfile} role={role!} />
         </div>
         <PageTransition>
           <div className="p-4 md:p-6 lg:p-8 print:p-0 print:m-0">

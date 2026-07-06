@@ -1,5 +1,5 @@
 import prisma from "./prisma";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * Creates a record in the AuditLog table.
@@ -30,8 +30,9 @@ export async function createAuditLog({
   newValues?: any;
 }) {
   try {
-    const authData = await auth();
-    const userId = authData?.userId;
+    const supabase = createClient();
+    const { data: { user: authData } } = await supabase.auth.getUser();
+    const userId = authData?.id;
     // If we have a userId, use it; otherwise fallback to "system" or role if available
     const performedBy = userId || "system";
     

@@ -1,82 +1,123 @@
-import { clerkMiddleware, clerkClient, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { routeAccessMap } from "./lib/settings";
-import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-const matchers = Object.keys(routeAccessMap).map((route) => ({
-  matcher: createRouteMatcher([route]),
-  allowedRoles: routeAccessMap[route],
-}));
+const isPublicRoute = (pathname: string) => {
+  const publicPaths = [
+    "/",
+    "/sign-in",
+    "/sign-up",
+    "/waiting-approval",
+    "/request-setup",
+  ];
+  if (publicPaths.some(p => pathname === p || pathname.startsWith(p + "/"))) return true;
+  if (pathname.startsWith("/api/mobile")) return true;
+  if (pathname.startsWith("/uploads")) return true;
+  if (pathname.startsWith("/_next")) return true;
+  if (pathname.startsWith("/api/public")) return true;
+  if (pathname.startsWith("/api/dev-promote")) return true;
+  if (pathname.startsWith("/api/dev-reset-password")) return true;
+  return false;
+};
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/waiting-approval",
-  "/request-setup(.*)",
-  "/api/mobile(.*)", 
-  "/uploads(.*)",
-  "/public(.*)",
-  "/api/public(.*)",
-]);
+const isAuthRoute = (pathname: string) => {
+  return pathname === "/sign-in" || pathname === "/sign-up";
+};
 
-export default clerkMiddleware(async (auth, req) => {
-  const { userId } = auth();
-  const isPublic = isPublicRoute(req);
-  const isWaitingPage = req.nextUrl.pathname === "/waiting-approval";
-
-  // 1. If not logged in and not public, Clerk handles the redirect to sign-in
-  if (!userId && !isPublic) return;
-
-  // 2. If logged in, we check metadata for redirect logic
-  let role: string | undefined;
-  let status: string | undefined;
-
-  if (userId) {
-    // Session claims for speed
-    const metadata = (auth().sessionClaims as any)?.metadata;
-    role = metadata?.role as string | undefined;
-    status = metadata?.status as string | undefined;
-
-    // Fallback to API
-    if (!role || !status) {
-      try {
-        const client = await clerkClient();
-        const user = await client.users.getUser(userId);
-        role = user.publicMetadata?.role as string | undefined;
-        status = user.publicMetadata?.status as string | undefined;
-      } catch (err) { }
-    }
-
-    // 🚀 REDIRECT ACTIVE USERS AWAY FROM WAITING PAGE
-    if (status === "active" && isWaitingPage) {
-      return NextResponse.redirect(new URL("/admin", req.url));
-    }
-
-    // 🔒 TRAP PENDING USERS ON WAITING PAGE
-    if (status !== "active" && role !== "superadmin" && !isPublic) {
-      return NextResponse.redirect(new URL("/waiting-approval", req.url));
+const getMatcherRoles = (pathname: string) => {
+  for (const route in routeAccessMap) {
+    const regex = new RegExp(`^${route.replace(/\(\.\*\)/, ".*")}$`);
+    if (regex.test(pathname)) {
+      return routeAccessMap[route];
     }
   }
+  return null;
+};
 
-  if (isPublic) return;
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
 
-  // 4. ROLE-BASED AUTHORIZATION
-  for (const { matcher, allowedRoles } of matchers) {
-    if (matcher(req)) {
-      if (!role || !allowedRoles.includes(role)) {
-        const redirectUrl = role ? `/${role}` : "/";
-        return NextResponse.redirect(new URL(redirectUrl, req.url));
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+  const isPublic = isPublicRoute(pathname);
+  const isAuth = isAuthRoute(pathname);
+
+  const redirectWithCookies = (url: URL) => {
+    const redirectRes = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      redirectRes.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectRes;
+  };
+
+  // ── 1. NOT LOGGED IN ────────────────────────────────────────────────────────
+  if (!user) {
+    if (!isPublic) {
+      return redirectWithCookies(new URL("/sign-in", request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // ── 2. LOGGED IN — read role & status from metadata ─────────────────────────
+  const role = user.user_metadata?.role as string | undefined;
+  const status = user.user_metadata?.status as string | undefined;
+
+  // Superadmin — always allow through + bounce away from auth/admin pages
+  if (role === "superadmin") {
+    if (isAuth || pathname === "/waiting-approval" || pathname.startsWith("/admin")) {
+      return redirectWithCookies(new URL("/superadmin", request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // Active admin — bounce away from auth/waiting pages
+  if (role === "admin" && status === "active") {
+    if (isAuth || pathname === "/waiting-approval") {
+      return redirectWithCookies(new URL("/admin", request.url));
+    }
+    // Role-based route guard
+    if (!isPublic) {
+      const allowedRoles = getMatcherRoles(pathname);
+      if (allowedRoles && !allowedRoles.includes(role)) {
+        return redirectWithCookies(new URL("/admin", request.url));
       }
     }
+    return supabaseResponse;
   }
-});
+
+  // Pending admin — trap on waiting-approval (allow public routes)
+  if (!isPublic && pathname !== "/waiting-approval") {
+    return redirectWithCookies(new URL("/waiting-approval", request.url));
+  }
+
+  return supabaseResponse;
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    // Also explicitly skip /uploads-proxy to ensure mobile app can always access it
-    "/((?!_next|uploads-proxy|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|pdf)).*)",
-    // Always run for API routes
+    "/((?!_next/static|_next/image|favicon.ico|uploads|public|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|pdf)).*)",
     "/(api|trpc)(.*)",
   ],
 };

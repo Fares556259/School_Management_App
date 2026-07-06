@@ -1,9 +1,11 @@
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 const ParentPage = async () => {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   const students = await prisma.student.findMany({
     where: {

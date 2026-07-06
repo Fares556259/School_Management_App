@@ -1,11 +1,13 @@
 import { getRole } from "@/lib/role";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import prisma from "../../../../lib/prisma";
 import ResultsPageClient from "./ResultsPageClient";
 import { getSchoolId } from "@/lib/school";
 
 const ResultListPage = async () => {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
   const role = await getRole();
 
   const schoolId = await getSchoolId();

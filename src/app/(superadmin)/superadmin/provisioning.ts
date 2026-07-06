@@ -2,7 +2,8 @@
 
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import slugify from "slugify";
 
 export async function provisionSchool(setupRequestId: string) {
@@ -40,45 +41,46 @@ export async function provisionSchool(setupRequestId: string) {
       counter++;
     }
 
-    // 4. Create the Clerk User & Send Invitation
-    // Use the Clerk API to create the user and send an invitation
-    const client = await clerkClient();
-    
-    // We try to create the user first. If they already exist, we'll update their metadata.
-    let clerkUserId;
+    // 4. Create the Supabase User & Send Invitation
+    let supabaseUserId;
     let tempPassword;
     try {
         tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + "9!aA";
         
-        const newUser = await client.users.createUser({
-            emailAddress: [adminEmail],
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+            email: adminEmail,
             password: tempPassword,
-            firstName: request.ownerName.split(' ')[0] || "Director",
-            lastName: request.ownerName.split(' ').slice(1).join(' ') || "",
-            publicMetadata: {
+            email_confirm: true,
+            user_metadata: {
+                firstName: request.ownerName.split(' ')[0] || "Director",
+                lastName: request.ownerName.split(' ').slice(1).join(' ') || "",
                 role: "admin",
                 schoolId: schoolId
             }
         });
-        clerkUserId = newUser.id;
-        
-        // Removed signInToken creation because password generation is safer and bypasses strict instance configs.
 
-    } catch (clerkError: any) {
-        console.error("Clerk User Creation Error:", clerkError);
+        if (error) {
+            throw error;
+        }
+        
+        supabaseUserId = data.user.id;
+
+    } catch (authError: any) {
+        console.error("Supabase User Creation Error:", authError);
         // If the user already exists, update their metadata
-        if (clerkError.errors && clerkError.errors.some((e: any) => e.code === 'form_identifier_exists')) {
-            const users = await client.users.getUserList({ emailAddress: [adminEmail] });
-            if (users.data.length > 0) {
-               clerkUserId = users.data[0].id;
-               await client.users.updateUserMetadata(clerkUserId, {
-                   publicMetadata: { role: "admin", schoolId: schoolId }
+        if (authError.message?.includes('already exists')) {
+            const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+            const existingUser = users.find(u => u.email === adminEmail);
+            if (existingUser) {
+               supabaseUserId = existingUser.id;
+               await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, {
+                   user_metadata: { ...existingUser.user_metadata, role: "admin", schoolId: schoolId }
                });
             } else {
-                 return { success: false, error: "User exists but could not be retrieved from Clerk." };
+                 return { success: false, error: "User exists but could not be retrieved from Supabase." };
             }
         } else {
-           return { success: false, error: "Failed to create Clerk user: " + clerkError.message };
+           return { success: false, error: "Failed to create Supabase user: " + authError.message };
         }
     }
 
@@ -100,10 +102,10 @@ export async function provisionSchool(setupRequestId: string) {
         },
       });
 
-      // Create Admin Record (Optional, since Clerk holds primary source of truth, but good for DB referential integrity if needed elsewhere)
+      // Create Admin Record (Optional, since Supabase holds primary source of truth, but good for DB referential integrity if needed elsewhere)
       await tx.admin.create({
           data: {
-              id: clerkUserId,
+              id: supabaseUserId as string,
               username: adminEmail.split('@')[0], 
               schoolId: schoolId,
           }

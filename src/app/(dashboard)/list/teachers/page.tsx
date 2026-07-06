@@ -3,7 +3,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { Teacher, Subject, Class, Payment } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
@@ -70,7 +70,9 @@ const TeacherListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
   const role = await getRole();
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;

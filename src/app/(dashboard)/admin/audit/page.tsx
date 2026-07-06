@@ -1,7 +1,9 @@
 import prisma from "@/lib/prisma";
+import { supabaseAdmin } from "@/utils/supabase/admin";
+
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { Prisma } from "@prisma/client";
 import TableSearch from "@/components/TableSearch";
 import Pagination from "@/components/Pagination";
@@ -72,16 +74,18 @@ const AuditPage = async ({
   
   if (uniqueIds.length > 0) {
     try {
-      const client = await clerkClient();
+      
       await Promise.all(
         uniqueIds.map(async (uid) => {
           try {
-            const user = await client.users.getUser(uid);
+            const adminUser = (await supabaseAdmin.auth.admin.getUserById(uid)).data.user;
+            if (!adminUser) throw new Error("Not found");
+            const meta = adminUser.user_metadata || {};
             performerMap[uid] = {
-              name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || uid,
-              email: user.emailAddresses[0]?.emailAddress || "No email",
-              avatar: user.imageUrl,
-              role: (user.publicMetadata?.role as string) || "User",
+              name: [meta.firstName, meta.lastName].filter(Boolean).join(" ") || meta.username || uid,
+              email: adminUser.email || "No email",
+              avatar: meta.imageUrl || null,
+              role: (meta.role as string) || "User",
             };
           } catch {
             performerMap[uid] = { name: uid, role: "System" };

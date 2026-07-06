@@ -6,7 +6,7 @@ import { syncClerkUsers } from "./sync-clerk";
 
 export default function SyncClerkBtn() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ synchronizedCount: number; alreadySyncedCount: number } | null>(null);
+  const [result, setResult] = useState<{ synchronizedCount: number; alreadySyncedCount: number; prunedCount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSync = async () => {
@@ -19,6 +19,7 @@ export default function SyncClerkBtn() {
         setResult({
           synchronizedCount: res.synchronizedCount ?? 0,
           alreadySyncedCount: res.alreadySyncedCount ?? 0,
+          prunedCount: res.prunedCount ?? 0,
         });
       } else {
         setError(res.error || "Failed to sync users.");
@@ -39,13 +40,13 @@ export default function SyncClerkBtn() {
           ${loading ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100 shadow-indigo-100/50"}`}
       >
         <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-        {loading ? "Synchronizing..." : "Sync with Clerk"}
+        {loading ? "Synchronizing..." : "Sync with Supabase"}
       </button>
 
       {result && (
         <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 animate-in fade-in slide-in-from-top-1">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          Imported {result.synchronizedCount} new leads. ({result.alreadySyncedCount} up to date)
+          {result.synchronizedCount} synced · {result.alreadySyncedCount} up to date · {result.prunedCount} pruned
         </div>
       )}
 

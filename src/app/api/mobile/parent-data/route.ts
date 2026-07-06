@@ -1,9 +1,11 @@
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   if (!userId) {
     return new NextResponse("Unauthorized", { status: 401 });

@@ -1,11 +1,14 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 
 export async function getAdminProfile() {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
   if (!userId) return { data: null, error: "No user ID found" };
 
   try {
@@ -15,9 +18,10 @@ export async function getAdminProfile() {
     });
 
     if (!admin) {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      const targetUsername = user.username || user.firstName || userId;
+      const adminUser = (await supabaseAdmin.auth.admin.getUserById(userId)).data.user;
+      if (!adminUser) return { data: null, error: "User not found in Supabase Auth" };
+
+      const targetUsername = adminUser.user_metadata?.username || adminUser.user_metadata?.firstName || userId;
 
       // 2. Check if an admin already exists with this username (potential conflict)
       const existingByUsername = await prisma.admin.findUnique({
@@ -41,8 +45,8 @@ export async function getAdminProfile() {
         admin = await prisma.admin.update({
           where: { id: userId },
           data: {
-            name: user.firstName,
-            surname: user.lastName,
+            name: adminUser.user_metadata?.firstName,
+            surname: adminUser.user_metadata?.lastName,
           }
         });
       } catch (updateErr: any) {
@@ -63,7 +67,9 @@ export async function updateAdminProfile(data: {
   phone?: string;
   img?: string;
 }) {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
@@ -88,12 +94,12 @@ export async function updateAdminProfile(data: {
     });
 
     // Optional: Sync with Clerk public metadata or profile
-    const client = await clerkClient();
-    await client.users.updateUser(userId, {
-      firstName: data.name,
-      lastName: data.surname,
-      // Note: updating email in Clerk is more complex (requires verification), 
-      // so we only update our DB and display it.
+    
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        firstName: data.name,
+        lastName: data.surname,
+      }
     });
 
     revalidatePath("/profile");

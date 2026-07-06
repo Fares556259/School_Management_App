@@ -7,7 +7,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { Class, Grade, Student } from "@prisma/client";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import StudentPaymentTracker from "./StudentPaymentTracker";
 
 const SingleStudentPage = async ({
@@ -15,7 +15,8 @@ const SingleStudentPage = async ({
 }: {
   params: { id: string };
 }) => {
-  const { sessionClaims } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const role = await getRole();
   const student:
     | (Student & {

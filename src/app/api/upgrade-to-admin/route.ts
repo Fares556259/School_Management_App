@@ -1,8 +1,12 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
+
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   if (!userId) {
     return new NextResponse(
@@ -23,10 +27,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const client = await clerkClient();
-    await client.users.updateUser(userId, {
-      publicMetadata: { role },
-    });
+    
+    await supabaseAdmin.auth.admin.updateUserById(userId, { user_metadata: { role } });
 
     return new NextResponse(
       `✅ Successfully set your role to "${role}"! Sign out and sign back in, then go to /${role} to see your dashboard.`,

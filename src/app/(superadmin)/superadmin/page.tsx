@@ -1,56 +1,57 @@
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
-import { getSetupRequests, getPendingAdmins } from "./actions";
-import SetupRequestTable from "./SetupRequestTable";
-import PendingAdminsTable from "./PendingAdminsTable";
-import GenerateTestLeadBtn from "./GenerateTestLeadBtn";
-import SyncClerkBtn from "./SyncClerkBtn";
+import { getUnifiedApplications } from "./actions";
+import ApplicationsTable from "./ApplicationsTable";
+import { Building2, Clock, CheckCheck, Inbox } from "lucide-react";
 
-const SetupRequestsPage = async ({ searchParams }: { searchParams: { tab?: string } }) => {
+const ApplicationsPage = async () => {
   const role = await getRole();
-  const activeTab = searchParams.tab || "leads";
+  if (role !== "superadmin") return redirect("/");
 
-  // STRICT ACCESS CONTROL: Only superadmins can access this page
-  if (role !== "superadmin") {
-    return redirect("/");
-  }
+  const applications = await getUnifiedApplications();
 
-  const requests = await getSetupRequests();
-  const pendingAdmins = await getPendingAdmins();
+  const pendingCount = applications.filter((a) => a.displayType === "pending").length;
+  const activeCount  = applications.filter((a) => a.displayType === "active").length;
+  const inquiryCount = applications.filter((a) => a.displayType === "inquiry").length;
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Header Section */}
-      <div className="flex items-center gap-6 border-b border-slate-100 mb-4">
-        <a 
-          href="?tab=leads" 
-          className={`pb-4 text-sm font-black uppercase tracking-widest transition-all ${activeTab === "leads" ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
-        >
-          Leads ({requests.length})
-        </a>
-        <a 
-          href="?tab=users" 
-          className={`pb-4 text-sm font-black uppercase tracking-widest transition-all ${activeTab === "users" ? "text-indigo-600 border-b-2 border-indigo-600" : "text-slate-400 hover:text-slate-600"}`}
-        >
-          User Approvals ({pendingAdmins.length})
-        </a>
-        <div className="flex-1" />
-        <div className="pb-4 flex items-center gap-3">
-            <SyncClerkBtn />
-            <GenerateTestLeadBtn />
+    <div className="flex flex-col gap-6">
+      {/* Stats + actions in one row */}
+      <div className="flex items-stretch gap-3 flex-wrap">
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm flex-1 min-w-[140px]">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+            <Clock size={18} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-black text-slate-800">{pendingCount}</p>
+            <p className="text-xs text-slate-400 font-medium">Pending</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm flex-1 min-w-[140px]">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+            <CheckCheck size={18} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-black text-slate-800">{activeCount}</p>
+            <p className="text-xs text-slate-400 font-medium">Active Schools</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm flex-1 min-w-[140px]">
+          <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center shrink-0">
+            <Inbox size={18} className="text-sky-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-black text-slate-800">{inquiryCount}</p>
+            <p className="text-xs text-slate-400 font-medium">Inquiries</p>
+          </div>
         </div>
       </div>
 
-      {/* Main Table Content */}
-      <div className="bg-[#F7F8FA] min-h-[600px]">
-        {activeTab === "leads" ? (
-          <SetupRequestTable data={requests} />
-        ) : (
-          <PendingAdminsTable data={pendingAdmins} />
-        )}
-      </div>
+      {/* Unified table */}
+      <ApplicationsTable data={applications} />
     </div>
   );
+
 };
 
-export default SetupRequestsPage;
+export default ApplicationsPage;

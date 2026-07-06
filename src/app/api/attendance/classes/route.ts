@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
 import { getRole } from "@/lib/role";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,9 @@ export async function GET() {
   try {
     const schoolId = await getSchoolId();
     const role = await getRole();
-    const { userId } = auth();
+    const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
     console.log(`[Classes API] Fetching for School: ${schoolId}, Role: ${role}`);
 

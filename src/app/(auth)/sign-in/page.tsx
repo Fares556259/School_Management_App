@@ -1,6 +1,5 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -16,9 +15,9 @@ import {
   Bell,
   ShieldCheck,
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 export default function SignInPage() {
-  const { isLoaded, signIn, setActive } = useSignIn();
   const router = useRouter();
 
   const [mode, setMode] = useState<"signin" | "forgot" | "forgot_sent">("signin");
@@ -33,40 +32,58 @@ export default function SignInPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
     setLoading(true);
     setError("");
+
     try {
-      const result = await signIn.create({
-        identifier: formData.email,
+      const supabase = createClient();
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
         password: formData.password,
       });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
+
+      if (authError) {
+        setError("Invalid email or password.");
+        setLoading(false);
+        return;
+      }
+
+      // Read role from the signed-in user's metadata
+      const role = data.user?.user_metadata?.role as string | undefined;
+      const status = data.user?.user_metadata?.status as string | undefined;
+
+      // Route based on role — session is already committed in the browser
+      // router.refresh() syncs the server-side session cookie before navigating
+      if (role === "superadmin") {
+        router.refresh();
+        router.push("/superadmin");
+      } else if (role === "admin" && status === "active") {
+        router.refresh();
         router.push("/admin");
       } else {
-        setError("Sign in could not be completed. Please try again.");
+        router.refresh();
+        router.push("/waiting-approval");
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Invalid email or password.");
-    } finally {
+      setError(err.message || "Something went wrong. Please try again.");
       setLoading(false);
     }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
     setLoading(true);
     setError("");
     try {
-      await signIn.create({
-        strategy: "reset_password_email_code",
-        identifier: forgotEmail,
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
+      if (error) throw error;
       setMode("forgot_sent");
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Could not send reset email. Check the address and try again.");
+      setError(err.message || "Could not send reset email. Check the address and try again.");
     } finally {
       setLoading(false);
     }
@@ -118,30 +135,30 @@ export default function SignInPage() {
             {features.map((f, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 * i + 0.3 }}
+                transition={{ delay: 0.1 * i }}
                 className="flex items-center gap-3"
               >
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-500/30 rounded-lg flex items-center justify-center shrink-0">
                   <f.icon className="w-4 h-4 text-indigo-400" />
                 </div>
                 <p className="text-slate-300 text-sm font-medium">{f.text}</p>
               </motion.div>
             ))}
           </div>
+        </div>
 
-          {/* Testimonial */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
-            <p className="text-slate-300 text-sm leading-relaxed italic mb-4">
-              &ldquo;SnapSchool transformed how we manage our 400-student school. What took hours now takes minutes.&rdquo;
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white font-bold text-xs">A</div>
-              <div>
-                <p className="text-white text-xs font-bold">Ahmed Ben Ali</p>
-                <p className="text-slate-500 text-xs">Director, Académie El Amal</p>
-              </div>
+        {/* Testimonial */}
+        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-5">
+          <p className="text-slate-300 text-sm leading-relaxed italic mb-4">
+            &ldquo;SnapSchool transformed how we manage our 400-student school. What took hours now takes minutes.&rdquo;
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white font-bold text-xs">A</div>
+            <div>
+              <p className="text-white text-xs font-bold">Ahmed Ben Ali</p>
+              <p className="text-slate-500 text-xs">Director, Académie El Amal</p>
             </div>
           </div>
         </div>
@@ -173,11 +190,15 @@ export default function SignInPage() {
               {mode === "signin" ? "Sign in to SnapSchool" : mode === "forgot" ? "Reset your password" : "Check your inbox"}
             </h1>
             <p className="text-sm text-slate-500 font-medium">
-              {mode === "signin" ? "Enter your credentials to access your dashboard." : mode === "forgot" ? "We'll send you a reset link right away." : "A password reset link has been sent."}
+              {mode === "signin"
+                ? "Enter your credentials to access your dashboard."
+                : mode === "forgot"
+                ? "We'll send you a reset link right away."
+                : "A password reset link has been sent."}
             </p>
           </div>
 
-          {/* Progress */}
+          {/* Progress bar */}
           <div className="flex items-center gap-2 mb-8">
             <div className="h-1 flex-1 rounded-full bg-indigo-600" />
             <div className={`h-1 flex-1 rounded-full transition-all ${mode !== "signin" ? "bg-indigo-600" : "bg-slate-200"}`} />
@@ -197,29 +218,51 @@ export default function SignInPage() {
                 <label className={labelClass}>Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input required type="email" placeholder="john@school.com" className={`${inputClass} pl-10`}
-                    value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                  <input
+                    required
+                    type="email"
+                    placeholder="john@school.com"
+                    className={`${inputClass} pl-10`}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className={`${labelClass} mb-0`}>Password</label>
-                  <button type="button" onClick={() => { setMode("forgot"); setError(""); }}
-                    className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => { setMode("forgot"); setError(""); }}
+                    className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors"
+                  >
                     Forgot password?
                   </button>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input required type="password" placeholder="••••••••" className={`${inputClass} pl-10`}
-                    value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                  <input
+                    required
+                    type="password"
+                    placeholder="••••••••"
+                    className={`${inputClass} pl-10`}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
                 </div>
               </div>
 
-              <button disabled={loading} type="submit"
-                className="w-full py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-indigo-200">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Sign In <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" /></>}
+              <button
+                disabled={loading}
+                type="submit"
+                className="w-full py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-indigo-200"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>Sign In <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" /></>
+                )}
               </button>
 
               <p className="text-center text-sm text-slate-500">
@@ -238,23 +281,34 @@ export default function SignInPage() {
                   {error}
                 </div>
               )}
-
               <div>
                 <label className={labelClass}>Your Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input required type="email" placeholder="john@school.com" className={`${inputClass} pl-10`}
-                    value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
+                  <input
+                    required
+                    type="email"
+                    placeholder="john@school.com"
+                    className={`${inputClass} pl-10`}
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
                 </div>
               </div>
 
-              <button disabled={loading} type="submit"
-                className="w-full py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-lg shadow-indigo-200">
+              <button
+                disabled={loading}
+                type="submit"
+                className="w-full py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-lg shadow-indigo-200"
+              >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Send Reset Link <ArrowRight className="w-4 h-4" /></>}
               </button>
 
-              <button type="button" onClick={() => { setMode("signin"); setError(""); }}
-                className="block w-full text-center text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors">
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(""); }}
+                className="block w-full text-center text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors"
+              >
                 ← Back to Sign In
               </button>
             </motion.form>
@@ -272,8 +326,11 @@ export default function SignInPage() {
                   We sent a reset link to <span className="font-bold text-slate-700">{forgotEmail}</span>. Check your inbox.
                 </p>
               </div>
-              <button type="button" onClick={() => { setMode("signin"); setError(""); }}
-                className="w-full py-3.5 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-all">
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(""); }}
+                className="w-full py-3.5 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-all"
+              >
                 Back to Sign In
               </button>
             </motion.div>

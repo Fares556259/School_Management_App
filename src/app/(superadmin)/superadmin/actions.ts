@@ -1,8 +1,109 @@
 "use server";
 
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
 import { revalidatePath } from "next/cache";
+
+// ─── Unified Application Model ───────────────────────────────────────────────
+export type ApplicationDisplayType = "pending" | "inquiry" | "active";
+
+export type UnifiedApplication = {
+  id: string;                   // row key (adminId or setupRequestId)
+  displayType: ApplicationDisplayType;
+  schoolName: string;
+  ownerName: string;
+  email: string | null;
+  phone: string | null;
+  source: string;               // "Signup" | "Synced" | "Test" | "Form"
+  date: Date;
+  adminId: string | null;       // present when there's a real account to approve
+  setupRequestId: string | null;// present when a SetupRequest record exists
+};
+
+/**
+ * Returns a merged, chronologically ordered list of all applications:
+ *  - pending admins (highest priority)
+ *  - unmatched setup requests that are not yet activated
+ *  - activated setup requests (lowest priority, informational)
+ */
+export async function getUnifiedApplications(): Promise<UnifiedApplication[]> {
+  await ensureSuperUser();
+
+  const [pendingAdmins, allRequests] = await Promise.all([
+    prisma.admin.findMany({ where: { status: "pending" } }),
+    prisma.setupRequest.findMany({ orderBy: { createdAt: "desc" } }),
+  ]);
+
+  const result: UnifiedApplication[] = [];
+  const consumedRequestIds = new Set<string>();
+
+  // 1. Pending admins → "pending" rows (merge with matching SetupRequest if found)
+  for (const admin of pendingAdmins) {
+    const fullName = [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username;
+
+    // Try to find a matching setup request
+    const match = allRequests.find((r) => {
+      if (consumedRequestIds.has(r.id)) return false;
+      if (admin.email && r.ownerName === admin.email) return true;
+      if (admin.pendingSchoolName && r.schoolName === admin.pendingSchoolName) return true;
+      if (fullName && r.ownerName === fullName) return true;
+      return false;
+    });
+
+    if (match) consumedRequestIds.add(match.id);
+
+    result.push({
+      id: admin.id,
+      displayType: "pending",
+      schoolName: admin.pendingSchoolName || match?.schoolName || "—",
+      ownerName: fullName,
+      email: admin.email ?? null,
+      phone: match?.phoneNumber || null,
+      source: match ? mapSource(match.city) : "Signup",
+      date: match?.createdAt ?? new Date(),
+      adminId: admin.id,
+      setupRequestId: match?.id ?? null,
+    });
+  }
+
+  // 2. Remaining setup requests (not already merged with a pending admin)
+  for (const req of allRequests) {
+    if (consumedRequestIds.has(req.id)) continue;
+
+    const isActive = req.status === "ACTIVATED";
+    result.push({
+      id: req.id,
+      displayType: isActive ? "active" : "inquiry",
+      schoolName: req.schoolName,
+      ownerName: req.ownerName,
+      email: null,
+      phone: req.phoneNumber || null,
+      source: mapSource(req.city),
+      date: req.createdAt,
+      adminId: null,
+      setupRequestId: req.id,
+    });
+  }
+
+  // Sort: pending first, then by date desc
+  const order: Record<ApplicationDisplayType, number> = { pending: 0, inquiry: 1, active: 2 };
+  result.sort((a, b) => {
+    const diff = order[a.displayType] - order[b.displayType];
+    return diff !== 0 ? diff : b.date.getTime() - a.date.getTime();
+  });
+
+  return result;
+}
+
+function mapSource(city: string | null | undefined): string {
+  if (!city) return "Form";
+  const c = city.toLowerCase();
+  if (c.includes("sync")) return "Synced";
+  if (c.includes("signup") || c.includes("sign")) return "Signup";
+  if (c.includes("test")) return "Test";
+  return city;
+}
 
 /**
  * Ensures the caller has the 'superuser' role.
@@ -60,7 +161,7 @@ export async function deleteSetupRequest(id: string) {
   }
 }
 
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import slugify from "slugify";
 
 export async function getPendingAdmins() {
@@ -104,13 +205,13 @@ export async function approveAdmin(adminId: string) {
       return provisionResult;
     }
 
-    // 5. Update Clerk Metadata
-    const client = await clerkClient();
-    await client.users.updateUserMetadata(adminId, {
-      publicMetadata: {
+    // 5. Update Supabase Auth Metadata so the user can access their dashboard
+    await supabaseAdmin.auth.admin.updateUserById(adminId, {
+      user_metadata: {
         role: "admin",
         status: "active",
         schoolId: schoolId,
+        schoolName: schoolName,
       },
     });
 
@@ -127,8 +228,8 @@ export async function rejectAdmin(adminId: string) {
 
   try {
     // 1. Delete from Clerk
-    const client = await clerkClient();
-    await client.users.deleteUser(adminId);
+    
+    await supabaseAdmin.auth.admin.deleteUser(adminId);
 
     // 3. Delete from Prisma
     await prisma.admin.delete({
@@ -146,22 +247,21 @@ export async function rejectAdmin(adminId: string) {
 export async function createTestLead() {
   await ensureSuperUser();
   try {
-    const testId = "test_lead_" + Math.floor(Math.random() * 10000);
-    const schoolName = "Emerald Heights Academy";
+    const rand = Math.floor(Math.random() * 10000);
+    const schoolName = `Test Academy ${rand}`;
     
-    // 2. Create Admin record
-    await prisma.admin.create({
+    // Create a SetupRequest (lead) only — no fake auth user needed
+    await prisma.setupRequest.create({
       data: {
-        id: testId,
-        username: "sarah_admin",
-        name: "Sarah",
-        surname: "Jenkins",
-        status: "pending",
-        pendingSchoolName: schoolName,
-        schoolId: "default_school"
-      }
+        schoolName: schoolName,
+        ownerName: `Test Owner ${rand}`,
+        phoneNumber: "+216 00 000 000",
+        city: "Test City",
+        status: "PENDING",
+      },
     });
 
+    revalidatePath("/superadmin");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -186,6 +286,7 @@ export async function provisionSchool(adminId: string, schoolId: string, schoolN
           name: schoolName,
           subdomain: schoolId,
           updatedAt: new Date(),
+          activatedAt: new Date(),
         },
       });
 
@@ -223,5 +324,57 @@ export async function provisionSchool(adminId: string, schoolId: string, schoolN
   } catch (error: any) {
     console.error("Provisioning Error:", error);
     return { success: false, error: error.message || "Failed to provision school." };
+  }
+}
+
+// ─── Subscriptions ─────────────────────────────────────────────────────────────
+
+export async function getSubscriptions() {
+  await ensureSuperUser();
+  try {
+    const schools = await prisma.school.findMany({
+      include: {
+        Admin: {
+          take: 1, // Get the primary admin
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return schools.map(school => ({
+      id: school.id,
+      name: school.name,
+      subdomain: school.subdomain,
+      logo: school.logo,
+      status: school.status || "ACTIVE", // ACTIVE, SUSPENDED, TRIAL
+      plan: school.plan || "FREE",
+      createdAt: school.createdAt,
+      activatedAt: school.activatedAt || school.createdAt,
+      admin: school.Admin[0] ? {
+        name: `${school.Admin[0].name || ""} ${school.Admin[0].surname || ""}`.trim() || school.Admin[0].username,
+        email: school.Admin[0].email,
+        phone: school.Admin[0].phone,
+      } : null,
+    }));
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    throw new Error("Failed to fetch subscriptions.");
+  }
+}
+
+export async function toggleSchoolStatus(schoolId: string, newStatus: string) {
+  await ensureSuperUser();
+  try {
+    await prisma.school.update({
+      where: { id: schoolId },
+      data: { status: newStatus },
+    });
+    revalidatePath("/superadmin/subscriptions");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Toggle Status Error:", error);
+    return { success: false, error: error.message || "Failed to update school status." };
   }
 }

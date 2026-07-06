@@ -1,30 +1,21 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 import prisma from "./prisma";
 
 export const getRole = async () => {
-  const { userId, sessionClaims } = auth();
+  const supabase = createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!userId) return undefined;
+  if (!user || error) return undefined;
 
-  // 1. USE SESSION CLAIMS (Fast Path)
-  const role = (sessionClaims as any)?.metadata?.role as string | undefined;
+  // 1. USE USER METADATA (Fast Path)
+  const role = user.user_metadata?.role as string | undefined;
   if (role) return role;
 
-  // 2. DEFENSIVE FALLBACK (Safe Path - API call)
-  try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const role = user.publicMetadata?.role as string | undefined;
-    if (role) return role;
-  } catch (error) {
-    console.warn("Clerk Role Fetch failed, trying DB fallback:", error);
-  }
-
-  // 3. DATABASE FALLBACK (Final Safety Net)
-  // If Clerk is unreachable or metadata is empty, check if they exist in our Admin table
+  // 2. DATABASE FALLBACK (Final Safety Net)
+  // If metadata is empty, check if they exist in our Admin table
   try {
     const admin = await prisma.admin.findUnique({
-      where: { id: userId },
+      where: { id: user.id },
       select: { id: true }
     });
     if (admin) return "admin";

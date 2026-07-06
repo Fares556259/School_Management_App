@@ -1,4 +1,4 @@
-import { clerkClient } from "@clerk/nextjs/server";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -10,18 +10,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const client = await clerkClient();
-    const users = await client.users.getUserList({ emailAddress: [email] });
+    const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (error) throw error;
+    
+    const user = users.find(u => u.email === email);
 
-    if (users.data.length === 0) {
+    if (!user) {
       return NextResponse.json({ error: `No user found with email: ${email}` }, { status: 404 });
     }
 
-    const user = users.data[0];
-
-    await client.users.updateUserMetadata(user.id, {
-      publicMetadata: {
-        ...user.publicMetadata,
+    await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...user.user_metadata,
         role: "superadmin",
         status: "active",
       },
@@ -34,10 +35,8 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error("DEV PROMOTE ERROR:", error);
-    // Clerk sometimes throws an array of errors
     return NextResponse.json({ 
       error: error.message || "Unknown error", 
-      details: error.errors ? error.errors : error 
     }, { status: 500 });
   }
 }

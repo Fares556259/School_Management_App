@@ -1,8 +1,10 @@
 import BigCalendarContainer from "@/components/BigCalendarContainer";
-import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/utils/supabase/server";
 
 const TeacherPage = async () => {
-  const { userId } = auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   return (
     <div className="flex-1 p-4 flex gap-4 flex-col xl:flex-row">
