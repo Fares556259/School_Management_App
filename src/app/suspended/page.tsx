@@ -21,7 +21,7 @@ export default async function SuspendedPage() {
         <h1 className="text-2xl font-black text-slate-800">Account Suspended</h1>
         
         <p className="text-sm text-slate-500 font-medium leading-relaxed">
-          Your school's access to SnapSchool has been temporarily suspended. Please contact the platform administrator to resolve this issue and restore access.
+          Your school&apos;s access to SnapSchool has been temporarily suspended. Please contact the platform administrator to resolve this issue and restore access.
         </p>
 
         <div className="mt-4 pt-6 border-t border-slate-100 w-full flex flex-col gap-3">

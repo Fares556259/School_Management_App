@@ -26,11 +26,46 @@ async function sendPush(parentId: string, title: string, body: string, data: any
       channelId: data.channelId || 'default', 
     }];
 
-    // Note: In production, you might want to batch these messages
     await expo.sendPushNotificationsAsync(messages);
     console.log(`[PUSH-SENT] To parent ${parentId}: ${title}`);
   } catch (error) {
     console.error("[PUSH-ERROR]", error);
+  }
+}
+
+/**
+ * Sends push notifications to multiple parents in a single batch.
+ * Fetches all tokens in one query and uses Expo's batch API.
+ */
+async function sendPushBatch(parentIds: string[], title: string, body: string, data: any = {}) {
+  if (parentIds.length === 0) return;
+  try {
+    const parents = await prisma.parent.findMany({
+      where: { id: { in: parentIds } },
+      select: { id: true, expoPushToken: true },
+    });
+
+    const messages = parents
+      .filter(p => p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken))
+      .map(p => ({
+        to: p.expoPushToken!,
+        sound: data.channelId === 'emergency' ? 'alert.m4a' : 'notification.m4a',
+        title,
+        body,
+        data,
+        channelId: data.channelId || 'default',
+      }));
+
+    if (messages.length === 0) return;
+
+    // Expo recommends sending in chunks of up to 100
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      await expo.sendPushNotificationsAsync(chunk);
+    }
+    console.log(`[PUSH-BATCH] Sent ${messages.length} notifications: ${title}`);
+  } catch (error) {
+    console.error("[PUSH-BATCH-ERROR]", error);
   }
 }
 
@@ -83,19 +118,17 @@ export async function createAnnouncementNotifications(noticeId: number) {
       })),
     });
 
-    // Send push notifications
-    for (const parentId of parentIds) {
-      sendPush(
-        parentId, 
-        notice.important ? `🚨 URGENT: ${notice.title}` : `📢 ${notice.title}`,
-        notice.message.substring(0, 100) + (notice.message.length > 100 ? "..." : ""),
-        { 
-          type: "ANNOUNCEMENT", 
-          noticeId: notice.id,
-          channelId: notice.important ? "emergency" : "default" 
-        }
-      );
-    }
+    // Send push notifications in batch
+    sendPushBatch(
+      parentIds,
+      notice.important ? `🚨 URGENT: ${notice.title}` : `📢 ${notice.title}`,
+      notice.message.substring(0, 100) + (notice.message.length > 100 ? "..." : ""),
+      { 
+        type: "ANNOUNCEMENT", 
+        noticeId: notice.id,
+        channelId: notice.important ? "emergency" : "default" 
+      }
+    );
 
     console.log(`[NOTIFICATIONS] Created ${parentIds.length} announcement notifications for notice ${noticeId}`);
   } catch (error) {
@@ -295,15 +328,13 @@ export async function createAssignmentNotification(assignmentId: number) {
       })),
     });
 
-    // Send push notifications
-    for (const s of students) {
-      sendPush(
-        s.parentId,
-        `📝 New Task: ${assignment.title}`,
-        `Task for ${assignment.lesson.subject.name} is now available.`,
-        { type: "HOMEWORK", studentId: s.id, homeworkId: assignment.id }
-      );
-    }
+    // Send push notifications in batch
+    sendPushBatch(
+      parentIds,
+      `📝 New Task: ${assignment.title}`,
+      `Task for ${assignment.lesson.subject.name} is now available.`,
+      { type: "HOMEWORK", homeworkId: assignment.id }
+    );
 
     console.log(`[NOTIFICATIONS] Created ${students.length} assignment notifications for assignment ${assignmentId}`);
   } catch (error) {
@@ -339,15 +370,14 @@ export async function createResourceNotification(resourceId: number) {
       })),
     });
 
-    // Send push notifications
-    for (const s of students) {
-      sendPush(
-        s.parentId,
-        `📚 New Resource: ${resource.title}`,
-        `New material shared for ${resource.lesson.subject.name}.`,
-        { type: "RESOURCE", studentId: s.id, resourceId: resource.id }
-      );
-    }
+    // Send push notifications in batch
+    const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
+    sendPushBatch(
+      parentIds,
+      `📚 New Resource: ${resource.title}`,
+      `New material shared for ${resource.lesson.subject.name}.`,
+      { type: "RESOURCE", resourceId: resource.id }
+    );
 
     console.log(`[NOTIFICATIONS] Created ${students.length} resource notifications for resource ${resourceId}`);
   } catch (error) {
@@ -490,15 +520,13 @@ export async function createExamScheduleNotification(classId: number, period: nu
       })),
     });
 
-    // Send push notifications
-    for (const parentId of parentIds) {
-      sendPush(
-        parentId,
-        title,
-        message,
-        { type: "EXAM_SCHEDULE", period }
-      );
-    }
+    // Send push notifications in batch
+    sendPushBatch(
+      parentIds,
+      title,
+      message,
+      { type: "EXAM_SCHEDULE", period }
+    );
 
     console.log(`[NOTIFICATIONS] Created ${parentIds.length} exam schedule notifications for class ${classId}`);
   } catch (error) {

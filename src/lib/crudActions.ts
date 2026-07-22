@@ -278,7 +278,12 @@ export const bulkCreateStudents = async (students: any[]) => {
           }
         }
 
-        // 2. Create Student
+        // 2. Validate parent exists
+        if (!parentId) {
+          throw new Error(`Cannot create student "${s.name} ${s.surname}" — no parent found. Provide a parentId or parentPhone.`);
+        }
+
+        // 3. Create Student
         await tx.student.create({
           data: {
             schoolId,
@@ -291,7 +296,7 @@ export const bulkCreateStudents = async (students: any[]) => {
             bloodType: s.bloodType || "O+",
             birthday: new Date(s.birthday || "2015-01-01"),
             sex: s.sex as UserSex || UserSex.MALE,
-            parentId: parentId || "default-parent-id", // Should ideally have a fallback or throw
+            parentId: parentId,
             classId: s.classId || 1,
             levelId: s.levelId || 1,
           },

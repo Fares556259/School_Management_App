@@ -22,21 +22,24 @@ export async function getSchoolId(): Promise<string> {
       return "default_school";
     }
 
-    // 1. Check DB Admin record first (allows manual overrides)
-    const admin = await prisma.admin.findUnique({
-      where: { id: userId },
-      select: { schoolId: true },
-    });
-    if (admin?.schoolId && admin.schoolId !== "default_school") {
-      console.log(`[getSchoolId] Resolved from DB for ${userId}: ${admin.schoolId}`);
-      return admin.schoolId;
-    }
-
-    // 2. Fallback to Supabase user_metadata
+    // 1. Fast path: Check Supabase user_metadata first (avoids DB hit for non-admins)
     const schoolIdFromMeta = user?.user_metadata?.schoolId as string | undefined;
-    if (schoolIdFromMeta) {
+    if (schoolIdFromMeta && schoolIdFromMeta !== "default_school") {
       console.log(`[getSchoolId] Resolved from metadata for ${userId}: ${schoolIdFromMeta}`);
       return schoolIdFromMeta;
+    }
+
+    // 2. Check DB Admin record (allows manual overrides for admins)
+    const role = user?.user_metadata?.role as string | undefined;
+    if (role === "admin" || role === "superadmin") {
+      const admin = await prisma.admin.findUnique({
+        where: { id: userId },
+        select: { schoolId: true },
+      });
+      if (admin?.schoolId && admin.schoolId !== "default_school") {
+        console.log(`[getSchoolId] Resolved from DB for ${userId}: ${admin.schoolId}`);
+        return admin.schoolId;
+      }
     }
 
     // 3. Try Supabase Admin API (in case session metadata is stale)

@@ -83,7 +83,10 @@ export default function Homepage() {
         setIsSignedIn(true);
         const role = user.user_metadata?.role as string | undefined;
         if (role === "admin") router.push("/admin");
-        if (role === "superadmin") router.push("/superadmin");
+        else if (role === "superadmin") router.push("/superadmin");
+        else if (role === "teacher") router.push("/teacher");
+        else if (role === "student") router.push("/student");
+        else if (role === "parent") router.push("/parent");
       }
       setIsLoaded(true);
     };

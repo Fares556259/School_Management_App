@@ -26,7 +26,14 @@ const isAuthRoute = (pathname: string) => {
 
 const getMatcherRoles = (pathname: string) => {
   for (const route in routeAccessMap) {
-    const regex = new RegExp(`^${route.replace(/\(\.\*\)/, ".*")}$`);
+    // For wildcard routes like "/admin(.*)", use the pattern as-is.
+    // For static routes like "/list/teachers", match the exact path
+    // OR any sub-paths (e.g. "/list/teachers/123").
+    const hasWildcard = route.includes("(.*)");
+    const pattern = hasWildcard
+      ? `^${route.replace(/\(\.\*\)/, ".*")}$`
+      : `^${route}(/.*)?$`;
+    const regex = new RegExp(pattern);
     if (regex.test(pathname)) {
       return routeAccessMap[route];
     }
@@ -107,7 +114,26 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Pending admin — trap on waiting-approval (allow public routes)
+  // Active teacher/student/parent — allow access with role-based guard
+  const dashboardRoles = ["teacher", "student", "parent"];
+  if (role && dashboardRoles.includes(role) && status === "active") {
+    if (isAuth || pathname === "/waiting-approval") {
+      // Redirect to the appropriate dashboard
+      const dashboardPath = role === "parent" ? "/parent" : `/${role}`;
+      return redirectWithCookies(new URL(dashboardPath, request.url));
+    }
+    // Role-based route guard
+    if (!isPublic) {
+      const allowedRoles = getMatcherRoles(pathname);
+      if (allowedRoles && !allowedRoles.includes(role)) {
+        const dashboardPath = role === "parent" ? "/parent" : `/${role}`;
+        return redirectWithCookies(new URL(dashboardPath, request.url));
+      }
+    }
+    return supabaseResponse;
+  }
+
+  // Pending user (any role without active status) — trap on waiting-approval
   if (!isPublic && pathname !== "/waiting-approval") {
     return redirectWithCookies(new URL("/waiting-approval", request.url));
   }
