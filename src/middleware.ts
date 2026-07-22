@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
     {
       cookies: {
         getAll() {
@@ -63,9 +63,15 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Wrap in try/catch — if Supabase is unreachable, treat user as unauthenticated
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data?.user ?? null;
+  } catch (error) {
+    console.error("[MIDDLEWARE] Supabase auth error:", error);
+    // Allow the request through for public routes; redirect to sign-in otherwise
+  }
 
   const pathname = request.nextUrl.pathname;
   const isPublic = isPublicRoute(pathname);
