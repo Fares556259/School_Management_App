@@ -818,41 +818,47 @@ const SettingsPage = () => {
           <AnimatePresence>
             {hasChanges && (
               <motion.div 
-                initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+                initial={{ opacity: 0, y: 30, scale: 0.95, x: "-50%" }}
                 animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-                exit={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed bottom-12 left-1/2 z-[100] w-max max-w-full"
+                exit={{ opacity: 0, y: 30, scale: 0.95, x: "-50%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className="fixed bottom-6 left-1/2 z-[100] w-auto max-w-[90vw]"
               >
-                 <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 p-3 pr-4 pl-6 rounded-[24px] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)] flex items-center justify-between gap-10">
-                    <div className="flex flex-col">
-                       <p className="text-[14px] font-black text-white flex items-center gap-2.5 tracking-tight">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
-                          </span>
-                          {t.systemSettings?.unsavedChanges || "Unsaved changes"}
-                       </p>
-                       <p className="text-[12px] font-medium text-slate-400 mt-0.5">{t.systemSettings?.pendingChanges || "You have pending changes to your system settings."}</p>
+                 <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 p-2 pr-2.5 pl-5 rounded-full shadow-[0_20px_50px_-10px_rgba(15,23,42,0.4)] flex items-center justify-between gap-6 ring-1 ring-white/10">
+                    <div className="flex items-center gap-3">
+                       <span className="relative flex h-2.5 w-2.5 shrink-0">
+                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
+                       </span>
+                       <div className="flex items-center gap-2">
+                         <span className="text-[13px] font-semibold text-white tracking-tight">
+                           {t.systemSettings?.unsavedChanges || "Unsaved changes"}
+                         </span>
+                         <span className="hidden sm:inline-block text-[12px] text-slate-400 border-l border-slate-700/60 pl-2 font-normal">
+                           {t.systemSettings?.pendingChanges || "You have pending changes to your system settings."}
+                         </span>
+                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                        <button 
                           type="button"
                           onClick={() => window.location.reload()}
-                          className="px-5 py-2.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl text-[13px] font-bold transition-all"
+                          className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-full text-[13px] font-medium transition-all"
                        >
                           {t.systemSettings?.discard || "Discard"}
                        </button>
                        <button 
                           type="submit"
                           disabled={saving}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white font-black text-[13px] rounded-xl hover:bg-indigo-500 hover:scale-105 active:scale-95 transition-all shadow-[0_4px_12px_rgba(79,70,229,0.3)] disabled:opacity-50 disabled:hover:scale-100 disabled:pointer-events-none"
+                          className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[13px] rounded-full hover:shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
                        >
-                          <span className="flex items-center gap-2">
-                             {saving ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save size={16} strokeWidth={2.5} />}
-                             {saving ? (t.systemSettings?.saving || 'Saving...') : (t.systemSettings?.saveChanges || 'Save changes')}
-                          </span>
+                          {saving ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <Save size={15} strokeWidth={2.2} />
+                          )}
+                          <span>{saving ? (t.systemSettings?.saving || 'Saving...') : (t.systemSettings?.saveChanges || 'Save changes')}</span>
                        </button>
                     </div>
                  </div>
