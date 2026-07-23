@@ -98,7 +98,6 @@ const menuItems: MenuSection[] = [
       { icon: BookOpen, label: "Subjects", href: "/list/subjects", visible: ["admin", "superuser"] },
       { icon: GraduationCap, label: "Results", href: "/list/results", visible: ["admin", "teacher", "student", "parent"] },
       { icon: Percent, label: "Grades", href: "/admin/grades", visible: ["admin", "superuser"] },
-      { icon: Library, label: "Resources", href: "/list/resources", visible: ["admin", "teacher", "student", "parent"] },
     ],
   },
   {
@@ -125,6 +124,7 @@ const menuItems: MenuSection[] = [
     items: [
       { icon: CalendarCheck, label: "Attendance", href: "/admin/attendance", visible: ["admin", "teacher", "superuser"] },
       { icon: ClipboardList, label: "Assignments", href: "/list/assignments", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: Library, label: "Resources", href: "/list/resources", visible: ["admin", "teacher", "student", "parent"] },
       { icon: Megaphone, label: "Announcements", href: "/list/announcements", visible: ["admin", "teacher", "superuser"] },
       { icon: BarChart3, label: "Daily Reports", href: "/admin/reports", visible: ["admin", "superuser"] },
 
