@@ -125,7 +125,7 @@ const menuItems: MenuSection[] = [
       { icon: CalendarCheck, label: "Attendance", href: "/admin/attendance", visible: ["admin", "teacher", "superuser"] },
       { icon: ClipboardList, label: "Assignments", href: "/list/assignments", visible: ["admin", "teacher", "student", "parent"] },
       { icon: Library, label: "Resources", href: "/list/resources", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: Megaphone, label: "Announcements", href: "/list/announcements", visible: ["admin", "teacher", "superuser"] },
+      { icon: Megaphone, label: "Announcements", href: "/list/announcements", visible: ["admin", "teacher", "student", "parent", "superuser"] },
       { icon: BarChart3, label: "Daily Reports", href: "/admin/reports", visible: ["admin", "superuser"] },
 
       { icon: Settings2, label: "Setup Requests", href: "/admin/setup-requests", visible: ["superuser"] },
@@ -150,6 +150,10 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
     ? `${adminData.name || ""} ${adminData.surname || ""}`.trim() 
     : "User";
 
+  // Normalize role so superadmin/superuser can view admin & superuser items
+  const isSuper = role === "superadmin" || role === "superuser";
+  const activeRoles = isSuper ? ["superadmin", "superuser", "admin"] : [role];
+
   return (
     <div className="flex flex-col min-h-full h-full text-sm pb-4">
       {menuItems.map((section) => {
@@ -160,8 +164,10 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
             {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
           </span>
           <div className="flex flex-col gap-1">
-            {section.items.filter(item => item.visible.includes(role)).map((item) => {
-              const targetHref = item.href === "/" ? `/${role === "superuser" ? "admin" : role}` : item.href;
+            {section.items.filter(item => item.visible.some(v => activeRoles.includes(v))).map((item) => {
+              const targetHref = item.href === "/" 
+                ? (isSuper ? "/superadmin" : `/${role}`) 
+                : item.href;
               const isActive = 
                 pathname === targetHref || 
                 (item.href !== "/" && pathname.startsWith(item.href) && (item.href !== "/admin/timetable" || pathname === "/admin/timetable"));

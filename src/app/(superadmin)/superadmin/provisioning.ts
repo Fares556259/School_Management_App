@@ -10,7 +10,7 @@ export async function provisionSchool(setupRequestId: string) {
   try {
     // 1. Verify Superuser Role
     const role = await getRole();
-    if (role !== "superuser") {
+    if (role !== "superuser" && role !== "superadmin") {
       return { success: false, error: "Unauthorized. Superuser access required." };
     }
 
