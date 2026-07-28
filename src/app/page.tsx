@@ -62,10 +62,10 @@ const Navbar = ({ isSignedIn, handleLoginClick, router }: { isSignedIn: boolean;
           </div>
           
           <div className="hidden lg:flex items-center gap-7 font-medium text-[14px] text-slate-300">
-            <a href="#features" className="hover:text-white transition-colors">Platform</a>
-            <a href="#analytics" className="hover:text-white transition-colors">Analytics</a>
-            <a href="#mobile" className="hover:text-white transition-colors">Mobile App</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#features" className="hover:text-white transition-colors">Plateforme</a>
+            <a href="#analytics" className="hover:text-white transition-colors">Analytiques</a>
+            <a href="#mobile" className="hover:text-white transition-colors">App Mobile</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Tarifs</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </div>
         </div>
@@ -77,13 +77,13 @@ const Navbar = ({ isSignedIn, handleLoginClick, router }: { isSignedIn: boolean;
                 onClick={handleLoginClick}
                 className="text-slate-300 font-medium text-[14px] hover:text-white px-3 py-1.5 transition-colors hidden sm:block"
               >
-                Log in
+                Connexion
               </button>
               <button 
                 onClick={() => router.push("/sign-up")}
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[14px] rounded-full hover:shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all flex items-center gap-1.5"
               >
-                Get Started <ChevronRight className="w-4 h-4" />
+                Commencer <ChevronRight className="w-4 h-4" />
               </button>
             </>
           ) : (
@@ -91,7 +91,7 @@ const Navbar = ({ isSignedIn, handleLoginClick, router }: { isSignedIn: boolean;
               onClick={() => router.push("/admin")}
               className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-[14px] rounded-full hover:shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all"
             >
-              Go to Dashboard
+              Accéder au Dashboard
             </button>
           )}
         </div>
@@ -144,24 +144,24 @@ export default function Homepage() {
 
   const faqs = [
     {
-      q: "How fast can our school get onboarded?",
-      a: "Instant setup. Your school subdomain and database environment are automatically provisioned within minutes of approval. You can import existing students, teachers, and classes via Excel or CSV."
+      q: "Qadech ya5ou wqt bech n'installiw SnapSchool f'écoletna ?",
+      a: "Installation instantanée ! Votre espace école w sous-domaine sont créés en quelques minutes. Vous pouvez importer vos élèves, profs et classes depuis Excel ou CSV très facilement."
     },
     {
-      q: "Is SnapSchool localized for private schools in North Africa & Middle East?",
-      a: "Yes! SnapSchool is built specifically for local educational structures. It features full multi-language support (English, French, and Arabic), custom grading terms, and localized currency formatting."
+      q: "Est-ce que SnapSchool est adapté au système d'enseignement tunisien 🇹🇳 ?",
+      a: "Oui 100% ! SnapSchool est conçu spécifiquement pour le système éducatif tunisien (Trimestres, devoirs de contrôle w de synthèse, coefficients, bulletins officiels, et gestion en Français / Arabe)."
     },
     {
-      q: "Can parents access the app on iOS and Android?",
-      a: "Absolutely. Parents receive access to our dedicated mobile app (available for iOS and Android) where they get instant push notifications for attendance, grades, homework, and official announcements."
+      q: "Les parents peuvent-ils télécharger l'application 3la Android w iPhone ?",
+      a: "Absolument. Les parents reçoivent l'application mobile SnapSchool (sur iOS et Android) pour recevoir des notifications push instantanées d'absences, notes, devoirs, et annonces officielles."
     },
     {
-      q: "How secure is student and financial data?",
-      a: "We implement enterprise-grade row-level security (RLS) policies on Supabase PostgreSQL databases with automated daily backups, full audit logging for every admin action, and end-to-end encryption."
+      q: "Kifech les données mta3 les élèves w les paiements sont sécurisées ?",
+      a: "Vos données sont hébergées sur une infrastructure cloud ultra-sécurisée avec sauvegardes quotidiennes automatiques, journalisation d'audit (Audit Trail) pour chaque action administrative, et encodage conforme RLS."
     },
     {
-      q: "What support is included with our subscription?",
-      a: "All plans include dedicated onboarding assistance, direct WhatsApp support for school directors, regular feature updates, and video tutorials for teachers and administrative staff."
+      q: "Quel accompagnement est fourni avec l'abonnement ?",
+      a: "Un support dédié 3la WhatsApp, une assistance pour la prise en main de l'équipe administrative w les profs, et des mises à jour régulières gratuites."
     }
   ];
 
@@ -194,21 +194,21 @@ export default function Homepage() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="text-[13px] font-semibold text-slate-300">
-              Trusted by leading private academies & schools
+              Plateforme N°1 pour les Écoles & Académies Privées f'Tunisie 🇹🇳
             </span>
             <Sparkles className="w-3.5 h-3.5 text-indigo-400 ml-0.5" />
           </motion.div>
 
           {/* Hero Main Heading */}
           <motion.h1 variants={fadeUpVariant} className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight mb-8 text-white">
-            Simplify school management. <br />
+            Simplifie la gestion mta3 ton école. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
-              Empower educators & parents.
+              Focus 3la tes élèves w tes profs.
             </span>
           </motion.h1>
 
           <motion.p variants={fadeUpVariant} className="text-lg sm:text-xl md:text-2xl font-normal leading-relaxed text-slate-400 max-w-3xl mx-auto mb-10">
-            SnapSchool is the complete operating system for modern private schools. Manage attendance, track finances, send instant push notices, and automate grades in one unified workspace.
+            SnapSchool houwa le système complet pour les écoles et académies privées. Gère l&apos;absence, les notes, le paiement, w ab3ath des notifications instantanées aux parents f&apos;un seul endroit.
           </motion.p>
           
           {/* CTA Group */}
@@ -217,7 +217,7 @@ export default function Homepage() {
               onClick={() => router.push("/sign-up")}
               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[16px] rounded-full shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2.5"
             >
-              Start Free Trial <ArrowRight className="w-5 h-5" />
+              Commencer gratuitement <ArrowRight className="w-5 h-5" />
             </button>
             <a 
               href="https://wa.me/23889444" 
@@ -225,17 +225,17 @@ export default function Homepage() {
               rel="noreferrer"
               className="w-full sm:w-auto px-8 py-4 bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-semibold text-[16px] rounded-full border border-slate-700/80 hover:border-slate-600 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
-              <MessageSquare className="w-4 h-4 text-emerald-400" /> WhatsApp Demo
+              <MessageSquare className="w-4 h-4 text-emerald-400" /> Démo 3la WhatsApp
             </a>
           </motion.div>
 
           {/* Social Proof Metrics */}
           <motion.div variants={fadeUpVariant} className="pt-6 border-t border-slate-800/80 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-16">
             {[
-              { num: "99.9%", label: "Uptime SLA" },
-              { num: "10x", label: "Faster Grade Processing" },
-              { num: "< 1s", label: "Instant Parent Push Alerts" },
-              { num: "100%", label: "Multi-Language (EN/FR/AR)" }
+              { num: "99.9%", label: "Disponibilité Garantie" },
+              { num: "10x", label: "Saisie des Notes Plus Rapide" },
+              { num: "< 1s", label: "Alertes Push aux Parents" },
+              { num: "100%", label: "Conforme Écoles Privées TN" }
             ].map((stat, i) => (
               <div key={i} className="flex flex-col items-center">
                 <span className="text-2xl sm:text-3xl font-black text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">{stat.num}</span>
@@ -263,7 +263,7 @@ export default function Homepage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Building2 className="w-4 h-4" /> Admin Dashboard
+                <Building2 className="w-4 h-4" /> Espace Admin
               </button>
               <button 
                 onClick={() => setActiveTab("teacher")}
@@ -273,7 +273,7 @@ export default function Homepage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <GraduationCap className="w-4 h-4" /> Teacher Portal
+                <GraduationCap className="w-4 h-4" /> Portail Profs
               </button>
               <button 
                 onClick={() => setActiveTab("parent")}
@@ -283,7 +283,7 @@ export default function Homepage() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Smartphone className="w-4 h-4" /> Parent Mobile App
+                <Smartphone className="w-4 h-4" /> Application Parents
               </button>
             </div>
           </div>
@@ -326,14 +326,14 @@ export default function Homepage() {
             className="text-center max-w-3xl mx-auto mb-16"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-4">
-              <Zap className="w-3.5 h-3.5" /> All-in-One Modules
+              <Zap className="w-3.5 h-3.5" /> Modules Complets
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Built for precision. <br />
-              <span className="text-slate-400 font-normal">Designed for effortless workflow.</span>
+              Balaahi oublie Excel w les papiers. <br />
+              <span className="text-slate-400 font-normal">Kolayeb connecté f'un seul endroit.</span>
             </h2>
             <p className="text-slate-400 text-lg">
-              Say goodbye to fragmented spreadsheets and legacy desktop software. SnapSchool connects every department into a single live database.
+              Fini la gestion éparpillée. SnapSchool rassemble l&apos;administration, les profs, et les parents dans un système intelligent w moderne.
             </p>
           </motion.div>
 
@@ -349,17 +349,17 @@ export default function Homepage() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6">
                 <BarChart3 className="w-6 h-6" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Financial Control & Profitability Forecasting</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">Gestion Financière & Suivi mta3 les Paiements</h3>
               <p className="text-slate-400 text-base max-w-xl mb-6">
-                Track tuition incomes, vendor expenses, partial payment plans, and staff payrolls with automatic ledger balance auditing and real-time cashflow graphs.
+                Suivez les frais de scolarité, tranches de paiement, dépenses w caisse en temps réel avec des graphiques clairs et prévisions de rentabilité.
               </p>
 
               {/* Mini Widget */}
               <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-4">
                 <div>
-                  <span className="text-xs text-slate-400 font-medium">Net Monthly Revenue</span>
+                  <span className="text-xs text-slate-400 font-medium">Revenu Mensuel Net</span>
                   <div className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                    +$48,250 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">+14.2%</span>
+                    +48,250 TND <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">+14.2%</span>
                   </div>
                 </div>
                 <div className="flex gap-1.5 items-end h-9">
@@ -378,13 +378,13 @@ export default function Homepage() {
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-6">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Tamper-Proof Audit Trail</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">Historique & Sécurité (Audit Trail)</h3>
               <p className="text-slate-400 text-base mb-6">
-                Every grade modification, payment entry, and user account update is logged with immutable user timestamps and metadata.
+                Chaque modification de note, paiement w compte est enregistrée avec date w heure pour une transparence totale.
               </p>
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-slate-300 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                <span className="truncate">[AUDIT] Grade approved by Admin #104</span>
+                <span className="truncate">[AUDIT] Note validée par Directeur #104</span>
               </div>
             </motion.div>
 
@@ -396,12 +396,12 @@ export default function Homepage() {
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6">
                 <Calendar className="w-6 h-6" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">AI Timetable Generator</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">Emploi du Temps Intelligent</h3>
               <p className="text-slate-400 text-base mb-6">
-                Generate conflict-free weekly schedules for classrooms, teachers, and subjects automatically using our AI scheduler algorithm.
+                Génération d&apos;emploi du temps sans conflit de salles ni de profs, avec possibilité d&apos;ajustement rapide.
               </p>
               <div className="flex gap-2">
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">Zero Teacher Conflicts</span>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">Zéro Chevauchement</span>
               </div>
             </motion.div>
 
@@ -414,16 +414,16 @@ export default function Homepage() {
               <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-6">
                 <LineChart className="w-6 h-6" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Automated Report Cards & Grade Calculation</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">Bulletins de Notes & Calcul Automatique</h3>
               <p className="text-slate-400 text-base max-w-xl mb-6">
-                Teachers input exam and homework scores once; SnapSchool automatically calculates term weighted averages, class ranks, and generates exportable PDF report cards.
+                Saisie unique des devoirs w examens. Calcul automatique des moyennes trimestrielles, rangs, et génération des bulletins PDF prêts à imprimer.
               </p>
 
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { term: "Term 1 Avg", val: "17.8/20", color: "text-purple-400" },
-                  { term: "Class Rank", val: "2nd / 28", color: "text-indigo-400" },
-                  { term: "Passing Rate", val: "96.4%", color: "text-emerald-400" },
+                  { term: "Moyenne Trimestre 1", val: "17.8/20", color: "text-purple-400" },
+                  { term: "Rang Classe", val: "2ème / 28", color: "text-indigo-400" },
+                  { term: "Taux de Réussite", val: "96.4%", color: "text-emerald-400" },
                 ].map((card, i) => (
                   <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center">
                     <span className="text-[11px] text-slate-400 font-medium block">{card.term}</span>
@@ -445,23 +445,23 @@ export default function Homepage() {
             className="flex-1"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider mb-4">
-              <Smartphone className="w-3.5 h-3.5" /> Mobile Ecosystem
+              <Smartphone className="w-3.5 h-3.5" /> Écosystème Mobile
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Delight parents with <br />
+              Rapprochez les parents d&apos;l&apos;école, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                instant push notifications.
+                f&apos;chaque instant.
               </span>
             </h2>
             <p className="text-slate-400 text-lg leading-relaxed mb-8">
-              Keep parents connected to their child&apos;s daily progress with real-time mobile push notifications for attendance alerts, exam schedules, homework tasks, and PDF resources.
+              Une application mobile dédiée aux parents pour suivre la scolarité de leurs enfants f&apos;téléphone avec notifications push en temps réel.
             </p>
 
             <div className="space-y-6">
               {[
-                { icon: Bell, title: "Real-time Attendance Alerts", desc: "Parents are notified immediately if a student is absent or late.", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-                { icon: Award, title: "Instant Exam Results", desc: "Exam grades and teacher notes are published directly to the parent app.", color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
-                { icon: ShieldCheck, title: "Digital Absence Justifications", desc: "Parents can upload medical notes and sign off justifications directly.", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+                { icon: Bell, title: "Alertes d'Absence en Direct", desc: "Notification immédiate f'téléphone dès qu'un élève est absent ou en retard.", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+                { icon: Award, title: "Notes & Bulletins Instantanés", desc: "Consultation des notes d'examens w devoirs dès publication par le prof.", color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+                { icon: ShieldCheck, title: "Justification d'Absence en Ligne", desc: "Les parents peuvent envoyer les justifications w certificats directement.", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
               ].map((item, i) => (
                 <div key={i} className="flex gap-4 items-start p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
                   <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${item.color}`}>
@@ -505,11 +505,11 @@ export default function Homepage() {
             className="text-center max-w-3xl mx-auto mb-16"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
-              Simple & Transparent
+              Tarifs Clairs & Transparents
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Predictable pricing for <br />
-              <span className="text-slate-400 font-normal">schools of any size.</span>
+              Des tarifs adaptés à la taille <br />
+              <span className="text-slate-400 font-normal">mta3 ton école.</span>
             </h2>
 
             {/* Billing Toggle */}
@@ -520,7 +520,7 @@ export default function Homepage() {
                   billingCycle === "monthly" ? "bg-slate-800 text-white shadow-md" : "text-slate-400 hover:text-white"
                 }`}
               >
-                Monthly Billing
+                Paiement Mensuel
               </button>
               <button 
                 onClick={() => setBillingCycle("annual")}
@@ -528,7 +528,7 @@ export default function Homepage() {
                   billingCycle === "annual" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" : "text-slate-400 hover:text-white"
                 }`}
               >
-                Annual Billing <span className="text-[10px] bg-emerald-400 text-slate-950 font-extrabold px-2 py-0.5 rounded-full uppercase">Save 20%</span>
+                Paiement Annuel <span className="text-[10px] bg-emerald-400 text-slate-950 font-extrabold px-2 py-0.5 rounded-full uppercase">-20% Remise</span>
               </button>
             </div>
           </motion.div>
@@ -538,15 +538,15 @@ export default function Homepage() {
             {/* Starter Plan */}
             <motion.div whileHover={{ y: -6 }} className="bg-slate-900/80 border border-slate-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl relative">
               <div>
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Starter</span>
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Débutant / Centre</span>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-black text-white">{billingCycle === "annual" ? "$49" : "$59"}</span>
-                  <span className="text-slate-400 text-sm">/ month</span>
+                  <span className="text-4xl font-black text-white">{billingCycle === "annual" ? "120 DT" : "150 DT"}</span>
+                  <span className="text-slate-400 text-sm">/ mois</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">Ideal for small private academies and specialized tutoring centers.</p>
+                <p className="text-slate-400 text-sm mb-6">Parfait pour les petits établissements w centres de soutien (jusqu&apos;à 150 élèves).</p>
                 <div className="h-px bg-slate-800 mb-6" />
                 <ul className="space-y-3.5 text-sm text-slate-300 mb-8">
-                  {["Up to 150 Students", "3 Admin Accounts", "Full Grade & Exam Module", "Parent Mobile App Access", "Standard Email Support"].map((feat, i) => (
+                  {["Jusqu'à 150 Élèves", "3 Comptes Admin", "Module Notes & Examens", "Accès App Mobile Parents", "Support Email w WhatsApp"].map((feat, i) => (
                     <li key={i} className="flex items-center gap-3">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>{feat}</span>
@@ -558,25 +558,25 @@ export default function Homepage() {
                 onClick={() => router.push("/sign-up")}
                 className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-all"
               >
-                Start Starter Trial
+                Essayer Gratuitement
               </button>
             </motion.div>
 
             {/* Pro Plan (Featured) */}
             <motion.div whileHover={{ y: -6 }} className="bg-gradient-to-b from-indigo-950/80 via-slate-900 to-slate-900 border-2 border-indigo-500/80 p-8 rounded-3xl flex flex-col justify-between shadow-2xl shadow-indigo-500/10 relative ring-1 ring-indigo-500/30">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[11px] font-black uppercase tracking-wider shadow-lg">
-                Most Popular
+                Recommandé
               </div>
               <div>
-                <span className="text-sm font-bold text-indigo-400 uppercase tracking-wider block mb-2">Pro Academy</span>
+                <span className="text-sm font-bold text-indigo-400 uppercase tracking-wider block mb-2">Pro Académie</span>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-black text-white">{billingCycle === "annual" ? "$119" : "$149"}</span>
-                  <span className="text-slate-400 text-sm">/ month</span>
+                  <span className="text-4xl font-black text-white">{billingCycle === "annual" ? "290 DT" : "350 DT"}</span>
+                  <span className="text-slate-400 text-sm">/ mois</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">Designed for growing primary & secondary private schools.</p>
+                <p className="text-slate-400 text-sm mb-6">Conçu pour les écoles primaires, collèges w lycées privés (jusqu&apos;à 600 élèves).</p>
                 <div className="h-px bg-slate-800 mb-6" />
                 <ul className="space-y-3.5 text-sm text-slate-200 mb-8">
-                  {["Up to 600 Students", "Unlimited Teachers & Admins", "AI Timetable Generator", "Financial & Profitability Analytics", "Priority WhatsApp & Mobile Support", "Audit Log & RLS Security"].map((feat, i) => (
+                  {["Jusqu'à 600 Élèves", "Profs & Admins Illimités", "Générateur Emploi du Temps AI", "Analytiques Financières & Profitabilité", "Support WhatsApp Prioritaire", "Historique Audit & Sécurité"].map((feat, i) => (
                     <li key={i} className="flex items-center gap-3">
                       <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                       <span className="font-medium">{feat}</span>
@@ -588,21 +588,21 @@ export default function Homepage() {
                 onClick={() => router.push("/sign-up")}
                 className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all"
               >
-                Start 14-Day Free Trial
+                Commencer l&apos;essai 14 jours
               </button>
             </motion.div>
 
             {/* Enterprise Plan */}
             <motion.div whileHover={{ y: -6 }} className="bg-slate-900/80 border border-slate-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl relative">
               <div>
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Enterprise</span>
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Sur Mesure</span>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-black text-white">Custom</span>
+                  <span className="text-4xl font-black text-white">Sur Devise</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">For multi-campus school networks & large educational institutions.</p>
+                <p className="text-slate-400 text-sm mb-6">Pour les groupes d&apos;écoles et réseaux multi-sites.</p>
                 <div className="h-px bg-slate-800 mb-6" />
                 <ul className="space-y-3.5 text-sm text-slate-300 mb-8">
-                  {["Unlimited Students & Campuses", "Dedicated Supabase Instance", "Custom ERP Integration", "SLA Guarantee & Dedicated Manager", "On-site Staff Training"].map((feat, i) => (
+                  {["Élèves & Campus Illimités", "Serveur Dedié Supabase", "Intégration sur-mesure", "Accompagnement w Formation sur place", "SLA & Manager Dédié"].map((feat, i) => (
                     <li key={i} className="flex items-center gap-3">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>{feat}</span>
@@ -616,7 +616,7 @@ export default function Homepage() {
                 rel="noreferrer"
                 className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-all text-center block"
               >
-                Contact Sales Team
+                Contacter l&apos;équipe commercial
               </a>
             </motion.div>
 
@@ -632,9 +632,9 @@ export default function Homepage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-4">
-              Frequently Asked Questions
+              Questions Fréquentes (FAQ)
             </h2>
-            <p className="text-slate-400 text-base">Everything you need to know about setting up SnapSchool for your institution.</p>
+            <p className="text-slate-400 text-base">Tout ce que vous devez savoir pour démarrer avec SnapSchool f&apos;écoletkoum.</p>
           </motion.div>
 
           <div className="space-y-4">
@@ -678,17 +678,17 @@ export default function Homepage() {
           className="max-w-4xl mx-auto text-center relative z-10"
         >
           <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight mb-6">
-            Ready to upgrade your school?
+            Prêt à moderniser ton école ?
           </h2>
           <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Get your school workspace setup in minutes. No credit card required to get started.
+            Crée l&apos;espace de ton établissement f&apos;quelques minutes. Essai gratuit sans carte bancaire.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <button 
               onClick={() => router.push("/sign-up")}
               className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base rounded-full shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              Get Started Now <ChevronRight className="w-5 h-5" />
+              Commencer maintenant <ChevronRight className="w-5 h-5" />
             </button>
             <a 
               href="https://wa.me/23889444" 
@@ -696,7 +696,7 @@ export default function Homepage() {
               rel="noreferrer"
               className="px-8 py-4 bg-slate-900 text-slate-200 font-semibold text-base rounded-full border border-slate-700 hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
             >
-              <MessageSquare className="w-4 h-4 text-emerald-400" /> Talk to an Expert
+              <MessageSquare className="w-4 h-4 text-emerald-400" /> Parler avec un expert
             </a>
           </div>
         </motion.div>
@@ -714,26 +714,26 @@ export default function Homepage() {
               <span className="text-lg font-bold text-white tracking-tight">SnapSchool</span>
             </div>
             <p className="text-slate-400 leading-relaxed max-w-sm">
-              The modern visual operating system for private schools and educational academies.
+              La plateforme visuelle moderne pour les écoles privées, lycées et académies en Tunisie 🇹🇳.
             </p>
           </div>
           
           <div>
-            <h4 className="font-bold text-white mb-4">Platform</h4>
+            <h4 className="font-bold text-white mb-4">Plateforme</h4>
             <ul className="space-y-2.5">
               <li><a href="#features" className="hover:text-white transition-colors">Modules</a></li>
-              <li><a href="#analytics" className="hover:text-white transition-colors">Analytics</a></li>
-              <li><a href="#mobile" className="hover:text-white transition-colors">Mobile App</a></li>
-              <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+              <li><a href="#analytics" className="hover:text-white transition-colors">Analytiques</a></li>
+              <li><a href="#mobile" className="hover:text-white transition-colors">App Mobile</a></li>
+              <li><a href="#pricing" className="hover:text-white transition-colors">Tarifs</a></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold text-white mb-4">Resources</h4>
+            <h4 className="font-bold text-white mb-4">Ressources</h4>
             <ul className="space-y-2.5">
               <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
-              <li><Link href="/sign-in" className="hover:text-white transition-colors">Admin Login</Link></li>
-              <li><Link href="/sign-up" className="hover:text-white transition-colors">School Signup</Link></li>
+              <li><Link href="/sign-in" className="hover:text-white transition-colors">Espace Connexion</Link></li>
+              <li><Link href="/sign-up" className="hover:text-white transition-colors">Inscription École</Link></li>
             </ul>
           </div>
 
@@ -747,10 +747,10 @@ export default function Homepage() {
         </div>
 
         <div className="max-w-6xl mx-auto pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div>© {new Date().getFullYear()} SnapSchool Platform. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} SnapSchool Platform. Tous droits réservés.</div>
           <div className="flex gap-6">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
+            <span>Politique de Confidentialité</span>
+            <span>Conditions d&apos;Utilisation</span>
           </div>
         </div>
       </footer>
