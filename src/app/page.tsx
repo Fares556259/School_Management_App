@@ -5,108 +5,239 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, AnimatePresence, Variants } from "framer-motion";
-import { 
-  BarChart3, 
-  ShieldCheck, 
-  Users, 
-  Calendar, 
-  LineChart, 
-  Smartphone, 
-  Bell, 
+import {
+  BarChart3,
+  ShieldCheck,
+  Users,
+  Calendar,
+  LineChart,
+  Smartphone,
+  Bell,
   CheckCircle2,
   ChevronRight,
-  Sparkles,
   ArrowRight,
-  Check,
   Building2,
   Lock,
-  Globe,
   Zap,
-  Star,
+  MessageSquare,
+  Award,
+  GraduationCap,
+  BookOpen,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  UserCheck,
+  LayoutDashboard,
+  Menu as MenuIcon,
+  X,
   ChevronDown,
   Plus,
   Minus,
-  MessageSquare,
-  Award,
-  GraduationCap
 } from "lucide-react";
 
-// --- Navbar ---
-const Navbar = ({ isSignedIn, handleLoginClick, router }: { isSignedIn: boolean; handleLoginClick: () => void; router: any }) => {
+/* ──────────────────────── NAVBAR ──────────────────────── */
+const Navbar = ({
+  isSignedIn,
+  handleLoginClick,
+  router,
+}: {
+  isSignedIn: boolean;
+  handleLoginClick: () => void;
+  router: any;
+}) => {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const navLinks = [
+    { label: "Fonctionnalités", href: "#fonctionnalites" },
+    { label: "Parents", href: "#parents" },
+    { label: "Tarifs", href: "#tarifs" },
+    { label: "FAQ", href: "#faq" },
+  ];
+
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 pt-4 transition-all duration-300">
-      <nav className={`max-w-7xl mx-auto h-[64px] rounded-full px-6 flex items-center justify-between transition-all duration-300 ${
-        scrolled 
-          ? "bg-slate-950/85 backdrop-blur-xl border border-slate-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.5)] ring-1 ring-white/10" 
-          : "bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-lg"
-      }`}>
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            <div className="w-9 h-9 bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-xl leading-none tracking-tighter">S</span>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100"
+          : "bg-white"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <div
+            className="flex items-center gap-2.5 cursor-pointer"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
+            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">S</span>
             </div>
-            <span className="text-[19px] font-extrabold text-white tracking-tight flex items-center gap-1.5">
-              SnapSchool <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">v2.0</span>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">
+              SnapSchool
             </span>
           </div>
-          
-          <div className="hidden lg:flex items-center gap-7 font-medium text-[14px] text-slate-300">
-            <a href="#features" className="hover:text-white transition-colors">Plateforme</a>
-            <a href="#analytics" className="hover:text-white transition-colors">Analytiques</a>
-            <a href="#mobile" className="hover:text-white transition-colors">App Mobile</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Tarifs</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+
+          {/* Desktop Links */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-3">
+            {!isSignedIn ? (
+              <>
+                <button
+                  onClick={handleLoginClick}
+                  className="text-sm font-medium text-gray-700 hover:text-blue-600 px-4 py-2 transition-colors"
+                >
+                  Connexion
+                </button>
+                <button
+                  onClick={() => router.push("/sign-up")}
+                  className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  Essai gratuit
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => router.push("/admin")}
+                className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-lg transition-colors"
+              >
+                Mon espace
+              </button>
+            )}
           </div>
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 text-gray-600"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+          </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          {!isSignedIn ? (
-            <>
-              <button 
-                onClick={handleLoginClick}
-                className="text-slate-300 font-medium text-[14px] hover:text-white px-3 py-1.5 transition-colors hidden sm:block"
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="md:hidden border-t border-gray-100 py-4 space-y-3">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="block text-sm font-medium text-gray-700 hover:text-blue-600 py-2"
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
+              <button
+                onClick={() => { handleLoginClick(); setMobileOpen(false); }}
+                className="text-sm font-medium text-gray-700 py-2"
               >
                 Connexion
               </button>
-              <button 
-                onClick={() => router.push("/sign-up")}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[14px] rounded-full hover:shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all flex items-center gap-1.5"
+              <button
+                onClick={() => { router.push("/sign-up"); setMobileOpen(false); }}
+                className="text-sm font-semibold text-white bg-blue-600 px-5 py-2.5 rounded-lg"
               >
-                Commencer <ChevronRight className="w-4 h-4" />
+                Essai gratuit
               </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => router.push("/admin")}
-              className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-[14px] rounded-full hover:shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all"
-            >
-              Accéder au Dashboard
-            </button>
-          )}
-        </div>
-      </nav>
-    </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
   );
 };
 
-// --- Page Main ---
+/* ──────────────────────── FEATURE CARD ──────────────────────── */
+const FeatureCard = ({
+  icon: Icon,
+  title,
+  description,
+  color,
+}: {
+  icon: any;
+  title: string;
+  description: string;
+  color: string;
+}) => (
+  <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg hover:border-gray-200 transition-all duration-300 group">
+    <div
+      className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color}`}
+    >
+      <Icon className="w-6 h-6" />
+    </div>
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+    <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+  </div>
+);
 
+/* ──────────────────────── STAT CARD ──────────────────────── */
+const StatCard = ({ value, label }: { value: string; label: string }) => (
+  <div className="text-center">
+    <div className="text-3xl sm:text-4xl font-bold text-blue-600">{value}</div>
+    <div className="text-sm text-gray-500 mt-1 font-medium">{label}</div>
+  </div>
+);
+
+/* ──────────────────────── FAQ ITEM ──────────────────────── */
+const FaqItem = ({
+  question,
+  answer,
+  isOpen,
+  onClick,
+}: {
+  question: string;
+  answer: string;
+  isOpen: boolean;
+  onClick: () => void;
+}) => (
+  <div className="border border-gray-100 rounded-xl overflow-hidden">
+    <button
+      onClick={onClick}
+      className="w-full px-6 py-5 text-left flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors"
+    >
+      <span className="font-medium text-gray-900 text-[15px]">{question}</span>
+      {isOpen ? (
+        <Minus className="w-4 h-4 text-blue-600 shrink-0" />
+      ) : (
+        <Plus className="w-4 h-4 text-gray-400 shrink-0" />
+      )}
+    </button>
+    {isOpen && (
+      <div className="px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+        {answer}
+      </div>
+    )}
+  </div>
+);
+
+/* ──────────────────────── PAGE ──────────────────────── */
 export default function Homepage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<"admin" | "teacher" | "parent">("admin");
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const router = useRouter();
@@ -114,7 +245,9 @@ export default function Homepage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         setIsSignedIn(true);
         const role = user.user_metadata?.role as string | undefined;
@@ -130,629 +263,637 @@ export default function Homepage() {
   }, [router, supabase]);
 
   const handleLoginClick = () => {
-    if (isSignedIn) {
-      router.push("/admin");
-    } else {
-      router.push("/sign-in");
-    }
+    if (isSignedIn) router.push("/admin");
+    else router.push("/sign-in");
   };
 
-  const fadeUpVariant: Variants = {
-    hidden: { opacity: 0, y: 25 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-  };
+  const features = [
+    {
+      icon: ClipboardList,
+      title: "Gestion des absences",
+      description:
+        "Suivi quotidien des présences par classe. Les parents reçoivent une notification instantanée en cas d'absence ou de retard.",
+      color: "bg-red-50 text-red-600",
+    },
+    {
+      icon: FileText,
+      title: "Notes et bulletins",
+      description:
+        "Saisie des notes par les enseignants. Calcul automatique des moyennes trimestrielles, classements et bulletins PDF.",
+      color: "bg-purple-50 text-purple-600",
+    },
+    {
+      icon: CreditCard,
+      title: "Paiements et finances",
+      description:
+        "Suivi des frais de scolarité, tranches de paiement, dépenses et recettes. Vue claire de la situation financière.",
+      color: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      icon: Calendar,
+      title: "Emploi du temps",
+      description:
+        "Création et gestion des emplois du temps par classe, enseignant et salle. Aucun conflit possible.",
+      color: "bg-amber-50 text-amber-600",
+    },
+    {
+      icon: Bell,
+      title: "Notifications et annonces",
+      description:
+        "Envoi de notifications push aux parents et enseignants. Annonces officielles, rappels de réunions et événements.",
+      color: "bg-blue-50 text-blue-600",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Sécurité et historique",
+      description:
+        "Chaque action est enregistrée dans un journal d'audit. Données sécurisées avec sauvegardes quotidiennes automatiques.",
+      color: "bg-gray-100 text-gray-700",
+    },
+  ];
 
   const faqs = [
     {
       q: "Combien de temps faut-il pour démarrer avec SnapSchool ?",
-      a: "La mise en place est immédiate. Votre espace école et votre sous-domaine sont créés en quelques minutes. Vous pouvez importer vos élèves, enseignants et classes depuis un fichier Excel ou CSV."
+      a: "Votre espace est créé en quelques minutes. Vous pouvez importer vos élèves, enseignants et classes depuis un fichier Excel ou CSV.",
     },
     {
       q: "SnapSchool est-il adapté aux écoles privées tunisiennes ?",
-      a: "Absolument. SnapSchool est conçu pour le système éducatif tunisien : trimestres, devoirs de contrôle et de synthèse, coefficients, bulletins officiels, et gestion bilingue Français / Arabe."
+      a: "Oui. SnapSchool est conçu pour le système éducatif tunisien : trimestres, devoirs de contrôle et de synthèse, coefficients, bulletins officiels, et gestion bilingue Français / Arabe.",
     },
     {
       q: "Les parents peuvent-ils utiliser l'application sur téléphone ?",
-      a: "Oui. Les parents reçoivent une application mobile dédiée (iOS et Android) avec des notifications instantanées pour les absences, les notes, les devoirs et les annonces officielles."
+      a: "Oui. Les parents disposent d'une application mobile dédiée (iOS et Android) avec des notifications pour les absences, les notes et les annonces.",
     },
     {
-      q: "Comment les données des élèves et les paiements sont-ils sécurisés ?",
-      a: "Vos données sont hébergées sur une infrastructure cloud sécurisée avec sauvegardes quotidiennes automatiques, un journal d'audit complet pour chaque action administrative, et un chiffrement conforme aux normes en vigueur."
+      q: "Comment les données sont-elles sécurisées ?",
+      a: "Vos données sont hébergées sur une infrastructure cloud sécurisée avec sauvegardes quotidiennes, journal d'audit pour chaque action, et chiffrement conforme aux normes.",
     },
     {
-      q: "Quel accompagnement est inclus dans l'abonnement ?",
-      a: "Tous les abonnements incluent un support dédié par WhatsApp, une assistance à la prise en main pour votre équipe administrative et vos enseignants, ainsi que des mises à jour régulières gratuites."
-    }
+      q: "Quel accompagnement est inclus ?",
+      a: "Tous les abonnements incluent un support dédié par WhatsApp, une assistance à la prise en main pour votre équipe, et des mises à jour régulières gratuites.",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white font-sans overflow-x-hidden">
-      <Navbar isSignedIn={!!isSignedIn} handleLoginClick={handleLoginClick} router={router} />
+    <div className="min-h-screen bg-white text-gray-900 font-sans">
+      <Navbar
+        isSignedIn={!!isSignedIn}
+        handleLoginClick={handleLoginClick}
+        router={router}
+      />
 
-      {/* 🚀 HERO SECTION */}
-      <section className="relative pt-32 sm:pt-40 pb-20 overflow-hidden">
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-        
-        {/* Ambient Glow Orbs */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-indigo-600/30 via-purple-600/20 to-pink-500/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
-
-        <motion.div 
-          className="max-w-6xl mx-auto text-center px-4 sm:px-6 relative z-10"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
-          }}
-        >
-          {/* Live Trust Pill */}
-          <motion.div variants={fadeUpVariant} className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/60 shadow-lg shadow-black/40">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-[13px] font-semibold text-slate-300">
-              La plateforme de référence pour les écoles privées
-            </span>
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400 ml-0.5" />
-          </motion.div>
-
-          {/* Hero Main Heading */}
-          <motion.h1 variants={fadeUpVariant} className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight mb-8 text-white">
-            Simplifiez la gestion <br />de votre école.
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
-              Concentrez-vous sur vos élèves.
-            </span>
-          </motion.h1>
-
-          <motion.p variants={fadeUpVariant} className="text-lg sm:text-xl md:text-2xl font-normal leading-relaxed text-slate-400 max-w-3xl mx-auto mb-10">
-            SnapSchool est la solution complète pour les écoles et académies privées. Gérez les absences, les notes, les paiements et envoyez des notifications aux parents, le tout depuis un seul espace.
-          </motion.p>
-          
-          {/* CTA Group */}
-          <motion.div variants={fadeUpVariant} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <button 
-              onClick={() => router.push("/sign-up")}
-              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-[16px] rounded-full shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2.5"
-            >
-              Commencer gratuitement <ArrowRight className="w-5 h-5" />
-            </button>
-            <a 
-              href="https://wa.me/23889444" 
-              target="_blank" 
-              rel="noreferrer"
-              className="w-full sm:w-auto px-8 py-4 bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-semibold text-[16px] rounded-full border border-slate-700/80 hover:border-slate-600 transition-all flex items-center justify-center gap-2 shadow-sm"
-            >
-              <MessageSquare className="w-4 h-4 text-emerald-400" /> Demander une démo
-            </a>
-          </motion.div>
-
-          {/* Social Proof Metrics */}
-          <motion.div variants={fadeUpVariant} className="pt-6 border-t border-slate-800/80 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-16">
-            {[
-              { num: "99.9%", label: "Disponibilité Garantie" },
-              { num: "10x", label: "Saisie des Notes Plus Rapide" },
-              { num: "< 1s", label: "Alertes Push aux Parents" },
-              { num: "100%", label: "Adapté aux écoles privées" }
-            ].map((stat, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">{stat.num}</span>
-                <span className="text-xs sm:text-sm font-medium text-slate-400 mt-1">{stat.label}</span>
-              </div>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* Interactive Workspace Mockup Showcase */}
-        <motion.div 
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="w-full max-w-6xl mx-auto px-4 sm:px-6 relative z-10"
-        >
-          {/* Role Switcher Tabs */}
-          <div className="flex justify-center mb-4">
-            <div className="p-1.5 bg-slate-900/90 backdrop-blur-md rounded-full border border-slate-800 flex items-center gap-2 shadow-2xl">
-              <button 
-                onClick={() => setActiveTab("admin")}
-                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-                  activeTab === "admin" 
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" 
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <Building2 className="w-4 h-4" /> Administration
-              </button>
-              <button 
-                onClick={() => setActiveTab("teacher")}
-                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-                  activeTab === "teacher" 
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" 
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <GraduationCap className="w-4 h-4" /> Enseignants
-              </button>
-              <button 
-                onClick={() => setActiveTab("parent")}
-                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-                  activeTab === "parent" 
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" 
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <Smartphone className="w-4 h-4" /> Parents
-              </button>
+      {/* ───────── HERO ───────── */}
+      <section className="pt-24 pb-16 sm:pt-32 sm:pb-20 bg-gradient-to-b from-blue-50/80 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-6">
+              <Zap className="w-3.5 h-3.5" />
+              Plateforme de gestion scolaire
             </div>
-          </div>
 
-          <div className="rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] ring-1 ring-white/10 group relative">
-            <div className="h-10 bg-slate-950/80 px-4 flex items-center justify-between border-b border-slate-800/80">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-              </div>
-              <div className="px-4 py-1 rounded-full bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400 flex items-center gap-2">
-                <Lock className="w-3 h-3 text-emerald-400" />
-                <span>app.snapschool.io/dashboard</span>
-              </div>
-              <div className="w-12" />
-            </div>
-            
-            <div className="relative aspect-[16/10] bg-slate-950 overflow-hidden">
-              <Image 
-                src="/landing/dashboard.png" 
-                alt="SnapSchool Workspace Preview" 
-                width={1400} 
-                height={875} 
-                className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.01]"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-40 pointer-events-none" />
-            </div>
-          </div>
-        </motion.div>
-      </section>
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-gray-900 mb-6">
+              La solution complète pour gérer votre{" "}
+              <span className="text-blue-600">école privée</span>
+            </h1>
 
-      {/* 📦 BENTO GRID FEATURES SECTION */}
-      <section id="features" className="py-24 px-4 sm:px-6 relative">
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }}
-            variants={fadeUpVariant}
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-4">
-              <Zap className="w-3.5 h-3.5" /> Modules Complets
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Oubliez les fichiers Excel <br />et la paperasse.
-              <br /><span className="text-slate-400 font-normal">Tout est centralisé en un seul endroit.</span>
-            </h2>
-            <p className="text-slate-400 text-lg">
-              SnapSchool rassemble l&apos;administration, les enseignants et les parents dans un système moderne et facile à utiliser.
+            <p className="text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto mb-8">
+              Absences, notes, paiements, emploi du temps et communication avec
+              les parents. Tout est centralisé dans un seul espace simple et
+              sécurisé.
             </p>
-          </motion.div>
 
-          {/* Bento Box Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Feature 1: Financial (Large 2 Cols) */}
-            <motion.div 
-              whileHover={{ y: -5 }}
-              className="md:col-span-2 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-slate-700 p-8 rounded-3xl relative overflow-hidden group shadow-2xl"
-            >
-              <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Gestion financière et suivi des paiements</h3>
-              <p className="text-slate-400 text-base max-w-xl mb-6">
-                Suivez les frais de scolarité, les tranches de paiement, les dépenses et la caisse en temps réel avec des graphiques clairs.
-              </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => router.push("/sign-up")}
+                className="w-full sm:w-auto px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[15px] rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                Commencer gratuitement <ArrowRight className="w-4 h-4" />
+              </button>
+              <a
+                href="https://wa.me/23889444"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-[15px] rounded-lg border border-gray-200 transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4 text-green-600" /> Demander
+                une démo
+              </a>
+            </div>
+          </div>
 
-              {/* Mini Widget */}
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between gap-4">
-                <div>
-                  <span className="text-xs text-slate-400 font-medium">Revenu Mensuel Net</span>
-                  <div className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                    +48,250 TND <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">+14.2%</span>
+          {/* Dashboard Preview */}
+          <div className="max-w-5xl mx-auto">
+            <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-white">
+              {/* Browser Bar */}
+              <div className="h-10 bg-gray-50 border-b border-gray-200 px-4 flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-gray-300" />
+                  <div className="w-3 h-3 rounded-full bg-gray-300" />
+                  <div className="w-3 h-3 rounded-full bg-gray-300" />
+                </div>
+                <div className="flex-1 flex justify-center">
+                  <div className="px-4 py-1 rounded-md bg-white border border-gray-200 text-[11px] font-mono text-gray-400 flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-green-500" />
+                    app.snapschool.io
                   </div>
                 </div>
-                <div className="flex gap-1.5 items-end h-9">
-                  {[30, 50, 45, 80, 65, 95].map((val, i) => (
-                    <div key={i} style={{ height: `${val}%` }} className="w-2.5 rounded-full bg-emerald-500/60" />
-                  ))}
-                </div>
               </div>
-            </motion.div>
-
-            {/* Feature 2: Audit Trail */}
-            <motion.div 
-              whileHover={{ y: -5 }}
-              className="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-slate-700 p-8 rounded-3xl relative overflow-hidden group shadow-2xl"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-6">
-                <ShieldCheck className="w-6 h-6" />
+              <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
+                <Image
+                  src="/landing/dashboard.png"
+                  alt="Tableau de bord SnapSchool"
+                  width={1400}
+                  height={875}
+                  className="w-full h-full object-cover object-top"
+                  priority
+                />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Historique et sécurité</h3>
-              <p className="text-slate-400 text-base mb-6">
-                Chaque modification de note, de paiement ou de compte est enregistrée avec la date et l&apos;heure pour une transparence totale.
-              </p>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-slate-300 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                <span className="truncate">[AUDIT] Note validée par Directeur #104</span>
-              </div>
-            </motion.div>
-
-            {/* Feature 3: Smart Timetable */}
-            <motion.div 
-              whileHover={{ y: -5 }}
-              className="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-slate-700 p-8 rounded-3xl relative overflow-hidden group shadow-2xl"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6">
-                <Calendar className="w-6 h-6" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Emploi du Temps Intelligent</h3>
-              <p className="text-slate-400 text-base mb-6">
-                Génération d&apos;emploi du temps sans conflit de salles ni de profs, avec possibilité d&apos;ajustement rapide.
-              </p>
-              <div className="flex gap-2">
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">Zéro Chevauchement</span>
-              </div>
-            </motion.div>
-
-            {/* Feature 4: Grade & Results (Large 2 Cols) */}
-            <motion.div 
-              whileHover={{ y: -5 }}
-              className="md:col-span-2 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-slate-700 p-8 rounded-3xl relative overflow-hidden group shadow-2xl"
-            >
-              <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all pointer-events-none" />
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-6">
-                <LineChart className="w-6 h-6" />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Bulletins de notes et calcul automatique</h3>
-              <p className="text-slate-400 text-base max-w-xl mb-6">
-                Saisissez les notes une seule fois. Les moyennes trimestrielles, les rangs et les bulletins PDF sont générés automatiquement.
-              </p>
-
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { term: "Moyenne Trimestre 1", val: "17.8/20", color: "text-purple-400" },
-                  { term: "Rang Classe", val: "2ème / 28", color: "text-indigo-400" },
-                  { term: "Taux de Réussite", val: "96.4%", color: "text-emerald-400" },
-                ].map((card, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center">
-                    <span className="text-[11px] text-slate-400 font-medium block">{card.term}</span>
-                    <span className={`text-base font-extrabold ${card.color}`}>{card.val}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 📱 MOBILE PARENT EXPERIENCE SECTION */}
-      <section id="mobile" className="py-24 px-4 sm:px-6 bg-slate-900/60 border-y border-slate-800/80 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 relative z-10">
-          <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUpVariant}
-            className="flex-1"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold uppercase tracking-wider mb-4">
-              <Smartphone className="w-3.5 h-3.5" /> Écosystème Mobile
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Rapprochez les parents <br />de l&apos;école,
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                à chaque instant.
-              </span>
+      {/* ───────── TRUST BAR ───────── */}
+      <section className="py-12 border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <StatCard value="99.9%" label="Disponibilité garantie" />
+          <StatCard value="10x" label="Saisie plus rapide" />
+          <StatCard value="< 1s" label="Alertes aux parents" />
+          <StatCard value="100%" label="Adapté écoles privées" />
+        </div>
+      </section>
+
+      {/* ───────── FONCTIONNALITÉS ───────── */}
+      <section id="fonctionnalites" className="py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Tout ce dont votre école a besoin
             </h2>
-            <p className="text-slate-400 text-lg leading-relaxed mb-8">
-              Une application mobile dédiée aux parents pour suivre la scolarité de leurs enfants avec des notifications en temps réel.
+            <p className="text-gray-500 text-base sm:text-lg">
+              Une plateforme complète qui couvre l&apos;ensemble des besoins
+              administratifs, pédagogiques et financiers de votre établissement.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((feature, i) => (
+              <FeatureCard key={i} {...feature} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───────── PORTAILS (3 roles) ───────── */}
+      <section className="py-20 sm:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Un espace dédié pour chaque utilisateur
+            </h2>
+            <p className="text-gray-500 text-base sm:text-lg">
+              Administration, enseignants et parents accèdent chacun à leur
+              propre interface adaptée à leurs besoins.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Building2,
+                role: "Administration",
+                desc: "Vue complète sur les classes, les enseignants, les élèves, la comptabilité et les statistiques de l'établissement.",
+                items: [
+                  "Tableau de bord global",
+                  "Gestion financière",
+                  "Paramètres de l'école",
+                  "Journal d'audit",
+                ],
+                color: "bg-blue-600",
+              },
+              {
+                icon: GraduationCap,
+                role: "Enseignants",
+                desc: "Saisie des notes, suivi des absences et communication directe avec les parents de leurs classes.",
+                items: [
+                  "Saisie des notes",
+                  "Appel quotidien",
+                  "Emploi du temps",
+                  "Ressources pédagogiques",
+                ],
+                color: "bg-purple-600",
+              },
+              {
+                icon: Smartphone,
+                role: "Parents",
+                desc: "Application mobile pour suivre la scolarité de leurs enfants en temps réel depuis leur téléphone.",
+                items: [
+                  "Notes et bulletins",
+                  "Alertes d'absence",
+                  "Paiements en ligne",
+                  "Messages de l'école",
+                ],
+                color: "bg-emerald-600",
+              },
+            ].map((portal, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-gray-100 p-7 hover:shadow-md transition-shadow"
+              >
+                <div
+                  className={`w-11 h-11 ${portal.color} rounded-xl flex items-center justify-center mb-5`}
+                >
+                  <portal.icon className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {portal.role}
+                </h3>
+                <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+                  {portal.desc}
+                </p>
+                <ul className="space-y-2.5">
+                  {portal.items.map((item, j) => (
+                    <li
+                      key={j}
+                      className="flex items-center gap-2.5 text-sm text-gray-600"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───────── PARENTS / MOBILE ───────── */}
+      <section id="parents" className="py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+          {/* Phone mockup */}
+          <div className="flex-1 flex justify-center">
+            <div className="relative">
+              <div className="absolute -inset-6 bg-blue-100 rounded-[48px] blur-2xl opacity-40" />
+              <Image
+                src="/landing/mobile.png"
+                alt="Application mobile parents SnapSchool"
+                width={300}
+                height={610}
+                className="w-[260px] sm:w-[280px] h-auto rounded-[36px] border-[6px] border-gray-200 shadow-2xl relative z-10"
+              />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold mb-4">
+              <Smartphone className="w-3.5 h-3.5" /> Application mobile
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Les parents restent connectés à l&apos;école
+            </h2>
+            <p className="text-gray-500 text-base leading-relaxed mb-8">
+              Une application simple et intuitive sur téléphone pour que les
+              parents suivent la scolarité de leurs enfants au quotidien.
             </p>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {[
-                { icon: Bell, title: "Alertes d'absence en direct", desc: "Les parents reçoivent une notification dès qu'un élève est marqué absent ou en retard.", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-                { icon: Award, title: "Notes et bulletins instantanés", desc: "Consultation des notes et devoirs dès leur publication par l'enseignant.", color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
-                { icon: ShieldCheck, title: "Justification d'absence en ligne", desc: "Les parents peuvent envoyer les justificatifs et certificats directement depuis l'application.", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+                {
+                  icon: Bell,
+                  title: "Alertes d'absence en temps réel",
+                  desc: "Notification instantanée dès qu'un élève est absent ou en retard.",
+                },
+                {
+                  icon: Award,
+                  title: "Notes et bulletins",
+                  desc: "Consultation des résultats dès leur publication par l'enseignant.",
+                },
+                {
+                  icon: MessageSquare,
+                  title: "Messages et annonces",
+                  desc: "Réception des annonces officielles, rappels de réunions et événements.",
+                },
               ].map((item, i) => (
-                <div key={i} className="flex gap-4 items-start p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${item.color}`}>
-                    <item.icon className="w-5 h-5" />
+                <div key={i} className="flex gap-4 items-start">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                    <item.icon className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-base mb-1">{item.title}</h4>
-                    <p className="text-slate-400 text-sm">{item.desc}</p>
+                    <h4 className="font-semibold text-gray-900 text-[15px] mb-0.5">
+                      {item.title}
+                    </h4>
+                    <p className="text-sm text-gray-500">{item.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} 
-            whileInView={{ opacity: 1, scale: 1 }} 
-            viewport={{ once: true }} 
-            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className="flex-1 flex justify-center"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 rounded-[50px] blur-3xl transform scale-110 pointer-events-none" />
-              <Image 
-                src="/landing/mobile.png" 
-                alt="SnapSchool Mobile App Preview" 
-                width={330} 
-                height={670} 
-                className="w-[300px] sm:w-[320px] h-auto border-[8px] border-slate-800 rounded-[48px] shadow-[0_30px_90px_rgba(0,0,0,0.9)] relative z-10"
-              />
-            </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* 🏷️ PRICING SECTION */}
-      <section id="pricing" className="py-24 px-4 sm:px-6 relative">
-        <div className="max-w-6xl mx-auto">
-          <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUpVariant}
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
-              Tarifs Clairs & Transparents
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-6">
-              Des tarifs adaptés à la taille <br />
-              <span className="text-slate-400 font-normal">de votre établissement.</span>
+      {/* ───────── TARIFS ───────── */}
+      <section id="tarifs" className="py-20 sm:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Tarifs simples et transparents
             </h2>
+            <p className="text-gray-500 text-base sm:text-lg">
+              Des formules adaptées à la taille de votre établissement. Sans
+              engagement, sans surprise.
+            </p>
+          </div>
 
-            {/* Billing Toggle */}
-            <div className="inline-flex items-center p-1 bg-slate-900 border border-slate-800 rounded-full">
-              <button 
-                onClick={() => setBillingCycle("monthly")}
-                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${
-                  billingCycle === "monthly" ? "bg-slate-800 text-white shadow-md" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Paiement Mensuel
-              </button>
-              <button 
-                onClick={() => setBillingCycle("annual")}
-                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-                  billingCycle === "annual" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Paiement Annuel <span className="text-[10px] bg-emerald-400 text-slate-950 font-extrabold px-2 py-0.5 rounded-full uppercase">-20%</span>
-              </button>
-            </div>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Starter Plan */}
-            <motion.div whileHover={{ y: -6 }} className="bg-slate-900/80 border border-slate-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl relative">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Essentiel */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-7 flex flex-col">
               <div>
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Essentiel</span>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-black text-white">{billingCycle === "annual" ? "120 DT" : "150 DT"}</span>
-                  <span className="text-slate-400 text-sm">/ mois</span>
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  Essentiel
+                </span>
+                <div className="flex items-baseline gap-1 mt-2 mb-3">
+                  <span className="text-3xl font-bold text-gray-900">
+                    120 DT
+                  </span>
+                  <span className="text-gray-400 text-sm">/ mois</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">Idéal pour les petits établissements et les centres de soutien scolaire (jusqu&apos;à 150 élèves).</p>
-                <div className="h-px bg-slate-800 mb-6" />
-                <ul className="space-y-3.5 text-sm text-slate-300 mb-8">
-                  {["Jusqu'à 150 élèves", "3 comptes administrateur", "Module notes et examens", "Application mobile parents", "Support par email et WhatsApp"].map((feat, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>{feat}</span>
+                <p className="text-sm text-gray-500 mb-6">
+                  Pour les petits établissements et centres de soutien scolaire.
+                </p>
+                <div className="h-px bg-gray-100 mb-6" />
+                <ul className="space-y-3 text-sm text-gray-600 mb-8">
+                  {[
+                    "Jusqu'à 150 élèves",
+                    "3 comptes administrateur",
+                    "Notes et examens",
+                    "Application mobile parents",
+                    "Support par email",
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                      {f}
                     </li>
                   ))}
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => router.push("/sign-up")}
-                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-all"
+                className="mt-auto w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-sm rounded-lg transition-colors"
               >
-                Essayer Gratuitement
+                Essayer gratuitement
               </button>
-            </motion.div>
+            </div>
 
-            {/* Pro Plan (Featured) */}
-            <motion.div whileHover={{ y: -6 }} className="bg-gradient-to-b from-indigo-950/80 via-slate-900 to-slate-900 border-2 border-indigo-500/80 p-8 rounded-3xl flex flex-col justify-between shadow-2xl shadow-indigo-500/10 relative ring-1 ring-indigo-500/30">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[11px] font-black uppercase tracking-wider shadow-lg">
+            {/* Pro — featured */}
+            <div className="bg-white rounded-2xl border-2 border-blue-600 p-7 flex flex-col relative shadow-md">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-bold uppercase tracking-wider">
                 Recommandé
               </div>
               <div>
-                <span className="text-sm font-bold text-indigo-400 uppercase tracking-wider block mb-2">Pro Académie</span>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-black text-white">{billingCycle === "annual" ? "290 DT" : "350 DT"}</span>
-                  <span className="text-slate-400 text-sm">/ mois</span>
+                <span className="text-sm font-semibold text-blue-600 uppercase tracking-wider">
+                  Pro Académie
+                </span>
+                <div className="flex items-baseline gap-1 mt-2 mb-3">
+                  <span className="text-3xl font-bold text-gray-900">
+                    290 DT
+                  </span>
+                  <span className="text-gray-400 text-sm">/ mois</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">Conçu pour les écoles primaires, collèges et lycées privés (jusqu&apos;à 600 élèves).</p>
-                <div className="h-px bg-slate-800 mb-6" />
-                <ul className="space-y-3.5 text-sm text-slate-200 mb-8">
-                  {["Jusqu'à 600 élèves", "Enseignants et administrateurs illimités", "Générateur d'emploi du temps", "Statistiques financières", "Support WhatsApp prioritaire", "Historique et sécurité avancée"].map((feat, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                      <span className="font-medium">{feat}</span>
+                <p className="text-sm text-gray-500 mb-6">
+                  Pour les écoles primaires, collèges et lycées privés.
+                </p>
+                <div className="h-px bg-gray-100 mb-6" />
+                <ul className="space-y-3 text-sm text-gray-700 mb-8">
+                  {[
+                    "Jusqu'à 600 élèves",
+                    "Enseignants illimités",
+                    "Emploi du temps automatique",
+                    "Statistiques financières",
+                    "Support WhatsApp prioritaire",
+                    "Historique et sécurité avancée",
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span className="font-medium">{f}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <button 
+              <button
                 onClick={() => router.push("/sign-up")}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all"
+                className="mt-auto w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg transition-colors"
               >
-                Essai gratuit de 14 jours
+                Essai gratuit 14 jours
               </button>
-            </motion.div>
+            </div>
 
-            {/* Enterprise Plan */}
-            <motion.div whileHover={{ y: -6 }} className="bg-slate-900/80 border border-slate-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl relative">
+            {/* Sur mesure */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-7 flex flex-col">
               <div>
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider block mb-2">Sur Mesure</span>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-4xl font-black text-white">Sur Devis</span>
+                <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  Sur mesure
+                </span>
+                <div className="flex items-baseline gap-1 mt-2 mb-3">
+                  <span className="text-3xl font-bold text-gray-900">
+                    Sur devis
+                  </span>
                 </div>
-                <p className="text-slate-400 text-sm mb-6">Pour les groupes d&apos;écoles et réseaux multi-sites.</p>
-                <div className="h-px bg-slate-800 mb-6" />
-                <ul className="space-y-3.5 text-sm text-slate-300 mb-8">
-                  {["Élèves et campus illimités", "Serveur dédié", "Intégration sur mesure", "Accompagnement et formation sur place", "Interlocuteur dédié"].map((feat, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>{feat}</span>
+                <p className="text-sm text-gray-500 mb-6">
+                  Pour les groupes d&apos;écoles et réseaux multi-sites.
+                </p>
+                <div className="h-px bg-gray-100 mb-6" />
+                <ul className="space-y-3 text-sm text-gray-600 mb-8">
+                  {[
+                    "Élèves et campus illimités",
+                    "Serveur dédié",
+                    "Intégration sur mesure",
+                    "Formation sur place",
+                    "Interlocuteur dédié",
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                      {f}
                     </li>
                   ))}
                 </ul>
               </div>
-              <a 
-                href="https://wa.me/23889444" 
-                target="_blank" 
+              <a
+                href="https://wa.me/23889444"
+                target="_blank"
                 rel="noreferrer"
-                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-all text-center block"
+                className="mt-auto w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-sm rounded-lg transition-colors text-center block"
               >
                 Contacter l&apos;équipe commerciale
               </a>
-            </motion.div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ❓ FAQ ACCORDION SECTION */}
-      <section id="faq" className="py-24 px-4 sm:px-6 bg-slate-900/40 border-t border-slate-800/80 relative">
-        <div className="max-w-4xl mx-auto">
-          <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUpVariant}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-4">
-              Questions Fréquentes (FAQ)
-            </h2>
-            <p className="text-slate-400 text-base">Tout ce que vous devez savoir pour démarrer avec SnapSchool dans votre établissement.</p>
-          </motion.div>
-
-          <div className="space-y-4">
-            {faqs.map((faq, i) => {
-              const isOpen = openFaq === i;
-              return (
-                <div key={i} className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden transition-all">
-                  <button 
-                    onClick={() => setOpenFaq(isOpen ? null : i)}
-                    className="w-full p-6 text-left font-bold text-base sm:text-lg text-white flex items-center justify-between gap-4 hover:text-indigo-400 transition-colors"
-                  >
-                    <span>{faq.q}</span>
-                    {isOpen ? <Minus className="w-5 h-5 text-indigo-400 shrink-0" /> : <Plus className="w-5 h-5 text-slate-400 shrink-0" />}
-                  </button>
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="px-6 pb-6 text-slate-400 text-sm leading-relaxed"
-                      >
-                        {faq.a}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 🏁 FINAL CTA BANNER */}
-      <section className="relative py-28 px-4 sm:px-6 bg-gradient-to-b from-slate-900 to-slate-950 overflow-hidden border-t border-slate-800/80">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-600/20 rounded-full blur-[140px] pointer-events-none" />
-        
-        <motion.div 
-          initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUpVariant}
-          className="max-w-4xl mx-auto text-center relative z-10"
-        >
-          <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight mb-6">
-            Prêt à moderniser votre école ?
-          </h2>
-          <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Créez votre espace en quelques minutes. Essai gratuit, sans carte bancaire.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <button 
-              onClick={() => router.push("/sign-up")}
-              className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base rounded-full shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              Commencer maintenant <ChevronRight className="w-5 h-5" />
-            </button>
-            <a 
-              href="https://wa.me/23889444" 
-              target="_blank"
-              rel="noreferrer"
-              className="px-8 py-4 bg-slate-900 text-slate-200 font-semibold text-base rounded-full border border-slate-700 hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
-            >
-              <MessageSquare className="w-4 h-4 text-emerald-400" /> Parler avec un expert
-            </a>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* 🦶 FOOTER */}
-      <footer className="bg-slate-950 px-6 py-16 border-t border-slate-800/80 text-slate-400 text-sm">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12 mb-12">
-          
-          <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-purple-500 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white font-black text-lg leading-none">S</span>
-              </div>
-              <span className="text-lg font-bold text-white tracking-tight">SnapSchool</span>
             </div>
-            <p className="text-slate-400 leading-relaxed max-w-sm">
-              La plateforme moderne de gestion pour les écoles privées, lycées et académies.
+          </div>
+        </div>
+      </section>
+
+      {/* ───────── FAQ ───────── */}
+      <section id="faq" className="py-20 sm:py-24">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Questions fréquentes
+            </h2>
+            <p className="text-gray-500">
+              Tout ce que vous devez savoir pour démarrer.
             </p>
           </div>
-          
-          <div>
-            <h4 className="font-bold text-white mb-4">Plateforme</h4>
-            <ul className="space-y-2.5">
-              <li><a href="#features" className="hover:text-white transition-colors">Modules</a></li>
-              <li><a href="#analytics" className="hover:text-white transition-colors">Analytiques</a></li>
-              <li><a href="#mobile" className="hover:text-white transition-colors">App Mobile</a></li>
-              <li><a href="#pricing" className="hover:text-white transition-colors">Tarifs</a></li>
-            </ul>
-          </div>
 
-          <div>
-            <h4 className="font-bold text-white mb-4">Ressources</h4>
-            <ul className="space-y-2.5">
-              <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
-              <li><Link href="/sign-in" className="hover:text-white transition-colors">Espace Connexion</Link></li>
-              <li><Link href="/sign-up" className="hover:text-white transition-colors">Inscription École</Link></li>
-            </ul>
+          <div className="space-y-3">
+            {faqs.map((faq, i) => (
+              <FaqItem
+                key={i}
+                question={faq.q}
+                answer={faq.a}
+                isOpen={openFaq === i}
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              />
+            ))}
           </div>
+        </div>
+      </section>
 
-          <div>
-            <h4 className="font-bold text-white mb-4">Contact</h4>
-            <ul className="space-y-2.5">
-              <li><a href="https://wa.me/23889444" className="hover:text-white transition-colors flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp</a></li>
-              <li><span className="text-slate-500">support@snapschool.io</span></li>
-            </ul>
+      {/* ───────── CTA FINAL ───────── */}
+      <section className="py-20 sm:py-24 bg-blue-600">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4">
+            Prêt à simplifier la gestion de votre école ?
+          </h2>
+          <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto">
+            Créez votre espace en quelques minutes. Essai gratuit, sans carte
+            bancaire.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <button
+              onClick={() => router.push("/sign-up")}
+              className="px-7 py-3.5 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+            >
+              Commencer maintenant <ArrowRight className="w-4 h-4" />
+            </button>
+            <a
+              href="https://wa.me/23889444"
+              target="_blank"
+              rel="noreferrer"
+              className="px-7 py-3.5 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg border border-blue-500 transition-colors flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-4 h-4" /> Parler avec un expert
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────── FOOTER ───────── */}
+      <footer className="bg-gray-900 text-gray-400 text-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+            <div className="md:col-span-1">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">S</span>
+                </div>
+                <span className="text-lg font-bold text-white">SnapSchool</span>
+              </div>
+              <p className="text-gray-400 leading-relaxed text-sm">
+                Plateforme de gestion scolaire pour les écoles privées, collèges,
+                lycées et académies.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-4 text-sm">
+                Plateforme
+              </h4>
+              <ul className="space-y-2.5">
+                <li>
+                  <a
+                    href="#fonctionnalites"
+                    className="hover:text-white transition-colors"
+                  >
+                    Fonctionnalités
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#parents"
+                    className="hover:text-white transition-colors"
+                  >
+                    Application parents
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#tarifs"
+                    className="hover:text-white transition-colors"
+                  >
+                    Tarifs
+                  </a>
+                </li>
+                <li>
+                  <a href="#faq" className="hover:text-white transition-colors">
+                    FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-4 text-sm">Accès</h4>
+              <ul className="space-y-2.5">
+                <li>
+                  <Link
+                    href="/sign-in"
+                    className="hover:text-white transition-colors"
+                  >
+                    Connexion
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/sign-up"
+                    className="hover:text-white transition-colors"
+                  >
+                    Inscription
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-white mb-4 text-sm">Contact</h4>
+              <ul className="space-y-2.5">
+                <li className="flex items-center gap-2">
+                  <MessageSquare className="w-3.5 h-3.5 text-green-500" />
+                  <a
+                    href="https://wa.me/23889444"
+                    className="hover:text-white transition-colors"
+                  >
+                    WhatsApp
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>support@snapschool.io</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div>© {new Date().getFullYear()} SnapSchool Platform. Tous droits réservés.</div>
-          <div className="flex gap-6">
-            <span>Politique de Confidentialité</span>
-            <span>Conditions d&apos;Utilisation</span>
+        <div className="border-t border-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+            <span>
+              © {new Date().getFullYear()} SnapSchool. Tous droits réservés.
+            </span>
+            <div className="flex gap-6">
+              <span>Politique de confidentialité</span>
+              <span>Conditions d&apos;utilisation</span>
+            </div>
           </div>
         </div>
       </footer>
