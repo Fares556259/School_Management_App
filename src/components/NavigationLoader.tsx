@@ -10,30 +10,42 @@ export default function NavigationLoader() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // When the path or search params change, it means a navigation has finished
+    // When pathname or searchParams change, navigation finished
     setLoading(false);
   }, [pathname, searchParams]);
 
-  // We need a way to detect the START of a navigation. 
-  // In Next.js App Router, there's no native 'routeChangeStart'.
-  // However, we can listen for click events on Links in the Sidebar.
-  
   useEffect(() => {
     const handleAnchorClick = (event: MouseEvent) => {
+      // If event was defaultPrevented (e.g. custom smooth scroll), don't trigger loader
+      if (event.defaultPrevented) return;
+
       const target = event.target as HTMLElement;
       const anchor = target.closest("a");
 
-      if (anchor && anchor.href && !anchor.hasAttribute("download") && anchor.href !== window.location.href) {
-        // Only trigger for internal links starting with http that are different from current page
-        if (anchor.href.startsWith("http")) {
-            try {
-                const url = new URL(anchor.href);
-                if (url.origin === window.location.origin) {
-                    setLoading(true);
-                }
-            } catch (err) {
-                console.warn("Invalid navigation URL:", anchor.href);
-            }
+      if (
+        anchor &&
+        anchor.href &&
+        !anchor.hasAttribute("download") &&
+        anchor.target !== "_blank"
+      ) {
+        const rawHref = anchor.getAttribute("href") || "";
+
+        // Do NOT trigger loader for hash links, empty links, or javascript:
+        if (rawHref.startsWith("#") || rawHref.startsWith("javascript:") || rawHref === "") {
+          return;
+        }
+
+        try {
+          const url = new URL(anchor.href, window.location.origin);
+          // Only trigger for same origin, different page/pathname/search
+          if (
+            url.origin === window.location.origin &&
+            (url.pathname !== window.location.pathname || url.search !== window.location.search)
+          ) {
+            setLoading(true);
+          }
+        } catch (err) {
+          // ignore invalid URLs
         }
       }
     };
@@ -46,7 +58,7 @@ export default function NavigationLoader() {
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none">
-       <Loading />
+      <Loading />
     </div>
   );
 }
