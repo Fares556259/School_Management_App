@@ -14,6 +14,8 @@ import {
   Users,
   Bell,
   ShieldCheck,
+  Building2,
+  Check,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -27,8 +29,8 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
 
   const inputClass =
-    "w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-sm font-medium";
-  const labelClass = "text-xs font-semibold text-slate-500 mb-1.5 block";
+    "w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-sm font-medium";
+  const labelClass = "text-xs font-semibold text-gray-600 mb-1.5 block";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,17 +46,14 @@ export default function SignInPage() {
       });
 
       if (authError) {
-        setError("Invalid email or password.");
+        setError("Email ou mot de passe incorrect.");
         setLoading(false);
         return;
       }
 
-      // Read role from the signed-in user's metadata
       const role = data.user?.user_metadata?.role as string | undefined;
       const status = data.user?.user_metadata?.status as string | undefined;
 
-      // Route based on role — session is already committed in the browser
-      // router.refresh() syncs the server-side session cookie before navigating
       if (role === "superadmin") {
         router.refresh();
         router.push("/superadmin");
@@ -66,7 +65,7 @@ export default function SignInPage() {
         router.push("/waiting-approval");
       }
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(err.message || "Une erreur est survenue. Veuillez réanalyser vos identifiants.");
       setLoading(false);
     }
   };
@@ -83,27 +82,26 @@ export default function SignInPage() {
       if (error) throw error;
       setMode("forgot_sent");
     } catch (err: any) {
-      setError(err.message || "Could not send reset email. Check the address and try again.");
+      setError(err.message || "Impossible d'envoyer l'email de réinitialisation. Vérifiez votre adresse.");
     } finally {
       setLoading(false);
     }
   };
 
   const features = [
-    { icon: BarChart3, text: "Real-time financial tracking & AI forecasting" },
-    { icon: Users, text: "Manage students, teachers & parents in one place" },
-    { icon: Bell, text: "Instant push notifications to parents" },
-    { icon: ShieldCheck, text: "Full audit trail — every action logged" },
+    { icon: BarChart3, text: "Gestion financière & suivi des paiements" },
+    { icon: Users, text: "Gestion des élèves, enseignants & classes" },
+    { icon: Bell, text: "Notifications instantanées aux parents" },
+    { icon: ShieldCheck, text: "Historique complet & sécurité des données" },
   ];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-white text-gray-900 font-sans">
       {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Glow orbs */}
-        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-80px] left-[-80px] w-[300px] h-[300px] bg-violet-600/20 rounded-full blur-[100px] pointer-events-none" />
-        {/* Dot grid */}
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-blue-900 via-blue-950 to-slate-900 flex-col justify-between p-12 relative overflow-hidden text-white">
+        {/* Decorative elements */}
+        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-80px] left-[-80px] w-[300px] h-[300px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
         <div
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
@@ -111,23 +109,26 @@ export default function SignInPage() {
 
         {/* Logo */}
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <span className="text-white font-black text-lg">S</span>
+          <a href="/" className="inline-flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/30">
+              <span className="text-white font-bold text-xl">S</span>
             </div>
             <span className="text-white font-bold text-xl tracking-tight">SnapSchool</span>
-          </div>
+          </a>
         </div>
 
         {/* Center content */}
-        <div className="relative z-10 space-y-8">
+        <div className="relative z-10 space-y-8 my-auto py-12">
           <div>
-            <h2 className="text-4xl font-black text-white leading-tight tracking-tight mb-4">
-              Welcome back to<br />
-              <span className="text-indigo-400">your dashboard.</span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold mb-4">
+              <Building2 className="w-3.5 h-3.5" /> Espace de gestion
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight mb-4">
+              Bienvenue sur votre <br />
+              <span className="text-blue-400">tableau de bord.</span>
             </h2>
-            <p className="text-slate-400 text-base leading-relaxed">
-              Everything you need to run your school, all in one place.
+            <p className="text-blue-100/80 text-sm sm:text-base leading-relaxed">
+              Toutes les fonctionnalités pour gérer votre établissement privé en un seul endroit.
             </p>
           </div>
 
@@ -140,88 +141,84 @@ export default function SignInPage() {
                 transition={{ delay: 0.1 * i }}
                 className="flex items-center gap-3"
               >
-                <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-500/30 rounded-lg flex items-center justify-center shrink-0">
-                  <f.icon className="w-4 h-4 text-indigo-400" />
+                <div className="w-8 h-8 bg-blue-500/20 border border-blue-400/20 rounded-lg flex items-center justify-center shrink-0">
+                  <f.icon className="w-4 h-4 text-blue-300" />
                 </div>
-                <p className="text-slate-300 text-sm font-medium">{f.text}</p>
+                <p className="text-blue-100 text-sm font-medium">{f.text}</p>
               </motion.div>
             ))}
           </div>
-        </div>
 
-        {/* Testimonial */}
-        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-5">
-          <p className="text-slate-300 text-sm leading-relaxed italic mb-4">
-            &ldquo;SnapSchool transformed how we manage our 400-student school. What took hours now takes minutes.&rdquo;
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white font-bold text-xs">A</div>
-            <div>
-              <p className="text-white text-xs font-bold">Ahmed Ben Ali</p>
-              <p className="text-slate-500 text-xs">Director, Académie El Amal</p>
+          {/* Testimonial */}
+          <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5">
+            <p className="text-blue-50 text-sm leading-relaxed italic mb-3">
+              &ldquo;SnapSchool a simplifié notre gestion quotidienne. La génération des bulletins et le suivi des paiements se font désormais sans effort.&rdquo;
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">AS</div>
+              <div>
+                <p className="text-white text-xs font-bold">M. Ahmed S.</p>
+                <p className="text-blue-200 text-[11px]">Directeur, Académie Excellence</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Bottom */}
         <div className="relative z-10">
-          <p className="text-slate-600 text-xs">© 2025 SnapSchool. All rights reserved.</p>
+          <p className="text-blue-300/60 text-xs">© {new Date().getFullYear()} SnapSchool. Tous droits réservés.</p>
         </div>
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-6">
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-3 mb-8">
-          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-black">S</span>
-          </div>
-          <span className="font-bold text-slate-800 text-lg">SnapSchool</span>
+          <a href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">S</span>
+            </div>
+            <span className="font-bold text-gray-900 text-lg tracking-tight">SnapSchool</span>
+          </a>
         </div>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-100 shadow-xl"
         >
           {/* Heading */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
-              {mode === "signin" ? "Sign in to SnapSchool" : mode === "forgot" ? "Reset your password" : "Check your inbox"}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
+              {mode === "signin" ? "Connexion à votre compte" : mode === "forgot" ? "Réinitialiser le mot de passe" : "Vérifiez vos emails"}
             </h1>
-            <p className="text-sm text-slate-500 font-medium">
+            <p className="text-sm text-gray-500 font-normal">
               {mode === "signin"
-                ? "Enter your credentials to access your dashboard."
+                ? "Entrez vos identifiants pour accéder à votre espace."
                 : mode === "forgot"
-                ? "We'll send you a reset link right away."
-                : "A password reset link has been sent."}
+                ? "Saisissez votre adresse email pour recevoir un lien de réinitialisation."
+                : "Un lien de réinitialisation vous a été envoyé par email."}
             </p>
-          </div>
-
-          {/* Progress bar */}
-          <div className="flex items-center gap-2 mb-8">
-            <div className="h-1 flex-1 rounded-full bg-indigo-600" />
-            <div className={`h-1 flex-1 rounded-full transition-all ${mode !== "signin" ? "bg-indigo-600" : "bg-slate-200"}`} />
           </div>
 
           {/* ── Sign In ── */}
           {mode === "signin" && (
-            <motion.form key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleSignIn} className="space-y-5">
+            <motion.form key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleSignIn} className="space-y-4">
               {error && (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   {error}
                 </div>
               )}
 
               <div>
-                <label className={labelClass}>Email Address</label>
+                <label className={labelClass}>Adresse Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     required
                     type="email"
-                    placeholder="john@school.com"
+                    placeholder="directeur@ecole.tn"
                     className={`${inputClass} pl-10`}
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -231,17 +228,17 @@ export default function SignInPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className={`${labelClass} mb-0`}>Password</label>
+                  <label className={`${labelClass} mb-0`}>Mot de passe</label>
                   <button
                     type="button"
                     onClick={() => { setMode("forgot"); setError(""); }}
-                    className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 transition-colors"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                   >
-                    Forgot password?
+                    Mot de passe oublié ?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     required
                     type="password"
@@ -256,39 +253,41 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-indigo-200"
+                className="w-full py-3.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-md shadow-blue-600/20"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>Sign In <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" /></>
+                  <>Se connecter <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" /></>
                 )}
               </button>
 
-              <p className="text-center text-sm text-slate-500">
-                Don&apos;t have an account?{" "}
-                <a href="/sign-up" className="text-indigo-600 font-semibold hover:underline">Create one</a>
-              </p>
+              <div className="pt-2 text-center text-sm text-gray-500">
+                Vous n&apos;avez pas encore de compte ?{" "}
+                <a href="/sign-up" className="text-blue-600 font-semibold hover:underline">
+                  Créer un compte
+                </a>
+              </div>
             </motion.form>
           )}
 
           {/* ── Forgot Password ── */}
           {mode === "forgot" && (
-            <motion.form key="forgot" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} onSubmit={handleForgotPassword} className="space-y-5">
+            <motion.form key="forgot" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} onSubmit={handleForgotPassword} className="space-y-4">
               {error && (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   {error}
                 </div>
               )}
               <div>
-                <label className={labelClass}>Your Email Address</label>
+                <label className={labelClass}>Votre Adresse Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     required
                     type="email"
-                    placeholder="john@school.com"
+                    placeholder="directeur@ecole.tn"
                     className={`${inputClass} pl-10`}
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
@@ -299,39 +298,39 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-lg shadow-indigo-200"
+                className="w-full py-3.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-md shadow-blue-600/20"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Send Reset Link <ArrowRight className="w-4 h-4" /></>}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Envoyer le lien <ArrowRight className="w-4 h-4" /></>}
               </button>
 
               <button
                 type="button"
                 onClick={() => { setMode("signin"); setError(""); }}
-                className="block w-full text-center text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors"
+                className="block w-full text-center text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors pt-2"
               >
-                ← Back to Sign In
+                ← Retour à la connexion
               </button>
             </motion.form>
           )}
 
           {/* ── Sent Confirmation ── */}
           {mode === "forgot_sent" && (
-            <motion.div key="sent" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-5">
-              <div className="w-16 h-16 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8" />
+            <motion.div key="sent" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-5 py-4">
+              <div className="w-14 h-14 bg-green-50 border border-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-slate-800 mb-1">Email sent!</h2>
-                <p className="text-sm text-slate-500 font-medium">
-                  We sent a reset link to <span className="font-bold text-slate-700">{forgotEmail}</span>. Check your inbox.
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Email envoyé !</h2>
+                <p className="text-sm text-gray-500 font-normal">
+                  Un lien de réinitialisation a été envoyé à <span className="font-semibold text-gray-800">{forgotEmail}</span>.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => { setMode("signin"); setError(""); }}
-                className="w-full py-3.5 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-200 transition-all"
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-200 transition-all"
               >
-                Back to Sign In
+                Retour à la connexion
               </button>
             </motion.div>
           )}
