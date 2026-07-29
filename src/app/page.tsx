@@ -170,6 +170,17 @@ const Navbar = ({
     { label: "FAQ", href: "#faq" },
   ];
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const targetId = href.replace("#", "");
+    const elem = document.getElementById(targetId);
+    if (elem) {
+      const yOffset = -70;
+      const y = elem.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -197,7 +208,8 @@ const Navbar = ({
               <a
                 key={l.href}
                 href={l.href}
-                className="text-[13px] font-medium text-gray-500 hover:text-blue-600 transition-colors"
+                onClick={(e) => handleNavClick(e, l.href)}
+                className="text-[13px] font-medium text-gray-500 hover:text-blue-600 transition-colors cursor-pointer"
               >
                 {l.label}
               </a>
@@ -252,8 +264,11 @@ const Navbar = ({
                   <a
                     key={l.href}
                     href={l.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="block text-sm font-medium text-gray-700 hover:text-blue-600 py-2"
+                    onClick={(e) => {
+                      setMobileOpen(false);
+                      handleNavClick(e, l.href);
+                    }}
+                    className="block text-sm font-medium text-gray-700 hover:text-blue-600 py-2 cursor-pointer"
                   >
                     {l.label}
                   </a>
@@ -1307,10 +1322,29 @@ export default function Homepage() {
             <div>
               <h4 className="font-semibold text-white mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-2.5">
-                <li><a href="#fonctionnalites" className="hover:text-white transition-colors">Fonctionnalités</a></li>
-                <li><a href="#etapes" className="hover:text-white transition-colors">Comment ça marche</a></li>
-                <li><a href="#parents" className="hover:text-white transition-colors">Application parents</a></li>
-                <li><a href="#tarifs" className="hover:text-white transition-colors">Tarifs</a></li>
+                {[
+                  { label: "Fonctionnalités", href: "#fonctionnalites" },
+                  { label: "Comment ça marche", href: "#etapes" },
+                  { label: "Application parents", href: "#parents" },
+                  { label: "Tarifs", href: "#tarifs" },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const elem = document.getElementById(item.href.replace("#", ""));
+                        if (elem) {
+                          const y = elem.getBoundingClientRect().top + window.pageYOffset - 70;
+                          window.scrollTo({ top: y, behavior: "smooth" });
+                        }
+                      }}
+                      className="hover:text-white transition-colors cursor-pointer"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
@@ -1318,7 +1352,22 @@ export default function Homepage() {
               <ul className="space-y-2.5">
                 <li><Link href="/sign-in" className="hover:text-white transition-colors">Connexion</Link></li>
                 <li><Link href="/sign-up" className="hover:text-white transition-colors">Inscription</Link></li>
-                <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
+                <li>
+                  <a
+                    href="#faq"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const elem = document.getElementById("faq");
+                      if (elem) {
+                        const y = elem.getBoundingClientRect().top + window.pageYOffset - 70;
+                        window.scrollTo({ top: y, behavior: "smooth" });
+                      }
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    FAQ
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
