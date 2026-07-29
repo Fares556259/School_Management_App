@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView, AnimatePresence } from "framer-motion";
@@ -53,6 +53,16 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
 };
 
+const fadeLeft = {
+  hidden: { opacity: 0, x: -40 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
+};
+
+const fadeRight = {
+  hidden: { opacity: 0, x: 40 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
+};
+
 const fadeIn = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.5 } },
@@ -61,6 +71,11 @@ const fadeIn = {
 const stagger = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const staggerFast = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
 };
 
 const scaleIn = {
@@ -97,6 +112,35 @@ function Section({
       {children}
     </motion.div>
   );
+}
+
+/* ─────────── ANIMATED COUNTER ─────────── */
+function CountUp({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const hasRun = useRef(false);
+
+  useEffect(() => {
+    if (!inView || hasRun.current) return;
+    hasRun.current = true;
+    const duration = 1500;
+    const steps = 40;
+    const increment = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [inView, target]);
+
+  return <span ref={ref}>{prefix}{count}{suffix}</span>;
 }
 
 /* ─────────── NAVBAR ─────────── */
@@ -423,30 +467,132 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ TRUST BAR ═══════════ */}
-      <Section className="py-14 border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ═══════════ TRUST BAR (animated counters) ═══════════ */}
+      <section className="py-16 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-8"
+            className="grid grid-cols-2 md:grid-cols-4 gap-10"
             variants={stagger}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
             {[
-              { value: "99.9%", label: "Disponibilité garantie" },
-              { value: "10x", label: "Saisie plus rapide" },
-              { value: "< 1s", label: "Alertes aux parents" },
-              { value: "100%", label: "Adapté écoles privées" },
+              { value: <><CountUp target={99} suffix=".9%" /></>, label: "Disponibilité garantie", icon: Zap },
+              { value: <><CountUp target={10} suffix="x" /></>, label: "Saisie plus rapide", icon: Clock },
+              { value: <>{'<'} 1s</>, label: "Alertes aux parents", icon: Bell },
+              { value: <><CountUp target={100} suffix="%" /></>, label: "Adapté écoles privées", icon: CheckCircle2 },
             ].map((s, i) => (
-              <motion.div key={i} variants={fadeUp} className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-blue-600">{s.value}</div>
-                <div className="text-sm text-gray-500 mt-1 font-medium">{s.label}</div>
+              <motion.div key={i} variants={fadeUp} className="text-center group">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition-colors">
+                  <s.icon className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="text-3xl sm:text-4xl font-bold text-gray-900">{s.value}</div>
+                <div className="text-sm text-gray-500 mt-1.5 font-medium">{s.label}</div>
               </motion.div>
             ))}
           </motion.div>
         </div>
-      </Section>
+      </section>
+
+      {/* ═══════════ AVANT / APRÈS ═══════════ */}
+      <section className="py-20 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Section>
+            <div className="max-w-2xl mx-auto text-center mb-14">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold mb-4">
+                <ArrowRight className="w-3.5 h-3.5" /> Avant / Après
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+                Oubliez les méthodes anciennes
+              </h2>
+              <p className="text-gray-500 text-base sm:text-lg">
+                Découvrez la différence entre la gestion traditionnelle et SnapSchool.
+              </p>
+            </div>
+          </Section>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {/* AVANT */}
+            <Section>
+              <motion.div
+                whileHover={{ scale: 0.98 }}
+                className="bg-red-50/50 border border-red-100 rounded-2xl p-7 h-full"
+              >
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold mb-6">
+                  <X className="w-3 h-3" /> Méthode traditionnelle
+                </div>
+                <ul className="space-y-4">
+                  {[
+                    { text: "Registres papier pour l'appel et les absences", detail: "Risque de perte, impossible à partager avec les parents" },
+                    { text: "Notes calculées manuellement sur Excel", detail: "Erreurs de formule, fichiers non synchronisés entre collègues" },
+                    { text: "Paiements suivis dans un cahier", detail: "Aucune vue d'ensemble, retards non détectés" },
+                    { text: "Emploi du temps sur tableau blanc", detail: "Conflits de salles fréquents, mise à jour difficile" },
+                    { text: "Communication par carnets de liaison", detail: "Messages perdus, pas de confirmation de lecture" },
+                    { text: "Bulletins rédigés un par un", detail: "Plusieurs jours de travail chaque trimestre" },
+                  ].map((item, i) => (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <X className="w-3 h-3 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{item.text}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{item.detail}</p>
+                      </div>
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+            </Section>
+
+            {/* APRÈS */}
+            <Section delay={0.15}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-7 h-full"
+              >
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold mb-6">
+                  <CheckCircle2 className="w-3 h-3" /> Avec SnapSchool
+                </div>
+                <ul className="space-y-4">
+                  {[
+                    { text: "Appel numérique en un clic", detail: "Parents notifiés instantanément, statistiques en temps réel" },
+                    { text: "Moyennes calculées automatiquement", detail: "Devoirs de contrôle, synthèse, coefficients — tout est intégré" },
+                    { text: "Suivi financier complet en ligne", detail: "Tranches, retards, reçus et graphiques en un seul écran" },
+                    { text: "Emploi du temps intelligent", detail: "Détection automatique des conflits, modification instantanée" },
+                    { text: "Notifications push instantanées", detail: "Absences, notes, annonces — les parents sont informés en temps réel" },
+                    { text: "Bulletins PDF générés en 1 clic", detail: "Conformes au format officiel tunisien, prêts à imprimer" },
+                  ].map((item, i) => (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: 10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{item.text}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{item.detail}</p>
+                      </div>
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+            </Section>
+          </div>
+        </div>
+      </section>
 
       {/* ═══════════ FONCTIONNALITÉS (9 cards) ═══════════ */}
       <section id="fonctionnalites" className="py-20 sm:py-28">
@@ -617,6 +763,117 @@ export default function Homepage() {
               </motion.div>
             ))}
           </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════ SYSTÈME TUNISIEN ═══════════ */}
+      <section className="py-20 sm:py-28 bg-gradient-to-b from-blue-50/50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+            <Section className="flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-4">
+                <Globe className="w-3.5 h-3.5" /> Adapté à la Tunisie
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+                Conçu pour le système éducatif tunisien
+              </h2>
+              <p className="text-gray-500 text-base leading-relaxed mb-8">
+                Contrairement aux solutions génériques, SnapSchool est pensé dès le départ pour les spécificités des écoles privées en Tunisie : structure en trimestres, types de devoirs, coefficients par matière et bulletins conformes.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { title: "Trimestres", desc: "Année scolaire découpée en 3 trimestres avec moyennes séparées et moyenne générale annuelle.", icon: Calendar },
+                  { title: "DC et DS", desc: "Distinction entre devoirs de contrôle (DC) et devoirs de synthèse (DS) pour chaque matière.", icon: FileText },
+                  { title: "Coefficients", desc: "Chaque matière a son coefficient personnalisable pour un calcul précis des moyennes.", icon: BarChart3 },
+                  { title: "Bulletins officiels", desc: "Génération de bulletins PDF conformes au format utilisé dans les établissements tunisiens.", icon: Award },
+                  { title: "Bilingue FR/AR", desc: "Interface et bulletins disponibles en français et en arabe pour l'ensemble des utilisateurs.", icon: Globe },
+                  { title: "Vacances scolaires", desc: "Calendrier intégrant les vacances et jours fériés officiels du ministère de l'éducation.", icon: Calendar },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex gap-3 items-start p-3 rounded-xl hover:bg-white hover:shadow-sm transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                      <item.icon className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </Section>
+
+            <Section className="flex-1 w-full" delay={0.15}>
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden"
+              >
+                {/* Bulletin preview mockup */}
+                <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-gray-700">Bulletin Trimestriel — Trimestre 1</span>
+                </div>
+                <div className="p-5 space-y-3">
+                  {/* Header */}
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Matière</span>
+                    <div className="flex gap-6">
+                      <span>DC</span><span>DS</span><span>Coef.</span><span>Moy.</span>
+                    </div>
+                  </div>
+                  {[
+                    { matiere: "Mathématiques", dc: "14", ds: "16", coef: "4", moy: "15.3" },
+                    { matiere: "Français", dc: "12", ds: "15", coef: "3", moy: "14.0" },
+                    { matiere: "Arabe", dc: "16", ds: "17", coef: "3", moy: "16.7" },
+                    { matiere: "Sciences", dc: "13", ds: "14", coef: "2", moy: "13.7" },
+                    { matiere: "Anglais", dc: "15", ds: "16", coef: "2", moy: "15.7" },
+                  ].map((row, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 + i * 0.08 }}
+                      className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0"
+                    >
+                      <span className="text-sm font-medium text-gray-800">{row.matiere}</span>
+                      <div className="flex gap-6 text-sm">
+                        <span className="text-gray-600 w-6 text-center">{row.dc}</span>
+                        <span className="text-gray-600 w-6 text-center">{row.ds}</span>
+                        <span className="text-gray-400 w-6 text-center">{row.coef}</span>
+                        <span className="font-semibold text-blue-600 w-10 text-center">{row.moy}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                    <span className="text-sm font-bold text-gray-900">Moyenne Générale</span>
+                    <span className="text-lg font-bold text-blue-600">15.12 / 20</span>
+                  </div>
+                  <div className="flex gap-4 pt-2">
+                    <div className="flex-1 bg-blue-50 rounded-lg p-2.5 text-center">
+                      <div className="text-xs text-gray-500">Rang</div>
+                      <div className="text-sm font-bold text-gray-900">3ème / 32</div>
+                    </div>
+                    <div className="flex-1 bg-emerald-50 rounded-lg p-2.5 text-center">
+                      <div className="text-xs text-gray-500">Mention</div>
+                      <div className="text-sm font-bold text-emerald-600">Bien</div>
+                    </div>
+                    <div className="flex-1 bg-purple-50 rounded-lg p-2.5 text-center">
+                      <div className="text-xs text-gray-500">Décision</div>
+                      <div className="text-sm font-bold text-purple-600">Admis</div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </Section>
+          </div>
         </div>
       </section>
 
@@ -817,6 +1074,129 @@ export default function Homepage() {
                 >
                   {plan.btnText}
                 </button>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════ TÉMOIGNAGES ═══════════ */}
+      <section className="py-20 sm:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Section>
+            <div className="max-w-2xl mx-auto text-center mb-14">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold mb-4">
+                <Award className="w-3.5 h-3.5" /> Témoignages
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+                Ils nous font confiance
+              </h2>
+              <p className="text-gray-500 text-base sm:text-lg">
+                Des directeurs d&apos;écoles et responsables pédagogiques partagent leur expérience.
+              </p>
+            </div>
+          </Section>
+
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            variants={stagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              {
+                quote: "Avant SnapSchool, on passait deux semaines à préparer les bulletins chaque trimestre. Maintenant, c'est fait en un clic. Les parents sont ravis de recevoir les notes en temps réel.",
+                name: "Mme Khadija B.",
+                role: "Directrice, École Privée Al-Irfane",
+                initials: "KB",
+                color: "bg-blue-600",
+              },
+              {
+                quote: "Le suivi des paiements était un cauchemar avec les cahiers. Avec SnapSchool, je vois en un instant qui a payé, qui est en retard, et le total de la caisse. C'est un vrai gain de temps.",
+                name: "M. Ahmed S.",
+                role: "Fondateur, Académie Excellence",
+                initials: "AS",
+                color: "bg-purple-600",
+              },
+              {
+                quote: "Les enseignants ont adopté la plateforme en deux jours. L'appel et la saisie des notes sont devenus tellement simples que personne ne veut revenir aux anciens registres.",
+                name: "Mme Sonia M.",
+                role: "Responsable pédagogique, Collège Riviera",
+                initials: "SM",
+                color: "bg-emerald-600",
+              },
+            ].map((t, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-2xl border border-gray-100 p-7 hover:shadow-md transition-all flex flex-col"
+              >
+                <div className="flex gap-1 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg key={star} className="w-4 h-4 text-amber-400 fill-amber-400" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed flex-1 mb-6">&ldquo;{t.quote}&rdquo;</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
+                  <div className={`w-10 h-10 rounded-full ${t.color} flex items-center justify-center text-white text-sm font-bold`}>
+                    {t.initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ═══════════ SÉCURITÉ & TECHNOLOGIE ═══════════ */}
+      <section className="py-20 sm:py-28 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Section>
+            <div className="max-w-2xl mx-auto text-center mb-14">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold mb-4">
+                <Lock className="w-3.5 h-3.5" /> Sécurité & Fiabilité
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">
+                Vos données sont en sécurité
+              </h2>
+              <p className="text-gray-500 text-base sm:text-lg">
+                Une infrastructure fiable et sécurisée pour protéger les données de votre établissement.
+              </p>
+            </div>
+          </Section>
+
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+            variants={staggerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: Lock, title: "Chiffrement SSL", desc: "Toutes les données sont chiffrées en transit et au repos." },
+              { icon: Database, title: "Sauvegardes quotidiennes", desc: "Vos données sont sauvegardées automatiquement chaque jour." },
+              { icon: ShieldCheck, title: "Journal d'audit", desc: "Chaque action est traçable : qui, quand, quoi." },
+              { icon: Users, title: "Rôles et permissions", desc: "Accès contrôlé par rôle : admin, enseignant, parent." },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                whileHover={{ y: -3 }}
+                className="bg-white rounded-xl border border-gray-100 p-5 text-center hover:shadow-sm transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <item.icon className="w-5 h-5 text-gray-700" />
+                </div>
+                <h4 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
           </motion.div>
