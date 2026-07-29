@@ -120,7 +120,7 @@ export default function SignUpPage() {
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12 lg:p-16 overflow-y-auto">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-3 mb-6">
           <Link href="/" className="flex items-center gap-2.5">
@@ -134,94 +134,94 @@ export default function SignUpPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-100 shadow-xl"
+          className="w-full max-w-xl bg-white p-8 sm:p-12 rounded-3xl border border-gray-100 shadow-xl"
         >
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
               Créer un compte
             </h1>
-            <p className="text-sm text-gray-500 font-normal">
+            <p className="text-base text-gray-500 font-normal">
               Démarrez votre essai gratuit de 14 jours pour votre établissement.
             </p>
           </div>
 
           {error && (
-            <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-start gap-3 text-sm font-medium">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Prénom</label>
+                <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Prénom</label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     name="name"
                     required
                     placeholder="Mohamed"
-                    className={`${inputClass} pl-10`}
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className={labelClass}>Nom</label>
+                <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Nom</label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     name="surname"
                     required
                     placeholder="Ben Ali"
-                    className={`${inputClass} pl-10`}
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className={labelClass}>Nom de l&apos;établissement</label>
+              <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Nom de l&apos;établissement</label>
               <div className="relative">
-                <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   name="schoolName"
                   required
                   placeholder="École Privée Al-Amal"
-                  className={`${inputClass} pl-10`}
+                  className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className={labelClass}>Adresse Email</label>
+              <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Adresse Email</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   name="email"
                   required
                   placeholder="directeur@ecole.tn"
-                  className={`${inputClass} pl-10`}
+                  className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className={labelClass}>Mot de passe</label>
+              <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Mot de passe</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="password"
                   name="password"
                   required
                   minLength={6}
                   placeholder="••••••••"
-                  className={`${inputClass} pl-10`}
+                  className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                 />
               </div>
             </div>
@@ -229,20 +229,20 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-md shadow-blue-600/20 mt-2"
+              className="w-full py-4 bg-blue-600 text-white font-semibold text-base rounded-2xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-blue-600/25 mt-3"
             >
               {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
                   Créer mon espace
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="pt-4 text-center text-sm text-gray-500">
+          <div className="pt-6 text-center text-sm text-gray-500 font-medium">
             Vous avez déjà un compte ?{" "}
             <Link href="/sign-in" className="text-blue-600 font-semibold hover:underline">
               Se connecter

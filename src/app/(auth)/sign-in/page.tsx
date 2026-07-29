@@ -171,7 +171,7 @@ export default function SignInPage() {
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12">
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12 lg:p-16">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-3 mb-8">
           <a href="/" className="flex items-center gap-2.5">
@@ -185,16 +185,16 @@ export default function SignInPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-100 shadow-xl"
+          className="w-full max-w-xl bg-white p-8 sm:p-12 rounded-3xl border border-gray-100 shadow-xl"
         >
           {/* Heading */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
               {mode === "signin" ? "Connexion à votre compte" : mode === "forgot" ? "Réinitialiser le mot de passe" : "Vérifiez vos emails"}
             </h1>
-            <p className="text-sm text-gray-500 font-normal">
+            <p className="text-base text-gray-500 font-normal">
               {mode === "signin"
-                ? "Entrez vos identifiants pour accéder à votre espace."
+                ? "Entrez vos identifiants pour accéder à votre espace d'administration."
                 : mode === "forgot"
                 ? "Saisissez votre adresse email pour recevoir un lien de réinitialisation."
                 : "Un lien de réinitialisation vous a été envoyé par email."}
@@ -203,23 +203,23 @@ export default function SignInPage() {
 
           {/* ── Sign In ── */}
           {mode === "signin" && (
-            <motion.form key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleSignIn} className="space-y-4">
+            <motion.form key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleSignIn} className="space-y-6">
               {error && (
-                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-start gap-3 text-sm font-medium">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   {error}
                 </div>
               )}
 
               <div>
-                <label className={labelClass}>Adresse Email</label>
+                <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Adresse Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     required
                     type="email"
                     placeholder="directeur@ecole.tn"
-                    className={`${inputClass} pl-10`}
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
@@ -227,8 +227,8 @@ export default function SignInPage() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className={`${labelClass} mb-0`}>Mot de passe</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Mot de passe</label>
                   <button
                     type="button"
                     onClick={() => { setMode("forgot"); setError(""); }}
@@ -238,12 +238,12 @@ export default function SignInPage() {
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     required
                     type="password"
                     placeholder="••••••••"
-                    className={`${inputClass} pl-10`}
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
@@ -253,12 +253,12 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-md shadow-blue-600/20"
+                className="w-full py-4 bg-blue-600 text-white font-semibold text-base rounded-2xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-blue-600/25"
               >
                 {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <>Se connecter <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" /></>
+                  <>Se connecter <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /></>
                 )}
               </button>
 
