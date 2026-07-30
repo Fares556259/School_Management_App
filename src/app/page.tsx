@@ -45,6 +45,7 @@ import {
   Database,
   Globe,
   MonitorSmartphone,
+  ChevronDown,
 } from "lucide-react";
 
 /* ─────────── ANIMATION HELPERS ─────────── */
@@ -466,168 +467,203 @@ export default function Homepage() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-slate-900 p-3 sm:p-5 text-left text-xs font-sans select-none">
-                  {/* Mock Dashboard Shell */}
-                  <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
-                    {/* Mock App Header */}
-                    <div className="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-xs">S</div>
-                        <span className="font-bold text-white text-sm hidden sm:inline">SnapSchool Admin</span>
-                      </div>
-                      <div className="flex-1 max-w-xs hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1 text-slate-400 text-xs">
-                        <UserCheck className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Rechercher un élève, classe, prof...</span>
+                <div className="bg-slate-100 p-2 sm:p-4 text-left text-xs font-sans select-none overflow-hidden">
+                  {/* Mock Dashboard Shell matching real app */}
+                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xl flex flex-col">
+                    
+                    {/* Top App Header Bar */}
+                    <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-slate-800 text-base tracking-tight">Admin</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full text-blue-400 text-[11px] font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                          <span>Année 2025 - 2026</span>
+                        <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs">
+                          <Bell className="w-3.5 h-3.5 text-slate-600" />
                         </div>
-                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
-                          AD
+                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium bg-slate-50">
+                          <span>🇫🇷 Français</span>
+                          <ChevronDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-medium">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                            A
+                          </div>
+                          <span className="text-red-500 font-semibold cursor-pointer hidden sm:inline">Déconnexion</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Mock App Body */}
-                    <div className="flex min-h-[380px] sm:min-h-[440px]">
-                      {/* Mock Sidebar */}
-                      <div className="w-44 bg-slate-900/50 border-r border-slate-800/80 p-3 hidden sm:flex flex-col gap-1 text-slate-400 text-xs">
-                        <div className="px-2 py-1.5 font-bold text-slate-500 uppercase text-[10px] tracking-wider">Navigation</div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white font-medium">
-                          <LayoutDashboard className="w-3.5 h-3.5" />
-                          <span>Tableau de bord</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
-                          <Users className="w-3.5 h-3.5" />
-                          <span>Élèves</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
-                          <GraduationCap className="w-3.5 h-3.5" />
-                          <span>Enseignants</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
-                          <ClipboardList className="w-3.5 h-3.5" />
-                          <span>Absences</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Bulletins & Notes</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
-                          <CreditCard className="w-3.5 h-3.5" />
-                          <span>Finances</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>Emploi du temps</span>
+                    {/* App Main Body (Sidebar + Content) */}
+                    <div className="flex min-h-[440px] sm:min-h-[500px]">
+                      {/* Left Navigation Sidebar matching exact app sidebar */}
+                      <div className="w-48 bg-[#1e293b] text-slate-300 p-3 hidden md:flex flex-col justify-between shrink-0 text-xs">
+                        <div className="space-y-4">
+                          {/* User badge */}
+                          <div className="flex items-center justify-between bg-slate-800/80 rounded-lg p-2 border border-slate-700/60">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <div className="w-6 h-6 rounded bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-[10px] shrink-0">FM</div>
+                              <span className="font-medium text-white truncate text-[11px]">bringbringa1...</span>
+                            </div>
+                            <span className="text-slate-400 text-[10px]">«</span>
+                          </div>
+
+                          {/* MAIN */}
+                          <div>
+                            <div className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">MAIN</div>
+                            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold">
+                              <LayoutDashboard className="w-4 h-4" />
+                              <span>Accueil</span>
+                            </div>
+                          </div>
+
+                          {/* ACADEMICS */}
+                          <div>
+                            <div className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">ACADÉMIQUE</div>
+                            <div className="space-y-0.5 text-slate-400">
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <Calendar className="w-3.5 h-3.5" /> <span>Emploi du temps</span>
+                              </div>
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <FileText className="w-3.5 h-3.5" /> <span>Examens</span>
+                              </div>
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <Zap className="w-3.5 h-3.5 text-amber-400" /> <span>Générateur AI</span>
+                              </div>
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <Building2 className="w-3.5 h-3.5" /> <span>Classes</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* PEOPLE */}
+                          <div>
+                            <div className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">COMMUNAUTÉ</div>
+                            <div className="space-y-0.5 text-slate-400">
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <Users className="w-3.5 h-3.5" /> <span>Élèves</span>
+                              </div>
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <Smartphone className="w-3.5 h-3.5" /> <span>Parents</span>
+                              </div>
+                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
+                                <GraduationCap className="w-3.5 h-3.5" /> <span>Enseignants</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Mock Content */}
-                      <div className="flex-1 p-4 sm:p-5 bg-slate-950 space-y-4 overflow-hidden">
-                        {/* Welcome Banner */}
-                        <div className="flex items-center justify-between bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/20 rounded-xl p-3.5">
+                      {/* Right Main Dashboard Content Area */}
+                      <div className="flex-1 p-4 sm:p-6 bg-slate-50/60 space-y-5 overflow-hidden relative">
+
+                        {/* Title & Action Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div>
-                            <h4 className="font-bold text-white text-sm">Tableau de bord Direction</h4>
-                            <p className="text-slate-400 text-[11px] mt-0.5">École Privée Excellence — Trimestre 1</p>
+                            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Centre de Commandement</h2>
+                            <p className="text-xs text-slate-500">Supervision financière & opérationnelle en temps réel</p>
                           </div>
-                          <div className="flex gap-2">
-                            <span className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-[11px] font-semibold">
-                              + Nouveau bulletin
-                            </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs font-semibold hover:bg-slate-50 flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-slate-500" /> Exporter
+                            </button>
+                            <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs font-semibold hover:bg-slate-50 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-500" /> Période <ChevronDown className="w-3 h-3 text-slate-400" />
+                            </button>
+                            <button className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 flex items-center gap-1">
+                              + Ajouter Recette
+                            </button>
+                            <button className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-50 flex items-center gap-1">
+                              $ Ajouter Dépense
+                            </button>
                           </div>
                         </div>
 
-                        {/* 4 Stat Cards */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {/* 5 Financial Metric Cards */}
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                           {[
-                            { label: "Élèves inscrits", val: "485", change: "+12%", icon: Users, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-                            { label: "Enseignants", val: "38", change: "100% actifs", icon: GraduationCap, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
-                            { label: "Taux de présence", val: "96.8%", change: "Dernier mois", icon: CheckCircle2, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-                            { label: "Recouvrement", val: "94%", change: "Paiements à jour", icon: CreditCard, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-                          ].map((st, i) => (
-                            <div key={i} className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-[11px] text-slate-400 font-medium">{st.label}</span>
-                                <div className={`w-6 h-6 rounded-lg border flex items-center justify-center ${st.color}`}>
-                                  <st.icon className="w-3.5 h-3.5" />
-                                </div>
+                            { label: "Solde Net", val: "38 450 DT", badge: "↑ +14%", color: "bg-emerald-100 text-emerald-700" },
+                            { label: "Recettes Totales", val: "52 100 DT", badge: "↑ +12%", color: "bg-emerald-100 text-emerald-700" },
+                            { label: "Dépenses Totales", val: "13 650 DT", badge: "↑ +3%", color: "bg-rose-100 text-rose-700" },
+                            { label: "Marge de Profit", val: "73.8%", badge: "↑ +5%", color: "bg-emerald-100 text-emerald-700" },
+                            { label: "Reste à Recouvrer", val: "2 400 DT", badge: "↓ -8%", color: "bg-amber-100 text-amber-700" },
+                          ].map((card, i) => (
+                            <div key={i} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[11px] font-semibold text-slate-500">{card.label}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${card.color}`}>{card.badge}</span>
                               </div>
-                              <div className="text-lg font-bold text-white">{st.val}</div>
-                              <span className="text-[10px] text-emerald-400 font-semibold">{st.change}</span>
+                              <div className="text-base font-bold text-slate-900">{card.val}</div>
+                              <span className="text-[10px] text-slate-400">vs période précédente</span>
                             </div>
                           ))}
                         </div>
 
-                        {/* 2 Column Main Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {/* Financial & Attendance Mini Chart Card */}
-                          <div className="md:col-span-2 bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-semibold text-white text-xs flex items-center gap-1.5">
-                                <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
-                                Aperçu Financier & Présences
-                              </span>
-                              <span className="text-[10px] text-slate-400">Septembre - Janvier</span>
-                            </div>
-
-                            {/* Mini Chart Bars */}
-                            <div className="h-28 flex items-end justify-between gap-2 pt-2 px-2 border-b border-slate-800/80 pb-2">
-                              {[
-                                { m: "Sept", h: "60%", h2: "85%" },
-                                { m: "Oct", h: "75%", h2: "90%" },
-                                { m: "Nov", h: "80%", h2: "94%" },
-                                { m: "Déc", h: "92%", h2: "96%" },
-                                { m: "Janv", h: "95%", h2: "97%" },
-                              ].map((bar, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                                  <div className="w-full flex items-end justify-center gap-1 h-20">
-                                    <div className="w-2.5 bg-blue-600 rounded-t-sm" style={{ height: bar.h }} />
-                                    <div className="w-2.5 bg-emerald-500/80 rounded-t-sm" style={{ height: bar.h2 }} />
+                        {/* OPERATIONAL SNAPSHOT */}
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">APERÇU OPÉRATIONNEL</div>
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            {[
+                              { label: "Élèves Inscrits", val: "485", icon: GraduationCap, bg: "bg-blue-50 text-blue-600" },
+                              { label: "Enseignants Actifs", val: "38", icon: Users, bg: "bg-purple-50 text-purple-600" },
+                              { label: "Personnel de Soutien", val: "12", icon: Users, bg: "bg-indigo-50 text-indigo-600" },
+                              { label: "Classes Actives", val: "14", icon: Building2, bg: "bg-emerald-50 text-emerald-600" },
+                            ].map((op, i) => (
+                              <div key={i} className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${op.bg}`}>
+                                    <op.icon className="w-5 h-5" />
                                   </div>
-                                  <span className="text-[10px] text-slate-400">{bar.m}</span>
+                                  <div>
+                                    <div className="text-lg font-bold text-slate-900 leading-none mb-1">{op.val}</div>
+                                    <div className="text-[11px] text-slate-500 font-medium">{op.label}</div>
+                                  </div>
                                 </div>
-                              ))}
-                            </div>
-                            <div className="flex gap-4 mt-2.5 text-[10px] text-slate-400">
-                              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-600" /> Recouvrement (DT)</span>
-                              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Assiduité (%)</span>
-                            </div>
-                          </div>
-
-                          {/* Live Activity Feed */}
-                          <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
-                            <div>
-                              <div className="flex items-center justify-between mb-3">
-                                <span className="font-semibold text-white text-xs flex items-center gap-1.5">
-                                  <Bell className="w-3.5 h-3.5 text-purple-400" />
-                                  Activité récente
-                                </span>
+                                <ChevronRight className="w-4 h-4 text-slate-300" />
                               </div>
-                              <div className="space-y-2 text-[11px]">
-                                <div className="flex items-start gap-2 text-slate-300">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 shrink-0" />
-                                  <span>Notes saisies — 6ème A (Maths)</span>
-                                </div>
-                                <div className="flex items-start gap-2 text-slate-300">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 shrink-0" />
-                                  <span>Absence signalée — Y. Ben Ammar</span>
-                                </div>
-                                <div className="flex items-start gap-2 text-slate-300">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1 shrink-0" />
-                                  <span>Paiement reçu — 350 DT (Tranche 2)</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-blue-400 font-semibold cursor-pointer">
-                              <span>Voir tout l&apos;historique</span>
-                              <ChevronRight className="w-3 h-3" />
-                            </div>
+                            ))}
                           </div>
                         </div>
+
+                        {/* Growth Analytics Card */}
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <div>
+                              <h3 className="font-bold text-slate-900 text-sm">Analyse de Croissance</h3>
+                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">PERFORMANCE SUR 12 MOIS + PROJECTION IA</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg text-[11px] font-semibold text-slate-600">
+                              <span className="px-2 py-0.5 rounded bg-white shadow-xs text-slate-900">TOUT</span>
+                              <span className="px-2 py-0.5 hover:text-slate-900 cursor-pointer">RECETTES</span>
+                              <span className="px-2 py-0.5 hover:text-slate-900 cursor-pointer">DÉPENSES</span>
+                              <span className="px-2 py-0.5 hover:text-slate-900 cursor-pointer">PROFIT</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-6 text-xs font-semibold mb-3">
+                            <span className="flex items-center gap-1.5 text-slate-700"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Recettes: 52 100 DT</span>
+                            <span className="flex items-center gap-1.5 text-slate-700"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Dépenses: 13 650 DT</span>
+                            <span className="flex items-center gap-1.5 text-slate-700"><span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Profit Net: 38 450 DT</span>
+                          </div>
+
+                          {/* Graph bars representation */}
+                          <div className="h-24 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
+                            {[40, 55, 65, 75, 85, 90, 95, 88, 92, 98, 100, 105].map((h, i) => (
+                              <div key={i} className="flex-1 flex items-end gap-0.5 h-full">
+                                <div className="w-full bg-emerald-500 rounded-t-xs" style={{ height: `${h * 0.7}%` }} />
+                                <div className="w-full bg-rose-400/80 rounded-t-xs" style={{ height: `${h * 0.25}%` }} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Floating Snap Assistant AI Avatar Widget */}
+                        <div className="absolute bottom-4 right-4 bg-white border border-blue-200 rounded-full p-2 shadow-xl flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform">
+                          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                            🤖
+                          </div>
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 border-2 border-white" />
+                        </div>
+
                       </div>
                     </div>
                   </div>

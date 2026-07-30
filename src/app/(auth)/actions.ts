@@ -42,9 +42,11 @@ export async function signUpAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const schoolName = formData.get("schoolName") as string;
+  const phone = (formData.get("phone") as string) || "N/A";
+  const city = (formData.get("city") as string) || "Tunis";
 
   if (!email || !password || !name || !surname || !schoolName) {
-    return { error: "All fields are required" };
+    return { error: "Veuillez remplir tous les champs obligatoires." };
   }
 
   const supabase = createClient();
@@ -67,7 +69,7 @@ export async function signUpAction(formData: FormData) {
 
   const user = data.user;
   if (!user) {
-    return { error: "Failed to create user" };
+    return { error: "Échec de la création du compte." };
   }
 
   // Create the Admin in Prisma
@@ -90,14 +92,14 @@ export async function signUpAction(formData: FormData) {
       data: {
         schoolName: schoolName,
         ownerName: `${name} ${surname}`,
-        phoneNumber: "N/A",
-        city: "Signup Form",
+        phoneNumber: phone,
+        city: city,
         status: "PENDING",
       },
     });
   } catch (dbError) {
     console.error("Database sync failed:", dbError);
-    return { error: "Failed to set up account data" };
+    return { error: "Erreur lors de la synchronisation du compte." };
   }
 
   redirect("/waiting-approval");
