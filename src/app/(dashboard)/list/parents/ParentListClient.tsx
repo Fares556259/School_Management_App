@@ -8,10 +8,20 @@ import ResetPasswordButton from "@/components/ResetPasswordButton";
 import Image from "next/image";
 import { Parent, Student } from "@prisma/client";
 
+import { useState } from "react";
+import ShareParentLinkModal from "@/components/ShareParentLinkModal";
+import { Share2 } from "lucide-react";
+
 type ParentList = Parent & { students: Student[] };
 
 export default function ParentListClient({ data, columns, role, count, page, relatedData }: any) {
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t } = useLanguage();
+
+  const classList = (relatedData?.classId || []).map((c: any) => ({
+    id: parseInt(c.value, 10),
+    name: c.label,
+  }));
 
   const translatedColumns = columns.map((c: any) => ({
     ...c,
@@ -76,19 +86,34 @@ export default function ParentListClient({ data, columns, role, count, page, rel
       <div className="flex items-center justify-between mb-4">
         <h1 className="hidden md:block text-lg font-semibold">{t.parents.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <div className="flex items-center gap-4 self-end">
+          <div className="flex items-center gap-3 self-end">
             {role === "admin" && (
-              <CrudFormModal
-                entity="parent"
-                mode="create"
-                relatedData={relatedData}
-              />
+              <>
+                <button
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-all shadow-xs"
+                >
+                  <Share2 size={15} className="text-emerald-600" />
+                  <span>Lien Parents (WhatsApp)</span>
+                </button>
+                <CrudFormModal
+                  entity="parent"
+                  mode="create"
+                  relatedData={relatedData}
+                />
+              </>
             )}
           </div>
         </div>
       </div>
       <Table columns={translatedColumns} renderRow={renderRow} data={data} />
       <Pagination page={page} count={count} />
+
+      <ShareParentLinkModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        classes={classList}
+      />
     </div>
   );
 }

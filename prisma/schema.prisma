@@ -584,6 +584,24 @@ model SetupRequest {
   updatedAt   DateTime @updatedAt
 }
 
+model ParentRegistrationRequest {
+  id          String   @id @default(cuid())
+  parentName  String
+  parentPhone String
+  relation    String   @default("Père")
+  email       String?
+  studentId   String
+  studentName String?
+  classId     Int
+  schoolId    String   @default("default_school")
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([status])
+}
+
 model ProfitabilityScenario {
   id             String   @id @default(cuid())
   name           String

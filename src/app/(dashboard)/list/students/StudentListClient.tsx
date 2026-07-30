@@ -18,6 +18,9 @@ import Link from "next/link";
 import { MONTHS } from "@/lib/dateUtils";
 import { Student, Class, Level, Payment } from "@prisma/client";
 
+import ShareParentLinkModal from "@/components/ShareParentLinkModal";
+import { Share2 } from "lucide-react";
+
 interface Props {
   initialData: any[];
   columns: any[];
@@ -40,7 +43,13 @@ export default function StudentListClient({
   relatedData,
 }: Props) {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t } = useLanguage();
+
+  const classList = (relatedData?.classId || []).map((c: any) => ({
+    id: parseInt(c.value, 10),
+    name: c.label,
+  }));
 
   const translatedColumns = columns
     .filter(c => c.accessor !== "studentId")
@@ -163,6 +172,13 @@ export default function StudentListClient({
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
                 <button 
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
+                >
+                  <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                  <span>Lien Parents (WhatsApp)</span>
+                </button>
+                <button 
                   onClick={() => setIsBulkOpen(true)}
                   className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
                 >
@@ -176,8 +192,6 @@ export default function StudentListClient({
                 >
                   <Sparkles size={16} />
                 </button>
-                {/* CrudFormModal for create will need custom styling inside its own component if possible, 
-                    but for now we leave it here. */}
                 <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
               </div>
             )}
@@ -193,6 +207,12 @@ export default function StudentListClient({
       {isBulkOpen && (
         <BulkStudentImport onClose={() => setIsBulkOpen(false)} />
       )}
+      <ShareParentLinkModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        classes={classList}
+        schoolName={relatedData.schoolName}
+      />
     </>
   );
 }
