@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   User,
@@ -18,12 +18,11 @@ import {
 } from "lucide-react";
 
 interface PageProps {
-  params: Promise<{ classId: string }>;
+  params: { classId: string };
 }
 
 export default function PublicParentJoinPage({ params }: PageProps) {
-  const resolvedParams = use(params);
-  const classId = resolvedParams.classId;
+  const classId = params?.classId;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

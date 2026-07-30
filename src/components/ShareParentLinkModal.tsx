@@ -86,11 +86,12 @@ export default function ShareParentLinkModal({
   if (!isOpen) return null;
 
   const currentClass = classes.find((c) => c.id === selectedClassId) || classes[0];
+  const displaySchoolName = schoolName && !schoolName.includes("@") ? schoolName : "SnapSchool";
   const joinUrl = typeof window !== "undefined"
     ? `${window.location.origin}/join/${currentClass?.id || ""}`
     : `/join/${currentClass?.id || ""}`;
 
-  const whatsappMessage = `Chers parents de la classe ${currentClass?.name || ""}, rejoignez l'application SnapSchool de l'établissement ${schoolName} pour suivre les notes, absences et bulletins de votre enfant en cliquant sur ce lien : ${joinUrl}`;
+  const whatsappMessage = `Chers parents de la classe ${currentClass?.name || ""}, rejoignez l'application SnapSchool de l'établissement ${displaySchoolName} pour suivre les notes, absences et bulletins de votre enfant en cliquant sur ce lien : ${joinUrl}`;
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMessage)}`;
 
   const copyToClipboard = () => {
