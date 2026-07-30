@@ -466,15 +466,171 @@ export default function Homepage() {
                     </div>
                   </div>
                 </div>
-                <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
-                  <Image
-                    src="/landing/dashboard.png"
-                    alt="Tableau de bord SnapSchool"
-                    width={1400}
-                    height={875}
-                    className="w-full h-full object-cover object-top"
-                    priority
-                  />
+                <div className="bg-slate-900 p-3 sm:p-5 text-left text-xs font-sans select-none">
+                  {/* Mock Dashboard Shell */}
+                  <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
+                    {/* Mock App Header */}
+                    <div className="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-xs">S</div>
+                        <span className="font-bold text-white text-sm hidden sm:inline">SnapSchool Admin</span>
+                      </div>
+                      <div className="flex-1 max-w-xs hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1 text-slate-400 text-xs">
+                        <UserCheck className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Rechercher un élève, classe, prof...</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full text-blue-400 text-[11px] font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                          <span>Année 2025 - 2026</span>
+                        </div>
+                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs">
+                          AD
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mock App Body */}
+                    <div className="flex min-h-[380px] sm:min-h-[440px]">
+                      {/* Mock Sidebar */}
+                      <div className="w-44 bg-slate-900/50 border-r border-slate-800/80 p-3 hidden sm:flex flex-col gap-1 text-slate-400 text-xs">
+                        <div className="px-2 py-1.5 font-bold text-slate-500 uppercase text-[10px] tracking-wider">Navigation</div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blue-600 text-white font-medium">
+                          <LayoutDashboard className="w-3.5 h-3.5" />
+                          <span>Tableau de bord</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Élèves</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          <span>Enseignants</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          <span>Absences</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Bulletins & Notes</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Finances</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Emploi du temps</span>
+                        </div>
+                      </div>
+
+                      {/* Mock Content */}
+                      <div className="flex-1 p-4 sm:p-5 bg-slate-950 space-y-4 overflow-hidden">
+                        {/* Welcome Banner */}
+                        <div className="flex items-center justify-between bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-slate-900 border border-blue-500/20 rounded-xl p-3.5">
+                          <div>
+                            <h4 className="font-bold text-white text-sm">Tableau de bord Direction</h4>
+                            <p className="text-slate-400 text-[11px] mt-0.5">École Privée Excellence — Trimestre 1</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-[11px] font-semibold">
+                              + Nouveau bulletin
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 4 Stat Cards */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                          {[
+                            { label: "Élèves inscrits", val: "485", change: "+12%", icon: Users, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+                            { label: "Enseignants", val: "38", change: "100% actifs", icon: GraduationCap, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+                            { label: "Taux de présence", val: "96.8%", change: "Dernier mois", icon: CheckCircle2, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+                            { label: "Recouvrement", val: "94%", change: "Paiements à jour", icon: CreditCard, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+                          ].map((st, i) => (
+                            <div key={i} className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[11px] text-slate-400 font-medium">{st.label}</span>
+                                <div className={`w-6 h-6 rounded-lg border flex items-center justify-center ${st.color}`}>
+                                  <st.icon className="w-3.5 h-3.5" />
+                                </div>
+                              </div>
+                              <div className="text-lg font-bold text-white">{st.val}</div>
+                              <span className="text-[10px] text-emerald-400 font-semibold">{st.change}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* 2 Column Main Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {/* Financial & Attendance Mini Chart Card */}
+                          <div className="md:col-span-2 bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-semibold text-white text-xs flex items-center gap-1.5">
+                                <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                                Aperçu Financier & Présences
+                              </span>
+                              <span className="text-[10px] text-slate-400">Septembre - Janvier</span>
+                            </div>
+
+                            {/* Mini Chart Bars */}
+                            <div className="h-28 flex items-end justify-between gap-2 pt-2 px-2 border-b border-slate-800/80 pb-2">
+                              {[
+                                { m: "Sept", h: "60%", h2: "85%" },
+                                { m: "Oct", h: "75%", h2: "90%" },
+                                { m: "Nov", h: "80%", h2: "94%" },
+                                { m: "Déc", h: "92%", h2: "96%" },
+                                { m: "Janv", h: "95%", h2: "97%" },
+                              ].map((bar, i) => (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                  <div className="w-full flex items-end justify-center gap-1 h-20">
+                                    <div className="w-2.5 bg-blue-600 rounded-t-sm" style={{ height: bar.h }} />
+                                    <div className="w-2.5 bg-emerald-500/80 rounded-t-sm" style={{ height: bar.h2 }} />
+                                  </div>
+                                  <span className="text-[10px] text-slate-400">{bar.m}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex gap-4 mt-2.5 text-[10px] text-slate-400">
+                              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-600" /> Recouvrement (DT)</span>
+                              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Assiduité (%)</span>
+                            </div>
+                          </div>
+
+                          {/* Live Activity Feed */}
+                          <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="font-semibold text-white text-xs flex items-center gap-1.5">
+                                  <Bell className="w-3.5 h-3.5 text-purple-400" />
+                                  Activité récente
+                                </span>
+                              </div>
+                              <div className="space-y-2 text-[11px]">
+                                <div className="flex items-start gap-2 text-slate-300">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1 shrink-0" />
+                                  <span>Notes saisies — 6ème A (Maths)</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-slate-300">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 shrink-0" />
+                                  <span>Absence signalée — Y. Ben Ammar</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-slate-300">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1 shrink-0" />
+                                  <span>Paiement reçu — 350 DT (Tranche 2)</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-blue-400 font-semibold cursor-pointer">
+                              <span>Voir tout l&apos;historique</span>
+                              <ChevronRight className="w-3 h-3" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </div>
