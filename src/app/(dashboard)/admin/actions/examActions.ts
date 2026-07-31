@@ -268,11 +268,33 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
             where: { id: classId },
             select: { schoolId: true }
         });
-        const fallbackTeacher = await prisma.teacher.findFirst({
-            where: targetClass?.schoolId ? { schoolId: targetClass.schoolId } : {}
-        });
+        const schoolId = targetClass?.schoolId || "default_school";
 
         await prisma.$transaction(async (tx) => {
+            // Ensure at least one valid teacher exists in the database
+            let fallbackTeacher = await tx.teacher.findFirst({
+                where: { schoolId }
+            }) || await tx.teacher.findFirst();
+
+            if (!fallbackTeacher) {
+                fallbackTeacher = await tx.teacher.upsert({
+                    where: { id: "default_teacher" },
+                    update: {},
+                    create: {
+                        id: "default_teacher",
+                        username: "default_teacher",
+                        name: "Enseignant",
+                        surname: "Général",
+                        phone: "+21600000000",
+                        address: "SnapSchool",
+                        bloodType: "A+",
+                        sex: "MALE",
+                        birthday: new Date("1990-01-01"),
+                        schoolId
+                    }
+                });
+            }
+
             // 1. Delete existing exams for this class and period
             await tx.exam.deleteMany({
                 where: {
@@ -304,16 +326,25 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
                 endTime.setHours(hEnd, mEnd, 0, 0);
 
                 const subId = Number(slot.subjectId);
-                const teachId = slot.teacherId ? String(slot.teacherId) : (fallbackTeacher?.id || "default_teacher");
-
                 if (!subId || isNaN(subId)) continue;
+
+                // Validate teacher ID against DB to prevent foreign key violation
+                let teacherIdToUse = fallbackTeacher.id;
+                if (slot.teacherId) {
+                    const foundTeacher = await tx.teacher.findUnique({
+                        where: { id: String(slot.teacherId) }
+                    });
+                    if (foundTeacher) {
+                        teacherIdToUse = foundTeacher.id;
+                    }
+                }
 
                 // Find or create lesson
                 let lessonValue = await tx.lesson.findFirst({
                     where: {
                         classId,
                         subjectId: subId,
-                        teacherId: teachId
+                        teacherId: teacherIdToUse
                     }
                 });
 
@@ -326,7 +357,8 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
                             endTime,
                             classId,
                             subjectId: subId,
-                            teacherId: teachId
+                            teacherId: teacherIdToUse,
+                            schoolId
                         }
                     });
                 }
