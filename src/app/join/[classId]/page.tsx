@@ -312,49 +312,76 @@ export default function PublicParentJoinPage({ params }: PageProps) {
       {showLangModal && (
         <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl w-full max-w-md p-6 sm:p-8 text-center space-y-6">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-600/30">
-              <Globe className="w-7 h-7" />
-            </div>
+            {/* Header Icon & School Badge */}
+            <div className="space-y-3">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-600/30">
+                <Globe className="w-7 h-7" />
+              </div>
 
-            <div>
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block mb-1">
-                {classData?.schoolName || "SnapSchool"}
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-                Choisissez votre langue
+              <div className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-100 uppercase tracking-wider">
+                {classData?.schoolName && !classData.schoolName.includes("@")
+                  ? classData.schoolName
+                  : "SnapSchool Academy"}
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                Bienvenue / أهلاً بكم
               </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                اختر لغتك المفضلة لمتابعة التسجيل
+              <p className="text-xs sm:text-sm text-slate-500">
+                Veuillez choisir votre langue pour continuer
+                <br />
+                <span className="text-slate-400 font-normal text-xs">الرجاء اختيار اللغة لمتابعة التسجيل</span>
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 pt-2">
+            {/* Language Choice Cards */}
+            <div className="space-y-3 pt-1">
+              {/* French Choice */}
               <button
+                type="button"
                 onClick={() => selectLanguage("fr")}
-                className="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-slate-50 hover:bg-blue-50/50 flex items-center justify-between group transition-all"
+                className="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-slate-50/60 hover:bg-blue-50/40 flex items-center gap-4 text-left transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer"
               >
-                <div className="flex items-center gap-3 text-left">
-                  <span className="text-2xl">🇫🇷</span>
-                  <div>
-                    <h3 className="font-bold text-slate-900 group-hover:text-blue-600 text-sm">Français</h3>
-                    <p className="text-xs text-slate-500">Formulaire d&apos;inscription en français</p>
-                  </div>
+                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shrink-0 border border-slate-200/80 shadow-xs group-hover:scale-105 transition-transform">
+                  🇫🇷
                 </div>
-                <Check className="w-5 h-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="flex-1 min-w-0 text-left">
+                  <h3 className="font-bold text-slate-900 group-hover:text-blue-600 text-sm sm:text-base flex items-center gap-2">
+                    Français
+                  </h3>
+                  <p className="text-xs text-slate-500 truncate">
+                    Formulaire d&apos;inscription en français
+                  </p>
+                </div>
+
+                <div className="w-8 h-8 rounded-full bg-slate-200/60 group-hover:bg-blue-600 text-slate-400 group-hover:text-white flex items-center justify-center transition-all shrink-0">
+                  <Check className="w-4 h-4" />
+                </div>
               </button>
 
+              {/* Arabic Choice */}
               <button
+                type="button"
                 onClick={() => selectLanguage("ar")}
-                className="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-slate-50 hover:bg-blue-50/50 flex items-center justify-between group transition-all"
+                className="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-slate-50/60 hover:bg-blue-50/40 flex items-center gap-4 text-left transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer"
               >
-                <div className="flex items-center gap-3 text-right">
-                  <span className="text-2xl">🇹🇳</span>
-                  <div>
-                    <h3 className="font-bold text-slate-900 group-hover:text-blue-600 text-sm">العربية</h3>
-                    <p className="text-xs text-slate-500">استمارة التسجيل باللغة العربية</p>
-                  </div>
+                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shrink-0 border border-slate-200/80 shadow-xs group-hover:scale-105 transition-transform">
+                  🇹🇳
                 </div>
-                <Check className="w-5 h-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="flex-1 min-w-0 text-left">
+                  <h3 className="font-bold text-slate-900 group-hover:text-blue-600 text-sm sm:text-base flex items-center gap-2">
+                    العربية
+                  </h3>
+                  <p className="text-xs text-slate-500 truncate">
+                    استمارة التسجيل باللغة العربية
+                  </p>
+                </div>
+
+                <div className="w-8 h-8 rounded-full bg-slate-200/60 group-hover:bg-blue-600 text-slate-400 group-hover:text-white flex items-center justify-center transition-all shrink-0">
+                  <Check className="w-4 h-4" />
+                </div>
               </button>
             </div>
           </div>
