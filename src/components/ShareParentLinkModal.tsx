@@ -105,7 +105,7 @@ export default function ShareParentLinkModal({
 
   const currentClass = classes.find((c) => c.id === selectedClassId) || classes[0];
   const displaySchoolName = schoolName && !schoolName.includes("@") ? schoolName : "SnapSchool";
-  const schoolSlug = schoolSubdomain || (schoolName ? slugify(schoolName) : "snapschool-academy");
+  const schoolSlug = (displaySchoolName && displaySchoolName !== "SnapSchool") ? slugify(displaySchoolName) : (schoolSubdomain || "snapschool-academy");
 
   const joinUrl = typeof window !== "undefined"
     ? `${window.location.origin}/join/${schoolSlug}?classId=${currentClass?.id || ""}`
@@ -159,7 +159,7 @@ export default function ShareParentLinkModal({
               <Share2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-lg leading-tight">Inscriptions & Demandes Parents (WhatsApp)</h3>
+              <h3 className="font-bold text-lg leading-tight">Inscriptions & Demandes Parents</h3>
               <p className="text-xs text-blue-100">Partagez le lien d&apos;inscription et validez les demandes parents</p>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function ShareParentLinkModal({
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              📲 Lien & WhatsApp
+              📲 Lien d&apos;inscription
             </button>
             <button
               onClick={() => setActiveTab("requests")}

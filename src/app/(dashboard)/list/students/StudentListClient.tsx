@@ -178,7 +178,7 @@ export default function StudentListClient({
                   className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
                 >
                   <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-                  <span>Inscriptions & Demandes Parents (WhatsApp)</span>
+                  <span>Inscriptions & Demandes Parents</span>
                 </button>
                 <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
               </div>
