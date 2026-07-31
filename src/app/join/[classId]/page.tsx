@@ -64,13 +64,19 @@ export default function PublicParentJoinPage({ params }: PageProps) {
     async function fetchClassInfo() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/join/class-info?classId=${classIdParam}`);
+        const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+        const queryClassId = urlParams.get("classId");
+        const apiUrl = queryClassId
+          ? `/api/join/class-info?slug=${classIdParam}&classId=${queryClassId}`
+          : `/api/join/class-info?slug=${classIdParam}`;
+
+        const res = await fetch(apiUrl);
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error || "Classe non trouvée");
+          setError(data.error || "Établissement ou classe non trouvée");
         } else {
           setClassData(data);
-          // Initialize first child card
+          const initialClassId = queryClassId ? parseInt(queryClassId, 10) : data.classId;
           setChildren([
             {
               id: "child-1",
@@ -78,12 +84,12 @@ export default function PublicParentJoinPage({ params }: PageProps) {
               surname: "",
               sex: "MALE",
               birthday: "2016-05-15",
-              classId: data.classId,
+              classId: isNaN(initialClassId) ? data.classId : initialClassId,
             },
           ]);
         }
       } catch (err: any) {
-        setError("Impossible de charger les informations de la classe.");
+        setError("Impossible de charger les informations de l'établissement.");
       } finally {
         setLoading(false);
       }

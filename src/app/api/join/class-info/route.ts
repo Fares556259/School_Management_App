@@ -4,7 +4,10 @@ import prisma from "@/lib/prisma";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const identifier = searchParams.get("classId") || searchParams.get("schoolId") || searchParams.get("slug");
+    const slug = searchParams.get("slug");
+    const classIdParam = searchParams.get("classId");
+    const schoolIdParam = searchParams.get("schoolId");
+    const identifier = slug || classIdParam || schoolIdParam;
 
     if (!identifier) {
       return NextResponse.json({ error: "Identifiant de classe ou d'établissement requis" }, { status: 400 });
@@ -13,33 +16,61 @@ export async function GET(request: Request) {
     let targetSchool = null;
     let targetClass = null;
 
-    // 1. Check if identifier is numeric (class ID)
-    const numericId = parseInt(identifier, 10);
-    if (!isNaN(numericId)) {
-      targetClass = await prisma.class.findUnique({
-        where: { id: numericId },
-        include: {
-          School: true,
-          level: true,
-          students: {
-            select: {
-              id: true,
-              name: true,
-              surname: true,
-              img: true,
-              parentId: true,
+    // 1. If explicit numeric classIdParam is provided, fetch target class
+    if (classIdParam) {
+      const cid = parseInt(classIdParam, 10);
+      if (!isNaN(cid)) {
+        targetClass = await prisma.class.findUnique({
+          where: { id: cid },
+          include: {
+            School: true,
+            level: true,
+            students: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+                img: true,
+                parentId: true,
+              },
+              orderBy: { surname: "asc" },
             },
-            orderBy: { surname: "asc" },
           },
-        },
-      });
-
-      if (targetClass) {
-        targetSchool = targetClass.School;
+        });
+        if (targetClass) {
+          targetSchool = targetClass.School;
+        }
       }
     }
 
-    // 2. If not numeric or class not found, look up School by id or subdomain
+    // 2. Check if main identifier is numeric (class ID fallback)
+    if (!targetSchool) {
+      const numericId = parseInt(identifier, 10);
+      if (!isNaN(numericId)) {
+        targetClass = await prisma.class.findUnique({
+          where: { id: numericId },
+          include: {
+            School: true,
+            level: true,
+            students: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+                img: true,
+                parentId: true,
+              },
+              orderBy: { surname: "asc" },
+            },
+          },
+        });
+        if (targetClass) {
+          targetSchool = targetClass.School;
+        }
+      }
+    }
+
+    // 3. Look up School by id or subdomain
     if (!targetSchool) {
       targetSchool = await prisma.school.findFirst({
         where: {
@@ -51,7 +82,6 @@ export async function GET(request: Request) {
       });
 
       if (targetSchool) {
-        // Find first class of this school
         targetClass = await prisma.class.findFirst({
           where: { schoolId: targetSchool.id },
           include: {

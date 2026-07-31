@@ -40,12 +40,22 @@ interface PendingRequest {
   createdAt: string;
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function ShareParentLinkModal({
   isOpen,
   onClose,
   classes = [],
   initialClassId,
   schoolName = "SnapSchool",
+  schoolSubdomain,
   onApproved,
 }: {
   isOpen: boolean;
@@ -53,6 +63,7 @@ export default function ShareParentLinkModal({
   classes?: ClassOption[];
   initialClassId?: number;
   schoolName?: string;
+  schoolSubdomain?: string;
   onApproved?: () => void;
 }) {
   const router = useRouter();
@@ -94,9 +105,11 @@ export default function ShareParentLinkModal({
 
   const currentClass = classes.find((c) => c.id === selectedClassId) || classes[0];
   const displaySchoolName = schoolName && !schoolName.includes("@") ? schoolName : "SnapSchool";
+  const schoolSlug = schoolSubdomain || (schoolName ? slugify(schoolName) : "snapschool-academy");
+
   const joinUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/join/${currentClass?.id || ""}`
-    : `/join/${currentClass?.id || ""}`;
+    ? `${window.location.origin}/join/${schoolSlug}?classId=${currentClass?.id || ""}`
+    : `/join/${schoolSlug}?classId=${currentClass?.id || ""}`;
 
   const whatsappMessage = `Chers parents de la classe ${currentClass?.name || ""}, rejoignez l'application SnapSchool de l'établissement ${displaySchoolName} pour suivre les notes, absences et bulletins de votre enfant en cliquant sur ce lien : ${joinUrl}`;
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMessage)}`;

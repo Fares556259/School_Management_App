@@ -115,6 +115,8 @@ export default function ParentListClient({ data, columns, role, count, page, rel
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         classes={classList}
+        schoolName={relatedData.schoolName}
+        schoolSubdomain={relatedData.schoolSubdomain}
         onApproved={() => router.refresh()}
       />
     </div>

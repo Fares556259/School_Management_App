@@ -133,14 +133,15 @@ const StudentListPage = async ({
     }),
   ]);
 
-  const admin = role === "admin" ? await prisma.admin.findUnique({ where: { id: userId! }, select: { name: true, surname: true } }) : null;
-  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } });
+  const admin = role === "admin" && userId ? await prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : null;
+  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } });
 
   const studentRelatedData = {
     parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
     classId: classes.map((c) => ({ value: String(c.id), label: c.name })),
     levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
     schoolName: school?.name || "SnapSchool",
+    schoolSubdomain: school?.subdomain || "snapschool-academy",
     adminName: admin ? `${admin.name} ${admin.surname}` : "Administration",
   };
 

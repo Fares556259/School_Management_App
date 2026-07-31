@@ -200,6 +200,7 @@ export default function StudentListClient({
         onClose={() => setIsShareModalOpen(false)}
         classes={classList}
         schoolName={relatedData.schoolName}
+        schoolSubdomain={relatedData.schoolSubdomain}
         onApproved={() => router.refresh()}
       />
     </>

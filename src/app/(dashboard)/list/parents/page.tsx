@@ -98,13 +98,21 @@ const ParentListPage = async ({
     prisma.parent.count({ where: query }),
   ]);
 
-  const classes = await prisma.class.findMany({
-    where: { schoolId },
-    select: { id: true, name: true },
-  });
+  const [classes, school] = await Promise.all([
+    prisma.class.findMany({
+      where: { schoolId },
+      select: { id: true, name: true },
+    }),
+    prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { name: true, subdomain: true },
+    }),
+  ]);
 
   const relatedData = {
-    classId: classes.map(c => ({ value: c.id.toString(), label: c.name }))
+    classId: classes.map(c => ({ value: c.id.toString(), label: c.name })),
+    schoolName: school?.name || "SnapSchool",
+    schoolSubdomain: school?.subdomain || "snapschool-academy",
   };
 
   return (
