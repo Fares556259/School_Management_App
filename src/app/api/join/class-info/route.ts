@@ -5,36 +5,78 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const classIdStr = searchParams.get("classId");
+    const schoolIdQuery = searchParams.get("schoolId");
 
-    if (!classIdStr) {
-      return NextResponse.json({ error: "Identifiant de classe requis" }, { status: 400 });
+    if (!classIdStr && !schoolIdQuery) {
+      return NextResponse.json({ error: "Identifiant de classe ou d'établissement requis" }, { status: 400 });
     }
 
-    const classId = parseInt(classIdStr, 10);
-    if (isNaN(classId)) {
-      return NextResponse.json({ error: "Identifiant de classe invalide" }, { status: 400 });
-    }
+    let targetClass = null;
 
-    const targetClass = await prisma.class.findUnique({
-      where: { id: classId },
-      include: {
-        School: true,
-        level: true,
-        students: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            img: true,
-            parentId: true,
+    if (classIdStr) {
+      const classId = parseInt(classIdStr, 10);
+      if (!isNaN(classId)) {
+        targetClass = await prisma.class.findUnique({
+          where: { id: classId },
+          include: {
+            School: true,
+            level: true,
+            students: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+                img: true,
+                parentId: true,
+              },
+              orderBy: { surname: "asc" },
+            },
           },
-          orderBy: { surname: "asc" },
+        });
+      }
+    }
+
+    if (!targetClass && schoolIdQuery) {
+      targetClass = await prisma.class.findFirst({
+        where: { schoolId: schoolIdQuery },
+        include: {
+          School: true,
+          level: true,
+          students: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              img: true,
+              parentId: true,
+            },
+            orderBy: { surname: "asc" },
+          },
         },
-      },
-    });
+      });
+    }
 
     if (!targetClass) {
-      return NextResponse.json({ error: "Classe non trouvée" }, { status: 404 });
+      return NextResponse.json({ error: "Établissement ou classe non trouvée" }, { status: 404 });
+    }
+
+    // Resolve clean school name & logo
+    let cleanSchoolName = targetClass.School?.name || "";
+    let cleanSchoolLogo = targetClass.School?.logo || null;
+
+    if (!cleanSchoolName || cleanSchoolName.includes("@")) {
+      const inst = await prisma.institution.findUnique({
+        where: { schoolId: targetClass.schoolId },
+        select: { schoolName: true, schoolLogo: true },
+      });
+      if (inst?.schoolName && !inst.schoolName.includes("@")) {
+        cleanSchoolName = inst.schoolName;
+      } else {
+        cleanSchoolName = "SnapSchool Academy";
+      }
+      if (inst?.schoolLogo) {
+        cleanSchoolLogo = inst.schoolLogo;
+      }
     }
 
     const allSchoolClasses = await prisma.class.findMany({
@@ -47,8 +89,8 @@ export async function GET(request: Request) {
       classId: targetClass.id,
       className: targetClass.name,
       levelName: targetClass.level ? `Niveau ${targetClass.level.level}` : "",
-      schoolName: targetClass.School?.name || "SnapSchool",
-      schoolLogo: targetClass.School?.logo || null,
+      schoolName: cleanSchoolName,
+      schoolLogo: cleanSchoolLogo,
       schoolId: targetClass.schoolId,
       classes: allSchoolClasses,
       students: targetClass.students.map((s) => ({

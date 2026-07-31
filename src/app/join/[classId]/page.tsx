@@ -203,12 +203,18 @@ export default function PublicParentJoinPage({ params }: PageProps) {
       <div className="w-full max-w-xl">
         {/* School Header Badge */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2.5 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-xs mb-3">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">
-              S
+          <div className="inline-flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-full border border-slate-200 shadow-xs mb-3">
+            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs overflow-hidden shrink-0">
+              {classData?.schoolLogo ? (
+                <img src={classData.schoolLogo} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (classData?.schoolName || "S").slice(0, 1).toUpperCase()
+              )}
             </div>
             <span className="font-bold text-slate-900 text-sm tracking-tight">
-              {classData?.schoolName || "SnapSchool"}
+              {classData?.schoolName && !classData.schoolName.includes("@")
+                ? classData.schoolName
+                : "SnapSchool Academy"}
             </span>
           </div>
 
