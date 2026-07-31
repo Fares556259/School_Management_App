@@ -146,8 +146,8 @@ export default function ShareParentLinkModal({
               <Share2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-lg leading-tight">Inscription Parents par WhatsApp</h3>
-              <p className="text-xs text-blue-100">Déléguez la saisie des fiches aux parents d&apos;élèves</p>
+              <h3 className="font-bold text-lg leading-tight">Inscriptions & Demandes Parents (WhatsApp)</h3>
+              <p className="text-xs text-blue-100">Partagez le lien d&apos;inscription et validez les demandes parents</p>
             </div>
           </div>
           <button

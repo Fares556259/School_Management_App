@@ -96,7 +96,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
                   className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-all shadow-xs"
                 >
                   <Share2 size={15} className="text-emerald-600" />
-                  <span>Lien Parents (WhatsApp)</span>
+                  <span>Inscriptions & Demandes Parents (WhatsApp)</span>
                 </button>
                 <CrudFormModal
                   entity="parent"

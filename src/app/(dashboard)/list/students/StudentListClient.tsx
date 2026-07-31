@@ -178,21 +178,7 @@ export default function StudentListClient({
                   className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
                 >
                   <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-                  <span>Lien Parents (WhatsApp)</span>
-                </button>
-                <button 
-                  onClick={() => setIsBulkOpen(true)}
-                  className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
-                >
-                  <Sparkles size={16} className="text-[#41454d] group-hover:rotate-12 transition-transform" />
-                  {t.students.bulkEnroll}
-                </button>
-                <button 
-                  onClick={() => setIsBulkOpen(true)}
-                  className="lg:hidden w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]"
-                  title={t.students.bulkEnroll}
-                >
-                  <Sparkles size={16} />
+                  <span>Inscriptions & Demandes Parents (WhatsApp)</span>
                 </button>
                 <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
               </div>
