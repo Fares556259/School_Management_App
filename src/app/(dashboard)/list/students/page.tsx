@@ -65,7 +65,8 @@ const StudentListPage = async ({
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -144,7 +145,7 @@ const StudentListPage = async ({
   };
 
   // Compute month-based payment stats
-  const selectedMonthKey = getMonthKey(searchParams.month);
+  const selectedMonthKey = getMonthKey(safeSearchParams.month);
   const [mName, yStr] = selectedMonthKey.split(" ");
   const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);

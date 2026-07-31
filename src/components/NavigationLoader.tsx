@@ -1,22 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Loading from "@/app/(dashboard)/loading";
 
-export default function NavigationLoader() {
+function NavigationWatcher({ onNavFinish }: { onNavFinish: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // When pathname or searchParams change, navigation finished
+    onNavFinish();
+  }, [pathname, searchParams, onNavFinish]);
+
+  return null;
+}
+
+export default function NavigationLoader() {
+  const [loading, setLoading] = useState(false);
+
+  const handleNavFinish = useCallback(() => {
     setLoading(false);
-  }, [pathname, searchParams]);
+  }, []);
 
   useEffect(() => {
     const handleAnchorClick = (event: MouseEvent) => {
-      // If event was defaultPrevented (e.g. custom smooth scroll), don't trigger loader
       if (event.defaultPrevented) return;
 
       const target = event.target as HTMLElement;
@@ -30,14 +37,12 @@ export default function NavigationLoader() {
       ) {
         const rawHref = anchor.getAttribute("href") || "";
 
-        // Do NOT trigger loader for hash links, empty links, or javascript:
         if (rawHref.startsWith("#") || rawHref.startsWith("javascript:") || rawHref === "") {
           return;
         }
 
         try {
           const url = new URL(anchor.href, window.location.origin);
-          // Only trigger for same origin, different page/pathname/search
           if (
             url.origin === window.location.origin &&
             (url.pathname !== window.location.pathname || url.search !== window.location.search)
@@ -45,7 +50,7 @@ export default function NavigationLoader() {
             setLoading(true);
           }
         } catch (err) {
-          // ignore invalid URLs
+          // ignore
         }
       }
     };
@@ -54,11 +59,16 @@ export default function NavigationLoader() {
     return () => document.removeEventListener("click", handleAnchorClick);
   }, []);
 
-  if (!loading) return null;
-
   return (
-    <div className="fixed inset-0 z-[9999] pointer-events-none">
-      <Loading />
-    </div>
+    <>
+      <Suspense fallback={null}>
+        <NavigationWatcher onNavFinish={handleNavFinish} />
+      </Suspense>
+      {loading && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none">
+          <Loading />
+        </div>
+      )}
+    </>
   );
 }
