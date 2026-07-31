@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import {
   User,
   Phone,
-  Mail,
-  Building2,
   GraduationCap,
   CheckCircle2,
   AlertCircle,
@@ -13,9 +11,9 @@ import {
   Send,
   Plus,
   Trash2,
-  Calendar,
-  MapPin,
+  Globe,
   Smartphone,
+  Check,
 } from "lucide-react";
 
 interface PageProps {
@@ -31,6 +29,95 @@ interface ChildItem {
   classId: number;
 }
 
+type Lang = "fr" | "ar";
+
+const translations = {
+  fr: {
+    selectLanguageTitle: "Choisissez votre langue",
+    selectLanguageSubtitle: "Veuillez sélectionner la langue pour votre formulaire d'inscription",
+    schoolHeader: "Inscription Parents",
+    subtitle: "Rejoignez l'application pour suivre les notes, absences et bulletins.",
+    mainClass: "Classe principale :",
+    parentSectionTitle: "INFORMATIONS DU PARENT",
+    firstName: "Prénom *",
+    firstNamePlaceholder: "Prénom du parent",
+    lastName: "Nom de famille *",
+    lastNamePlaceholder: "Nom de famille du parent",
+    phone: "Téléphone (WhatsApp) *",
+    relation: "Lien de parenté",
+    relationFather: "Père",
+    relationMother: "Mère",
+    relationGuardian: "Tuteur légal",
+    address: "Adresse *",
+    addressPlaceholder: "ex: Rue Habib Bourguiba, Tunis",
+    childrenSectionTitle: "Enfants",
+    childrenSubtitle: "Inscrire au moins un élève",
+    addSibling: "Ajouter un frère/sœur",
+    childLabel: "Élève #",
+    childFirstName: "Prénom *",
+    childFirstNamePlaceholder: "Prénom de l'enfant",
+    childLastName: "Nom de famille *",
+    childLastNamePlaceholder: "Nom de famille de l'enfant",
+    sex: "Sexe *",
+    sexMale: "Garçon",
+    sexFemale: "Fille",
+    birthday: "Date de naissance *",
+    classLabel: "Classe *",
+    delete: "Supprimer",
+    submitButton: "Envoyer ma demande à la direction",
+    submitting: "Transmission de votre demande...",
+    successTitle: "Demande d'inscription transmise !",
+    successDesc: "La direction de l'établissement validera votre demande très prochainement.",
+    successMobileNote: "Vous pourrez vous connecter à l'application mobile avec votre numéro :",
+    requiredError: "Veuillez remplir votre prénom, nom de famille et numéro de téléphone.",
+    requiredChildError: "Veuillez remplir les informations complètes pour l'enfant #",
+    invalidLink: "Lien invalide ou expiré",
+    backToHome: "Retour à l'accueil",
+  },
+  ar: {
+    selectLanguageTitle: "اختر لغتك المفضلة",
+    selectLanguageSubtitle: "الرجاء اختيار اللغة لمتابعة عملية التسجيل",
+    schoolHeader: "تسجيل الأولياء",
+    subtitle: "انضم إلى التطبيق لمتابعة الأعداد، الغيابات وبطاقات الأعداد.",
+    mainClass: "القسم الرئيسي :",
+    parentSectionTitle: "معلومات الولي",
+    firstName: "الاسم *",
+    firstNamePlaceholder: "اسم الولي",
+    lastName: "اللقب *",
+    lastNamePlaceholder: "لقب الولي",
+    phone: "رقم الهاتف (واتساب) *",
+    relation: "صلة القرابة",
+    relationFather: "أب",
+    relationMother: "أم",
+    relationGuardian: "ولي أمر",
+    address: "العنوان *",
+    addressPlaceholder: "مثال: شارع الحبيب بورقيبة، تونس",
+    childrenSectionTitle: "الأبناء",
+    childrenSubtitle: "تسجيل تلميذ واحد على الأقل",
+    addSibling: "إضافة أخ/أخت",
+    childLabel: "التلميذ رقم ",
+    childFirstName: "اسم التلميذ *",
+    childFirstNamePlaceholder: "اسم التلميذ",
+    childLastName: "لقب التلميذ *",
+    childLastNamePlaceholder: "لقب التلميذ",
+    sex: "الجنس *",
+    sexMale: "ولد",
+    sexFemale: "بنت",
+    birthday: "تاريخ الولادة *",
+    classLabel: "القسم *",
+    delete: "حذف",
+    submitButton: "إرسال الطلب إلى إدارة المدرسة",
+    submitting: "جاري إرسال طلب التسجيل...",
+    successTitle: "تم إرسال طلب التسجيل بنجاح!",
+    successDesc: "ستقوم إدارة المدرسة بمراجعة وتأكيد طلبكم في أقرب وقت ممكن.",
+    successMobileNote: "يمكنكم تسجيل الدخول إلى تطبيق الجوال باستخدام رقم الهاتف :",
+    requiredError: "الرجاء تعبئة الاسم، اللقب ورقم الهاتف.",
+    requiredChildError: "الرجاء تعبئة المعلومات الكاملة للتلميذ رقم ",
+    invalidLink: "رابط غير صلح أو منتهي الصلاحية",
+    backToHome: "العودة إلى الصفحة الرئيسية",
+  },
+};
+
 export default function PublicParentJoinPage({ params }: PageProps) {
   const classIdParam = params?.classId;
 
@@ -38,6 +125,13 @@ export default function PublicParentJoinPage({ params }: PageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Language selection modal state
+  const [showLangModal, setShowLangModal] = useState(true);
+  const [lang, setLang] = useState<Lang>("fr");
+
+  const t = translations[lang];
+  const isRtl = lang === "ar";
 
   const [classData, setClassData] = useState<{
     classId: number;
@@ -97,6 +191,11 @@ export default function PublicParentJoinPage({ params }: PageProps) {
     fetchClassInfo();
   }, [classIdParam]);
 
+  const selectLanguage = (selectedLang: Lang) => {
+    setLang(selectedLang);
+    setShowLangModal(false);
+  };
+
   const addSibling = () => {
     const newId = `child-${Date.now()}`;
     setChildren((prev) => [
@@ -104,7 +203,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
       {
         id: newId,
         name: "",
-        surname: parentSurname || "", // Pre-fill with parent's surname
+        surname: parentSurname || "",
         sex: "MALE",
         birthday: "2017-09-01",
         classId: classData?.classId || 1,
@@ -126,14 +225,14 @@ export default function PublicParentJoinPage({ params }: PageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parentName.trim() || !parentSurname.trim() || !parentPhone.trim()) {
-      setError("Veuillez remplir votre prénom, nom de famille et numéro de téléphone.");
+      setError(t.requiredError);
       return;
     }
 
     for (let i = 0; i < children.length; i++) {
       const c = children[i];
       if (!c.name.trim() || !c.surname.trim() || !c.birthday) {
-        setError(`Veuillez remplir les informations complètes pour l'enfant #${i + 1}.`);
+        setError(`${t.requiredChildError}${i + 1}.`);
         return;
       }
     }
@@ -178,7 +277,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
           <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-600/30 mx-auto animate-pulse">
             S
           </div>
-          <p className="text-sm font-medium text-slate-500">Chargement du formulaire d&apos;inscription...</p>
+          <p className="text-sm font-medium text-slate-500">Chargement...</p>
         </div>
       </div>
     );
@@ -191,13 +290,13 @@ export default function PublicParentJoinPage({ params }: PageProps) {
           <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Lien invalide ou expiré</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t.invalidLink}</h2>
           <p className="text-sm text-slate-500">{error}</p>
           <a
             href="/"
             className="inline-block px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors"
           >
-            Retour à l&apos;accueil
+            {t.backToHome}
           </a>
         </div>
       </div>
@@ -205,11 +304,68 @@ export default function PublicParentJoinPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/70 via-slate-50 to-white flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+    <div
+      dir={isRtl ? "rtl" : "ltr"}
+      className="min-h-screen bg-gradient-to-b from-blue-50/70 via-slate-50 to-white flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative"
+    >
+      {/* ── 1. INITIAL LANGUAGE CHOICE MODAL ── */}
+      {showLangModal && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl w-full max-w-md p-6 sm:p-8 text-center space-y-6">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-600/30">
+              <Globe className="w-7 h-7" />
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block mb-1">
+                {classData?.schoolName || "SnapSchool"}
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                Choisissez votre langue
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                اختر لغتك المفضلة لمتابعة التسجيل
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 pt-2">
+              <button
+                onClick={() => selectLanguage("fr")}
+                className="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-slate-50 hover:bg-blue-50/50 flex items-center justify-between group transition-all"
+              >
+                <div className="flex items-center gap-3 text-left">
+                  <span className="text-2xl">🇫🇷</span>
+                  <div>
+                    <h3 className="font-bold text-slate-900 group-hover:text-blue-600 text-sm">Français</h3>
+                    <p className="text-xs text-slate-500">Formulaire d&apos;inscription en français</p>
+                  </div>
+                </div>
+                <Check className="w-5 h-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+
+              <button
+                onClick={() => selectLanguage("ar")}
+                className="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-600 bg-slate-50 hover:bg-blue-50/50 flex items-center justify-between group transition-all"
+              >
+                <div className="flex items-center gap-3 text-right">
+                  <span className="text-2xl">🇹🇳</span>
+                  <div>
+                    <h3 className="font-bold text-slate-900 group-hover:text-blue-600 text-sm">العربية</h3>
+                    <p className="text-xs text-slate-500">استمارة التسجيل باللغة العربية</p>
+                  </div>
+                </div>
+                <Check className="w-5 h-5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 2. MAIN REGISTRATION FORM ── */}
       <div className="w-full max-w-xl">
-        {/* School Header Badge */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2.5 bg-white px-4 py-2.5 rounded-full border border-slate-200 shadow-xs mb-3">
+        {/* Top Header Controls: School Badge + Language Switcher Pill */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
+          <div className="inline-flex items-center gap-2.5 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-xs">
             <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs overflow-hidden shrink-0">
               {classData?.schoolLogo ? (
                 <img src={classData.schoolLogo} alt="" className="w-full h-full object-cover" />
@@ -224,15 +380,42 @@ export default function PublicParentJoinPage({ params }: PageProps) {
             </span>
           </div>
 
+          {/* Persistent Language Switcher Pill */}
+          <div className="flex items-center bg-white p-1 rounded-full border border-slate-200 shadow-xs">
+            <button
+              onClick={() => setLang("fr")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                lang === "fr"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span>🇫🇷</span> Français
+            </button>
+            <button
+              onClick={() => setLang("ar")}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                lang === "ar"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span>🇹🇳</span> العربية
+            </button>
+          </div>
+        </div>
+
+        {/* Page Title & Subtitle */}
+        <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Ajouter Nouveau Parent
+            {t.schoolHeader}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Rejoignez l&apos;application pour suivre les notes, absences et bulletins.
+            {t.subtitle}
           </p>
         </div>
 
-        {/* Main Form Card */}
+        {/* Form Container Card */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
           {/* Header banner */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white flex items-center justify-between">
@@ -241,7 +424,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-base leading-tight">Classe principale : {classData?.className}</h2>
+                <h2 className="font-bold text-base leading-tight">{t.mainClass} {classData?.className}</h2>
                 <p className="text-xs text-blue-100">{classData?.levelName}</p>
               </div>
             </div>
@@ -254,14 +437,14 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Demande d&apos;inscription transmise !</h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">{t.successTitle}</h3>
                   <p className="text-sm text-slate-500 leading-relaxed max-w-sm mx-auto">
-                    La direction de l&apos;établissement <span className="font-semibold text-slate-800">{classData?.schoolName}</span> validera votre demande très prochainement.
+                    {t.successDesc}
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 flex items-center gap-3 text-left">
                   <Smartphone className="w-5 h-5 text-blue-600 shrink-0" />
-                  <span>Vous pourrez vous connecter à l&apos;application mobile avec votre numéro : <strong>{parentPhone}</strong></span>
+                  <span>{t.successMobileNote} <strong>{parentPhone}</strong></span>
                 </div>
               </div>
             ) : (
@@ -276,18 +459,18 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                 {/* PARENT DETAILS */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <User className="w-4 h-4" /> Informations du Parent
+                    <User className="w-4 h-4" /> {t.parentSectionTitle}
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Prénom *
+                        {t.firstName}
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder="Prénom du parent"
+                        placeholder={t.firstNamePlaceholder}
                         value={parentName}
                         onChange={(e) => setParentName(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors"
@@ -296,12 +479,12 @@ export default function PublicParentJoinPage({ params }: PageProps) {
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Nom de famille *
+                        {t.lastName}
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder="Nom de famille du parent"
+                        placeholder={t.lastNamePlaceholder}
                         value={parentSurname}
                         onChange={(e) => setParentSurname(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors"
@@ -310,7 +493,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Téléphone *
+                        {t.phone}
                       </label>
                       <input
                         type="tel"
@@ -324,27 +507,27 @@ export default function PublicParentJoinPage({ params }: PageProps) {
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Lien de parenté
+                        {t.relation}
                       </label>
                       <select
                         value={relation}
                         onChange={(e) => setRelation(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors"
                       >
-                        <option value="Père">Père</option>
-                        <option value="Mère">Mère</option>
-                        <option value="Tuteur">Tuteur légal</option>
+                        <option value="Père">{t.relationFather}</option>
+                        <option value="Mère">{t.relationMother}</option>
+                        <option value="Tuteur">{t.relationGuardian}</option>
                       </select>
                     </div>
 
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Adresse *
+                        {t.address}
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder="ex: Rue Habib Bourguiba, Tunis"
+                        placeholder={t.addressPlaceholder}
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors"
@@ -357,8 +540,8 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                 <div className="pt-4 border-t border-slate-100 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-base font-bold text-slate-900">Enfants</h3>
-                      <p className="text-xs text-slate-500">Inscrire au moins un élève</p>
+                      <h3 className="text-base font-bold text-slate-900">{t.childrenSectionTitle}</h3>
+                      <p className="text-xs text-slate-500">{t.childrenSubtitle}</p>
                     </div>
 
                     <button
@@ -366,7 +549,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                       onClick={addSibling}
                       className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 transition-colors"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Ajouter un frère/sœur
+                      <Plus className="w-3.5 h-3.5" /> {t.addSibling}
                     </button>
                   </div>
 
@@ -379,7 +562,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                       >
                         <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                            Élève #{idx + 1}
+                            {t.childLabel}{idx + 1}
                           </span>
 
                           {children.length > 1 && (
@@ -388,7 +571,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                               onClick={() => removeSibling(child.id)}
                               className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
                             >
-                              <Trash2 className="w-3.5 h-3.5" /> Supprimer
+                              <Trash2 className="w-3.5 h-3.5" /> {t.delete}
                             </button>
                           )}
                         </div>
@@ -396,12 +579,12 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Prénom *
+                              {t.childFirstName}
                             </label>
                             <input
                               type="text"
                               required
-                              placeholder="Prénom de l'enfant"
+                              placeholder={t.childFirstNamePlaceholder}
                               value={child.name}
                               onChange={(e) => updateChildField(child.id, "name", e.target.value)}
                               className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
@@ -410,12 +593,12 @@ export default function PublicParentJoinPage({ params }: PageProps) {
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Nom de famille *
+                              {t.childLastName}
                             </label>
                             <input
                               type="text"
                               required
-                              placeholder="Nom de famille de l'enfant"
+                              placeholder={t.childLastNamePlaceholder}
                               value={child.surname}
                               onChange={(e) => updateChildField(child.id, "surname", e.target.value)}
                               className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
@@ -424,21 +607,21 @@ export default function PublicParentJoinPage({ params }: PageProps) {
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Sexe *
+                              {t.sex}
                             </label>
                             <select
                               value={child.sex}
                               onChange={(e) => updateChildField(child.id, "sex", e.target.value)}
                               className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
                             >
-                              <option value="MALE">Garçon</option>
-                              <option value="FEMALE">Fille</option>
+                              <option value="MALE">{t.sexMale}</option>
+                              <option value="FEMALE">{t.sexFemale}</option>
                             </select>
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Date de naissance *
+                              {t.birthday}
                             </label>
                             <input
                               type="date"
@@ -451,7 +634,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
 
                           <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Classe *
+                              {t.classLabel}
                             </label>
                             <select
                               value={child.classId}
@@ -482,7 +665,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        Envoyer ma demande à la direction
+                        {t.submitButton}
                         <Send className="w-4 h-4" />
                       </>
                     )}
