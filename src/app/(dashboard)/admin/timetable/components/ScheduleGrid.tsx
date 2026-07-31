@@ -59,7 +59,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const { t } = useLanguage();
 
   const displaySessions = propSessions || defaultSessions;
-  const displaySlots = propSlots || localSlots;
+  const displaySlots = localSlots.length > 0 ? localSlots : (propSlots || []);
 
   useEffect(() => {
     isInitialMount.current = true;
@@ -102,10 +102,38 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     if (!slotIdStr) return;
 
     const slotId = parseInt(slotIdStr, 10);
-    const currentSlots = propSlots || localSlots;
-    const prevSlots = [...currentSlots];
+    const currentSlots = [...displaySlots];
 
-    // 1. OPTIMISTIC UPDATE: Update UI instantly with zero lag
+    // Compute target date and session time for exam type
+    const session = displaySessions.find((s) => s.id === targetPeriod) || displaySessions[0];
+    const [hStart, mStart] = (session.time || "08:00 - 10:00").split(" - ")[0].split(":").map(Number);
+    const [hEnd, mEnd] = (session.time || "08:00 - 10:00").split(" - ")[1].split(":").map(Number);
+
+    let targetDateObj: Date | null = null;
+    const displayDaysList = getDisplayDays();
+    if (Array.isArray(displayDaysList) && typeof displayDaysList[0] === "object") {
+      const matchObj = (displayDaysList as { day: Day; date: Date }[]).find((d) => d.day === targetDay);
+      if (matchObj) targetDateObj = matchObj.date;
+    }
+    if (!targetDateObj && startDate) {
+      const daysMap: Record<Day, number> = {
+        MONDAY: 0, TUESDAY: 1, WEDNESDAY: 2, THURSDAY: 3, FRIDAY: 4, SATURDAY: 5
+      };
+      const offset = daysMap[targetDay] ?? 0;
+      targetDateObj = new Date(startDate);
+      targetDateObj.setDate(targetDateObj.getDate() + offset);
+    }
+    if (!targetDateObj) {
+      targetDateObj = new Date();
+    }
+
+    const newStart = new Date(targetDateObj);
+    newStart.setHours(hStart, mStart || 0, 0, 0);
+
+    const newEnd = new Date(targetDateObj);
+    newEnd.setHours(hEnd, mEnd || 0, 0, 0);
+
+    // 1. OPTIMISTIC UPDATE: Update UI instantly (0ms delay)
     const nextSlots = currentSlots.map((slot) => {
       const isMovedSlot = slot.id === slotId || slot.lessonId === slotId;
       if (isMovedSlot) {
@@ -113,7 +141,9 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
           ...slot,
           day: targetDay,
           slotNumber: targetPeriod,
-          lesson: slot.lesson ? { ...slot.lesson, day: targetDay } : slot.lesson,
+          startTime: newStart.toISOString(),
+          endTime: newEnd.toISOString(),
+          lesson: slot.lesson ? { ...slot.lesson, day: targetDay, startTime: newStart, endTime: newEnd } : slot.lesson,
         };
       }
 
@@ -135,15 +165,15 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
     setLocalSlots(nextSlots);
 
-    // 2. SILENT BACKGROUND SERVER UPDATE (NO RE-FETCH, NO RE-RENDER)
+    // 2. SILENT BACKGROUND SERVER UPDATE
     try {
       const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
       if (!res.success) {
-        setLocalSlots(prevSlots);
+        setLocalSlots(currentSlots);
         alert(res.error || "Impossible de déplacer le créneau.");
       }
     } catch (err) {
-      setLocalSlots(prevSlots);
+      setLocalSlots(currentSlots);
       alert("Erreur lors du déplacement du créneau.");
     }
   };
