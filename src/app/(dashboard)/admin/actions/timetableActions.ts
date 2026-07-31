@@ -164,7 +164,6 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
       }
     });
 
-    revalidatePath(`/admin/timetable`);
     return { success: true };
   } catch (error: any) {
     console.error("Error moving timetable slot:", error);

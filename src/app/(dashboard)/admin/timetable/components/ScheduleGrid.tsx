@@ -135,12 +135,10 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
     setLocalSlots(nextSlots);
 
-    // 2. SILENT BACKGROUND SERVER UPDATE
+    // 2. SILENT BACKGROUND SERVER UPDATE (NO RE-FETCH, NO RE-RENDER)
     try {
       const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
-      if (res.success) {
-        onRefresh();
-      } else {
+      if (!res.success) {
         setLocalSlots(prevSlots);
         alert(res.error || "Impossible de déplacer le créneau.");
       }

@@ -233,7 +233,6 @@ export async function moveExam(examId: number, targetDay: Day, targetSlotNumber:
             data: { startTime, endTime }
         });
 
-        revalidatePath("/list/exams");
         return { success: true };
     } catch (error: any) {
         console.error("Error moving exam:", error);
