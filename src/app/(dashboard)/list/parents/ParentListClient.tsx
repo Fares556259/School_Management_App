@@ -9,12 +9,14 @@ import Image from "next/image";
 import { Parent, Student } from "@prisma/client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
 import { Share2 } from "lucide-react";
 
 type ParentList = Parent & { students: Student[] };
 
 export default function ParentListClient({ data, columns, role, count, page, relatedData }: any) {
+  const router = useRouter();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t } = useLanguage();
 
@@ -113,6 +115,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         classes={classList}
+        onApproved={() => router.refresh()}
       />
     </div>
   );

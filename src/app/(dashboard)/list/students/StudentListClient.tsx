@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
 import BulkStudentImport from "./BulkStudentImport";
@@ -42,6 +43,7 @@ export default function StudentListClient({
   paidThisMonth,
   relatedData,
 }: Props) {
+  const router = useRouter();
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t } = useLanguage();
@@ -212,6 +214,7 @@ export default function StudentListClient({
         onClose={() => setIsShareModalOpen(false)}
         classes={classList}
         schoolName={relatedData.schoolName}
+        onApproved={() => router.refresh()}
       />
     </>
   );

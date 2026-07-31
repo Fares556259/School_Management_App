@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   X,
   Share2,
@@ -45,13 +46,16 @@ export default function ShareParentLinkModal({
   classes = [],
   initialClassId,
   schoolName = "SnapSchool",
+  onApproved,
 }: {
   isOpen: boolean;
   onClose: () => void;
   classes?: ClassOption[];
   initialClassId?: number;
   schoolName?: string;
+  onApproved?: () => void;
 }) {
+  const router = useRouter();
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
@@ -114,6 +118,10 @@ export default function ShareParentLinkModal({
       const data = await res.json();
       if (res.ok && data.success) {
         setPendingRequests((prev) => prev.filter((r) => r.id !== requestId));
+        router.refresh();
+        if (onApproved) {
+          onApproved();
+        }
       } else {
         alert(data.error || "Erreur lors du traitement");
       }
