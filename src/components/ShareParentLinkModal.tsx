@@ -26,13 +26,16 @@ interface ClassOption {
 interface PendingRequest {
   id: string;
   parentName: string;
+  parentSurname?: string;
   parentPhone: string;
   relation: string;
+  address?: string;
   email?: string;
-  studentId: string;
-  studentFullName: string;
+  studentId?: string;
+  studentFullName?: string;
   classId: number;
   className: string;
+  childrenList?: { name: string; surname: string; sex: string; birthday: string; classId: number }[];
   createdAt: string;
 }
 
@@ -298,17 +301,33 @@ export default function ShareParentLinkModal({
                       key={r.id}
                       className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors"
                     >
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 text-sm">{r.parentName}</span>
+                          <span className="font-bold text-slate-900 text-sm">
+                            {r.parentName} {r.parentSurname || ""}
+                          </span>
                           <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">
                             {r.relation}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-600 font-mono">📱 {r.parentPhone}</p>
-                        <p className="text-xs text-slate-500">
-                          Élève : <strong className="text-slate-800">{r.studentFullName}</strong> ({r.className})
-                        </p>
+                        <p className="text-xs text-slate-600 font-mono">📱 {r.parentPhone} • 📍 {r.address || "Adresse non renseignée"}</p>
+                        
+                        <div className="pt-1">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">
+                            Enfant(s) à inscrire ({r.childrenList?.length || 1}) :
+                          </span>
+                          {r.childrenList && r.childrenList.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {r.childrenList.map((c, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-800 font-medium">
+                                  {c.name} {c.surname} ({c.sex === "FEMALE" ? "Fille" : "Garçon"})
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-800 font-semibold">{r.studentFullName} ({r.className})</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">

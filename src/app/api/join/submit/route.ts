@@ -4,30 +4,40 @@ import prisma from "@/lib/prisma";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { classId, studentId, customStudentName, parentName, parentPhone, relation, email, schoolId } = body;
+    const {
+      classId,
+      parentName,
+      parentSurname,
+      parentPhone,
+      address,
+      relation,
+      email,
+      children,
+      schoolId,
+    } = body;
 
-    if (!classId || (!studentId && !customStudentName) || !parentName || !parentPhone) {
+    if (!classId || !parentName || !parentSurname || !parentPhone || !children || !Array.isArray(children) || children.length === 0) {
       return NextResponse.json(
-        { error: "Veuillez remplir tous les champs obligatoires (Élève, Nom du parent, Téléphone)." },
+        { error: "Veuillez remplir tous les champs obligatoires (Prénom, Nom, Téléphone et au moins un enfant)." },
         { status: 400 }
       );
     }
 
     const numericClassId = typeof classId === "string" ? parseInt(classId, 10) : classId;
+    const fullParentName = `${parentName.trim()} ${parentSurname.trim()}`;
 
-    // Check for existing pending request with same phone & student
+    // Check for existing pending request with same phone & class
     const existing = await prisma.parentRegistrationRequest.findFirst({
       where: {
-        classId: numericClassId,
         parentPhone: parentPhone.trim(),
-        studentId: studentId || "custom",
+        classId: numericClassId,
         status: "PENDING",
       },
     });
 
     if (existing) {
       return NextResponse.json(
-        { message: "Une demande d'inscription est déjà en attente de validation pour ce numéro et cet élève." },
+        { message: "Une demande d'inscription avec ce numéro de téléphone est déjà en attente de validation." },
         { status: 200 }
       );
     }
@@ -35,12 +45,13 @@ export async function POST(request: Request) {
     const newRequest = await prisma.parentRegistrationRequest.create({
       data: {
         classId: numericClassId,
-        studentId: studentId || "custom",
-        studentName: customStudentName || null,
         parentName: parentName.trim(),
+        parentSurname: parentSurname.trim(),
         parentPhone: parentPhone.trim(),
+        address: address ? address.trim() : "Non renseignée",
         relation: relation || "Père",
         email: email ? email.trim() : null,
+        childrenData: children,
         schoolId: schoolId || "default_school",
         status: "PENDING",
       },
@@ -49,10 +60,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       requestId: newRequest.id,
-      message: "Votre demande a été soumise avec succès à la direction de l'école.",
+      message: "Votre demande d'inscription a été transmise avec succès à la direction de l'école.",
     });
   } catch (error: any) {
     console.error("POST /api/join/submit error:", error);
-    return NextResponse.json({ error: "Erreur serveur lors de la soumission" }, { status: 500 });
+    return NextResponse.json({ error: "Erreur serveur lors de la soumission de l'inscription." }, { status: 500 });
   }
 }

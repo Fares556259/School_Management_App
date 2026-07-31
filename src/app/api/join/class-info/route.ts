@@ -37,6 +37,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Classe non trouvée" }, { status: 404 });
     }
 
+    const allSchoolClasses = await prisma.class.findMany({
+      where: { schoolId: targetClass.schoolId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+
     return NextResponse.json({
       classId: targetClass.id,
       className: targetClass.name,
@@ -44,6 +50,7 @@ export async function GET(request: Request) {
       schoolName: targetClass.School?.name || "SnapSchool",
       schoolLogo: targetClass.School?.logo || null,
       schoolId: targetClass.schoolId,
+      classes: allSchoolClasses,
       students: targetClass.students.map((s) => ({
         id: s.id,
         fullName: `${s.surname} ${s.name}`,

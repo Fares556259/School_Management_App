@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
+import { createAuditLog } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -14,28 +15,17 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // Resolve student names and class names
     const classIds = Array.from(new Set(requests.map((r) => r.classId)));
-    const studentIds = Array.from(new Set(requests.map((r) => r.studentId).filter((id) => id !== "custom")));
-
-    const [classes, students] = await Promise.all([
-      prisma.class.findMany({
-        where: { id: { in: classIds } },
-        select: { id: true, name: true },
-      }),
-      prisma.student.findMany({
-        where: { id: { in: studentIds } },
-        select: { id: true, name: true, surname: true },
-      }),
-    ]);
-
+    const classes = await prisma.class.findMany({
+      where: { id: { in: classIds } },
+      select: { id: true, name: true },
+    });
     const classMap = new Map(classes.map((c) => [c.id, c.name]));
-    const studentMap = new Map(students.map((s) => [s.id, `${s.surname} ${s.name}`]));
 
     const enrichedRequests = requests.map((r) => ({
       ...r,
       className: classMap.get(r.classId) || `Classe #${r.classId}`,
-      studentFullName: r.studentId !== "custom" ? studentMap.get(r.studentId) || r.studentName || "Élève" : r.studentName || "Élève",
+      childrenList: Array.isArray(r.childrenData) ? r.childrenData : [],
     }));
 
     return NextResponse.json({ requests: enrichedRequests });
@@ -68,12 +58,13 @@ export async function POST(request: Request) {
         where: { id: requestId },
         data: { status: "REJECTED" },
       });
-      return NextResponse.json({ success: true, message: "Demande refusée." });
+      return NextResponse.json({ success: true, message: "Demande d'inscription refusée." });
     }
 
     if (action === "APPROVE") {
-      // Find or create Parent in Prisma
       const phoneClean = regRequest.parentPhone.replace(/\s+/g, "");
+
+      // 1. Find or create Parent in Prisma
       let parent = await prisma.parent.findFirst({
         where: {
           phone: phoneClean,
@@ -81,50 +72,89 @@ export async function POST(request: Request) {
         },
       });
 
+      const parentFirstName = regRequest.parentName.trim();
+      const parentLastName = regRequest.parentSurname?.trim() || "Parent";
+
       if (!parent) {
-        // Generate parent ID and username
         const parentId = `parent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         const username = `parent_${phoneClean.slice(-6)}`;
-        const nameParts = regRequest.parentName.trim().split(" ");
-        const firstName = nameParts[0] || "Parent";
-        const lastName = nameParts.slice(1).join(" ") || "Famille";
 
         parent = await prisma.parent.create({
           data: {
             id: parentId,
             username,
-            name: firstName,
-            surname: lastName,
+            name: parentFirstName,
+            surname: parentLastName,
             phone: phoneClean,
-            address: "N/A",
+            address: regRequest.address || "Non renseignée",
             schoolId,
           },
         });
       }
 
-      // Link Student to Parent if studentId is specified
-      if (regRequest.studentId && regRequest.studentId !== "custom") {
-        await prisma.student.update({
-          where: { id: regRequest.studentId },
-          data: { parentId: parent.id },
+      // 2. Create Students for each child in childrenData
+      const children = Array.isArray(regRequest.childrenData) ? (regRequest.childrenData as any[]) : [];
+      const createdStudentNames: string[] = [];
+
+      for (const child of children) {
+        const childName = (child.name || "").trim();
+        const childSurname = (child.surname || parentLastName).trim();
+        const childSex = child.sex === "FEMALE" ? "FEMALE" : "MALE";
+        const childBirthday = child.birthday ? new Date(child.birthday) : new Date("2016-01-01");
+        const childClassId = parseInt(child.classId || String(regRequest.classId), 10);
+
+        // Fetch levelId for class
+        const targetClass = await prisma.class.findUnique({
+          where: { id: childClassId },
+          select: { levelId: true },
         });
+        const levelId = targetClass?.levelId || 1;
+
+        const studentId = crypto.randomUUID();
+        const username = `${childName.toLowerCase()}.${childSurname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
+
+        await prisma.student.create({
+          data: {
+            id: studentId,
+            schoolId,
+            username,
+            name: childName,
+            surname: childSurname,
+            address: regRequest.address || "Non renseignée",
+            bloodType: "O+",
+            birthday: childBirthday,
+            sex: childSex,
+            parentId: parent.id,
+            classId: childClassId,
+            levelId,
+          },
+        });
+
+        createdStudentNames.push(`${childName} ${childSurname}`);
       }
 
-      // Update Request status to APPROVED
+      // 3. Mark request as APPROVED
       await prisma.parentRegistrationRequest.update({
         where: { id: requestId },
         data: { status: "APPROVED" },
       });
 
+      await createAuditLog({
+        action: "APPROVE_PARENT_REGISTRATION",
+        entityType: "Parent",
+        entityId: parent.id,
+        description: `Approuvé parent ${parent.name} ${parent.surname} avec ${children.length} enfant(s): ${createdStudentNames.join(", ")}`,
+      });
+
       return NextResponse.json({
         success: true,
-        message: `Parent ${parent.name} ${parent.surname} approuvé et relié à l'élève !`,
+        message: `Parent ${parent.name} ${parent.surname} approuvé et ${children.length} enfant(s) inscrit(s) avec succès !`,
       });
     }
 
     return NextResponse.json({ error: "Action invalide" }, { status: 400 });
   } catch (error: any) {
     console.error("POST /api/parent-requests error:", error);
-    return NextResponse.json({ error: error.message || "Erreur serveur" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Erreur serveur lors de l'approbation" }, { status: 500 });
   }
 }
