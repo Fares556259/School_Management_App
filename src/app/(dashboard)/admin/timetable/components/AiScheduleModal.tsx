@@ -15,6 +15,9 @@ interface Props {
   generateAction: (prompt: string, context: any, subjects: any[], teachers: any[]) => Promise<{ data?: any[]; error?: string }>;
   saveAction: (slots: any[]) => Promise<{ success: boolean; error?: string }>;
   title: string;
+  startDate?: string;
+  endDate?: string;
+  onSaveDates?: (start: string, end: string) => Promise<any>;
 }
 
 export default function AiScheduleModal({ 
@@ -25,7 +28,10 @@ export default function AiScheduleModal({
   teachers, 
   generateAction,
   saveAction,
-  title
+  title,
+  startDate,
+  endDate,
+  onSaveDates
 }: Props) {
   const [step, setStep] = useState<"input" | "generating" | "review" | "success">("input");
   const [prompt, setPrompt] = useState("");
@@ -34,6 +40,28 @@ export default function AiScheduleModal({
   const [isPending, startTransition] = useTransition();
   const [isLocked, setIsLocked] = useState(false);
   const [quota, setQuota] = useState(10);
+
+  const [modalStartDate, setModalStartDate] = useState(startDate || "");
+  const [modalEndDate, setModalEndDate] = useState(endDate || "");
+
+  useEffect(() => {
+    if (!startDate) {
+      const today = new Date();
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(today.setDate(diff));
+      const mStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+      setModalStartDate(mStr);
+      
+      const saturday = new Date(monday);
+      saturday.setDate(saturday.getDate() + 5);
+      const sStr = `${saturday.getFullYear()}-${String(saturday.getMonth() + 1).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
+      setModalEndDate(sStr);
+    } else {
+      setModalStartDate(startDate);
+      setModalEndDate(endDate || "");
+    }
+  }, [startDate, endDate]);
 
   useEffect(() => {
     isAIQuotaReached().then(reached => {
@@ -44,6 +72,11 @@ export default function AiScheduleModal({
   const handleGenerate = async () => {
     if (isLocked) return;
     if (!prompt.trim()) return;
+
+    if (!modalStartDate || !modalEndDate) {
+      setError("Veuillez sélectionner la date de début et la date de fin de la période d'examens.");
+      return;
+    }
 
     setStep("generating");
     setError(null);
@@ -61,6 +94,9 @@ export default function AiScheduleModal({
 
   const handleSave = () => {
     startTransition(async () => {
+      if (onSaveDates && modalStartDate && modalEndDate) {
+        await onSaveDates(modalStartDate, modalEndDate);
+      }
       const res = await saveAction(generatedSlots);
       if (res.success) {
         setStep("success");
@@ -87,7 +123,7 @@ export default function AiScheduleModal({
             <div>
               <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">{title}</h2>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
-                Prompt · Generate · Review · Apply
+                Dates · Prompt · Generate · Review · Apply
               </p>
             </div>
           </div>
@@ -124,9 +160,45 @@ export default function AiScheduleModal({
                 <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
                    <AlertCircle size={18} className="text-indigo-600 mt-0.5" />
                    <div className="text-xs text-indigo-700 font-medium leading-relaxed">
-                     Describe your ideal schedule for <strong>Grade {classContext.level} - {classContext.name}</strong>. 
-                     The AI will try to balance subjects and avoid teacher overlaps.
+                     Planification IA pour <strong>{classContext.name} (Niveau {classContext.level})</strong>. 
+                     Précisez vos dates d&apos;examens et instructions avant la génération.
                    </div>
+                </div>
+
+                {/* DATE SELECTION CARD */}
+                <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-wider">
+                      <Calendar size={16} className="text-indigo-600" />
+                      <span>Dates de la Période d&apos;Examens *</span>
+                    </div>
+                    {(!startDate || !endDate) && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        ⚠️ À confirmer
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Date de Début *</label>
+                      <input 
+                        type="date" 
+                        value={modalStartDate}
+                        onChange={(e) => setModalStartDate(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Date de Fin *</label>
+                      <input 
+                        type="date" 
+                        value={modalEndDate}
+                        onChange={(e) => setModalEndDate(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">

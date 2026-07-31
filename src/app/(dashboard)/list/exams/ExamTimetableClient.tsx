@@ -542,7 +542,7 @@ const ExamTimetableClient = ({
         <AiScheduleModal 
           onClose={() => setIsAiOpen(false)}
           onSuccess={handleAiSuccess}
-          title="AI Exam Magic"
+          title="Planificateur IA d'Examens"
           classContext={{
             id: selectedClass.id,
             name: selectedClass.name,
@@ -550,6 +550,20 @@ const ExamTimetableClient = ({
           }}
           subjects={subjects}
           teachers={teachers}
+          startDate={localStartDate}
+          endDate={localEndDate}
+          onSaveDates={async (sDate, eDate) => {
+            setLocalStartDate(sDate);
+            setLocalEndDate(eDate);
+            const [yS, mS, dS] = sDate.split('-').map(Number);
+            const start = new Date(yS, mS - 1, dS);
+            let end: Date | undefined = undefined;
+            if (eDate) {
+              const [yE, mE, dE] = eDate.split('-').map(Number);
+              end = new Date(yE, mE - 1, dE);
+            }
+            await upsertExamPeriodConfig(selectedPeriod, start, end, selectedClass.id);
+          }}
           generateAction={(p, c, s, t) => generateExamsFromPrompt(p, c, s, t, selectedPeriod)}
           saveAction={(slots) => bulkUpdateExams(selectedClass.id, selectedPeriod, slots, isDraftView)}
         />
