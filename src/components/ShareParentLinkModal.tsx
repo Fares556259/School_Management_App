@@ -35,7 +35,7 @@ interface PendingRequest {
   studentFullName?: string;
   classId: number;
   className: string;
-  childrenList?: { name: string; surname: string; sex: string; birthday: string; classId: number }[];
+  childrenList?: { name: string; surname: string; sex: string; birthday?: string; classId: number; className?: string }[];
   createdAt: string;
 }
 
@@ -312,16 +312,25 @@ export default function ShareParentLinkModal({
                         </div>
                         <p className="text-xs text-slate-600 font-mono">📱 {r.parentPhone} • 📍 {r.address || "Adresse non renseignée"}</p>
                         
-                        <div className="pt-1">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">
+                        <div className="pt-1.5 space-y-1">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                             Enfant(s) à inscrire ({r.childrenList?.length || 1}) :
                           </span>
                           {r.childrenList && r.childrenList.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="grid grid-cols-1 gap-2 mt-1">
                               {r.childrenList.map((c, i) => (
-                                <span key={i} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-800 font-medium">
-                                  {c.name} {c.surname} ({c.sex === "FEMALE" ? "Fille" : "Garçon"})
-                                </span>
+                                <div key={i} className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="font-bold text-slate-900">{c.name} {c.surname}</span>
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.sex === "FEMALE" ? "bg-pink-100 text-pink-700" : "bg-blue-100 text-blue-700"}`}>
+                                      {c.sex === "FEMALE" ? "Fille" : "Garçon"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium">
+                                    <span>🎂 {c.birthday ? new Date(c.birthday).toLocaleDateString("fr-FR") : "Non spécifié"}</span>
+                                    <span>🏫 {c.className || r.className}</span>
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           ) : (

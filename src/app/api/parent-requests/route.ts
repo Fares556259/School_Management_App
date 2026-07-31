@@ -15,9 +15,18 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const classIds = Array.from(new Set(requests.map((r) => r.classId)));
+    const allClassIds = new Set<number>();
+    requests.forEach((r) => {
+      if (r.classId) allClassIds.add(r.classId);
+      if (Array.isArray(r.childrenData)) {
+        (r.childrenData as any[]).forEach((c) => {
+          if (c.classId) allClassIds.add(parseInt(c.classId, 10));
+        });
+      }
+    });
+
     const classes = await prisma.class.findMany({
-      where: { id: { in: classIds } },
+      where: { id: { in: Array.from(allClassIds) } },
       select: { id: true, name: true },
     });
     const classMap = new Map(classes.map((c) => [c.id, c.name]));
@@ -25,7 +34,12 @@ export async function GET() {
     const enrichedRequests = requests.map((r) => ({
       ...r,
       className: classMap.get(r.classId) || `Classe #${r.classId}`,
-      childrenList: Array.isArray(r.childrenData) ? r.childrenData : [],
+      childrenList: Array.isArray(r.childrenData)
+        ? (r.childrenData as any[]).map((c) => ({
+            ...c,
+            className: classMap.get(parseInt(c.classId, 10)) || classMap.get(r.classId) || "Classe",
+          }))
+        : [],
     }));
 
     return NextResponse.json({ requests: enrichedRequests });
