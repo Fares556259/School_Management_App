@@ -55,20 +55,28 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const [localSlots, setLocalSlots] = useState<any[]>(propSlots || []);
   const [isLoading, setIsLoading] = useState(!propSlots && !!fetchDataAction);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
+  const isInitialMount = React.useRef(true);
   const { t } = useLanguage();
 
   const displaySessions = propSessions || defaultSessions;
   const displaySlots = propSlots || localSlots;
 
   useEffect(() => {
+    isInitialMount.current = true;
+  }, [classId, isDraft]);
+
+  useEffect(() => {
     if (fetchDataAction && classId) {
       const loadData = async () => {
-        setIsLoading(true);
+        if (isInitialMount.current) {
+          setIsLoading(true);
+        }
         const res = await fetchDataAction(classId, isDraft);
         if (res.success && res.data) {
           setLocalSlots(res.data);
         }
         setIsLoading(false);
+        isInitialMount.current = false;
       };
       loadData();
     }
@@ -93,10 +101,52 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     const slotIdStr = e.dataTransfer.getData("slotId");
     if (!slotIdStr) return;
 
-    const slotId = parseInt(slotIdStr);
-    const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
-    if (res.success) {
-      onRefresh();
+    const slotId = parseInt(slotIdStr, 10);
+    const currentSlots = propSlots || localSlots;
+    const prevSlots = [...currentSlots];
+
+    // 1. OPTIMISTIC UPDATE: Update UI instantly with zero lag
+    const nextSlots = currentSlots.map((slot) => {
+      const isMovedSlot = slot.id === slotId || slot.lessonId === slotId;
+      if (isMovedSlot) {
+        return {
+          ...slot,
+          day: targetDay,
+          slotNumber: targetPeriod,
+          lesson: slot.lesson ? { ...slot.lesson, day: targetDay } : slot.lesson,
+        };
+      }
+
+      const isTargetSlot = (slot.day === targetDay || slot.lesson?.day === targetDay) && slot.slotNumber === targetPeriod;
+      if (isTargetSlot) {
+        const movedSlot = currentSlots.find((s) => s.id === slotId || s.lessonId === slotId);
+        const sourceDay = movedSlot?.day || movedSlot?.lesson?.day || targetDay;
+        const sourcePeriod = movedSlot?.slotNumber || 1;
+        return {
+          ...slot,
+          day: sourceDay,
+          slotNumber: sourcePeriod,
+          lesson: slot.lesson ? { ...slot.lesson, day: sourceDay } : slot.lesson,
+        };
+      }
+
+      return slot;
+    });
+
+    setLocalSlots(nextSlots);
+
+    // 2. SILENT BACKGROUND SERVER UPDATE
+    try {
+      const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
+      if (res.success) {
+        onRefresh();
+      } else {
+        setLocalSlots(prevSlots);
+        alert(res.error || "Impossible de déplacer le créneau.");
+      }
+    } catch (err) {
+      setLocalSlots(prevSlots);
+      alert("Erreur lors du déplacement du créneau.");
     }
   };
 

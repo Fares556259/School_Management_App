@@ -77,14 +77,14 @@ const ExamTimetableClient = ({
     ? classes.find(c => c.id === classId) 
     : classes[0];
 
-  const fetchSlots = useCallback(async () => {
+  const fetchSlots = useCallback(async (silent = false) => {
     if (!selectedClass) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     const res = await getExamsByClass(selectedClass.id, selectedPeriod, isDraftView);
     if (res.success && res.data) {
       setSlots(res.data as any[]);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [selectedClass, selectedPeriod, isDraftView]);
 
   useEffect(() => {
@@ -487,7 +487,7 @@ const ExamTimetableClient = ({
       {/* PERIOD SELECTOR REMOVED - merged into top bar */}
       {/* TIMETABLE GRID */}
       {selectedClass && (
-        <div className={(isPending || loading) ? "opacity-50 transition-opacity" : ""}>
+        <div className={loading ? "opacity-50 transition-opacity" : ""}>
           {loading ? (
              <div className="flex flex-col items-center justify-center p-20 bg-white rounded-[40px] border border-slate-100 animate-pulse">
                 <div className="w-16 h-16 border-[6px] border-slate-50 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
@@ -511,7 +511,7 @@ const ExamTimetableClient = ({
               onMoveAction={moveExam}
               onUpdateAction={(data) => updateExamSlot({ ...data, isDraft: isDraftView })}
               onDeleteAction={deleteExam}
-              onRefresh={() => setRefreshKey(prev => prev + 1)}
+              onRefresh={() => fetchSlots(true)}
               sessions={dynamicSessions}
               isDraft={isDraftView}
             />
