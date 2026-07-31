@@ -256,6 +256,22 @@ export async function deleteExam(id: number) {
 
 export async function bulkUpdateExams(classId: number, period: number, slots: any[], isDraft: boolean = false) {
     try {
+        if (!classId) return { success: false, error: "Class ID is required" };
+        if (!Array.isArray(slots) || slots.length === 0) {
+            return { success: false, error: "No slots generated to save." };
+        }
+
+        const { startDate } = await getPeriodRange(period, classId);
+        const monday = startDate;
+
+        const targetClass = await prisma.class.findUnique({
+            where: { id: classId },
+            select: { schoolId: true }
+        });
+        const fallbackTeacher = await prisma.teacher.findFirst({
+            where: targetClass?.schoolId ? { schoolId: targetClass.schoolId } : {}
+        });
+
         await prisma.$transaction(async (tx) => {
             // 1. Delete existing exams for this class and period
             await tx.exam.deleteMany({
@@ -268,17 +284,17 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
 
             // 2. Create new exams
             for (const slot of slots) {
-                // Map session to physical times (simplified logic matching updateExamSlot)
-                const { startDate } = await getPeriodRange(period, classId);
-                const monday = startDate;
-
+                const dayStr = String(slot.day || "MONDAY").toUpperCase() as Day;
                 const daysMap: Record<Day, number> = {
                     MONDAY: 0, TUESDAY: 1, WEDNESDAY: 2, THURSDAY: 3, FRIDAY: 4, SATURDAY: 5
                 };
+                const dayOffset = daysMap[dayStr] ?? 0;
                 const examDate = new Date(monday);
-                examDate.setDate(examDate.getDate() + daysMap[slot.day as Day]);
+                examDate.setDate(examDate.getDate() + dayOffset);
 
-                const session = sessionTimes[slot.slotNumber - 1];
+                const slotNum = Number(slot.slotNumber) || 1;
+                const session = sessionTimes[slotNum - 1] || sessionTimes[0];
+
                 const startTime = new Date(examDate);
                 const [hStart, mStart] = session.start.split(":").map(Number);
                 startTime.setHours(hStart, mStart, 0, 0);
@@ -287,12 +303,17 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
                 const [hEnd, mEnd] = session.end.split(":").map(Number);
                 endTime.setHours(hEnd, mEnd, 0, 0);
 
+                const subId = Number(slot.subjectId);
+                const teachId = slot.teacherId ? String(slot.teacherId) : (fallbackTeacher?.id || "default_teacher");
+
+                if (!subId || isNaN(subId)) continue;
+
                 // Find or create lesson
                 let lessonValue = await tx.lesson.findFirst({
                     where: {
                         classId,
-                        subjectId: slot.subjectId,
-                        teacherId: slot.teacherId
+                        subjectId: subId,
+                        teacherId: teachId
                     }
                 });
 
@@ -300,12 +321,12 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
                     lessonValue = await tx.lesson.create({
                         data: {
                             name: "Exam Lesson",
-                            day: slot.day,
+                            day: dayStr,
                             startTime,
                             endTime,
                             classId,
-                            subjectId: slot.subjectId,
-                            teacherId: slot.teacherId
+                            subjectId: subId,
+                            teacherId: teachId
                         }
                     });
                 }
@@ -324,10 +345,11 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
         });
 
         revalidatePath("/list/exams");
+        revalidatePath("/admin/timetable");
         return { success: true };
     } catch (error: any) {
         console.error("bulkUpdateExams error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message || "Failed to save exam schedule." };
     }
 }
 

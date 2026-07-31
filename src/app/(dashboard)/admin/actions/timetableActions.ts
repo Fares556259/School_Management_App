@@ -195,34 +195,46 @@ export async function deleteTimetableSlot(id: number) {
 
 export async function bulkUpdateTimetableSlots(classId: number, slots: any[], isDraft: boolean = false) {
   try {
+    if (!classId) return { success: false, error: "Class ID is required" };
+    if (!Array.isArray(slots) || slots.length === 0) {
+      return { success: false, error: "No slots generated to save." };
+    }
+
     await prisma.$transaction(async (tx) => {
-      // 1. Delete all existing slots for this class with this draft status
       await tx.timetableSlot.deleteMany({
         where: { classId, isDraft }
       });
 
-      // 2. Create new slots
-      const dataToCreate = slots.map(slot => ({
-        day: slot.day,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        slotNumber: slot.slotNumber,
-        subjectId: slot.subjectId,
-        teacherId: slot.teacherId,
-        classId: classId,
-        isDraft: isDraft,
-      }));
+      const dataToCreate = slots
+        .map(slot => {
+          const subId = Number(slot.subjectId);
+          if (!subId || isNaN(subId)) return null;
+          return {
+            day: String(slot.day || "MONDAY").toUpperCase() as Day,
+            startTime: slot.startTime || "08:00 AM",
+            endTime: slot.endTime || "09:00 AM",
+            slotNumber: Number(slot.slotNumber) || 1,
+            subjectId: subId,
+            teacherId: slot.teacherId ? String(slot.teacherId) : null,
+            classId: classId,
+            isDraft: isDraft,
+          };
+        })
+        .filter(Boolean) as any[];
 
-      await tx.timetableSlot.createMany({
-        data: dataToCreate
-      });
+      if (dataToCreate.length > 0) {
+        await tx.timetableSlot.createMany({
+          data: dataToCreate
+        });
+      }
     });
 
     revalidatePath(`/admin/timetable`);
+    revalidatePath(`/list/exams`);
     return { success: true };
   } catch (error: any) {
     console.error("Bulk update error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Failed to save timetable slots." };
   }
 }
 

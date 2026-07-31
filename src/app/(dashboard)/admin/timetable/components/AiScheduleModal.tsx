@@ -222,6 +222,12 @@ export default function AiScheduleModal({
                   })}
                 </div>
 
+                {error && (
+                  <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                    ⚠️ {error}
+                  </p>
+                )}
+
                 <div className="flex gap-4 sticky bottom-0 bg-slate-50/90 backdrop-blur-sm py-4">
                   <button
                     onClick={() => setStep("input")}
