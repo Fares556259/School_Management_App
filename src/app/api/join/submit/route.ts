@@ -24,7 +24,6 @@ export async function POST(request: Request) {
     }
 
     const numericClassId = typeof classId === "string" ? parseInt(classId, 10) : classId;
-    const fullParentName = `${parentName.trim()} ${parentSurname.trim()}`;
 
     // Check for existing pending request with same phone & class
     const existing = await prisma.parentRegistrationRequest.findFirst({
@@ -64,6 +63,6 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("POST /api/join/submit error:", error);
-    return NextResponse.json({ error: "Erreur serveur lors de la soumission de l'inscription." }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Erreur serveur lors de la soumission de l'inscription." }, { status: 500 });
   }
 }

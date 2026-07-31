@@ -9,8 +9,10 @@ const isPublicRoute = (pathname: string) => {
     "/sign-up",
     "/waiting-approval",
     "/request-setup",
+    "/join",
   ];
   if (publicPaths.some(p => pathname === p || pathname.startsWith(p + "/"))) return true;
+  if (pathname.startsWith("/api/join")) return true;
   if (pathname.startsWith("/api/mobile")) return true;
   if (pathname.startsWith("/uploads")) return true;
   if (pathname.startsWith("/_next")) return true;
