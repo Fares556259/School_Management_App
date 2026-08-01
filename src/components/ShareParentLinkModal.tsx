@@ -239,51 +239,52 @@ export default function ShareParentLinkModal({
 
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white flex items-center justify-between">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0">
-              <Share2 className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <Share2 className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-bold text-lg leading-tight">{t.title}</h3>
-              <p className="text-xs text-blue-100">{t.subtitle}</p>
+              <h3 className="font-semibold text-gray-900">{t.title}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t.subtitle}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors shrink-0"
+            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tabs & Class Selector */}
-        <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Navigation Tabs */}
-          <div className="flex bg-slate-200/70 p-1 rounded-xl w-full">
+        {/* Navigation Tabs */}
+        <div className="px-6 pt-4">
+          <div className="flex bg-gray-100 p-1 rounded-lg w-full">
             <button
               onClick={() => setActiveTab("link")}
-              className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
                 activeTab === "link"
                   ? "bg-white text-blue-600 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              📲 {t.registrationLink}
+              {t.registrationLink}
             </button>
             <button
               onClick={() => setActiveTab("requests")}
-              className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
                 activeTab === "requests"
                   ? "bg-white text-blue-600 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               <span>{t.requests}</span>
               {pendingRequests.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center">
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  activeTab === "requests" ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-600"
+                }`}>
                   {pendingRequests.length}
                 </span>
               )}
@@ -294,14 +295,14 @@ export default function ShareParentLinkModal({
         {/* Tab Content */}
         <div className="p-6 overflow-y-auto space-y-5 flex-1">
           {activeTab === "link" ? (
-            <>
-              {/* WhatsApp Message Preview */}
+            <div className="space-y-6">
+              {/* WhatsApp Preview */}
               <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5 text-green-600" />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <MessageSquare className="w-4 h-4 text-emerald-500" />
                   {t.whatsappMessageLabel}
                 </label>
-                <div className={`bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 text-xs text-slate-700 leading-relaxed ${isRTL ? "font-sans" : "font-mono"}`} dir={isRTL ? "rtl" : "ltr"}>
+                <div className={`bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 leading-relaxed ${isRTL ? "font-sans" : "font-mono"}`} dir={isRTL ? "rtl" : "ltr"}>
                   {whatsappMessage}
                 </div>
               </div>
@@ -312,19 +313,19 @@ export default function ShareParentLinkModal({
                   href={whatsappShareUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.01]"
+                  className="py-2.5 px-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-semibold text-sm rounded-lg flex items-center justify-center gap-2 transition-colors"
                 >
-                  <MessageSquare className="w-4 h-4 fill-white" />
+                  <MessageSquare className="w-4 h-4" />
                   {t.shareWhatsapp}
                 </a>
 
                 <button
                   onClick={copyToClipboard}
-                  className="py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all"
+                  className="py-2.5 px-4 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 font-semibold text-sm rounded-lg flex items-center justify-center gap-2 transition-colors"
                 >
                   {copied ? (
                     <>
-                      <Check className="w-4 h-4 text-emerald-400" /> {t.linkCopied}
+                      <Check className="w-4 h-4 text-emerald-600" /> {t.linkCopied}
                     </>
                   ) : (
                     <>
@@ -335,123 +336,142 @@ export default function ShareParentLinkModal({
               </div>
 
               {/* QR Code Section */}
-              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
-                <div className="w-24 h-24 bg-white p-2 rounded-xl border border-slate-200 shrink-0 flex items-center justify-center shadow-xs">
+              <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div className="w-24 h-24 bg-white p-2 rounded-lg border border-gray-200 shrink-0 flex items-center justify-center">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(joinUrl)}`}
                     alt="QR Code"
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-xs mb-1 flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5 text-blue-600" /> {t.qrCodeTitle}
+                <div className="text-center sm:text-start">
+                  <h4 className="font-semibold text-gray-900 text-sm mb-1 flex items-center justify-center sm:justify-start gap-1.5">
+                    <QrCode className="w-4 h-4 text-gray-500" /> {t.qrCodeTitle}
                   </h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed mb-2">
+                  <p className="text-xs text-gray-500 leading-relaxed mb-3">
                     {t.qrCodeDesc()}
                   </p>
                   <a
                     href={joinUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1 w-fit"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-center sm:justify-start gap-1 w-fit mx-auto sm:mx-0"
                   >
                     {t.testLink} <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
             /* Pending Requests Tab */
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-bold text-xs text-slate-700 uppercase">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-700">
                   {t.pendingRequests} ({filteredRequests.length})
                 </h4>
                 <button
                   onClick={fetchPendingRequests}
-                  className="text-xs font-semibold text-blue-600 hover:underline"
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   {t.refresh}
                 </button>
               </div>
 
               {loadingRequests ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
+                <div className="py-12 text-center text-sm text-gray-500">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400" />
                   {t.loading}
                 </div>
               ) : filteredRequests.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-100 p-6">
-                  <Clock className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+                <div className="py-12 text-center text-sm text-gray-500 bg-gray-50 rounded-lg border border-gray-100 border-dashed">
+                  <Clock className="w-6 h-6 mx-auto mb-2 text-gray-300" />
                   {t.noRequests}
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {filteredRequests.map((r) => (
                     <div
                       key={r.id}
-                      className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors"
+                      className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-4 transition-colors"
                     >
-                      <div className="space-y-1 w-full">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900 text-sm">
-                            {r.parentName} {r.parentSurname || ""}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">
-                            {r.relation}
-                          </span>
+                      {/* Request Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">
+                              {r.parentName} {r.parentSurname || ""}
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                              {r.relation}
+                            </span>
+                          </div>
+                          <div className={`text-xs text-gray-500 flex flex-wrap items-center gap-x-3 gap-y-1 ${isRTL ? "font-sans" : "font-mono"}`} dir={isRTL ? "rtl" : "ltr"}>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                              <span dir="ltr">{r.parentPhone}</span>
+                            </span>
+                            {r.address && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                <span>{r.address}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className={`text-xs text-slate-600 ${isRTL ? "font-sans" : "font-mono"}`} dir={isRTL ? "rtl" : "ltr"}>📱 <span dir="ltr" className="inline-block">{r.parentPhone}</span> • 📍 {r.address || t.addressNotProvided}</p>
-                        
-                        <div className="pt-1.5 space-y-1">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                            {t.childrenToRegister} ({r.childrenList?.length || 1}) :
-                          </span>
-                          {r.childrenList && r.childrenList.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-2 mt-1">
-                              {r.childrenList.map((c, i) => (
-                                <div key={i} className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
-                                  <div className="flex items-center justify-between gap-1">
-                                    <span className="font-bold text-slate-900">{c.name} {c.surname}</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.sex === "FEMALE" ? "bg-pink-100 text-pink-700" : "bg-blue-100 text-blue-700"}`}>
-                                      {c.sex === "FEMALE" ? t.girl : t.boy}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium">
-                                    <span>🎂 <span dir="ltr" className="inline-block">{c.birthday ? new Date(c.birthday).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'fr-FR') : t.notSpecified}</span></span>
-                                    <span>🏫 <span dir="ltr" className="inline-block">{c.className || r.className}</span></span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-800 font-semibold">{r.studentFullName} <span dir="ltr" className="inline-block">({r.className})</span></span>
-                          )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            disabled={processingId === r.id}
+                            onClick={() => handleAction(r.id, "REJECT")}
+                            className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-gray-400" /> {t.reject}
+                          </button>
+                          <button
+                            disabled={processingId === r.id}
+                            onClick={() => handleAction(r.id, "APPROVE")}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                          >
+                            {processingId === r.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5" /> {t.approve}
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
-                        <button
-                          disabled={processingId === r.id}
-                          onClick={() => handleAction(r.id, "APPROVE")}
-                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                        >
-                          {processingId === r.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <>
-                              <CheckCircle2 className="w-3.5 h-3.5" /> {t.approve}
-                            </>
-                          )}
-                        </button>
-                        <button
-                          disabled={processingId === r.id}
-                          onClick={() => handleAction(r.id, "REJECT")}
-                          className="px-3 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> {t.reject}
-                        </button>
+                      {/* Children List */}
+                      <div className="pt-3 border-t border-gray-100">
+                        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-2">
+                          {t.childrenToRegister} ({r.childrenList?.length || 1})
+                        </span>
+                        {r.childrenList && r.childrenList.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {r.childrenList.map((c, i) => (
+                              <div key={i} className="p-3 bg-gray-50 rounded-md text-sm flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <div className="font-medium text-gray-900">{c.name} {c.surname}</div>
+                                  <div className="text-xs text-gray-500 flex items-center gap-2">
+                                    <span>{c.birthday ? new Date(c.birthday).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'fr-FR') : t.notSpecified}</span>
+                                    <span>•</span>
+                                    <span className="font-medium" dir="ltr">{c.className || r.className}</span>
+                                  </div>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${c.sex === "FEMALE" ? "bg-pink-100 text-pink-700" : "bg-blue-100 text-blue-700"}`}>
+                                  {c.sex === "FEMALE" ? t.girl : t.boy}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-gray-50 rounded-md text-sm font-medium text-gray-900">
+                            {r.studentFullName} <span className="text-gray-500 font-normal" dir="ltr">({r.className})</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
