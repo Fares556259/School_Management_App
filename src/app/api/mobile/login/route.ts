@@ -1,10 +1,18 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/mobileAuth";
 
-// Simple mobile login — looks up a parent by email and returns their data.
-// No Clerk dependency; suitable for Expo Go testing.
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+    const rateCheck = checkRateLimit(ip, "login");
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { success: false, error: `Too many login attempts. Please try again in ${rateCheck.retryAfterSeconds} seconds.` },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { phone, role } = body;
 
