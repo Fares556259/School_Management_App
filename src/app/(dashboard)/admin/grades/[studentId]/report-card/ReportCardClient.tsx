@@ -143,6 +143,11 @@ const parseArabicDomainName = (domainName: string): string => {
     "SCIENCE & TECHNOLOGY DOMAIN": "مجال العلوم والتكنولوجيا",
     "DISCOVERY DOMAIN": "مجال التنشئة الاجتماعية",
     "FOREIGN LANGUAGES DOMAIN": "مجال اللغات الأجنبية",
+    "SPORT": "مجال التربية البدنية والرياضة",
+    "SPORTS": "مجال التربية البدنية والرياضة",
+    "PHYSICAL EDUCATION": "مجال التربية البدنية والرياضة",
+    "EPS": "مجال التربية البدنية والرياضة",
+    "ÉDUCATION PHYSIQUE": "مجال التربية البدنية والرياضة",
   };
 
   const upper = trimmed.toUpperCase();
@@ -150,6 +155,7 @@ const parseArabicDomainName = (domainName: string): string => {
     return domainLabelMap[upper];
   }
 
+  if (upper.includes("SPORT") || upper.includes("EPS") || upper.includes("PHYSIC")) return "مجال التربية البدنية والرياضة";
   if (upper.includes("ART") || upper.includes("TECH")) return "مجال الفنون والتكنولوجيا";
   if (upper.includes("HUMAN")) return "مجال الإنسانيات والعلوم الاجتماعية";
   if (upper.includes("FOREIGN") || upper.includes("LANG")) return "مجال اللغات";
@@ -270,17 +276,19 @@ const parseArabicDomainName = (domainName: string): string => {
 
         {/* INFO BOXES */}
         <div className="flex gap-4 mb-4">
-            <div className="flex-1 border-2 border-slate-200 p-4 space-y-2 rounded-sm relative">
-                <div className="flex justify-between items-center whitespace-nowrap">
-                    <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
-                    <span className="text-lg font-black text-blue-700">{data.header.studentName}</span>
+            <div className="flex-1 border-2 border-slate-200 p-4 rounded-sm bg-white flex flex-col justify-between space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
+                        <span className="text-lg font-black text-blue-700">{data.header.studentName}</span>
+                    </div>
+                    <span className="bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0">
+                       الرتبة: {data.header.rank}
+                    </span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-400">القسم :</span>
                     <span className="text-md font-black text-slate-800">{data.header.class}</span>
-                </div>
-                <div className="absolute top-1 left-3 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
-                   الرتبة: {data.header.rank}
                 </div>
             </div>
 

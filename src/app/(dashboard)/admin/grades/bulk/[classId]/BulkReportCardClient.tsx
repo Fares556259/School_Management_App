@@ -112,6 +112,11 @@ const parseArabicDomainName = (domainName: string): string => {
     "SCIENCE & TECHNOLOGY DOMAIN": "مجال العلوم والتكنولوجيا",
     "DISCOVERY DOMAIN": "مجال التنشئة الاجتماعية",
     "FOREIGN LANGUAGES DOMAIN": "مجال اللغات الأجنبية",
+    "SPORT": "مجال التربية البدنية والرياضة",
+    "SPORTS": "مجال التربية البدنية والرياضة",
+    "PHYSICAL EDUCATION": "مجال التربية البدنية والرياضة",
+    "EPS": "مجال التربية البدنية والرياضة",
+    "ÉDUCATION PHYSIQUE": "مجال التربية البدنية والرياضة",
   };
 
   const upper = trimmed.toUpperCase();
@@ -119,6 +124,7 @@ const parseArabicDomainName = (domainName: string): string => {
     return domainLabelMap[upper];
   }
 
+  if (upper.includes("SPORT") || upper.includes("EPS") || upper.includes("PHYSIC")) return "مجال التربية البدنية والرياضة";
   if (upper.includes("ART") || upper.includes("TECH")) return "مجال الفنون والتكنولوجيا";
   if (upper.includes("HUMAN")) return "مجال الإنسانيات والعلوم الاجتماعية";
   if (upper.includes("FOREIGN") || upper.includes("LANG")) return "مجال اللغات";
@@ -222,11 +228,13 @@ const parseArabicDomainName = (domainName: string): string => {
                     <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">وزارة التربية</h3>
                     <h4 className="text-[10px] font-medium text-slate-600">المندوبية الجهوية للتربية</h4>
                 </div>
+                
                 <div className="text-center">
                     <div className="bg-slate-50 border-2 border-slate-100 px-10 py-1.5 rounded-full mb-2 inline-block">
                         <h2 className="text-md font-black text-slate-800 tracking-tight">{getTermText(report.header.term)}</h2>
                     </div>
                 </div>
+
                 <div className="text-left space-y-0.5">
                     <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight text-left">المدرسة الابتدائية الخاصة</h3>
                     <div className="text-[10px] font-bold text-slate-700 text-left">السنة الدراسية 2024-2025</div>
@@ -235,12 +243,17 @@ const parseArabicDomainName = (domainName: string): string => {
 
             {/* INFO BOXES */}
             <div className="flex gap-4 mb-4">
-                <div className="flex-1 border-2 border-slate-200 p-4 space-y-2 rounded-sm relative">
-                    <div className="flex justify-between items-center whitespace-nowrap">
-                        <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
-                        <span className="text-lg font-black text-blue-700 uppercase">{report.header.studentName}</span>
+                <div className="flex-1 border-2 border-slate-200 p-4 rounded-sm bg-white flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
+                            <span className="text-lg font-black text-blue-700 uppercase">{report.header.studentName}</span>
+                        </div>
+                        <span className="bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0">
+                           الرتبة: {report.header.rank}
+                        </span>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-400">القسم :</span>
                         <span className="text-md font-black text-slate-800">{report.header.class}</span>
                     </div>
