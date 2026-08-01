@@ -110,10 +110,58 @@ export default function ReportCardClient({
     return "ـ";
   };
 
+/** Translate domain names to Arabic */
+const parseArabicDomainName = (domainName: string): string => {
+  if (!domainName) return "المجال";
+  const trimmed = domainName.trim();
+  
+  if (trimmed.includes("|")) {
+    const parts = trimmed.split("|");
+    const arPart = parts.find((p) => /[\u0600-\u06FF]/.test(p));
+    if (arPart) return arPart.trim();
+  }
+
+  if (/[\u0600-\u06FF]/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const domainLabelMap: Record<string, string> = {
+    "ARTS & TECHNOLOGY": "مجال الفنون والتكنولوجيا",
+    "ARTS AND TECHNOLOGY": "مجال الفنون والتكنولوجيا",
+    "HUMANITIES": "مجال الإنسانيات والعلوم الاجتماعية",
+    "LANGUAGES": "مجال اللغات",
+    "RELIGION & VALUES": "مجال التربية الإسلامية والقيم",
+    "RELIGION AND VALUES": "مجال التربية الإسلامية والقيم",
+    "SCIENCES": "مجال العلوم والتكنولوجيا",
+    "SCIENCE": "مجال العلوم والتكنولوجيا",
+    "MATHEMATICS & SCIENCES": "مجال الرياضيات والعلوم",
+    "ARTS & SPORT": "مجال الفنون والرياضة",
+    "ARTS ET SPORT": "مجال الفنون والرياضة",
+    "SCIENCES HUMAINES": "مجال العلوم الإنسانية",
+    "LANGUES": "مجال اللغات",
+    "ARABIC LANGUAGE DOMAIN": "مجال اللغة العربية",
+    "SCIENCE & TECHNOLOGY DOMAIN": "مجال العلوم والتكنولوجيا",
+    "DISCOVERY DOMAIN": "مجال التنشئة الاجتماعية",
+    "FOREIGN LANGUAGES DOMAIN": "مجال اللغات الأجنبية",
+  };
+
+  const upper = trimmed.toUpperCase();
+  if (domainLabelMap[upper]) {
+    return domainLabelMap[upper];
+  }
+
+  if (upper.includes("ART") || upper.includes("TECH")) return "مجال الفنون والتكنولوجيا";
+  if (upper.includes("HUMAN")) return "مجال الإنسانيات والعلوم الاجتماعية";
+  if (upper.includes("FOREIGN") || upper.includes("LANG")) return "مجال اللغات";
+  if (upper.includes("RELIG") || upper.includes("VALU") || upper.includes("ISLAM")) return "مجال التربية الإسلامية والقيم";
+  if (upper.includes("MATH") || upper.includes("SCI")) return "مجال الرياضيات والعلوم";
+  if (upper.includes("DISCOV")) return "مجال التنشئة الاجتماعية";
+
+  return trimmed;
+};
+
   // UI Domain rendering helpers
   const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
-    // Domain name is passed directly from DB — no hardcoded mapping needed.
-    // It may be in Arabic or English depending on how the school set it up.
     const rows: any[] = subjects.map((s) => ({ ...s, label: parseArabicName(s.name) }));
 
     if (rows.length === 0) return null;
@@ -121,7 +169,7 @@ export default function ReportCardClient({
     return (
       <div key={domainName} className="border-2 border-blue-600 mb-6 overflow-hidden rounded-md">
         <div className="bg-blue-600 text-white text-center font-bold py-1.5 text-sm uppercase">
-          {domainName}
+          {parseArabicDomainName(domainName)}
         </div>
         <table className="w-full text-sm border-collapse">
           <thead className="bg-slate-50 border-b border-blue-600 text-[10px] font-black text-slate-900">

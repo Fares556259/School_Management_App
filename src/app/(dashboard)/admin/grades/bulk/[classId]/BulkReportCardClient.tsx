@@ -73,42 +73,91 @@ export default function BulkReportCardClient({
     return "ـ";
   };
 
+const parseArabicName = (name: string): string => {
+  if (!name) return "";
+  const parts = name.split("|");
+  const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
+  return arabicPart ? arabicPart.trim() : parts[0].trim();
+};
+
+const parseArabicDomainName = (domainName: string): string => {
+  if (!domainName) return "المجال";
+  const trimmed = domainName.trim();
+  
+  if (trimmed.includes("|")) {
+    const parts = trimmed.split("|");
+    const arPart = parts.find((p) => /[\u0600-\u06FF]/.test(p));
+    if (arPart) return arPart.trim();
+  }
+
+  if (/[\u0600-\u06FF]/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const domainLabelMap: Record<string, string> = {
+    "ARTS & TECHNOLOGY": "مجال الفنون والتكنولوجيا",
+    "ARTS AND TECHNOLOGY": "مجال الفنون والتكنولوجيا",
+    "HUMANITIES": "مجال الإنسانيات والعلوم الاجتماعية",
+    "LANGUAGES": "مجال اللغات",
+    "RELIGION & VALUES": "مجال التربية الإسلامية والقيم",
+    "RELIGION AND VALUES": "مجال التربية الإسلامية والقيم",
+    "SCIENCES": "مجال العلوم والتكنولوجيا",
+    "SCIENCE": "مجال العلوم والتكنولوجيا",
+    "MATHEMATICS & SCIENCES": "مجال الرياضيات والعلوم",
+    "ARTS & SPORT": "مجال الفنون والرياضة",
+    "ARTS ET SPORT": "مجال الفنون والرياضة",
+    "SCIENCES HUMAINES": "مجال العلوم الإنسانية",
+    "LANGUES": "مجال اللغات",
+    "ARABIC LANGUAGE DOMAIN": "مجال اللغة العربية",
+    "SCIENCE & TECHNOLOGY DOMAIN": "مجال العلوم والتكنولوجيا",
+    "DISCOVERY DOMAIN": "مجال التنشئة الاجتماعية",
+    "FOREIGN LANGUAGES DOMAIN": "مجال اللغات الأجنبية",
+  };
+
+  const upper = trimmed.toUpperCase();
+  if (domainLabelMap[upper]) {
+    return domainLabelMap[upper];
+  }
+
+  if (upper.includes("ART") || upper.includes("TECH")) return "مجال الفنون والتكنولوجيا";
+  if (upper.includes("HUMAN")) return "مجال الإنسانيات والعلوم الاجتماعية";
+  if (upper.includes("FOREIGN") || upper.includes("LANG")) return "مجال اللغات";
+  if (upper.includes("RELIG") || upper.includes("VALU") || upper.includes("ISLAM")) return "مجال التربية الإسلامية والقيم";
+  if (upper.includes("MATH") || upper.includes("SCI")) return "مجال الرياضيات والعلوم";
+  if (upper.includes("DISCOV")) return "مجال التنشئة الاجتماعية";
+
+  return trimmed;
+};
+
   const renderReportCard = (report: ReportData) => {
       const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
-        const domainLabelMap: Record<string, string> = {
-            "Arabic Language Domain": "مجال اللغة العربية",
-            "Science & Technology Domain": "مجال العلوم والتكنولوجيا",
-            "Discovery Domain": "مجال التنشئة",
-            "Foreign Languages Domain": "مجال اللغات الأجنبية",
-        };
-
         let rows: any[] = [];
         
         // Handle French Grouping within Foreign Languages Domain
-        if (domainName === "Foreign Languages Domain") {
+        if (domainName.toUpperCase().includes("FOREIGN") || domainName.toUpperCase().includes("LANGUES")) {
           const frenchSubjects = subjects.filter(s => s.name.startsWith("French"));
           const nonFrenchSubjects = subjects.filter(s => !s.name.startsWith("French"));
           
           if (frenchSubjects.length > 0) {
             rows.push({ label: "* اللغة الفرنسية", type: "sub-header" });
-            frenchSubjects.forEach(s => rows.push({ ...s, label: s.name.replace("French ", "") }));
+            frenchSubjects.forEach(s => rows.push({ ...s, label: parseArabicName(s.name.replace("French ", "")) }));
             
             const frenchTotal = frenchSubjects.reduce((acc, s) => acc + s.score, 0);
             const frenchAvg = frenchTotal / frenchSubjects.length;
             rows.push({ label: "معدل اللغة الفرنسية", score: frenchAvg, type: "sub-total" });
           }
           
-          nonFrenchSubjects.forEach(s => rows.push({ ...s, label: s.name }));
+          nonFrenchSubjects.forEach(s => rows.push({ ...s, label: parseArabicName(s.name) }));
         } else {
           subjects.forEach(s => {
-            rows.push({ ...s, label: s.name });
+            rows.push({ ...s, label: parseArabicName(s.name) });
           });
         }
 
         return (
           <div key={domainName} className="border-2 border-blue-600 mb-6 overflow-hidden rounded-md">
             <div className="bg-blue-600 text-white text-center font-bold py-1.5 text-sm uppercase">
-              {domainLabelMap[domainName] || domainName}
+              {parseArabicDomainName(domainName)}
             </div>
             <table className="w-full text-sm border-collapse">
               <thead className="bg-slate-50 border-b border-blue-600 text-[10px] font-black text-slate-900">
