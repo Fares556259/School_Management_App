@@ -46,7 +46,7 @@ export default function StudentListClient({
   const router = useRouter();
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const classList = (relatedData?.classId || []).map((c: any) => ({
     id: parseInt(c.value, 10),
@@ -178,7 +178,7 @@ export default function StudentListClient({
                   className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
                 >
                   <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-                  <span>Inscriptions & Demandes Parents</span>
+                  <span>{locale === 'ar' ? 'تسجيلات وطلبات الأولياء' : locale === 'fr' ? 'Inscriptions & Demandes Parents' : 'Parent Registrations & Requests'}</span>
                 </button>
                 <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
               </div>

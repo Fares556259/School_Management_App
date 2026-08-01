@@ -18,7 +18,7 @@ type ParentList = Parent & { students: Student[] };
 export default function ParentListClient({ data, columns, role, count, page, relatedData }: any) {
   const router = useRouter();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const classList = (relatedData?.classId || []).map((c: any) => ({
     id: parseInt(c.value, 10),
@@ -96,7 +96,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
                   className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-all shadow-xs"
                 >
                   <Share2 size={15} className="text-emerald-600" />
-                  <span>Inscriptions & Demandes Parents</span>
+                  <span>{locale === 'ar' ? 'تسجيلات وطلبات الأولياء' : locale === 'fr' ? 'Inscriptions & Demandes Parents' : 'Parent Registrations & Requests'}</span>
                 </button>
                 <CrudFormModal
                   entity="parent"
