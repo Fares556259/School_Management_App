@@ -4,7 +4,7 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import { createClient } from "@/utils/supabase/server";
 import { Filter, ArrowUpDown, Plus, Edit2, Trash2 } from "lucide-react";
-import prisma from "@/lib/prisma";
+import prisma, { safeDbQuery } from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
@@ -131,23 +131,25 @@ const AssignmentListPage = async ({
     </tr>
   );
 
-  const [data, count] = await Promise.all([
-    prisma.assignment.findMany({
-      where: query,
-      include: {
-        lesson: {
-          include: {
-            subject: true,
-            class: true,
-            teacher: true,
+  const [data, count] = await safeDbQuery(() =>
+    Promise.all([
+      prisma.assignment.findMany({
+        where: query,
+        include: {
+          lesson: {
+            include: {
+              subject: true,
+              class: true,
+              teacher: true,
+            },
           },
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.assignment.count({ where: query }),
-  ]);
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.assignment.count({ where: query }),
+    ])
+  );
 
   return (
     <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
