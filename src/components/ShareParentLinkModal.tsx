@@ -58,19 +58,19 @@ const MODAL_TEXTS = {
     registrationLink: "Registration Link",
     requests: "Requests",
     whatsappMessageLabel: "WhatsApp Invitation Message",
-    whatsappMessageBody: (className: string, schoolName: string, link: string) => 
-      `Dear parents of class ${className}, join the SnapSchool app of ${schoolName} to track your child's grades, absences, and report cards by clicking this link: ${link}`,
+    whatsappMessageBody: (schoolName: string, link: string) => 
+      `Dear parents, join the SnapSchool app of ${schoolName} to track your child's grades, absences, and report cards by clicking this link: ${link}`,
     shareWhatsapp: "Share on WhatsApp",
     copyLink: "Copy link",
     linkCopied: "Link copied!",
     qrCodeTitle: "QR Code for Display / Meeting",
-    qrCodeDesc: (className: string) => 
-      `Print this QR code or display it during parent-teacher meetings for class ${className}.`,
+    qrCodeDesc: () => 
+      `Print this QR code or display it during parent-teacher meetings.`,
     testLink: "Test parent registration page",
     pendingRequests: "Pending Registration Requests",
     refresh: "Refresh",
     loading: "Loading requests...",
-    noRequests: "No pending requests for this class.",
+    noRequests: "No pending requests.",
     addressNotProvided: "Address not provided",
     childrenToRegister: "Child(ren) to register",
     girl: "Girl",
@@ -84,23 +84,22 @@ const MODAL_TEXTS = {
   fr: {
     title: "Inscriptions & Demandes Parents",
     subtitle: "Partagez le lien d'inscription et validez les demandes parents",
-    class: "Classe :",
     registrationLink: "Lien d'inscription",
     requests: "Demandes",
     whatsappMessageLabel: "Message d'invitation WhatsApp",
-    whatsappMessageBody: (className: string, schoolName: string, link: string) => 
-      `Chers parents de la classe ${className}, rejoignez l'application SnapSchool de l'établissement ${schoolName} pour suivre les notes, absences et bulletins de votre enfant en cliquant sur ce lien : ${link}`,
+    whatsappMessageBody: (schoolName: string, link: string) => 
+      `Chers parents, rejoignez l'application SnapSchool de l'établissement ${schoolName} pour suivre les notes, absences et bulletins de vos enfants en cliquant sur ce lien : ${link}`,
     shareWhatsapp: "Partager sur WhatsApp",
     copyLink: "Copier le lien",
     linkCopied: "Lien copié !",
     qrCodeTitle: "Code QR pour affichage / réunion",
-    qrCodeDesc: (className: string) => 
-      `Imprimez ce code QR ou affichez-le lors des réunions de parents d'élèves de la classe ${className}.`,
+    qrCodeDesc: () => 
+      `Imprimez ce code QR ou affichez-le lors des réunions de parents d'élèves.`,
     testLink: "Tester la page d'inscription parent",
     pendingRequests: "Demandes d'inscription en attente",
     refresh: "Actualiser",
     loading: "Chargement des demandes...",
-    noRequests: "Aucune demande en attente de validation pour cette classe.",
+    noRequests: "Aucune demande en attente de validation.",
     addressNotProvided: "Adresse non renseignée",
     childrenToRegister: "Enfant(s) à inscrire",
     girl: "Fille",
@@ -114,18 +113,17 @@ const MODAL_TEXTS = {
   ar: {
     title: "تسجيلات وطلبات الأولياء",
     subtitle: "شارك رابط التسجيل وقم بالتحقق من طلبات الأولياء",
-    class: "القسم :",
     registrationLink: "رابط التسجيل",
     requests: "الطلبات",
     whatsappMessageLabel: "رسالة دعوة واتساب",
-    whatsappMessageBody: (className: string, schoolName: string, link: string) => 
-      `أعزائي أولياء أمور قسم ${className}، انضموا إلى تطبيق SnapSchool لمؤسسة ${schoolName} لمتابعة درجات وغيابات وتقارير طفلكم عبر الضغط على هذا الرابط: ${link}`,
+    whatsappMessageBody: (schoolName: string, link: string) => 
+      `أعزائي الأولياء، انضموا إلى تطبيق SnapSchool لمؤسسة ${schoolName} لمتابعة درجات وغيابات وتقارير أبنائكم عبر الضغط على هذا الرابط: ${link}`,
     shareWhatsapp: "مشاركة عبر واتساب",
     copyLink: "نسخ الرابط",
     linkCopied: "تم نسخ الرابط!",
     qrCodeTitle: "رمز QR للعرض / الاجتماعات",
-    qrCodeDesc: (className: string) => 
-      `قم بطباعة رمز QR هذا أو عرضه أثناء اجتماعات أولياء الأمور لقسم ${className}.`,
+    qrCodeDesc: () => 
+      `قم بطباعة رمز QR هذا أو عرضه أثناء اجتماعات أولياء الأمور.`,
     testLink: "تجربة صفحة تسجيل الولي",
     pendingRequests: "طلبات التسجيل المعلقة",
     refresh: "تحديث",
@@ -165,18 +163,13 @@ export default function ShareParentLinkModal({
   const isRTL = locale === 'ar';
   const t = MODAL_TEXTS[locale as keyof typeof MODAL_TEXTS] || MODAL_TEXTS.en;
 
-  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"link" | "requests">("link");
 
-  useEffect(() => {
-    if (classes.length > 0 && !selectedClassId) {
-      setSelectedClassId(initialClassId || classes[0].id);
-    }
-  }, [classes, initialClassId, selectedClassId]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -201,15 +194,14 @@ export default function ShareParentLinkModal({
 
   if (!isOpen) return null;
 
-  const currentClass = classes.find((c) => c.id === selectedClassId) || classes[0];
   const displaySchoolName = schoolName && !schoolName.includes("@") ? schoolName : "SnapSchool";
   const schoolSlug = (displaySchoolName && displaySchoolName !== "SnapSchool") ? slugify(displaySchoolName) : (schoolSubdomain || "snapschool-academy");
 
   const joinUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/join/${schoolSlug}?classId=${currentClass?.id || ""}`
-    : `/join/${schoolSlug}?classId=${currentClass?.id || ""}`;
+    ? `${window.location.origin}/join/${schoolSlug}`
+    : `/join/${schoolSlug}`;
 
-  const whatsappMessage = t.whatsappMessageBody(currentClass?.name || "", displaySchoolName, joinUrl);
+  const whatsappMessage = t.whatsappMessageBody(displaySchoolName, joinUrl);
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(whatsappMessage)}`;
 
   const copyToClipboard = () => {
@@ -243,9 +235,7 @@ export default function ShareParentLinkModal({
     }
   };
 
-  const filteredRequests = pendingRequests.filter(
-    (r) => !selectedClassId || r.classId === selectedClassId
-  );
+  const filteredRequests = pendingRequests;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans" dir={isRTL ? "rtl" : "ltr"}>
@@ -271,25 +261,8 @@ export default function ShareParentLinkModal({
 
         {/* Tabs & Class Selector */}
         <div className="p-4 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Class Select Dropdown */}
-          <div className="w-full sm:w-auto flex items-center gap-2">
-            <label className="text-xs font-bold text-slate-500 uppercase">{t.class}</label>
-            <select
-              value={selectedClassId || ""}
-              onChange={(e) => setSelectedClassId(Number(e.target.value))}
-              className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              dir="ltr"
-            >
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.studentCount ? `(${c.studentCount})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Navigation Tabs */}
-          <div className="flex bg-slate-200/70 p-1 rounded-xl w-full sm:w-auto">
+          <div className="flex bg-slate-200/70 p-1 rounded-xl w-full">
             <button
               onClick={() => setActiveTab("link")}
               className={`flex-1 sm:flex-none px-3.5 py-1 text-xs font-bold rounded-lg transition-all ${
@@ -375,7 +348,7 @@ export default function ShareParentLinkModal({
                     <QrCode className="w-3.5 h-3.5 text-blue-600" /> {t.qrCodeTitle}
                   </h4>
                   <p className="text-[11px] text-slate-500 leading-relaxed mb-2">
-                    {t.qrCodeDesc(currentClass?.name || "")}
+                    {t.qrCodeDesc()}
                   </p>
                   <a
                     href={joinUrl}
