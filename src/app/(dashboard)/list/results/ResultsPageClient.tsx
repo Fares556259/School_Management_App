@@ -222,8 +222,8 @@ export default function ResultsPageClient({
           subjects={subjects}
           classes={validClasses}
           teachers={teachers}
-          initialClassId={editingData?.classId ?? validClasses[0]?.id}
-          initialTerm={editingData?.term ?? 1}
+          initialClassId={editingData?.classId ?? (selectedClassId ? Number(selectedClassId) : validClasses[0]?.id)}
+          initialTerm={editingData?.term ?? (selectedTerm ? Number(selectedTerm) : 1)}
           existingSheet={editingData}
           onClose={() => { setActiveView("list"); router.refresh(); }}
         />

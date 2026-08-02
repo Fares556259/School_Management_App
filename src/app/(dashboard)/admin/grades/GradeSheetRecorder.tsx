@@ -75,14 +75,25 @@ export default function GradeSheetRecorder({
     
     const sync = async () => {
       setIsSyncing(true);
+      setIsLoadingStudents(true);
       try {
+        // 1. Fetch student roster for the selected classId
+        const studentRes = await fetch(`/api/students?classId=${classId}`);
+        const currentStudents: Student[] = await studentRes.json();
+        if (cancelled) return;
+        setStudents(currentStudents);
+
+        // 2. Fetch grade sheet data
         const sheet = await getGradeSheet(classId, subjectId, term);
         if (cancelled) return;
         
         if (sheet) {
           const newGrades: Record<string, string> = {};
           sheet.grades.forEach((g: any) => {
-            newGrades[g.studentId] = String(g.score);
+            newGrades[g.studentId] = g.score !== null ? String(g.score) : "";
+          });
+          currentStudents.forEach(s => {
+            if (newGrades[s.id] === undefined) newGrades[s.id] = "";
           });
           setGrades(newGrades);
           setProofPreviewUrl(sheet.proofUrl || null);
@@ -96,7 +107,7 @@ export default function GradeSheetRecorder({
           setTeacherId(sheet.teacherId || "");
         } else {
           const emptyGrades: Record<string, string> = {};
-          students.forEach(s => { emptyGrades[s.id] = ""; });
+          currentStudents.forEach(s => { emptyGrades[s.id] = ""; });
           setGrades(emptyGrades);
           setProofPreviewUrl(null);
           setIsImageLoading(false);
@@ -107,13 +118,16 @@ export default function GradeSheetRecorder({
       } catch (err) {
         console.error("Sync Error:", err);
       } finally {
-        if (!cancelled) setIsSyncing(false);
+        if (!cancelled) {
+          setIsLoadingStudents(false);
+          setIsSyncing(false);
+        }
       }
     };
 
     sync();
     return () => { cancelled = true; };
-  }, [classId, subjectId, term, students]);
+  }, [classId, subjectId, term]);
 
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(existingSheet?.proofUrl ?? null);
