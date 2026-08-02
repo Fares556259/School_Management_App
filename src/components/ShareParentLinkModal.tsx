@@ -8,6 +8,7 @@ import {
   Copy,
   Check,
   QrCode,
+  AlertCircle,
   Users,
   Building2,
   MessageSquare,
@@ -167,9 +168,8 @@ export default function ShareParentLinkModal({
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"link" | "requests">("link");
-
-
 
   useEffect(() => {
     if (isOpen) {
@@ -212,6 +212,7 @@ export default function ShareParentLinkModal({
 
   const handleAction = async (requestId: string, action: "APPROVE" | "REJECT") => {
     try {
+      setErrorMsg(null);
       setProcessingId(requestId);
       const res = await fetch("/api/parent-requests", {
         method: "POST",
@@ -226,10 +227,10 @@ export default function ShareParentLinkModal({
           onApproved();
         }
       } else {
-        alert(data.error || t.errorProcessing);
+        setErrorMsg(data.error || t.errorProcessing);
       }
     } catch (err) {
-      alert(t.networkError);
+      setErrorMsg(t.networkError);
     } finally {
       setProcessingId(null);
     }
@@ -261,23 +262,25 @@ export default function ShareParentLinkModal({
 
         {/* Navigation Tabs */}
         <div className="px-6 pt-4">
-          <div className="flex bg-gray-100 p-1 rounded-lg w-full">
+          <div className="flex bg-gray-100 p-1 rounded-xl">
             <button
-              onClick={() => setActiveTab("link")}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                activeTab === "link"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+              onClick={() => {
+                setActiveTab("link");
+                setErrorMsg(null);
+              }}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                activeTab === "link" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {t.registrationLink}
             </button>
             <button
-              onClick={() => setActiveTab("requests")}
-              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${
-                activeTab === "requests"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+              onClick={() => {
+                setActiveTab("requests");
+                setErrorMsg(null);
+              }}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                activeTab === "requests" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               <span>{t.requests}</span>
@@ -291,6 +294,14 @@ export default function ShareParentLinkModal({
             </button>
           </div>
         </div>
+
+        {/* Error Banner */}
+        {errorMsg && (
+          <div className="mx-6 mt-4 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 text-rose-700 animate-in fade-in zoom-in duration-200">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="text-sm font-medium">{errorMsg}</div>
+          </div>
+        )}
 
         {/* Tab Content */}
         <div className="p-6 overflow-y-auto space-y-5 flex-1">
