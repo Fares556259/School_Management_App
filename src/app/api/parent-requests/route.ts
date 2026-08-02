@@ -82,7 +82,6 @@ export async function POST(request: Request) {
       let parent = await prisma.parent.findFirst({
         where: {
           phone: phoneClean,
-          schoolId,
         },
       });
 
