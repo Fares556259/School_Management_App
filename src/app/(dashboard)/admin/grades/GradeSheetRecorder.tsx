@@ -3,7 +3,7 @@
 import { useState, useRef, useTransition, useCallback, ReactNode, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Maximize2, X, FileText, Pencil, ClipboardPaste, Trash2, Lock, Sparkles, RotateCw, SunMedium, Loader2 } from "lucide-react";
+import { Maximize2, X, FileText, Pencil, ClipboardPaste, Trash2, Lock, Sparkles, RotateCw, SunMedium, Loader2, Check as CheckIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createGradeSheet, GradeEntry, getGradeSheet } from "./actions";
 import { extractGradesFromImage } from "./aiActions";
@@ -376,7 +376,7 @@ export default function GradeSheetRecorder({
 
     startTransition(async () => {
       try {
-        let finalProofUrl = proofPreviewUrl ?? "";
+        let finalProofUrl = "";
 
         // If we have a NEW file to upload
         if (proofFile) {
@@ -398,7 +398,14 @@ export default function GradeSheetRecorder({
             .getPublicUrl(filePath);
 
           finalProofUrl = publicUrl;
+          // Update the preview URL to the permanent one and clear the file ref
+          setProofPreviewUrl(publicUrl);
+          setProofFile(null);
+        } else if (proofPreviewUrl && proofPreviewUrl.startsWith('http')) {
+          // Keep existing permanent URL
+          finalProofUrl = proofPreviewUrl;
         }
+        // If proofPreviewUrl is a blob: URL and no proofFile, it means something went wrong — save empty
 
         await createGradeSheet({
           classId,
@@ -414,10 +421,13 @@ export default function GradeSheetRecorder({
         setIsDirty(false);
         setTimeout(() => {
           setSaveStatus("idle");
-        }, 1500);
+        }, 3000);
       } catch (err) {
         console.error("Save Error:", err);
         setSaveStatus("error");
+        setTimeout(() => {
+          setSaveStatus("idle");
+        }, 5000);
       }
     });
   };
@@ -450,25 +460,42 @@ export default function GradeSheetRecorder({
         <div className="flex items-center gap-3">
           {/* Status indicator */}
           {saveStatus === "success" && (
-            <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
-              ✓ Saved
-            </span>
+            <motion.span 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 flex items-center gap-1"
+            >
+              <CheckIcon size={13} /> Saved
+            </motion.span>
           )}
           {saveStatus === "error" && (
-            <span className="text-[11px] font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-100">
-              ✗ Error
-            </span>
+            <motion.span 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-[11px] font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-100"
+            >
+              Save failed — try again
+            </motion.span>
           )}
 
-          {(isDirty || saveStatus !== "idle") && (
-            <button
-              onClick={handleSave}
-              disabled={isPending || isLoadingStudents}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium rounded-lg transition-all disabled:opacity-50 animate-in fade-in zoom-in duration-300"
-            >
-              {isPending ? "Saving…" : "Save"}
-            </button>
-          )}
+          {/* Always show the Save button, but style it differently based on state */}
+          <button
+            onClick={handleSave}
+            disabled={isPending || isLoadingStudents || (!isDirty && saveStatus === "idle")}
+            className={`px-4 py-2 text-[12px] font-medium rounded-lg transition-all disabled:opacity-40 ${
+              isPending 
+                ? 'bg-blue-400 text-white cursor-wait' 
+                : isDirty 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' 
+                  : 'bg-slate-100 text-slate-400 border border-slate-200'
+            }`}
+          >
+            {isPending ? (
+              <span className="flex items-center gap-1.5">
+                <Loader2 size={14} className="animate-spin" /> Saving…
+              </span>
+            ) : isDirty ? "Save" : "Saved"}
+          </button>
           
           <button 
             onClick={handleClose} 
