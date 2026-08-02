@@ -131,16 +131,12 @@ export default function ResultsPageClient({
     setInitializingCardId(cardId);
     try {
       // Create a grade sheet with 0 scores for this specific subject
-      const studentRes = await fetch(`/api/students?classId=${item.class.id}`);
-      const studentsData = await studentRes.json();
-      const gradeEntries = studentsData.map((s: any) => ({ studentId: s.id, score: 0 }));
-      
       await createGradeSheet({
         classId: item.class.id,
         subjectId: item.subject.id,
         term: item.term,
         proofUrl: "",
-        grades: gradeEntries,
+        grades: [],
       });
       
       // Fetch the newly created sheet and open the recorder

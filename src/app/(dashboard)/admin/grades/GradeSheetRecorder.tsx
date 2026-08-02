@@ -95,9 +95,9 @@ export default function GradeSheetRecorder({
           setNotes(sheet.notes === "INITIALIZED_BULK" ? "" : (sheet.notes || ""));
           setTeacherId(sheet.teacherId || "");
         } else {
-          const zeroGrades: Record<string, string> = {};
-          students.forEach(s => { zeroGrades[s.id] = "0"; });
-          setGrades(zeroGrades);
+          const emptyGrades: Record<string, string> = {};
+          students.forEach(s => { emptyGrades[s.id] = ""; });
+          setGrades(emptyGrades);
           setProofPreviewUrl(null);
           setIsImageLoading(false);
           setNotes("");
@@ -125,7 +125,7 @@ export default function GradeSheetRecorder({
         return acc;
       }, {}) 
     : initialStudents.reduce((acc: any, s: any) => {
-        acc[s.id] = "0";
+        acc[s.id] = "";
         return acc;
       }, {});
 
@@ -177,9 +177,9 @@ export default function GradeSheetRecorder({
       const response = await fetch(`/api/students?classId=${newId}`);
       const data = await response.json();
       setStudents(data);
-      const zeroGrades: Record<string, string> = {};
-      data.forEach((s: any) => { zeroGrades[s.id] = "0"; });
-      setGrades(zeroGrades); // Default to 0 when class changes
+      const emptyGrades: Record<string, string> = {};
+      data.forEach((s: any) => { emptyGrades[s.id] = ""; });
+      setGrades(emptyGrades); // Default to blank when class changes
       setIsDirty(true);
     } catch (err) {
       console.error("Failed to fetch students:", err);
