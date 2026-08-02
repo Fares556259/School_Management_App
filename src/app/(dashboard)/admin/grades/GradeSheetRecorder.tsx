@@ -3,12 +3,11 @@
 import { useState, useRef, useTransition, useCallback, ReactNode, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Maximize2, X } from "lucide-react";
+import { Maximize2, X, FileText, Pencil, ClipboardPaste, Trash2, Lock, Sparkles, RotateCw, SunMedium, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createGradeSheet, GradeEntry, getGradeSheet } from "./actions";
 import { extractGradesFromImage } from "./aiActions";
 import { isAIQuotaReached } from "../actions/aiActions";
-import { Lock, Sparkles } from "lucide-react";
 
 
 const parseArabicName = (name: string): string => {
@@ -437,27 +436,27 @@ export default function GradeSheetRecorder({
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
       {/* ─── HEADER BAR ─── */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#dddddd] shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-8 h-8 rounded-[6px] bg-[#181d26] flex items-center justify-center">
-            <span className="text-white text-[13px] font-medium">GS</span>
+      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-[#e5e7eb]">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-[8px] bg-blue-50 flex items-center justify-center">
+            <FileText size={16} className="text-blue-600" />
           </div>
           <div>
-            <h1 className="text-[16px] font-medium text-[#181d26] tracking-tight">Grade Sheet Recorder</h1>
-            <p className="text-[12px] text-[#41454d]">Upload Proof · Record Marks · Verify</p>
+            <h1 className="text-[15px] font-semibold text-[#181d26] tracking-tight">Grade Sheet Recorder</h1>
+            <p className="text-[11px] text-[#6b7280]">Upload Proof · Record Marks · Verify</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Status indicator */}
           {saveStatus === "success" && (
-            <span className="text-[12px] font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-[6px] border border-emerald-100">
-              ✓ Saved Successfully
+            <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
+              ✓ Saved
             </span>
           )}
           {saveStatus === "error" && (
-            <span className="text-[12px] font-medium text-rose-600 bg-rose-50 px-3 py-1.5 rounded-[6px] border border-rose-100">
-              ✗ Error Saving
+            <span className="text-[11px] font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-100">
+              ✗ Error
             </span>
           )}
 
@@ -465,15 +464,15 @@ export default function GradeSheetRecorder({
             <button
               onClick={handleSave}
               disabled={isPending || isLoadingStudents}
-              className="px-4 py-2.5 bg-[#181d26] hover:bg-[#0d1218] text-white text-[13px] font-medium rounded-[6px] transition-all disabled:opacity-50 animate-in fade-in zoom-in duration-300"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-medium rounded-lg transition-all disabled:opacity-50 animate-in fade-in zoom-in duration-300"
             >
-              {isPending ? "Saving…" : "Save Sheet"}
+              {isPending ? "Saving…" : "Save"}
             </button>
           )}
           
           <button 
             onClick={handleClose} 
-            className="w-9 h-9 flex items-center justify-center rounded-[6px] hover:bg-[#f8fafc] transition-all text-[#41454d] font-medium"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-all text-[#6b7280]"
           >
             <X size={18} />
           </button>
@@ -481,7 +480,7 @@ export default function GradeSheetRecorder({
       </div>
 
       {/* ─── FILTERS BAR ─── */}
-      <div className="flex flex-wrap items-center gap-4 px-6 py-3 bg-white border-b border-[#dddddd] relative z-30">
+      <div className="flex flex-wrap items-center gap-3 px-6 py-2.5 bg-white border-b border-[#e5e7eb] relative z-30">
         <CustomSelect
           label="Class"
           value={String(classId)}
@@ -516,10 +515,10 @@ export default function GradeSheetRecorder({
           ]}
         />
 
-        <div className="ml-auto flex items-center gap-2 text-[11px] font-medium text-[#41454d]">
-          <span className="px-2.5 py-1 bg-[#f8fafc] rounded-[4px] border border-[#dddddd]">{students.length} students</span>
-          <span className="px-2.5 py-1 bg-[#f8fafc] rounded-[4px] border border-[#dddddd]">{gradeCount} graded</span>
-          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-[4px] border border-emerald-100">avg {avgScore}</span>
+        <div className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-[#6b7280]">
+          <span className="px-2 py-0.5 bg-slate-50 rounded text-[10px] border border-slate-200">{students.length} students</span>
+          <span className="px-2 py-0.5 bg-slate-50 rounded text-[10px] border border-slate-200">{gradeCount} graded</span>
+          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] border border-emerald-100">avg {avgScore}</span>
         </div>
       </div>
 
@@ -532,7 +531,7 @@ export default function GradeSheetRecorder({
         >
           <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">📄 Original Document</span>
+              <span className="text-[11px] font-medium text-[#6b7280]">Original Document</span>
             </div>
             
             <div className="flex items-center gap-3">
@@ -540,21 +539,21 @@ export default function GradeSheetRecorder({
                 <>
                   <button 
                     onClick={() => setRotation(r => (r + 90) % 360)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 transition-all font-black text-[9px] uppercase tracking-widest"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-md border border-slate-200 text-slate-500 hover:text-blue-600 transition-all text-[11px] font-medium"
                     title="Rotate 90° Clockwise"
                   >
-                    🔄 Rotate
+                    <RotateCw size={13} /> Rotate
                   </button>
                   <button 
                     onClick={() => setContrastEnhance(c => !c)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[11px] font-medium transition-all ${
                       contrastEnhance 
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
+                        ? 'bg-blue-50 border-blue-200 text-blue-600' 
                         : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
                     }`}
                     title="Enhance Faint Handwriting"
                   >
-                    🌓 Enhance
+                    <SunMedium size={13} /> Enhance
                   </button>
                   <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                     <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-6 h-6 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold flex items-center justify-center shadow-sm">-</button>
@@ -576,7 +575,7 @@ export default function GradeSheetRecorder({
                   title="View Fullscreen"
                 >
                   <Maximize2 size={12} className="group-hover:scale-110 transition-transform" />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Preview</span>
+                  <span className="text-[11px] font-medium">Preview</span>
                 </button>
               )}
             </div>
@@ -837,19 +836,19 @@ export default function GradeSheetRecorder({
           style={{ width: `${100 - leftWidth}%` }}
         >
           <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 shadow-sm shrink-0">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">✏️ Grade Entry</span>
-            <div className="flex items-center gap-3">
+            <span className="text-[11px] font-medium text-[#6b7280]">Grade Entry</span>
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => setIsBulkPasteOpen(true)}
-                className="text-[10px] font-black text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-widest"
+                className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 transition-colors px-2 py-1 rounded-md hover:bg-blue-50"
               >
-                📋 Bulk Paste
+                <ClipboardPaste size={13} /> Bulk Paste
               </button>
               <button
                 onClick={() => fillAll("")}
-                className="text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest"
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-rose-500 transition-colors px-2 py-1 rounded-md hover:bg-rose-50"
               >
-                Clear All
+                <Trash2 size={13} /> Clear
               </button>
             </div>
           </div>
@@ -869,11 +868,11 @@ export default function GradeSheetRecorder({
               </div>
             )}
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-white border-b border-slate-100 z-10">
+              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                 <tr>
-                  <th className="text-left px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
-                  <th className="text-center px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-28">Score /20</th>
-                  <th className="text-center px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest w-16">Status</th>
+                  <th className="text-left px-4 py-2.5 text-[11px] font-medium text-[#6b7280] uppercase tracking-wide">Student</th>
+                  <th className="text-center px-4 py-2.5 text-[11px] font-medium text-[#6b7280] uppercase tracking-wide w-28">Score /20</th>
+                  <th className="text-center px-4 py-2.5 text-[11px] font-medium text-[#6b7280] uppercase tracking-wide w-16">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -893,11 +892,11 @@ export default function GradeSheetRecorder({
                     <tr key={student.id} className={`border-b border-slate-50 ${isAiFilled ? "bg-indigo-50/50" : idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"} hover:bg-indigo-50/30 transition-all group`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
+                          <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-500">
                             {student.name[0]}{student.surname[0]}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-800 text-sm">{student.name} {student.surname}</p>
+                            <p className="font-medium text-slate-800 text-[13px]">{student.name} {student.surname}</p>
                           </div>
                         </div>
                       </td>
@@ -922,11 +921,11 @@ export default function GradeSheetRecorder({
                             }
                           }}
                           placeholder="—"
-                          className="w-full text-center text-sm font-black rounded-xl border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
+                          className="w-full text-center text-[13px] font-medium rounded-lg border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                         />
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`text-[10px] font-black ${color}`}>
+                        <span className={`text-[11px] font-semibold ${color}`}>
                           {pct === null ? "—" : pct >= 75 ? "✓" : pct >= 50 ? "~" : "✗"}
                         </span>
                       </td>
@@ -939,13 +938,13 @@ export default function GradeSheetRecorder({
 
           {/* Notes panel */}
           <div className="p-4 bg-white border-t border-slate-100">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Notes (optional)</label>
+            <label className="text-[11px] font-medium text-[#6b7280] block mb-1.5">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={(e) => updateNotes(e.target.value)}
               placeholder="e.g. 3 students absent, paper submitted on April 08"
               rows={2}
-              className="w-full text-sm text-slate-700 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+              className="w-full text-[13px] text-slate-700 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
             />
         </div>
       </div>
