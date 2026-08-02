@@ -467,7 +467,7 @@ export default function ShareParentLinkModal({
                                 <div className="space-y-0.5">
                                   <div className="font-medium text-gray-900">{c.name} {c.surname}</div>
                                   <div className="text-xs text-gray-500 flex items-center gap-2">
-                                    <span>{c.birthday ? new Date(c.birthday).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'fr-FR') : t.notSpecified}</span>
+                                    <span>{c.birthday ? new Date(c.birthday).toLocaleDateString('fr-FR') : t.notSpecified}</span>
                                     <span>•</span>
                                     <span className="font-medium" dir="ltr">{c.className || r.className}</span>
                                   </div>
