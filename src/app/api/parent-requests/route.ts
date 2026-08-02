@@ -85,6 +85,14 @@ export async function POST(request: Request) {
         },
       });
 
+      // Prevent a single phone number from being used across different schools
+      if (parent && parent.schoolId !== schoolId) {
+        return NextResponse.json(
+          { error: "Ce numéro de téléphone est déjà utilisé dans un autre établissement." },
+          { status: 400 }
+        );
+      }
+
       const parentFirstName = regRequest.parentName.trim();
       const parentLastName = regRequest.parentSurname?.trim() || "Parent";
 
