@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
 
 interface ClassItem {
   id: number;
@@ -18,11 +19,14 @@ export default function GradeFilter({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const handleChange = (name: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(name, value);
-    router.push(`/admin/grades?${params.toString()}`);
+    startTransition(() => {
+      router.push(`/admin/grades?${params.toString()}`);
+    });
   };
 
   return (
@@ -32,7 +36,8 @@ export default function GradeFilter({
         <select
           value={classId || ""}
           onChange={(e) => handleChange("classId", e.target.value)}
-          className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+          disabled={isPending}
+          className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
         >
           {classes
             .filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes")
@@ -44,18 +49,25 @@ export default function GradeFilter({
         </select>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 relative">
         <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Academic Term</label>
         <select
           value={term}
           onChange={(e) => handleChange("term", e.target.value)}
-          className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+          disabled={isPending}
+          className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
         >
           <option value="1">Term 1</option>
           <option value="2">Term 2</option>
           <option value="3">Term 3</option>
         </select>
       </div>
+
+      {isPending && (
+        <div className="flex items-center justify-center pt-5 ml-2">
+          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+        </div>
+      )}
 
       <div className="ml-auto pt-5">
         <button
@@ -79,4 +91,4 @@ export default function GradeFilter({
   );
 }
 
-import { Printer } from "lucide-react";
+import { Printer, Loader2 } from "lucide-react";
