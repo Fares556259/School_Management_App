@@ -2,6 +2,7 @@
 
 import prisma from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 export interface GradeEntry {
   studentId: string;
@@ -18,12 +19,13 @@ export async function createGradeSheet(data: {
   grades: GradeEntry[];
 }) {
   const { classId, subjectId, term, proofUrl, teacherId, notes, grades } = data;
+  const schoolId = await getSchoolId();
 
   // Upsert the GradeSheet record
   const sheet = await prisma.gradeSheet.upsert({
     where: { classId_subjectId_term: { classId, subjectId, term } },
-    update: { proofUrl, notes, teacherId: teacherId || null },
-    create: { classId, subjectId, term, proofUrl, teacherId: teacherId || null, notes },
+    update: { proofUrl, notes, teacherId: teacherId || null, schoolId },
+    create: { classId, subjectId, term, proofUrl, teacherId: teacherId || null, notes, schoolId },
   });
 
   // Bulk upsert individual grades
@@ -33,8 +35,8 @@ export async function createGradeSheet(data: {
     validGrades.map((g) =>
       prisma.grade.upsert({
         where: { studentId_subjectId_term: { studentId: g.studentId, subjectId, term } },
-        update: { score: g.score!, sheetId: sheet.id },
-        create: { studentId: g.studentId, subjectId, term, score: g.score!, sheetId: sheet.id },
+        update: { score: g.score!, sheetId: sheet.id, schoolId },
+        create: { studentId: g.studentId, subjectId, term, score: g.score!, sheetId: sheet.id, schoolId },
       })
     )
   );

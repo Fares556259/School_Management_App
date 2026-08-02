@@ -77,6 +77,7 @@ export async function initializeClassSheets(classId: number, term: number) {
               term,
               score: 0,
               sheetId: sheetId,
+              schoolId,
             });
           }
         }
