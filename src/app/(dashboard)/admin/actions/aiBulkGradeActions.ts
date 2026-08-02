@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { callGeminiDirect } from "./aiActions";
+import { getSchoolId } from "@/lib/school";
 
 // A simple string similarity function (Levenshtein distance based or just substring match)
 // For simplicity, we use a basic inclusion/token match.
@@ -44,12 +45,13 @@ function findBestMatch(query: string, candidates: { id: any, name: string }[]): 
 
 export async function processBulkGrades(publicUrls: string[], termAssumed: number) {
   try {
+    const schoolId = await getSchoolId();
     const results: any[] = [];
     
     // 1. Fetch Dictionary for Matching
-    const classes = await prisma.class.findMany({ select: { id: true, name: true } });
-    const subjects = await prisma.subject.findMany({ select: { id: true, name: true } });
-    const students = await prisma.student.findMany({ select: { id: true, name: true, surname: true, classId: true } });
+    const classes = await prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true } });
+    const subjects = await prisma.subject.findMany({ where: { schoolId }, select: { id: true, name: true } });
+    const students = await prisma.student.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true, classId: true } });
     
     const formattedStudents = students.map(s => ({
       id: s.id,
@@ -130,7 +132,6 @@ export async function processBulkGrades(publicUrls: string[], termAssumed: numbe
         documentResult.teacherMatch = extractedData.teacherName || null;
 
         // 3. Database Operations (Upsert GradeSheet)
-        const schoolId = "default_school"; // Assuming single school architecture for now based on schema
         
         let gradeSheet = await prisma.gradeSheet.findUnique({
           where: {
