@@ -952,8 +952,8 @@ export default function GradeSheetRecorder({
                         />
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`text-[11px] font-semibold ${color}`}>
-                          {pct === null ? "—" : pct >= 75 ? "✓" : pct >= 50 ? "~" : "✗"}
+                        <span className={`text-[12px] font-semibold ${raw !== "" ? "text-emerald-600" : "text-slate-300"}`}>
+                          {raw !== "" ? "✓" : "—"}
                         </span>
                       </td>
                     </tr>
