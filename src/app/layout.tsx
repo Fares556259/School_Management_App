@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Montserrat } from "next/font/google";
 import "./globals.css";
 import NextTopLoader from "nextjs-toploader";
-import NavigationLoader from "@/components/NavigationLoader";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Suspense } from "react";
 
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
 
@@ -34,9 +32,6 @@ export default function RootLayout({
       <body className={`${jakarta.variable} ${montserrat.variable} ${jakarta.className} antialiased`}>
         <LanguageProvider>
           <NextTopLoader color="#4f46e5" showSpinner={true} />
-          <Suspense fallback={null}>
-            <NavigationLoader />
-          </Suspense>
           {children}
           <SpeedInsights />
         </LanguageProvider>
