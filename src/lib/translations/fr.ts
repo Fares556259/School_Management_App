@@ -494,6 +494,8 @@ export const fr = {
     teacher: "Enseignant",
     awaitingData: "En attente de données",
     editRecording: "Modifier l'enregistrement",
+    clickToStart: "Cliquer pour saisir les notes",
+    orDropScan: "ou déposer un scan ici",
     noSubjectsMatch: "Aucune matière ne correspond à votre sélection",
     modal: {
       title: "Analyse IA en masse",

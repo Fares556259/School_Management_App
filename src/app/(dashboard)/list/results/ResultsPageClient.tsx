@@ -5,7 +5,7 @@ import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet, createGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, PlayCircle, Sparkles } from "lucide-react";
+import { X, Sparkles, Upload, Pencil, Eye, Loader2, UploadCloud } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
 import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,7 @@ export default function ResultsPageClient({
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [initializingCardId, setInitializingCardId] = useState<string | null>(null);
 
   const handleCardDrop = async (e: React.DragEvent, item: any, isPlaceholder: boolean) => {
     e.preventDefault();
@@ -124,7 +125,35 @@ export default function ResultsPageClient({
     }
   };
 
-
+  // Click-to-start: Initialize a single subject card and open the recorder
+  const handlePlaceholderClick = async (item: any) => {
+    const cardId = `p-${item.subject.id}`;
+    setInitializingCardId(cardId);
+    try {
+      // Create a grade sheet with 0 scores for this specific subject
+      const studentRes = await fetch(`/api/students?classId=${item.class.id}`);
+      const studentsData = await studentRes.json();
+      const gradeEntries = studentsData.map((s: any) => ({ studentId: s.id, score: 0 }));
+      
+      await createGradeSheet({
+        classId: item.class.id,
+        subjectId: item.subject.id,
+        term: item.term,
+        proofUrl: "",
+        grades: gradeEntries,
+      });
+      
+      // Fetch the newly created sheet and open the recorder
+      const fullSheet = await getGradeSheet(item.class.id, item.subject.id, item.term);
+      setEditingData(fullSheet);
+      setActiveView("recorder");
+    } catch (err) {
+      console.error("Failed to initialize and open sheet:", err);
+      router.refresh();
+    } finally {
+      setInitializingCardId(null);
+    }
+  };
 
   const editSheet = async (sheet: any) => {
     setLoadingSheet(true);
@@ -152,10 +181,6 @@ export default function ResultsPageClient({
     try {
       const res = await initializeClassSheets(Number(selectedClassId), activeTerm);
       if (res.success) {
-        // We need to refresh the page/data. In a real app, we might use router.refresh() 
-        // or re-fetch server props. For now, we'll alert and the user can see the change on next interaction 
-        // or through layout revalidation.
-        alert("Success! All subjects have been initialized with 0 scores.");
         router.refresh();
       } else {
         alert("Error: " + res.error);
@@ -169,7 +194,6 @@ export default function ResultsPageClient({
   };
 
   const displayItems = (() => {
-    // 2. If a specific Class is selected, show ALL subjects (Cheklist Mode)
     const activeClass = validClasses.find(c => String(c.id) === selectedClassId);
     if (!activeClass) return [];
     
@@ -190,6 +214,10 @@ export default function ResultsPageClient({
       });
   })();
 
+  // Count stats for the inline header
+  const existingCount = displayItems.filter(i => i.type === 'existing').length;
+  const placeholderCount = displayItems.filter(i => i.type === 'placeholder').length;
+
   if (activeView === "recorder") {
     return (
       <div className="h-[calc(100vh-180px)] bg-slate-50 relative rounded-[32px] overflow-hidden border border-slate-200 shadow-sm">
@@ -201,245 +229,267 @@ export default function ResultsPageClient({
           initialClassId={editingData?.classId ?? validClasses[0]?.id}
           initialTerm={editingData?.term ?? 1}
           existingSheet={editingData}
-          onClose={() => setActiveView("list")}
+          onClose={() => { setActiveView("list"); router.refresh(); }}
         />
       </div>
     );
   }
 
   return (
-    <div className="p-6 flex flex-col gap-8 bg-slate-50 min-h-screen">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm">
+    <div className="p-4 md:p-6 flex flex-col gap-6 bg-slate-50 min-h-screen">
+      {/* ─── COMPACT HEADER ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col">
-          <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.resultsPage.pageTitle}</h1>
-          <p className="text-[13px] text-[#41454d] mt-1">{t.resultsPage.subtitle}</p>
+          <h1 className="text-[22px] font-semibold text-[#181d26] tracking-tight">{t.resultsPage.pageTitle}</h1>
+          <p className="text-[13px] text-[#5a5a5a] mt-0.5">{t.resultsPage.subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setIsBulkUploadOpen(true)}
-            className="px-4 py-2.5 bg-[#181d26] text-white border border-transparent font-medium rounded-[6px] hover:bg-[#0d1218] transition-all text-[13px] flex items-center gap-2"
-          >
-            <Sparkles size={16} />
-            {t.resultsPage.bulkAiScan}
-          </button>
+        <button
+          onClick={() => setIsBulkUploadOpen(true)}
+          className="px-4 py-2.5 bg-[#181d26] text-white border border-transparent font-medium rounded-[8px] hover:bg-[#0d1218] transition-all text-[13px] flex items-center gap-2 self-start md:self-auto"
+        >
+          <Sparkles size={15} />
+          {t.resultsPage.bulkAiScan}
+        </button>
+      </div>
+
+      {/* ─── FILTERS BAR ─── */}
+      <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-[10px] border border-[#e5e7eb] shadow-sm">
+        <select 
+          value={selectedClassId} 
+          onChange={(e) => setSelectedClassId(e.target.value)}
+          className="px-3 py-2 bg-[#f8fafc] rounded-[6px] border border-[#e5e7eb] text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-blue-400 transition-all cursor-pointer"
+        >
+          {validClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+
+        <select 
+          value={selectedTerm} 
+          onChange={(e) => setSelectedTerm(e.target.value)}
+          className="px-3 py-2 bg-[#f8fafc] rounded-[6px] border border-[#e5e7eb] text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-blue-400 transition-all cursor-pointer"
+        >
+          <option value="1">{t.resultsPage.term} 1</option>
+          <option value="2">{t.resultsPage.term} 2</option>
+          <option value="3">{t.resultsPage.term} 3</option>
+        </select>
+
+        {/* Stats pills */}
+        <div className="flex items-center gap-2 ml-auto">
+          {existingCount > 0 && (
+            <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-full text-[11px] font-medium text-emerald-700">
+              {existingCount} {t.resultsPage.graded}
+            </span>
+          )}
+          {placeholderCount > 0 && (
+            <span className="px-2.5 py-1 bg-amber-50 border border-amber-100 rounded-full text-[11px] font-medium text-amber-700">
+              {placeholderCount} {t.resultsPage.awaitingData}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* FILTERS */}
-      <div className="flex flex-wrap items-center gap-4 px-2">
-         <select 
-           value={selectedClassId} 
-           onChange={(e) => setSelectedClassId(e.target.value)}
-           className="px-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] transition-all cursor-pointer"
-         >
-           {validClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-         </select>
+      {/* ─── LOADING OVERLAY ─── */}
+      {(loadingSheet || isInitializing) && (
+        <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+            <span className="text-[12px] font-medium text-[#41454d]">
+              {isInitializing ? t.resultsPage.initializeEmpty + "..." : t.resultsPage.editRecording + "..."}
+            </span>
+          </div>
+        </div>
+      )}
 
-         <select 
-           value={selectedTerm} 
-           onChange={(e) => setSelectedTerm(e.target.value)}
-           className="px-4 py-2.5 bg-white rounded-[6px] border border-[#dddddd] shadow-sm text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] transition-all cursor-pointer"
-         >
-           <option value="1">{t.resultsPage.term} 1</option>
-           <option value="2">{t.resultsPage.term} 2</option>
-           <option value="3">{t.resultsPage.term} 3</option>
-         </select>
-
-         {selectedClassId && (
-           <button
-             onClick={handleBulkInitialize}
-             disabled={isInitializing}
-             className="px-4 py-2.5 bg-white border border-[#dddddd] text-[#181d26] rounded-[6px] shadow-sm hover:bg-[#f8fafc] transition-all text-[13px] font-medium flex items-center gap-2"
-           >
-             <PlayCircle size={16} className="text-[#41454d]" />
-             {t.resultsPage.initializeEmpty}
-           </button>
-         )}
-      </div>
-
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {(loadingSheet || isInitializing) && (
-           <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                 <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                 <span className="text-[10px] font-black text-indigo-800 uppercase tracking-widest text-center">
-                   {isInitializing ? "Initializing Database...\nCreating Zero-Baseline Grade Sheets" : "Unlocking Records..."}
-                 </span>
-              </div>
-           </div>
-        )}
-        
+      {/* ─── GRID ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {displayItems.length === 0 && (
-          <div className="col-span-full bg-white p-20 rounded-[40px] border border-slate-100 flex flex-col items-center gap-4 opacity-60">
-             <div className="text-6xl text-slate-200">📄</div>
-             <p className="font-black text-slate-400 uppercase tracking-widest text-xs">{t.resultsPage.noSubjectsMatch}</p>
+          <div className="col-span-full bg-white p-16 rounded-[12px] border border-[#e5e7eb] flex flex-col items-center gap-3">
+            <div className="text-5xl opacity-30">📄</div>
+            <p className="font-medium text-[#9297a0] text-[13px]">{t.resultsPage.noSubjectsMatch}</p>
           </div>
         )}
 
-        {displayItems.map((item, idx) => {
+        {displayItems.map((item) => {
           const isPlaceholder = item.type === 'placeholder';
           const sheet = item.data;
+          const cardId = isPlaceholder ? `p-${item.subject.id}` : String(sheet.id);
+          const isThisInitializing = initializingCardId === cardId;
           
+          // Get teacher name
+          const teacherName = (() => {
+            const lesson = lessons?.find((l: any) => l.classId === item.class.id && l.subjectId === item.subject.id);
+            if (lesson?.teacher) return `${lesson.teacher.name} ${lesson.teacher.surname}`;
+            if (!isPlaceholder && sheet.teacher) return `${sheet.teacher.name} ${sheet.teacher.surname}`;
+            return null;
+          })();
+
+          // Grading progress
+          const totalStudents = !isPlaceholder ? (sheet.class._count?.students || 1) : 0;
+          const gradedCount = !isPlaceholder ? sheet.grades.length : 0;
+          const progressPct = !isPlaceholder ? Math.min(100, (gradedCount / totalStudents) * 100) : 0;
+          const isComplete = !isPlaceholder && gradedCount >= totalStudents;
+
           return (
             <div 
-              key={isPlaceholder ? `p-${item.subject.id}` : sheet.id} 
+              key={cardId} 
               onDragOver={(e) => {
                 e.preventDefault();
-                const cardId = isPlaceholder ? `p-${item.subject.id}` : String(sheet.id);
                 if (draggingCardId !== cardId) setDraggingCardId(cardId);
               }}
               onDragLeave={() => setDraggingCardId(null)}
               onDrop={(e) => handleCardDrop(e, item, isPlaceholder)}
-              className={`group p-6 rounded-[8px] border border-[#dddddd] transition-all flex flex-col gap-6 relative overflow-hidden ${
+              className={`group relative rounded-[10px] border transition-all duration-200 flex flex-col overflow-hidden ${
                 isPlaceholder 
-                  ? "bg-[#f8fafc] border-dashed opacity-80 hover:opacity-100 hover:bg-white" 
-                  : "bg-white shadow-sm hover:shadow-md"
+                  ? "bg-[#fafbfc] border-dashed border-[#d0d5dd] hover:border-blue-300 hover:bg-white cursor-pointer" 
+                  : "bg-white border-[#e5e7eb] shadow-sm hover:shadow-md"
               }`}
+              onClick={isPlaceholder && !isThisInitializing ? () => handlePlaceholderClick(item) : undefined}
             >
                {/* Drag-and-drop overlay */}
                <AnimatePresence>
-                 {draggingCardId === (isPlaceholder ? `p-${item.subject.id}` : String(sheet.id)) && (
+                 {draggingCardId === cardId && (
                    <motion.div 
                      initial={{ opacity: 0 }}
                      animate={{ opacity: 1 }}
                      exit={{ opacity: 0 }}
-                     className="absolute inset-0 z-30 bg-indigo-600/10 backdrop-blur-md flex flex-col items-center justify-center border-2 border-dashed border-indigo-500 rounded-[32px] p-6 text-center pointer-events-none animate-in fade-in duration-200"
+                     className="absolute inset-0 z-30 bg-blue-50/90 backdrop-blur-sm flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-[10px] p-6 text-center pointer-events-none"
                    >
-                     <div className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-200 mb-2">
-                       📥
-                     </div>
-                     <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest leading-none">Drop to attach proof</p>
+                     <UploadCloud className="w-8 h-8 text-blue-500 mb-2" />
+                     <p className="text-[12px] font-semibold text-blue-600">Drop to attach proof</p>
                    </motion.div>
                  )}
                </AnimatePresence>
 
-               {/* Uploading progress spinner overlay */}
+               {/* Uploading spinner overlay */}
                <AnimatePresence>
-                 {uploadingCardId === (isPlaceholder ? `p-${item.subject.id}` : String(sheet.id)) && (
+                 {uploadingCardId === cardId && (
                    <motion.div 
                      initial={{ opacity: 0 }}
                      animate={{ opacity: 1 }}
                      exit={{ opacity: 0 }}
-                     className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[1px] flex flex-col items-center justify-center rounded-[32px] p-6 text-center animate-in fade-in duration-200"
+                     className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-[10px]"
                    >
-                     <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                     <p className="text-[9px] font-black text-indigo-700 uppercase tracking-widest leading-none">Uploading Proof...</p>
+                     <Loader2 className="w-6 h-6 text-blue-600 animate-spin mb-2" />
+                     <p className="text-[11px] font-medium text-[#41454d]">Uploading...</p>
                    </motion.div>
                  )}
                </AnimatePresence>
 
-               {/* TERM TAG & BADGES */}
-               <div className="absolute top-6 right-6 flex flex-col items-end gap-2">
-                  <div className="px-2.5 py-1 bg-[#ffffff] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#41454d] uppercase tracking-wide leading-none">
-                    {t.resultsPage.term} {item.term}
-                  </div>
-                  {!isPlaceholder && (
-                    <>
-                      {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
-                         <div className="px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-[4px] text-[10px] font-semibold text-emerald-600 uppercase tracking-wide leading-none flex items-center gap-1">
-                            {t.resultsPage.proofAttached}
-                         </div>
-                      ) : (
-                         <div className="px-2 py-1 bg-amber-50 border border-amber-100 rounded-[4px] text-[10px] font-semibold text-amber-600 uppercase tracking-wide leading-none flex items-center gap-1">
-                            {t.resultsPage.missingProof}
-                         </div>
-                      )}
-                      {sheet.grades.length < (sheet.class._count?.students || 1) && (
-                         <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#5a5a5a] uppercase tracking-wide leading-none flex items-center gap-1">
-                            {t.resultsPage.incomplete}
-                         </div>
-                      )}
-                    </>
-                  )}
-                  {isPlaceholder && (
-                     <div className="px-2 py-1 bg-[#f8fafc] border border-[#dddddd] rounded-[4px] text-[10px] font-semibold text-[#5a5a5a] uppercase tracking-wide leading-none flex items-center gap-1">
-                        {t.resultsPage.noData}
-                     </div>
-                  )}
-               </div>
-  
-              <div className="flex flex-col gap-1 pr-24">
-                <span className={`text-[11px] font-medium tracking-wide ${isPlaceholder ? 'text-[#9297a0]' : 'text-[#458fff]'}`}>
-                  {t.resultsPage.class} {item.class.name}
-                </span>
-                <h3 className="text-[18px] font-medium text-[#181d26] tracking-tight mt-1 truncate" title={parseLocalizedName(item.subject.name, locale)}>
-                  {parseLocalizedName(item.subject.name, locale)}
-                </h3>
-              </div>
-  
-              <div className="flex flex-col gap-4">
-                 {/* STATS / PLACEHOLDER PROGRESS */}
-                 <div className={`${isPlaceholder ? 'bg-[#ffffff]' : 'bg-[#f8fafc]'} p-4 rounded-[6px] border border-[#dddddd]`}>
-                    <div className="flex items-center justify-between mb-2">
-                       <span className="text-[11px] font-medium text-[#41454d] tracking-wide">{t.resultsPage.recordingProgress}</span>
-                       <span className={`text-[12px] font-medium ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'text-emerald-600' : 'text-[#181d26]'}`}>
-                          {isPlaceholder ? '0' : sheet.grades.length} {t.resultsPage.graded}
-                       </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-[#e5e7eb] rounded-full overflow-hidden">
-                       <div 
-                         className={`h-full rounded-full transition-all duration-1000 ${!isPlaceholder && sheet.grades.length >= (sheet.class._count?.students || 1) ? 'bg-emerald-500' : 'bg-[#1b61c9]'}`} 
-                         style={{ width: isPlaceholder ? '0%' : `${Math.min(100, (sheet.grades.length / (sheet.class._count?.students || 1)) * 100)}%` }}
-                       ></div>
-                    </div>
+               {/* Initializing spinner overlay */}
+               <AnimatePresence>
+                 {isThisInitializing && (
+                   <motion.div 
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-[10px]"
+                   >
+                     <Loader2 className="w-6 h-6 text-blue-600 animate-spin mb-2" />
+                     <p className="text-[11px] font-medium text-[#41454d]">{t.resultsPage.initializeEmpty}...</p>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
+               {/* ── Card Content ── */}
+               <div className="p-5 flex flex-col gap-4 flex-1">
+                 {/* Subject header */}
+                 <div className="flex items-start justify-between gap-2">
+                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                     <h3 className="text-[15px] font-semibold text-[#181d26] tracking-tight truncate" title={parseLocalizedName(item.subject.name, locale)}>
+                       {parseLocalizedName(item.subject.name, locale)}
+                     </h3>
+                     {teacherName && (
+                       <p className="text-[11px] text-[#6b7280] truncate">{teacherName}</p>
+                     )}
+                     {!teacherName && (
+                       <p className="text-[11px] text-[#b0b5bd]">—</p>
+                     )}
+                   </div>
+                   <div className="flex flex-col items-end gap-1.5 shrink-0">
+                     <span className="px-2 py-0.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded text-[10px] font-medium text-[#41454d] leading-none">
+                       {t.resultsPage.term} {item.term}
+                     </span>
+                     {!isPlaceholder && (
+                       <>
+                         {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
+                           <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-[10px] font-medium text-emerald-600 leading-none">
+                             {t.resultsPage.proofAttached}
+                           </span>
+                         ) : (
+                           <span className="px-2 py-0.5 bg-amber-50 border border-amber-100 rounded text-[10px] font-medium text-amber-600 leading-none">
+                             {t.resultsPage.missingProof}
+                           </span>
+                         )}
+                       </>
+                     )}
+                   </div>
                  </div>
-  
-                 {/* META */}
-                  <div className="flex items-center gap-3">
-                     <div className="w-8 h-8 rounded-[6px] bg-[#ffffff] border border-[#dddddd] flex items-center justify-center text-[12px] font-medium text-[#181d26]">👤</div>
-                     <div>
-                       <p className="text-[12px] font-medium text-[#181d26]">
-                         {(() => {
-                           const lesson = lessons?.find((l: any) => l.classId === item.class.id && l.subjectId === item.subject.id);
-                           if (lesson?.teacher) return `${lesson.teacher.name} ${lesson.teacher.surname}`;
-                           if (!isPlaceholder && sheet.teacher) return `${sheet.teacher.name} ${sheet.teacher.surname}`;
-                           return '—';
-                         })()}
-                       </p>
-                       <p className="text-[11px] font-normal text-[#5a5a5a] tracking-wide">{t.resultsPage.teacher}</p>
+
+                 {/* Progress bar */}
+                 {!isPlaceholder ? (
+                   <div>
+                     <div className="flex items-center justify-between mb-1.5">
+                       <span className="text-[11px] text-[#6b7280]">{t.resultsPage.recordingProgress}</span>
+                       <span className={`text-[11px] font-medium ${isComplete ? 'text-emerald-600' : 'text-[#181d26]'}`}>
+                         {gradedCount}/{totalStudents}
+                       </span>
                      </div>
-                  </div>
-              </div>
-  
-              <div className="mt-auto flex items-center gap-2 pt-4 border-t border-[#dddddd]">
-                 {isPlaceholder ? (
-                   <div className="flex-1 py-2.5 text-center text-[#9297a0] font-medium text-[13px] rounded-[6px] border border-dashed border-[#dddddd]">
-                     {t.resultsPage.awaitingData}
+                     <div className="w-full h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
+                       <div 
+                         className={`h-full rounded-full transition-all duration-700 ${isComplete ? 'bg-emerald-500' : 'bg-blue-500'}`} 
+                         style={{ width: `${progressPct}%` }}
+                       ></div>
+                     </div>
                    </div>
                  ) : (
-                   <>
-                    <button 
-                      onClick={() => editSheet(sheet)}
-                      className="flex-1 py-2.5 bg-[#ffffff] text-[#181d26] font-medium text-[13px] rounded-[6px] hover:bg-[#f8fafc] border border-[#dddddd] shadow-sm transition-all"
-                    >
-                      {t.resultsPage.editRecording}
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setPreviewUrl(sheet.proofUrl);
-                        setIsPreviewOpen(true);
-                      }}
-                      className={`w-10 h-10 rounded-[6px] flex items-center justify-center transition-all border group shadow-sm ${
-                        sheet.proofUrl?.startsWith('http') 
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                          : 'bg-[#ffffff] text-[#41454d] border-[#dddddd]'
-                      }`}
-                      title={sheet.proofUrl?.startsWith('http') ? "View Original Proof" : "No Proof Available"}
-                    >
-                      <span className={`group-hover:scale-110 transition-transform text-[14px]`}>
-                        👁️
-                      </span>
-                    </button>
-                   </>
+                   /* Placeholder CTA area */
+                   <div className="flex items-center gap-3 py-3 justify-center border border-dashed border-[#d0d5dd] rounded-[8px] bg-white/50 group-hover:border-blue-300 group-hover:bg-blue-50/30 transition-colors">
+                     <div className="flex flex-col items-center gap-1.5">
+                       <div className="flex items-center gap-2 text-[#9297a0] group-hover:text-blue-500 transition-colors">
+                         <Pencil size={14} />
+                         <span className="text-[12px] font-medium">{t.resultsPage.clickToStart || "Click to start grading"}</span>
+                       </div>
+                       <div className="flex items-center gap-1.5 text-[#b0b5bd] group-hover:text-blue-400 transition-colors">
+                         <Upload size={12} />
+                         <span className="text-[10px]">{t.resultsPage.orDropScan || "or drop a scan here"}</span>
+                       </div>
+                     </div>
+                   </div>
                  )}
-              </div>
+               </div>
+
+               {/* ── Card Footer ── */}
+               {!isPlaceholder && (
+                 <div className="flex items-center gap-2 px-5 py-3 border-t border-[#f0f1f3] bg-[#fafbfc]">
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); editSheet(sheet); }}
+                     className="flex-1 py-2 bg-white text-[#181d26] font-medium text-[12px] rounded-[6px] hover:bg-[#f3f4f6] border border-[#e5e7eb] transition-all flex items-center justify-center gap-1.5"
+                   >
+                     <Pencil size={13} />
+                     {t.resultsPage.editRecording}
+                   </button>
+                   <button 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setPreviewUrl(sheet.proofUrl);
+                       setIsPreviewOpen(true);
+                     }}
+                     className={`w-9 h-9 rounded-[6px] flex items-center justify-center transition-all border ${
+                       sheet.proofUrl?.startsWith('http') 
+                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+                         : 'bg-white text-[#9297a0] border-[#e5e7eb] hover:bg-[#f3f4f6]'
+                     }`}
+                     title={sheet.proofUrl?.startsWith('http') ? "View Proof" : "No Proof"}
+                   >
+                     <Eye size={15} />
+                   </button>
+                 </div>
+               )}
             </div>
           );
         })}
       </div>
-      {/* PREVIEW MODAL */}
+
+      {/* ─── PREVIEW MODAL ─── */}
       <AnimatePresence>
         {isPreviewOpen && (
           <motion.div 
@@ -449,7 +499,7 @@ export default function ResultsPageClient({
             className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex flex-col"
           >
             <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <h3 className="text-white font-black tracking-tight uppercase">Document Quick Preview</h3>
+              <h3 className="text-white font-semibold tracking-tight">Document Preview</h3>
               <button 
                 onClick={() => setIsPreviewOpen(false)}
                 className="p-2 hover:bg-white/10 rounded-full text-white transition-colors"
@@ -471,17 +521,17 @@ export default function ResultsPageClient({
                   />
                 )
               ) : (
-                <div className="bg-white/5 p-12 rounded-[40px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">
-                   <div className="text-6xl">📭</div>
+                <div className="bg-white/5 p-12 rounded-[20px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">
+                   <div className="text-5xl opacity-50">📭</div>
                    <div>
-                      <h3 className="text-xl font-black text-white uppercase tracking-tight">No Proof Available</h3>
-                      <p className="text-sm text-white/40 font-medium mt-2">The original grade sheet document hasn&apos;t been uploaded to the cloud for this entry yet.</p>
+                      <h3 className="text-lg font-semibold text-white">No Proof Available</h3>
+                      <p className="text-sm text-white/40 mt-2">The original grade sheet document hasn&apos;t been uploaded yet.</p>
                    </div>
                    <button 
                      onClick={() => setIsPreviewOpen(false)}
-                     className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                     className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[12px] font-medium transition-all"
                    >
-                     Close Preview
+                     Close
                    </button>
                 </div>
               )}
@@ -490,7 +540,7 @@ export default function ResultsPageClient({
         )}
       </AnimatePresence>
 
-      {/* BULK AI SCAN MODAL */}
+      {/* ─── BULK AI SCAN MODAL ─── */}
       <BulkAIUploadModal 
         isOpen={isBulkUploadOpen} 
         onClose={() => setIsBulkUploadOpen(false)} 

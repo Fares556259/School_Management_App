@@ -494,6 +494,8 @@ export const ar = {
     teacher: "المعلم",
     awaitingData: "في انتظار البيانات",
     editRecording: "تعديل التسجيل",
+    clickToStart: "انقر لبدء التقييم",
+    orDropScan: "أو أسقط صورة هنا",
     noSubjectsMatch: "لا توجد مواد تتطابق مع اختيارك",
     modal: {
       title: "المسح الشامل بالذكاء الاصطناعي",

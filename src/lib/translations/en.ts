@@ -494,6 +494,8 @@ export const en = {
     teacher: "Teacher",
     awaitingData: "Awaiting Data",
     editRecording: "Edit Recording",
+    clickToStart: "Click to start grading",
+    orDropScan: "or drop a scan here",
     noSubjectsMatch: "No subjects match your current selection",
     modal: {
       title: "AI Bulk Grade Scan",
