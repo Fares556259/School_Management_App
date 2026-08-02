@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { 
   Home, 
@@ -145,6 +146,12 @@ const menuItems: MenuSection[] = [
 const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Reset pending state when pathname changes (navigation completes)
+    setPendingHref(null);
+  }, [pathname]);
 
   const fullName = adminData?.name || adminData?.surname 
     ? `${adminData.name || ""} ${adminData.surname || ""}`.trim() 
@@ -169,12 +176,13 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
                 ? (isSuper ? "/superadmin" : `/${role}`) 
                 : item.href;
               const isActive = 
-                pathname === targetHref || 
-                (item.href !== "/" && pathname.startsWith(item.href) && (item.href !== "/admin/timetable" || pathname === "/admin/timetable"));
+                (pendingHref ? pendingHref === targetHref : pathname === targetHref) || 
+                (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
               
               return (
                 <Link
                   href={targetHref}
+                  onClick={() => setPendingHref(targetHref)}
                   key={item.label}
                   className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${
                     isActive 
