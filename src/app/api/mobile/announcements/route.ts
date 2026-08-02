@@ -1,18 +1,31 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { verifyToken } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const payload = verifyToken(authHeader);
+    if (!payload || !payload.schoolId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const { schoolId } = payload;
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
     const studentId = searchParams.get("studentId");
 
     const notices = await prisma.notice.findMany({
       where: {
+        schoolId, // MUST filter by schoolId to prevent data leaks across schools
         OR: [
-          { classId: null }, // Global notices
+          { classId: null }, // Global notices for this school
           {
             AND: [
               { classId: classId ? parseInt(classId) : undefined },
