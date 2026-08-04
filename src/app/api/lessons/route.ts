@@ -90,10 +90,10 @@ export async function GET(request: Request) {
     }
     // --------------------------------------
 
+    // Fetch lessons: include both synced ones and any existing lessons in the school
     const lessons = await prisma.lesson.findMany({
       where: {
         schoolId,
-        id: { in: validLessonIds },
         ...(teacherId && { teacherId }),
         ...(classId && { classId: parseInt(classId) }),
       },
