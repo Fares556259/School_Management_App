@@ -202,7 +202,7 @@ export default function ClassTeachersTable({
                             {teacher.name} {teacher.surname}
                           </Link>
                           <span className="text-[12px] font-medium text-[#41454d] mt-0.5">
-                            {teacher.username}
+                            {teacher.phone || teacher.address || ""}
                           </span>
                         </div>
                       </div>

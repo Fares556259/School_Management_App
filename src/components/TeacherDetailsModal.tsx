@@ -193,12 +193,7 @@ export default function TeacherDetailsModal({
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">Address</span>
                         <span className="text-[14px] font-medium text-[#181d26] leading-snug">{teacher.address || "-"}</span>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-2">Username</span>
-                        <span className="font-medium text-[#1b61c9] bg-[#f8fafc] border border-[#dddddd] px-2.5 py-1 rounded-[6px] text-[13px] w-fit">
-                          @{teacher.username}
-                        </span>
-                      </div>
+
                       <div className="flex flex-col">
                         <span className="text-[12px] font-medium text-[#41454d] mb-2">Status</span>
                         {teacher.activated ? (

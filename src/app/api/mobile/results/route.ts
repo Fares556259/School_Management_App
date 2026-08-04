@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { classId: true },
+      select: { classId: true, schoolId: true },
     });
 
     if (!student) {
@@ -78,13 +78,41 @@ export async function GET(request: NextRequest) {
     // 5. Calculate overall term summary (assuming latest term)
     const latestTerm = Math.max(...terms);
     const termGrades = grades.filter(g => g.term === latestTerm);
-    const termAvg = termGrades.reduce((acc, g) => acc + g.score, 0) / termGrades.length;
+    
+    // Fetch total subjects for the student's class (in this system, all school subjects apply to all classes)
+    const classSubjectsCount = await prisma.subject.count({
+      where: { schoolId: student.schoolId }
+    });
+
+    let finalTermAvg: number | null = null;
+    
+    if (termGrades.length >= classSubjectsCount && classSubjectsCount > 0) {
+      // Unify domain average logic for the mobile summary too
+      const domainMap: Record<string, typeof termGrades> = {};
+      termGrades.forEach(g => {
+        const domain = g.subject.domain || "General";
+        if (!domainMap[domain]) domainMap[domain] = [];
+        domainMap[domain].push(g);
+      });
+      
+      const domainAverages: number[] = [];
+      Object.values(domainMap).forEach(domainGrades => {
+        if (domainGrades.length > 0) {
+          domainAverages.push(domainGrades.reduce((a, b) => a + b.score, 0) / domainGrades.length);
+        }
+      });
+      
+      const termAvg = domainAverages.length > 0
+        ? domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length
+        : 0;
+      finalTermAvg = parseFloat(termAvg.toFixed(2));
+    }
 
     return NextResponse.json({
       results,
       summary: {
         latestTerm,
-        average: parseFloat(termAvg.toFixed(2)),
+        average: finalTermAvg,
         totalSubjects: termGrades.length,
       }
     });

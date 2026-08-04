@@ -63,16 +63,24 @@ export async function GET(req: NextRequest) {
 
     // 3. Helper: calculate domain averages dynamically from DB subjects
     const calculateStudentAverages = (grades: { score: number; subjectId: number }[]) => {
+      // If student hasn't received a grade for all subjects, don't compute average
+      if (grades.length < allSubjects.length) {
+        return { domainAverages: {}, generalAverage: 0 };
+      }
+
       const gradeMap: Record<number, number> = {};
       grades.forEach((g) => { gradeMap[g.subjectId] = g.score; });
 
       // Domain averages: average of all subject scores in that domain
       const domainAverages: Record<string, number> = {};
       Object.entries(domainMap).forEach(([domain, subjects]) => {
-        const domainScores = subjects.map((s) => gradeMap[s.id] ?? 0);
-        domainAverages[domain] = domainScores.length > 0
-          ? domainScores.reduce((a, b) => a + b, 0) / domainScores.length
-          : 0;
+        const domainScores = subjects
+          .filter(s => gradeMap[s.id] !== undefined)
+          .map(s => gradeMap[s.id]);
+          
+        if (domainScores.length > 0) {
+          domainAverages[domain] = domainScores.reduce((a, b) => a + b, 0) / domainScores.length;
+        }
       });
 
       // General average: simple average of domain averages

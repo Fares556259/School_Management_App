@@ -24,10 +24,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const schoolId = await getSchoolId();
     const grades = await prisma.grade.findMany({
       where: {
         studentId,
         term: parseInt(term),
+        schoolId,
       },
       include: {
         subject: true,
@@ -54,8 +56,8 @@ export async function POST(req: NextRequest) {
     const schoolId = await getSchoolId();
 
     // 1. Find the student's class to look for corresponding sheets
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, schoolId },
       select: { classId: true },
     });
 

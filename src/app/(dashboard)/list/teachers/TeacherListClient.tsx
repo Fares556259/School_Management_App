@@ -76,10 +76,10 @@ export default function TeacherListClient({
             className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd]"
           />
           <div className="flex flex-col">
-            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name}</h3>
+            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name} {item.surname}</h3>
           </div>
         </td>
-        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.username}</td>
+        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d] uppercase">{item.id.substring(0, 8)}</td>
         <td className="hidden md:table-cell py-4 px-6 max-w-[200px]">
           {allSubjects.length > 0 ? (
             <div 

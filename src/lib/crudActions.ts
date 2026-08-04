@@ -12,12 +12,12 @@ import { UserSex } from "@prisma/client";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
-  username: string;
+  username?: string;
   name: string;
   surname: string;
   phone?: string;
   address: string;
-  bloodType: string;
+  bloodType?: string;
   birthday: string;
   sex: "MALE" | "FEMALE";
   salary?: number;
@@ -34,12 +34,12 @@ export const createTeacher = async (data: {
       data: {
         schoolId,
         id: id,
-        username: data.username,
+        username: data.username || (data.name.toLowerCase() + data.surname.toLowerCase()).replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 1000),
         name: data.name,
         surname: data.surname,
         phone: data.phone || null,
         address: data.address,
-        bloodType: data.bloodType,
+        bloodType: data.bloodType || "Inconnu",
         birthday: new Date(data.birthday),
         sex: data.sex,
         salary: data.salary ?? 3000,
@@ -390,7 +390,7 @@ export const createStaff = async (data: {
   surname: string;
   phone?: string;
   address: string;
-  bloodType: string;
+  bloodType?: string;
   birthday: string;
   sex: "MALE" | "FEMALE";
   role: string;
@@ -407,7 +407,7 @@ export const createStaff = async (data: {
         surname: data.surname,
         phone: data.phone || null,
         address: data.address,
-        bloodType: data.bloodType,
+        bloodType: data.bloodType || "Inconnu",
         birthday: new Date(data.birthday),
         role: data.role,
         salary: data.salary ?? 1500,

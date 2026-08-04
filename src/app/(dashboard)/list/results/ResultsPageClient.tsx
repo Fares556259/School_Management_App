@@ -5,7 +5,7 @@ import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet, createGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, Upload, Pencil, Eye, Loader2, UploadCloud } from "lucide-react";
+import { X, Sparkles, Upload, Pencil, Eye, Loader2, UploadCloud, Smartphone } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
 import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
@@ -413,6 +413,12 @@ export default function ResultsPageClient({
                          ) : (
                            <span className="px-2 py-0.5 bg-amber-50 border border-amber-100 rounded text-[10px] font-medium text-amber-600 leading-none">
                              {t.resultsPage.missingProof}
+                           </span>
+                         )}
+                         {sheet.teacherId && (
+                           <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[10px] font-medium text-indigo-600 leading-none flex items-center gap-1">
+                             <Smartphone size={9} />
+                             Via Mobile
                            </span>
                          )}
                        </>

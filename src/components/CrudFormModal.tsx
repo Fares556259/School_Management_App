@@ -35,14 +35,23 @@ interface FieldDef {
 
 const entityFields: Record<EntityType, FieldDef[]> = {
   teacher: [
-    { name: "username", label: "Username", type: "text", required: true },
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
     { name: "phone", label: "Phone", type: "text" },
     { name: "address", label: "Address", type: "text", required: true },
-    { name: "bloodType", label: "Blood Type", type: "text", required: true },
+    { name: "bloodType", label: "Blood Type", type: "select", required: false, options: [
+      { value: "A+", label: "A+" },
+      { value: "A-", label: "A-" },
+      { value: "B+", label: "B+" },
+      { value: "B-", label: "B-" },
+      { value: "AB+", label: "AB+" },
+      { value: "AB-", label: "AB-" },
+      { value: "O+", label: "O+" },
+      { value: "O-", label: "O-" },
+      { value: "Inconnu", label: "Inconnu" }
+    ] },
     { name: "birthday", label: "Birthday", type: "date", required: true },
-    { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
+    { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male (Homme)" }, { value: "FEMALE", label: "Female (Femme)" }] },
     { name: "salary", label: "Salary (DT)", type: "number" },
     { name: "subjects", label: "Subjects", type: "multi-select", parseAsNumber: true },
     { name: "classes", label: "Classes", type: "multi-select", parseAsNumber: true },
@@ -65,7 +74,17 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "phone", label: "Phone", type: "text" },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "role", label: "Role", type: "text", required: true, placeholder: "e.g. Secretary, Guard, Janitor" },
-    { name: "bloodType", label: "Blood Type", type: "text", required: true },
+    { name: "bloodType", label: "Blood Type", type: "select", required: false, options: [
+      { value: "A+", label: "A+" },
+      { value: "A-", label: "A-" },
+      { value: "B+", label: "B+" },
+      { value: "B-", label: "B-" },
+      { value: "AB+", label: "AB+" },
+      { value: "AB-", label: "AB-" },
+      { value: "O+", label: "O+" },
+      { value: "O-", label: "O-" },
+      { value: "Inconnu", label: "Inconnu" }
+    ] },
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
     { name: "salary", label: "Salary (DT)", type: "number" },

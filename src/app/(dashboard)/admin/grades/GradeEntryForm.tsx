@@ -120,10 +120,38 @@ export default function GradeEntryForm({
   const domains = Array.from(new Set(subjects.map(s => s.domain)));
 
   const calculateAverages = (studentId: string) => {
-    const scores = Object.values(localGrades[studentId] || {});
-    if (scores.length === 0) return 0;
-    const total = scores.reduce((acc, s) => acc + s, 0);
-    return (total / subjects.length).toFixed(2);
+    const studentGrades = localGrades[studentId] || {};
+    
+    // Require all subjects to be graded to show the average
+    const enteredGradesCount = Object.keys(studentGrades).filter(id => studentGrades[id] !== undefined && studentGrades[id] !== null).length;
+    if (enteredGradesCount < subjects.length) {
+      return "--";
+    }
+    
+    // 1. Group subjects by domain
+    const domainMap: Record<string, typeof subjects> = {};
+    subjects.forEach((s) => {
+      const domain = s.domain || "General";
+      if (!domainMap[domain]) domainMap[domain] = [];
+      domainMap[domain].push(s);
+    });
+
+    // 2. Calculate valid domain averages
+    const domainAverages: number[] = [];
+    Object.entries(domainMap).forEach(([domain, domainSubjects]) => {
+      const domainScores = domainSubjects
+        .filter(s => studentGrades[s.id] !== undefined && studentGrades[s.id] !== null)
+        .map(s => studentGrades[s.id]);
+        
+      if (domainScores.length > 0) {
+        domainAverages.push(domainScores.reduce((a, b) => a + b, 0) / domainScores.length);
+      }
+    });
+
+    // 3. General average
+    if (domainAverages.length === 0) return "--";
+    const generalAverage = domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length;
+    return generalAverage.toFixed(2);
   };
 
   if (students.length === 0) {

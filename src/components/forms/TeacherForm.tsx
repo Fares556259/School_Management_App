@@ -10,10 +10,7 @@ import { createTeacher, updateTeacher } from "@/lib/crudActions";
 import { useState } from "react";
 
 const schema = z.object({
-  username: z
-    .string()
-    .min(3, { message: "Username must be at least 3 characters long!" })
-    .max(20, { message: "Username must be at most 20 characters long!" }),
+
   firstName: z.string().min(1, { message: "First name is required!" }),
   lastName: z.string().min(1, { message: "Last name is required!" }),
   phone: z.string().optional().or(z.literal("")),
@@ -43,7 +40,7 @@ const TeacherForm = ({
   } = useForm<Inputs>({
     resolver: zodResolver(schema),
     defaultValues: {
-      username: data?.username || "",
+
       firstName: data?.name || "",
       lastName: data?.surname || "",
       phone: data?.phone || "",
@@ -58,7 +55,7 @@ const TeacherForm = ({
   const onSubmit = handleSubmit((formData) => {
     startTransition(async () => {
       const payload = {
-        username: formData.username,
+        username: data?.username || (formData.firstName + formData.lastName).toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 1000),
         name: formData.firstName,
         surname: formData.lastName,
         phone: formData.phone || undefined,
@@ -83,13 +80,7 @@ const TeacherForm = ({
       </h1>
       <span className="text-xs text-gray-400 font-medium">Personal Information</span>
       <div className="flex justify-between flex-wrap gap-4">
-        <InputField
-          label="Username"
-          name="username"
-          defaultValue={data?.username}
-          register={register}
-          error={errors?.username}
-        />
+
         <InputField
           label="First Name"
           name="firstName"
@@ -148,8 +139,8 @@ const TeacherForm = ({
             {...register("sex")}
             defaultValue={data?.sex || "MALE"}
           >
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
+            <option value="MALE">Male (Homme)</option>
+            <option value="FEMALE">Female (Femme)</option>
           </select>
           {errors.sex?.message && (
             <p className="text-xs text-red-400">{errors.sex.message.toString()}</p>

@@ -12,10 +12,11 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing teacherId", { status: 400 });
     }
 
-    // Fetch classes via lessons/timetable to identify what they actually teach
+    // Fetch classes via direct assignment, lessons, and timetable
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
       include: {
+        classes: { select: { id: true } },
         lessons: { select: { classId: true } },
         timetable: { select: { classId: true } }
       }
@@ -25,8 +26,9 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Teacher not found", { status: 404 });
     }
 
-    // Get unique class IDs strictly from lessons and timetable
+    // Get unique class IDs from direct assignment, lessons, and timetable
     const allClassIds = Array.from(new Set([
+      ...teacher.classes.map(c => c.id),
       ...teacher.lessons.map(l => l.classId),
       ...teacher.timetable.map(t => t.classId)
     ]));

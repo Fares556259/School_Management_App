@@ -87,8 +87,10 @@ export async function getGradeSheet(classId: number, subjectId: number, term: nu
 }
 
 export async function getAllGradeSheets(classId?: number, subjectId?: number, term?: number) {
+  const schoolId = await getSchoolId();
   return prisma.gradeSheet.findMany({
     where: {
+      schoolId,
       ...(classId ? { classId } : {}),
       ...(subjectId ? { subjectId } : {}),
       ...(term ? { term } : {}),
