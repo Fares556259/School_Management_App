@@ -48,8 +48,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       document.documentElement.lang = newLocale;
     }
     
-    // Refresh for server components to sync
-    router.refresh();
+    // Refresh for server components to sync, wrapped in transition to prevent UI blocking
+    React.startTransition(() => {
+      router.refresh();
+    });
   };
 
   useEffect(() => {
