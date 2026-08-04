@@ -180,20 +180,43 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Handle Task/Assignment Creation
-    if (task && task.title && effectiveLessonId) {
-      const newAssignment = await prisma.assignment.create({
-        data: {
-          title: task.title,
-          description: task.description || "",
-          img: task.attachments && task.attachments.length > 0 ? task.attachments.map((a: any) => a.uri).join(',') : null,
-          startDate: attendanceDate,
-          dueDate: new Date(attendanceDate.getTime() + 7 * 24 * 60 * 60 * 1000),
-          lessonId: effectiveLessonId,
-          schoolId: schoolId
-        }
-      });
-      // Notify parents about the new task
-      createAssignmentNotification(newAssignment.id).catch(console.error);
+    if (task && task.title) {
+      // If no lesson was resolved, create a fallback lesson so the task is never silently dropped
+      if (!effectiveLessonId && classId) {
+        const fallbackSubject = subjectId 
+          ? await prisma.subject.findUnique({ where: { id: parseInt(subjectId) } })
+          : await prisma.subject.findFirst({ where: { schoolId } });
+        
+        const fallbackLesson = await prisma.lesson.create({
+          data: {
+            name: fallbackSubject?.name || "General Session",
+            day: "MONDAY",
+            startTime: attendanceDate,
+            endTime: attendanceDate,
+            subjectId: fallbackSubject?.id || 1,
+            classId: parseInt(classId),
+            teacherId,
+            schoolId
+          }
+        });
+        effectiveLessonId = fallbackLesson.id;
+      }
+
+      if (effectiveLessonId) {
+        const newAssignment = await prisma.assignment.create({
+          data: {
+            title: task.title,
+            description: task.description || "",
+            img: task.attachments && task.attachments.length > 0 ? task.attachments.map((a: any) => a.uri).join(',') : null,
+            startDate: attendanceDate,
+            dueDate: new Date(attendanceDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+            lessonId: effectiveLessonId,
+            schoolId: schoolId
+          }
+        });
+        // Notify parents about the new task
+        createAssignmentNotification(newAssignment.id).catch(console.error);
+      }
     }
 
     // 5. Handle Resource Creation

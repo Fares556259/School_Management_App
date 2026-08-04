@@ -177,11 +177,12 @@ export async function GET(request: NextRequest) {
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
     
-    // Modified: tasksGiven should be for ANY lesson in the student's class given TODAY
+    // Modified: tasksGiven shows ALL currently active tasks (assigned on or before today, due on or after today)
     const tasksGiven = await prisma.assignment.findMany({
       where: { 
         lesson: { classId: student.classId },
-        startDate: { gte: todayStart, lt: todayEnd },
+        startDate: { lte: todayEnd },
+        dueDate: { gte: todayStart },
         schoolId
       },
       include: { lesson: { include: { subject: true, teacher: true } } },
