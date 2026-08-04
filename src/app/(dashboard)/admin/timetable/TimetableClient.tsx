@@ -25,6 +25,7 @@ const TimetablePage = ({
   teachers,
   sessions,
   rooms,
+  allActiveSlots,
   forceDraft = false,
 }: {
   classes: any[];
