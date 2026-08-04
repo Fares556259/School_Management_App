@@ -123,7 +123,7 @@ export default function GradeEntryForm({
     const studentGrades = localGrades[studentId] || {};
     
     // Require all subjects to be graded to show the average
-    const enteredGradesCount = Object.keys(studentGrades).filter(id => studentGrades[id] !== undefined && studentGrades[id] !== null).length;
+    const enteredGradesCount = Object.keys(studentGrades).filter(id => studentGrades[parseInt(id)] !== undefined && studentGrades[parseInt(id)] !== null).length;
     if (enteredGradesCount < subjects.length) {
       return "--";
     }
