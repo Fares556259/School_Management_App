@@ -23,6 +23,7 @@ interface SlotProps {
   subjects: any[];
   teachers: any[];
   rooms: any[];
+  allActiveSlots?: any[];
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
@@ -43,6 +44,7 @@ const ScheduleSlot = ({
   subjects, 
   teachers, 
   rooms,
+  allActiveSlots = [],
   onUpdateAction,
   onDeleteAction,
   onRefresh,
@@ -134,6 +136,28 @@ const ScheduleSlot = ({
       }
     }
   };
+
+  // 1. Filter Teachers
+  const filteredTeachers = teachers.filter((t) => {
+    // Check if teacher is assigned to this class
+    const teachesClass = t.classes?.some((c: any) => c.id === classId);
+    
+    // If a subject is selected, also check if the teacher teaches that subject
+    if (subjectId) {
+      const teachesSubject = t.subjects?.some((s: any) => s.id === parseInt(subjectId));
+      return teachesClass && teachesSubject;
+    }
+    
+    // If no subject is selected, just return teachers for this class
+    return teachesClass;
+  });
+
+  // 2. Filter Rooms
+  const occupiedRoomIds = allActiveSlots
+    .filter((s: any) => s.day === day && s.slotNumber === period && s.classId !== classId && s.roomId)
+    .map((s: any) => s.roomId);
+
+  const filteredRooms = rooms.filter((r) => !occupiedRoomIds.includes(r.id));
 
   if (!slot && !isEditMode) return null;
 
@@ -264,7 +288,7 @@ const ScheduleSlot = ({
                     onChange={(e) => setTeacherId(e.target.value)}
                   >
                     <option value="">Select Teacher</option>
-                    {teachers.map(t => (
+                    {filteredTeachers.map(t => (
                       <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
                     ))}
                   </select>
@@ -284,7 +308,7 @@ const ScheduleSlot = ({
                     onChange={(e) => setRoomId(e.target.value)}
                   >
                     <option value="">Room (TBA)</option>
-                    {rooms.map(r => (
+                    {filteredRooms.map(r => (
                       <option key={r.id} value={r.id}>{r.name}</option>
                     ))}
                   </select>

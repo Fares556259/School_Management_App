@@ -102,7 +102,13 @@ export async function getAllSubjectsAndTeachers() {
   try {
     const schoolId = await getSchoolId();
     const subjects = await prisma.subject.findMany({ where: { schoolId } });
-    const teachers = await prisma.teacher.findMany({ where: { schoolId } });
+    const teachers = await prisma.teacher.findMany({ 
+      where: { schoolId },
+      include: {
+        classes: { select: { id: true } },
+        subjects: { select: { id: true } }
+      }
+    });
     return { success: true, subjects, teachers };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -308,6 +314,20 @@ export async function getAllRooms() {
     return { success: true, data: rooms };
   } catch (error: any) {
     console.error("Error fetching all rooms:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getAllActiveTimetableSlots() {
+  try {
+    const schoolId = await getSchoolId();
+    const slots = await prisma.timetableSlot.findMany({
+      where: { schoolId, isDraft: false },
+      select: { roomId: true, day: true, slotNumber: true, classId: true }
+    });
+    return { success: true, data: slots };
+  } catch (error: any) {
+    console.error("Error fetching all active slots:", error);
     return { success: false, error: error.message };
   }
 }

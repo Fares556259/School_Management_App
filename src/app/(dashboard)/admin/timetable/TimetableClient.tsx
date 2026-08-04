@@ -32,6 +32,7 @@ const TimetablePage = ({
   teachers: any[];
   sessions?: any[];
   rooms: any[];
+  allActiveSlots?: any[];
   forceDraft?: boolean;
 }) => {
   const router = useRouter();
@@ -254,6 +255,7 @@ const TimetablePage = ({
           refreshKey={refreshKey}
           type="timetable"
           fetchDataAction={getTimetableByClass}
+          allActiveSlots={allActiveSlots || []}
           onMoveAction={moveTimetableSlot}
           onUpdateAction={updateTimetableSlot}
           onDeleteAction={deleteTimetableSlot}

@@ -17,6 +17,7 @@ interface ScheduleGridProps {
   subjects: any[];
   teachers: any[];
   rooms: any[];
+  allActiveSlots?: any[];
   isEditMode: boolean;
   refreshKey: number;
   type: "timetable" | "exam";
@@ -38,6 +39,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   subjects,
   teachers,
   rooms,
+  allActiveSlots,
   isEditMode,
   refreshKey,
   type,
@@ -329,6 +331,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         subjects={subjects}
                         teachers={teachers}
                         rooms={rooms}
+                        allActiveSlots={allActiveSlots || []}
                         usedSubjectIds={usedSubjectIds}
                         onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
                         onDeleteAction={onDeleteAction}

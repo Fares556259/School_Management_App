@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms } from "../actions/timetableActions";
+import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms, getAllActiveTimetableSlots } from "../actions/timetableActions";
 import { getSchoolConfig } from "../actions/schoolActions";
 import TimetableClient from "./TimetableClient";
 
@@ -14,11 +14,13 @@ const TimetablePage = async ({
   const subjectsTeachersRes = await getAllSubjectsAndTeachers();
   const configRes = await getSchoolConfig();
   const roomsRes = await getAllRooms();
+  const allSlotsRes = await getAllActiveTimetableSlots();
 
   const classes = (classesRes.success ? classesRes.data : []) as any[];
   const subjects = (subjectsTeachersRes.success ? subjectsTeachersRes.subjects : []) as any[];
   const teachers = (subjectsTeachersRes.success ? subjectsTeachersRes.teachers : []) as any[];
   const rooms = (roomsRes.success ? roomsRes.data : []) as any[];
+  const allActiveSlots = (allSlotsRes.success ? allSlotsRes.data : []) as any[];
   
   // Extract sessions from config
   let sessions = configRes.success ? (configRes.data as any).sessions : [];
@@ -33,6 +35,7 @@ const TimetablePage = async ({
       teachers={teachers} 
       sessions={sessions}
       rooms={rooms}
+      allActiveSlots={allActiveSlots}
     />
   );
 };
