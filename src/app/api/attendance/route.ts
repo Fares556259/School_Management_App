@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       schoolId,
       classId: parseInt(classId),
       day: dayEnum as any,
+      isDraft: false,
     },
     include: { subject: true },
     orderBy: { slotNumber: "asc" },
