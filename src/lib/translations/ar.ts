@@ -703,7 +703,9 @@ export const ar = {
         "loadingRecords": "جارٍ تحميل السجلات...",
         "noStudentsFound": "لا يوجد طلاب.",
         "unmarked": "غير مسجل",
-        "addRemark": "أضف ملاحظة..."
+        "addRemark": "أضف ملاحظة...",
+        "noClassToday": "لا توجد حصص اليوم",
+        "noScheduledLessons": "ليس لديك أي حصص مجدولة لهذا الفصل في هذا التاريخ."
   },
   announcementsPage: {
     title: "الإعلانات",

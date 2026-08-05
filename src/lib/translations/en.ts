@@ -703,7 +703,9 @@ export const en = {
         "loadingRecords": "Loading records...",
         "noStudentsFound": "No students found.",
         "unmarked": "Unmarked",
-        "addRemark": "Add remark..."
+        "addRemark": "Add remark...",
+        "noClassToday": "No class today",
+        "noScheduledLessons": "You don't have any scheduled sessions for this class on this date."
   },
   announcementsPage: {
     title: "Announcements",

@@ -703,7 +703,9 @@ export const fr = {
         "loadingRecords": "Chargement...",
         "noStudentsFound": "Aucun élève trouvé.",
         "unmarked": "Non marqué",
-        "addRemark": "Ajouter une remarque..."
+        "addRemark": "Ajouter une remarque...",
+        "noClassToday": "Pas de cours aujourd'hui",
+        "noScheduledLessons": "Vous n'avez pas de sessions prévues pour cette classe à cette date."
     },
   announcementsPage: {
     title: "Annonces",
