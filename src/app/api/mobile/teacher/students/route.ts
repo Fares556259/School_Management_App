@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
     const classId = searchParams.get("classId");
     const teacherId = searchParams.get("teacherId");
     const date = searchParams.get("date");
-    const subjectIdParam = searchParams.get("subjectId");
+    const slotIdParam = searchParams.get("slotId");
+    const subjectIdParam = searchParams.get("subjectId"); // For backward compatibility
 
     if (!classId) {
       return new NextResponse("Missing classId", { status: 400 });
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
       })
     ]);
 
+    const parsedSlotId = slotIdParam ? parseInt(slotIdParam) : null;
     const parsedSubjectId = subjectIdParam ? parseInt(subjectIdParam) : null;
 
     // Build the sessions array for the UI to render the pills
@@ -64,21 +66,42 @@ export async function GET(request: NextRequest) {
 
     // Determine the active slot
     let activeSlot = timetableSlots[0] || null;
-    if (parsedSubjectId) {
+    if (parsedSlotId) {
+      activeSlot = timetableSlots.find(s => s.id === parsedSlotId) || timetableSlots[0];
+    } else if (parsedSubjectId) {
       activeSlot = timetableSlots.find(s => s.subjectId === parsedSubjectId) || timetableSlots[0];
     }
     
     // Use the active slot to figure out which lesson to match
     let lesson = null;
     if (activeSlot) {
-      lesson = lessons.find(l => l.subjectId === activeSlot.subjectId) || null;
+      // Find all timetable slots for this subject, ordered as they came from DB (already sorted by slotNumber)
+      const subjectSlots = timetableSlots.filter(s => s.subjectId === activeSlot.subjectId);
+      const slotIndex = subjectSlots.findIndex(s => s.id === activeSlot.id);
+      
+      // Find all lessons for this subject, ordered chronologically, then by ID to prevent instability
+      const subjectLessons = lessons
+        .filter(l => l.subjectId === activeSlot.subjectId)
+        .sort((a, b) => {
+          const timeDiff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+          if (timeDiff !== 0) return timeDiff;
+          return a.id - b.id;
+        });
+        
+      if (slotIndex >= 0 && slotIndex < subjectLessons.length) {
+        lesson = subjectLessons[slotIndex];
+      } else {
+        // If there's only 1 lesson but this is the 2nd slot, do not fallback to the 1st lesson!
+        // We need to return null so the POST route knows to create a NEW lesson for the 2nd slot.
+        lesson = null;
+      }
     } else if (lessons.length > 0) {
       lesson = lessons[0];
     }
     
     const lessonId = lesson?.id || null;
     const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
-    const activeSubjectId = activeSlot?.subjectId || null;
+    const activeSlotId = activeSlot?.id || null;
 
     const students = await prisma.student.findMany({
       where: { classId: parseInt(classId) },
@@ -155,7 +178,7 @@ export async function GET(request: NextRequest) {
       hasLesson,
       lessonId,
       sessions,
-      activeSubjectId
+      activeSlotId
     });
   } catch (error: any) {
     console.error("[Teacher Students API Error]", error);

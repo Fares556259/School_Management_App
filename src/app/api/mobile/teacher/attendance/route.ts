@@ -44,39 +44,68 @@ export async function POST(request: NextRequest) {
       
       const parsedSubjectId = subjectId ? parseInt(subjectId) : undefined;
 
-      const slot = await prisma.timetableSlot.findFirst({
-        where: {
-          schoolId,
-          classId: parseInt(classId),
-          teacherId,
-          day: dayName as any,
-          isDraft: false,
-          ...(parsedSubjectId ? { subjectId: parsedSubjectId } : {})
-        },
-        orderBy: { slotNumber: "asc" },
-        include: { subject: true }
-      });
-
-      const lesson = await prisma.lesson.findFirst({
-        where: {
-          schoolId,
-          classId: parseInt(classId),
-          teacherId,
-          day: dayName as any,
-          ...(slot && slot.subjectId ? { subjectId: slot.subjectId } : {})
-        }
-      });
-
-      if (lesson) {
-        effectiveLessonId = lesson.id;
+      let slot = null;
+      const parsedSlotId = body.slotId ? parseInt(body.slotId) : undefined;
+      
+      if (parsedSlotId) {
+        slot = await prisma.timetableSlot.findUnique({
+          where: { id: parsedSlotId },
+          include: { subject: true }
+        });
       } else {
-        if (slot && slot.subjectId) {
+        slot = await prisma.timetableSlot.findFirst({
+          where: {
+            schoolId, classId: parseInt(classId), teacherId, day: dayName as any, isDraft: false,
+            ...(parsedSubjectId ? { subjectId: parsedSubjectId } : {})
+          },
+          orderBy: { slotNumber: "asc" },
+          include: { subject: true }
+        });
+      }
+
+      if (slot && slot.subjectId) {
+        // Find all timetable slots for this subject
+        const subjectSlots = await prisma.timetableSlot.findMany({
+          where: {
+            schoolId, classId: parseInt(classId), teacherId, day: dayName as any, isDraft: false, subjectId: slot.subjectId
+          },
+          orderBy: { slotNumber: "asc" }
+        });
+        
+        const slotIndex = subjectSlots.findIndex(s => s.id === slot.id);
+        
+        // Find all existing lessons for this subject
+        const subjectLessons = await prisma.lesson.findMany({
+          where: {
+            schoolId, classId: parseInt(classId), teacherId, day: dayName as any, subjectId: slot.subjectId
+          },
+          orderBy: [
+            { startTime: "asc" },
+            { id: "asc" }
+          ]
+        });
+        
+        if (slotIndex >= 0 && slotIndex < subjectLessons.length) {
+          effectiveLessonId = subjectLessons[slotIndex].id;
+        } else {
+          // Create the lesson if it doesn't exist for this index
+          const expectedName = `${slot.subject?.name || "Session"} - ${slot.startTime}`;
+          
+          // Try to set the real start time if possible
+          let realStartTime = new Date(attendanceDate);
+          try {
+            if (slot.startTime) {
+               const [hours, minutes] = slot.startTime.split(':').map(Number);
+               realStartTime.setUTCHours(hours, minutes, 0, 0);
+            }
+          } catch (e) {}
+
           const newLesson = await prisma.lesson.create({
             data: {
-              name: slot.subject?.name || "Session",
+              name: expectedName,
               day: dayName as any,
-              startTime: attendanceDate,
-              endTime: attendanceDate,
+              startTime: realStartTime,
+              endTime: realStartTime,
               subjectId: slot.subjectId,
               classId: parseInt(classId),
               teacherId,

@@ -464,10 +464,16 @@ export const en = {
       subjectName: "Subject Name",
       class: "Class",
       teacher: "Teacher",
-      dueDate: "Due Date",
+      startDate: "Date of Creation",
       actions: "Actions"
     },
     modal: {
+      detailsTitle: "Assignment Details",
+      description: "Description",
+      dateOfCreation: "Date of Creation",
+      class: "Class",
+      teacher: "Teacher",
+      noAttachments: "No attachments for this task",
       createTitle: "Create New Task",
       updateTitle: "Update Task",
       subtitle: "Assign homework and academic tasks to your students",

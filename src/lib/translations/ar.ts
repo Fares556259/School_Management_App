@@ -464,10 +464,16 @@ export const ar = {
       subjectName: "اسم المادة",
       class: "القسم",
       teacher: "المعلم",
-      dueDate: "تاريخ الاستحقاق",
+      startDate: "تاريخ الإنشاء",
       actions: "الإجراءات"
     },
     modal: {
+      detailsTitle: "تفاصيل الواجب",
+      description: "الوصف",
+      dateOfCreation: "تاريخ الإنشاء",
+      class: "القسم",
+      teacher: "المعلم",
+      noAttachments: "لا توجد مرفقات لهذا الواجب",
       createTitle: "إنشاء واجب جديد",
       updateTitle: "تحديث الواجب",
       subtitle: "قم بتعيين الواجبات المنزلية والمهام الأكاديمية لطلابك",

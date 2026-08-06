@@ -464,10 +464,16 @@ export const fr = {
       subjectName: "Nom de la matière",
       class: "Classe",
       teacher: "Enseignant",
-      dueDate: "Date d'échéance",
+      startDate: "Date de création",
       actions: "Actions"
     },
     modal: {
+      detailsTitle: "Détails de la tâche",
+      description: "Description",
+      dateOfCreation: "Date de création",
+      class: "Classe",
+      teacher: "Enseignant",
+      noAttachments: "Aucune pièce jointe pour cette tâche",
       createTitle: "Créer Nouvelle Tâche",
       updateTitle: "Modifier Tâche",
       subtitle: "Attribuez des tâches académiques à vos élèves",

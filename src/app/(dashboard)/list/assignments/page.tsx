@@ -3,13 +3,14 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import { createClient } from "@/utils/supabase/server";
-import { Filter, ArrowUpDown, Plus, Edit2, Trash2 } from "lucide-react";
+import { Filter, ArrowUpDown, Plus, Edit2, Trash2, Eye } from "lucide-react";
 import prisma, { safeDbQuery } from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
+import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
 
 type AssignmentList = Assignment & {
   lesson: Lesson & {
@@ -52,7 +53,7 @@ const AssignmentListPage = async ({
     { header: t.assignmentsPage.table.subjectName, accessor: "name" },
     { header: t.assignmentsPage.table.class, accessor: "class" },
     { header: t.assignmentsPage.table.teacher, accessor: "teacher", className: "hidden md:table-cell" },
-    { header: t.assignmentsPage.table.dueDate, accessor: "dueDate", className: "hidden md:table-cell" },
+    { header: t.assignmentsPage.table.startDate, accessor: "startDate", className: "hidden md:table-cell" },
     { header: t.assignmentsPage.table.actions, accessor: "action" },
   ];
 
@@ -98,12 +99,13 @@ const AssignmentListPage = async ({
         {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
       </td>
       <td className="hidden md:table-cell py-4 px-6">
-        {new Intl.DateTimeFormat("en-GB").format(item.dueDate)}
+        {new Intl.DateTimeFormat("en-GB").format(item.startDate)}
       </td>
       <td className="py-4 px-6">
         <div className="flex items-center justify-end gap-3">
           {(role === "admin" || role === "teacher") && (
             <>
+              <AssignmentDetailsModal item={item} />
               <FormModal 
                 table="assignment" 
                 type="update" 

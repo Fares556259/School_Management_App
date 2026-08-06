@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: slot.id,
-        subject: slot.subject?.name || "Free Period",
+        subject: slot.subject?.name?.split("|")[0].trim() || "Free Period",
         className: slot.class.name,
         time: `${slot.startTime} - ${slot.endTime}`,
         room: slot.room?.name || "TBD",

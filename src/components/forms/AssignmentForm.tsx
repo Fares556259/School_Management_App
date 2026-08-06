@@ -22,8 +22,8 @@ function getTranslatedSubject(subjectStr: string, locale: string): string {
 const schema = z.object({
   title: z.string().min(1, { message: "Assignment title is required!" }),
   description: z.string().optional(),
-  startDate: z.string().min(1, { message: "Start date is required!" }),
-  dueDate: z.string().min(1, { message: "Due date is required!" }),
+  startDate: z.string().optional(),
+  dueDate: z.string().optional(),
   lessonId: z.coerce.number().min(1, { message: "Lesson is required!" }),
 });
 
@@ -141,10 +141,20 @@ const AssignmentForm = ({
   const onSubmit = handleSubmit((formData) => {
     startTransition(async () => {
       const imgString = imgs.join(",");
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      const payload = {
+        ...formData,
+        img: imgString || undefined,
+        startDate: formData.startDate || (data?.startDate ? new Date(data.startDate).toISOString() : now.toISOString()),
+        dueDate: formData.dueDate || (data?.dueDate ? new Date(data.dueDate).toISOString() : nextWeek.toISOString())
+      };
+
       const res =
         type === "create"
-          ? await createAssignment({ ...formData, img: imgString || undefined })
-          : await updateAssignment(data.id, { ...formData, img: imgString || undefined });
+          ? await createAssignment(payload)
+          : await updateAssignment(data.id, payload);
 
       if (res.success) {
         window.location.reload();
@@ -235,24 +245,7 @@ const AssignmentForm = ({
           </div>
         )}
 
-        <div className="flex gap-4 flex-wrap">
-          <InputField
-            label={t.assignmentsPage.modal.startDate}
-            name="startDate"
-            type="date"
-            register={register}
-            error={errors.startDate}
-            className="w-full md:w-[48%]"
-          />
-          <InputField
-            label={t.assignmentsPage.modal.dueDate}
-            name="dueDate"
-            type="date"
-            register={register}
-            error={errors.dueDate}
-            className="w-full md:w-[48%]"
-          />
-        </div>
+
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.attachments}</label>
