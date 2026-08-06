@@ -41,14 +41,23 @@ export async function GET(request: NextRequest) {
 
     // Identify the specific lesson context for this teacher and class
     const dayName = moment(date || new Date()).format('dddd').toUpperCase();
-    const [lessons, timetableSlots] = await Promise.all([
+    const [lessons, allTimetableSlots, teacherTimetableSlots] = await Promise.all([
       prisma.lesson.findMany({
         where: {
           classId: parseInt(classId),
           day: dayName as any
         }
       }),
-      prisma.timetableSlot.findMany({
+      prisma.timetableSlot.findMany({ // Get all slots for mapping to match admin API exactly
+        where: {
+          classId: parseInt(classId),
+          day: dayName as any,
+          isDraft: false
+        },
+        include: { subject: true },
+        orderBy: { slotNumber: "asc" }
+      }),
+      prisma.timetableSlot.findMany({ // Get only teacher's slots for UI
         where: {
           classId: parseInt(classId),
           teacherId: teacherId || undefined,
@@ -60,31 +69,40 @@ export async function GET(request: NextRequest) {
       })
     ]);
 
-    const parsedSlotId = slotIdParam ? parseInt(slotIdParam) : null;
-    const parsedSubjectId = subjectIdParam ? parseInt(subjectIdParam) : null;
+    const activeSlotId = slotIdParam;
 
-    // Build the sessions array for the UI to render the pills
-    const sessions = timetableSlots.map(slot => ({
-      slotId: slot.id,
-      subjectId: slot.subjectId,
-      subjectName: slot.subject?.name || "Session",
-      startTime: slot.startTime,
-      endTime: slot.endTime
-    }));
-
-    // Determine the active slot
-    let activeSlot = timetableSlots[0] || null;
-    if (parsedSlotId) {
-      activeSlot = timetableSlots.find(s => s.id === parsedSlotId) || timetableSlots[0];
-    } else if (parsedSubjectId) {
-      activeSlot = timetableSlots.find(s => s.subjectId === parsedSubjectId) || timetableSlots[0];
+    if (!teacherTimetableSlots.length) {
+      return NextResponse.json({
+        students: [],
+        sessions: [],
+        message: "No sessions found for this class today."
+      });
     }
-    
+
+    // Build the sessions for the dropdown
+    const sessions = teacherTimetableSlots.map((slot, index) => {
+      const isCurrent = activeSlotId ? slot.id === parseInt(activeSlotId) : index === 0;
+      return {
+        id: slot.id.toString(),
+        subjectName: slot.subject?.name || 'Session',
+        time: slot.startTime,
+        isCurrent
+      };
+    });
+
+    const activeSlot = activeSlotId 
+      ? teacherTimetableSlots.find(s => s.id === parseInt(activeSlotId))
+      : teacherTimetableSlots[0];
+
+    if (!activeSlot) {
+      return NextResponse.json({ error: "Active slot not found" }, { status: 404 });
+    }
+
     // Use the active slot to figure out which lesson to match
     let lesson = null;
     if (activeSlot) {
-      // Find all timetable slots for this subject, ordered as they came from DB (already sorted by slotNumber)
-      const subjectSlots = timetableSlots.filter(s => s.subjectId === activeSlot.subjectId);
+      // Get all slots for this subject (across all teachers) to ensure mapping aligns exactly with Admin API
+      const subjectSlots = allTimetableSlots.filter(s => s.subjectId === activeSlot.subjectId);
       const slotIndex = subjectSlots.findIndex(s => s.id === activeSlot.id);
       
       // Match lesson exactly like the Admin API does to ensure 100% sync
@@ -127,8 +145,8 @@ export async function GET(request: NextRequest) {
     }
     
     const lessonId = lesson?.id || null;
-    const hasLesson = lessons.length > 0 || timetableSlots.length > 0;
-    const activeSlotId = activeSlot?.id || null;
+    const hasLesson = lessons.length > 0 || allTimetableSlots.length > 0;
+    const activeSlotIdToReturn = activeSlot?.id || null;
 
     const students = await prisma.student.findMany({
       where: { classId: parseInt(classId) },
@@ -206,7 +224,7 @@ export async function GET(request: NextRequest) {
       hasLesson,
       lessonId,
       sessions,
-      activeSlotId
+      activeSlotId: activeSlotIdToReturn
     });
   } catch (error: any) {
     console.error("[Teacher Students API Error]", error);
