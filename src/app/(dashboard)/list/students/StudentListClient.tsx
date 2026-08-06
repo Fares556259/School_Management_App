@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
 import BulkStudentImport from "./BulkStudentImport";
@@ -44,6 +44,12 @@ export default function StudentListClient({
   relatedData,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [isFilterPending, startTransition] = useTransition();
+  const [isSearchPending, setIsSearchPending] = useState(false);
+  const isPending = isFilterPending || isSearchPending;
+  const currentClassId = searchParams.get("classId") || "";
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
@@ -94,7 +100,7 @@ export default function StudentListClient({
             className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd]"
           />
           <div className="flex flex-col">
-            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name}</h3>
+            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name} {item.surname}</h3>
             <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? t.students.noClass}</p>
           </div>
         </td>
@@ -107,15 +113,15 @@ export default function StudentListClient({
         </td>
         <td className="py-4 px-6">
           {isPaidThisMonth ? (
-            <span className="px-2 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium">
+            <span className="px-2.5 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium whitespace-nowrap">
               {t.students.paid}
             </span>
           ) : isPartialThisMonth ? (
-            <span className="px-2 py-1 rounded-[4px] bg-orange-50 border border-orange-200 text-orange-700 text-[12px] font-medium">
+            <span className="px-2.5 py-1 rounded-[4px] bg-orange-50 border border-orange-200 text-orange-700 text-[12px] font-medium whitespace-nowrap">
               {t.students.partial}
             </span>
           ) : (
-            <span className="px-2 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
+            <span className="px-2.5 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium whitespace-nowrap">
               {t.students.unpaid}
             </span>
           )}
@@ -170,6 +176,32 @@ export default function StudentListClient({
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.students.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+          {/* SEARCH AND FILTER */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <TableSearch onPending={setIsSearchPending} />
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
+              value={currentClassId}
+              onChange={(e) => {
+                startTransition(() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (e.target.value) {
+                    params.set("classId", e.target.value);
+                  } else {
+                    params.delete("classId");
+                  }
+                  params.delete("page");
+                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                });
+              }}
+            >
+              <option value="">{locale === 'ar' ? 'جميع الأقسام' : locale === 'fr' ? 'Toutes les classes' : 'All Classes'}</option>
+              {classList.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
@@ -188,7 +220,9 @@ export default function StudentListClient({
       </div>
 
       {/* 3. TABLE & PAGINATION */}
-      <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+      <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+        <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+      </div>
       <Pagination page={page} count={count} />
 
       {/* MODALS */}

@@ -16,10 +16,17 @@ import {
   createIncome, updateIncome, deleteIncome,
   enrollFamily, 
 } from "@/lib/crudActions";
-import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2 } from "lucide-react";
+import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2, Eye, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { ProofViewerModal } from "./ProofViewerModal";
 
-
+const parseImgs = (val: any): string[] => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(Boolean);
+  if (typeof val === "string") return val.split(",").filter(Boolean);
+  if (typeof val === "object" && val.secure_url) return [val.secure_url];
+  return [];
+};
 
 type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subject" | "expense" | "income";
 
@@ -37,7 +44,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   teacher: [
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
-    { name: "phone", label: "Phone", type: "text" },
+    { name: "phone", label: "Phone", type: "text", required: true },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "bloodType", label: "Blood Type", type: "select", required: false, options: [
       { value: "A+", label: "A+" },
@@ -204,7 +211,9 @@ export default function CrudFormModal({
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
-  const [img, setImg] = useState<any>(data?.img || null);
+  const [imgs, setImgs] = useState<string[]>(parseImgs(data?.img));
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewActiveIdx, setPreviewActiveIdx] = useState(0);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { t } = useLanguage();
@@ -214,18 +223,22 @@ export default function CrudFormModal({
     { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
   ]);
 
-  // Reset state when modal is closed in create mode
+  // Reset state when modal opens/closes
   useEffect(() => {
-    if (!open && mode === "create") {
-      setImg(null);
+    if (!open) {
+      if (mode === "create") {
+        setImgs([]);
+      }
       setError("");
       setUploadingImg(false);
       setUploadProgress(0);
       setStudents([
         { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
       ]);
+    } else {
+      setImgs(parseImgs(data?.img));
     }
-  }, [open, mode]);
+  }, [open, mode, data]);
 
   const addStudent = () => {
     setStudents([...students, { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }]);
@@ -267,6 +280,7 @@ export default function CrudFormModal({
     const formData = new FormData(e.currentTarget);
     const values: any = {};
 
+    let hasValidationError = false;
     fields.forEach((f) => {
       if (f.type === "image") return; // Manual handle
       if (f.type === "multi-select") {
@@ -278,12 +292,17 @@ export default function CrudFormModal({
           values[f.name] = parseFloat(val);
         } else if (val) {
           values[f.name] = val;
+        } else if (f.required) {
+          hasValidationError = true;
+          setError(`Please fill in ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}.`);
         }
       }
     });
 
+    if (hasValidationError) return;
+
     // Handle image state: ensure null is sent if photo was explicitly removed
-    values.img = img || null;
+    values.img = imgs.length > 0 ? imgs.join(",") : null;
 
     startTransition(async () => {
       let result;
@@ -344,7 +363,7 @@ export default function CrudFormModal({
   const defaultTrigger = (() => {
     if (mode === "create") {
       return (
-        <button className="flex items-center gap-2 bg-[#181d26] text-white px-4 py-2.5 rounded-[6px] text-[13px] font-medium hover:bg-[#0d1218] transition-colors shadow-sm">
+        <button className="flex items-center gap-2 bg-[#181d26] text-white px-4 py-2.5 rounded-[6px] text-[13px] font-medium hover:bg-[#0d1218] transition-colors shadow-sm whitespace-nowrap shrink-0">
           <span className="text-lg leading-none">+</span> {t.crud.add} {t.crud.entities[entity] || (entity.charAt(0).toUpperCase() + entity.slice(1))}
         </button>
       );
@@ -371,7 +390,7 @@ export default function CrudFormModal({
 
       {open && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[12px] shadow-xl border border-[#dddddd] max-w-lg w-full relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className={`bg-white rounded-[12px] shadow-xl border border-[#dddddd] w-full relative max-h-[90vh] overflow-y-auto custom-scrollbar ${entity === "income" || entity === "expense" || entity === "parent" || entity === "teacher" ? "max-w-xl" : "max-w-lg"}`}>
             {/* Header */}
             <div className="sticky top-0 bg-white p-6 border-b border-[#dddddd] flex justify-between items-center rounded-t-[12px] z-10">
               <h2 className="text-[20px] font-medium text-[#181d26] tracking-tight">
@@ -446,152 +465,225 @@ export default function CrudFormModal({
                             />
                           </div>
                         ) : f.type === "image" ? (
-                          <div className="flex flex-col gap-2">
-                            <input
-                              type="file"
-                              id={`upload-${f.name}-${entity}-${mode}-${id || 'new'}`}
-                              className="hidden"
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                
-                                setUploadingImg(true);
-                                setUploadProgress(0);
-                                setError("");
-                                
-                                // We use XMLHttpRequest for true, byte-accurate network progress reporting
-                                const supabase = createClient();
-                                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-                                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
-                                
-                                const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-                                const fileName = `${entity}-${Date.now()}-${safeName}`;
-                                const filePath = `${fileName}`; // The bucket is 'uploads', the path is fileName
+                          <div className="flex flex-col gap-3">
+                            {(() => {
+                              const isMulti = entity === "income" || entity === "expense";
+                              const maxAllowed = isMulti ? 5 : 1;
+                              const isMaxReached = imgs.length >= maxAllowed;
 
-                                // Get session token if authenticated, fallback to anonKey
-                                supabase.auth.getSession().then(({ data: { session } }) => {
-                                  const token = session?.access_token || anonKey;
+                              return (
+                                <>
+                                  <input
+                                    type="file"
+                                    id={`upload-${f.name}-${entity}-${mode}-${id || 'new'}`}
+                                    className="hidden"
+                                    multiple={isMulti}
+                                    accept="image/*,application/pdf"
+                                    onChange={async (e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length === 0) return;
 
-                                  const xhr = new XMLHttpRequest();
-                                  xhr.open('POST', `${supabaseUrl}/storage/v1/object/uploads/${filePath}`);
-                                  xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-                                  xhr.setRequestHeader('apikey', anonKey);
-                                  if (file.type) {
-                                    xhr.setRequestHeader('Content-Type', file.type);
-                                  }
+                                      const remaining = maxAllowed - imgs.length;
+                                      if (remaining <= 0) {
+                                        setError(`Maximum of ${maxAllowed} image(s) allowed.`);
+                                        e.target.value = '';
+                                        return;
+                                      }
 
-                                  xhr.upload.onprogress = (event) => {
-                                    if (event.lengthComputable) {
-                                      const percentComplete = Math.round((event.loaded / event.total) * 100);
-                                      // Keep it at max 99% until the response is fully processed
-                                      setUploadProgress(Math.min(percentComplete, 99));
-                                    }
-                                  };
+                                      const selected = files.slice(0, remaining);
+                                      setUploadingImg(true);
+                                      setUploadProgress(0);
+                                      setError("");
 
-                                  xhr.onload = () => {
-                                    if (xhr.status >= 200 && xhr.status < 300) {
-                                      // Get public URL using JS client for convenience
-                                      const { data: { publicUrl } } = supabase.storage
-                                        .from('uploads')
-                                        .getPublicUrl(filePath);
-                                      
+                                      const supabase = createClient();
+                                      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+                                      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+
+                                      const uploadedUrls: string[] = [];
+                                      for (let i = 0; i < selected.length; i++) {
+                                        const file = selected[i];
+                                        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+                                        const fileName = `${entity}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName}`;
+
+                                        try {
+                                          const url = await new Promise<string | null>((resolve) => {
+                                            supabase.auth.getSession().then(({ data: { session } }) => {
+                                              const token = session?.access_token || anonKey;
+                                              const xhr = new XMLHttpRequest();
+                                              xhr.open('POST', `${supabaseUrl}/storage/v1/object/uploads/${fileName}`);
+                                              xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                                              xhr.setRequestHeader('apikey', anonKey);
+                                              if (file.type) xhr.setRequestHeader('Content-Type', file.type);
+
+                                              xhr.upload.onprogress = (evt) => {
+                                                if (evt.lengthComputable) {
+                                                  const filePct = evt.loaded / evt.total;
+                                                  const overallPct = Math.round(((i + filePct) / selected.length) * 100);
+                                                  setUploadProgress(Math.min(overallPct, 99));
+                                                }
+                                              };
+
+                                              xhr.onload = () => {
+                                                if (xhr.status >= 200 && xhr.status < 300) {
+                                                  const { data: { publicUrl } } = supabase.storage
+                                                    .from('uploads')
+                                                    .getPublicUrl(fileName);
+                                                  resolve(publicUrl);
+                                                } else {
+                                                  resolve(null);
+                                                }
+                                              };
+
+                                              xhr.onerror = () => resolve(null);
+                                              xhr.send(file);
+                                            }).catch(() => resolve(null));
+                                          });
+
+                                          if (url) uploadedUrls.push(url);
+                                        } catch (err) {
+                                          console.error("Upload error:", err);
+                                        }
+                                      }
+
                                       setUploadProgress(100);
-                                      setImg(publicUrl);
-                                      
+                                      if (uploadedUrls.length > 0) {
+                                        setImgs((prev) => [...prev, ...uploadedUrls].slice(0, maxAllowed));
+                                      } else {
+                                        setError("Failed to upload image(s).");
+                                      }
+
                                       setTimeout(() => {
                                         setUploadingImg(false);
                                         setUploadProgress(0);
-                                      }, 500);
-                                    } else {
-                                      console.error("Upload failed with status:", xhr.status, xhr.responseText);
-                                      setError(`Failed to upload: Server returned ${xhr.status}`);
-                                      setUploadingImg(false);
-                                      setUploadProgress(0);
-                                    }
-                                    // Reset input so the same file can be selected again
-                                    e.target.value = '';
-                                  };
+                                      }, 400);
 
-                                  xhr.onerror = () => {
-                                    console.error("Upload network error.");
-                                    setError("Network error occurred during upload. Please check your connection.");
-                                    setUploadingImg(false);
-                                    setUploadProgress(0);
-                                    e.target.value = '';
-                                  };
+                                      e.target.value = '';
+                                    }}
+                                  />
 
-                                  xhr.send(file);
-                                }).catch(err => {
-                                  console.error("Failed to get session for upload:", err);
-                                  setError("Failed to authenticate upload request.");
-                                  setUploadingImg(false);
-                                  setUploadProgress(0);
-                                  e.target.value = '';
-                                });
-                              }}
-                            />
-                            <div
-                              className={`relative overflow-hidden flex items-center justify-center gap-2 cursor-pointer transition-all p-3 border rounded-[8px] ${
-                                uploadingImg 
-                                  ? "border-indigo-200 bg-indigo-50 text-indigo-700 pointer-events-none" 
-                                  : img 
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" 
-                                    : "border-dashed border-slate-300 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-slate-100"
-                              }`}
-                              onClick={() => {
-                                if (!uploadingImg) document.getElementById(`upload-${f.name}-${entity}-${mode}-${id || 'new'}`)?.click();
-                              }}
-                            >
-                              {uploadingImg && (
-                                <div className="absolute inset-0 bg-indigo-100/30">
-                                  <div 
-                                    className="h-full bg-indigo-200/60 transition-all duration-300 ease-out" 
-                                    style={{ width: `${uploadProgress}%` }} 
+                                  {!isMaxReached && (
+                                    <div
+                                      className={`relative overflow-hidden flex items-center justify-center gap-2 cursor-pointer transition-all p-3 border rounded-[8px] ${
+                                        uploadingImg 
+                                          ? "border-indigo-200 bg-indigo-50 text-indigo-700 pointer-events-none" 
+                                          : imgs.length > 0 
+                                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" 
+                                            : "border-dashed border-slate-300 bg-slate-50 text-slate-600 hover:border-slate-400 hover:bg-slate-100"
+                                      }`}
+                                      onClick={() => {
+                                        if (!uploadingImg) document.getElementById(`upload-${f.name}-${entity}-${mode}-${id || 'new'}`)?.click();
+                                      }}
+                                    >
+                                      {uploadingImg && (
+                                        <div className="absolute inset-0 bg-indigo-100/30">
+                                          <div 
+                                            className="h-full bg-indigo-200/60 transition-all duration-300 ease-out" 
+                                            style={{ width: `${uploadProgress}%` }} 
+                                          />
+                                        </div>
+                                      )}
+                                      
+                                      <div className="relative z-10 flex items-center gap-2 text-[14px] font-medium">
+                                        {uploadingImg ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : "Finalizing..."}
+                                          </>
+                                        ) : (
+                                          <>
+                                            <UploadCloud className="w-4 h-4" />
+                                            {entity === "parent"
+                                              ? t.parents?.form?.uploadProof || "Upload Photo"
+                                              : (t.crud.fields["Proof Image"] || "Upload Proof")}
+                                            {isMulti && (
+                                              <span className="text-xs opacity-75 font-normal">
+                                                ({imgs.length}/{maxAllowed})
+                                              </span>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Thumbnails Grid */}
+                                  {imgs.length > 0 && (
+                                    <div className="flex flex-col gap-1.5 mt-1">
+                                      <div className="flex items-center justify-between text-xs text-slate-500 font-medium px-1">
+                                        <span>{(t.crud as any)?.uploadedProofs || "Uploaded Proofs"} ({imgs.length}/{maxAllowed})</span>
+                                        <span className="text-[11px] text-slate-400 italic">{(t.crud as any)?.clickToPreview || "Click image to preview"}</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-3 mt-1">
+                                        {imgs.map((url, idx) => {
+                                          const isPdf = url.toLowerCase().split('?')[0].endsWith('.pdf');
+                                          return (
+                                            <div
+                                              key={`${url}-${idx}`}
+                                              className="relative w-28 h-28 rounded-2xl overflow-hidden border border-slate-200 bg-white group shadow-sm flex flex-col items-center justify-center cursor-pointer transition-all hover:shadow-md hover:border-slate-300"
+                                              onClick={() => {
+                                                setPreviewActiveIdx(idx);
+                                                setPreviewOpen(true);
+                                              }}
+                                            >
+                                              {isPdf ? (
+                                                <div className="flex flex-col items-center justify-center p-2 text-center bg-slate-50 w-full h-full">
+                                                  <FileText size={32} className="text-rose-500 mb-1" />
+                                                  <span className="text-xs font-semibold text-slate-700 truncate max-w-[90px]">
+                                                    {(t.crud as any)?.pdfDocument || "PDF Doc"}
+                                                  </span>
+                                                </div>
+                                              ) : (
+                                                <Image
+                                                  src={url}
+                                                  alt={`Proof ${idx + 1}`}
+                                                  fill
+                                                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                                />
+                                              )}
+
+                                              {/* Hover Overlay */}
+                                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2 z-10">
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPreviewActiveIdx(idx);
+                                                    setPreviewOpen(true);
+                                                  }}
+                                                  className="w-8 h-8 rounded-full bg-white text-slate-800 flex items-center justify-center hover:bg-slate-100 transition-all shadow-lg hover:scale-110"
+                                                  title="Preview Image"
+                                                >
+                                                  <Eye size={16} />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setImgs((prev) => prev.filter((_, i) => i !== idx));
+                                                  }}
+                                                  className="w-8 h-8 rounded-full bg-white text-rose-600 flex items-center justify-center hover:bg-rose-50 transition-all shadow-lg hover:scale-110"
+                                                  title="Remove Image"
+                                                >
+                                                  <Trash2 size={16} />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Proof Viewer Modal */}
+                                  <ProofViewerModal
+                                    urls={imgs}
+                                    initialIndex={previewActiveIdx}
+                                    isOpen={previewOpen}
+                                    onClose={() => setPreviewOpen(false)}
                                   />
-                                </div>
-                              )}
-                              
-                              <div className="relative z-10 flex items-center gap-2 text-[14px] font-medium">
-                                {uploadingImg ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : "Finalizing..."}
-                                  </>
-                                ) : img ? (
-                                  <>
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    Image Uploaded
-                                  </>
-                                ) : (
-                                  <>
-                                    <UploadCloud className="w-4 h-4" />
-                                    {entity === "parent" ? t.parents?.form?.uploadProof || "Upload Photo" : (t.crud.fields["Proof Image"] || "Upload Proof")}
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            {img && (
-                              <div className="relative w-full h-40 rounded-[8px] overflow-hidden border border-[#dddddd] mt-2 flex items-center justify-center bg-[#f8fafc] group shadow-sm">
-                                {(typeof img === "string" ? img : img.secure_url).toLowerCase().endsWith(".pdf") ? (
-                                  <div className="flex flex-col items-center gap-2">
-                                    <span className="text-[13px] font-medium text-[#41454d]">PDF Document Uploaded</span>
-                                  </div>
-                                ) : (
-                                  <Image 
-                                    src={(typeof img === "string" ? img : img.secure_url)} 
-                                    alt="Proof" fill className="object-cover" 
-                                  />
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setImg(null)}
-                                  className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm border border-[#dddddd] text-rose-500 w-8 h-8 flex items-center justify-center rounded-[6px] shadow-sm hover:bg-rose-50 hover:border-rose-200 transition-colors opacity-0 group-hover:opacity-100"
-                                  title="Remove Photo"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            )}
+                                </>
+                              );
+                            })()}
                           </div>
                         ) : f.type === "searchable-select" ? (
                           <SearchableSelect

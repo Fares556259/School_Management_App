@@ -13,7 +13,7 @@ const schema = z.object({
 
   firstName: z.string().min(1, { message: "First name is required!" }),
   lastName: z.string().min(1, { message: "Last name is required!" }),
-  phone: z.string().optional().or(z.literal("")),
+  phone: z.string().min(1, { message: "Phone is required!" }),
   address: z.string().min(1, { message: "Address is required!" }),
   bloodType: z.string().min(1, { message: "Blood Type is required!" }),
   birthday: z.string().min(1, { message: "Birthday is required!" }),

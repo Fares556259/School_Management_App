@@ -39,13 +39,19 @@ const AuditPage = async ({
   const p = page ? parseInt(page) : 1;
 
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.AuditLogWhereInput = {};
+  const { getSchoolId } = await import("@/lib/school");
+  const schoolId = await getSchoolId();
+
+  const query: Prisma.AuditLogWhereInput = {
+    schoolId,
+  };
 
   if (search) {
     query.OR = [
       { action: { contains: search, mode: "insensitive" } },
       { description: { contains: search, mode: "insensitive" } },
       { entityType: { contains: search, mode: "insensitive" } },
+      { performedBy: { contains: search, mode: "insensitive" } },
     ];
   }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown, ChevronDown, Send } from "lucide-react";
+import { Calendar as CalendarIcon, ClipboardCheck, Check, Edit2, Sparkles, Lock, FileDown, ChevronDown, Send, AlertTriangle } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -63,6 +63,7 @@ const ExamTimetableClient = ({
   const [isDraftView, setIsDraftView] = useState(forceDraft);
   const [hasDraft, setHasDraft] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showEditWarningModal, setShowEditWarningModal] = useState(false);
 
   // PDF Export Ref
   const printRef = useRef<HTMLDivElement>(null);
@@ -311,7 +312,7 @@ const ExamTimetableClient = ({
                     <div className="flex items-center gap-3">
                       {/* EDIT TOGGLE BUTTON */}
                       <button 
-                        onClick={() => setIsEditMode(true)}
+                        onClick={() => setShowEditWarningModal(true)}
                         className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm text-[#181d26] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center gap-2"
                       >
                         <Edit2 size={16} /> {t.timetable.editSchedule}
@@ -334,7 +335,7 @@ const ExamTimetableClient = ({
                   ) : (
                     /* STANDALONE EDIT SCHEDULE BUTTON */
                     <button 
-                      onClick={() => setIsEditMode(true)}
+                      onClick={() => setShowEditWarningModal(true)}
                       className="px-6 py-3 rounded-xl bg-white border border-[#dddddd] font-medium text-sm text-[#181d26] hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center gap-2"
                     >
                       <Edit2 size={16} /> {t.timetable.editSchedule}
@@ -485,6 +486,7 @@ const ExamTimetableClient = ({
       </div>
 
       {/* PERIOD SELECTOR REMOVED - merged into top bar */}
+      
       {/* TIMETABLE GRID */}
       {selectedClass && (
         <div className={loading ? "opacity-50 transition-opacity" : ""}>
@@ -567,6 +569,55 @@ const ExamTimetableClient = ({
           generateAction={(p, c, s, t) => generateExamsFromPrompt(p, c, s, t, selectedPeriod)}
           saveAction={(slots) => bulkUpdateExams(selectedClass.id, selectedPeriod, slots, isDraftView)}
         />
+      )}
+
+      {/* WARNING MODAL */}
+      {showEditWarningModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+            <div className="p-6">
+              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">{t.timetable.liveEditWarning?.title}</h3>
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                {t.timetable.liveEditWarning?.examDesc}
+                <br /><br />
+                {t.timetable.liveEditWarning?.aiRecommend}
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    const params = new URLSearchParams(searchParams);
+                    if (selectedClass?.id) params.set("classId", selectedClass.id.toString());
+                    router.push(`/admin/timetable/ai?type=exam&${params.toString()}`);
+                  }}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={18} />
+                  {t.timetable.liveEditWarning?.goToAi}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    setIsEditMode(true);
+                  }}
+                  className="w-full py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-all"
+                >
+                  {t.timetable.liveEditWarning?.continueEdit}
+                </button>
+                <button
+                  onClick={() => setShowEditWarningModal(false)}
+                  className="w-full py-2 px-4 text-slate-500 hover:text-slate-700 font-medium transition-all"
+                >
+                  {t.timetable.liveEditWarning?.cancel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -52,11 +52,15 @@ const StaffListPage = async ({
 
   const where: any = { schoolId };
   if (queryParams.search) {
-    where.OR = [
-      { name: { contains: queryParams.search, mode: "insensitive" } },
-      { surname: { contains: queryParams.search, mode: "insensitive" } },
-      { role: { contains: queryParams.search, mode: "insensitive" } },
-    ];
+    where.AND = queryParams.search.split(" ").filter(Boolean).map((word: string) => ({
+      OR: [
+        { name: { contains: word, mode: "insensitive" } },
+        { surname: { contains: word, mode: "insensitive" } },
+        { username: { contains: word, mode: "insensitive" } },
+        { phone: { contains: word, mode: "insensitive" } },
+        { role: { contains: word, mode: "insensitive" } },
+      ],
+    }));
   }
 
   const [staff, count] = await Promise.all([

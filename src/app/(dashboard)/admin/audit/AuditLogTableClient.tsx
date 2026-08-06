@@ -156,15 +156,31 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
           if (item.action.includes("DELETE")) bgColor = "bg-rose-50 text-rose-600 border border-rose-100";
           
           return (
-            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors ${bgColor}`}>
+            <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors inline-block ${bgColor}`}>
               {(t as any).auditLogPage?.actions?.[item.action] || item.action.replace(/_/g, " ")}
             </span>
           );
         })()}
       </td>
       <td className="p-4 hidden md:table-cell">
-        <div className="flex flex-col">
-          <span className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{performerMap[item.performedBy]?.name || item.performedBy}</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase shrink-0 overflow-hidden shadow-xs">
+            {performerMap[item.performedBy]?.avatar ? (
+              <img src={performerMap[item.performedBy].avatar} alt="" className="object-cover w-full h-full" />
+            ) : (
+              (performerMap[item.performedBy]?.name || item.performedBy || "U").charAt(0).toUpperCase()
+            )}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-slate-700 text-xs truncate group-hover:text-slate-900 transition-colors">
+              {performerMap[item.performedBy]?.name || item.performedBy}
+            </span>
+            {performerMap[item.performedBy]?.role && (
+              <span className="text-[10px] text-slate-400 font-medium capitalize truncate">
+                {performerMap[item.performedBy].role}
+              </span>
+            )}
+          </div>
         </div>
       </td>
       <td className="p-4 hidden md:table-cell">

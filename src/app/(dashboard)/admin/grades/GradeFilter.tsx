@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface ClassItem {
   id: number;
@@ -20,6 +21,7 @@ export default function GradeFilter({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const handleChange = (name: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -32,7 +34,7 @@ export default function GradeFilter({
   return (
     <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
       <div className="flex flex-col gap-1">
-        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Class</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">{t.gradeEntry.classLabel}</label>
         <select
           value={classId || ""}
           onChange={(e) => handleChange("classId", e.target.value)}
@@ -50,16 +52,16 @@ export default function GradeFilter({
       </div>
 
       <div className="flex flex-col gap-1 relative">
-        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Academic Term</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">{t.gradeEntry.termLabel}</label>
         <select
           value={term}
           onChange={(e) => handleChange("term", e.target.value)}
           disabled={isPending}
           className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
         >
-          <option value="1">Term 1</option>
-          <option value="2">Term 2</option>
-          <option value="3">Term 3</option>
+          <option value="1">{t.gradeEntry.term} 1</option>
+          <option value="2">{t.gradeEntry.term} 2</option>
+          <option value="3">{t.gradeEntry.term} 3</option>
         </select>
       </div>
 
@@ -84,7 +86,7 @@ export default function GradeFilter({
           }`}
         >
           <Printer size={16} />
-          Print Class Report Cards
+          {t.gradeEntry.printReportCards}
         </button>
       </div>
     </div>

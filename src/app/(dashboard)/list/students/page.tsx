@@ -91,11 +91,14 @@ const StudentListPage = async ({
             };
             break;
           case "search":
-            query.OR = [
-              { name: { contains: value, mode: "insensitive" } },
-              { surname: { contains: value, mode: "insensitive" } },
-              { username: { contains: value, mode: "insensitive" } },
-            ];
+            query.AND = value.split(" ").filter(Boolean).map((word) => ({
+              OR: [
+                { name: { contains: word, mode: "insensitive" } },
+                { surname: { contains: word, mode: "insensitive" } },
+                { username: { contains: word, mode: "insensitive" } },
+                { phone: { contains: word, mode: "insensitive" } },
+              ],
+            }));
             break;
           default:
             break;

@@ -284,7 +284,16 @@ export const ar = {
     thursday: "الخميس",
     friday: "الجمعة",
     saturday: "السبت",
-    grade: "المستوى"
+    grade: "المستوى",
+    liveEditWarning: {
+      title: "تحذير التعديل المباشر",
+      timetableDesc: "أنت على وشك تعديل الجدول الزمني المباشر. أي تغييرات تجريها ستصبح حية فوراً ومرئية للمعلمين والطلاب وأولياء الأمور.",
+      examDesc: "أنت على وشك تعديل جدول الامتحانات المباشر. أي تغييرات تجريها ستصبح حية فوراً ومرئية للمعلمين والطلاب وأولياء الأمور.",
+      aiRecommend: "إذا كنت ترغب فقط في التجربة أو التخطيط بأمان دون التأثير على الجدول الحالي، فنحن نوصي بشدة باستخدام المجدول بالذكاء الاصطناعي.",
+      goToAi: "الانتقال إلى المجدول (مسودة آمنة)",
+      continueEdit: "متابعة التعديل المباشر",
+      cancel: "إلغاء"
+    }
   },
   exams: {
     registry: "سجل الامتحانات",
@@ -402,6 +411,11 @@ export const ar = {
     cannotUndo: "لا يمكن التراجع عن هذا الإجراء.",
     pending: "قيد الانتظار",
     activated: "مفعل",
+    uploadedProofs: "الإثباتات المرفوعة",
+    clickToPreview: "انقر على الصورة للمعاينة",
+    pdfDocument: "ملف PDF",
+    incomeDetails: "تفاصيل الدخل",
+    expenseDetails: "تفاصيل المصروف",
     fields: {
       "Subject Name": "اسم المادة",
       "Domain / Category": "المجال / الفئة",
@@ -507,6 +521,24 @@ export const ar = {
       processFiles: "معالجة الملفات"
     }
   },
+  gradeEntry: {
+    classLabel: "الفصل",
+    termLabel: "الثلاثي الأكاديمي",
+    term: "الثلاثي",
+    printReportCards: "طباعة بطاقات الأعداد",
+    students: "الطلاب",
+    avg: "المعدل",
+    studentRole: "طالب",
+    viewReportCard: "عرض بطاقة الأعداد",
+    saving: "جاري الحفظ...",
+    saved: "تم الحفظ!",
+    error: "خطأ",
+    saveGrades: "حفظ الأعداد",
+    termOverviewFor: "نظرة عامة على الثلاثي {term} لـ {name}",
+    generalAverage: "المعدل العام:",
+    selectStudent: "حدد طالباً لإدخال الأعداد",
+    noStudents: "لم يتم العثور على طلاب في هذا الفصل."
+  },
   students: {
     title: "الطلاب",
     info: "معلومات",
@@ -533,6 +565,40 @@ export const ar = {
       rawTextPlaceholder: "مثال: أحمد محمد، ذكر، القسم 1A، الولي: محمد، الهاتف: 555-1234...",
       startExtraction: "بدء الاستخراج"
     }
+  },
+  teachers: {
+    title: "الأساتذة",
+    info: "معلومات",
+    subjects: "المواد",
+    classes: "الأقسام",
+    phone: "الهاتف",
+    address: "العنوان",
+    paidStatus: "حالة الدفع",
+    activation: "التفعيل",
+    actions: "إجراءات",
+    allClasses: "جميع الأقسام",
+    bulkEnroll: "تسجيل ذكي شامل",
+    paid: "مدفوع",
+    unpaid: "غير مدفوع",
+    activated: "مفعل",
+    nonActivated: "غير مفعل",
+    noSubjects: "لا توجد مواد",
+    noClasses: "لا توجد أقسام",
+    notProvided: "غير متوفر",
+    outOfTeachers: "من أصل {count} أستاذ"
+  },
+  staff: {
+    title: "الموظفون",
+    info: "معلومات",
+    role: "الدور",
+    phone: "الهاتف",
+    salary: "الراتب",
+    paidStatus: "حالة الدفع",
+    actions: "إجراءات",
+    paid: "مدفوع",
+    unpaid: "غير مدفوع",
+    notProvided: "غير متوفر",
+    outOfStaff: "من أصل {count} موظف"
   },
   parents: {
     title: "جميع الأولياء",
@@ -635,9 +701,18 @@ export const ar = {
       DELETE: "حذف",
       CREATE_ASSIGNMENT: "إنشاء واجب",
       ENROLL_FAMILY: "تسجيل عائلة",
+      CREATE_STUDENT: "إضافة طالب",
       UPDATE_STUDENT: "تحديث طالب",
+      DELETE_STUDENT: "حذف طالب",
       CREATE_TEACHER: "إنشاء معلم",
       UPDATE_TEACHER: "تحديث معلم",
+      DELETE_TEACHER: "حذف معلم",
+      CREATE_STAFF: "إنشاء موظف",
+      UPDATE_STAFF: "تحديث موظف",
+      DELETE_STAFF: "حذف موظف",
+      APPROVE_PARENT_REGISTRATION: "قبول ولي الأمر",
+      REJECT_PARENT_REGISTRATION: "رفض ولي الأمر",
+      RECEIVE_TUITION: "تحصيل الرسوم",
       EDIT_EXPENSE: "تعديل مصروف",
       GENERAL_INCOME: "دخل عام",
       CREATE_INCOME: "إنشاء دخل",
@@ -656,6 +731,19 @@ export const ar = {
       DELETE_NOTICE: "حذف إشعار",
       GENERAL_EXPENSE: "مصروف عام"
     },
+    filters: {
+      title: "تصفية سجل التدقيق",
+      performedBy: "قام به",
+      usernameOrRole: "اسم المستخدم، البريد أو الدور...",
+      actionType: "نوع الإجراء",
+      allActions: "جميع الإجراءات",
+      logTimeRange: "النطاق الزمني",
+      from: "من",
+      to: "إلى",
+      apply: "تطبيق الفلاتر",
+      clear: "إلغاء جميع الفلاتر"
+    },
+    filtersActive: "الفلاتر مفعّلة",
     descriptions: {
       recordedPayment: "تسجيل دفع {amount} لـ {name} ({period})",
       recoveredPayment: "استرداد {amount} لـ {name} ({period})",

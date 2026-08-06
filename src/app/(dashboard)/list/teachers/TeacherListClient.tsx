@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
 import BulkTeacherImport from "./BulkTeacherImport";
@@ -17,6 +18,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MONTHS } from "@/lib/dateUtils";
 import { Teacher, Subject, Class, Payment } from "@prisma/client";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface Props {
   initialData: any[];
@@ -39,7 +41,33 @@ export default function TeacherListClient({
   paidThisMonth,
   relatedData,
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [isFilterPending, startTransition] = useTransition();
+  const [isSearchPending, setIsSearchPending] = useState(false);
+  const isPending = isFilterPending || isSearchPending;
+  const currentClassId = searchParams.get("classId") || "";
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const { t, locale } = useLanguage();
+
+  const classList = (relatedData?.classes || []).map((c: any) => ({
+    id: c.value,
+    name: c.label,
+  }));
+
+  const translatedColumns = columns.map((c: any) => ({
+    ...c,
+    header: c.accessor === "info" ? t.teachers.info
+          : c.accessor === "subjects" ? t.teachers.subjects
+          : c.accessor === "classes" ? t.teachers.classes
+          : c.accessor === "phone" ? t.teachers.phone
+          : c.accessor === "address" ? t.teachers.address
+          : c.accessor === "isPaid" ? t.teachers.paidStatus
+          : c.accessor === "isActivated" ? t.teachers.activation
+          : c.accessor === "action" ? t.teachers.actions
+          : c.header
+  }));
 
   const renderRow = (
     item: Teacher & { subjects: Subject[]; classes: Class[]; payments: Payment[]; timetable?: any[] }
@@ -79,7 +107,6 @@ export default function TeacherListClient({
             <h3 className="text-[14px] font-medium text-[#181d26]">{item.name} {item.surname}</h3>
           </div>
         </td>
-        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d] uppercase">{item.id.substring(0, 8)}</td>
         <td className="hidden md:table-cell py-4 px-6 max-w-[200px]">
           {allSubjects.length > 0 ? (
             <div 
@@ -89,7 +116,7 @@ export default function TeacherListClient({
               {allSubjects.map(s => s.name.split('|')[0].trim()).join(', ')}
             </div>
           ) : (
-            <span className="text-[#a1a1aa] italic text-[13px]">No subjects</span>
+            <span className="text-[#a1a1aa] italic text-[13px]">{t.teachers.noSubjects}</span>
           )}
         </td>
         <td className="hidden md:table-cell py-4 px-6 max-w-[150px]">
@@ -101,30 +128,29 @@ export default function TeacherListClient({
               {allClasses.map(c => c.name).join(', ')}
             </div>
           ) : (
-            <span className="text-[#a1a1aa] italic text-[13px]">No classes</span>
+            <span className="text-[#a1a1aa] italic text-[13px]">{t.teachers.noClasses}</span>
           )}
         </td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>{item.address || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">{t.teachers.notProvided}</span>}</td>
         <td className="py-4 px-6">
           {isPaidThisMonth ? (
-            <span className="px-2 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium">
-              Paid
+            <span className="px-2.5 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium whitespace-nowrap">
+              {t.teachers.paid}
             </span>
           ) : (
-            <span className="px-2 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
-              Unpaid
+            <span className="px-2.5 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium whitespace-nowrap">
+              {t.teachers.unpaid}
             </span>
           )}
         </td>
         <td className="py-4 px-6">
           {item.password ? (
-            <span className="px-2 py-1 rounded-[4px] bg-indigo-50 border border-indigo-200 text-indigo-700 text-[12px] font-medium">
-              Activated
+            <span className="px-2.5 py-1 rounded-[4px] bg-indigo-50 border border-indigo-200 text-indigo-700 text-[12px] font-medium whitespace-nowrap">
+              {t.teachers.activated}
             </span>
           ) : (
-            <span className="px-2 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium">
-              Non-activated
+            <span className="px-2.5 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium whitespace-nowrap">
+              {t.teachers.nonActivated}
             </span>
           )}
         </td>
@@ -169,9 +195,33 @@ export default function TeacherListClient({
 
       {/* 2. TOP ACTIONS HEADER */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Teachers</h1>
+        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.teachers.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch />
+          {/* SEARCH AND FILTER */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <TableSearch onPending={setIsSearchPending} />
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
+              value={currentClassId}
+              onChange={(e) => {
+                startTransition(() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (e.target.value) {
+                    params.set("classId", e.target.value);
+                  } else {
+                    params.delete("classId");
+                  }
+                  params.delete("page");
+                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                });
+              }}
+            >
+              <option value="">{t.teachers.allClasses}</option>
+              {classList.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
@@ -180,12 +230,12 @@ export default function TeacherListClient({
                   className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
                 >
                   <Sparkles size={16} className="text-[#41454d] group-hover:rotate-12 transition-transform" />
-                  AI Bulk Enroll
+                  {t.teachers.bulkEnroll}
                 </button>
                 <button 
                   onClick={() => setIsBulkOpen(true)}
                   className="lg:hidden w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]"
-                  title="AI Bulk Enroll"
+                  title={t.teachers.bulkEnroll}
                 >
                   <Sparkles size={16} />
                 </button>
@@ -197,7 +247,9 @@ export default function TeacherListClient({
       </div>
 
       {/* 3. TABLE & PAGINATION */}
-      <Table columns={columns} renderRow={renderRow} data={initialData} />
+      <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+        <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+      </div>
       <Pagination page={page} count={count} />
 
       {/* MODALS */}

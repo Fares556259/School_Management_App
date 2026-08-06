@@ -284,7 +284,16 @@ export const fr = {
     thursday: "Jeudi",
     friday: "Vendredi",
     saturday: "Samedi",
-    grade: "Niveau"
+    grade: "Niveau",
+    liveEditWarning: {
+      title: "Avertissement de Modification en Direct",
+      timetableDesc: "Vous êtes sur le point de modifier l'emploi du temps en direct. Toute modification sera immédiatement visible pour les enseignants, élèves et parents.",
+      examDesc: "Vous êtes sur le point de modifier le calendrier des examens en direct. Toute modification sera immédiatement visible pour les enseignants, élèves et parents.",
+      aiRecommend: "Si vous souhaitez simplement expérimenter ou planifier en toute sécurité sans affecter l'horaire actuel, nous vous recommandons fortement d'utiliser le Planificateur IA.",
+      goToAi: "Aller au Planificateur IA (Brouillon Sûr)",
+      continueEdit: "Continuer la Modification en Direct",
+      cancel: "Annuler"
+    }
   },
   exams: {
     registry: "Registre des Examens",
@@ -387,7 +396,7 @@ export const fr = {
     selectOrType: "Sélectionnez ou tapez nouveau..."
   },
   crud: {
-    add: "Ajouter Nouveau",
+    add: "Ajouter",
     edit: "Modifier",
     delete: "Supprimer",
     cancel: "Annuler",
@@ -402,6 +411,11 @@ export const fr = {
     noAccount: "Aucun compte trouvé",
     pending: "En attente",
     activated: "Activé",
+    uploadedProofs: "Preuves téléchargées",
+    clickToPreview: "Cliquer sur l'image pour prévisualiser",
+    pdfDocument: "Document PDF",
+    incomeDetails: "Détails du revenu",
+    expenseDetails: "Détails de la dépense",
     fields: {
       "Subject Name": "Nom de la matière",
       "Domain / Category": "Domaine / Catégorie",
@@ -504,8 +518,26 @@ export const fr = {
       dragDropDesc: "Téléchargez des images (JPG, PNG) de feuilles de notes. L'IA lira l'écriture, associera les élèves et synchronisera les notes pour le Trimestre",
       browseFiles: "Parcourir",
       cancel: "Annuler",
-      processFiles: "Traiter les fichiers",
+      processFiles: "Traiter les fichiers"
     }
+  },
+  gradeEntry: {
+    classLabel: "Classe",
+    termLabel: "Trimestre",
+    term: "Trimestre",
+    printReportCards: "Imprimer les Bulletins",
+    students: "Étudiants",
+    avg: "Moy",
+    studentRole: "Élève",
+    viewReportCard: "Voir le Bulletin",
+    saving: "Enregistrement...",
+    saved: "Enregistré !",
+    error: "Erreur",
+    saveGrades: "Enregistrer les Notes",
+    termOverviewFor: "Aperçu du Trimestre {term} pour {name}",
+    generalAverage: "Moyenne Générale :",
+    selectStudent: "Sélectionnez un étudiant pour saisir les notes",
+    noStudents: "Aucun étudiant trouvé dans cette classe."
   },
   students: {
     title: "Étudiants",
@@ -518,6 +550,8 @@ export const fr = {
     bulkEnroll: "Inscription IA en masse",
     paid: "Payé",
     unpaid: "Non payé",
+    paidPlural: "Payés",
+    unpaidPlural: "Non payés",
     partial: "Partiel",
     noClass: "Aucune classe",
     notProvided: "Non renseigné",
@@ -531,8 +565,46 @@ export const fr = {
       imageInfo: "Téléchargez une photo claire, une capture d'écran ou une numérisation PDF de votre liste d'étudiants. L'IA lira et extraira tous les détails automatiquement.",
       rawTextLabel: "Données Brutes",
       rawTextPlaceholder: "Exemple : Jean Dupont, Garçon, Classe 1A, Parent : Robert Dupont, Téléphone : 555-1234...",
-      startExtraction: "Démarrer l'Extraction",
+      startExtraction: "Démarrer l'Extraction"
     }
+  },
+  teachers: {
+    title: "Enseignants",
+    info: "Info",
+    subjects: "Matières",
+    classes: "Classes",
+    phone: "Téléphone",
+    address: "Adresse",
+    paidStatus: "Statut de Paiement",
+    activation: "Activation",
+    actions: "Actions",
+    allClasses: "Toutes les classes",
+    bulkEnroll: "Inscription IA en masse",
+    paid: "Payé",
+    unpaid: "Non payé",
+    paidPlural: "Payés",
+    unpaidPlural: "Non payés",
+    activated: "Activé",
+    nonActivated: "Non activé",
+    noSubjects: "Aucune matière",
+    noClasses: "Aucune classe",
+    notProvided: "Non renseigné",
+    outOfTeachers: "sur {count} enseignants"
+  },
+  staff: {
+    title: "Personnel",
+    info: "Info",
+    role: "Rôle",
+    phone: "Téléphone",
+    salary: "Salaire",
+    paidStatus: "Statut de Paiement",
+    actions: "Actions",
+    paid: "Payé",
+    unpaid: "Non payé",
+    paidPlural: "Payés",
+    unpaidPlural: "Non payés",
+    notProvided: "Non renseigné",
+    outOfStaff: "sur {count} employés"
   },
   parents: {
     title: "Tous les Parents",
@@ -635,9 +707,18 @@ export const fr = {
       DELETE: "Supprimer",
       CREATE_ASSIGNMENT: "Créer Devoir",
       ENROLL_FAMILY: "Inscrire Famille",
+      CREATE_STUDENT: "Créer un élève",
       UPDATE_STUDENT: "Mettre à jour Élève",
+      DELETE_STUDENT: "Supprimer un élève",
       CREATE_TEACHER: "Créer Enseignant",
       UPDATE_TEACHER: "Mettre à jour Enseignant",
+      DELETE_TEACHER: "Supprimer Enseignant",
+      CREATE_STAFF: "Créer Personnel",
+      UPDATE_STAFF: "Modifier Personnel",
+      DELETE_STAFF: "Supprimer Personnel",
+      APPROVE_PARENT_REGISTRATION: "Approuver Parent",
+      REJECT_PARENT_REGISTRATION: "Rejeter Parent",
+      RECEIVE_TUITION: "Recevoir Frais",
       EDIT_EXPENSE: "Modifier Dépense",
       GENERAL_INCOME: "Revenu Général",
       CREATE_INCOME: "Créer un revenu",
@@ -656,6 +737,19 @@ export const fr = {
       DELETE_NOTICE: "Supprimer Annonce",
       GENERAL_EXPENSE: "Dépense Générale"
     },
+    filters: {
+      title: "Filtres du Journal d'Audit",
+      performedBy: "Effectué Par",
+      usernameOrRole: "Nom d'utilisateur, Email ou Rôle...",
+      actionType: "Type d'Action",
+      allActions: "Toutes les Actions",
+      logTimeRange: "Plage de Dates",
+      from: "Du",
+      to: "Au",
+      apply: "Appliquer les Filtres",
+      clear: "Effacer Tous les Filtres"
+    },
+    filtersActive: "Filtres Actifs",
     descriptions: {
       recordedPayment: "Paiement enregistré de {amount} pour {name} ({period})",
       recoveredPayment: "{amount} récupéré pour {name} ({period})",

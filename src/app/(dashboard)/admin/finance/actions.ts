@@ -15,9 +15,17 @@ export const addFinanceEntry = async (formData: FormData) => {
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
 
+  if (!category) {
+    return { success: false, error: "Category is missing from the form data." };
+  }
+
+  // Get the active school ID
+  const { getSchoolId } = await import("@/lib/school");
+  const schoolId = await getSchoolId();
+
   try {
     if (type === "income") {
-      const income = await prisma.income.create({ data: { title, amount, category, date } });
+      const income = await prisma.income.create({ data: { schoolId, title, amount, category, date } });
       await prisma.auditLog.create({
         data: {
           action: "ADD_INCOME",
@@ -29,7 +37,7 @@ export const addFinanceEntry = async (formData: FormData) => {
         },
       });
     } else {
-      const expense = await prisma.expense.create({ data: { title, amount, category, date } });
+      const expense = await prisma.expense.create({ data: { schoolId, title, amount, category, date } });
       await prisma.auditLog.create({
         data: {
           action: "ADD_EXPENSE",

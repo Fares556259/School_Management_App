@@ -284,7 +284,16 @@ export const en = {
     thursday: "Thursday",
     friday: "Friday",
     saturday: "Saturday",
-    grade: "Grade"
+    grade: "Grade",
+    liveEditWarning: {
+      title: "Live Edit Warning",
+      timetableDesc: "You are about to edit the live timetable. Any changes you make will instantly go live and be visible to teachers, students, and parents.",
+      examDesc: "You are about to edit the live exam schedule. Any changes you make will instantly go live and be visible to teachers, students, and parents.",
+      aiRecommend: "If you just want to experiment or plan safely without affecting the current schedule, we strongly recommend using the AI Scheduler.",
+      goToAi: "Go to AI Scheduler (Safe Draft)",
+      continueEdit: "Continue Live Edit",
+      cancel: "Cancel"
+    }
   },
   exams: {
     registry: "Exams Registry",
@@ -402,6 +411,11 @@ export const en = {
     cannotUndo: "This action cannot be undone.",
     pending: "Pending",
     activated: "Activated",
+    uploadedProofs: "Uploaded Proofs",
+    clickToPreview: "Click image to preview",
+    pdfDocument: "PDF Document",
+    incomeDetails: "Income Details",
+    expenseDetails: "Expense Details",
     fields: {
       "Subject Name": "Subject Name",
       "Domain / Category": "Domain / Category",
@@ -507,6 +521,24 @@ export const en = {
       processFiles: "Process Files"
     }
   },
+  gradeEntry: {
+    classLabel: "Class",
+    termLabel: "Academic Term",
+    term: "Term",
+    printReportCards: "Print Class Report Cards",
+    students: "Students",
+    avg: "Avg",
+    studentRole: "Student",
+    viewReportCard: "View Report Card",
+    saving: "Saving...",
+    saved: "Saved!",
+    error: "Error",
+    saveGrades: "Save Grades",
+    termOverviewFor: "Term {term} Overview for {name}",
+    generalAverage: "General Average:",
+    selectStudent: "Select a student to enter grades",
+    noStudents: "No students found in this class."
+  },
   students: {
     title: "Students",
     info: "Info",
@@ -533,6 +565,40 @@ export const en = {
       rawTextPlaceholder: "Example: John Doe, Male, Class 1A, Parent: Robert Doe, Phone: 555-1234...",
       startExtraction: "Start Extraction"
     }
+  },
+  teachers: {
+    title: "Teachers",
+    info: "Info",
+    subjects: "Subjects",
+    classes: "Classes",
+    phone: "Phone",
+    address: "Address",
+    paidStatus: "Paid Status",
+    activation: "Activation",
+    actions: "Actions",
+    allClasses: "All Classes",
+    bulkEnroll: "AI Bulk Enroll",
+    paid: "Paid",
+    unpaid: "Unpaid",
+    activated: "Activated",
+    nonActivated: "Non-activated",
+    noSubjects: "No subjects",
+    noClasses: "No classes",
+    notProvided: "Not provided",
+    outOfTeachers: "out of {count} teachers"
+  },
+  staff: {
+    title: "Staff",
+    info: "Info",
+    role: "Role",
+    phone: "Phone",
+    salary: "Salary",
+    paidStatus: "Paid Status",
+    actions: "Actions",
+    paid: "Paid",
+    unpaid: "Unpaid",
+    notProvided: "Not provided",
+    outOfStaff: "out of {count} staff"
   },
   parents: {
     title: "All Parents",
@@ -635,9 +701,18 @@ export const en = {
       DELETE: "Delete",
       CREATE_ASSIGNMENT: "Create Assignment",
       ENROLL_FAMILY: "Enroll Family",
+      CREATE_STUDENT: "Create Student",
       UPDATE_STUDENT: "Update Student",
+      DELETE_STUDENT: "Delete Student",
       CREATE_TEACHER: "Create Teacher",
       UPDATE_TEACHER: "Update Teacher",
+      DELETE_TEACHER: "Delete Teacher",
+      CREATE_STAFF: "Create Staff",
+      UPDATE_STAFF: "Update Staff",
+      DELETE_STAFF: "Delete Staff",
+      APPROVE_PARENT_REGISTRATION: "Approve Parent",
+      REJECT_PARENT_REGISTRATION: "Reject Parent",
+      RECEIVE_TUITION: "Receive Tuition",
       EDIT_EXPENSE: "Edit Expense",
       GENERAL_INCOME: "General Income",
       CREATE_INCOME: "Create Income",
@@ -656,6 +731,19 @@ export const en = {
       DELETE_NOTICE: "Delete Notice",
       GENERAL_EXPENSE: "General Expense"
     },
+    filters: {
+      title: "Audit Trail Filters",
+      performedBy: "Performed By",
+      usernameOrRole: "Username, Email or Role...",
+      actionType: "Action Type",
+      allActions: "All Actions",
+      logTimeRange: "Log Time Range",
+      from: "From",
+      to: "To",
+      apply: "Apply Filters",
+      clear: "Clear All Filters"
+    },
+    filtersActive: "Filters Active",
     descriptions: {
       recordedPayment: "Recorded payment of {amount} for {name} ({period})",
       recoveredPayment: "Recovered {amount} for {name} ({period})",

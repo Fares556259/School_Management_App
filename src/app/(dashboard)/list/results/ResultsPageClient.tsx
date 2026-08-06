@@ -5,7 +5,7 @@ import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
 import { getGradeSheet, createGradeSheet } from "../../admin/grades/actions";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, Upload, Pencil, Eye, Loader2, UploadCloud, Smartphone } from "lucide-react";
+import { X, Sparkles, Upload, Pencil, Eye, Loader2, UploadCloud, Smartphone, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { initializeClassSheets } from "../../admin/grades/initializeAction";
 import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
@@ -54,11 +54,30 @@ export default function ResultsPageClient({
   const [selectedTerm, setSelectedTerm] = useState<string>("1");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [initializingCardId, setInitializingCardId] = useState<string | null>(null);
+
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      window.open(url, '_blank');
+    }
+  };
 
   const handleCardDrop = async (e: React.DragEvent, item: any, isPlaceholder: boolean) => {
     e.preventDefault();
@@ -471,10 +490,11 @@ export default function ResultsPageClient({
                    </button>
                    <button 
                      onClick={(e) => {
-                       e.stopPropagation();
-                       setPreviewUrl(sheet.proofUrl);
-                       setIsPreviewOpen(true);
-                     }}
+                        e.stopPropagation();
+                        setPreviewUrl(sheet.proofUrl);
+                        setActivePreviewIndex(0);
+                        setIsPreviewOpen(true);
+                      }}
                      className={`w-9 h-9 rounded-[6px] flex items-center justify-center transition-all border ${
                        sheet.proofUrl?.startsWith('http') 
                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
@@ -491,53 +511,104 @@ export default function ResultsPageClient({
         })}
       </div>
 
-      {/* ─── PREVIEW MODAL ─── */}
+      {/* ─── FULLSCREEN PREVIEW MODAL (LIGHTBOX) ─── */}
       <AnimatePresence>
-        {isPreviewOpen && (
+        {isPreviewOpen && previewUrl && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex flex-col"
+            className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center"
+            onClick={() => setIsPreviewOpen(false)}
           >
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <h3 className="text-white font-semibold tracking-tight">Document Preview</h3>
-              <button 
-                onClick={() => setIsPreviewOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-full text-white transition-colors"
-                title="Close Preview"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-12 flex items-center justify-center relative">
-              {previewUrl && previewUrl.startsWith("http") ? (
-                previewUrl.toLowerCase().split('?')[0].endsWith('.pdf') || previewUrl.includes("/raw/upload/") ? (
-                  <iframe src={previewUrl} className="w-full h-full rounded-2xl border border-white/10 bg-white shadow-2xl" title="Quick Proof PDF" />
-                ) : (
-                  <Image 
-                    src={previewUrl} 
-                    alt="Document Preview" 
-                    fill
-                    className="object-contain rounded-xl shadow-2xl shadow-black p-4"
-                  />
-                )
-              ) : (
-                <div className="bg-white/5 p-12 rounded-[20px] border border-white/10 flex flex-col items-center gap-6 text-center max-w-md">
-                   <div className="text-5xl opacity-50">📭</div>
-                   <div>
-                      <h3 className="text-lg font-semibold text-white">No Proof Available</h3>
-                      <p className="text-sm text-white/40 mt-2">The original grade sheet document hasn&apos;t been uploaded yet.</p>
-                   </div>
-                   <button 
-                     onClick={() => setIsPreviewOpen(false)}
-                     className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[12px] font-medium transition-all"
-                   >
-                     Close
-                   </button>
-                </div>
-              )}
-            </div>
+            {(() => {
+              const urls = previewUrl.split(",").filter(Boolean);
+              if (urls.length === 0) return null;
+              
+              const currentUrl = urls[activePreviewIndex]!;
+              const isPdf = currentUrl.toLowerCase().split('?')[0].endsWith('.pdf') || currentUrl.includes("/raw/upload/");
+              
+              return (
+                <>
+                  {/* Top Actions Bar */}
+                  <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-white/60 font-medium text-sm bg-black/40 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                      {activePreviewIndex + 1} / {urls.length}
+                    </div>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(currentUrl, `Proof-${activePreviewIndex + 1}`);
+                        }}
+                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm transition-all"
+                        title="Download Proof"
+                      >
+                        <Download size={20} />
+                      </button>
+                      <button 
+                        onClick={() => setIsPreviewOpen(false)}
+                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm transition-all"
+                        title="Close Preview"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Navigation Arrows */}
+                  {urls.length > 1 && (
+                    <>
+                      {activePreviewIndex > 0 && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActivePreviewIndex(activePreviewIndex - 1); }}
+                          className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md transition-all z-10"
+                        >
+                          <ChevronLeft size={28} />
+                        </button>
+                      )}
+                      {activePreviewIndex < urls.length - 1 && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActivePreviewIndex(activePreviewIndex + 1); }}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md transition-all z-10"
+                        >
+                          <ChevronRight size={28} />
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Content */}
+                  <motion.div 
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="w-full h-full max-w-6xl max-h-screen p-12 md:p-20 flex items-center justify-center"
+                  >
+                    {isPdf ? (
+                      <iframe 
+                        src={currentUrl} 
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full h-full bg-white rounded-xl shadow-2xl" 
+                        title="Fullscreen Proof PDF" 
+                      />
+                    ) : (
+                      <img 
+                        src={currentUrl} 
+                        alt={`Proof ${activePreviewIndex + 1}`} 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          objectFit: "contain"
+                        }}
+                        className="rounded-lg shadow-2xl"
+                      />
+                    )}
+                  </motion.div>
+                </>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>

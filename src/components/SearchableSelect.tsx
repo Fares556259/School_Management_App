@@ -79,8 +79,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     setSearchTerm(val);
     setIsOpen(true);
     
-    // Auto-clear selectedValue if input is cleared
-    if (val === "") {
+    if (allowCreate) {
+      setSelectedValue(val.trim().toUpperCase());
+    } else if (val === "") {
       setSelectedValue("");
     }
   };
@@ -97,7 +98,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
           placeholder={placeholder}
           autoComplete="off"
           className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all pr-10 shadow-sm"
-          required={required && !selectedValue}
+          required={required && !selectedValue && !(allowCreate && searchTerm)}
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
           {searchTerm && isOpen ? (
@@ -122,7 +123,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
       </div>
 
       {/* Hidden field for form data */}
-      <input type="hidden" name={name} value={selectedValue} />
+      <input type="hidden" name={name} value={selectedValue || (allowCreate ? searchTerm.trim().toUpperCase() : "")} />
 
       {/* Dropdown Menu */}
       {isOpen && (

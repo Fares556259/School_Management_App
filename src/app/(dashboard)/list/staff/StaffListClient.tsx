@@ -13,6 +13,8 @@ import Link from "next/link";
 import { MONTHS } from "@/lib/dateUtils";
 import { Staff, Payment } from "@prisma/client";
 
+import { useLanguage } from "@/lib/translations/LanguageContext";
+
 interface Props {
   initialData: any[];
   columns: any[];
@@ -32,6 +34,19 @@ export default function StaffListClient({
   selectedMonthKey,
   paidThisMonth,
 }: Props) {
+  const [isSearchPending, setIsSearchPending] = useState(false);
+  const { t } = useLanguage();
+
+  const translatedColumns = columns.map((c: any) => ({
+    ...c,
+    header: c.accessor === "info" ? t.staff.info
+          : c.accessor === "role" ? t.staff.role
+          : c.accessor === "phone" ? t.staff.phone
+          : c.accessor === "salary" ? t.staff.salary
+          : c.accessor === "isPaid" ? t.staff.paidStatus
+          : c.accessor === "action" ? t.staff.actions
+          : c.header
+  }));
 
   const renderRow = (
     item: Staff & { payments: Payment[] }
@@ -62,16 +77,16 @@ export default function StaffListClient({
           </div>
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.role}</td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">Not provided</span>}</td>
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">{t.staff.notProvided}</span>}</td>
         <td className="hidden md:table-cell py-4 px-6 font-semibold text-[14px] text-[#181d26]">{item.salary} DT</td>
         <td className="py-4 px-6">
           {isPaidThisMonth ? (
-            <span className="px-2 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium">
-              Paid
+            <span className="px-2.5 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium whitespace-nowrap">
+              {t.staff.paid}
             </span>
           ) : (
-            <span className="px-2 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium">
-              Unpaid
+            <span className="px-2.5 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium whitespace-nowrap">
+              {t.staff.unpaid}
             </span>
           )}
         </td>
@@ -114,9 +129,9 @@ export default function StaffListClient({
 
       {/* 2. TOP ACTIONS HEADER */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">Staff</h1>
+        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.staff.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch />
+          <TableSearch onPending={setIsSearchPending} />
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
@@ -128,7 +143,9 @@ export default function StaffListClient({
       </div>
 
       {/* 3. TABLE & PAGINATION */}
-      <Table columns={columns} renderRow={renderRow} data={initialData} />
+      <div className={`transition-opacity duration-200 ${isSearchPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+        <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+      </div>
       <Pagination page={page} count={count} />
     </>
   );

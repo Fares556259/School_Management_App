@@ -38,9 +38,11 @@ export async function getTimetableByClass(classId: number, isDraft: boolean = fa
 export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?: number, day?: Day, slotNumber?: number, isDraft?: boolean }) {
   try {
     if (data.id === -1) {
+      const schoolId = await getSchoolId();
       // CREATE NEW SLOT
       const created = await prisma.timetableSlot.create({
         data: {
+          schoolId,
           day: data.day!,
           slotNumber: data.slotNumber!,
           startTime: data.startTime || "08:00 AM",
@@ -205,6 +207,8 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
       return { success: false, error: "No slots generated to save." };
     }
 
+    const schoolId = await getSchoolId();
+
     await prisma.$transaction(async (tx) => {
       await tx.timetableSlot.deleteMany({
         where: { classId, isDraft }
@@ -222,6 +226,7 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
             subjectId: subId,
             teacherId: slot.teacherId ? String(slot.teacherId) : null,
             classId: classId,
+            schoolId: schoolId,
             isDraft: isDraft,
           };
         })

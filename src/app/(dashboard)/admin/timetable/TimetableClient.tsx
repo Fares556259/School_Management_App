@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye, CalendarDays, ChevronDown } from "lucide-react";
+import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye, CalendarDays, ChevronDown, AlertTriangle } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "./components/ScheduleGrid";
 import AiScheduleModal from "./components/AiScheduleModal";
@@ -43,6 +43,7 @@ const TimetablePage = ({
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isAiLocked, setIsAiLocked] = useState(false);
+  const [showEditWarningModal, setShowEditWarningModal] = useState(false);
 
   // Draft States
   const [isDraftView, setIsDraftView] = useState(forceDraft);
@@ -174,7 +175,7 @@ const TimetablePage = ({
                   <div className="flex items-center gap-3">
                     {/* EDIT TIMETABLE BUTTON */}
                     <button 
-                      onClick={() => setIsEditMode(true)}
+                      onClick={() => setShowEditWarningModal(true)}
                       className="px-4 py-2.5 rounded-[6px] bg-[#ffffff] border border-[#dddddd] font-medium text-[13px] active:scale-[0.98] text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                     >
                       <Edit2 size={14} className="text-[#41454d]" /> {t.timetable.editSchedule}
@@ -197,7 +198,7 @@ const TimetablePage = ({
                 ) : (
                   /* STANDALONE EDIT SCHEDULE BUTTON */
                   <button 
-                    onClick={() => setIsEditMode(true)}
+                    onClick={() => setShowEditWarningModal(true)}
                     className="px-4 py-2.5 rounded-[6px] bg-[#ffffff] border border-[#dddddd] font-medium text-[13px] active:scale-[0.98] text-[#181d26] hover:bg-[#f8fafc] transition-all flex items-center gap-2 shadow-sm"
                   >
                     <Edit2 size={14} className="text-[#41454d]" /> {t.timetable.editSchedule}
@@ -281,6 +282,53 @@ const TimetablePage = ({
           generateAction={generateTimetableFromPrompt}
           saveAction={(slots) => bulkUpdateTimetableSlots(selectedClass.id, slots, true)}
         />
+      )}
+
+      {/* WARNING MODAL */}
+      {showEditWarningModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+            <div className="p-6">
+              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">{t.timetable.liveEditWarning?.title}</h3>
+              <p className="text-slate-600 mb-6 leading-relaxed">
+                {t.timetable.liveEditWarning?.timetableDesc}
+                <br /><br />
+                {t.timetable.liveEditWarning?.aiRecommend}
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    router.push('/admin/timetable/ai' + (selectedClass?.id ? `?classId=${selectedClass.id}` : ''));
+                  }}
+                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={18} />
+                  {t.timetable.liveEditWarning?.goToAi}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    setIsEditMode(true);
+                  }}
+                  className="w-full py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-all"
+                >
+                  {t.timetable.liveEditWarning?.continueEdit}
+                </button>
+                <button
+                  onClick={() => setShowEditWarningModal(false)}
+                  className="w-full py-2 px-4 text-slate-500 hover:text-slate-700 font-medium transition-all"
+                >
+                  {t.timetable.liveEditWarning?.cancel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

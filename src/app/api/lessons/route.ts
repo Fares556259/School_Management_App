@@ -25,72 +25,73 @@ export async function GET(request: Request) {
     const schoolId = await getSchoolId();
     const role = await getRole();
     const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
     const { searchParams } = new URL(request.url);
     
     let teacherId = searchParams.get("teacherId");
     const classId = searchParams.get("classId");
+    const skipSync = searchParams.get("skipSync");
 
     // If teacher role, force filter by their own ID unless specified
     if (role === "teacher" && userId) {
       teacherId = userId;
     }
 
-    // --- AUTO SYNC TIMETABLE TO LESSONS ---
-    // This allows us to use TimetableSlots as "Lessons" without breaking DB foreign keys
-    const slots = await prisma.timetableSlot.findMany({
-      where: {
-        schoolId,
-        isDraft: false,
-        subjectId: { not: null },
-        teacherId: { not: null }
-      },
-      include: { subject: true, class: true }
-    });
+    // --- AUTO SYNC TIMETABLE TO LESSONS (only when not skipped) ---
+    if (!skipSync) {
+      const [slots, existingLessons] = await Promise.all([
+        prisma.timetableSlot.findMany({
+          where: {
+            schoolId,
+            isDraft: false,
+            subjectId: { not: null },
+            teacherId: { not: null }
+          },
+          include: { subject: true, class: true }
+        }),
+        prisma.lesson.findMany({
+          where: { schoolId },
+          select: { subjectId: true, classId: true, teacherId: true }
+        })
+      ]);
 
-    // Deduplicate slots to form unique courses
-    const uniqueCourses = new Map<string, any>();
-    for (const slot of slots) {
-       const key = `${slot.subjectId}-${slot.classId}-${slot.teacherId}`;
-       if (!uniqueCourses.has(key)) {
-         uniqueCourses.set(key, slot);
-       }
-    }
+      // Build a set of existing lesson keys for O(1) lookup
+      const existingKeys = new Set(
+        existingLessons.map(l => `${l.subjectId}-${l.classId}-${l.teacherId}`)
+      );
 
-    const existingLessons = await prisma.lesson.findMany({ where: { schoolId } });
-    const validLessonIds: number[] = [];
+      // Deduplicate slots and find ones that need new lessons
+      const seen = new Set<string>();
+      const newLessons: any[] = [];
 
-    for (const slot of Array.from(uniqueCourses.values())) {
-       // Look for any existing lesson for this course combination (ignore exact day/time to prevent duplicates)
-       const exists = existingLessons.find(l => 
-          l.subjectId === slot.subjectId && 
-          l.classId === slot.classId && 
-          l.teacherId === slot.teacherId
-       );
+      for (const slot of slots) {
+        const key = `${slot.subjectId}-${slot.classId}-${slot.teacherId}`;
+        if (!seen.has(key) && !existingKeys.has(key)) {
+          seen.add(key);
+          newLessons.push({
+            name: `${slot.subject!.name} (${slot.class.name})`,
+            day: slot.day,
+            startTime: parseTimeStr(slot.startTime),
+            endTime: parseTimeStr(slot.endTime),
+            subjectId: slot.subjectId!,
+            classId: slot.classId,
+            teacherId: slot.teacherId!,
+            schoolId
+          });
+        } else {
+          seen.add(key);
+        }
+      }
 
-       if (!exists) {
-         const newLesson = await prisma.lesson.create({
-            data: {
-              name: `${slot.subject!.name} (${slot.class.name})`,
-              day: slot.day,
-              startTime: parseTimeStr(slot.startTime),
-              endTime: parseTimeStr(slot.endTime),
-              subjectId: slot.subjectId!,
-              classId: slot.classId,
-              teacherId: slot.teacherId!,
-              schoolId
-            }
-         });
-         existingLessons.push(newLesson);
-         validLessonIds.push(newLesson.id);
-       } else {
-         validLessonIds.push(exists.id);
-       }
+      // Batch create all new lessons at once
+      if (newLessons.length > 0) {
+        await prisma.lesson.createMany({ data: newLessons, skipDuplicates: true });
+      }
     }
     // --------------------------------------
 
-    // Fetch lessons: include both synced ones and any existing lessons in the school
+    // Fetch all lessons for this school
     const lessons = await prisma.lesson.findMany({
       where: {
         schoolId,

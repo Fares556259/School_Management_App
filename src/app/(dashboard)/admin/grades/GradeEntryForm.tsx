@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { User, CheckCircle2, AlertCircle, Save, FileText } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface Subject {
   id: number;
@@ -64,6 +65,7 @@ export default function GradeEntryForm({
   const [isPending, startTransition] = useTransition();
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [isDirty, setIsDirty] = useState(false);
+  const { t } = useLanguage();
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
@@ -160,7 +162,7 @@ export default function GradeEntryForm({
         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
           <span className="text-2xl opacity-50">👥</span>
         </div>
-        <p className="text-slate-500 font-bold">No students found in this class.</p>
+        <p className="text-slate-500 font-bold">{t.gradeEntry.noStudents}</p>
       </div>
     );
   }
@@ -170,7 +172,7 @@ export default function GradeEntryForm({
       {/* Student List Sidebar */}
       <div className="w-full lg:w-72 bg-white rounded-[24px] shadow-sm border border-slate-100 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-slate-50 bg-slate-50/50">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Students</h3>
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.gradeEntry.students}</h3>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {students.map((student) => (
@@ -192,7 +194,7 @@ export default function GradeEntryForm({
                 <div className="flex flex-col items-start">
                     <span className="text-sm font-bold truncate max-w-[120px]">{student.name}</span>
                     <span className={`text-[10px] ${selectedStudentId === student.id ? "text-indigo-100" : "text-slate-400"}`}>
-                        Avg: {calculateAverages(student.id)}
+                        {t.gradeEntry.avg}: {calculateAverages(student.id)}
                     </span>
                 </div>
               </div>
@@ -214,8 +216,8 @@ export default function GradeEntryForm({
                 <div>
                   <h3 className="text-lg font-black text-slate-800">{selectedStudent.name} {selectedStudent.surname}</h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md uppercase tracking-widest">طالب</span>
-                    <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-widest">الثلاثي {term}</span>
+                    <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md uppercase tracking-widest">{t.gradeEntry.studentRole}</span>
+                    <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-widest">{t.gradeEntry.term} {term}</span>
                   </div>
                 </div>
               </div>
@@ -226,7 +228,7 @@ export default function GradeEntryForm({
                   className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-50 transition-all"
                 >
                   <FileText size={14} />
-                  عرض بطاقة الأعداد
+                  {t.gradeEntry.viewReportCard}
                 </Link>
                 {(isDirty || saveStatus !== "idle") && (
                   <button
@@ -249,7 +251,7 @@ export default function GradeEntryForm({
                     ) : (
                       <Save size={14} />
                     )}
-                    {saveStatus === "saving" ? "جاري الحفظ..." : saveStatus === "success" ? "تم الحفظ!" : saveStatus === "error" ? "خطأ" : "حفظ الأعداد"}
+                    {saveStatus === "saving" ? t.gradeEntry.saving : saveStatus === "success" ? t.gradeEntry.saved : saveStatus === "error" ? t.gradeEntry.error : t.gradeEntry.saveGrades}
                   </button>
                 )}
               </div>
@@ -262,10 +264,10 @@ export default function GradeEntryForm({
                     <div className="flex items-center gap-3 px-2">
                         <div className="h-4 w-1 bg-indigo-500 rounded-full" />
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                          {domain === "Arabic Language Domain" ? "مجال اللغة العربية" :
-                           domain === "Science & Technology Domain" ? "مجال العلوم والتكنولوجيا" :
-                           domain === "Discovery Domain" ? "مجال التنشئة" :
-                           domain === "Foreign Languages Domain" ? "مجال اللغات الأجنبية" : 
+                          {domain === "Arabic Language Domain" ? t.subjectsPage.domains?.["Languages"] || domain :
+                           domain === "Science & Technology Domain" ? t.subjectsPage.domains?.["Sciences"] || domain :
+                           domain === "Discovery Domain" ? t.subjectsPage.domains?.["Arts & Technology"] || domain :
+                           domain === "Foreign Languages Domain" ? t.subjectsPage.domains?.["Languages"] || domain : 
                            domain}
                         </h4>
                     </div>
@@ -305,10 +307,10 @@ export default function GradeEntryForm({
             
             <div className="p-4 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Term {term} Overview for {selectedStudent.name}
+                    {t.gradeEntry.termOverviewFor.replace("{term}", String(term)).replace("{name}", selectedStudent.name)}
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500">General Average:</span>
+                    <span className="text-xs font-bold text-slate-500">{t.gradeEntry.generalAverage}</span>
                     <span className="text-sm font-black text-slate-800 bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">
                         {calculateAverages(selectedStudent.id)}
                     </span>
@@ -317,7 +319,7 @@ export default function GradeEntryForm({
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-slate-400 font-bold">
-            Select a student to enter grades
+            {t.gradeEntry.selectStudent}
           </div>
         )}
       </div>

@@ -21,7 +21,6 @@ const DAY_MAP: Record<number, string> = {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const schoolId = await getSchoolId();
-  console.log(`[Attendance API] Fetching for School: ${schoolId}`);
   const classId = searchParams.get("classId");
   const dateStr = searchParams.get("date");
   const lessonIdParam = searchParams.get("lessonId");
@@ -30,19 +29,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing classId or date" }, { status: 400 });
   }
 
+  const parsedClassId = parseInt(classId);
   const [year, month, day] = dateStr.split("-").map(Number);
   const dayStart = new Date(year, month - 1, day);
   const dayEnd = new Date(year, month - 1, day + 1);
 
-  // Fetch today's Timetable slots for this class
   const dayNum = dayStart.getDay();
   const dayEnum = DAY_MAP[dayNum] || "MONDAY";
 
-  // Use TimetableSlots for the dropdowns as they represent the recurring actual schedule!
+  const monthStart = new Date(dayStart.getFullYear(), dayStart.getMonth(), 1);
+  const monthEnd = new Date(dayStart.getFullYear(), dayStart.getMonth() + 1, 0);
+
+  // 1. Fetch slots first to quickly check if there are classes today
   const slots = await prisma.timetableSlot.findMany({
     where: {
       schoolId,
-      classId: parseInt(classId),
+      classId: parsedClassId,
       day: dayEnum as any,
       isDraft: false,
     },
@@ -50,18 +52,101 @@ export async function GET(request: NextRequest) {
     orderBy: { slotNumber: "asc" },
   });
 
-  // Resolve real Lesson IDs for the UI slots if they exist
-  const lessonIds = await prisma.lesson.findMany({
-    where: { schoolId, classId: parseInt(classId), day: dayEnum as any },
-    select: { id: true, subjectId: true }
-  });
+  // If no slots exist for this day, return instantly without running heavy queries
+  if (slots.length === 0) {
+    return NextResponse.json({
+      students: [],
+      lessons: [],
+      assignments: [],
+      resources: [],
+    });
+  }
 
-  const lessonsForUI = slots.map(s => {
-    const realLesson = lessonIds.find(l => l.subjectId === s.subjectId);
+  // 2. Parallelize remaining database queries
+  const [lessonIds, students, monthlyAbsences] = await Promise.all([
+    prisma.lesson.findMany({
+      where: { schoolId, classId: parsedClassId, day: dayEnum as any },
+      select: { id: true, subjectId: true, name: true },
+    }),
+    prisma.student.findMany({
+      where: { schoolId, classId: parsedClassId },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        img: true,
+        parent: {
+          select: {
+            name: true,
+            surname: true,
+            phone: true,
+          },
+        },
+        attendance: {
+          where: {
+            date: { gte: dayStart, lt: dayEnd },
+          },
+          select: { id: true, status: true, note: true, lessonId: true },
+          orderBy: { id: "desc" },
+        },
+      },
+      orderBy: [{ name: "asc" }],
+    }),
+    prisma.attendance.findMany({
+      where: {
+        schoolId,
+        date: { gte: monthStart, lte: monthEnd },
+        status: "ABSENT",
+        student: { classId: parsedClassId },
+      },
+      include: {
+        lesson: {
+          select: {
+            name: true,
+            startTime: true,
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+    }),
+  ]);
+
+  const usedLegacyLessonIds = new Set<number>();
+
+  const lessonsForUI = slots.map((s) => {
+    const expectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
+    let realLesson = lessonIds.find((l) => l.subjectId === s.subjectId && l.name === expectedName);
+    
+    if (!realLesson) {
+      const legacyLesson = lessonIds.find((l) => l.subjectId === s.subjectId && l.name === (s.subject?.name || "Session"));
+      if (legacyLesson && !usedLegacyLessonIds.has(legacyLesson.id)) {
+        realLesson = legacyLesson;
+        usedLegacyLessonIds.add(legacyLesson.id);
+      }
+    }
+    if (!realLesson) {
+      const anyLesson = lessonIds.find((l) => l.subjectId === s.subjectId && !usedLegacyLessonIds.has(l.id));
+      if (anyLesson) {
+        realLesson = anyLesson;
+        usedLegacyLessonIds.add(anyLesson.id);
+      }
+    }
+
+    
+    let timeStr = "00:00:00";
+    if (s.startTime) {
+      try {
+        const { hours, minutes } = parseTime(s.startTime);
+        timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+      } catch (e) {
+        console.error("Failed to parse startTime", s.startTime);
+      }
+    }
+
     return {
       id: `slot-${s.id}`,
       name: s.subject?.name || "Free Period",
-      startTime: `${dateStr}T${s.startTime}:00`,
+      startTime: `${dateStr}T${timeStr}`,
       subject: s.subject,
       slotId: s.id,
       realLessonId: realLesson?.id || null,
@@ -70,16 +155,38 @@ export async function GET(request: NextRequest) {
 
   let targetLessonId: number | null = null;
   const isAll = !lessonIdParam || lessonIdParam === "ALL";
-  
+
   if (!isAll) {
     if (lessonIdParam!.startsWith("slot-")) {
       const slotId = parseInt(lessonIdParam!.replace("slot-", ""));
-      const targetSlot = slots.find(s => s.id === slotId);
+      const targetSlot = slots.find((s) => s.id === slotId);
       if (targetSlot?.subjectId) {
-          const lesson = await prisma.lesson.findFirst({
-            where: { schoolId, classId: parseInt(classId), subjectId: targetSlot.subjectId, day: dayEnum as any }
-          });
-          if (lesson) targetLessonId = lesson.id;
+        // Re-run the deterministic matching to find the right lesson for THIS slot
+        const usedIds = new Set<number>();
+        for (const s of slots) {
+          const expectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
+          let realLesson = lessonIds.find((l) => l.subjectId === s.subjectId && l.name === expectedName);
+          
+          if (!realLesson) {
+            const legacyLesson = lessonIds.find((l) => l.subjectId === s.subjectId && l.name === (s.subject?.name || "Session"));
+            if (legacyLesson && !usedIds.has(legacyLesson.id)) {
+              realLesson = legacyLesson;
+              usedIds.add(legacyLesson.id);
+            }
+          }
+          if (!realLesson) {
+            const anyLesson = lessonIds.find((l) => l.subjectId === s.subjectId && !usedIds.has(l.id));
+            if (anyLesson) {
+              realLesson = anyLesson;
+              usedIds.add(anyLesson.id);
+            }
+          }
+
+          if (s.id === slotId) {
+            if (realLesson) targetLessonId = realLesson.id;
+            break; // Found the target slot's lesson
+          }
+        }
       }
     } else {
       const parsedId = parseInt(lessonIdParam!);
@@ -90,66 +197,41 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
-  
-  const students = await prisma.student.findMany({
-    where: { schoolId, classId: parseInt(classId) },
-    select: {
-      id: true,
-      name: true,
-      surname: true,
-      img: true,
-      parent: {
-        select: {
-          name: true,
-          surname: true,
-          phone: true,
-        }
-      },
-      attendance: {
-        where: {
-          date: { gte: dayStart, lt: dayEnd },
-          // If not 'isAll', filter by specific lesson. Otherwise, get all for the day.
-          lessonId: isAll ? undefined : targetLessonId,
-        },
-        select: { id: true, status: true, note: true, lessonId: true },
-        orderBy: { id: "desc" },
-      },
-    },
-    orderBy: [{ name: "asc" }],
-  });
 
-  // If 'isAll', we aggregate the attendance into a single representative status for the day
-  // Prioritizing ABSENT > LATE > PRESENT
+  // Process student attendance data in-memory
   const aggregatedStudents = students.map((s) => {
+    const relevantAttendance = isAll
+      ? s.attendance
+      : s.attendance.filter((a) => (targetLessonId ? a.lessonId === targetLessonId : false));
+
     if (isAll) {
       let finalStatus: string | null = null;
       let finalId: any = -1;
       let finalNote: string | null = null;
 
-      if (s.attendance.length > 0) {
-        const statuses = s.attendance.map(a => a.status);
+      if (relevantAttendance.length > 0) {
+        const statuses = relevantAttendance.map((a) => a.status);
         if (statuses.includes("ABSENT")) finalStatus = "ABSENT";
         else if (statuses.includes("LATE")) finalStatus = "LATE";
         else finalStatus = "PRESENT";
-        
-        const mainRecord = s.attendance.find(a => a.status === finalStatus) || s.attendance[0];
+
+        const mainRecord = relevantAttendance.find((a) => a.status === finalStatus) || relevantAttendance[0];
         finalId = mainRecord.id;
         finalNote = mainRecord.note;
       } else {
-        finalStatus = "PRESENT"; // Default to present for the overview if no records
+        finalStatus = "PRESENT"; // Default to present
       }
 
       return {
         ...s,
-        attendance: [{ id: finalId, status: finalStatus, note: finalNote }]
+        attendance: [{ id: finalId, status: finalStatus, note: finalNote }],
       };
     }
-    
-    // If specific lesson, handle virtual presence for past slots
-    if (s.attendance.length === 0 && !isAll) {
+
+    if (relevantAttendance.length === 0) {
       const slotId = lessonIdParam!.startsWith("slot-") ? parseInt(lessonIdParam!.replace("slot-", "")) : null;
-      const slot = slots.find(sl => sl.id === slotId);
-      
+      const slot = slots.find((sl) => sl.id === slotId);
+
       if (slot?.endTime) {
         try {
           const { hours, minutes } = parseTime(slot.endTime);
@@ -165,13 +247,17 @@ export async function GET(request: NextRequest) {
           console.error("[Time Parse Error Web]", e);
         }
       }
-      
+
       return {
         ...s,
-        attendance: [{ id: -1, status: "PRESENT", note: null }]
+        attendance: [{ id: -1, status: "PRESENT", note: null }],
       };
     }
-    return s;
+
+    return {
+      ...s,
+      attendance: relevantAttendance,
+    };
   });
 
   // Fetch Assignments and Resources if we have a target lesson
@@ -185,54 +271,31 @@ export async function GET(request: NextRequest) {
     ]);
   }
 
-  // Calculate monthly stats for insights
-  const monthStart = new Date(dayStart.getFullYear(), dayStart.getMonth(), 1);
-  const monthEnd = new Date(dayStart.getFullYear(), dayStart.getMonth() + 1, 0);
-
-  // Fetch all absences for this class in the current month to build real history
-  const monthlyAbsences = await prisma.attendance.findMany({
-    where: {
-      schoolId,
-      date: { gte: monthStart, lte: monthEnd },
-      status: 'ABSENT',
-      student: { classId: parseInt(classId) }
-    },
-    include: {
-      lesson: {
-        select: { 
-          name: true,
-          startTime: true
-        }
-      }
-    },
-    orderBy: { date: 'desc' }
-  });
-
-  // Group by studentId
+  // Group monthly absences by studentId
   const historyMap: Record<string, any[]> = {};
   const countMap: Record<string, number> = {};
 
-  monthlyAbsences.forEach(a => {
+  monthlyAbsences.forEach((a) => {
     if (!historyMap[a.studentId]) historyMap[a.studentId] = [];
     historyMap[a.studentId].push({
       date: a.date,
       lessonName: a.lesson?.name || "Session",
-      startTime: a.lesson?.startTime
+      startTime: a.lesson?.startTime,
     });
     countMap[a.studentId] = (countMap[a.studentId] || 0) + 1;
   });
 
-  const finalStudents = aggregatedStudents.map(s => ({
+  const finalStudents = aggregatedStudents.map((s) => ({
     ...s,
     monthlyAbsences: countMap[s.id] || 0,
-    absenceHistory: historyMap[s.id] || []
+    absenceHistory: historyMap[s.id] || [],
   }));
 
-  return NextResponse.json({ 
-    students: finalStudents, 
+  return NextResponse.json({
+    students: finalStudents,
     lessons: lessonsForUI,
     assignments,
-    resources
+    resources,
   });
 }
 
@@ -258,26 +321,44 @@ export async function POST(request: NextRequest) {
     if (lessonId && lessonId !== "ALL") {
       if (lessonId.startsWith("slot-")) {
         const slotId = parseInt(lessonId.replace("slot-", ""));
-        const targetSlot = await prisma.timetableSlot.findFirst({ where: { id: slotId, schoolId }, include: { subject: true } });
+        const targetSlot = await prisma.timetableSlot.findFirst({
+          where: { id: slotId, schoolId },
+          include: { subject: true },
+        });
         if (targetSlot && targetSlot.subjectId) {
+          const lessonName = `${targetSlot.subject?.name || "Session"} - ${targetSlot.startTime}`;
           let lesson = await prisma.lesson.findFirst({
-            where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
+            where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day, name: lessonName },
           });
+
           if (!lesson) {
-            // Need a teacherId fallback, find subject teacher or use a default
-            const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
-            lesson = await prisma.lesson.create({
-              data: {
-                name: targetSlot.subject?.name || "Session",
-                day: targetSlot.day,
-                startTime: dayStart,
-                endTime: dayStart,
-                subjectId: targetSlot.subjectId,
-                classId: targetSlot.classId,
-                teacherId: targetSlot.teacherId || anyTeacher!.id,
-                schoolId,
-              }
+            // Fallback: check if there's an old lesson without the time suffix
+            const oldLesson = await prisma.lesson.findFirst({
+              where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
             });
+            
+            if (oldLesson && oldLesson.name === (targetSlot.subject?.name || "Session")) {
+               // Update it to have the time suffix so we don't lose old attendance history
+               lesson = await prisma.lesson.update({
+                 where: { id: oldLesson.id },
+                 data: { name: lessonName }
+               });
+            } else {
+               // Completely new slot
+               const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
+               lesson = await prisma.lesson.create({
+                 data: {
+                   name: lessonName,
+                   day: targetSlot.day,
+                   startTime: dayStart,
+                   endTime: dayStart,
+                   subjectId: targetSlot.subjectId,
+                   classId: targetSlot.classId,
+                   teacherId: targetSlot.teacherId || anyTeacher!.id,
+                   schoolId,
+                 },
+               });
+            }
           }
           targetLessonId = lesson.id;
         }
@@ -286,42 +367,52 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parallelize operations to avoid timeout and improve speed
-    const ops = records.map(async (r) => {
-      const existing = await prisma.attendance.findFirst({
-        where: {
-          schoolId,
-          studentId: r.studentId,
-          date: dayStart,
-          lessonId: targetLessonId,
-        },
-        select: { id: true }
-      });
-
-      if (existing) {
-        return prisma.attendance.update({
-          where: { id: existing.id },
-          data: { status: r.status as AttendanceStatus, note: r.note ?? null },
-        });
-      } else {
-        return prisma.attendance.create({
-          data: {
-            studentId: r.studentId,
-            date: dayStart,
-            status: r.status as AttendanceStatus,
-            note: r.note ?? null,
-            lessonId: targetLessonId,
-            schoolId,
-          },
-        });
-      }
+    // Optimize DB writes: single findMany + bulk update & createMany
+    const studentIds = records.map((r) => r.studentId);
+    const existingRecords = await prisma.attendance.findMany({
+      where: {
+        schoolId,
+        studentId: { in: studentIds },
+        date: dayStart,
+        lessonId: targetLessonId,
+      },
+      select: { id: true, studentId: true },
     });
 
-    await Promise.all(ops);
+    const existingMap = new Map(existingRecords.map((e) => [e.studentId, e.id]));
+
+    const updates: any[] = [];
+    const creates: any[] = [];
+
+    for (const r of records) {
+      const existingId = existingMap.get(r.studentId);
+      if (existingId) {
+        updates.push(
+          prisma.attendance.update({
+            where: { id: existingId },
+            data: { status: r.status as AttendanceStatus, note: r.note ?? null },
+          })
+        );
+      } else {
+        creates.push({
+          studentId: r.studentId,
+          date: dayStart,
+          status: r.status as AttendanceStatus,
+          note: r.note ?? null,
+          lessonId: targetLessonId,
+          schoolId,
+        });
+      }
+    }
+
+    await Promise.all([
+      ...updates,
+      creates.length > 0 ? prisma.attendance.createMany({ data: creates }) : Promise.resolve(),
+    ]);
 
     // Trigger notifications asynchronously for ABSENT and LATE
-    records.forEach(r => {
-      if (r.status !== 'PRESENT') {
+    records.forEach((r) => {
+      if (r.status !== "PRESENT") {
         createAttendanceNotification(r.studentId, r.status, dayStart);
       }
     });

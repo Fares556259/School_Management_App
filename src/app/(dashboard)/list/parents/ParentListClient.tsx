@@ -3,6 +3,7 @@
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
+import TableSearch from "@/components/TableSearch";
 import CrudFormModal from "@/components/CrudFormModal";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import Image from "next/image";
@@ -17,6 +18,7 @@ type ParentList = Parent & { students: Student[] };
 
 export default function ParentListClient({ data, columns, role, count, page, relatedData }: any) {
   const router = useRouter();
+  const [isSearchPending, setIsSearchPending] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
 
@@ -50,7 +52,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
           className="w-10 h-10 rounded-full object-cover"
         />
         <div className="flex flex-col">
-          <h3 className="font-semibold">{item.name}</h3>
+          <h3 className="font-semibold">{item.name} {item.surname}</h3>
         </div>
       </td>
       <td className="hidden md:table-cell">
@@ -85,9 +87,10 @@ export default function ParentListClient({ data, columns, role, count, page, rel
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold">{t.parents.title}</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.parents.title}</h1>
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+          <TableSearch onPending={setIsSearchPending} />
           <div className="flex items-center gap-3 self-end">
             {role === "admin" && (
               <>
@@ -108,7 +111,9 @@ export default function ParentListClient({ data, columns, role, count, page, rel
           </div>
         </div>
       </div>
-      <Table columns={translatedColumns} renderRow={renderRow} data={data} />
+      <div className={`transition-opacity duration-200 ${isSearchPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+        <Table columns={translatedColumns} renderRow={renderRow} data={data} />
+      </div>
       <Pagination page={page} count={count} />
 
       <ShareParentLinkModal

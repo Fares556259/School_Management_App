@@ -76,7 +76,7 @@ export default function AuditFilter() {
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
           isActive 
-            ? "bg-indigo-600 text-white ring-4 ring-indigo-50" 
+            ? "bg-[#181d26] text-white ring-2 ring-slate-900/10" 
             : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
         }`}
       >
@@ -89,17 +89,17 @@ export default function AuditFilter() {
         />
         <span>{isActive ? ((t as any).auditLogPage?.filtersActive || "Filters Active") : ((t as any).auditLogPage?.filterLogs || "Filter Logs")}</span>
         {isActive && (
-          <span className="w-5 h-5 bg-white text-indigo-600 rounded-full flex items-center justify-center text-[10px]">
+          <span className="w-5 h-5 bg-white text-[#181d26] rounded-full flex items-center justify-center text-[10px] font-extrabold">
             {[currentFrom, currentTo, currentUser, currentAction].filter(Boolean).length}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Activity size={16} className="text-indigo-600" />
+              <Activity size={16} className="text-slate-700" />
               <h3 className="font-bold text-slate-800 text-sm">{(t as any).auditLogPage?.filters?.title || "Audit Trail Filters"}</h3>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-white rounded-full transition-colors">
@@ -119,9 +119,9 @@ export default function AuditFilter() {
                   placeholder={(t as any).auditLogPage?.filters?.usernameOrRole || "Username or Role..."}
                   value={tempUser}
                   onChange={(e) => setTempUser(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-xl p-2.5 pl-9 focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-300"
+                  className="w-full text-sm border border-slate-200 rounded-xl p-2.5 pl-9 focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] outline-none transition-all placeholder:text-slate-300"
                 />
-                <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+                <Search size={14} className="absolute left-3 top-3.5 text-slate-400" />
               </div>
             </div>
 
@@ -133,7 +133,7 @@ export default function AuditFilter() {
               <select
                 value={tempAction}
                 onChange={(e) => setTempAction(e.target.value)}
-                className="w-full text-sm border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full text-sm border border-slate-200 rounded-xl p-2.5 focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] outline-none transition-all"
               >
                 <option value="">{(t as any).auditLogPage?.filters?.allActions || "All Actions"}</option>
                 {ACTION_TYPES.map(type => (
@@ -156,7 +156,7 @@ export default function AuditFilter() {
                     type="date"
                     value={tempFrom}
                     onChange={(e) => setTempFrom(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    className="text-xs border border-slate-200 rounded-xl p-2.5 focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] outline-none transition-all"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -165,7 +165,7 @@ export default function AuditFilter() {
                     type="date"
                     value={tempTo}
                     onChange={(e) => setTempTo(e.target.value)}
-                    className="text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    className="text-xs border border-slate-200 rounded-xl p-2.5 focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] outline-none transition-all"
                   />
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function AuditFilter() {
             <div className="pt-2 flex flex-col gap-2">
               <button
                 onClick={applyFilters}
-                className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-[0.98]"
+                className="w-full py-3 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-xl text-sm font-bold transition-all shadow-md active:scale-[0.98]"
               >
                 {(t as any).auditLogPage?.filters?.apply || "Apply Filters"}
               </button>
