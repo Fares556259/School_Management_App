@@ -18,16 +18,25 @@ export async function GET(request: NextRequest) {
     }
 
     let today = new Date();
+    let dayStart, dayEnd;
     if (date) {
       const parts = date.split('-');
       if (parts.length === 3) {
+        dayStart = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        dayEnd = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]) + 1);
+        // For backwards compatibility in other parts of the file
         today = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
       } else {
         today = new Date(date);
         today.setUTCHours(0, 0, 0, 0);
+        dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
       }
     } else {
       today = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      const now = new Date();
+      dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     }
 
     // Identify the specific lesson context for this teacher and class
@@ -126,9 +135,10 @@ export async function GET(request: NextRequest) {
       include: {
         attendance: {
           where: {
-            date: today,
+            date: { gte: dayStart, lt: dayEnd },
             lessonId: lessonId ? lessonId : null // Force strict match on null so it doesn't fallback to picking up attendance from the first session
           },
+          orderBy: { id: "desc" },
           take: 1,
         }
       },

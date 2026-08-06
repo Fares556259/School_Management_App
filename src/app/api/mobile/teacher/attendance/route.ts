@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
     if (date) {
       const parts = date.split('-');
       if (parts.length === 3) {
-        attendanceDate = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+        attendanceDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       } else {
         attendanceDate = new Date(date);
-        attendanceDate.setUTCHours(0, 0, 0, 0);
+        attendanceDate.setHours(0, 0, 0, 0);
       }
     } else {
-      attendanceDate = new Date(Date.UTC(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate()));
+      attendanceDate = new Date(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate());
     }
 
     let effectiveLessonId = lessonId ? parseInt(lessonId) : null;
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
           try {
             if (slot.startTime) {
                const [hours, minutes] = slot.startTime.split(':').map(Number);
-               realStartTime.setUTCHours(hours, minutes, 0, 0);
+               realStartTime.setHours(hours, minutes, 0, 0);
             }
           } catch (e) {}
 
