@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         attendance: {
           where: {
             date: today,
-            lessonId: lessonId || undefined // Filter by specific lesson if known
+            lessonId: lessonId ? lessonId : null // Force strict match on null so it doesn't fallback to picking up attendance from the first session
           },
           take: 1,
         }
