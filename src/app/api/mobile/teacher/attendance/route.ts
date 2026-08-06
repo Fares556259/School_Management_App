@@ -85,8 +85,41 @@ export async function POST(request: NextRequest) {
           ]
         });
         
-        if (slotIndex >= 0 && slotIndex < subjectLessons.length) {
-          effectiveLessonId = subjectLessons[slotIndex].id;
+        // Match exactly like Admin API to prevent mapping conflicts
+        const expectedName = `${slot.subject?.name || "Session"} - ${slot.startTime}`;
+        let matchedLesson = subjectLessons.find(l => l.name === expectedName) || null;
+        
+        if (!matchedLesson) {
+          const usedLegacyLessonIds = new Set<number>();
+          for (const s of subjectSlots) {
+             const sExpectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
+             let currentMatch = subjectLessons.find(l => l.name === sExpectedName);
+             
+             if (!currentMatch) {
+               const legacyLesson = subjectLessons.find(l => l.name === (s.subject?.name || "Session") && !usedLegacyLessonIds.has(l.id));
+               if (legacyLesson) {
+                 currentMatch = legacyLesson;
+                 usedLegacyLessonIds.add(legacyLesson.id);
+               }
+             }
+             
+             if (!currentMatch) {
+               const anyLesson = subjectLessons.find(l => !usedLegacyLessonIds.has(l.id));
+               if (anyLesson) {
+                 currentMatch = anyLesson;
+                 usedLegacyLessonIds.add(anyLesson.id);
+               }
+             }
+             
+             if (s.id === slot.id) {
+               matchedLesson = currentMatch || null;
+               break;
+             }
+          }
+        }
+        
+        if (matchedLesson) {
+          effectiveLessonId = matchedLesson.id;
         } else {
           // Create the lesson if it doesn't exist for this index
           const expectedName = `${slot.subject?.name || "Session"} - ${slot.startTime}`;

@@ -79,22 +79,41 @@ export async function GET(request: NextRequest) {
       const subjectSlots = timetableSlots.filter(s => s.subjectId === activeSlot.subjectId);
       const slotIndex = subjectSlots.findIndex(s => s.id === activeSlot.id);
       
-      // Find all lessons for this subject, ordered chronologically, then by ID to prevent instability
-      const subjectLessons = lessons
-        .filter(l => l.subjectId === activeSlot.subjectId)
-        .sort((a, b) => {
-          const timeDiff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-          if (timeDiff !== 0) return timeDiff;
-          return a.id - b.id;
-        });
-        
-      if (slotIndex >= 0 && slotIndex < subjectLessons.length) {
-        lesson = subjectLessons[slotIndex];
-      } else {
-        // If there's only 1 lesson but this is the 2nd slot, do not fallback to the 1st lesson!
-        // We need to return null so the POST route knows to create a NEW lesson for the 2nd slot.
-        lesson = null;
+      // Match lesson exactly like the Admin API does to ensure 100% sync
+      const expectedName = `${activeSlot.subject?.name || "Session"} - ${activeSlot.startTime}`;
+      let matchedLesson = lessons.find((l) => l.subjectId === activeSlot.subjectId && l.name === expectedName) || null;
+      
+      if (!matchedLesson) {
+        const usedLegacyLessonIds = new Set<number>();
+        // Replicate Admin API fallback logic by walking through slots in order
+        for (const s of subjectSlots) {
+           const sExpectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
+           let currentMatch = lessons.find((l) => l.subjectId === s.subjectId && l.name === sExpectedName);
+           
+           if (!currentMatch) {
+             const legacyLesson = lessons.find((l) => l.subjectId === s.subjectId && l.name === (s.subject?.name || "Session") && !usedLegacyLessonIds.has(l.id));
+             if (legacyLesson) {
+               currentMatch = legacyLesson;
+               usedLegacyLessonIds.add(legacyLesson.id);
+             }
+           }
+           
+           if (!currentMatch) {
+             const anyLesson = lessons.find((l) => l.subjectId === s.subjectId && !usedLegacyLessonIds.has(l.id));
+             if (anyLesson) {
+               currentMatch = anyLesson;
+               usedLegacyLessonIds.add(anyLesson.id);
+             }
+           }
+           
+           if (s.id === activeSlot.id) {
+             matchedLesson = currentMatch || null;
+             break;
+           }
+        }
       }
+      
+      lesson = matchedLesson;
     } else if (lessons.length > 0) {
       lesson = lessons[0];
     }
