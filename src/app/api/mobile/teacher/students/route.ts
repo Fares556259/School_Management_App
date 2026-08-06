@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
       prisma.lesson.findMany({
         where: {
           classId: parseInt(classId),
-          teacherId: teacherId || undefined,
           day: dayName as any
         }
       }),

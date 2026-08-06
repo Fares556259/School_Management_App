@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         // Find all timetable slots for this subject
         const subjectSlots = await prisma.timetableSlot.findMany({
           where: {
-            schoolId, classId: parseInt(classId), teacherId, day: dayName as any, isDraft: false, subjectId: slot.subjectId
+            schoolId, classId: parseInt(classId), day: dayName as any, isDraft: false, subjectId: slot.subjectId
           },
           orderBy: { slotNumber: "asc" }
         });
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         // Find all existing lessons for this subject
         const subjectLessons = await prisma.lesson.findMany({
           where: {
-            schoolId, classId: parseInt(classId), teacherId, day: dayName as any, subjectId: slot.subjectId
+            schoolId, classId: parseInt(classId), day: dayName as any, subjectId: slot.subjectId
           },
           orderBy: [
             { startTime: "asc" },
