@@ -79,16 +79,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Build the sessions for the dropdown
-    const sessions = teacherTimetableSlots.map((slot, index) => {
-      const isCurrent = activeSlotId ? slot.id === parseInt(activeSlotId) : index === 0;
-      return {
-        id: slot.id.toString(),
-        subjectName: slot.subject?.name || 'Session',
-        time: slot.startTime,
-        isCurrent
-      };
-    });
+    // Build the sessions array for the UI to render the pills
+    const sessions = teacherTimetableSlots.map((slot) => ({
+      slotId: slot.id,
+      subjectId: slot.subjectId,
+      subjectName: slot.subject?.name || "Session",
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    }));
 
     const activeSlot = activeSlotId 
       ? teacherTimetableSlots.find(s => s.id === parseInt(activeSlotId))
