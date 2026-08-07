@@ -140,9 +140,22 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                     {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.date)}
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2.5">
-                      {item.img ? <ImageIcon size={16} className="text-indigo-500" /> : <span className="text-[#dddddd] font-medium text-[12px]">-</span>}
-                      {item.pdfUrl ? <FileText size={16} className="text-emerald-500" /> : null}
+                    <div className="flex items-center gap-2">
+                      {item.img ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[11px] font-semibold border border-indigo-100" title="Attached Images">
+                          <ImageIcon size={13} />
+                          {item.img.split(',').filter(Boolean).length}
+                        </span>
+                      ) : null}
+                      {item.pdfUrl ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[11px] font-semibold border border-emerald-100" title="Attached Documents">
+                          <FileText size={13} />
+                          {item.pdfUrl.split(',').filter(Boolean).length}
+                        </span>
+                      ) : null}
+                      {!item.img && !item.pdfUrl && (
+                        <span className="text-[#dddddd] font-medium text-[12px]">-</span>
+                      )}
                     </div>
                   </td>
                   {(role === "admin" || role === "teacher") && (

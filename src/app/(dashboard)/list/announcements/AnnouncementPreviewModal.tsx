@@ -2,15 +2,44 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Eye, X, Calendar, FileText, Download } from "lucide-react";
+import { Eye, X, Calendar, FileText, Download, FileSpreadsheet, Archive, FileCode } from "lucide-react";
 import { Notice, Class } from "@prisma/client";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { ProofViewerModal } from "@/components/ProofViewerModal";
 
 type NoticeWithClass = Notice & { class: Class | null };
 
 export default function AnnouncementPreviewModal({ item }: { item: NoticeWithClass }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewActiveIdx, setPreviewActiveIdx] = useState(0);
   const { t, locale } = useLanguage();
+
+  const imageUrls = item.img ? item.img.split(",").filter(Boolean) : [];
+  const docUrls = item.pdfUrl ? item.pdfUrl.split(",").filter(Boolean) : [];
+
+  const getFileNameFromUrl = (url: string) => {
+    try {
+      const parts = url.split('/');
+      const rawName = parts[parts.length - 1];
+      const nameParts = rawName.split('-');
+      if (nameParts.length > 2) {
+        return nameParts.slice(2).join('-');
+      }
+      return rawName;
+    } catch {
+      return "Document";
+    }
+  };
+
+  const getFileIcon = (url: string) => {
+    const ext = url.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'pdf') return <FileText className="w-5 h-5 text-rose-500 shrink-0" />;
+    if (['doc', 'docx'].includes(ext)) return <FileText className="w-5 h-5 text-blue-500 shrink-0" />;
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return <FileSpreadsheet className="w-5 h-5 text-emerald-500 shrink-0" />;
+    if (['zip', 'rar', '7z', 'tar'].includes(ext)) return <Archive className="w-5 h-5 text-amber-500 shrink-0" />;
+    return <FileCode className="w-5 h-5 text-slate-500 shrink-0" />;
+  };
 
   return (
     <>
@@ -60,9 +89,29 @@ export default function AnnouncementPreviewModal({ item }: { item: NoticeWithCla
 
             {/* Content Body */}
             <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-6">
-              {item.img && (
-                <div className="w-full aspect-video rounded-[12px] overflow-hidden border border-[#e2e8f0] relative bg-[#f8fafc]">
-                  <Image src={item.img} alt={item.title} fill className="object-contain" />
+              {/* IMAGE GALLERY */}
+              {imageUrls.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[12px] font-semibold text-[#64748b] uppercase tracking-wider">Images ({imageUrls.length})</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {imageUrls.map((url, idx) => (
+                      <div
+                        key={url}
+                        onClick={() => {
+                          setPreviewActiveIdx(idx);
+                          setPreviewOpen(true);
+                        }}
+                        className="relative aspect-video rounded-[10px] overflow-hidden border border-[#e2e8f0] bg-[#f8fafc] group cursor-pointer shadow-sm hover:shadow-md transition-all"
+                      >
+                        <Image src={url} alt={item.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="w-8 h-8 rounded-full bg-white text-slate-800 flex items-center justify-center shadow">
+                            <Eye size={16} />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               
@@ -70,26 +119,36 @@ export default function AnnouncementPreviewModal({ item }: { item: NoticeWithCla
                 {item.message}
               </div>
 
-              {item.pdfUrl && (
-                <div className="mt-4 pt-6 border-t border-[#f1f5f9]">
-                  <h3 className="text-[13px] font-semibold text-[#181d26] mb-3">{t.announcementsPage?.previewModal?.attachments || "Attachments"}</h3>
-                  <a 
-                    href={item.pdfUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-4 rounded-[8px] border border-[#e2e8f0] hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-[6px] bg-emerald-100 flex items-center justify-center text-emerald-600">
-                        <FileText size={20} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#181d26] group-hover:text-indigo-700 transition-colors">{t.announcementsPage?.previewModal?.attachedDocument || "Attached Document.pdf"}</span>
-                        <span className="text-[12px] text-[#64748b]">{t.announcementsPage?.previewModal?.clickToView || "Click to view or download"}</span>
-                      </div>
-                    </div>
-                    <Download size={18} className="text-[#94a3b8] group-hover:text-indigo-600 transition-colors" />
-                  </a>
+              {/* DOCUMENTS LIST */}
+              {docUrls.length > 0 && (
+                <div className="mt-2 pt-4 border-t border-[#f1f5f9] flex flex-col gap-3">
+                  <h3 className="text-[13px] font-semibold text-[#181d26]">{t.announcementsPage?.previewModal?.attachments || "Document Attachments"} ({docUrls.length})</h3>
+                  <div className="flex flex-col gap-2">
+                    {docUrls.map((url) => (
+                      <a 
+                        key={url}
+                        href={url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 rounded-[8px] border border-[#e2e8f0] hover:border-indigo-300 hover:bg-indigo-50 transition-all group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-[6px] bg-slate-100 flex items-center justify-center shrink-0">
+                            {getFileIcon(url)}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[13px] font-medium text-[#181d26] group-hover:text-indigo-700 transition-colors truncate">
+                              {getFileNameFromUrl(url)}
+                            </span>
+                            <span className="text-[11px] text-[#64748b]">
+                              {t.announcementsPage?.previewModal?.clickToView || "Click to view or download"}
+                            </span>
+                          </div>
+                        </div>
+                        <Download size={16} className="text-[#94a3b8] group-hover:text-indigo-600 transition-colors shrink-0" />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -103,6 +162,14 @@ export default function AnnouncementPreviewModal({ item }: { item: NoticeWithCla
                 {t.announcementsPage?.previewModal?.closePreview || "Close Preview"}
               </button>
             </div>
+
+            {/* LIGHTBOX FOR IMAGES */}
+            <ProofViewerModal
+              urls={imageUrls}
+              initialIndex={previewActiveIdx}
+              isOpen={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+            />
           </div>
         </div>
       )}

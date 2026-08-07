@@ -8,8 +8,8 @@ import InputField from "../InputField";
 import Image from "next/image";
 import { createNotice, updateNotice } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { Upload, X, FileText, Image as ImageIcon, Trash2, FileCode, FileSpreadsheet, Archive } from "lucide-react";
 
-// We'll move schema creation inside the component since we need translations for error messages
 const createSchema = (t: any) => z.object({
   title: z.string().min(1, { message: t.announcementForm?.titleRequired || "Title is required!" }),
   message: z.string().min(1, { message: t.announcementForm?.contentRequired || "Content is required!" }),
@@ -20,7 +20,7 @@ const createSchema = (t: any) => z.object({
 
 type Inputs = z.infer<ReturnType<typeof createSchema>>;
 
-const AnnouncementForm = ({
+export default function AnnouncementForm({
   type,
   data,
   relatedData,
@@ -28,12 +28,13 @@ const AnnouncementForm = ({
   type: "create" | "update";
   data?: any;
   relatedData?: any;
-}) => {
+}) {
   const [isPending, startTransition] = useTransition();
-  const [img, setImg] = useState<string | null>(data?.img || null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(data?.pdfUrl || null);
+  const [imgs, setImgs] = useState<string[]>(data?.img ? data.img.split(",").filter(Boolean) : []);
+  const [pdfUrls, setPdfUrls] = useState<string[]>(data?.pdfUrl ? data.pdfUrl.split(",").filter(Boolean) : []);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadingTarget, setUploadingTarget] = useState<'image' | 'pdf' | null>(null);
+  const [uploadingTarget, setUploadingTarget] = useState<'image' | 'doc' | null>(null);
+  
   const classes = relatedData?.classes || [];
   const [students, setStudents] = useState<{ id: string; name: string; surname: string }[]>([]);
   const [fetchingStudents, setFetchingStudents] = useState(false);
@@ -85,8 +86,8 @@ const AnnouncementForm = ({
         ...formData,
         classId: formData.classId || null,
         targetStudentId: formData.targetStudentId || null,
-        img,
-        pdfUrl,
+        img: imgs.join(",") || null,
+        pdfUrl: pdfUrls.join(",") || null,
       };
       
       const res = type === "create"
@@ -96,80 +97,108 @@ const AnnouncementForm = ({
       if (!res.success) {
           alert(res.error);
       } else {
-          // Success! The modal will be closed by the user or common logic if applicable.
-          window.location.reload(); // Refresh to show changes
+          window.location.reload();
       }
     });
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'pdf') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetType: 'image' | 'doc') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     try {
-      setUploadingTarget(type);
+      setUploadingTarget(targetType);
       setUploadProgress(0);
 
       const supabase = (await import('@/utils/supabase/client')).createClient();
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
-
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-      const fileName = `${type}-${Date.now()}-${safeName}`;
-      const filePath = `notices/${type}s/${fileName}`;
-
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || anonKey;
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${supabaseUrl}/storage/v1/object/uploads/${filePath}`);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.setRequestHeader('apikey', anonKey);
-      if (file.type) {
-        xhr.setRequestHeader('Content-Type', file.type);
+      const newUploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const fileName = `${targetType}-${Date.now()}-${safeName}`;
+        const filePath = `notices/${targetType}s/${fileName}`;
+
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `${supabaseUrl}/storage/v1/object/uploads/${filePath}`);
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          xhr.setRequestHeader('apikey', anonKey);
+          if (file.type) {
+            xhr.setRequestHeader('Content-Type', file.type);
+          }
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const filePercent = (event.loaded / event.total);
+              const overallPercent = Math.round(((i + filePercent) / files.length) * 100);
+              setUploadProgress(Math.min(overallPercent, 99));
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const { data: { publicUrl } } = supabase.storage
+                .from('uploads')
+                .getPublicUrl(filePath);
+              newUploadedUrls.push(publicUrl);
+              resolve();
+            } else {
+              reject(new Error(`Upload failed for ${file.name}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`));
+          xhr.send(file);
+        });
       }
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(Math.min(percentComplete, 99));
-        }
-      };
+      setUploadProgress(100);
+      if (targetType === 'image') {
+        setImgs(prev => [...prev, ...newUploadedUrls]);
+      } else {
+        setPdfUrls(prev => [...prev, ...newUploadedUrls]);
+      }
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('uploads')
-            .getPublicUrl(filePath);
-          
-          setUploadProgress(100);
-          if (type === 'image') setImg(publicUrl);
-          else setPdfUrl(publicUrl);
-
-          setTimeout(() => {
-            setUploadingTarget(null);
-            setUploadProgress(0);
-          }, 800);
-        } else {
-          alert(`Upload failed: ${xhr.statusText}`);
-          setUploadingTarget(null);
-          setUploadProgress(0);
-        }
-      };
-
-      xhr.onerror = () => {
-        alert("Upload failed. Please check your connection.");
+      setTimeout(() => {
         setUploadingTarget(null);
         setUploadProgress(0);
-      };
+      }, 500);
 
-      xhr.send(file);
     } catch (err: any) {
-      console.error(`${type} upload failed:`, err);
-      alert(err.message || `Failed to upload ${type}.`);
+      console.error(`${targetType} upload failed:`, err);
+      alert(err.message || `Failed to upload files.`);
       setUploadingTarget(null);
       setUploadProgress(0);
     }
+  };
+
+  const getFileNameFromUrl = (url: string) => {
+    try {
+      const parts = url.split('/');
+      const rawName = parts[parts.length - 1];
+      const nameParts = rawName.split('-');
+      if (nameParts.length > 2) {
+        return nameParts.slice(2).join('-');
+      }
+      return rawName;
+    } catch {
+      return "Document";
+    }
+  };
+
+  const getFileIcon = (url: string) => {
+    const ext = url.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'pdf') return <FileText className="w-5 h-5 text-rose-500 shrink-0" />;
+    if (['doc', 'docx'].includes(ext)) return <FileText className="w-5 h-5 text-blue-500 shrink-0" />;
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return <FileSpreadsheet className="w-5 h-5 text-emerald-500 shrink-0" />;
+    if (['zip', 'rar', '7z', 'tar'].includes(ext)) return <Archive className="w-5 h-5 text-amber-500 shrink-0" />;
+    return <FileCode className="w-5 h-5 text-slate-500 shrink-0" />;
   };
 
   return (
@@ -255,88 +284,120 @@ const AnnouncementForm = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-          {/* Cover Image Upload */}
-          <div className="flex flex-col gap-1.5 h-full">
-            <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.coverImage || "Cover Image"}</label>
+        {/* ATTACHMENTS SECTION */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-[#f0f0f0]">
+          
+          {/* Images Upload Section */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-semibold text-[#41454d] flex items-center gap-1.5">
+                <ImageIcon size={14} className="text-indigo-500" />
+                Image Attachments ({imgs.length})
+              </label>
+            </div>
+
             <input
               type="file"
-              id="notice-img"
+              id="notice-imgs"
               className="hidden"
               accept="image/*"
+              multiple
               onChange={(e) => handleFileUpload(e, 'image')}
             />
+
             <button
               type="button"
-              onClick={() => document.getElementById('notice-img')?.click()}
+              onClick={() => document.getElementById('notice-imgs')?.click()}
               disabled={uploadingTarget === 'image'}
-              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all group relative overflow-hidden flex-1"
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-[#dddddd] rounded-[8px] bg-[#f8fafc] hover:border-indigo-400 hover:bg-indigo-50 transition-all text-[12px] font-semibold text-slate-600 group relative overflow-hidden"
             >
               {uploadingTarget === 'image' && (
-                <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-4 backdrop-blur-sm">
-                  <div className="text-white text-[24px] font-bold tracking-tight mb-2">
-                    {uploadProgress}%
-                  </div>
-                  <div className="w-3/4 max-w-[120px] bg-white/20 h-1.5 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-400 transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+                <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-2 backdrop-blur-sm">
+                  <div className="text-white text-[14px] font-bold">
+                    Uploading Images ({uploadProgress}%)
                   </div>
                 </div>
               )}
-              {img ? (
-                <div className="relative w-full aspect-video rounded overflow-hidden">
-                  <Image src={img} alt="Preview" fill className="object-cover" />
-                </div>
-              ) : (
-                <div className="w-10 h-10 bg-white border border-[#dddddd] shadow-sm rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                  <Image src="/upload.png" alt="" width={18} height={18} className="opacity-60" />
-                </div>
-              )}
-              <span className="text-[12px] font-medium text-[#5a5a5a]">
-                {img ? (t.announcementForm?.changeCoverImage || "Change Cover Image") : (t.announcementForm?.uploadImage || "Upload Image")}
-              </span>
+              <Upload size={16} className="text-indigo-500" />
+              <span>Add Images (Multiple allowed)</span>
             </button>
+
+            {imgs.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {imgs.map((url, idx) => (
+                  <div key={url} className="relative aspect-square rounded-md overflow-hidden border border-[#dddddd] group">
+                    <Image src={url} alt="Attachment" fill className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImgs(prev => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                      title="Remove image"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* PDF attachment */}
-          <div className="flex flex-col gap-1.5 h-full">
-            <label className="text-[12px] font-medium text-[#41454d]">{t.announcementForm?.pdfAttachment || "PDF Attachment"}</label>
+          {/* Files & Documents Upload Section */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-semibold text-[#41454d] flex items-center gap-1.5">
+                <FileText size={14} className="text-emerald-500" />
+                Document Attachments ({pdfUrls.length})
+              </label>
+            </div>
+
             <input
               type="file"
-              id="notice-pdf"
+              id="notice-docs"
               className="hidden"
-              accept="application/pdf"
-              onChange={(e) => handleFileUpload(e, 'pdf')}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
+              multiple
+              onChange={(e) => handleFileUpload(e, 'doc')}
             />
+
             <button
               type="button"
-              onClick={() => document.getElementById('notice-pdf')?.click()}
-              disabled={uploadingTarget === 'pdf'}
-              className="flex flex-col items-center justify-center gap-2 p-6 border border-dashed border-[#dddddd] rounded-[6px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all group relative overflow-hidden flex-1"
+              onClick={() => document.getElementById('notice-docs')?.click()}
+              disabled={uploadingTarget === 'doc'}
+              className="flex items-center justify-center gap-2 p-3 border border-dashed border-[#dddddd] rounded-[8px] bg-[#f8fafc] hover:border-emerald-400 hover:bg-emerald-50 transition-all text-[12px] font-semibold text-slate-600 group relative overflow-hidden"
             >
-              {uploadingTarget === 'pdf' && (
-                <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-4 backdrop-blur-sm">
-                  <div className="text-white text-[24px] font-bold tracking-tight mb-2">
-                    {uploadProgress}%
-                  </div>
-                  <div className="w-3/4 max-w-[120px] bg-white/20 h-1.5 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-400 transition-all duration-200" style={{ width: `${uploadProgress}%` }}></div>
+              {uploadingTarget === 'doc' && (
+                <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-2 backdrop-blur-sm">
+                  <div className="text-white text-[14px] font-bold">
+                    Uploading Files ({uploadProgress}%)
                   </div>
                 </div>
               )}
-              {pdfUrl ? (
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded text-emerald-700 font-medium text-[12px] max-w-full">
-                  <span className="truncate">{t.announcementForm?.pdfAttached || "PDF Attached"}</span>
-                </div>
-              ) : (
-                <div className="w-10 h-10 bg-white border border-[#dddddd] shadow-sm rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                  <span className="text-lg opacity-60">📄</span>
-                </div>
-              )}
-              <span className="text-[12px] font-medium text-[#5a5a5a]">
-                {pdfUrl ? (t.announcementForm?.changeAttachment || "Change Attachment") : (t.announcementForm?.attachPdf || "Attach PDF")}
-              </span>
+              <Upload size={16} className="text-emerald-500" />
+              <span>Attach Documents (PDF, Word, Excel, etc.)</span>
             </button>
+
+            {pdfUrls.length > 0 && (
+              <div className="flex flex-col gap-1.5 mt-2 max-h-44 overflow-y-auto custom-scrollbar">
+                {pdfUrls.map((url, idx) => (
+                  <div key={url} className="flex items-center justify-between p-2 rounded-md border border-[#dddddd] bg-[#f8fafc] text-[12px] gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {getFileIcon(url)}
+                      <span className="truncate font-medium text-slate-700">{getFileNameFromUrl(url)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPdfUrls(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                      title="Remove document"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
       </div>
 
@@ -348,6 +409,4 @@ const AnnouncementForm = ({
       </button>
     </form>
   );
-};
-
-export default AnnouncementForm;
+}
