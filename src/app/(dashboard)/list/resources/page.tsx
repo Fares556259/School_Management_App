@@ -11,7 +11,8 @@ import { Resource, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/clien
 import { getSchoolId } from "@/lib/school";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import ResourceDetailsModal from "@/components/ResourceDetailsModal";
 
 export const dynamic = "force-dynamic";
 
@@ -118,15 +119,7 @@ const ResourceListPage = async ({
       </td>
       <td>
         <div className="flex items-center gap-2">
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noreferrer"
-            className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]"
-            title={t.resourcesPage?.viewFile || "View File"}
-          >
-            <Eye size={16} strokeWidth={2} />
-          </a>
+          <ResourceDetailsModal item={item} />
           {(role === "admin" || role === "teacher") && (
             <>
               <FormModal
