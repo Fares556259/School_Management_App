@@ -136,14 +136,9 @@ export default async function DashboardAppendage({
     safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
   ]);
 
-    return { unpaidStudents, unpaidTeachers, unpaidStaff };
-  };
-
-  const uncollectedLists = await safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] });
-
   // --- DATA PROCESSING ---
 
-  const unpaidFees = uncollectedLists.unpaidStudents.map(s => {
+  const unpaidFees = uncollectedData.unpaidStudents.map(s => {
     let dueAmount = s.tuitionFee || 450;
     if (s.paymentStatus === "PARTIAL") {
       dueAmount = s.deferredAmount || (dueAmount - s.paymentAmount);
@@ -160,7 +155,7 @@ export default async function DashboardAppendage({
     };
   });
 
-  const unpaidTeachersMapped = uncollectedLists.unpaidTeachers.map(t => {
+  const unpaidTeachersMapped = uncollectedData.unpaidTeachers.map(t => {
     let dueAmount = t.salary || 3000;
     if (t.paymentStatus === "PARTIAL") {
       dueAmount = t.deferredAmount || (dueAmount - t.paymentAmount);
@@ -176,7 +171,7 @@ export default async function DashboardAppendage({
     };
   });
 
-  const unpaidStaffMapped = uncollectedLists.unpaidStaff.map(s => {
+  const unpaidStaffMapped = uncollectedData.unpaidStaff.map(s => {
     let dueAmount = s.salary || 1500;
     if (s.paymentStatus === "PARTIAL") {
       dueAmount = s.deferredAmount || (dueAmount - s.paymentAmount);
