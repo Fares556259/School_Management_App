@@ -72,8 +72,8 @@ const ResourceForm = ({
   // Update lessons when class changes
   useEffect(() => {
     const url = selectedClassId 
-      ? `/api/lessons?classId=${selectedClassId}`
-      : "/api/lessons";
+      ? `/api/lessons?classId=${selectedClassId}&skipSync=true`
+      : "/api/lessons?skipSync=true";
       
     fetch(url)
       .then(res => res.json())
