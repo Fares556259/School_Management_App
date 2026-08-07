@@ -11,6 +11,8 @@ import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
+import GradeDetailsModal from "@/components/GradeDetailsModal";
+
 /** Parse first segment of pipe-separated trilingual name to get localized string.
  * e.g. "الرياضيات | Mathématiques | Mathematics"
  */
@@ -60,6 +62,16 @@ export default function ResultsPageClient({
   const [uploadingCardId, setUploadingCardId] = useState<string | null>(null);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [initializingCardId, setInitializingCardId] = useState<string | null>(null);
+  const [detailsModalData, setDetailsModalData] = useState<{
+    isOpen: boolean;
+    classId: number;
+    subjectId: number;
+    term: number;
+    subjectName: string;
+    className: string;
+    teacherName?: string | null;
+    sheet?: any;
+  } | null>(null);
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -489,27 +501,45 @@ export default function ResultsPageClient({
                      {t.resultsPage.editRecording}
                    </button>
                    <button 
-                     onClick={(e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
-                        setPreviewUrl(sheet.proofUrl);
-                        setActivePreviewIndex(0);
-                        setIsPreviewOpen(true);
+                        setDetailsModalData({
+                          isOpen: true,
+                          classId: item.class.id,
+                          subjectId: item.subject.id,
+                          term: item.term,
+                          subjectName: item.subject.name,
+                          className: item.class.name,
+                          teacherName: teacherName,
+                          sheet: sheet,
+                        });
                       }}
-                     className={`w-9 h-9 rounded-[6px] flex items-center justify-center transition-all border ${
-                       sheet.proofUrl?.startsWith('http') 
-                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
-                         : 'bg-white text-[#9297a0] border-[#e5e7eb] hover:bg-[#f3f4f6]'
-                     }`}
-                     title={sheet.proofUrl?.startsWith('http') ? "View Proof" : "No Proof"}
-                   >
-                     <Eye size={15} />
-                   </button>
+                      className="w-9 h-9 rounded-[6px] flex items-center justify-center transition-all border bg-white text-[#181d26] border-[#e5e7eb] hover:bg-[#f3f4f6]"
+                      title={t.resourcesPage?.viewDetails || "View Grade Details"}
+                    >
+                      <Eye size={15} />
+                    </button>
                  </div>
                )}
             </div>
           );
         })}
       </div>
+
+      {/* ─── GRADE DETAILS MODAL ─── */}
+      {detailsModalData && (
+        <GradeDetailsModal
+          isOpen={detailsModalData.isOpen}
+          onClose={() => setDetailsModalData(null)}
+          classId={detailsModalData.classId}
+          subjectId={detailsModalData.subjectId}
+          term={detailsModalData.term}
+          subjectName={detailsModalData.subjectName}
+          className={detailsModalData.className}
+          teacherName={detailsModalData.teacherName}
+          onEdit={() => editSheet(detailsModalData.sheet)}
+        />
+      )}
 
       {/* ─── FULLSCREEN PREVIEW MODAL (LIGHTBOX) ─── */}
       <AnimatePresence>
