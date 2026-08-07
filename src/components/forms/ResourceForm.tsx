@@ -175,9 +175,13 @@ const ResourceForm = ({
             <select
               className="ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none bg-slate-50 transition-all appearance-none font-bold text-slate-700 cursor-pointer pr-10"
               value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
+              onChange={(e) => {
+                setSelectedClassId(e.target.value);
+                setSelectedLesson(null);
+                setValue("lessonId", "" as any);
+              }}
             >
-              <option value="">All Classes</option>
+              <option value="" disabled>Select a class...</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -193,12 +197,13 @@ const ResourceForm = ({
           <div className="relative">
             <select
               {...register("lessonId")}
-              className="ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none bg-slate-50 transition-all appearance-none font-bold text-slate-700 cursor-pointer pr-10"
+              disabled={!selectedClassId}
+              className={`ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none transition-all appearance-none font-bold text-slate-700 pr-10 ${!selectedClassId ? 'bg-slate-100 opacity-60 cursor-not-allowed' : 'bg-slate-50 cursor-pointer'}`}
             >
               <option value="">Select a lesson...</option>
               {lessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
-                  {getSubjectName(lesson.subject.name)} - {lesson.name} ({lesson.teacher.name} {lesson.teacher.surname})
+                  {getSubjectName(lesson.subject.name)}
                 </option>
               ))}
             </select>
