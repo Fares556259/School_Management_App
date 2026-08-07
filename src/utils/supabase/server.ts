@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 export const createClient = () => {
   // Use PUBLISHABLE_KEY with ANON_KEY as fallback (both names are used across the codebase)
@@ -33,3 +34,10 @@ export const createClient = () => {
     },
   );
 };
+
+export const getAuthenticatedUser = cache(async () => {
+  const supabase = createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+});

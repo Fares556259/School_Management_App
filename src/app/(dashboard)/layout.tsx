@@ -1,6 +1,6 @@
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthenticatedUser } from "@/utils/supabase/server";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import Image from "next/image";
@@ -30,8 +30,7 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   const userId = user?.id;
 
   if (!userId) {

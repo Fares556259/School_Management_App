@@ -1,13 +1,13 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
+import { getAuthenticatedUser } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 
-export async function getAdminProfile() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export const getAdminProfile = cache(async () => {
+  const user = await getAuthenticatedUser();
   const userId = user?.id;
   if (!userId) return { data: null, error: "No user ID found" };
 

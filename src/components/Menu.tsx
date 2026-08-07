@@ -182,6 +182,7 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
               return (
                 <Link
                   href={targetHref}
+                  prefetch={true}
                   onClick={() => setPendingHref(targetHref)}
                   key={item.label}
                   className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${

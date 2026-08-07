@@ -1,11 +1,11 @@
-import { createClient } from "@/utils/supabase/server";
+import { cache } from "react";
+import { getAuthenticatedUser } from "@/utils/supabase/server";
 import prisma from "./prisma";
 
-export const getRole = async () => {
-  const supabase = createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+export const getRole = cache(async () => {
+  const user = await getAuthenticatedUser();
 
-  if (!user || error) return undefined;
+  if (!user) return undefined;
 
   // 1. USE USER METADATA (Fast Path)
   const role = user.user_metadata?.role as string | undefined;
@@ -24,4 +24,4 @@ export const getRole = async () => {
   }
 
   return undefined;
-};
+});
