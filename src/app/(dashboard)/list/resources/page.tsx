@@ -117,7 +117,7 @@ const ResourceListPage = async ({
         {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.createdAt)}
       </td>
       <td>
-        <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-2">
           <a
             href={item.url}
             target="_blank"
