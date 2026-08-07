@@ -27,6 +27,8 @@ interface GradeDetailsModalProps {
   subjectName: string;
   className: string;
   teacherName?: string | null;
+  students?: any[];
+  sheet?: any;
   onEdit?: () => void;
 }
 
@@ -39,12 +41,16 @@ export default function GradeDetailsModal({
   subjectName,
   className,
   teacherName,
+  students,
+  sheet,
   onEdit,
 }: GradeDetailsModalProps) {
-  const [loading, setLoading] = useState(true);
-  const [sheetData, setSheetData] = useState<any>(null);
-  const [studentsList, setStudentsList] = useState<any[]>([]);
-  const [proofUrls, setProofUrls] = useState<string[]>([]);
+  const [loading, setLoading] = useState(!sheet || !students || students.length === 0);
+  const [sheetData, setSheetData] = useState<any>(sheet || null);
+  const [studentsList, setStudentsList] = useState<any[]>(students || []);
+  const [proofUrls, setProofUrls] = useState<string[]>(
+    sheet?.proofUrl ? sheet.proofUrl.split(",").map((u: string) => u.trim()).filter(Boolean) : []
+  );
   const [proofViewerOpen, setProofViewerOpen] = useState(false);
   const [proofViewerIndex, setProofViewerIndex] = useState(0);
   const { t, locale } = useLanguage();
@@ -52,23 +58,31 @@ export default function GradeDetailsModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    // If pre-loaded data is complete, skip network fetch completely (0ms Instant Load)
+    if (sheet && students && students.length > 0) {
+      setSheetData(sheet);
+      setStudentsList(students);
+      setProofUrls(sheet.proofUrl ? sheet.proofUrl.split(",").map((u: string) => u.trim()).filter(Boolean) : []);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     const loadData = async () => {
       setLoading(true);
       try {
-        // Fetch student roster for class
-        const studentRes = await fetch(`/api/students?classId=${classId}`);
-        const currentStudents = await studentRes.json();
-        if (cancelled) return;
-        setStudentsList(Array.isArray(currentStudents) ? currentStudents : []);
+        // Parallel fetch for instant resolution
+        const [studentRes, fetchedSheet] = await Promise.all([
+          fetch(`/api/students?classId=${classId}`).then(r => r.json()).catch(() => []),
+          getGradeSheet(classId, subjectId, term).catch(() => null)
+        ]);
 
-        // Fetch sheet details
-        const sheet = await getGradeSheet(classId, subjectId, term);
         if (cancelled) return;
-        setSheetData(sheet);
+        setStudentsList(Array.isArray(studentRes) ? studentRes : []);
+        setSheetData(fetchedSheet);
 
-        if (sheet?.proofUrl) {
-          const urls = sheet.proofUrl.split(",").map((u: string) => u.trim()).filter(Boolean);
+        if (fetchedSheet?.proofUrl) {
+          const urls = fetchedSheet.proofUrl.split(",").map((u: string) => u.trim()).filter(Boolean);
           setProofUrls(urls);
         } else {
           setProofUrls([]);
@@ -85,7 +99,7 @@ export default function GradeDetailsModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, classId, subjectId, term]);
+  }, [isOpen, classId, subjectId, term, sheet, students]);
 
   if (!isOpen) return null;
 

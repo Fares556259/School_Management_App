@@ -23,7 +23,7 @@ const ResultListPage = async () => {
         class: { select: { name: true, _count: { select: { students: true } } } },
         subject: { select: { name: true } },
         teacher: { select: { name: true, surname: true } },
-        grades: { select: { id: true } },
+        grades: { select: { id: true, studentId: true, score: true } },
       },
       orderBy: [{ updatedAt: "desc" }],
     }),
@@ -56,6 +56,7 @@ const ResultListPage = async () => {
       subjects={subjects}
       teachers={teachers}
       initialStudents={initialStudents}
+      allStudents={allStudents}
       sheets={sheets}
       lessons={lessons}
     />

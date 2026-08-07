@@ -33,6 +33,7 @@ interface Props {
   subjects: any[];
   teachers: any[];
   initialStudents: any[];
+  allStudents?: any[];
   sheets: any[];
   lessons: any[];
 }
@@ -42,6 +43,7 @@ export default function ResultsPageClient({
   subjects,
   teachers,
   initialStudents,
+  allStudents,
   sheets,
   lessons,
 }: Props) {
@@ -537,6 +539,8 @@ export default function ResultsPageClient({
           subjectName={detailsModalData.subjectName}
           className={detailsModalData.className}
           teacherName={detailsModalData.teacherName}
+          students={(allStudents || initialStudents || []).filter((s: any) => s.classId === detailsModalData.classId)}
+          sheet={detailsModalData.sheet}
           onEdit={() => editSheet(detailsModalData.sheet)}
         />
       )}
