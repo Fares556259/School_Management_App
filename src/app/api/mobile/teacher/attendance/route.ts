@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
           where: {
             schoolId, classId: parseInt(classId), day: dayName as any, isDraft: false, subjectId: slot.subjectId
           },
+          include: { subject: true },
           orderBy: { slotNumber: "asc" }
         });
         
