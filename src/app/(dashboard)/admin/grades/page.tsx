@@ -28,15 +28,18 @@ export default async function GradesPage({
     : classes.length > 0 ? classes[0].id : null;
 
   let students: any[] = [];
-  if (classId) {
-    students = await prisma.student.findMany({
-      where: { classId, schoolId },
-      include: { grades: { where: { term } } },
-      orderBy: { name: "asc" },
-    });
-  }
+  let sheets: any[] = [];
 
-  const sheets = await getAllGradeSheets(classId ?? undefined, undefined, term);
+  [students, sheets] = await Promise.all([
+    classId
+      ? prisma.student.findMany({
+          where: { classId, schoolId },
+          include: { grades: { where: { term } } },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+    getAllGradeSheets(classId ?? undefined, undefined, term),
+  ]);
 
   return (
     <div className="p-6 flex flex-col gap-8 bg-slate-50 min-h-screen">

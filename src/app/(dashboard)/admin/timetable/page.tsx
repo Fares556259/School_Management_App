@@ -9,12 +9,14 @@ const TimetablePage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  // Sequentialize actions to reduce connection pool pressure
-  const classesRes = await getAllClasses();
-  const subjectsTeachersRes = await getAllSubjectsAndTeachers();
-  const configRes = await getSchoolConfig();
-  const roomsRes = await getAllRooms();
-  const allSlotsRes = await getAllActiveTimetableSlots();
+  // Parallelize actions for fast page loads
+  const [classesRes, subjectsTeachersRes, configRes, roomsRes, allSlotsRes] = await Promise.all([
+    getAllClasses(),
+    getAllSubjectsAndTeachers(),
+    getSchoolConfig(),
+    getAllRooms(),
+    getAllActiveTimetableSlots(),
+  ]);
 
   const classes = (classesRes.success ? classesRes.data : []) as any[];
   const subjects = (subjectsTeachersRes.success ? subjectsTeachersRes.subjects : []) as any[];
