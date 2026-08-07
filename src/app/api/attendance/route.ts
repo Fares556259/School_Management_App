@@ -37,8 +37,10 @@ export async function GET(request: NextRequest) {
   const dayNum = dayStart.getDay();
   const dayEnum = DAY_MAP[dayNum] || "MONDAY";
 
-  const monthStart = new Date(dayStart.getFullYear(), dayStart.getMonth(), 1);
-  const monthEnd = new Date(dayStart.getFullYear(), dayStart.getMonth() + 1, 0);
+  const weekEnd = new Date(dayStart);
+  weekEnd.setDate(weekEnd.getDate() + 1);
+  const weekStart = new Date(dayStart);
+  weekStart.setDate(weekStart.getDate() - 7);
 
   // 1. Fetch slots first to quickly check if there are classes today
   const slots = await prisma.timetableSlot.findMany({
@@ -63,7 +65,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 2. Parallelize remaining database queries
-  const [lessonIds, students, monthlyAbsences] = await Promise.all([
+  const [lessonIds, students, recentAbsences, recentNotifications] = await Promise.all([
     prisma.lesson.findMany({
       where: { schoolId, classId: parsedClassId, day: dayEnum as any },
       select: { id: true, subjectId: true, name: true },
@@ -95,7 +97,7 @@ export async function GET(request: NextRequest) {
     prisma.attendance.findMany({
       where: {
         schoolId,
-        date: { gte: monthStart, lte: monthEnd },
+        date: { gte: weekStart, lte: weekEnd },
         status: "ABSENT",
         student: { classId: parsedClassId },
       },
@@ -108,6 +110,15 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { date: "desc" },
+    }),
+    prisma.notification.findMany({
+      where: {
+        schoolId,
+        type: "ATTENDANCE",
+        createdAt: { gte: weekStart },
+        studentId: { not: null }
+      },
+      select: { studentId: true }
     }),
   ]);
 
@@ -271,11 +282,12 @@ export async function GET(request: NextRequest) {
     ]);
   }
 
-  // Group monthly absences by studentId
+  // Group recent absences and notifications by studentId
   const historyMap: Record<string, any[]> = {};
   const countMap: Record<string, number> = {};
+  const notifiedSet = new Set(recentNotifications.map(n => n.studentId));
 
-  monthlyAbsences.forEach((a) => {
+  recentAbsences.forEach((a) => {
     if (!historyMap[a.studentId]) historyMap[a.studentId] = [];
     historyMap[a.studentId].push({
       date: a.date,
@@ -287,8 +299,9 @@ export async function GET(request: NextRequest) {
 
   const finalStudents = aggregatedStudents.map((s) => ({
     ...s,
-    monthlyAbsences: countMap[s.id] || 0,
+    recentAbsences: countMap[s.id] || 0,
     absenceHistory: historyMap[s.id] || [],
+    hasRecentNotification: notifiedSet.has(s.id),
   }));
 
   return NextResponse.json({

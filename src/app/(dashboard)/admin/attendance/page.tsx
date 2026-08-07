@@ -25,8 +25,9 @@ interface StudentRow {
   name: string;
   surname: string;
   img: string | null;
-  monthlyAbsences: number;
+  recentAbsences: number;
   absenceHistory?: { date: string; lessonName: string; startTime?: string }[];
+  hasRecentNotification?: boolean;
   parent: {
     name: string;
     surname: string;
@@ -164,6 +165,7 @@ export default function AttendancePage() {
         body: JSON.stringify({ studentId, history }),
         headers: { "Content-Type": "application/json" }
       });
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, hasRecentNotification: true } : s));
     } catch (error) {
       console.error(error);
     } finally {
@@ -183,7 +185,7 @@ export default function AttendancePage() {
     return matchesSearch && matchesFilter;
   });
 
-  const highAbsenceStudents = filtered.filter(s => s.monthlyAbsences > 2);
+  const highAbsenceStudents = filtered.filter(s => s.recentAbsences > 2);
 
   return (
     <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">
@@ -368,13 +370,13 @@ export default function AttendancePage() {
                       <p className="text-[12px] text-[#5a5a5a]">{s.parent?.name} ({s.parent?.phone})</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-[12px] font-semibold text-rose-600">{s.monthlyAbsences} {t.attendancePage?.absences || "Absences"}</span>
+                      <span className="text-[12px] font-semibold text-rose-600">{s.recentAbsences} {t.attendancePage?.absences || "Absences (Past 7 Days)"}</span>
                       <button
-                        disabled={sendingAlertId === s.id}
+                        disabled={sendingAlertId === s.id || s.hasRecentNotification}
                         onClick={() => sendDetailedAlert(s.id, s.absenceHistory || [])}
-                        className="bg-[#ffffff] border border-[#dddddd] hover:bg-[#f8fafc] text-[#181d26] px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-colors disabled:opacity-50"
+                        className="bg-[#ffffff] border border-[#dddddd] hover:bg-[#f8fafc] text-[#181d26] px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {sendingAlertId === s.id ? (t.attendancePage?.sending || "Sending...") : (t.attendancePage?.notify || "Notify")}
+                        {sendingAlertId === s.id ? (t.attendancePage?.sending || "Sending...") : (s.hasRecentNotification ? "Notified" : (t.attendancePage?.notify || "Notify"))}
                       </button>
                     </div>
                   </div>
