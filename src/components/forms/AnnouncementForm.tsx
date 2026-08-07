@@ -292,7 +292,7 @@ export default function AnnouncementForm({
             <div className="flex items-center justify-between">
               <label className="text-[12px] font-semibold text-[#41454d] flex items-center gap-1.5">
                 <ImageIcon size={14} className="text-indigo-500" />
-                Image Attachments ({imgs.length})
+                {t.announcementForm?.imageAttachments || "Image Attachments"} ({imgs.length})
               </label>
             </div>
 
@@ -314,12 +314,12 @@ export default function AnnouncementForm({
               {uploadingTarget === 'image' && (
                 <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-2 backdrop-blur-sm">
                   <div className="text-white text-[14px] font-bold">
-                    Uploading Images ({uploadProgress}%)
+                    {t.announcementForm?.uploadingImages || "Uploading Images"} ({uploadProgress}%)
                   </div>
                 </div>
               )}
               <Upload size={16} className="text-indigo-500" />
-              <span>Add Images (Multiple allowed)</span>
+              <span>{t.announcementForm?.addImages || "Add Images (Multiple allowed)"}</span>
             </button>
 
             {imgs.length > 0 && (
@@ -346,7 +346,7 @@ export default function AnnouncementForm({
             <div className="flex items-center justify-between">
               <label className="text-[12px] font-semibold text-[#41454d] flex items-center gap-1.5">
                 <FileText size={14} className="text-emerald-500" />
-                Document Attachments ({pdfUrls.length})
+                {t.announcementForm?.docAttachments || "Document Attachments"} ({pdfUrls.length})
               </label>
             </div>
 
@@ -368,12 +368,12 @@ export default function AnnouncementForm({
               {uploadingTarget === 'doc' && (
                 <div className="absolute inset-0 bg-[#181d26]/80 flex flex-col items-center justify-center z-10 p-2 backdrop-blur-sm">
                   <div className="text-white text-[14px] font-bold">
-                    Uploading Files ({uploadProgress}%)
+                    {t.announcementForm?.uploadingFiles || "Uploading Files"} ({uploadProgress}%)
                   </div>
                 </div>
               )}
               <Upload size={16} className="text-emerald-500" />
-              <span>Attach Documents (PDF, Word, Excel, etc.)</span>
+              <span>{t.announcementForm?.attachDocs || "Attach Documents (PDF, Word, Excel, etc.)"}</span>
             </button>
 
             {pdfUrls.length > 0 && (
