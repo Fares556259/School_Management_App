@@ -83,60 +83,58 @@ export default async function DashboardAppendage({
     return results[0];
   };
 
-  const secondaryStats = await safeFetch(getSecondaryStats(), {
-    income_categories: [], expense_categories: [], income_trend: [], expense_trend: []
-  });
-
-  // 2. RECENT ACTIVITY BATCH
-  const [recentAuditLogs] = await Promise.all([
-    safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
-  ]);
-
-  // 3. UNCOLLECTED FEES RESTORATION (FIND STUDENTS & EMPLOYEES WITH NO PAID PAYMENT FOR THIS MONTH)
   const getUncollectedData = async () => {
-    // We want students who DON'T have a 'PAID' record for this month
-    const unpaidStudents: any[] = await prisma.$queryRaw`
-      SELECT 
-        s.id, s.name, s.surname, p.phone as "parentPhone", l."tuitionFee",
-        pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
-      FROM "Student" s
-      JOIN "Level" l ON s."levelId" = l.id
-      JOIN "Parent" p ON s."parentId" = p.id
-      LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
-        AND pay.month = ${currentMonth} 
-        AND pay.year = ${currentYear}
-      WHERE s."schoolId" = ${schoolId}
-        AND (pay.status IS NULL OR pay.status != 'PAID')
-      LIMIT 100
-    `;
+    const [unpaidStudents, unpaidTeachers, unpaidStaff] = await Promise.all([
+      prisma.$queryRaw`
+        SELECT 
+          s.id, s.name, s.surname, p.phone as "parentPhone", l."tuitionFee",
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+        FROM "Student" s
+        JOIN "Level" l ON s."levelId" = l.id
+        JOIN "Parent" p ON s."parentId" = p.id
+        LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
+          AND pay.month = ${currentMonth} 
+          AND pay.year = ${currentYear}
+        WHERE s."schoolId" = ${schoolId}
+          AND (pay.status IS NULL OR pay.status != 'PAID')
+        LIMIT 100
+      `,
+      prisma.$queryRaw`
+        SELECT 
+          t.id, t.name, t.surname, t.phone, t.salary,
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+        FROM "Teacher" t
+        LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
+          AND pay.month = ${currentMonth} 
+          AND pay.year = ${currentYear}
+        WHERE t."schoolId" = ${schoolId} 
+          AND (pay.status IS NULL OR pay.status != 'PAID')
+        LIMIT 100
+      `,
+      prisma.$queryRaw`
+        SELECT 
+          s.id, s.name, s.surname, s.phone, s.salary,
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+        FROM "Staff" s
+        LEFT JOIN "Payment" pay ON s.id = pay."staffId" 
+          AND pay.month = ${currentMonth} 
+          AND pay.year = ${currentYear}
+        WHERE s."schoolId" = ${schoolId} 
+          AND (pay.status IS NULL OR pay.status != 'PAID')
+        LIMIT 100
+      `
+    ]) as [any[], any[], any[]];
 
-    // We want teachers who DON'T have a 'PAID' record for this month
-    const unpaidTeachers: any[] = await prisma.$queryRaw`
-      SELECT 
-        t.id, t.name, t.surname, t.phone, t.salary,
-        pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
-      FROM "Teacher" t
-      LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
-        AND pay.month = ${currentMonth} 
-        AND pay.year = ${currentYear}
-      WHERE t."schoolId" = ${schoolId} 
-        AND (pay.status IS NULL OR pay.status != 'PAID')
-      LIMIT 100
-    `;
+    return { unpaidStudents, unpaidTeachers, unpaidStaff };
+  };
 
-    // We want staff who DON'T have a 'PAID' record for this month
-    const unpaidStaff: any[] = await prisma.$queryRaw`
-      SELECT 
-        s.id, s.name, s.surname, s.phone, s.salary,
-        pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
-      FROM "Staff" s
-      LEFT JOIN "Payment" pay ON s.id = pay."staffId" 
-        AND pay.month = ${currentMonth} 
-        AND pay.year = ${currentYear}
-      WHERE s."schoolId" = ${schoolId} 
-        AND (pay.status IS NULL OR pay.status != 'PAID')
-      LIMIT 100
-    `;
+  const [secondaryStats, recentAuditLogs, uncollectedData] = await Promise.all([
+    safeFetch(getSecondaryStats(), {
+      income_categories: [], expense_categories: [], income_trend: [], expense_trend: []
+    }),
+    safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
+    safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
+  ]);
 
     return { unpaidStudents, unpaidTeachers, unpaidStaff };
   };

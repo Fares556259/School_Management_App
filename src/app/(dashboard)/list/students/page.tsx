@@ -3,7 +3,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, getAuthenticatedUser } from "@/utils/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
@@ -61,8 +61,7 @@ const StudentListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
   const userId = user?.id;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
@@ -107,7 +106,7 @@ const StudentListPage = async ({
     }
   }
 
-  const [data, count, parents, classes, levels] = await Promise.all([
+  const [data, count, parents, classes, levels, admin, school] = await Promise.all([
     prisma.student.findMany({
       where: query,
       include: {
@@ -134,10 +133,9 @@ const StudentListPage = async ({
       select: { id: true, level: true },
       orderBy: { level: 'asc' }
     }),
+    role === "admin" && userId ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : Promise.resolve(null),
+    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
   ]);
-
-  const admin = role === "admin" && userId ? await prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : null;
-  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } });
 
   const studentRelatedData = {
     parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
