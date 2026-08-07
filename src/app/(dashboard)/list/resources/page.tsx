@@ -11,6 +11,9 @@ import { Resource, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/clien
 import { getSchoolId } from "@/lib/school";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
+import { Eye, Pencil, Trash2 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 type ResourceList = Resource & {
   lesson: Lesson & {
@@ -103,7 +106,6 @@ const ResourceListPage = async ({
       <td className="p-4">
         <div className="flex flex-col">
           <span className="font-bold text-slate-700">{item.title}</span>
-          <a href={item.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">{t.resourcesPage?.viewFile || "View File"}</a>
         </div>
       </td>
       <td>{item.lesson.subject.name.split('|')[0].trim()}</td>
@@ -115,11 +117,38 @@ const ResourceListPage = async ({
         {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.createdAt)}
       </td>
       <td>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]"
+            title={t.resourcesPage?.viewFile || "View File"}
+          >
+            <Eye size={16} strokeWidth={2} />
+          </a>
           {(role === "admin" || role === "teacher") && (
             <>
-              {/* <FormModal table="resource" type="update" data={item} /> */}
-              <FormModal table="resource" type="delete" id={item.id} />
+              <FormModal
+                table="resource"
+                type="update"
+                data={item}
+                trigger={
+                  <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="Edit">
+                    <Pencil size={14} strokeWidth={2} />
+                  </button>
+                }
+              />
+              <FormModal
+                table="resource"
+                type="delete"
+                id={item.id}
+                trigger={
+                  <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title="Delete">
+                    <Trash2 size={16} strokeWidth={2} className="group-hover:text-rose-600" />
+                  </button>
+                }
+              />
             </>
           )}
         </div>
