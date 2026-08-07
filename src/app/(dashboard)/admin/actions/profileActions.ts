@@ -58,7 +58,7 @@ export const getAdminProfile = cache(async () => {
   } catch (error: any) {
     return { data: null, error: `Critical failure during identity synchronization: ${error.message}` };
   }
-}
+});
 
 export async function updateAdminProfile(data: {
   name?: string;
