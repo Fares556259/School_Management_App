@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState, useEffect, useMemo } from "react";
 import InputField from "../InputField";
 import { createResource } from "@/lib/crudActions";
 import { getSubjectName } from "@/lib/utils";
@@ -31,6 +31,17 @@ const ResourceForm = ({
   const [fileUrls, setFileUrls] = useState<string[]>(data?.url ? data.url.split(",") : []);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
+
+  const uniqueLessons = useMemo(() => {
+    const seen = new Set<string>();
+    return lessons.filter((lesson) => {
+      const subjectClean = getSubjectName(lesson.subject?.name || "");
+      const key = lesson.subjectId ? `id-${lesson.subjectId}` : `name-${subjectClean}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [lessons]);
 
   const {
     register,
@@ -201,7 +212,7 @@ const ResourceForm = ({
               className={`ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none transition-all appearance-none font-bold text-slate-700 pr-10 ${!selectedClassId ? 'bg-slate-100 opacity-60 cursor-not-allowed' : 'bg-slate-50 cursor-pointer'}`}
             >
               <option value="">Select a lesson...</option>
-              {lessons.map((lesson) => (
+              {uniqueLessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
                   {getSubjectName(lesson.subject.name)}
                 </option>
