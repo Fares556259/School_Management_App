@@ -45,7 +45,12 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const validGrades = (grades || []).filter((g: any) => g.score !== null);
+    const validGrades = (grades || [])
+      .filter((g: any) => g.score !== null && g.score !== undefined && !isNaN(parseFloat(g.score)))
+      .map((g: any) => ({
+        ...g,
+        score: Math.min(20, Math.max(0, parseFloat(g.score)))
+      }));
 
     await prisma.$transaction(
       validGrades.map((g: any) =>

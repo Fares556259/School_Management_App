@@ -306,13 +306,30 @@ export default function GradeSheetRecorder({
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const handleGradeChange = (studentId: string, value: string) => {
-    setGrades((prev) => ({ ...prev, [studentId]: value }));
+    const cleaned = value.replace(",", ".");
+    if (cleaned === "") {
+      setGrades((prev) => ({ ...prev, [studentId]: "" }));
+      setIsDirty(true);
+      return;
+    }
+    if (!/^\d*\.?\d*$/.test(cleaned)) return;
+    const num = parseFloat(cleaned);
+    if (!isNaN(num) && (num < 0 || num > 20)) {
+      return;
+    }
+    setGrades((prev) => ({ ...prev, [studentId]: cleaned }));
     setIsDirty(true);
   };
 
   const fillAll = (value: string) => {
+    const cleaned = value.replace(",", ".");
+    const num = parseFloat(cleaned);
+    if (cleaned !== "" && (isNaN(num) || num < 0 || num > 20)) {
+      alert("Grades must be between 0 and 20.");
+      return;
+    }
     const all: Record<string, string> = {};
-    students.forEach((s) => (all[s.id] = value));
+    students.forEach((s) => (all[s.id] = cleaned));
     setGrades(all);
     setIsDirty(true);
   };
@@ -379,8 +396,16 @@ export default function GradeSheetRecorder({
         }
         
         if (result.data) {
-          allGrades = { ...allGrades, ...result.data };
-          Object.keys(result.data).forEach(k => allFilledIds.add(k));
+          const sanitizedData: Record<string, string> = {};
+          Object.entries(result.data).forEach(([studentId, val]) => {
+            const scoreNum = typeof val === 'number' ? val : parseFloat(String(val));
+            if (!isNaN(scoreNum)) {
+              const clamped = Math.min(20, Math.max(0, scoreNum));
+              sanitizedData[studentId] = String(clamped);
+            }
+          });
+          allGrades = { ...allGrades, ...sanitizedData };
+          Object.keys(sanitizedData).forEach(k => allFilledIds.add(k));
         }
         if (result.warnings) {
           allWarnings = [...allWarnings, ...result.warnings.map(w => `Image ${i + 1}: ${w}`)];
@@ -402,6 +427,17 @@ export default function GradeSheetRecorder({
   };
 
   const handleSave = () => {
+    for (const s of students) {
+      const val = grades[s.id];
+      if (val !== undefined && val !== "") {
+        const num = parseFloat(val);
+        if (isNaN(num) || num < 0 || num > 20) {
+          alert(`Grade for ${s.name} ${s.surname} must be between 0 and 20.`);
+          return;
+        }
+      }
+    }
+
     const gradeEntries: GradeEntry[] = students.map((s) => ({
       studentId: s.id,
       score: grades[s.id] !== undefined && grades[s.id] !== "" ? parseFloat(grades[s.id]) : null,

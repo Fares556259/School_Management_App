@@ -28,15 +28,20 @@ export async function createGradeSheet(data: {
     create: { classId, subjectId, term, proofUrl, teacherId: teacherId || null, notes, schoolId },
   });
 
-  // Bulk upsert individual grades
-  const validGrades = grades.filter((g) => g.score !== null);
+  // Bulk upsert individual grades (strictly capped between 0 and 20)
+  const validGrades = grades
+    .filter((g) => g.score !== null && g.score !== undefined && !isNaN(g.score))
+    .map((g) => ({
+      ...g,
+      score: Math.min(20, Math.max(0, g.score!))
+    }));
 
   await Promise.all(
     validGrades.map((g) =>
       prisma.grade.upsert({
         where: { studentId_subjectId_term: { studentId: g.studentId, subjectId, term } },
-        update: { score: g.score!, sheetId: sheet.id, schoolId },
-        create: { studentId: g.studentId, subjectId, term, score: g.score!, sheetId: sheet.id, schoolId },
+        update: { score: g.score, sheetId: sheet.id, schoolId },
+        create: { studentId: g.studentId, subjectId, term, score: g.score, sheetId: sheet.id, schoolId },
       })
     )
   );
