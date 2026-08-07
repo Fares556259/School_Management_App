@@ -46,3 +46,14 @@ export const adjustScheduleToCurrentWeek = (
     };
   });
 };
+
+export const getSubjectName = (name: string, lang: 'ar' | 'fr' | 'en' = 'ar') => {
+  if (!name) return "";
+  const parts = name.split('|').map(s => s.trim());
+  if (parts.length >= 3) {
+    if (lang === 'ar') return parts[0];
+    if (lang === 'fr') return parts[1];
+    if (lang === 'en') return parts[2];
+  }
+  return parts[0] || name;
+};

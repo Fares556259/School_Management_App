@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useTransition, useState, useEffect } from "react";
 import InputField from "../InputField";
 import { createResource } from "@/lib/crudActions";
+import { getSubjectName } from "@/lib/utils";
 
 const schema = z.object({
   title: z.string().min(1, { message: "Resource title is required!" }),
@@ -197,7 +198,7 @@ const ResourceForm = ({
               <option value="">Select a lesson...</option>
               {lessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
-                  {lesson.subject.name} - {lesson.name} ({lesson.teacher.name} {lesson.teacher.surname})
+                  {getSubjectName(lesson.subject.name)} - {lesson.name} ({lesson.teacher.name} {lesson.teacher.surname})
                 </option>
               ))}
             </select>
