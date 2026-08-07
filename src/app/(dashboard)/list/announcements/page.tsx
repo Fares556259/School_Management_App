@@ -104,7 +104,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
               <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] hidden sm:table-cell">{t.announcementsPage?.table?.date || "Date"}</th>
               <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.attachments || "Attachments"}</th>
               {(role === "admin" || role === "teacher") && (
-                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] text-end">{t.announcementsPage?.table?.actions || "Actions"}</th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.actions || "Actions"}</th>
               )}
             </tr>
           </thead>
@@ -146,8 +146,8 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                     </div>
                   </td>
                   {(role === "admin" || role === "teacher") && (
-                    <td className="px-4 py-4 text-end">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
                         <AnnouncementPreviewModal item={item} />
                         <FormModal 
                            table="announcement" 
