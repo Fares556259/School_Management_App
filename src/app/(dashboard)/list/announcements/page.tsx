@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Notice, Class, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
-import { Megaphone, Plus, FileText, Image as ImageIcon } from "lucide-react";
+import { Megaphone, Plus, FileText, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
 import AnnouncementFilters from "./AnnouncementFilters";
 import AnnouncementPreviewModal from "./AnnouncementPreviewModal";
 import { cookies } from "next/headers";
@@ -147,7 +147,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                   </td>
                   {(role === "admin" || role === "teacher") && (
                     <td className="px-4 py-4 text-end">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2">
                         <AnnouncementPreviewModal item={item} />
                         <FormModal 
                            table="announcement" 
@@ -155,8 +155,8 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                            data={item}
                            relatedData={{ classes }}
                            trigger={
-                             <button className="text-[11px] font-medium text-[#5a5a5a] hover:text-[#181d26] px-2 py-1 rounded-[4px] border border-transparent hover:border-[#dddddd] bg-transparent hover:bg-[#f8fafc] transition-all">
-                               {t.announcementsPage?.actions?.edit || "Edit"}
+                             <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="Edit">
+                               <Pencil size={14} strokeWidth={2} />
                              </button>
                            } 
                         />
@@ -165,8 +165,8 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                            type="delete" 
                            id={item.id}
                            trigger={
-                             <button className="text-[11px] font-medium text-rose-600 hover:text-rose-800 px-2 py-1 rounded-[4px] border border-transparent hover:border-rose-200 bg-transparent hover:bg-rose-50 transition-all">
-                               {t.announcementsPage?.actions?.delete || "Delete"}
+                             <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title="Delete">
+                               <Trash2 size={16} strokeWidth={2} className="group-hover:text-rose-600" />
                              </button>
                            }
                         />

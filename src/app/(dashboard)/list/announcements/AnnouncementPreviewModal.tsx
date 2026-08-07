@@ -16,9 +16,10 @@ export default function AnnouncementPreviewModal({ item }: { item: NoticeWithCla
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-[4px] border border-transparent hover:border-indigo-200 bg-transparent hover:bg-indigo-50 transition-all flex items-center gap-1.5"
+        className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]"
+        title={t.announcementsPage?.previewModal?.preview || "Preview"}
       >
-        <Eye size={14} /> {t.announcementsPage?.previewModal?.preview || "Preview"}
+        <Eye size={16} strokeWidth={2} />
       </button>
 
       {isOpen && (
