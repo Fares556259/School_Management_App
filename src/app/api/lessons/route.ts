@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { getSchoolId } from "@/lib/school";
+import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
 import { getRole } from "@/lib/role";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
@@ -22,7 +22,7 @@ function parseTimeStr(timeStr: string) {
 
 export async function GET(request: Request) {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = request.headers.get("x-school-id") ? getSchoolIdFromHeader(request.headers) : await getSchoolId();
     const role = await getRole();
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();

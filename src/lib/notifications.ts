@@ -108,6 +108,7 @@ export async function createAnnouncementNotifications(noticeId: number) {
     // Create notifications in batch
     await prisma.notification.createMany({
       data: parentIds.map((parentId) => ({
+        schoolId: notice.schoolId,
         parentId,
         type: "ANNOUNCEMENT",
         title: notice.title,
@@ -201,6 +202,7 @@ export async function processPaymentReminders(force: boolean = false) {
             // Create new notification (Force always creates new for "Just now" timestamp)
             await prisma.notification.create({
               data: {
+                schoolId: student.schoolId,
                 parentId: student.parentId,
                 studentId: student.id,
                 type: "PAYMENT",
@@ -239,7 +241,7 @@ export async function createAttendanceNotification(studentId: string, status: st
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { name: true, parentId: true }
+      select: { name: true, parentId: true, schoolId: true }
     });
     if (!student) return;
 
@@ -276,6 +278,7 @@ export async function createAttendanceNotification(studentId: string, status: st
 
     await prisma.notification.create({
       data: {
+        schoolId: student.schoolId,
         parentId: student.parentId,
         studentId: studentId,
         type: "ATTENDANCE",
@@ -312,7 +315,7 @@ export async function createAssignmentNotification(assignmentId: number) {
 
     const students = await prisma.student.findMany({
       where: { classId: assignment.lesson.classId },
-      select: { parentId: true, id: true, name: true },
+      select: { parentId: true, id: true, name: true, schoolId: true },
     });
 
     const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
@@ -320,6 +323,7 @@ export async function createAssignmentNotification(assignmentId: number) {
     // Create database notifications
     await prisma.notification.createMany({
       data: students.map((s) => ({
+        schoolId: s.schoolId,
         parentId: s.parentId,
         studentId: s.id,
         type: "ANNOUNCEMENT",
@@ -356,12 +360,13 @@ export async function createResourceNotification(resourceId: number) {
 
     const students = await prisma.student.findMany({
       where: { classId: resource.lesson.classId },
-      select: { parentId: true, id: true, name: true },
+      select: { parentId: true, id: true, name: true, schoolId: true },
     });
 
     // Create database notifications
     await prisma.notification.createMany({
       data: students.map((s) => ({
+        schoolId: s.schoolId,
         parentId: s.parentId,
         studentId: s.id,
         type: "ANNOUNCEMENT",
@@ -392,7 +397,7 @@ export async function createDetailedAbsenceAlert(studentId: string, history: { d
   try {
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { name: true, surname: true, parentId: true }
+      select: { name: true, surname: true, parentId: true, schoolId: true }
     });
     if (!student) return;
 
@@ -424,6 +429,7 @@ export async function createDetailedAbsenceAlert(studentId: string, history: { d
 
     await prisma.notification.create({
       data: {
+        schoolId: student.schoolId,
         parentId: student.parentId,
         studentId: studentId,
         type: "ATTENDANCE",

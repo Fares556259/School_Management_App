@@ -1,10 +1,11 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getAuthenticatedUser } from "@/utils/supabase/server";
+import { getAuthenticatedUser, createClient } from "@/utils/supabase/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
+import { getSchoolId } from "@/lib/school";
 
 export const getAdminProfile = cache(async () => {
   const user = await getAuthenticatedUser();
@@ -32,11 +33,13 @@ export const getAdminProfile = cache(async () => {
         await prisma.admin.delete({ where: { id: existingByUsername.id } });
       }
 
+      const schoolId = await getSchoolId();
       // 3. Create with BASELINE fields only first (ensure core record exists)
       admin = await prisma.admin.create({
         data: {
           id: userId,
           username: targetUsername,
+          schoolId,
         }
       });
 
@@ -73,6 +76,7 @@ export async function updateAdminProfile(data: {
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    const schoolId = await getSchoolId();
     const updated = await prisma.admin.upsert({
       where: { id: userId },
       update: {
@@ -90,6 +94,7 @@ export async function updateAdminProfile(data: {
         email: data.email,
         phone: data.phone,
         img: data.img,
+        schoolId,
       },
     });
 

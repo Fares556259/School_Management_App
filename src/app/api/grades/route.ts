@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
-import { getSchoolId } from "@/lib/school";
+import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = req.headers.get("x-school-id") ? getSchoolIdFromHeader(req.headers) : await getSchoolId();
     const grades = await prisma.grade.findMany({
       where: {
         studentId,
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const validatedData = gradeSchema.parse(body);
     const { studentId, term, scores } = validatedData;
 
-    const schoolId = await getSchoolId();
+    const schoolId = req.headers.get("x-school-id") ? getSchoolIdFromHeader(req.headers) : await getSchoolId();
 
     // 1. Find the student's class to look for corresponding sheets
     const student = await prisma.student.findFirst({
@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
             sheetId: sheetId,
           },
           create: {
+            schoolId,
             studentId,
             subjectId: s.subjectId,
             term,

@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { MONTHS } from "@/lib/dateUtils";
+import { getSchoolId } from "@/lib/school";
 
 export type AICommand = {
   type: "MARK_PAID" | "ADD_EXPENSE" | "ADD_INCOME" | "POST_NOTICE" | "RECORD_GRADES";
@@ -10,6 +11,7 @@ export type AICommand = {
 };
 
 export async function executeAICommand(command: AICommand) {
+  const schoolId = await getSchoolId();
   console.log("🚀 [AI_COMMAND] RECV:", JSON.stringify(command));
   try {
     const rawType = command.type || "UNKNOWN";
@@ -73,7 +75,7 @@ export async function executeAICommand(command: AICommand) {
           
           const newPayment = await prisma.$transaction(async (tx) => {
             const p = await tx.payment.create({
-              data: {
+        data: {
                 studentId: studentId || undefined,
                 teacherId: teacherId || undefined,
                 staffId: staffId || undefined,
@@ -83,7 +85,8 @@ export async function executeAICommand(command: AICommand) {
                 status: "PAID",
                 paidAt: new Date(),
                 img: img || undefined,
-                userType: userType as any
+                userType: userType as any,
+                schoolId
               }
             });
 
@@ -91,23 +94,24 @@ export async function executeAICommand(command: AICommand) {
 
             if (studentId) {
               await tx.income.create({
-                data: { title: ledgerTitle, amount: actualPaid, category: "Tuition", date: new Date(), referenceType: "Payment", referenceId: p.id.toString() }
+        data: { title: ledgerTitle, amount: actualPaid, category: "Tuition", date: new Date(), referenceType: "Payment", referenceId: p.id.toString(), schoolId }
               });
             } else {
               await tx.expense.create({
-                data: { title: ledgerTitle, amount: actualPaid, category: "Salary", date: new Date(), referenceType: "Payment", referenceId: p.id.toString() }
+        data: { title: ledgerTitle, amount: actualPaid, category: "Salary", date: new Date(), referenceType: "Payment", referenceId: p.id.toString(), schoolId }
               });
             }
 
             await tx.auditLog.create({
-              data: {
+        data: {
                 action: "CREATE",
                 performedBy: "zbiba (AI)",
                 entityType: "Payment",
                 entityId: p.id.toString(),
                 description: `AI created on-the-fly payment record for ${recipientName} (${m}/${y})`,
                 amount: actualPaid,
-                type: studentId ? "income" : "expense"
+                type: studentId ? "income" : "expense",
+                schoolId
               }
             });
 
@@ -149,11 +153,12 @@ export async function executeAICommand(command: AICommand) {
 
           if (isPartial) {
             await tx.expense.create({
-              data: {
+        data: {
                 title: `Revenue Gap: ${recipient} (${MONTHS[m - 1]} ${y})`,
                 amount: gap,
                 category: "Deferred Revenue Gap",
-                date: new Date()
+                date: new Date(),
+                schoolId
               } as any
             });
           }
@@ -164,16 +169,16 @@ export async function executeAICommand(command: AICommand) {
 
           if (payment.student) {
             await tx.income.create({
-              data: { title: ledgerTitle, amount: actualPaid, category: "Tuition", date: new Date(), referenceType: "Payment", referenceId: payment.id!.toString() }
+        data: { title: ledgerTitle, amount: actualPaid, category: "Tuition", date: new Date(), referenceType: "Payment", referenceId: payment.id!.toString(), schoolId }
             });
           } else {
             await tx.expense.create({
-              data: { title: ledgerTitle, amount: actualPaid, category: "Salary", date: new Date(), referenceType: "Payment", referenceId: payment.id!.toString() }
+        data: { title: ledgerTitle, amount: actualPaid, category: "Salary", date: new Date(), referenceType: "Payment", referenceId: payment.id!.toString(), schoolId }
             });
           }
 
           await tx.auditLog.create({
-            data: {
+        data: {
               action: "UPDATE",
               performedBy: "zbiba (AI)",
               entityType: "Payment",
@@ -183,7 +188,8 @@ export async function executeAICommand(command: AICommand) {
                 : `AI marked payment as PAID for ${recipient} (Month: ${month}, Year: ${year})`,
               oldValues: payment as any,
               amount: actualPaid,
-              type: payment.student ? "income" : "expense"
+              type: payment.student ? "income" : "expense",
+              schoolId
             }
           });
         });
@@ -202,18 +208,19 @@ export async function executeAICommand(command: AICommand) {
         if (!title || !amount || !category) throw new Error("Missing expense data");
 
         const expense = await prisma.expense.create({
-          data: {
+        data: {
             title,
             amount: parseFloat(amount),
             category: category || "General",
             date: date ? new Date(date) : new Date(),
             img: command.data.img || undefined,
-            referenceId: referenceId || undefined
+            referenceId: referenceId || undefined,
+            schoolId
           }
         });
 
         await prisma.auditLog.create({
-          data: {
+        data: {
             action: "CREATE",
             performedBy: "zbiba (AI)",
             entityType: "Expense",
@@ -222,7 +229,8 @@ export async function executeAICommand(command: AICommand) {
             newValues: expense as any,
             amount: expense.amount,
             type: "expense",
-            effectiveDate: expense.date
+            effectiveDate: expense.date,
+            schoolId
           }
         });
 
@@ -238,17 +246,18 @@ export async function executeAICommand(command: AICommand) {
         if (!title || !amount || !category) throw new Error("Missing income data");
 
         const income = await prisma.income.create({
-          data: {
+        data: {
             title,
             amount: parseFloat(amount),
             category: category || "General",
             date: date ? new Date(date) : new Date(),
-            img: img || undefined
+            img: img || undefined,
+            schoolId
           }
         });
 
         await prisma.auditLog.create({
-          data: {
+        data: {
             action: "CREATE",
             performedBy: "zbiba (AI)",
             entityType: "Income",
@@ -257,7 +266,8 @@ export async function executeAICommand(command: AICommand) {
             newValues: income as any,
             amount: income.amount,
             type: "income",
-            effectiveDate: income.date
+            effectiveDate: income.date,
+            schoolId
           }
         });
 
@@ -273,10 +283,11 @@ export async function executeAICommand(command: AICommand) {
         if (!title || !message) throw new Error("Notice title and message are required");
 
         const notice = await prisma.notice.create({
-          data: {
+        data: {
             title,
             message,
-            date: new Date()
+            date: new Date(),
+            schoolId
           }
         });
 
@@ -284,13 +295,14 @@ export async function executeAICommand(command: AICommand) {
         import("@/lib/notifications").then(m => m.createAnnouncementNotifications(notice.id));
 
         await prisma.auditLog.create({
-          data: {
+        data: {
             action: "CREATE",
             performedBy: "zbiba (AI)",
             entityType: "Notice",
             entityId: notice.id.toString(),
             description: `AI posted official notice: ${title}`,
             newValues: notice as any,
+            schoolId
           }
         });
 
@@ -363,7 +375,8 @@ export async function executeAICommand(command: AICommand) {
               subjectId: subject.id,
               term: parseInt(term),
               proofUrl: command.data.img || "AI_CHAT_UPLOAD",
-              notes: "AI_PROCESSED"
+              notes: "AI_PROCESSED",
+              schoolId
             }
           });
 
@@ -387,19 +400,21 @@ export async function executeAICommand(command: AICommand) {
                   subjectId: subject.id,
                   term: parseInt(term),
                   score: m.score,
-                  sheetId: sheet.id
+                  sheetId: sheet.id,
+                  schoolId
                 }
              });
           }
 
           await tx.auditLog.create({
-            data: {
+        data: {
               action: "UPDATE",
               performedBy: "zbiba (AI)",
               entityType: "GradeSheet",
               entityId: sheet.id.toString(),
               description: `AI recorded/updated grade sheet for ${cls.name} - ${subject.name} (Term: ${term}, ${marksToCreate.length} students)`,
-              newValues: { ...sheet, marksCount: marksToCreate.length } as any
+              newValues: { ...sheet, marksCount: marksToCreate.length } as any,
+              schoolId
             }
           });
 
@@ -424,3 +439,4 @@ export async function executeAICommand(command: AICommand) {
     return { success: false, error: error.message || "Command failed" };
   }
 }
+

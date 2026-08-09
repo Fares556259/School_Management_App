@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { updateAdminProfile } from "../admin/actions/profileActions";
+import { updateAdminProfile, getAdminProfile } from "../admin/actions/profileActions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Mail, Phone, Camera, Check, AlertCircle, UploadCloud } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
-interface ProfileClientProps {
-  initialData: any;
-}
-
-const ProfileClient = ({ initialData }: ProfileClientProps) => {
+const ProfileClient = () => {
   const router = useRouter();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
@@ -19,14 +16,32 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
   const [error, setError] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   
-  // Track the data currently saved on server to detect changes
-  const [serverData, setServerData] = useState(initialData);
+  const queryClient = useQueryClient();
 
-  const [name, setName] = useState(initialData?.name || "");
-  const [surname, setSurname] = useState(initialData?.surname || "");
-  const [email, setEmail] = useState(initialData?.email || "");
-  const [phone, setPhone] = useState(initialData?.phone || "");
-  const [img, setImg] = useState(initialData?.img || "/noAvatar.png");
+  const { data: serverData, isLoading: isFetchingProfile } = useQuery({
+    queryKey: ["adminProfile"],
+    queryFn: async () => {
+      const res = await getAdminProfile();
+      return res.data || null;
+    }
+  });
+
+  const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [img, setImg] = useState("/noAvatar.png");
+
+  // Sync state when data loads
+  useEffect(() => {
+    if (serverData) {
+      setName(serverData.name || "");
+      setSurname(serverData.surname || "");
+      setEmail(serverData.email || "");
+      setPhone(serverData.phone || "");
+      setImg(serverData.img || "/noAvatar.png");
+    }
+  }, [serverData]);
 
   const hasChanges = 
     name !== (serverData?.name || "") ||
@@ -46,14 +61,14 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
         surname,
         email,
         phone,
-        img: img !== "/noAvatar.png" ? img : null,
+        img: img !== "/noAvatar.png" ? img : undefined,
       };
       
       const res = await updateAdminProfile(payload);
 
       if (res.success) {
         setSuccess(true);
-        setServerData({ ...serverData, ...payload });
+        queryClient.invalidateQueries({ queryKey: ["adminProfile"] });
         router.refresh(); // Sync header and sidebar immediately
         setTimeout(() => setSuccess(false), 3000);
       } else {
@@ -75,7 +90,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
     
     try {
       const supabase = (await import('@/utils/supabase/client')).createClient();
-      const fileName = `profile-${initialData?.id || 'admin'}-${Date.now()}`;
+      const fileName = `profile-${serverData?.id || 'admin'}-${Date.now()}`;
       const filePath = `profiles/${fileName}`;
 
       const { data, error: uploadError } = await supabase.storage
@@ -93,7 +108,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
       // Auto-save the profile with the new image
       const res = await updateAdminProfile({ img: publicUrl });
       if (res.success) {
-        setServerData((prev: any) => ({ ...prev, img: publicUrl }));
+        queryClient.invalidateQueries({ queryKey: ["adminProfile"] });
         router.refresh();
       } else {
         throw new Error(res.error || t.profileSettings?.failedToUpload || "Failed to save profile picture");
@@ -168,7 +183,7 @@ const ProfileClient = ({ initialData }: ProfileClientProps) => {
             </div>
 
             <h2 className="text-[16px] font-semibold text-[#181d26]">
-              {name || surname ? `${name} ${surname}` : initialData?.username}
+              {name || surname ? `${name} ${surname}` : serverData?.username}
             </h2>
             <p className="text-[12px] font-medium text-[#5a5a5a] uppercase tracking-wider mt-1">{t.profileSettings?.administrator || "Administrator"}</p>
             

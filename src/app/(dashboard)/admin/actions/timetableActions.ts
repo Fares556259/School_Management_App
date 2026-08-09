@@ -42,7 +42,6 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
       // CREATE NEW SLOT
       const created = await prisma.timetableSlot.create({
         data: {
-          schoolId,
           day: data.day!,
           slotNumber: data.slotNumber!,
           startTime: data.startTime || "08:00 AM",

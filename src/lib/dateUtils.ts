@@ -10,12 +10,19 @@ export const MONTHS = [
 export function getMonthKey(monthParam: string | undefined): string {
   const now = new Date();
   if (!monthParam) {
-    return `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+    let m = now.getMonth();
+    let y = now.getFullYear();
+    // Default to September of the upcoming year if it's July or August
+    if (m === 6 || m === 7) m = 8;
+    return `${MONTHS[m]} ${y}`;
   }
   const [m, y] = monthParam.split("-").map(Number);
   // Basic validation to avoid NaN errors
   if (isNaN(m) || isNaN(y)) {
-    return `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+    let currM = now.getMonth();
+    let currY = now.getFullYear();
+    if (currM === 6 || currM === 7) currM = 8;
+    return `${MONTHS[currM]} ${currY}`;
   }
   return `${MONTHS[m]} ${y}`;
 }
@@ -82,8 +89,8 @@ export function getSchoolYearMonths(date: Date = new Date()): string[] {
   const currentMonthIndex = date.getMonth();
   const currentYear = date.getFullYear();
 
-  // If Jan-Jun, year started in Sep last year. If Aug-Dec, starts Sep this year.
-  const schoolYearStartYear = (currentMonthIndex >= 8) ? currentYear : currentYear - 1;
+  // If Jan-Jun, year started in Sep last year. If Jul-Dec, starts Sep this year.
+  const schoolYearStartYear = (currentMonthIndex >= 6) ? currentYear : currentYear - 1;
 
   const months = [
     { m: 8, y: schoolYearStartYear },        // Sep

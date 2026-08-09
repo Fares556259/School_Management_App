@@ -23,25 +23,9 @@ export default async function ProfilePage() {
     );
   }
 
-  const { data: adminProfile, error: profileError } = await getAdminProfile();
-
-  if (!adminProfile) {
-    return (
-        <div className="h-[60vh] flex flex-col items-center justify-center text-center p-8">
-            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center mb-6 border border-rose-100">
-                <span className="text-3xl">❌</span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tighter mb-2">Profile Load Failure</h1>
-            <p className="text-slate-500 max-w-md mx-auto font-medium">
-                {profileError || "We encountered an error while retrieving your profile details."}
-            </p>
-        </div>
-    );
-  }
-
   return (
     <>
-       <ProfileClient initialData={adminProfile} />
+       <ProfileClient />
     </>
   );
 }

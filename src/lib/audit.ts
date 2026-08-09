@@ -36,6 +36,9 @@ export async function createAuditLog({
     // If we have a userId, use it; otherwise fallback to "system" or role if available
     const performedBy = userId || "system";
     
+    const { getSchoolId } = await import("@/lib/school");
+    const schoolId = await getSchoolId();
+
     await prisma.auditLog.create({
       data: {
         action,
@@ -48,6 +51,7 @@ export async function createAuditLog({
         effectiveDate,
         oldValues,
         newValues,
+        schoolId,
       },
     });
   } catch (error) {

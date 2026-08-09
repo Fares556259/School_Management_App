@@ -37,15 +37,15 @@ export default async function DashboardLayout({
     return redirect("/sign-in");
   }
 
-  const role = await getRole();
-  
-  // Fetch school configuration with request-level caching
-  let schoolConfig = null;
-  try {
-    schoolConfig = await getSchoolConfig();
-  } catch (error) {
-    console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", (error as any).message);
-  }
+  // Fetch all parallelizable dashboard data
+  const [role, schoolConfigResult] = await Promise.all([
+    getRole(),
+    getSchoolConfig().catch((error) => {
+      console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", error.message);
+      return null;
+    })
+  ]);
+  const schoolConfig = schoolConfigResult;
 
   if (schoolConfig?.status === "SUSPENDED" && role !== "superadmin") {
     return redirect("/suspended");

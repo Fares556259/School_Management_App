@@ -267,6 +267,7 @@ export const bulkCreateStudents = async (students: any[]) => {
             parentId = crypto.randomUUID();
             await tx.parent.create({
               data: {
+                schoolId,
                 id: parentId,
                 username: s.parentName?.toLowerCase() + Math.floor(Math.random() * 1000),
                 name: s.parentName || "Parent",
@@ -1073,16 +1074,18 @@ export const deleteNotice = async (id: number) => {
 // ===================== TIMETABLE =====================
 export const bulkUpdateTimetableSlots = async (classId: number, slots: any[], isDraft: boolean = false) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.$transaction(async (tx) => {
       // 1. Delete existing slots for this class
       await tx.timetableSlot.deleteMany({
-        where: { classId, isDraft },
+        where: { classId, isDraft, schoolId },
       });
 
       // 2. Create new slots
       for (const slot of slots) {
         await tx.timetableSlot.create({
           data: {
+            schoolId,
             day: slot.day,
             startTime: slot.startTime,
             endTime: slot.endTime,

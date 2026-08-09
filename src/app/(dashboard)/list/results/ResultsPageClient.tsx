@@ -517,7 +517,7 @@ export default function ResultsPageClient({
                         });
                       }}
                       className="w-9 h-9 rounded-[6px] flex items-center justify-center transition-all border bg-white text-[#181d26] border-[#e5e7eb] hover:bg-[#f3f4f6]"
-                      title={t.resourcesPage?.viewDetails || "View Grade Details"}
+                      title={t.resourcesPage?.viewFile || "View Grade Details"}
                     >
                       <Eye size={15} />
                     </button>

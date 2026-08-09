@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { 
   Check, 
@@ -67,66 +68,82 @@ export default function AttendancePage() {
   const [showAlerts, setShowAlerts] = useState(true);
   const [sendingAlertId, setSendingAlertId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/attendance/classes")
-      .then((r) => r.json())
-      .then((data) => {
-        const classesArray = Array.isArray(data) ? data : [];
-        setClasses(classesArray);
-        if (classesArray.length > 0) setSelectedClass(String(classesArray[0].id));
-      })
-      .catch((err) => console.error("Failed to fetch classes:", err));
-  }, []);
+  const queryClient = useQueryClient();
 
-  const loadStudents = useCallback(async () => {
-    if (!selectedClass) return;
-    setLoading(true);
-    setIsDirty(false);
-    try {
-      const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}&lessonId=${selectedLesson}`);
+  const { data: classesData, isLoading: isClassesLoading } = useQuery({
+    queryKey: ["attendanceClasses"],
+    queryFn: async () => {
+      const res = await fetch("/api/attendance/classes");
       const data = await res.json();
-      
-      const fetchedLessons = data?.lessons || [];
-      setLessons(fetchedLessons);
-
-      if (fetchedLessons.length > 0) {
-        const firstLessonId = String(fetchedLessons[0].id);
-        if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => String(l.id) === selectedLesson)) {
-          if (selectedLesson !== firstLessonId) setSelectedLesson(firstLessonId);
-        }
-      } else if (selectedLesson !== "") {
-        setSelectedLesson("");
-      }
-
-      const studentsArray = Array.isArray(data?.students) ? data.students : Array.isArray(data) ? data : [];
-      setStudents(studentsArray);
-
-      const initialStatuses: Record<string, Status> = {};
-      const initialNotes: Record<string, { author: string; text: string }[]> = {};
-      
-      studentsArray.forEach((s: any) => {
-        initialStatuses[s.id] = (s.attendance[0]?.status as Status) ?? null;
-        let parsedNotes: { author: string; text: string }[] = [];
-        try {
-          if (s.attendance[0]?.note) parsedNotes = JSON.parse(s.attendance[0].note);
-        } catch (e) {
-          if (s.attendance[0]?.note) parsedNotes = [{ author: "Admin", text: s.attendance[0].note }];
-        }
-        parsedNotes.push({ author: "Admin", text: "" });
-        initialNotes[s.id] = parsedNotes;
-      });
-      setStatuses(initialStatuses);
-      setNotes(initialNotes);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      return Array.isArray(data) ? data : [];
     }
-  }, [selectedClass, date, selectedLesson]);
+  });
 
   useEffect(() => {
-    loadStudents();
-  }, [loadStudents]);
+    if (classesData) {
+      setClasses(classesData);
+      if (classesData.length > 0 && !selectedClass) {
+        setSelectedClass(String(classesData[0].id));
+      }
+    }
+  }, [classesData, selectedClass]);
+
+  const { data: studentsData, isLoading: isStudentsLoading, isFetching } = useQuery({
+    queryKey: ["attendanceStudents", selectedClass, date, selectedLesson],
+    queryFn: async () => {
+      if (!selectedClass) return null;
+      const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}&lessonId=${selectedLesson}`);
+      return await res.json();
+    },
+    enabled: !!selectedClass,
+  });
+
+  const resetState = useCallback(() => {
+    if (!studentsData) return;
+    setIsDirty(false);
+    
+    const fetchedLessons = studentsData?.lessons || [];
+    setLessons(fetchedLessons);
+
+    if (fetchedLessons.length > 0) {
+      const firstLessonId = String(fetchedLessons[0].id);
+      if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => String(l.id) === selectedLesson)) {
+        if (selectedLesson !== firstLessonId) setSelectedLesson(firstLessonId);
+      }
+    } else if (selectedLesson !== "") {
+      setSelectedLesson("");
+    }
+
+    const studentsArray = Array.isArray(studentsData?.students) ? studentsData.students : Array.isArray(studentsData) ? studentsData : [];
+    setStudents(studentsArray);
+
+    const initialStatuses: Record<string, Status> = {};
+    const initialNotes: Record<string, { author: string; text: string }[]> = {};
+    
+    studentsArray.forEach((s: any) => {
+      initialStatuses[s.id] = (s.attendance[0]?.status as Status) ?? null;
+      let parsedNotes: { author: string; text: string }[] = [];
+      try {
+        if (s.attendance[0]?.note) parsedNotes = JSON.parse(s.attendance[0].note);
+      } catch (e) {
+        if (s.attendance[0]?.note) parsedNotes = [{ author: "Admin", text: s.attendance[0].note }];
+      }
+      parsedNotes.push({ author: "Admin", text: "" });
+      initialNotes[s.id] = parsedNotes;
+    });
+    setStatuses(initialStatuses);
+    setNotes(initialNotes);
+  }, [studentsData, selectedLesson]);
+
+  useEffect(() => {
+    // Sync loading state for UI
+    setLoading(isStudentsLoading || isFetching);
+  }, [isStudentsLoading, isFetching]);
+
+  useEffect(() => {
+    resetState();
+  }, [resetState]);
+
 
   const handleSave = async () => {
     if (!isDirty) return;
@@ -146,6 +163,10 @@ export default function AttendancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ records, date, lessonId: selectedLesson }),
       });
+      
+      // Invalidate query to ensure fresh data next time
+      queryClient.invalidateQueries({ queryKey: ["attendanceStudents", selectedClass, date, selectedLesson] });
+      
       setSaved(true);
       setIsDirty(false);
       setTimeout(() => setSaved(false), 3000);
@@ -232,7 +253,7 @@ export default function AttendancePage() {
                 <button 
                   onClick={() => {
                     setIsEditMode(false);
-                    loadStudents(); // Discard changes
+                    resetState(); // Discard changes
                   }}
                   className="px-4 py-2.5 rounded-[6px] font-medium text-[13px] active:scale-[0.98] transition-all border border-[#dddddd] bg-[#ffffff] text-[#181d26] hover:bg-[#f8fafc] shadow-sm"
                 >

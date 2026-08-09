@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
 import { createAttendanceNotification } from "@/lib/notifications";
-import { getSchoolId } from "@/lib/school";
+import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ const DAY_MAP: Record<number, string> = {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const schoolId = await getSchoolId();
+  const schoolId = request.headers.get("x-school-id") ? getSchoolIdFromHeader(request.headers) : await getSchoolId();
   const classId = searchParams.get("classId");
   const dateStr = searchParams.get("date");
   const lessonIdParam = searchParams.get("lessonId");
@@ -316,7 +316,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const schoolId = await getSchoolId();
+    const schoolId = request.headers.get("x-school-id") ? getSchoolIdFromHeader(request.headers) : await getSchoolId();
     const { records, date, lessonId } = body as {
       records: { studentId: string; status: "PRESENT" | "ABSENT" | "LATE"; note?: string }[];
       date: string;
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
                // Completely new slot
                const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
                lesson = await prisma.lesson.create({
-                 data: {
+        data: {
                    name: lessonName,
                    day: targetSlot.day,
                    startTime: dayStart,

@@ -338,11 +338,13 @@ export async function deleteClass(id: number) {
 
 export async function addSettingsClass(data: { name: string, levelId: number }) {
   try {
+    const schoolId = await getSchoolId();
     const newClass = await prisma.class.create({
       data: {
         name: data.name,
         levelId: data.levelId,
         capacity: 30, // Default capacity
+        schoolId,
       }
     });
     revalidatePath("/settings");

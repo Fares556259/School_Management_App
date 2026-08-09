@@ -28,6 +28,7 @@ export const addFinanceEntry = async (formData: FormData) => {
       const income = await prisma.income.create({ data: { schoolId, title, amount, category, date } });
       await prisma.auditLog.create({
         data: {
+          schoolId,
           action: "ADD_INCOME",
           performedBy: userId || "unknown",
           entityType: "Finance",
@@ -40,6 +41,7 @@ export const addFinanceEntry = async (formData: FormData) => {
       const expense = await prisma.expense.create({ data: { schoolId, title, amount, category, date } });
       await prisma.auditLog.create({
         data: {
+          schoolId,
           action: "ADD_EXPENSE",
           performedBy: userId || "unknown",
           entityType: "Finance",

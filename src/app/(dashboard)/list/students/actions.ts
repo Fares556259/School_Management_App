@@ -32,6 +32,9 @@ export const receiveStudentPayment = async (
   const finalStatus = isPartial ? "PARTIAL" : "PAID";
 
   try {
+    const { getSchoolId } = await import("@/lib/school");
+    const schoolId = await getSchoolId();
+
     // 0. Check for existing payment
     const existing = await prisma.payment.findUnique({
       where: {
@@ -70,7 +73,8 @@ export const receiveStudentPayment = async (
           year: yearVal,
           status: finalStatus as any,
           userType: "STUDENT",
-          paidAt: new Date()
+          paidAt: new Date(),
+          schoolId
         }
       });
 
@@ -79,13 +83,14 @@ export const receiveStudentPayment = async (
       // 2. Add to Income table
       if (newMoneyCollected > 0) {
         await tx.income.create({
-          data: {
+        data: {
             title: `Tuition: ${studentName} (${monthYear}) ${existing ? "- Recovery" : ""}`,
             amount: newMoneyCollected,
             date: new Date(),
             category: "Tuition",
             referenceType: "StudentPayment",
             referenceId: p.id.toString(),
+            schoolId,
           },
         });
         console.log(`✅ [PAYMENT_STEP] Income record created for ${newMoneyCollected}`);
@@ -96,7 +101,8 @@ export const receiveStudentPayment = async (
         await tx.expense.deleteMany({
           where: {
             category: "Deferred Revenue Gap",
-            title: { contains: `${studentName} (${monthYear})` }
+            title: { contains: `${studentName} (${monthYear})` },
+            schoolId,
           }
         });
         console.log(`✅ [PAYMENT_STEP] Deferred gap expense removed`);
@@ -116,7 +122,8 @@ export const receiveStudentPayment = async (
           type: "income",
           timestamp: new Date(),
           oldValues: existing || undefined,
-          newValues: p as any
+          newValues: p as any,
+          schoolId
         }
       });
       console.log(`✅ [PAYMENT_STEP] Audit log recorded`);

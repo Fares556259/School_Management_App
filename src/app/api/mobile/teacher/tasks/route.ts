@@ -12,27 +12,28 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing teacherId", { status: 400 });
     }
 
-    // Fetch assignments given by this teacher
     const assignments = await prisma.assignment.findMany({
       where: {
         lesson: { teacherId }
       },
       include: {
         lesson: {
-          include: {
-            class: true,
-            subject: true
+          select: {
+            classId: true,
+            class: { select: { id: true, name: true } },
+            subject: { select: { name: true } }
           }
         },
-        results: true // To calculate submission rate
+        _count: { select: { results: true } } // Optimize submission count without loading full result array
       },
-      orderBy: { dueDate: "desc" }
+      orderBy: { dueDate: "desc" },
+      take: 50 // Avoid massive payloads for mobile
     });
 
     // Map to a cleaner format for the mobile app
     const mappedTasks = assignments.map(a => {
       const totalStudents = a.lesson.class.id; // We'll get actual count below
-      const submitted = a.results.length;
+      const submitted = a._count.results;
       
       const now = new Date();
       const dueDate = new Date(a.dueDate);

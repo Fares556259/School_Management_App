@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { Day } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getSchoolId } from "@/lib/school";
 
 export async function getExamPeriodConfigs(classId?: number) {
   try {
@@ -19,6 +20,7 @@ export async function getExamPeriodConfigs(classId?: number) {
 export async function upsertExamPeriodConfig(period: number, startDate: Date, endDate?: Date, classId?: number) {
   try {
     if (!classId) return { success: false, error: "Class ID is required" };
+    const schoolId = await getSchoolId();
 
     const config = await prisma.examPeriodConfig.upsert({
       where: { period_classId: { period, classId } },
@@ -27,6 +29,7 @@ export async function upsertExamPeriodConfig(period: number, startDate: Date, en
         endDate: endDate ? new Date(endDate) : null
       },
       create: { 
+        schoolId,
         period, 
         classId,
         startDate: new Date(startDate),
@@ -147,6 +150,7 @@ export async function updateExamSlot(data: {
        if (!data.subjectId || !data.teacherId) {
          return { success: false, error: "Subject and Teacher are required." };
        }
+       const schoolId = await getSchoolId();
 
        let lesson = await prisma.lesson.findFirst({
          where: {
@@ -160,6 +164,7 @@ export async function updateExamSlot(data: {
           // Create dummy lesson for the exam if none exists
           lesson = await prisma.lesson.create({
             data: {
+                schoolId,
                 name: "Exam Lesson",
                 day: data.day,
                 startTime: startTime,
@@ -173,6 +178,7 @@ export async function updateExamSlot(data: {
 
        const created = await prisma.exam.create({
          data: {
+            schoolId,
             title: "Examination",
             startTime,
             endTime,
@@ -364,6 +370,7 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
 
                 await tx.exam.create({
                     data: {
+                        schoolId,
                         title: "Examination",
                         startTime,
                         endTime,
@@ -460,6 +467,7 @@ import { createExamScheduleNotification } from "@/lib/notifications";
 
 export async function publishExamScheduleToStudents(classId: number, period: number, pdfUrl: string) {
   try {
+    const schoolId = await getSchoolId();
     // 1. Get the current config or create a dummy start date if it doesn't exist
     const existing = await prisma.examPeriodConfig.findUnique({
       where: { period_classId: { period, classId } }
@@ -472,6 +480,7 @@ export async function publishExamScheduleToStudents(classId: number, period: num
         pdfUrl
       },
       create: { 
+        schoolId,
         period, 
         classId,
         startDate: existing?.startDate || new Date(),

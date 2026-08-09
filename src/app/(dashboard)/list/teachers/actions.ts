@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
+import { getSchoolId } from "@/lib/school";
 
 export const payTeacherSalary = async (
   teacherId: string,
@@ -16,6 +17,8 @@ export const payTeacherSalary = async (
   const yearVal = parseInt(yStr);
 
   try {
+    const schoolId = await getSchoolId();
+
     const payment = await prisma.$transaction(async (tx) => {
       const p = await tx.payment.upsert({
         where: {
@@ -37,7 +40,8 @@ export const payTeacherSalary = async (
           year: yearVal,
           status: "PAID",
           userType: "TEACHER",
-          paidAt: new Date()
+          paidAt: new Date(),
+          schoolId,
         }
       });
 
@@ -50,6 +54,7 @@ export const payTeacherSalary = async (
           category: "Salary",
           referenceType: "TeacherSalary",
           referenceId: p.id.toString(),
+          schoolId,
         },
       });
 
