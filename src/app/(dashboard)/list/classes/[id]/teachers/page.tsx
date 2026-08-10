@@ -79,6 +79,8 @@ export default async function ClassTeachersPage({
   // Add lesson teachers
   activeClass.lessons.forEach(lesson => {
     const teacher = lesson.teacher;
+    if (!teacher) return;
+    
     if (teachersMap.has(teacher.id)) {
       // If teacher already added, just append subject if not exists
       const existing = teachersMap.get(teacher.id);

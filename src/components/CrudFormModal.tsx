@@ -5,6 +5,8 @@ import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
 import SearchableSelect from "./SearchableSelect";
 import MultiSelect from "./MultiSelect";
+import { toast } from "react-toastify";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   createTeacher, updateTeacher, deleteTeacher,
   createStudent, updateStudent, deleteStudent,
@@ -304,53 +306,82 @@ export default function CrudFormModal({
     // Handle image state: ensure null is sent if photo was explicitly removed
     values.img = imgs.length > 0 ? imgs.join(",") : null;
 
-    startTransition(async () => {
-      let result;
-      if (mode === "create") {
-        if (entity === "parent") {
-          // Collect children data from the form
-          const studentList = students.map((s, index) => ({
-            name: formData.get(`student-${index}-name`),
-            surname: formData.get(`student-${index}-surname`),
-            sex: formData.get(`student-${index}-sex`),
-            birthday: formData.get(`student-${index}-birthday`),
-            classId: formData.get(`student-${index}-classId`),
-            bloodType: "O+", // Default for speed
-          }));
+    const promise = new Promise(async (resolve, reject) => {
+      startTransition(async () => {
+        let result;
+        try {
+          if (mode === "create") {
+            if (entity === "parent") {
+              const studentList = students.map((s, index) => ({
+                name: formData.get(`student-${index}-name`),
+                surname: formData.get(`student-${index}-surname`),
+                sex: formData.get(`student-${index}-sex`),
+                birthday: formData.get(`student-${index}-birthday`),
+                classId: formData.get(`student-${index}-classId`),
+                bloodType: "O+",
+              }));
 
-          // Validate that children info is filled
-          const missingInfo = studentList.some(s => !s.name || !s.surname || !s.classId);
-          if (missingInfo) {
-            setError("Please fill in all student details.");
-            return;
+              const missingInfo = studentList.some(s => !s.name || !s.surname || !s.classId);
+              if (missingInfo) {
+                setError("Please fill in all student details.");
+                return reject("Missing student details");
+              }
+
+              result = await enrollFamily(values, studentList);
+            } else {
+              result = await createFns[entity](values);
+            }
+          } else if (mode === "update" && id) {
+            result = await updateFns[entity](id, values);
           }
-
-          result = await enrollFamily(values, studentList);
-        } else {
-          result = await createFns[entity](values);
+          
+          if (result?.success) {
+            resolve("Success");
+            setOpen(false); // Close instantly on success
+          } else {
+            setError(result?.error || "Something went wrong.");
+            reject(result?.error || "Something went wrong.");
+          }
+        } catch (err: any) {
+          setError(err.message || "An error occurred.");
+          reject(err.message);
         }
-      } else if (mode === "update" && id) {
-        result = await updateFns[entity](id, values);
-      }
-      
-      if (result?.success) {
-        setOpen(false);
-      } else {
-        setError(result?.error || "Something went wrong.");
-      }
+      });
+    });
+
+    toast.promise(promise, {
+      pending: mode === "create" ? `Creating ${entity}...` : `Updating ${entity}...`,
+      success: mode === "create" ? `${entity} created successfully!` : `${entity} updated successfully!`,
+      error: "Operation failed."
     });
   };
 
   const handleDelete = () => {
     if (!id) return;
     setError("");
-    startTransition(async () => {
-      const result = await deleteFns[entity](id);
-      if (result?.success) {
-        setOpen(false);
-      } else {
-        setError(result?.error || "Failed to delete.");
-      }
+    
+    const promise = new Promise(async (resolve, reject) => {
+      startTransition(async () => {
+        try {
+          const result = await deleteFns[entity](id);
+          if (result?.success) {
+            resolve("Success");
+            setOpen(false); // Close instantly
+          } else {
+            setError(result?.error || "Failed to delete.");
+            reject(result?.error || "Failed to delete.");
+          }
+        } catch (err: any) {
+          setError(err.message || "Failed to delete.");
+          reject(err.message);
+        }
+      });
+    });
+
+    toast.promise(promise, {
+      pending: `Deleting ${entity}...`,
+      success: `${entity} deleted successfully!`,
+      error: "Failed to delete."
     });
   };
 
@@ -388,9 +419,26 @@ export default function CrudFormModal({
         {trigger || defaultTrigger}
       </div>
 
-      {open && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`bg-white rounded-[12px] shadow-xl border border-[#dddddd] w-full relative max-h-[90vh] overflow-y-auto custom-scrollbar ${entity === "income" || entity === "expense" || entity === "parent" || entity === "teacher" ? "max-w-xl" : "max-w-lg"}`}>
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-[100] flex justify-center items-center">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Content */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`relative z-[101] bg-white rounded-[16px] shadow-2xl w-[95%] max-h-[90vh] overflow-y-auto custom-scrollbar ${entity === "income" || entity === "expense" || entity === "parent" || entity === "teacher" ? "max-w-xl" : "max-w-lg"}`}
+            >
             {/* Header */}
             <div className="sticky top-0 bg-white p-6 border-b border-[#dddddd] flex justify-between items-center rounded-t-[12px] z-10">
               <h2 className="text-[20px] font-medium text-[#181d26] tracking-tight">
@@ -843,9 +891,10 @@ export default function CrudFormModal({
                 </form>
               )}
             </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -1,5 +1,10 @@
 import prisma from "@/lib/prisma";
-import FinanceChartClient from "./FinanceChartClient";
+import dynamic from "next/dynamic";
+
+const FinanceChartClient = dynamic(() => import("./FinanceChartClient"), {
+  ssr: false,
+  loading: () => <div className="h-[450px] w-full bg-slate-100 animate-pulse rounded-xl"></div>
+});
 
 const FinanceChart = async ({ filter = "1Y" }: { filter?: string }) => {
   const now = new Date();

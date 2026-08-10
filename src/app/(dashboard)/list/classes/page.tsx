@@ -102,7 +102,7 @@ const ClassListPage = async ({
       <td className="hidden md:table-cell py-4 px-6">{item.level?.level}</td>
       <td className="hidden md:table-cell py-4 px-6">
         <div className="flex flex-wrap gap-1">
-          {Array.from(new Map(item.lessons.map(l => [l.teacher.id, l.teacher])).values()).map((teacher) => (
+          {Array.from(new Map(item.lessons.filter(l => l.teacher).map(l => [l.teacher.id, l.teacher])).values()).map((teacher) => (
             <div key={teacher.id} className="flex items-center gap-1.5 bg-[#f8fafc] border border-[#dddddd] px-2 py-1 rounded-md" title={`${teacher.name} ${teacher.surname}`}>
               {teacher.img ? (
                 <img src={teacher.img} alt="" className="w-5 h-5 rounded-full object-cover" />
@@ -112,7 +112,7 @@ const ClassListPage = async ({
                 </div>
               )}
               <span className="text-[12px] font-medium text-[#41454d] truncate max-w-[80px]">
-                {teacher.name} {teacher.surname[0]}.
+                {teacher.name} {teacher.surname?.[0]}.
               </span>
             </div>
           ))}

@@ -2,7 +2,12 @@ import { getRole } from "@/lib/role";
 
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormModal from "@/components/FormModal";
-import Performance from "@/components/Performance";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
+const Performance = dynamic(() => import("@/components/Performance"), {
+  ssr: false,
+  loading: () => <div className="h-full bg-slate-100 animate-pulse rounded-md"></div>
+});
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";

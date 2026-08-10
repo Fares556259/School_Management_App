@@ -112,7 +112,7 @@ const ResourceListPage = async ({
       <td>{item.lesson.subject.name.split('|')[0].trim()}</td>
       <td className="hidden md:table-cell">{item.lesson.class.name}</td>
       <td className="hidden lg:table-cell">
-        {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+        {item.lesson.teacher?.name + " " + item.lesson.teacher?.surname}
       </td>
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.createdAt)}

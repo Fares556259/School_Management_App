@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useTransition } from "react";
 import { deleteNotice, deleteAssignment, deleteResource } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { AnimatePresence, motion } from "framer-motion";
 
 // USE LAZY LOADING
 
@@ -150,21 +151,39 @@ const FormModal = ({
           <Image src={`/${type}.png`} alt="" width={16} height={16} />
         </button>
       )}
-      {open && (
-        <div className="w-screen h-screen fixed left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className={`bg-white p-4 rounded-md relative w-[95%] ${(table === "assignment" || table === "resource") ? "md:w-[80%] lg:w-[70%] xl:w-[60%]" : "md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]"}`}>
-            <Form />
-            <div
-              className="absolute top-4 right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+      <AnimatePresence>
+        {open && (
+          <div className="w-screen h-screen fixed left-0 top-0 z-50 flex items-center justify-center">
+            {/* BACKDROP */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-black bg-opacity-60"
+            />
+            
+            {/* MODAL CONTAINER */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`bg-white p-4 rounded-md relative z-10 w-[95%] ${(table === "assignment" || table === "resource") ? "md:w-[80%] lg:w-[70%] xl:w-[60%]" : "md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]"}`}
             >
-              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
+              <Form />
+              <div
+                className="absolute top-4 right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 };

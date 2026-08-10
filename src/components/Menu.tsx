@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { 
@@ -143,10 +143,11 @@ const menuItems: MenuSection[] = [
   },
 ];
 
-const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
+const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Reset pending state when pathname changes (navigation completes)
@@ -184,6 +185,7 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
                   href={targetHref}
                   prefetch={true}
                   onClick={() => setPendingHref(targetHref)}
+                  onMouseEnter={() => router.prefetch(targetHref)}
                   key={item.label}
                   className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${
                     isActive 
@@ -234,7 +236,7 @@ const Menu = ({ role, adminData }: { role: string, adminData?: any }) => {
             {fullName}
           </span>
           <span className="text-[10px] text-white/70 font-medium uppercase tracking-wider truncate">
-            {(t.navbar as any)?.[role?.toLowerCase()] || role || "User"}
+            {(t.navbar as any)?.[role?.toLowerCase() || ""] || role || "User"}
           </span>
         </div>
         <div className="text-white/70 hover:text-white cursor-pointer ml-auto shrink-0 transition-colors">

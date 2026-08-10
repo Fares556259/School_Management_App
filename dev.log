@@ -1,0 +1,13 @@
+
+> lama-dev-next-dashboard@0.1.0 dev
+> next dev -H 0.0.0.0
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3001
+  - Network:      http://0.0.0.0:3001
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 1803ms
+[?25h
