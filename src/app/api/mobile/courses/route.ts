@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { classId: true }
+      select: { classId: true, schoolId: true }
     });
 
     if (!student) {
@@ -25,10 +25,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    // 1. Get all subjects for this class
+    // 1. Get all subjects for this school (even if no lessons are assigned yet)
     const subjects = await prisma.subject.findMany({
       where: { 
-        lessons: { some: { classId: student.classId } } 
+        schoolId: student.schoolId
       },
       include: {
         lessons: {
