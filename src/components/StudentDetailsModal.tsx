@@ -65,7 +65,7 @@ export default function StudentDetailsModal({
 
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
             {/* BACKDROP */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -80,16 +80,16 @@ export default function StudentDetailsModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[12px] w-full max-w-3xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10 text-left"
+              className="bg-white rounded-[12px] w-full max-w-3xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden z-10 text-right"
             >
               {/* HEADER */}
               <div className="px-6 py-4 border-b border-[#dddddd] flex items-center justify-between">
                 <div>
                   <h3 className="text-[20px] font-medium text-[#181d26] tracking-tight leading-none mb-1.5">
-                    Student Details
+                    تفاصيل الطالب
                   </h3>
                   <div className="flex items-center gap-2 text-[13px] font-normal text-[#41454d]">
-                    <span>Students</span>
+                    <span>الطلاب</span>
                     <span className="text-[#9297a0]">/</span>
                     <span>{student.name} {student.surname}</span>
                   </div>
@@ -106,7 +106,7 @@ export default function StudentDetailsModal({
               <div className="flex-1 overflow-y-auto bg-white custom-scrollbar">
                 <div className="p-5 flex flex-col md:flex-row gap-5 min-h-full items-stretch">
                 
-                  {/* LEFT CARD: ABOUT ME */}
+                  {/* RIGHT CARD: ABOUT ME (In RTL this appears on the right) */}
                   <div className="flex-1 bg-[#f8fafc] p-5 rounded-[12px] flex flex-col gap-5">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden relative border border-[#dddddd] bg-white shrink-0">
@@ -122,47 +122,47 @@ export default function StudentDetailsModal({
                         {student.name} {student.surname}
                       </span>
                       <span className="text-[13px] font-normal text-[#41454d] mt-1">
-                        Student / {className}
+                        طالب / {className}
                       </span>
                     </div>
                   </div>
 
                   <div className="border-t border-[#dddddd] pt-5">
                     <h4 className="text-[18px] font-medium text-[#181d26] mb-5">
-                      About
+                      معلومات عامة
                     </h4>
                     
                     <div className="grid grid-cols-2 gap-y-5 gap-x-5">
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">First Name</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">الاسم</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{student.name}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Last Name</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">اللقب</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{student.surname}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Date of Birth</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">تاريخ الولادة</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{formatDate(student.birthday)}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Gender</span>
-                        <span className="text-[14px] font-medium text-[#181d26] capitalize">{student.sex.toLowerCase()}</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">الجنس</span>
+                        <span className="text-[14px] font-medium text-[#181d26] capitalize">{student.sex === "MALE" ? "ذكر" : "أنثى"}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Class</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">القسم</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{className}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Blood Type</span>
-                        <span className="text-[14px] font-medium text-[#181d26]">{student.bloodType}</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">فصيلة الدم</span>
+                        <span className="text-[14px] font-medium text-[#181d26]" dir="ltr" style={{textAlign: "right"}}>{student.bloodType}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Admission Date</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">تاريخ التسجيل</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{formatDate(student.createdAt)}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Student ID</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">معرف الطالب</span>
                         <span className="text-[14px] font-medium text-[#181d26] truncate" title={student.id}>
                           {student.id.substring(0, 8)}...
                         </span>
@@ -171,38 +171,38 @@ export default function StudentDetailsModal({
                   </div>
                 </div>
 
-                {/* RIGHT CARD: CONTACT INFORMATION */}
+                {/* LEFT CARD: CONTACT INFORMATION */}
                 <div className="flex-1 bg-[#f8fafc] p-5 rounded-[12px] flex flex-col gap-5">
                   <div>
                     <h4 className="text-[18px] font-medium text-[#181d26] mb-1">
-                      Contact Information
+                      معلومات الاتصال
                     </h4>
                     <span className="text-[13px] font-normal text-[#41454d]">
-                      Primary communication channels
+                      قنوات الاتصال الأساسية
                     </span>
                   </div>
 
                   <div className="border-t border-[#dddddd] pt-5 flex flex-col gap-5">
                     <div className="grid grid-cols-2 gap-y-5 gap-x-5">
                       <div className="flex flex-col col-span-2">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Student Phone</span>
-                        <span className="text-[14px] font-medium text-[#181d26]">{student.phone || "-"}</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">هاتف الطالب</span>
+                        <span className="text-[14px] font-medium text-[#181d26]" dir="ltr" style={{textAlign: "right"}}>{student.phone || "-"}</span>
                       </div>
                       <div className="flex flex-col col-span-2">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">Home Address</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-1">عنوان السكن</span>
                         <span className="text-[14px] font-medium text-[#181d26] leading-snug">{student.address || "-"}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-2">Username</span>
-                        <span className="font-medium text-[#1b61c9] bg-[#f8fafc] border border-[#dddddd] px-2.5 py-1 rounded-[6px] text-[13px] w-fit">
+                        <span className="text-[12px] font-medium text-[#41454d] mb-2">اسم المستخدم</span>
+                        <span className="font-medium text-[#1b61c9] bg-[#f8fafc] border border-[#dddddd] px-2.5 py-1 rounded-[6px] text-[13px] w-fit" dir="ltr">
                           @{student.username}
                         </span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-2">Status</span>
+                        <span className="text-[12px] font-medium text-[#41454d] mb-2">الحالة</span>
                         <span className="font-medium text-[#006400] bg-[#f8fafc] border border-[#dddddd] px-2.5 py-1 rounded-[6px] text-[13px] w-fit flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#006400]"></span>
-                          Active
+                          نشط
                         </span>
                       </div>
                     </div>
@@ -215,25 +215,25 @@ export default function StudentDetailsModal({
                 <div className="px-5 pb-5">
                   <div className="bg-[#f8fafc] p-5 rounded-[12px] flex flex-col gap-5">
                     <div>
-                      <h4 className="text-[18px] font-medium text-[#181d26] mb-1">Parent / Guardian</h4>
-                      <span className="text-[13px] font-normal text-[#41454d]">Primary contact and family details</span>
+                      <h4 className="text-[18px] font-medium text-[#181d26] mb-1">الولي</h4>
+                      <span className="text-[13px] font-normal text-[#41454d]">تفاصيل الاتصال بالولي</span>
                     </div>
                     <div className="border-t border-[#dddddd] pt-5">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-y-5 gap-x-5">
                         <div className="flex flex-col">
-                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Full Name</span>
-                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent ? `${student.parent.name} ${student.parent.surname}` : "Not Listed"}</span>
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">الاسم الكامل</span>
+                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent ? `${student.parent.name} ${student.parent.surname}` : "غير مدرج"}</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Phone Number</span>
-                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.phone || "-"}</span>
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">رقم الهاتف</span>
+                          <span className="text-[14px] font-medium text-[#181d26]" dir="ltr" style={{textAlign: "right"}}>{student.parent?.phone || "-"}</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Username</span>
-                          <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.username ? `@${student.parent.username}` : "-"}</span>
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">اسم المستخدم</span>
+                          <span className="text-[14px] font-medium text-[#181d26]" dir="ltr" style={{textAlign: "right"}}>{student.parent?.username ? `@${student.parent.username}` : "-"}</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[12px] font-medium text-[#41454d] mb-1">Address</span>
+                          <span className="text-[12px] font-medium text-[#41454d] mb-1">العنوان</span>
                           <span className="text-[14px] font-medium text-[#181d26]">{student.parent?.address || "-"}</span>
                         </div>
                       </div>
@@ -245,8 +245,8 @@ export default function StudentDetailsModal({
                 <div className="px-5 pb-5">
                   <div className="bg-[#f8fafc] p-5 rounded-[12px] flex flex-col gap-5">
                     <div>
-                      <h4 className="text-[18px] font-medium text-[#181d26] mb-1">Financial History</h4>
-                      <span className="text-[13px] font-normal text-[#41454d]">Payment timeline for the current academic year</span>
+                      <h4 className="text-[18px] font-medium text-[#181d26] mb-1">السجل المالي</h4>
+                      <span className="text-[13px] font-normal text-[#41454d]">الجدول الزمني للأقساط للسنة الدراسية الحالية</span>
                     </div>
                     <div className="border-t border-[#dddddd] pt-5">
                       {student.payments && student.payments.length > 0 ? (
@@ -257,7 +257,7 @@ export default function StudentDetailsModal({
                           adminName={adminName}
                         />
                       ) : (
-                        <span className="text-[14px] text-[#41454d]">No payment records found.</span>
+                        <span className="text-[14px] text-[#41454d]">لم يتم العثور على سجلات دفع.</span>
                       )}
                     </div>
                   </div>
@@ -270,7 +270,7 @@ export default function StudentDetailsModal({
                   onClick={() => setOpen(false)}
                   className="px-5 py-2.5 bg-[#181d26] text-white hover:bg-[#0d1218] rounded-[10px] text-[14px] font-medium transition-colors shadow-sm"
                 >
-                  Close View
+                  إغلاق
                 </button>
               </div>
             </motion.div>
