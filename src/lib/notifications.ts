@@ -260,21 +260,8 @@ export async function createAttendanceNotification(studentId: string, status: st
       }
     }
     
-    // Deduplication: Don't send the same status alert twice in the same day for the same student
-    const START_OF_DAY = new Date();
-    START_OF_DAY.setHours(0, 0, 0, 0);
-
-    const existing = await prisma.notification.findFirst({
-      where: {
-        parentId: student.parentId,
-        studentId: studentId,
-        type: 'ATTENDANCE',
-        createdAt: { gte: START_OF_DAY },
-        message: { contains: statusLabel }
-      }
-    });
-
-    if (existing) return;
+    // We removed aggressive deduplication here because the API route now ensures
+    // notifications are only fired when the status ACTUALLY changes for a specific lesson.
 
     await prisma.notification.create({
       data: {

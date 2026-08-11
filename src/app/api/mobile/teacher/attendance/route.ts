@@ -161,6 +161,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 1.5 Fetch existing attendance records to detect changes
+    const existingAttendances = await prisma.attendance.findMany({
+      where: {
+        studentId: { in: records.map((r: any) => r.studentId) },
+        date: attendanceDate,
+        lessonId: effectiveLessonId || null
+      },
+      select: { studentId: true, status: true, note: true }
+    });
+
+    const existingMap = new Map(existingAttendances.map(a => [a.studentId, a]));
+
     // 2. Bulk upsert records
     const ops = records.map(async (record: any) => {
       // Format note as a standard SnapSchool JSON string if provided
@@ -236,18 +248,27 @@ export async function POST(request: NextRequest) {
 
     // 3. Fire notifications for attendance status and remarks (non-blocking)
     for (const record of records) {
-      // Notify parent if student is absent or late
-      if (record.status === 'ABSENT' || record.status === 'LATE') {
+      const oldRecord = existingMap.get(record.studentId);
+      
+      // Format note exactly as it will be saved to properly compare
+      let formattedNote = record.note || null;
+      if (formattedNote && !formattedNote.startsWith("[")) {
+        formattedNote = JSON.stringify([{ author: "Teacher", text: formattedNote }]);
+      }
+
+      // Notify parent if student is absent or late, AND status actually changed
+      if ((record.status === 'ABSENT' || record.status === 'LATE') && record.status !== oldRecord?.status) {
         createAttendanceNotification(record.studentId, record.status, attendanceDate, effectiveLessonId).catch(console.error);
       }
 
-      // Notify parent if a remark note was left for this student
-      if (record.note && record.note.trim()) {
+      // Notify parent if a remark note was left for this student, AND note actually changed
+      if (formattedNote && formattedNote !== oldRecord?.note) {
         // Resolve the subject name from the lesson for a richer notification
         const lessonSubject = effectiveLessonId
           ? await prisma.lesson.findUnique({ where: { id: effectiveLessonId }, include: { subject: true } })
           : null;
         const subjectName = lessonSubject?.subject?.name || 'Class';
+        // Use the raw text for the notification instead of the JSON array
         createRemarkNotification(record.studentId, subjectName, record.note).catch(console.error);
       }
     }
