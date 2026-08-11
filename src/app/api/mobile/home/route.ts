@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
     const tasksGiven = await prisma.assignment.findMany({
-      where: { lesson: { classId: student.classId }, startDate: { lte: todayEnd }, dueDate: { gte: todayStart }, schoolId },
+      where: { lesson: { classId: student.classId }, startDate: { gte: todayStart, lt: todayEnd }, schoolId },
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
     const upcomingExams = await prisma.exam.findMany({
