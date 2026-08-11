@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Verify student belongs to authenticated parent
     if (userType === "parent") {
       const student = await prisma.student.findUnique({
-        where: { id: studentId, schoolId },
+        where: { id: studentId },
         select: { parentId: true },
       });
       if (!student || student.parentId !== userId) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Verify student belongs to authenticated parent
     const student = await prisma.student.findUnique({
-      where: { id: studentId, schoolId },
+      where: { id: studentId },
       select: { parentId: true, schoolId: true },
     });
 

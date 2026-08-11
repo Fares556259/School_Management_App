@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
 
   const parsedClassId = parseInt(classId);
   const [year, month, day] = dateStr.split("-").map(Number);
-  const dayStart = new Date(year, month - 1, day);
-  const dayEnd = new Date(year, month - 1, day + 1);
+  const dayStart = new Date(Date.UTC(year, month - 1, day));
+  const dayEnd = new Date(Date.UTC(year, month - 1, day + 1));
 
   const dayNum = dayStart.getDay();
   const dayEnum = DAY_MAP[dayNum] || "MONDAY";
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
   // 1. Fetch slots first to quickly check if there are classes today
   const slots = await prisma.timetableSlot.findMany({
     where: {
-      schoolId,
       classId: parsedClassId,
       day: dayEnum as any,
       isDraft: false,
@@ -96,7 +95,6 @@ export async function GET(request: NextRequest) {
     }),
     prisma.attendance.findMany({
       where: {
-        schoolId,
         date: { gte: weekStart, lte: weekEnd },
         status: "ABSENT",
         student: { classId: parsedClassId },
@@ -113,7 +111,6 @@ export async function GET(request: NextRequest) {
     }),
     prisma.notification.findMany({
       where: {
-        schoolId,
         type: "ATTENDANCE",
         createdAt: { gte: weekStart },
         studentId: { not: null }
@@ -328,26 +325,26 @@ export async function POST(request: NextRequest) {
     }
 
     const [year, month, day] = date.split("-").map(Number);
-    const dayStart = new Date(year, month - 1, day);
+    const dayStart = new Date(Date.UTC(year, month - 1, day));
     let targetLessonId: number | null = null;
 
     if (lessonId && lessonId !== "ALL") {
       if (lessonId.startsWith("slot-")) {
         const slotId = parseInt(lessonId.replace("slot-", ""));
         const targetSlot = await prisma.timetableSlot.findFirst({
-          where: { id: slotId, schoolId },
+          where: { id: slotId },
           include: { subject: true },
         });
         if (targetSlot && targetSlot.subjectId) {
           const lessonName = `${targetSlot.subject?.name || "Session"} - ${targetSlot.startTime}`;
           let lesson = await prisma.lesson.findFirst({
-            where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day, name: lessonName },
+            where: { classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day, name: lessonName },
           });
 
           if (!lesson) {
             // Fallback: check if there's an old lesson without the time suffix
             const oldLesson = await prisma.lesson.findFirst({
-              where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
+              where: { classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
             });
             
             if (oldLesson && oldLesson.name === (targetSlot.subject?.name || "Session")) {
@@ -360,7 +357,7 @@ export async function POST(request: NextRequest) {
                // Completely new slot
                const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
                lesson = await prisma.lesson.create({
-        data: {
+                 data: {
                    name: lessonName,
                    day: targetSlot.day,
                    startTime: dayStart,
@@ -368,7 +365,7 @@ export async function POST(request: NextRequest) {
                    subjectId: targetSlot.subjectId,
                    classId: targetSlot.classId,
                    teacherId: targetSlot.teacherId || anyTeacher!.id,
-                   schoolId,
+                   schoolId: targetSlot.schoolId,
                  },
                });
             }
@@ -384,7 +381,6 @@ export async function POST(request: NextRequest) {
     const studentIds = records.map((r) => r.studentId);
     const existingRecords = await prisma.attendance.findMany({
       where: {
-        schoolId,
         studentId: { in: studentIds },
         date: dayStart,
         lessonId: targetLessonId,

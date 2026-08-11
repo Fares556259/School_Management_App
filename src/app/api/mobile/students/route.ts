@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const parent = await prisma.parent.findUnique({
-      where: { id: parentId, schoolId },
+      where: { id: parentId },
       include: {
         students: {
           include: {
@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
     // or to the authenticated teacher's school (for teachers)
     if (userType === "parent") {
       const student = await prisma.student.findUnique({
-        where: { id, schoolId },
+        where: { id },
         select: { parentId: true },
       });
       if (!student || student.parentId !== userId) {

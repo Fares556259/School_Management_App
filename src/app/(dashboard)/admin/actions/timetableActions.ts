@@ -206,7 +206,13 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
       return { success: false, error: "No slots generated to save." };
     }
 
-    const schoolId = await getSchoolId();
+    const classInfo = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { schoolId: true }
+    });
+    if (!classInfo) return { success: false, error: "Class not found" };
+    
+    const schoolId = classInfo.schoolId;
 
     await prisma.$transaction(async (tx) => {
       await tx.timetableSlot.deleteMany({

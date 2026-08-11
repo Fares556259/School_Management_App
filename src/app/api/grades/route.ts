@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Find the student's class to look for corresponding sheets
     const student = await prisma.student.findFirst({
-      where: { id: studentId, schoolId },
+      where: { id: studentId },
       select: { classId: true },
     });
 

@@ -272,7 +272,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       <div className="overflow-x-auto">
         <div className="min-w-[1200px] print:min-w-0 border border-[#dddddd] rounded-[8px] overflow-hidden bg-white shadow-sm">
           <div className={`grid border-b border-[#dddddd] bg-[#ffffff]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
-            <div className="h-10 flex items-center justify-center border-r border-[#dddddd]">
+            <div className="h-10 flex items-center justify-center border-e border-[#dddddd]">
                <span className="text-[12px] font-medium text-[#5a5a5a] capitalize tracking-wide">{t.timetable.time}</span>
             </div>
             {displayDays.map((item) => {
@@ -283,7 +283,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 label += ` ${date.getDate()}`;
               }
               return (
-                <div key={label} className="h-10 flex items-center justify-center border-r border-[#dddddd] last:border-r-0">
+                <div key={label} className="h-10 flex items-center justify-center border-e border-[#dddddd] last:border-e-0">
                    <span className="text-[12px] font-medium text-[#181d26] capitalize tracking-wide whitespace-nowrap px-4 overflow-hidden text-ellipsis">
                      {label}
                    </span>
@@ -303,7 +303,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             )}
             {displaySessions.map((session, idx) => (
               <div key={session.id || idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0 group/row`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
-                <div className="flex flex-col items-center justify-center bg-[#ffffff] p-4 relative border-r border-[#dddddd] group-hover/row:bg-[#f8fafc] transition-colors">
+                <div className="flex flex-col items-center justify-center bg-[#ffffff] p-4 relative border-e border-[#dddddd] group-hover/row:bg-[#f8fafc] transition-colors">
                    <span className="text-[13px] font-medium text-[#181d26] leading-none">{idx + 1}</span>
                    <span className="text-[11px] font-normal text-[#5a5a5a] mt-1.5 whitespace-nowrap">{session.time}</span>
                 </div>
@@ -316,7 +316,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   return (
                     <div 
                       key={`${d}-${idx + 1}`} 
-                      className={`min-h-[140px] flex items-stretch transition-all border-r border-[#dddddd] last:border-r-0 ${isDraggedOver ? 'bg-[#f8fafc]' : 'bg-[#ffffff] p-2 hover:bg-[#f8fafc]'}`}
+                      className={`min-h-[140px] flex items-stretch transition-all border-e border-[#dddddd] last:border-e-0 ${isDraggedOver ? 'bg-[#f8fafc]' : 'bg-[#ffffff] p-2 hover:bg-[#f8fafc]'}`}
                       onDragOver={(e) => handleDragOver(e, d as Day, idx + 1)}
                       onDragLeave={() => setDraggedOver(null)}
                       onDrop={(e) => handleDrop(e, d as Day, idx + 1)}

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   console.log("[API] Fetching mobile parent profile for ID:", parentId);
 
   const parent = await prisma.parent.findUnique({
-    where: { id: parentId, schoolId },
+    where: { id: parentId },
   });
 
   const schoolConfig = await prisma.institution.findFirst({

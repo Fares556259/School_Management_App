@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     if (studentId) {
       const student = await prisma.student.findFirst({
-        where: { id: studentId, schoolId },
+        where: { id: studentId },
         include: { class: true },
       });
       if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     } else if (classId) {
       const classIdNum = parseInt(classId);
       const students = await prisma.student.findMany({
-        where: { classId: classIdNum, schoolId },
+        where: { classId: classIdNum },
         include: { class: true },
       });
       studentsToProcess = students;
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     // 2. Fetch All Students in the same Class for Ranking and Stats
     const classStudents = await prisma.student.findMany({
-      where: { classId: targetClassId, schoolId },
+      where: { classId: targetClassId },
       include: {
         grades: {
           where: { term },

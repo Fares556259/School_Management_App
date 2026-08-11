@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const teacher = await prisma.teacher.findUnique({
-      where: { id: teacherId, schoolId },
+      where: { id: teacherId },
       select: {
         id: true, name: true, surname: true, phone: true, img: true,
         schoolId: true, activated: true,

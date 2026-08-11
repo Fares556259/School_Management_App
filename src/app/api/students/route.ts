@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
   const schoolId = await getSchoolId();
   const students = await prisma.student.findMany({
-    where: { schoolId, classId: parseInt(classId) },
+    where: { classId: parseInt(classId) },
     select: { id: true, name: true, surname: true },
     orderBy: { name: "asc" },
   });

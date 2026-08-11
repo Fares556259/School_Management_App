@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const parent = await prisma.parent.findUnique({
-      where: { id: userId, schoolId },
+      where: { id: userId },
       include: {
         students: {
           include: {
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(parent.students);
-  } catch (error) {
-    console.error("Mobile Data Fetch Error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+  } catch (error: any) {
+    console.error("[Mobile Parent Data Error]", error);
+    return new NextResponse(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
