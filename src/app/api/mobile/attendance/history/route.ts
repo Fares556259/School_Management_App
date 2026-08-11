@@ -2,10 +2,15 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
 import { Day } from "@prisma/client";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
@@ -16,11 +21,19 @@ export async function GET(request: NextRequest) {
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { classId: true, createdAt: true },
+      select: { classId: true, createdAt: true, parentId: true, schoolId: true },
     });
 
     if (!student || !student.classId) {
       return new NextResponse("Student is not enrolled in any class", { status: 400 });
+    }
+
+    // Enforce ownership & school isolation
+    if (userType === "parent" && student.parentId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+    if (student.schoolId !== schoolId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
     // 1. Fetch the timetable for this class to know the sessions per day
@@ -91,13 +104,55 @@ export async function GET(request: NextRequest) {
         let dayStatus = "PRESENT";
         const handledRecordIds = new Set<string>();
 
+        // Map slots to attendance records robustly
+        const slotToRecordMap = new Map<number, any>();
+        const slotsBySubject = new Map<number, typeof daySlots>();
+        daySlots.forEach(s => {
+          if (s.subjectId) {
+            if (!slotsBySubject.has(s.subjectId)) slotsBySubject.set(s.subjectId, []);
+            slotsBySubject.get(s.subjectId)!.push(s);
+          }
+        });
+
+        slotsBySubject.forEach((subjectSlots, subjectId) => {
+          const subjectRecords = dayRecords.filter(r => r.lesson?.subjectId === subjectId).sort((a, b) => (a.lesson?.id || 0) - (b.lesson?.id || 0));
+          const usedRecordIds = new Set<string>();
+          
+          for (const s of subjectSlots) {
+             const sExpectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
+             let currentMatch = subjectRecords.find(r => r.lesson?.name === sExpectedName && !usedRecordIds.has(r.id));
+             
+             if (!currentMatch) {
+               const legacyRecord = subjectRecords.find(r => r.lesson?.name === (s.subject?.name || "Session") && !usedRecordIds.has(r.id));
+               if (legacyRecord) {
+                 currentMatch = legacyRecord;
+                 usedRecordIds.add(legacyRecord.id);
+               }
+             }
+             
+             if (!currentMatch) {
+               const anyRecord = subjectRecords.find(r => !usedRecordIds.has(r.id));
+               if (anyRecord) {
+                 currentMatch = anyRecord;
+                 usedRecordIds.add(anyRecord.id);
+               }
+             }
+             
+             if (currentMatch) {
+               slotToRecordMap.set(s.id, currentMatch);
+             }
+          }
+        });
+
         // Phase 1: Process Timetable Slots (Match records or inject virtual presence)
         daySlots.forEach(slot => {
-          // Find record for this slot (by subject fallback or lessonId)
-          const record = dayRecords.find(r => 
-            (r.lesson?.subjectId === slot.subjectId || (r.lessonId === null && dayRecords.length === 1)) &&
-            !handledRecordIds.has(r.id)
-          );
+          // Find record for this slot using robust mapping
+          let record = slotToRecordMap.get(slot.id);
+          
+          if (!record) {
+             // Fallback for non-lesson-linked attendance (quick attendance)
+             record = dayRecords.find(r => r.lessonId === null && dayRecords.length === 1 && !handledRecordIds.has(r.id));
+          }
 
           if (record) handledRecordIds.add(record.id);
 

@@ -1,10 +1,15 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
-// Fetch all students for a given parent (by parentId stored in mobile AsyncStorage)
+// Fetch all students for a given parent
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+
   try {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
@@ -13,14 +18,19 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing parentId", { status: 400 });
     }
 
+    // Enforce ownership: a parent can only fetch their own children
+    if (userType !== "parent" || userId !== parentId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
     const parent = await prisma.parent.findUnique({
-      where: { id: parentId },
+      where: { id: parentId, schoolId },
       include: {
         students: {
           include: {
             class: {
               include: {
-                level: true, // Needed for grade/level display
+                level: true,
               },
             },
             payments: true,
@@ -41,6 +51,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+
   try {
     const { id, img, name, surname } = await request.json();
 
@@ -48,58 +62,30 @@ export async function PATCH(request: NextRequest) {
       return new NextResponse("Missing id", { status: 400 });
     }
 
+    // Verify this student belongs to the authenticated parent (for parents)
+    // or to the authenticated teacher's school (for teachers)
+    if (userType === "parent") {
+      const student = await prisma.student.findUnique({
+        where: { id, schoolId },
+        select: { parentId: true },
+      });
+      if (!student || student.parentId !== userId) {
+        return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+      }
+    }
+
     const updatedStudent = await prisma.student.update({
       where: { id },
-      data: { 
+      data: {
         ...(img !== undefined && { img: img || null }),
         ...(name !== undefined && { name }),
-        ...(surname !== undefined && { surname })
+        ...(surname !== undefined && { surname }),
       },
     });
 
     return NextResponse.json(updatedStudent);
   } catch (error: any) {
-    console.error("[Mobile Student Update Error]", error);
-    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { studentId, parentId, birthday } = await request.json();
-
-    if (!studentId || !parentId || !birthday) {
-      return new NextResponse("Missing required fields", { status: 400 });
-    }
-
-    // Find the student
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-    });
-
-    if (!student) {
-      return new NextResponse("Student not found", { status: 404 });
-    }
-
-    // Verify birthday (ignoring time component for robust comparison)
-    const providedDate = new Date(birthday).toISOString().split('T')[0];
-    const studentDate = new Date(student.birthday).toISOString().split('T')[0];
-
-    if (providedDate !== studentDate) {
-      console.warn(`[Verification Failed] Student ${studentId}: Provided ${providedDate}, Expected ${studentDate}`);
-      return new NextResponse("Verification failed: Birthday does not match records", { status: 403 });
-    }
-
-    // Update the parentId to link the student to the active parent account
-    const updatedStudent = await prisma.student.update({
-      where: { id: studentId },
-      data: { parentId },
-    });
-
-    console.log(`[Link Success] Student ${studentId} linked to Parent ${parentId}`);
-    return NextResponse.json({ success: true, student: updatedStudent });
-  } catch (error: any) {
-    console.error("[Mobile Student Link Error]", error);
-    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+    console.error("[Mobile Students Update Error]", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

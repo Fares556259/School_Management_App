@@ -1,10 +1,16 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import moment from "moment";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
@@ -12,6 +18,11 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get("date");
     const slotIdParam = searchParams.get("slotId");
     const subjectIdParam = searchParams.get("subjectId"); // For backward compatibility
+
+    if (teacherId && teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
 
     if (!classId) {
       return new NextResponse("Missing classId", { status: 400 });
@@ -60,7 +71,10 @@ export async function GET(request: NextRequest) {
       prisma.timetableSlot.findMany({ // Get only teacher's slots for UI
         where: {
           classId: parseInt(classId),
-          teacherId: teacherId || undefined,
+          OR: [
+            { teacherId: teacherId || undefined },
+            { teacherId: null }
+          ],
           day: dayName as any,
           isDraft: false
         },

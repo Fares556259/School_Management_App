@@ -1,21 +1,18 @@
 import prisma from "@/lib/prisma";
-import { getSchoolIdFromHeader } from "@/lib/school";
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { schoolId } = auth.payload;
+
   try {
-    const schoolId = getSchoolIdFromHeader(headers());
-    console.log(`[DEBUG-MOBILE-SCHOOL] Fetching for schoolId: ${schoolId}`);
-    
     const config = await prisma.institution.findFirst({
       where: { schoolId },
-      select: {
-        schoolName: true,
-        phone: true,
-        address: true,
-        schoolLogo: true,
-      }
+      select: { schoolName: true, phone: true, address: true, schoolLogo: true },
     });
 
     return NextResponse.json(config);

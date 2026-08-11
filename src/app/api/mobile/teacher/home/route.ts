@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { parseTime } from "@/lib/timeUtils";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,11 @@ const DAY_MAP: Record<number, string> = {
 };
 
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get("teacherId");
@@ -22,6 +28,10 @@ export async function GET(request: NextRequest) {
     if (!teacherId) {
       return new NextResponse("Missing teacherId", { status: 400 });
     }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
 
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
@@ -68,7 +78,10 @@ export async function GET(request: NextRequest) {
     // 1. Fetch today's timetable slots for this teacher
     const slots = await prisma.timetableSlot.findMany({
       where: { 
-        teacherId, 
+        OR: [
+          { teacherId },
+          { teacherId: null, classId: { in: Array.from(uniqueClassIds) } }
+        ],
         day: todayEnum as any,
         isDraft: false
       },

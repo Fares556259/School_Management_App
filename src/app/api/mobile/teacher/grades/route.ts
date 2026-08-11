@@ -1,9 +1,15 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const auth = authenticateMobileRequest(req);
+  if (auth.error) return auth.error;
+  const { userId, userType } = auth.payload;
+  if (userType !== "teacher") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   try {
     const body = await req.json();
     const { teacherId, classId, subjectId, term, grades, proofUrl } = body;
@@ -94,6 +100,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = authenticateMobileRequest(req);
+  if (auth.error) return auth.error;
+  const { userId, userType } = auth.payload;
+  if (userType !== "teacher") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   try {
     const searchParams = req.nextUrl.searchParams;
     const teacherId = searchParams.get("teacherId");

@@ -1,9 +1,15 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = authenticateMobileRequest(req);
+  if (auth.error) return auth.error;
+  const { userId, userType } = auth.payload;
+  if (userType !== "teacher") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   try {
     const searchParams = req.nextUrl.searchParams;
     const teacherId = searchParams.get("teacherId");
@@ -14,6 +20,9 @@ export async function GET(req: NextRequest) {
         { error: "teacherId and classId are required" },
         { status: 400 }
       );
+    }
+    if (teacherId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Fetch subjects directly assigned to the teacher and from lessons for this class

@@ -1,8 +1,14 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { createAttendanceNotification, createAssignmentNotification, createResourceNotification, createRemarkNotification } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const body = await request.json();
     const { teacherId, classId, records, date, lessonId, task, resource, subjectId } = body;
@@ -10,6 +16,10 @@ export async function POST(request: NextRequest) {
     if (!teacherId || !records || !Array.isArray(records)) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
 
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
@@ -26,13 +36,13 @@ export async function POST(request: NextRequest) {
     if (date) {
       const parts = date.split('-');
       if (parts.length === 3) {
-        attendanceDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        attendanceDate = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
       } else {
         attendanceDate = new Date(date);
-        attendanceDate.setHours(0, 0, 0, 0);
+        attendanceDate.setUTCHours(0, 0, 0, 0);
       }
     } else {
-      attendanceDate = new Date(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate());
+      attendanceDate = new Date(Date.UTC(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate()));
     }
 
     let effectiveLessonId = lessonId ? parseInt(lessonId) : null;
@@ -55,7 +65,7 @@ export async function POST(request: NextRequest) {
       } else {
         slot = await prisma.timetableSlot.findFirst({
           where: {
-            schoolId, classId: parseInt(classId), teacherId, day: dayName as any, isDraft: false,
+            classId: parseInt(classId), teacherId, day: dayName as any, isDraft: false,
             ...(parsedSubjectId ? { subjectId: parsedSubjectId } : {})
           },
           orderBy: { slotNumber: "asc" },
@@ -67,7 +77,7 @@ export async function POST(request: NextRequest) {
         // Find all timetable slots for this subject
         const subjectSlots = await prisma.timetableSlot.findMany({
           where: {
-            schoolId, classId: parseInt(classId), day: dayName as any, isDraft: false, subjectId: slot.subjectId
+            classId: parseInt(classId), day: dayName as any, isDraft: false, subjectId: slot.subjectId
           },
           include: { subject: true },
           orderBy: { slotNumber: "asc" }

@@ -1,15 +1,24 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get("teacherId");
 
     if (!teacherId) {
       return new NextResponse("Missing teacherId", { status: 400 });
+    }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
     const assignments = await prisma.assignment.findMany({
@@ -87,12 +96,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const body = await request.json();
     const { teacherId, classId, title, description, attachments } = body;
 
     if (!teacherId || !classId || !title) {
       return new NextResponse("Missing required fields", { status: 400 });
+    }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
     const teacher = await prisma.teacher.findUnique({

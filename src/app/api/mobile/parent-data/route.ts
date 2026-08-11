@@ -1,70 +1,41 @@
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
-export async function GET() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id;
+export const dynamic = "force-dynamic";
 
-  if (!userId) {
-    return new NextResponse("Unauthorized", { status: 401 });
+export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+
+  // This endpoint is for parents only
+  if (userType !== "parent") {
+    return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
   }
 
   try {
-    // 1. Find the parent and their students
     const parent = await prisma.parent.findUnique({
-      where: { id: userId },
+      where: { id: userId, schoolId },
       include: {
         students: {
           include: {
             class: {
               include: {
                 timetable: {
-                  include: {
-                    subject: true,
-                    teacher: true,
-                  },
+                  include: { subject: true, teacher: true },
                 },
               },
             },
-            payments: {
-              orderBy: { id: "desc" },
-            },
-            results: {
-              include: {
-                exam: true,
-                assignment: true,
-              },
-            },
+            payments: { orderBy: { id: "desc" } },
+            results: { include: { exam: true, assignment: true } },
           },
         },
       },
     });
 
     if (!parent) {
-      // Fallback for demo: if parent doesn't exist in DB yet, 
-      // check if we have any students at all to return something for testing
-      const firstParent = await prisma.parent.findFirst({
-        include: {
-          students: {
-            include: {
-              class: {
-                include: {
-                  timetable: {
-                    include: {
-                      subject: true,
-                      teacher: true,
-                    },
-                  },
-                },
-              },
-              payments: true,
-            },
-          },
-        },
-      });
-      return NextResponse.json(firstParent?.students || []);
+      return NextResponse.json([]);
     }
 
     return NextResponse.json(parent.students);

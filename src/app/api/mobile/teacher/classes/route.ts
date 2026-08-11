@@ -1,9 +1,15 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get("teacherId");
@@ -11,6 +17,10 @@ export async function GET(request: NextRequest) {
     if (!teacherId) {
       return new NextResponse("Missing teacherId", { status: 400 });
     }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
 
     // Fetch classes via direct assignment, lessons, and timetable
     const teacher = await prisma.teacher.findUnique({

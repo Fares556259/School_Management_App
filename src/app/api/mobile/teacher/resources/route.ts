@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,12 +9,22 @@ export const dynamic = "force-dynamic";
  * Returns all resources uploaded for a class, grouped by lesson
  */
 export async function GET(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
     const teacherId = searchParams.get("teacherId");
 
-    if (!classId) return new NextResponse("Missing classId", { status: 400 });
+    if (!classId || !teacherId) {
+      return new NextResponse("Missing classId or teacherId", { status: 400 });
+    }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
 
     const resources = await prisma.resource.findMany({
       where: {
@@ -67,12 +78,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const body = await request.json();
     const { teacherId, classId, title, description, url, subjectId } = body;
 
     if (!teacherId || !classId || !title || !url) {
       return new NextResponse("Missing required fields", { status: 400 });
+    }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
     const teacher = await prisma.teacher.findUnique({

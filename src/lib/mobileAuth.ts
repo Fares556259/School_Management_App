@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "snapschool_mobile_jwt_super_secret_key_2026";
 
@@ -83,4 +84,36 @@ export function verifyOTP(phone: string, inputCode: string): boolean {
     otpStore.delete(phone.trim()); // Delete after single use
   }
   return isValid;
+}
+
+// ─── 4. Reusable Auth Guard for Mobile Routes ─────────────────────────────────
+// Usage: const auth = authenticateMobileRequest(request);
+//        if (auth.error) return auth.error;
+//        const { userId, userType, schoolId } = auth.payload;
+export function authenticateMobileRequest(
+  request: NextRequest | Request
+): { payload: MobileJWTPayload; error: null } | { payload: null; error: NextResponse } {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader) {
+    return {
+      payload: null,
+      error: new NextResponse(JSON.stringify({ error: "Unauthorized: Missing token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    };
+  }
+
+  const payload = verifyToken(authHeader);
+  if (!payload || !payload.userId || !payload.schoolId) {
+    return {
+      payload: null,
+      error: new NextResponse(JSON.stringify({ error: "Unauthorized: Invalid or expired token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    };
+  }
+
+  return { payload, error: null };
 }

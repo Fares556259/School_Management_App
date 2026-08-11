@@ -1,13 +1,22 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export async function POST(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+  if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+
   try {
     const body = await request.json();
     const { teacherId, classId, title, description, date, subjectId } = body;
 
     if (!teacherId || !classId || !title) {
       return new NextResponse("Missing required fields", { status: 400 });
+    }
+    if (teacherId !== userId) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
     const teacher = await prisma.teacher.findUnique({
