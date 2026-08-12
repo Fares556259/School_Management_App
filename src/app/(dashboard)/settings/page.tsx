@@ -87,12 +87,9 @@ const SettingsPage = () => {
         };
         setConfig(data);
         setOriginalConfig(JSON.parse(JSON.stringify(data)));
-        setLoading(false);
       } else {
-        console.error("Config fetch failed:", configRes.error);
-        // Don't hide loading if we don't have essential config, 
-        // or redirect/show error. For now, let's keep loading or handle error.
-        setMessage({ type: 'error', text: 'Failed to load school configuration.' });
+        console.error("Config fetch failed:", configRes?.error);
+        setMessage({ type: 'error', text: 'Failed to load school configuration. Some features may be unavailable.' });
       }
       
       if (roomsRes.success && roomsRes.data) setRooms(roomsRes.data);
@@ -113,6 +110,12 @@ const SettingsPage = () => {
         setLevels(levelsRes.data);
         if (levelsRes.data.length > 0) setNewClassLevel(levelsRes.data[0].id);
       }
+      
+      setLoading(false);
+    }).catch(error => {
+      console.error("Promise.all error:", error);
+      setMessage({ type: 'error', text: 'An unexpected error occurred while loading settings.' });
+      setLoading(false);
     });
   }, []);
 
