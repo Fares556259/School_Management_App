@@ -875,27 +875,29 @@ const SettingsPage = () => {
                  <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 p-2 pr-2.5 pl-5 rounded-full shadow-[0_20px_50px_-10px_rgba(15,23,42,0.4)] flex items-center justify-between gap-6 ring-1 ring-white/10">
                     <div className="flex items-center gap-3">
                        <span className="relative flex h-2.5 w-2.5 shrink-0">
-                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"></span>
+                         {!showSaved && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>}
+                         <span className={`relative inline-flex rounded-full h-2.5 w-2.5 shadow-lg ${showSaved ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]'}`}></span>
                        </span>
                        <div className="flex items-center gap-2">
-                         <span className="text-[13px] font-semibold text-white tracking-tight">
-                           {t.systemSettings?.unsavedChanges || "Unsaved changes"}
+                         <span className="text-[13px] font-semibold text-white tracking-tight transition-colors">
+                           {showSaved ? ((t.systemSettings as any)?.changesSaved || "Changes saved") : (t.systemSettings?.unsavedChanges || "Unsaved changes")}
                          </span>
-                         <span className="hidden sm:inline-block text-[12px] text-slate-400 border-l border-slate-700/60 pl-2 font-normal">
-                           {t.systemSettings?.pendingChanges || "You have pending changes to your system settings."}
+                         <span className="hidden sm:inline-block text-[12px] text-slate-400 border-l border-slate-700/60 pl-2 font-normal transition-colors">
+                           {showSaved ? ((t.systemSettings as any)?.upToDate || "All settings are up to date.") : (t.systemSettings?.pendingChanges || "You have pending changes to your system settings.")}
                          </span>
                        </div>
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                       <button 
-                          type="button"
-                          onClick={() => window.location.reload()}
-                          className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-full text-[13px] font-medium transition-all"
-                       >
-                          {t.systemSettings?.discard || "Discard"}
-                       </button>
+                       {!showSaved && (
+                         <button 
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-full text-[13px] font-medium transition-all"
+                         >
+                            {t.systemSettings?.discard || "Discard"}
+                         </button>
+                       )}
                        <button 
                           type="submit"
                           disabled={saving || showSaved}
