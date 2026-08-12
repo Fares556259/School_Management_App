@@ -908,7 +908,7 @@ const SettingsPage = () => {
                           ) : (
                             <Save size={15} strokeWidth={2.2} />
                           )}
-                          <span>{saving ? (t.systemSettings?.saving || 'Saving...') : showSaved ? (t.systemSettings?.saved || 'Saved!') : (t.systemSettings?.saveChanges || 'Save changes')}</span>
+                          <span>{saving ? (t.systemSettings?.saving || 'Saving...') : showSaved ? ((t.systemSettings as any)?.saved || 'Saved!') : (t.systemSettings?.saveChanges || 'Save changes')}</span>
                        </button>
                     </div>
                  </div>
