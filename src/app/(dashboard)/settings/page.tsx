@@ -55,6 +55,7 @@ const SettingsPage = () => {
   const [originalVariationCounts, setOriginalVariationCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // New Level Form State
@@ -252,26 +253,34 @@ const SettingsPage = () => {
 
       setMessage({ type: 'success', text: 'All settings updated successfully!' });
       
-      // Update original states to current so changes go live instantly without reloading
-      setOriginalConfig(JSON.parse(JSON.stringify(config)));
-      setOriginalLevelFees(JSON.parse(JSON.stringify(levelFees)));
-      setOriginalVariationCounts(JSON.parse(JSON.stringify(variationCounts)));
+      setSaving(false);
+      setShowSaved(true);
 
-      // Refetch tuition fees silently in background just to get correct DB IDs for new classes
-      if (hasVariationChanges) {
-        getLevelTuitionFees().then(res => {
-          if (res.success && res.data) {
-             setLevelFees(res.data);
-             setOriginalLevelFees(JSON.parse(JSON.stringify(res.data)));
-          }
-        });
-      }
+      // Keep the "Saved" UI visible for 2 seconds before resetting hasChanges
+      setTimeout(() => {
+        setShowSaved(false);
+        // Update original states to current so changes go live instantly without reloading
+        setOriginalConfig(JSON.parse(JSON.stringify(config)));
+        setOriginalLevelFees(JSON.parse(JSON.stringify(levelFees)));
+        setOriginalVariationCounts(JSON.parse(JSON.stringify(variationCounts)));
+
+        // Refetch tuition fees silently in background just to get correct DB IDs for new classes
+        if (hasVariationChanges) {
+          getLevelTuitionFees().then(res => {
+            if (res.success && res.data) {
+               setLevelFees(res.data);
+               setOriginalLevelFees(JSON.parse(JSON.stringify(res.data)));
+            }
+          });
+        }
+      }, 2000);
+      
     } catch (error: any) {
       console.error("Save error:", error);
       setMessage({ type: 'error', text: error.message || 'Failed to update settings.' });
+      setSaving(false);
     }
     
-    setSaving(false);
     setTimeout(() => setMessage(null), 3000);
   };
 
@@ -889,15 +898,17 @@ const SettingsPage = () => {
                        </button>
                        <button 
                           type="submit"
-                          disabled={saving}
-                          className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[13px] rounded-full hover:shadow-lg hover:shadow-indigo-500/25 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                          disabled={saving || showSaved}
+                          className={`flex items-center gap-2 px-5 py-2 text-white font-semibold text-[13px] rounded-full hover:shadow-lg active:scale-95 transition-all disabled:pointer-events-none ${showSaved ? 'bg-emerald-500 hover:shadow-emerald-500/25' : 'bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25 disabled:opacity-50'}`}
                        >
                           {saving ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : showSaved ? (
+                            <CheckCircle2 size={15} strokeWidth={2.2} />
                           ) : (
                             <Save size={15} strokeWidth={2.2} />
                           )}
-                          <span>{saving ? (t.systemSettings?.saving || 'Saving...') : (t.systemSettings?.saveChanges || 'Save changes')}</span>
+                          <span>{saving ? (t.systemSettings?.saving || 'Saving...') : showSaved ? (t.systemSettings?.saved || 'Saved!') : (t.systemSettings?.saveChanges || 'Save changes')}</span>
                        </button>
                     </div>
                  </div>
