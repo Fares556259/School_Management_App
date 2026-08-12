@@ -36,6 +36,7 @@ const extendedPrisma = basePrisma.$extends({
             error?.message?.includes("closed the connection") ||
             error?.message?.includes("Connection reset") ||
             error?.message?.includes("Kind: Closed") ||
+            error?.message?.includes("Engine is not yet connected") ||
             error?.code === "P1001" ||
             error?.code === "P1017";
 
@@ -67,6 +68,7 @@ export async function safeDbQuery<T>(fn: () => Promise<T>, retries = 2): Promise
       error?.message?.includes("closed the connection") ||
       error?.message?.includes("Connection reset") ||
       error?.message?.includes("Kind: Closed") ||
+      error?.message?.includes("Engine is not yet connected") ||
       error?.code === "P1001" ||
       error?.code === "P1017";
 
