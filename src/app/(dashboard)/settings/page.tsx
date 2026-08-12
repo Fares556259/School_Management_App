@@ -244,10 +244,20 @@ const SettingsPage = () => {
 
       setMessage({ type: 'success', text: 'All settings updated successfully!' });
       
-      // Hard refresh after a short delay so the user can see the success message
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Update original states to current so changes go live instantly without reloading
+      setOriginalConfig(JSON.parse(JSON.stringify(config)));
+      setOriginalLevelFees(JSON.parse(JSON.stringify(levelFees)));
+      setOriginalVariationCounts(JSON.parse(JSON.stringify(variationCounts)));
+
+      // Refetch tuition fees silently in background just to get correct DB IDs for new classes
+      if (hasVariationChanges) {
+        getLevelTuitionFees().then(res => {
+          if (res.success && res.data) {
+             setLevelFees(res.data);
+             setOriginalLevelFees(JSON.parse(JSON.stringify(res.data)));
+          }
+        });
+      }
     } catch (error: any) {
       console.error("Save error:", error);
       setMessage({ type: 'error', text: error.message || 'Failed to update settings.' });
@@ -342,8 +352,29 @@ const SettingsPage = () => {
   };
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center bg-[#F7F8FA]">
-      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    <div className="p-6 md:p-8 flex flex-col flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm animate-pulse">
+      <div className="w-full max-w-[1000px] mx-auto flex flex-col gap-8 pb-32">
+        <div className="flex flex-col gap-2 border-b border-[#dddddd] pb-4">
+          <div className="h-8 bg-slate-200 rounded-md w-48"></div>
+          <div className="h-4 bg-slate-100 rounded-md w-96"></div>
+        </div>
+        {[1, 2, 3].map((section) => (
+          <div key={section} className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 bg-slate-200 rounded-md"></div>
+              <div className="h-6 bg-slate-200 rounded-md w-40"></div>
+            </div>
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="flex flex-col gap-2">
+                  <div className="h-4 bg-slate-200 rounded-md w-32"></div>
+                  <div className="h-10 bg-slate-100 rounded-[6px] w-full"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
