@@ -126,7 +126,8 @@ const ActionList = ({
   ctaLabel, 
   ctaIcon: CtaIcon,
   showSmsAction = false,
-  monthLabel
+  monthLabel,
+  englishMonthYear
 }: { 
   title: string, 
   items: ActionItem[], 
