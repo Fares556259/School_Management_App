@@ -593,14 +593,8 @@ const SettingsPage = () => {
                   {/* CLASS VARIATIONS (A, B, C...) */}
                   <div className="flex flex-wrap gap-2 mt-auto">
                      {lvl.classes?.map((cls: any) => (
-                        <div key={cls.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-500 shadow-sm group/chip hover:border-emerald-200 transition-all">
+                        <div key={cls.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-500 shadow-sm transition-all">
                            <span>{cls.name}</span>
-                           <button 
-                             onClick={() => handleDeleteClass(cls.id)}
-                             className="text-slate-300 hover:text-rose-500 transition-colors"
-                           >
-                             <X size={10} />
-                           </button>
                         </div>
                      ))}
                   </div>
