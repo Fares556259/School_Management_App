@@ -260,6 +260,7 @@ export default async function DashboardAppendage({
           unpaidFees={unpaidFees}
           unpaidEmployees={unpaidEmployees}
           monthLabel={`${t.months[startDate.getMonth()]} ${startDate.getFullYear()}`}
+          englishMonthYear={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`}
         />
       </section>
     </>

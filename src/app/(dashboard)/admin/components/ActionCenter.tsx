@@ -19,6 +19,7 @@ interface ActionCenterProps {
   unpaidEmployees: ActionItem[];
   unpaidFees: ActionItem[];
   monthLabel: string;
+  englishMonthYear: string;
 }
 
 const SendSmsButton = ({ listType, disabled = false }: { listType: string; disabled?: boolean }) => {
@@ -133,7 +134,8 @@ const ActionList = ({
   ctaLabel: string,
   ctaIcon: any,
   showSmsAction?: boolean,
-  monthLabel: string
+  monthLabel: string,
+  englishMonthYear: string
 }) => {
   const { t } = useLanguage();
   
@@ -199,7 +201,7 @@ const ActionList = ({
                      name={item.name} 
                      amount={item.amount} 
                      type={item.type} 
-                     monthYear={new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                     monthYear={englishMonthYear}
                    />
                 </div>
               </div>
@@ -233,7 +235,7 @@ const ActionList = ({
   );
 };
 
-const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: ActionCenterProps) => {
+const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel, englishMonthYear }: ActionCenterProps) => {
   const { t } = useLanguage();
   // 1. Calculations
   const calculatedUnpaidEmployeesTotal = (unpaidEmployees || []).reduce((acc, curr) => acc + (curr.amount || 0), 0);
@@ -271,6 +273,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
         ctaLabel={t.actionCenter.processSalaries} 
         ctaIcon={HandCoins}
         monthLabel={monthLabel}
+        englishMonthYear={englishMonthYear}
       />
       <ActionList 
         title={t.actionCenter.uncollectedFees} 
@@ -280,6 +283,7 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel }: Act
         ctaIcon={Calendar}
         showSmsAction={true}
         monthLabel={monthLabel}
+        englishMonthYear={englishMonthYear}
       />
       </div>
     </div>
