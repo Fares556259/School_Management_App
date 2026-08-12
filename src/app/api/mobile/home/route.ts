@@ -109,6 +109,7 @@ export async function GET(request: NextRequest) {
 
     const todayStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
     const todayEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+    const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const [
       slots,
@@ -228,6 +229,7 @@ export async function GET(request: NextRequest) {
       return { id: slot.id, slotNumber: slot.slotNumber, subject: slot.subject?.name || "Free Period", teacher: slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : null, teacherImg: slot.teacher?.img || null, room: slot.room || "TBD", startTime: slot.startTime, endTime: slot.endTime, attendance: finalStatus, score: att?.score || null };
     });
 
+    const submittedIds = new Set(submissions.map((s) => s.assignmentId));
     const mapTask = (a: any) => ({ id: a.id, isCompleted: submittedIds.has(a.id), title: a.title, description: a.description, img: a.img, attachments: a.img ? a.img.split(",").map((url: string) => ({ type: url.toLowerCase().endsWith(".pdf") ? "PDF" : "IMAGE", url })) : [], subject: a.lesson.subject.name, teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`, dueDate: a.dueDate, startDate: a.startDate });
     const mapResource = (r: any) => ({ id: r.id, title: r.title, url: r.url, subject: r.lesson.subject.name, teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}` });
 
