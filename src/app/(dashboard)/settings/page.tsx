@@ -44,7 +44,9 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 const SettingsPage = () => {
   const router = useRouter();
   const { t, locale } = useLanguage();
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<any>({
+    schoolName: "", phone: "", address: "", schoolLogo: "", ministryLogo: "", universityLogo: "", academicYear: "", currentSemester: 1, sessions: [], holidays: []
+  });
   const [levelFees, setLevelFees] = useState<any[]>([]);
   const [levels, setLevels] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
@@ -90,6 +92,9 @@ const SettingsPage = () => {
       } else {
         console.error("Config fetch failed:", configRes?.error);
         setMessage({ type: 'error', text: 'Failed to load school configuration. Some features may be unavailable.' });
+        setOriginalConfig({
+          schoolName: "", phone: "", address: "", schoolLogo: "", ministryLogo: "", universityLogo: "", academicYear: "", currentSemester: 1, sessions: [], holidays: []
+        });
       }
       
       if (roomsRes.success && roomsRes.data) setRooms(roomsRes.data);
