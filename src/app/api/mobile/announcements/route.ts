@@ -21,6 +21,12 @@ export async function GET(request: Request) {
     const classId = searchParams.get("classId");
     const studentId = searchParams.get("studentId");
 
+    const institution = await prisma.institution.findUnique({
+      where: { schoolId }
+    });
+    
+    const defaultImage = institution?.ministryLogo || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=400&auto=format&fit=crop";
+
     const notices = await prisma.notice.findMany({
       where: {
         schoolId, // MUST filter by schoolId to prevent data leaks across schools
@@ -51,7 +57,7 @@ export async function GET(request: Request) {
       content: notice.message,
       date: notice.date.toISOString(),
       category: notice.important ? "URGENT" : "School News",
-      image: notice.img || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=400&auto=format&fit=crop", 
+      image: notice.img || defaultImage, 
       pdfUrl: notice.pdfUrl,
     }));
 

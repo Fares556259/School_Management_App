@@ -467,7 +467,7 @@ const SettingsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { label: t.systemSettings?.schoolLogo || 'School Logo', field: 'schoolLogo' },
-                { label: t.systemSettings?.ministryLogo || 'Ministry Logo', field: 'ministryLogo' },
+                { label: t.systemSettings?.schoolImage || 'School Image', field: 'ministryLogo' },
                 { label: t.systemSettings?.universityLogo || 'University Logo', field: 'universityLogo' }
               ].map((logo) => (
                 <div key={logo.field} className="flex flex-col items-center gap-4 p-6 bg-white rounded-[12px] border border-[#dddddd] group hover:border-[#9297a0] transition-all">
