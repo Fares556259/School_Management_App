@@ -58,6 +58,7 @@ export async function GET(request: Request) {
       date: notice.date.toISOString(),
       category: notice.important ? "URGENT" : "School News",
       image: notice.img || defaultImage, 
+      rawImg: notice.img || "",
       pdfUrl: notice.pdfUrl,
     }));
 
