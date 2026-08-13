@@ -142,13 +142,13 @@ const AssignmentForm = ({
     startTransition(async () => {
       const imgString = imgs.join(",");
       const now = new Date();
-      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const defaultNoDate = new Date(0);
       
       const payload = {
         ...formData,
         img: imgString || undefined,
         startDate: formData.startDate || (data?.startDate ? new Date(data.startDate).toISOString() : now.toISOString()),
-        dueDate: formData.dueDate || (data?.dueDate ? new Date(data.dueDate).toISOString() : nextWeek.toISOString())
+        dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : (data?.dueDate ? new Date(data.dueDate).toISOString() : defaultNoDate.toISOString())
       };
 
       const res =
@@ -245,7 +245,14 @@ const AssignmentForm = ({
           </div>
         )}
 
-
+        <InputField
+          label={t.assignmentsPage.modal.dueDate || "Due Date"}
+          name="dueDate"
+          type="datetime-local"
+          register={register}
+          error={errors.dueDate}
+          defaultValue={data?.dueDate ? new Date(data.dueDate).toISOString().slice(0, 16) : ""}
+        />
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.attachments}</label>

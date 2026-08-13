@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { createAssignmentNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,13 @@ export async function GET(request: NextRequest) {
 
     // Map to a cleaner format for the mobile app
     const mappedTasks = assignments.map(a => {
-      const totalStudents = a.lesson.class.id; // We'll get actual count below
+      const totalStudents = a.lesson.class.id;
       const submitted = a._count.results;
       
       const now = new Date();
       const dueDate = new Date(a.dueDate);
-      const isOverdue = dueDate < now && submitted < totalStudents;
+      const isNoDueDate = !a.dueDate || dueDate.getFullYear() <= 1970;
+      const isOverdue = !isNoDueDate && dueDate < now && submitted < totalStudents;
 
       return {
         id: a.id,
@@ -60,7 +62,9 @@ export async function GET(request: NextRequest) {
         className: a.lesson.class.name,
         submitted: submitted,
         total: 0, // Placeholder
-        dueDateLabel: dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        startDate: a.startDate,
+        dueDate: a.dueDate,
+        dueDateLabel: isNoDueDate ? 'Non déterminée' : dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         isOverdue
       };
     });
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { teacherId, classId, title, description, attachments } = body;
+    const { teacherId, classId, title, description, attachments, dueDate } = body;
 
     if (!teacherId || !classId || !title) {
       return new NextResponse("Missing required fields", { status: 400 });
@@ -150,17 +154,21 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const parsedDueDate = dueDate && !isNaN(new Date(dueDate).getTime()) ? new Date(dueDate) : new Date(0);
+
     const assignment = await prisma.assignment.create({
       data: {
         title,
         description: description || "",
         startDate: now,
-        dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        dueDate: parsedDueDate,
         lessonId: lesson.id,
         schoolId: schoolId,
         img: attachments && attachments.length > 0 ? attachments.map((a: any) => a.uri).join(',') : null
       }
     });
+
+    createAssignmentNotification(assignment.id).catch(console.error);
 
     return NextResponse.json({ success: true, id: assignment.id });
   } catch (error: any) {
