@@ -66,19 +66,26 @@ export async function POST(request: NextRequest) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
+    // Handle multiple file submissions
+    const submissionImg = files && files.length > 0
+      ? files.map((f: any) => (typeof f === 'string' ? f : f.url)).join(",")
+      : imageUrl || null;
+
     // Check if already submitted
     const existing = await prisma.result.findFirst({
       where: { studentId, assignmentId: parseInt(assignmentId) },
     });
 
     if (existing) {
-      return NextResponse.json({ success: true, message: "Already submitted" });
+      await prisma.result.update({
+        where: { id: existing.id },
+        data: {
+          img: submissionImg,
+          submittedAt: new Date(),
+        }
+      });
+      return NextResponse.json({ success: true, message: "Submission updated" });
     }
-
-    // Handle multiple file submissions
-    const submissionImg = files && files.length > 0
-      ? files.map((f: any) => f.url).join(",")
-      : imageUrl || null;
 
     await prisma.result.create({
       data: {

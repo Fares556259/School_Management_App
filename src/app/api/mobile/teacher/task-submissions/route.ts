@@ -72,14 +72,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const students = rawStudents.map((s: any) => ({
-      id: s.id,
-      name: `${s.name} ${s.surname}`,
-      avatar: s.img,
-      submitted: submittedMap.has(s.id),
-      submissionImg: submittedMap.get(s.id)?.img || null,
-      submittedAt: submittedMap.get(s.id)?.submittedAt || null,
-    }));
+    const students = rawStudents.map((s: any) => {
+      const submissionImg = submittedMap.get(s.id)?.img || null;
+      let attachments: { url: string; type: string }[] = [];
+      if (submissionImg) {
+        attachments = submissionImg.split(',').map((url: string) => ({
+          url,
+          type: url.toLowerCase().includes('.pdf') ? 'pdf' : 'image'
+        }));
+      }
+
+      return {
+        id: s.id,
+        name: `${s.name} ${s.surname}`,
+        avatar: s.img,
+        submitted: submittedMap.has(s.id),
+        submissionImg,
+        attachments,
+        submittedAt: submittedMap.get(s.id)?.submittedAt || null,
+      };
+    });
 
     const submitted = students.filter((s: any) => s.submitted);
     const pending = students.filter((s: any) => !s.submitted);
