@@ -51,6 +51,7 @@ export default function StudentListClient({
   const isPending = isFilterPending || isSearchPending;
   const currentClassId = searchParams.get("classId") || "";
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
 
@@ -93,11 +94,12 @@ export default function StudentListClient({
       >
         <td className="flex items-center gap-4 py-4 px-6">
           <Image
-            src={item.img || "/noavatar.png"}
+            src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "" && !imageErrors[item.id]) ? item.img : "/noavatar.png"}
             alt=""
             width={40}
             height={40}
             className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd]"
+            onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
           />
           <div className="flex flex-col">
             <h3 className="text-[14px] font-medium text-[#181d26]">{item.name} {item.surname}</h3>
