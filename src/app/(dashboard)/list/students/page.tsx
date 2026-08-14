@@ -70,6 +70,12 @@ const StudentListPage = async ({
 
   const schoolId = await getSchoolId();
 
+  // Compute month-based payment stats early so we can use it in queries
+  const selectedMonthKey = getMonthKey(safeSearchParams.month);
+  const [mName, yStr] = selectedMonthKey.split(" ");
+  const monthIdx = MONTHS.indexOf(mName) + 1;
+  const yearVal = parseInt(yStr);
+
   // URL QUERY PARAMS CONDITION
   const query: Prisma.StudentWhereInput = { schoolId };
 
@@ -88,6 +94,27 @@ const StudentListPage = async ({
                 },
               },
             };
+            break;
+          case "status":
+            if (value === "PAID" || value === "PARTIAL") {
+              query.payments = {
+                some: {
+                  month: monthIdx,
+                  year: yearVal,
+                  status: value,
+                },
+              };
+            } else if (value === "UNPAID") {
+              query.payments = {
+                none: {
+                  month: monthIdx,
+                  year: yearVal,
+                  status: {
+                    in: ["PAID", "PARTIAL"],
+                  }
+                }
+              };
+            }
             break;
           case "search":
             query.AND = value.split(" ").filter(Boolean).map((word) => ({
@@ -145,12 +172,6 @@ const StudentListPage = async ({
     schoolSubdomain: school?.subdomain || "snapschool-academy",
     adminName: admin ? `${admin.name} ${admin.surname}` : "Administration",
   };
-
-  // Compute month-based payment stats
-  const selectedMonthKey = getMonthKey(safeSearchParams.month);
-  const [mName, yStr] = selectedMonthKey.split(" ");
-  const monthIdx = MONTHS.indexOf(mName) + 1;
-  const yearVal = parseInt(yStr);
 
   const paidThisMonth = data.filter((s) =>
     s.payments.some((p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")

@@ -233,6 +233,29 @@ export default function StudentListClient({
                 );
               })}
             </select>
+
+            {/* STATUS FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              value={searchParams.get("status") || ""}
+              onChange={(e) => {
+                startTransition(() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (e.target.value) {
+                    params.set("status", e.target.value);
+                  } else {
+                    params.delete("status");
+                  }
+                  params.delete("page");
+                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                });
+              }}
+            >
+              <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
+              <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
+              <option value="PARTIAL">{locale === 'ar' ? 'جزئي' : locale === 'fr' ? 'Partiel' : 'Partial'}</option>
+              <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
+            </select>
           </div>
 
           <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
