@@ -60,10 +60,37 @@ export async function GET(request: NextRequest) {
       averagesMap[key].count += 1;
     });
 
+    const classObj = await prisma.class.findUnique({
+      where: { id: student.classId ?? undefined },
+      select: { level: true }
+    });
+
+    const { LEVEL_CONFIGS } = await import("@/lib/report-cards/level-config");
+    const levelNum = classObj?.level?.level;
+    const levelConfig = levelNum ? LEVEL_CONFIGS[levelNum] : undefined;
+
+    const mapSubject = (subject: any) => {
+      let mappedName = subject.name;
+      let mappedDomain = subject.domain || "General";
+      if (levelConfig) {
+        for (const domainConfig of levelConfig.domains) {
+          for (const sub of domainConfig.subjects) {
+            if (subject.name.includes(sub.search.trim())) {
+              mappedName = sub.display || subject.name;
+              mappedDomain = domainConfig.name;
+              break;
+            }
+          }
+        }
+      }
+      return { name: mappedName, domain: mappedDomain };
+    };
+
     const results = grades.map((g) => {
       const avgData = averagesMap[`${g.subjectId}-${g.term}`];
       const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : g.score;
-      return { id: g.id, subject: g.subject.name, score: g.score, classAverage: classAvg, term: g.term, date: g.updatedAt };
+      const mapped = mapSubject(g.subject);
+      return { id: g.id, subject: mapped.name, domain: mapped.domain, score: g.score, classAverage: classAvg, term: g.term, date: g.updatedAt };
     });
 
     const latestTerm = Math.max(...terms);
@@ -74,7 +101,8 @@ export async function GET(request: NextRequest) {
     if (termGrades.length >= classSubjectsCount && classSubjectsCount > 0) {
       const domainMap: Record<string, typeof termGrades> = {};
       termGrades.forEach((g) => {
-        const domain = g.subject.domain || "General";
+        const mapped = mapSubject(g.subject);
+        const domain = mapped.domain;
         if (!domainMap[domain]) domainMap[domain] = [];
         domainMap[domain].push(g);
       });

@@ -36,6 +36,7 @@ interface Props {
   allStudents?: any[];
   sheets: any[];
   lessons: any[];
+  levelConfigs?: any;
 }
 
 export default function ResultsPageClient({
@@ -46,6 +47,7 @@ export default function ResultsPageClient({
   allStudents,
   sheets,
   lessons,
+  levelConfigs,
 }: Props) {
   const router = useRouter();
   const [activeView, setActiveView] = useState<"list" | "recorder">("list");
@@ -228,8 +230,28 @@ export default function ResultsPageClient({
     
     const activeTerm = Number(selectedTerm);
 
-    return subjects
-      .map(subj => {
+    const levelNum = activeClass.level?.level;
+    const levelConfig = levelNum && levelConfigs ? levelConfigs[levelNum] : undefined;
+
+    let filteredSubjects = subjects;
+    if (levelConfig) {
+      filteredSubjects = [];
+      levelConfig.domains.forEach((domainConfig: any) => {
+        domainConfig.subjects.forEach((sub: any) => {
+          const dbSubject = subjects.find(s => s.name.includes(sub.search.trim()));
+          if (dbSubject) {
+            filteredSubjects.push({
+              ...dbSubject,
+              domain: domainConfig.name,
+              name: sub.display || dbSubject.name,
+            });
+          }
+        });
+      });
+    }
+
+    return filteredSubjects
+      .map((subj: any) => {
         const matchingSheet = sheets.find(
           sheet => String(sheet.classId) === selectedClassId && 
                   sheet.subjectId === subj.id && 
@@ -329,7 +351,7 @@ export default function ResultsPageClient({
       )}
 
       {/* ─── GRID ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="space-y-8">
         {displayItems.length === 0 && (
           <div className="col-span-full bg-white p-16 rounded-[12px] border border-[#e5e7eb] flex flex-col items-center gap-3">
             <div className="text-5xl opacity-30">📄</div>
@@ -337,127 +359,142 @@ export default function ResultsPageClient({
           </div>
         )}
 
-        {displayItems.map((item) => {
-          const isPlaceholder = item.type === 'placeholder';
-          const sheet = item.data;
-          const cardId = isPlaceholder ? `p-${item.subject.id}` : String(sheet.id);
-          const isThisInitializing = initializingCardId === cardId;
-          
-          // Get teacher name
-          const teacherName = (() => {
-            const lesson = lessons?.find((l: any) => l.classId === item.class.id && l.subjectId === item.subject.id);
-            if (lesson?.teacher) return `${lesson.teacher.name} ${lesson.teacher.surname}`;
-            if (!isPlaceholder && sheet.teacher) return `${sheet.teacher.name} ${sheet.teacher.surname}`;
-            return null;
-          })();
+        {(() => {
+          const grouped: Record<string, typeof displayItems> = {};
+          displayItems.forEach((item) => {
+            const domain = item.subject.domain || "General";
+            if (!grouped[domain]) grouped[domain] = [];
+            grouped[domain].push(item);
+          });
 
-          // Grading progress
-          const totalStudents = !isPlaceholder ? (sheet.class._count?.students || 1) : 0;
-          const gradedCount = !isPlaceholder ? sheet.grades.length : 0;
-          const progressPct = !isPlaceholder ? Math.min(100, (gradedCount / totalStudents) * 100) : 0;
-          const isComplete = !isPlaceholder && gradedCount >= totalStudents;
+          return Object.entries(grouped).map(([domain, items]) => (
+            <div key={domain} className="space-y-4">
+              <div className="flex items-center gap-3 px-2">
+                <div className="h-4 w-1 bg-indigo-500 rounded-full" />
+                <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">{domain}</h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {items.map((item) => {
+                  const isPlaceholder = item.type === 'placeholder';
+                  const sheet = item.data;
+                  const cardId = isPlaceholder ? `p-${item.subject.id}` : String(sheet.id);
+                  const isThisInitializing = initializingCardId === cardId;
+                  
+                  // Get teacher name
+                  const teacherName = (() => {
+                    const lesson = lessons?.find((l: any) => l.classId === item.class.id && l.subjectId === item.subject.id);
+                    if (lesson?.teacher) return `${lesson.teacher.name} ${lesson.teacher.surname}`;
+                    if (!isPlaceholder && sheet.teacher) return `${sheet.teacher.name} ${sheet.teacher.surname}`;
+                    return null;
+                  })();
 
-          return (
-            <div 
-              key={cardId} 
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (draggingCardId !== cardId) setDraggingCardId(cardId);
-              }}
-              onDragLeave={() => setDraggingCardId(null)}
-              onDrop={(e) => handleCardDrop(e, item, isPlaceholder)}
-              className={`group relative rounded-[10px] border transition-all duration-200 flex flex-col overflow-hidden ${
-                isPlaceholder 
-                  ? "bg-[#fafbfc] border-dashed border-[#d0d5dd] hover:border-blue-300 hover:bg-white cursor-pointer" 
-                  : "bg-white border-[#e5e7eb] shadow-sm hover:shadow-md"
-              }`}
-              onClick={isPlaceholder && !isThisInitializing ? () => handlePlaceholderClick(item) : undefined}
-            >
-               {/* Drag-and-drop overlay */}
-               <AnimatePresence>
-                 {draggingCardId === cardId && (
-                   <motion.div 
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     exit={{ opacity: 0 }}
-                     className="absolute inset-0 z-30 bg-blue-50/90 backdrop-blur-sm flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-[10px] p-6 text-center pointer-events-none"
-                   >
-                     <UploadCloud className="w-8 h-8 text-blue-500 mb-2" />
-                     <p className="text-[12px] font-semibold text-blue-600">Drop to attach proof</p>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
+                  // Grading progress
+                  const totalStudents = !isPlaceholder ? (sheet.class._count?.students || 1) : 0;
+                  const gradedCount = !isPlaceholder ? sheet.grades.length : 0;
+                  const progressPct = !isPlaceholder ? Math.min(100, (gradedCount / totalStudents) * 100) : 0;
+                  const isComplete = !isPlaceholder && gradedCount >= totalStudents;
 
-               {/* Uploading spinner overlay */}
-               <AnimatePresence>
-                 {uploadingCardId === cardId && (
-                   <motion.div 
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     exit={{ opacity: 0 }}
-                     className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-[10px]"
-                   >
-                     <Loader2 className="w-6 h-6 text-blue-600 animate-spin mb-2" />
-                     <p className="text-[11px] font-medium text-[#41454d]">Uploading...</p>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-
-               {/* Initializing spinner overlay */}
-               <AnimatePresence>
-                 {isThisInitializing && (
-                   <motion.div 
-                     initial={{ opacity: 0 }}
-                     animate={{ opacity: 1 }}
-                     exit={{ opacity: 0 }}
-                     className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-[10px]"
-                   >
-                     <Loader2 className="w-6 h-6 text-blue-600 animate-spin mb-2" />
-                     <p className="text-[11px] font-medium text-[#41454d]">{t.resultsPage.initializeEmpty}...</p>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-
-               {/* ── Card Content ── */}
-               <div className="p-5 flex flex-col gap-4 flex-1">
-                 {/* Subject header */}
-                 <div className="flex items-start justify-between gap-2">
-                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                     <h3 className="text-[15px] font-semibold text-[#181d26] tracking-tight truncate" title={parseLocalizedName(item.subject.name, locale)}>
-                       {parseLocalizedName(item.subject.name, locale)}
-                     </h3>
-                     {teacherName && (
-                       <p className="text-[11px] text-[#6b7280] truncate">{teacherName}</p>
-                     )}
-                     {!teacherName && (
-                       <p className="text-[11px] text-[#b0b5bd]">—</p>
-                     )}
-                   </div>
-                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                     <span className="px-2 py-0.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded text-[10px] font-medium text-[#41454d] leading-none">
-                       {t.resultsPage.term} {item.term}
-                     </span>
-                     {!isPlaceholder && (
-                       <>
-                         {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
-                           <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-[10px] font-medium text-emerald-600 leading-none">
-                             {t.resultsPage.proofAttached}
-                           </span>
-                         ) : (
-                           <span className="px-2 py-0.5 bg-amber-50 border border-amber-100 rounded text-[10px] font-medium text-amber-600 leading-none">
-                             {t.resultsPage.missingProof}
-                           </span>
+                  return (
+                    <div 
+                      key={cardId} 
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (draggingCardId !== cardId) setDraggingCardId(cardId);
+                      }}
+                      onDragLeave={() => setDraggingCardId(null)}
+                      onDrop={(e) => handleCardDrop(e, item, isPlaceholder)}
+                      className={`group relative rounded-[10px] border transition-all duration-200 flex flex-col overflow-hidden ${
+                        isPlaceholder 
+                          ? "bg-[#fafbfc] border-dashed border-[#d0d5dd] hover:border-blue-300 hover:bg-white cursor-pointer" 
+                          : "bg-white border-[#e5e7eb] shadow-sm hover:shadow-md"
+                      }`}
+                      onClick={isPlaceholder && !isThisInitializing ? () => handlePlaceholderClick(item) : undefined}
+                    >
+                       {/* Drag-and-drop overlay */}
+                       <AnimatePresence>
+                         {draggingCardId === cardId && (
+                           <motion.div 
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             exit={{ opacity: 0 }}
+                             className="absolute inset-0 z-30 bg-blue-50/90 backdrop-blur-sm flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-[10px] p-6 text-center pointer-events-none"
+                           >
+                             <UploadCloud className="w-8 h-8 text-blue-500 mb-2" />
+                             <p className="text-[12px] font-semibold text-blue-600">Drop to attach proof</p>
+                           </motion.div>
                          )}
-                         {sheet.teacherId && (
-                           <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[10px] font-medium text-indigo-600 leading-none flex items-center gap-1">
-                             <Smartphone size={9} />
-                             Via Mobile
-                           </span>
+                       </AnimatePresence>
+
+                       {/* Uploading spinner overlay */}
+                       <AnimatePresence>
+                         {uploadingCardId === cardId && (
+                           <motion.div 
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             exit={{ opacity: 0 }}
+                             className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-[10px]"
+                           >
+                             <Loader2 className="w-6 h-6 text-blue-600 animate-spin mb-2" />
+                             <p className="text-[11px] font-medium text-[#41454d]">Uploading...</p>
+                           </motion.div>
                          )}
-                       </>
-                     )}
-                   </div>
-                 </div>
+                       </AnimatePresence>
+
+                       {/* Initializing spinner overlay */}
+                       <AnimatePresence>
+                         {isThisInitializing && (
+                           <motion.div 
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             exit={{ opacity: 0 }}
+                             className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-[10px]"
+                           >
+                             <Loader2 className="w-6 h-6 text-blue-600 animate-spin mb-2" />
+                             <p className="text-[11px] font-medium text-[#41454d]">{t.resultsPage.initializeEmpty}...</p>
+                           </motion.div>
+                         )}
+                       </AnimatePresence>
+
+                       {/* ── Card Content ── */}
+                       <div className="p-5 flex flex-col gap-4 flex-1">
+                         {/* Subject header */}
+                         <div className="flex items-start justify-between gap-2">
+                           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                             <h3 className="text-[15px] font-semibold text-[#181d26] tracking-tight truncate" title={parseLocalizedName(item.subject.name, locale)}>
+                               {parseLocalizedName(item.subject.name, locale)}
+                             </h3>
+                             {teacherName && (
+                               <p className="text-[11px] text-[#6b7280] truncate">{teacherName}</p>
+                             )}
+                             {!teacherName && (
+                               <p className="text-[11px] text-[#b0b5bd]">—</p>
+                             )}
+                           </div>
+                           <div className="flex flex-col items-end gap-1.5 shrink-0">
+                             <span className="px-2 py-0.5 bg-[#f3f4f6] border border-[#e5e7eb] rounded text-[10px] font-medium text-[#41454d] leading-none">
+                               {t.resultsPage.term} {item.term}
+                             </span>
+                             {!isPlaceholder && (
+                               <>
+                                 {sheet.proofUrl && sheet.proofUrl.startsWith("http") ? (
+                                   <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-[10px] font-medium text-emerald-600 leading-none">
+                                     {t.resultsPage.proofAttached}
+                                   </span>
+                                 ) : (
+                                   <span className="px-2 py-0.5 bg-amber-50 border border-amber-100 rounded text-[10px] font-medium text-amber-600 leading-none">
+                                     {t.resultsPage.missingProof}
+                                   </span>
+                                 )}
+                                 {sheet.teacherId && (
+                                   <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded text-[10px] font-medium text-indigo-600 leading-none flex items-center gap-1">
+                                     <Smartphone size={9} />
+                                     Via Mobile
+                                   </span>
+                                 )}
+                               </>
+                             )}
+                           </div>
+                         </div>
 
                  {/* Progress bar */}
                  {!isPlaceholder ? (
@@ -523,10 +560,14 @@ export default function ResultsPageClient({
                     </button>
                  </div>
                )}
-            </div>
-          );
-        })}
-      </div>
+             </div>
+           );
+         })}
+       </div>
+     </div>
+   ));
+ })()}
+ </div>
 
       {/* ─── GRADE DETAILS MODAL ─── */}
       {detailsModalData && (

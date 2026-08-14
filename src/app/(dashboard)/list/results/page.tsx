@@ -4,6 +4,8 @@ import prisma from "../../../../lib/prisma";
 import ResultsPageClient from "./ResultsPageClient";
 import { getSchoolId } from "@/lib/school";
 
+import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
+
 const ResultListPage = async () => {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,7 +16,7 @@ const ResultListPage = async () => {
 
   // 🐘 V3 Stabilization: Re-parallelize optimized queries with hardened pool settings
   const [classesRaw, subjects, teachers, sheets, allStudents, lessons] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true, level: true }, orderBy: { name: "asc" } }),
     prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
     prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
     prisma.gradeSheet.findMany({
@@ -59,6 +61,7 @@ const ResultListPage = async () => {
       allStudents={allStudents}
       sheets={sheets}
       lessons={lessons}
+      levelConfigs={LEVEL_CONFIGS}
     />
   );
 };
