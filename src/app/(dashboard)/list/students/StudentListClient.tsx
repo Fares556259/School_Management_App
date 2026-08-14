@@ -16,7 +16,7 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Sparkles, Users, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { MONTHS } from "@/lib/dateUtils";
+import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Student, Class, Level, Payment } from "@prisma/client";
 
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
@@ -59,6 +59,8 @@ export default function StudentListClient({
     id: parseInt(c.value, 10),
     name: c.label,
   }));
+
+  const schoolYearMonths = getSchoolYearMonths();
 
   const translatedColumns = columns
     .filter(c => c.accessor !== "studentId")
@@ -199,6 +201,31 @@ export default function StudentListClient({
               <option value="">{locale === 'ar' ? 'جميع الأقسام' : locale === 'fr' ? 'Toutes les classes' : 'All Classes'}</option>
               {classList.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+
+            {/* MONTH FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
+              value={selectedMonthKey}
+              onChange={(e) => {
+                startTransition(() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  const val = e.target.value;
+                  if (val) {
+                    const [mName, yStr] = val.split(" ");
+                    const mIdx = MONTHS.indexOf(mName);
+                    params.set("month", `${mIdx}-${yStr}`);
+                  } else {
+                    params.delete("month");
+                  }
+                  params.delete("page");
+                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                });
+              }}
+            >
+              {schoolYearMonths.map(m => (
+                <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </div>

@@ -1,10 +1,19 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-async function main() {
-  const subjects = await prisma.subject.findMany({ where: { schoolId: 'bringbringa138gmailcom-1' } });
-  console.log('Subjects for school:', subjects.length);
-  
-  const lessons = await prisma.lesson.findMany({ where: { classId: { in: [111, 112] } } });
-  console.log('Lessons for classes 111, 112:', lessons.length);
+
+async function run() {
+  const student = await prisma.student.findFirst({
+    where: { id: { endsWith: '04f52df5' } },
+  });
+  if (!student) {
+    console.log("Student not found.");
+    return;
+  }
+  console.log("Student ID:", student.id);
+  const payments = await prisma.payment.findMany({
+    where: { studentId: student.id }
+  });
+  console.log("Payments:", payments);
 }
-main();
+
+run().catch(console.error).finally(() => prisma.$disconnect());
