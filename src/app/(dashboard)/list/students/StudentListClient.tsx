@@ -30,6 +30,7 @@ interface Props {
   role: string | undefined;
   selectedMonthKey: string;
   paidThisMonth: number;
+  totalThisMonth: number;
   relatedData: any;
 }
 
@@ -41,6 +42,7 @@ export default function StudentListClient({
   role,
   selectedMonthKey,
   paidThisMonth,
+  totalThisMonth,
   relatedData,
 }: Props) {
   const router = useRouter();
@@ -168,7 +170,7 @@ export default function StudentListClient({
       {/* 1. MONTH SUMMARY */}
       <div className="flex items-center justify-between mb-6">
         <MonthPaymentSummary
-          total={initialData.length}
+          total={totalThisMonth}
           paidCount={paidThisMonth}
           monthLabel={selectedMonthKey}
           entityName="students"

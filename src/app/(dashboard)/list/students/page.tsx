@@ -133,14 +133,24 @@ const StudentListPage = async ({
     }
   }
 
-  const [data, count, parents, classes, levels, admin, school] = await Promise.all([
+  // Fast database counting for the payment summary (ignores status filter to show true context)
+  const summaryQuery = { ...query };
+  delete summaryQuery.payments;
+
+  const [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = await Promise.all([
     prisma.student.findMany({
       where: query,
       include: {
         class: true,
         level: true,
         parent: true,
-        payments: { select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } },
+        payments: { 
+          where: {
+            month: monthIdx,
+            year: yearVal,
+          },
+          select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } 
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -162,6 +172,19 @@ const StudentListPage = async ({
     }),
     role === "admin" && userId ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : Promise.resolve(null),
     prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
+    prisma.student.count({ where: summaryQuery }),
+    prisma.student.count({
+      where: {
+        ...summaryQuery,
+        payments: {
+          some: {
+            month: monthIdx,
+            year: yearVal,
+            status: "PAID"
+          }
+        }
+      }
+    })
   ]);
 
   const studentRelatedData = {
@@ -173,10 +196,6 @@ const StudentListPage = async ({
     adminName: admin ? `${admin.name} ${admin.surname}` : "Administration",
   };
 
-  const paidThisMonth = data.filter((s) =>
-    s.payments.some((p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
-  ).length;
-
   return (
     <div className="bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
       <StudentListClient
@@ -187,7 +206,8 @@ const StudentListPage = async ({
         page={p}
         role={role}
         selectedMonthKey={selectedMonthKey}
-        paidThisMonth={paidThisMonth}
+        paidThisMonth={summaryPaid}
+        totalThisMonth={summaryTotal}
         relatedData={studentRelatedData}
       />
     </div>
