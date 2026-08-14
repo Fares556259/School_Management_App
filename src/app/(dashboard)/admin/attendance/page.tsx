@@ -470,7 +470,7 @@ export default function AttendancePage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-[#dddddd] bg-slate-100 relative">
-                                <Image src={student.img || "/noavatar.png"} alt="" fill className="object-cover" />
+                                <Image src={student.img || "/noAvatar.png"} alt="" fill className="object-cover" />
                               </div>
                               <div>
                                 <p className="text-[13px] font-medium text-[#181d26]">{student.name} {student.surname}</p>

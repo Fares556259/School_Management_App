@@ -112,7 +112,7 @@ export default function TeacherDetailsModal({
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden relative border border-[#dddddd] bg-white shrink-0">
                       <Image
-                        src={teacher.img || "/noavatar.png"}
+                        src={teacher.img || "/noAvatar.png"}
                         alt={`${teacher.name} ${teacher.surname}`}
                         fill
                         className="object-cover"

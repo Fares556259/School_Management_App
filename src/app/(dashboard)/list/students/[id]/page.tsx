@@ -61,7 +61,7 @@ const SingleStudentPage = async ({
           <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
             <div className="w-1/3">
               <Image
-                src={student.img || "/noavatar.png"}
+                src={student.img || "/noAvatar.png"}
                 alt=""
                 width={144}
                 height={144}
@@ -212,7 +212,7 @@ const SingleStudentPage = async ({
             <h1 className="text-xl font-semibold">Parent Info</h1>
             <div className="flex items-center gap-4 mt-4">
               <Image
-                src={(student as any).parent.img || "/noavatar.png"}
+                src={(student as any).parent.img || "/noAvatar.png"}
                 alt=""
                 width={70}
                 height={70}

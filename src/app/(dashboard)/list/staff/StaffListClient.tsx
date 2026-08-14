@@ -67,7 +67,7 @@ export default function StaffListClient({
       >
         <td className="flex items-center gap-4 py-4 px-6">
           <Image
-            src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noavatar.png"}
+            src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noAvatar.png"}
             alt=""
             width={40}
             height={40}

@@ -434,7 +434,7 @@ export default function ClassStudentsTable({
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full overflow-hidden relative bg-slate-100 shrink-0 border border-[#dddddd]">
                             <Image 
-                              src={student.img || "/noavatar.png"} 
+                              src={student.img || "/noAvatar.png"} 
                               alt={`${student.name} ${student.surname}`} 
                               fill 
                               className="object-cover" 
