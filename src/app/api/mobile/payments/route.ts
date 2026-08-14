@@ -35,8 +35,7 @@ export async function GET(request: NextRequest) {
 
     const payments = await prisma.payment.findMany({
       where: {
-        studentId: studentId,
-        schoolId: schoolId
+        studentId: studentId
       },
       orderBy: [
         { year: 'desc' },

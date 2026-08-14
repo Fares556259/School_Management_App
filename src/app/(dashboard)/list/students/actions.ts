@@ -33,7 +33,13 @@ export const receiveStudentPayment = async (
 
   try {
     const { getSchoolId } = await import("@/lib/school");
-    const schoolId = await getSchoolId();
+    const adminSchoolId = await getSchoolId();
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { schoolId: true }
+    });
+    const schoolId = student?.schoolId || adminSchoolId;
 
     // 0. Check for existing payment
     const existing = await prisma.payment.findUnique({
