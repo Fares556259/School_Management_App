@@ -170,7 +170,8 @@ export async function GET(request: NextRequest) {
         const parsed = JSON.parse(rawText);
         if (Array.isArray(parsed)) {
           parsed.forEach((p, idx) => {
-            if (p.text?.trim()) attendanceRemarks.push({ id: `att-${a.id}-${idx}`, note: p.text, subject: realSubject, teacher: realTeacher, date: a.date, time: slot?.startTime || undefined });
+            const authorName = p.author && p.author !== "Teacher" ? p.author : realTeacher;
+            if (p.text?.trim()) attendanceRemarks.push({ id: `att-${a.id}-${idx}`, note: p.text, subject: realSubject, teacher: authorName, date: a.date, time: slot?.startTime || undefined });
           });
           return;
         }

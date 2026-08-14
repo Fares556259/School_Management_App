@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
-      select: { schoolId: true }
+      select: { schoolId: true, name: true, surname: true }
     });
 
     if (!teacher) {
@@ -174,11 +174,12 @@ export async function POST(request: NextRequest) {
     const existingMap = new Map(existingAttendances.map(a => [a.studentId, a]));
 
     // 2. Bulk upsert records
+    const teacherName = `${teacher.name} ${teacher.surname}`.trim();
     const ops = records.map(async (record: any) => {
       // Format note as a standard SnapSchool JSON string if provided
       let formattedNote = record.note || null;
       if (formattedNote && !formattedNote.startsWith("[")) {
-        formattedNote = JSON.stringify([{ author: "Teacher", text: formattedNote }]);
+        formattedNote = JSON.stringify([{ author: teacherName, text: formattedNote }]);
       }
 
       // Robust score parsing
