@@ -55,16 +55,18 @@ export async function GET(req: NextRequest) {
 
     // Build the effective domain map based on level config or legacy fallback
     const effectiveDomainMap: Record<string, typeof allSubjects> = {};
+    const displayMap: Record<number, string> = {};
     let expectedSubjectCount = 0;
 
     if (levelConfig) {
       // Level-specific configuration logic
       levelConfig.domains.forEach(domainConfig => {
         effectiveDomainMap[domainConfig.name] = [];
-        domainConfig.subjects.forEach(subjectName => {
-          const dbSubject = allSubjects.find(s => s.name.trim() === subjectName.trim());
+        domainConfig.subjects.forEach(sub => {
+          const dbSubject = allSubjects.find(s => s.name.includes(sub.search.trim()));
           if (dbSubject) {
             effectiveDomainMap[domainConfig.name].push(dbSubject);
+            displayMap[dbSubject.id] = sub.display;
             expectedSubjectCount++;
           }
         });
@@ -166,7 +168,7 @@ export async function GET(req: NextRequest) {
 
           return {
             id: s.id,
-            name: s.name,
+            name: displayMap[s.id] || s.name,
             score: gradeMap[s.id] ?? 0,
             maxScore,
             minScore,

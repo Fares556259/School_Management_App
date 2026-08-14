@@ -170,7 +170,7 @@ const parseArabicDomainName = (domainName: string): string => {
                 <tr>
                   <th className="py-2 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
                   <th className="py-2 px-2 border-l border-blue-100">العدد/20</th>
-                  <th className="py-2 px-2 border-l border-blue-100">معدل المجال</th>
+                  <th className="py-2 px-2 border-l border-blue-100">معدل {parseArabicDomainName(domainName)}</th>
                   <th className="py-2 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
                   <th className="py-2 px-2 border-l border-blue-100">أعلى عدد</th>
                   <th className="py-2 px-2 text-center text-[8px]">أدنى عدد</th>
