@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         },
         _count: { select: { results: true } } // Optimize submission count without loading full result array
       },
-      orderBy: { dueDate: "desc" },
+      orderBy: { id: "desc" },
       take: 50 // Avoid massive payloads for mobile
     });
 
