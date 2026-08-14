@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
 import { NextRequest, NextResponse } from "next/server";
+import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -22,13 +23,6 @@ export async function GET(req: NextRequest) {
       orderBy: [{ domain: "asc" }, { name: "asc" }],
     });
 
-    // Group subjects by domain
-    const domainMap: Record<string, typeof allSubjects> = {};
-    allSubjects.forEach((s) => {
-      if (!domainMap[s.domain]) domainMap[s.domain] = [];
-      domainMap[s.domain].push(s);
-    });
-
     // 1. Fetch Students
     let studentsToProcess: any[] = [];
     let targetClassId: number = 0;
@@ -36,7 +30,7 @@ export async function GET(req: NextRequest) {
     if (studentId) {
       const student = await prisma.student.findFirst({
         where: { id: studentId },
-        include: { class: true },
+        include: { class: { include: { level: true } } },
       });
       if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
       studentsToProcess = [student];
@@ -45,10 +39,43 @@ export async function GET(req: NextRequest) {
       const classIdNum = parseInt(classId);
       const students = await prisma.student.findMany({
         where: { classId: classIdNum },
-        include: { class: true },
+        include: { class: { include: { level: true } } },
       });
       studentsToProcess = students;
       targetClassId = classIdNum;
+    }
+
+    if (studentsToProcess.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Determine level config based on the class of the first student (they are all in the same class)
+    const levelNum = studentsToProcess[0].class?.level?.level;
+    const levelConfig = levelNum ? LEVEL_CONFIGS[levelNum] : undefined;
+
+    // Build the effective domain map based on level config or legacy fallback
+    const effectiveDomainMap: Record<string, typeof allSubjects> = {};
+    let expectedSubjectCount = 0;
+
+    if (levelConfig) {
+      // Level-specific configuration logic
+      levelConfig.domains.forEach(domainConfig => {
+        effectiveDomainMap[domainConfig.name] = [];
+        domainConfig.subjects.forEach(subjectName => {
+          const dbSubject = allSubjects.find(s => s.name.trim() === subjectName.trim());
+          if (dbSubject) {
+            effectiveDomainMap[domainConfig.name].push(dbSubject);
+            expectedSubjectCount++;
+          }
+        });
+      });
+    } else {
+      // Legacy fallback logic
+      allSubjects.forEach((s) => {
+        if (!effectiveDomainMap[s.domain]) effectiveDomainMap[s.domain] = [];
+        effectiveDomainMap[s.domain].push(s);
+        expectedSubjectCount++;
+      });
     }
 
     // 2. Fetch All Students in the same Class for Ranking and Stats
@@ -61,19 +88,26 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 3. Helper: calculate domain averages dynamically from DB subjects
+    // 3. Helper: calculate domain averages dynamically
     const calculateStudentAverages = (grades: { score: number; subjectId: number }[]) => {
-      // If student hasn't received a grade for all subjects, don't compute average
-      if (grades.length < allSubjects.length) {
+      // Filter grades to only include those in our effective domains
+      const validSubjectIds = new Set();
+      Object.values(effectiveDomainMap).forEach(subs => subs.forEach(s => validSubjectIds.add(s.id)));
+      
+      const relevantGrades = grades.filter(g => validSubjectIds.has(g.subjectId));
+
+      // If student hasn't received a grade for all expected subjects, we still compute but it might be incomplete.
+      // Previously it returned 0 if grades.length < expectedSubjectCount. We keep this safety.
+      if (relevantGrades.length < expectedSubjectCount) {
         return { domainAverages: {}, generalAverage: 0 };
       }
 
       const gradeMap: Record<number, number> = {};
-      grades.forEach((g) => { gradeMap[g.subjectId] = g.score; });
+      relevantGrades.forEach((g) => { gradeMap[g.subjectId] = g.score; });
 
       // Domain averages: average of all subject scores in that domain
       const domainAverages: Record<string, number> = {};
-      Object.entries(domainMap).forEach(([domain, subjects]) => {
+      Object.entries(effectiveDomainMap).forEach(([domain, subjects]) => {
         const domainScores = subjects
           .filter(s => gradeMap[s.id] !== undefined)
           .map(s => gradeMap[s.id]);
@@ -101,7 +135,7 @@ export async function GET(req: NextRequest) {
     const sortedAverages = [...studentAveragesList].sort(
       (a, b) => b.averages.generalAverage - a.averages.generalAverage
     );
-    const generalAverages = studentAveragesList.map((a) => a.averages.generalAverage);
+    const generalAverages = studentAveragesList.map((a) => a.averages.generalAverage).filter(avg => avg > 0);
     const maxAverage = generalAverages.length > 0 ? Math.max(...generalAverages) : 0;
     const minAverage = generalAverages.length > 0 ? Math.min(...generalAverages) : 0;
 
@@ -115,10 +149,13 @@ export async function GET(req: NextRequest) {
       studentGrades.forEach((g) => { gradeMap[g.subjectId] = g.score; });
 
       const myAverages = studentAveragesList.find((s) => s.id === targetStudent.id)!.averages;
-      const rank = sortedAverages.findIndex((a) => a.id === targetStudent.id) + 1;
+      // Filter out those with 0 average for ranking so they don't get ranked 1 if everyone is 0
+      const rankedStudents = sortedAverages.filter(a => a.averages.generalAverage > 0);
+      let rank = rankedStudents.findIndex((a) => a.id === targetStudent.id) + 1;
+      if (myAverages.generalAverage === 0) rank = 0; // Not ranked
 
-      // Build domain data dynamically from DB subjects
-      const domains = Object.entries(domainMap).map(([domainName, subjects]) => {
+      // Build domain data dynamically from our effective map
+      const domains = Object.entries(effectiveDomainMap).map(([domainName, subjects]) => {
         const subjectsWithScores = subjects.map((s) => {
           const allGradesForSubject = classStudents
             .flatMap((st) => st.grades.filter((g) => g.subjectId === s.id))
