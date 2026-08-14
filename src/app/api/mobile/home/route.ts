@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       include: { lesson: { include: { subject: true, teacher: true } } },
     });
     const tasksGiven = await prisma.assignment.findMany({
-      where: { lesson: { classId: student.classId }, schoolId },
+      where: { lesson: { classId: student.classId }, schoolId, startDate: { gte: todayStart, lt: todayEnd } },
       include: { lesson: { include: { subject: true, teacher: true } } },
       orderBy: { id: "desc" },
       take: 20,
