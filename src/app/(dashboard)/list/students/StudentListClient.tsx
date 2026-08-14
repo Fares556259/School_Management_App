@@ -178,12 +178,12 @@ export default function StudentListClient({
       {/* 2. TOP ACTIONS HEADER */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.students.title}</h1>
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
           {/* SEARCH AND FILTER */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <TableSearch onPending={setIsSearchPending} />
             <select
-              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={currentClassId}
               onChange={(e) => {
                 startTransition(() => {
@@ -206,7 +206,7 @@ export default function StudentListClient({
 
             {/* MONTH FILTER */}
             <select
-              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={selectedMonthKey}
               onChange={(e) => {
                 startTransition(() => {
@@ -224,13 +224,18 @@ export default function StudentListClient({
                 });
               }}
             >
-              {schoolYearMonths.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
+              {schoolYearMonths.map(m => {
+                const [mName, yStr] = m.split(" ");
+                const mIdx = MONTHS.indexOf(mName);
+                const translatedMonth = t.months?.[mIdx] || mName;
+                return (
+                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
+                );
+              })}
             </select>
           </div>
 
-          <div className="flex items-center gap-2 self-end md:self-auto">
+          <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
                 <button 
