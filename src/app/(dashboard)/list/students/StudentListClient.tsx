@@ -176,8 +176,7 @@ export default function StudentListClient({
       </div>
 
       {/* 2. TOP ACTIONS HEADER */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.students.title}</h1>
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
           {/* SEARCH AND FILTER */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
@@ -257,21 +256,21 @@ export default function StudentListClient({
               <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
             </select>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-            {role === "admin" && (
-              <div className="flex items-center gap-2 ml-1">
-                <button 
-                  onClick={() => setIsShareModalOpen(true)}
-                  className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
-                >
-                  <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-                  <span>{locale === 'ar' ? 'تسجيلات وطلبات الأولياء' : locale === 'fr' ? 'Inscriptions & Demandes Parents' : 'Parent Registrations & Requests'}</span>
-                </button>
-                <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-2 self-end lg:self-auto shrink-0 mt-4 lg:mt-0 w-full lg:w-auto justify-end">
+          {role === "admin" && (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsShareModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
+              >
+                <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                <span>{locale === 'ar' ? 'التسجيلات' : locale === 'fr' ? 'Inscriptions' : 'Registrations'}</span>
+              </button>
+              <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
+            </div>
+          )}
         </div>
       </div>
 
