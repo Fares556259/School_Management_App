@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const teacherId = searchParams.get("teacherId");
 
     if (!teacherId) {
-      return new NextResponse("Missing teacherId", { status: 400 });
+      return new NextResponse(JSON.stringify({ error: "Missing teacherId" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
     if (teacherId !== userId) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { teacherId, classId, title, description, attachments, dueDate } = body;
 
-    if (!teacherId || !classId || !title) {
-      return new NextResponse("Missing required fields", { status: 400 });
+    if (!title || !classId) {
+      return new NextResponse(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
     if (teacherId !== userId) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!teacher) {
-      return new NextResponse("Teacher not found", { status: 404 });
+      return new NextResponse(JSON.stringify({ error: "Teacher not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
     const schoolId = teacher.schoolId;

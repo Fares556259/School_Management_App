@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const assignmentId = searchParams.get("assignmentId");
 
     if (!assignmentId) {
-      return new NextResponse("Missing assignmentId", { status: 400 });
+      return new NextResponse(JSON.stringify({ error: "Missing assignmentId" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     const assignment = await prisma.assignment.findUnique({
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!assignment) {
-      return new NextResponse("Assignment not found", { status: 404 });
+      return new NextResponse(JSON.stringify({ error: "Assignment not found" }), { status: 404, headers: { 'Content-Type': 'application/json' } });
     }
 
     const submittedMap = new Map(

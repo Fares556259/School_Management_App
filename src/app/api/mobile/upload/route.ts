@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const id = formData.get("id") as string;
 
     if (!file) {
-      return new NextResponse("No file uploaded", { status: 400 });
+      return new NextResponse(JSON.stringify({ error: "No file uploaded" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -39,6 +39,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: publicUrl });
   } catch (error: any) {
     console.error("[Mobile Upload Error]", error);
-    return new NextResponse(error.message || "Upload failed", { status: 500 });
+    return new NextResponse(JSON.stringify({ error: error.message || "Upload failed" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
