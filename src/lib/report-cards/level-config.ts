@@ -21,15 +21,15 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
           { search: "التواصل الشفوي", display: "تواصل شفوي*" },
           { search: "الخط", display: "الخط*" },
           { search: "القراءة", display: "القراءة*" },
-          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي*" },
         ],
       },
       {
-        name: "مجال العلوم",
+        name: "مجال العلوم والرياضيات",
         subjects: [
           { search: "الرياضيات", display: "الرياضيات*" },
           { search: "الإيقاظ العلمي", display: "الايقاظ العلمي*" },
           { search: "التربية التكنولوجية", display: "التربية التكنولوجية*" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي*" },
         ],
       },
       {

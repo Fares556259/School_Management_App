@@ -5,6 +5,7 @@ import GradeEntryForm from "./GradeEntryForm";
 import GradeFilter from "./GradeFilter";
 import { getAllGradeSheets } from "./actions";
 import Link from "next/link";
+import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 
 export default async function GradesPage({
   searchParams,
@@ -16,8 +17,8 @@ export default async function GradesPage({
 
   const schoolId = await getSchoolId();
 
-  const [classes, subjects, teachers] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  const [classes, rawSubjects, teachers] = await Promise.all([
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true, level: true }, orderBy: { name: "asc" } }),
     prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
     prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
   ]);
@@ -40,6 +41,31 @@ export default async function GradesPage({
       : Promise.resolve([]),
     getAllGradeSheets(classId ?? undefined, undefined, term),
   ]);
+
+  // Determine Level Config for the selected class
+  const selectedClass = classes.find((c) => c.id === classId);
+  const levelNum = selectedClass?.level?.level;
+  const levelConfig = levelNum ? LEVEL_CONFIGS[levelNum] : undefined;
+
+  let subjects: any[] = [];
+
+  if (levelConfig) {
+    // Transform subjects according to the Level Config
+    levelConfig.domains.forEach(domainConfig => {
+      domainConfig.subjects.forEach(sub => {
+        const dbSubject = rawSubjects.find(s => s.name.includes(sub.search.trim()));
+        if (dbSubject) {
+          subjects.push({
+            ...dbSubject,
+            domain: domainConfig.name, // Override with exactly what the user wants!
+            name: sub.display || dbSubject.name, // Use the display name!
+          });
+        }
+      });
+    });
+  } else {
+    subjects = rawSubjects;
+  }
 
   return (
     <div className="p-6 flex flex-col gap-8 bg-slate-50 min-h-screen">
