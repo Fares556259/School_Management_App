@@ -113,7 +113,7 @@ export async function createAnnouncementNotifications(noticeId: number) {
         type: "ANNOUNCEMENT",
         title: notice.title,
         message: notice.important 
-          ? `URGENT: ${notice.message.substring(0, 100)}...` 
+          ? `عاجل: ${notice.message.substring(0, 100)}...` 
           : notice.message.substring(0, 150) + (notice.message.length > 150 ? "..." : ""),
         studentId: notice.targetStudentId || null,
       })),
@@ -122,7 +122,7 @@ export async function createAnnouncementNotifications(noticeId: number) {
     // Send push notifications in batch
     sendPushBatch(
       parentIds,
-      notice.important ? `🚨 URGENT: ${notice.title}` : `📢 ${notice.title}`,
+      notice.important ? `🚨 عاجل: ${notice.title}` : `📢 ${notice.title}`,
       notice.message.substring(0, 100) + (notice.message.length > 100 ? "..." : ""),
       { 
         type: "ANNOUNCEMENT", 
@@ -246,7 +246,7 @@ export async function createAttendanceNotification(studentId: string, status: st
     if (!student) return;
 
     const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    const statusLabel = status === 'ABSENT' ? 'absent' : 'late';
+    const statusLabel = status === 'ABSENT' ? 'غائب' : 'متأخر';
     
     let lessonInfo = '';
     if (lessonId) {
@@ -256,7 +256,7 @@ export async function createAttendanceNotification(studentId: string, status: st
       });
       if (lesson && lesson.subject && lesson.teacher) {
         const timeStr = lesson.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        lessonInfo = ` for ${lesson.subject.name} session at ${timeStr} by ${lesson.teacher.name} ${lesson.teacher.surname}`;
+        lessonInfo = ` في حصة ${lesson.subject.name} على الساعة ${timeStr}`;
       }
     }
     
@@ -269,16 +269,16 @@ export async function createAttendanceNotification(studentId: string, status: st
         parentId: student.parentId,
         studentId: studentId,
         type: "ATTENDANCE",
-        title: `Attendance Alert: ${status}`,
-        message: `${student.name} has been marked as ${statusLabel} on ${dateStr}${lessonInfo}.`,
+        title: `تنبيه الحضور: ${status === 'ABSENT' ? 'غياب' : 'تأخير'}`,
+        message: `تم تسجيل ${student.name} كـ ${statusLabel} يوم ${dateStr}${lessonInfo}.`,
       }
     });
 
     // Send push notification
     sendPush(
       student.parentId,
-      `📍 Attendance: ${status}`,
-      `${student.name} is ${statusLabel}${lessonInfo ? lessonInfo : ` today (${dateStr})`}.`,
+      `📍 الحضور: ${status === 'ABSENT' ? 'غياب' : 'تأخير'}`,
+      `${student.name} ${statusLabel}${lessonInfo ? lessonInfo : ` اليوم (${dateStr})`}.`,
       { type: "ATTENDANCE", studentId, channelId: "emergency" }
     );
 
@@ -314,16 +314,16 @@ export async function createAssignmentNotification(assignmentId: number) {
         parentId: s.parentId,
         studentId: s.id,
         type: "ANNOUNCEMENT",
-        title: `New Task: ${assignment.title}`,
-        message: `A new task for ${assignment.lesson.subject.name} has been assigned to ${s.name}.`,
+        title: `📝 مهمة جديدة: ${assignment.title}`,
+        message: `تم تعيين مهمة جديدة في ${assignment.lesson.subject.name} لـ ${s.name}.`,
       })),
     });
 
     // Send push notifications in batch
     sendPushBatch(
       parentIds,
-      `📝 New Task: ${assignment.title}`,
-      `Task for ${assignment.lesson.subject.name} is now available.`,
+      `📝 مهمة جديدة: ${assignment.title}`,
+      `تمت إضافة مهمة جديدة في ${assignment.lesson.subject.name}.`,
       { type: "HOMEWORK", homeworkId: assignment.id }
     );
 
@@ -357,8 +357,8 @@ export async function createResourceNotification(resourceId: number) {
         parentId: s.parentId,
         studentId: s.id,
         type: "ANNOUNCEMENT",
-        title: `Course Resource: ${resource.title}`,
-        message: `New educational material shared for ${resource.lesson.subject.name}.`,
+        title: `📚 ملخص جديد: ${resource.title}`,
+        message: `تمت إضافة مواد تعليمية جديدة في مادة ${resource.lesson.subject.name}.`,
       })),
     });
 
@@ -366,8 +366,8 @@ export async function createResourceNotification(resourceId: number) {
     const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
     sendPushBatch(
       parentIds,
-      `📚 New Resource: ${resource.title}`,
-      `New material shared for ${resource.lesson.subject.name}.`,
+      `📚 ملخص جديد: ${resource.title}`,
+      `تمت إضافة مواد تعليمية جديدة في مادة ${resource.lesson.subject.name}.`,
       { type: "RESOURCE", resourceId: resource.id }
     );
 
@@ -458,15 +458,15 @@ export async function createRemarkNotification(studentId: string, subjectName: s
         parentId: student.parentId,
         studentId,
         type: "ANNOUNCEMENT",
-        title: `📝 Teacher Remark — ${subjectName}`,
-        message: `A remark was left for ${student.name}: "${truncated}"`,
+        title: `📝 ملاحظة المعلم — ${subjectName}`,
+        message: `تمت إضافة ملاحظة لـ ${student.name}: "${truncated}"`,
         schoolId: (await prisma.student.findUnique({ where: { id: studentId }, select: { schoolId: true } }))?.schoolId || "default_school"
       }
     });
 
     sendPush(
       student.parentId,
-      `📝 Teacher Remark — ${subjectName}`,
+      `📝 ملاحظة المعلم — ${subjectName}`,
       `"${truncated}"`,
       { type: "REMARK", studentId }
     );
@@ -497,8 +497,8 @@ export async function createExamScheduleNotification(classId: number, period: nu
       }
     }
 
-    const title = `📅 Exam Schedule Updated`;
-    const message = `The official exam schedule for Term ${period} is now available.`;
+    const title = `📅 تحديث جدول الامتحانات`;
+    const message = `تم توفير جدول الامتحانات الرسمي للفترة ${period}.`;
 
     const parentIds = Array.from(parentMap.keys());
 
