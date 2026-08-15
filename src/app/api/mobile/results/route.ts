@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       targetTerms.forEach(term => {
         levelConfig.domains.forEach(domain => {
           domain.subjects.forEach(sub => {
-            const matchingGrade = grades.find(g => g.term === term && g.subject.name.includes(sub.search.trim()));
+            const matchingGrade = grades.find(g => g.term === term && g.subject.name.toLowerCase().includes(sub.search.trim().toLowerCase()));
             if (matchingGrade) {
               const avgData = averagesMap[`${matchingGrade.subjectId}-${term}`];
               const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : matchingGrade.score;

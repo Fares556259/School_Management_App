@@ -79,7 +79,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
         name: "مجال العربية",
         subjects: [
           { search: "التواصل الشفوي", display: "تواصل شفوي" },
-          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "قواعد", display: "قواعد اللغة" },
           { search: "القراءة", display: "القراءة" },
           { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],

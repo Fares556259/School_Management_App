@@ -238,7 +238,7 @@ export default function ResultsPageClient({
       filteredSubjects = [];
       levelConfig.domains.forEach((domainConfig: any) => {
         domainConfig.subjects.forEach((sub: any) => {
-          const dbSubject = subjects.find(s => s.name.includes(sub.search.trim()));
+          const dbSubject = subjects.find(s => s.name.toLowerCase().includes(sub.search.trim().toLowerCase()));
           if (dbSubject) {
             filteredSubjects.push({
               ...dbSubject,
