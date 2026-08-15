@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { getGradeSubjects } from "@/lib/subject-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -70,13 +71,13 @@ export async function GET(req: NextRequest) {
       if (l.subject) subjectsMap.set(l.subject.id, l.subject);
     });
 
-    const subjects = Array.from(subjectsMap.values()).map(subject => ({
+    const subjectsList = Array.from(subjectsMap.values());
+    const gradeableSubjects = getGradeSubjects(subjectsList);
+
+    const subjects = gradeableSubjects.map((subject: any) => ({
       ...subject,
       name: parseArabicName(subject.name),
-      components: subject.components ? subject.components.map((c: any) => ({
-        ...c,
-        name: parseArabicName(c.name)
-      })) : []
+      components: []
     }));
 
     return NextResponse.json(subjects);

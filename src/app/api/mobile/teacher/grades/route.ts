@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { getGradeSubjects } from "@/lib/subject-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -214,19 +215,12 @@ export async function GET(req: NextRequest) {
         gradedCount,
         totalStudents,
         grades: gradesObj,
-        components: undefined as any[] | undefined
+        components: []
       };
     };
 
-    const subjects = subjectsData.map((subject: any) => {
-      const parentProcessed = processSubject(subject);
-      if (subject.components && subject.components.length > 0) {
-        parentProcessed.components = subject.components.map((c: any) => processSubject(c));
-      } else {
-        parentProcessed.components = [];
-      }
-      return parentProcessed;
-    });
+    const gradeableSubjects = getGradeSubjects(subjectsData);
+    const subjects = gradeableSubjects.map((subject: any) => processSubject(subject));
 
     return NextResponse.json({
       students,
