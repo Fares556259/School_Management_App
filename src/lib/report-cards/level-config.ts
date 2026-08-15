@@ -72,5 +72,43 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
         ],
       }
     ]
+  },
+  3: {
+    domains: [
+      {
+        name: "مجال العربية",
+        subjects: [
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
+        ],
+      },
+      {
+        name: "مجال العلوم",
+        subjects: [
+          { search: "الرياضيات", display: "الرياضيات" },
+          { search: "الإيقاظ العلمي", display: "الايقاظ العلمي" },
+          { search: "التربية التكنولوجية", display: "التربية التكنولوجية" },
+        ],
+      },
+      {
+        name: "اللغة الفرنسية",
+        subjects: [
+          { search: "Exp", display: "Exp. Orale" },
+          { search: "Pro", display: "Pro. Ecrite" },
+          { search: "Lecture", display: "Lecture" },
+        ],
+      },
+      {
+        name: "مجال التنشئة",
+        subjects: [
+          { search: "التربية الإسلامية", display: "تربية اسلامية" },
+          { search: "التربية الموسيقية", display: "تربية موسيقية" },
+          { search: "التربية التشكيلية", display: "تربية تشكيلية" },
+          { search: "التربية البدنية", display: "تربية بدنية" },
+        ],
+      }
+    ]
   }
 };
