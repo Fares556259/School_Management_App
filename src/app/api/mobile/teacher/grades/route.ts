@@ -219,7 +219,15 @@ export async function GET(req: NextRequest) {
       };
     };
 
-    const gradeableSubjects = getGradeSubjects(subjectsData);
+    const gradeableSubjects: any[] = [];
+    subjectsData.forEach((s: any) => {
+      if (s.components && s.components.length > 0) {
+        gradeableSubjects.push(...s.components);
+      } else {
+        gradeableSubjects.push(s);
+      }
+    });
+
     const subjects = gradeableSubjects.map((subject: any) => processSubject(subject));
 
     return NextResponse.json({

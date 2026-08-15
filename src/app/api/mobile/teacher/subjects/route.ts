@@ -72,7 +72,14 @@ export async function GET(req: NextRequest) {
     });
 
     const subjectsList = Array.from(subjectsMap.values());
-    const gradeableSubjects = getGradeSubjects(subjectsList);
+    const gradeableSubjects: any[] = [];
+    subjectsList.forEach((s: any) => {
+      if (s.components && s.components.length > 0) {
+        gradeableSubjects.push(...s.components);
+      } else {
+        gradeableSubjects.push(s);
+      }
+    });
 
     const subjects = gradeableSubjects.map((subject: any) => ({
       ...subject,
