@@ -70,34 +70,37 @@ export async function GET(request: NextRequest) {
 
     let finalResults: any[] = [];
     const latestTerm = terms.length > 0 ? Math.max(...terms) : 1;
+    const targetTerms = terms.length > 0 ? terms : [1];
 
     if (levelConfig) {
-      levelConfig.domains.forEach(domain => {
-        domain.subjects.forEach(sub => {
-          const matchingGrade = grades.find(g => g.subject.name.includes(sub.search.trim()));
-          if (matchingGrade) {
-            const avgData = averagesMap[`${matchingGrade.subjectId}-${matchingGrade.term}`];
-            const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : matchingGrade.score;
-            finalResults.push({
-              id: matchingGrade.id,
-              subject: sub.display,
-              domain: domain.name,
-              score: matchingGrade.score,
-              classAverage: classAvg,
-              term: matchingGrade.term,
-              date: matchingGrade.updatedAt
-            });
-          } else {
-            finalResults.push({
-              id: `placeholder-${sub.search}`,
-              subject: sub.display,
-              domain: domain.name,
-              score: null,
-              classAverage: null,
-              term: latestTerm,
-              date: new Date().toISOString()
-            });
-          }
+      targetTerms.forEach(term => {
+        levelConfig.domains.forEach(domain => {
+          domain.subjects.forEach(sub => {
+            const matchingGrade = grades.find(g => g.term === term && g.subject.name.includes(sub.search.trim()));
+            if (matchingGrade) {
+              const avgData = averagesMap[`${matchingGrade.subjectId}-${term}`];
+              const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : matchingGrade.score;
+              finalResults.push({
+                id: matchingGrade.id,
+                subject: sub.display,
+                domain: domain.name,
+                score: matchingGrade.score,
+                classAverage: classAvg,
+                term: term,
+                date: matchingGrade.updatedAt
+              });
+            } else {
+              finalResults.push({
+                id: `placeholder-${sub.search}-${term}`,
+                subject: sub.display,
+                domain: domain.name,
+                score: null,
+                classAverage: null,
+                term: term,
+                date: new Date().toISOString()
+              });
+            }
+          });
         });
       });
     } else {
