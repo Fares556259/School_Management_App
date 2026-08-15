@@ -191,6 +191,11 @@ export async function GET(req: NextRequest) {
       gradesBySubject.get(grade.subjectId).push(grade);
     });
 
+    const parseArabicName = (name: string): string => {
+      if (!name) return name;
+      return name.split("|")[0].trim();
+    };
+
     const processSubject = (subject: any) => {
       const gradesForSubject = gradesBySubject.get(subject.id) || [];
       let gradesObj: Record<string, number> = {};
@@ -202,7 +207,7 @@ export async function GET(req: NextRequest) {
 
       return {
         id: subject.id,
-        name: subject.name,
+        name: parseArabicName(subject.name),
         domain: subject.domain,
         parentId: subject.parentId || null,
         graded,

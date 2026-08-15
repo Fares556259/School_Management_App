@@ -59,13 +59,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
 
+    const parseArabicName = (name: string): string => {
+      if (!name) return name;
+      return name.split("|")[0].trim();
+    };
+
     const subjectsMap = new Map();
     teacher.subjects.forEach(s => subjectsMap.set(s.id, s));
     teacher.lessons.forEach(l => {
       if (l.subject) subjectsMap.set(l.subject.id, l.subject);
     });
 
-    const subjects = Array.from(subjectsMap.values());
+    const subjects = Array.from(subjectsMap.values()).map(subject => ({
+      ...subject,
+      name: parseArabicName(subject.name),
+      components: subject.components ? subject.components.map((c: any) => ({
+        ...c,
+        name: parseArabicName(c.name)
+      })) : []
+    }));
 
     return NextResponse.json(subjects);
   } catch (error) {
