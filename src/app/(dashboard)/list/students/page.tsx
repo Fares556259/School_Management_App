@@ -161,8 +161,8 @@ const StudentListPage = async ({
       select: { id: true, name: true, surname: true } 
     }),
     prisma.class.findMany({ 
-      where: { schoolId },
-      select: { id: true, name: true },
+      where: { schoolId }, 
+      select: { id: true, name: true, level: true },
       orderBy: { name: 'asc' }
     }),
     prisma.level.findMany({ 
