@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import { User, CheckCircle2, AlertCircle, Save, FileText } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getGradeSubjects } from "@/lib/subject-utils";
 
 interface Subject {
   id: number;
   name: string;
   domain: string;
+  parentId: number | null;
 }
 
 interface GradeEntry {
@@ -51,6 +53,10 @@ export default function GradeEntryForm({
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
     students[0]?.id || null
   );
+  
+  // Transform full subject list into gradeable targets
+  const gradeableSubjects = getGradeSubjects(subjects);
+  
   const [localGrades, setLocalGrades] = useState<Record<string, Record<number, number>>>(() => {
     const initial: Record<string, Record<number, number>> = {};
     students.forEach(s => {
@@ -119,20 +125,20 @@ export default function GradeEntryForm({
   };
 
   // Group subjects by domain
-  const domains = Array.from(new Set(subjects.map(s => s.domain)));
+  const domains = Array.from(new Set(gradeableSubjects.map(s => s.domain)));
 
   const calculateAverages = (studentId: string) => {
     const studentGrades = localGrades[studentId] || {};
     
     // Require all subjects to be graded to show the average
     const enteredGradesCount = Object.keys(studentGrades).filter(id => studentGrades[parseInt(id)] !== undefined && studentGrades[parseInt(id)] !== null).length;
-    if (enteredGradesCount < subjects.length) {
+    if (enteredGradesCount < gradeableSubjects.length) {
       return "--";
     }
     
     // 1. Group subjects by domain
-    const domainMap: Record<string, typeof subjects> = {};
-    subjects.forEach((s) => {
+    const domainMap: Record<string, typeof gradeableSubjects> = {};
+    gradeableSubjects.forEach((s) => {
       const domain = s.domain || "General";
       if (!domainMap[domain]) domainMap[domain] = [];
       domainMap[domain].push(s);
@@ -273,7 +279,7 @@ export default function GradeEntryForm({
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {subjects
+                      {gradeableSubjects
                         .filter((s) => s.domain === domain)
                         .map((subject) => (
                           <div 

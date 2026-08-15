@@ -4,6 +4,8 @@ import prisma from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSchoolId } from "@/lib/school";
 
+import { getGradeSubjects } from "@/lib/subject-utils";
+
 /**
  * Bulk initializes GradeSheets for all subjects in a given class and term.
  * Optimized with high-efficiency batch operations to prevent database timeouts.
@@ -13,7 +15,7 @@ export async function initializeClassSheets(classId: number, term: number) {
     const schoolId = await getSchoolId();
 
     // 1. Parallel Fetch of foundational data — scoped to current school only
-    const [subjects, students] = await Promise.all([
+    const [allSubjects, students] = await Promise.all([
       prisma.subject.findMany({ where: { schoolId } }),
       prisma.student.findMany({
         where: { classId, schoolId },
@@ -24,6 +26,8 @@ export async function initializeClassSheets(classId: number, term: number) {
     if (students.length === 0) {
       return { success: false, error: "No students found in this class." };
     }
+
+    const subjects = getGradeSubjects(allSubjects);
 
     const studentIds = students.map(s => s.id);
     const subjectIds = subjects.map(s => s.id);

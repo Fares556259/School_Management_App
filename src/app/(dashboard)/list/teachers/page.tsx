@@ -118,7 +118,7 @@ const TeacherListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.teacher.count({ where: query }),
-    prisma.subject.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    prisma.subject.findMany({ where: { schoolId, parentId: null }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
     prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } })
   ]);
 

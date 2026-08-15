@@ -53,31 +53,51 @@ async function main() {
 
   // 4. SUBJECTS (18 Tunisian Primary School List)
   console.log("📚 Seeding Tunisian Subjects...");
-  const subjectData = [
-    { name: "Arabic Communication", domain: "Arabic Language Domain" },
-    { name: "Reading", domain: "Arabic Language Domain" },
-    { name: "Writing", domain: "Arabic Language Domain" },
-    { name: "Grammar", domain: "Arabic Language Domain" },
-    { name: "Mathematics", domain: "Science & Technology Domain" },
-    { name: "Scientific Activities", domain: "Science & Technology Domain" },
-    { name: "Technology", domain: "Science & Technology Domain" },
-    { name: "Islamic Education", domain: "Discovery Domain" },
-    { name: "History", domain: "Discovery Domain" },
-    { name: "Geography", domain: "Discovery Domain" },
-    { name: "Civic Education", domain: "Discovery Domain" },
-    { name: "Artistic Education", domain: "Discovery Domain" },
-    { name: "Plastic Arts", domain: "Discovery Domain" },
-    { name: "Physical Education", domain: "Discovery Domain" },
-    { name: "French Oral Expression", domain: "Foreign Languages Domain" },
-    { name: "French Reading", domain: "Foreign Languages Domain" },
-    { name: "French Written Production", domain: "Foreign Languages Domain" },
-    { name: "English", domain: "Foreign Languages Domain" },
+  const parentSubjectData = [
+    { name: "اللغة العربية | Langue Arabe | Arabic Language", domain: "Arabic Language Domain" },
+    { name: "اللغة الفرنسية | Langue Française | French Language", domain: "Foreign Languages Domain" },
+    { name: "الإنجليزية | Anglais | English", domain: "Foreign Languages Domain" },
+    { name: "الرياضيات | Mathématiques | Mathematics", domain: "Science & Technology Domain" },
+    { name: "الإيقاظ العلمي | Éveil Scientifique | Science Awareness", domain: "Science & Technology Domain" },
+    { name: "التربية الإسلامية | Éducation Islamique | Islamic Education", domain: "Discovery Domain" },
+    { name: "التاريخ | Histoire | History", domain: "Discovery Domain" },
+    { name: "الجغرافيا | Géographie | Geography", domain: "Discovery Domain" },
+    { name: "التربية المدنية | Éducation Civique | Civic Education", domain: "Discovery Domain" },
+    { name: "التربية التكنولوجية | Éducation Technologique | Technical Education", domain: "Discovery Domain" },
+    { name: "التربية التشكيلية | Arts Plastiques | Art Education", domain: "Discovery Domain" },
+    { name: "التربية الموسيقية | Éducation Musicale | Music Education", domain: "Discovery Domain" },
+    { name: "التربية البدنية | Éducation Physique | Physical Education", domain: "Discovery Domain" }
   ];
 
   const subjects = [];
-  for (const s of subjectData) {
+  let arabicParentId = null;
+  let frenchParentId = null;
+
+  for (const s of parentSubjectData) {
     const created = await prisma.subject.create({ data: s });
     subjects.push(created);
+    if (s.name.includes("اللغة العربية")) arabicParentId = created.id;
+    if (s.name.includes("اللغة الفرنسية")) frenchParentId = created.id;
+  }
+
+  const componentSubjectData = [
+    // Arabic Components
+    { name: "التواصل الشفوي | Communication Orale | Oral Communication", domain: "Arabic Language Domain", parentId: arabicParentId },
+    { name: "الخط | Écriture | Handwriting", domain: "Arabic Language Domain", parentId: arabicParentId },
+    { name: "القراءة | Lecture | Reading", domain: "Arabic Language Domain", parentId: arabicParentId },
+    { name: "الإنتاج الكتابي | Production Écrite | Written Production", domain: "Arabic Language Domain", parentId: arabicParentId },
+    // French Components
+    { name: "قواعد اللغة | Grammaire | Grammar", domain: "Foreign Languages Domain", parentId: frenchParentId },
+    { name: "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression", domain: "Foreign Languages Domain", parentId: frenchParentId },
+    { name: "القراءة (فرنسية) | Lecture (Français) | French Reading", domain: "Foreign Languages Domain", parentId: frenchParentId },
+    { name: "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production", domain: "Foreign Languages Domain", parentId: frenchParentId },
+  ];
+
+  for (const c of componentSubjectData) {
+    if (c.parentId) {
+      const created = await prisma.subject.create({ data: c });
+      subjects.push(created);
+    }
   }
 
   // 5. STAFF (Financial oversight)

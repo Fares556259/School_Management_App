@@ -1,9 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 async function run() {
-  const subjects = await prisma.subject.findMany({
-    select: { name: true, domain: true }
-  });
-  console.log(JSON.stringify(subjects, null, 2));
+  const subjects = await prisma.subject.findMany({ select: { id: true, name: true, parentId: true } });
+  console.log(subjects);
 }
-run();
+run().then(() => process.exit(0));

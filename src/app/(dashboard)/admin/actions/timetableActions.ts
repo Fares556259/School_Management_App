@@ -102,7 +102,7 @@ export async function getAllClasses() {
 export async function getAllSubjectsAndTeachers() {
   try {
     const schoolId = await getSchoolId();
-    const subjects = await prisma.subject.findMany({ where: { schoolId } });
+    const subjects = await prisma.subject.findMany({ where: { schoolId, parentId: null } });
     const teachers = await prisma.teacher.findMany({ 
       where: { schoolId },
       include: {

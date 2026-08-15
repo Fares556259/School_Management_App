@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { callGeminiDirect } from "./aiActions";
 import { getSchoolId } from "@/lib/school";
+import { getGradeSubjects } from "@/lib/subject-utils";
 
 // A simple string similarity function (Levenshtein distance based or just substring match)
 // For simplicity, we use a basic inclusion/token match.
@@ -50,7 +51,8 @@ export async function processBulkGrades(publicUrls: string[], termAssumed: numbe
     
     // 1. Fetch Dictionary for Matching
     const classes = await prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true } });
-    const subjects = await prisma.subject.findMany({ where: { schoolId }, select: { id: true, name: true } });
+    const allSubjects = await prisma.subject.findMany({ where: { schoolId }, select: { id: true, name: true, domain: true, parentId: true } });
+    const subjects = getGradeSubjects(allSubjects);
     const students = await prisma.student.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true, classId: true } });
     
     const formattedStudents = students.map(s => ({

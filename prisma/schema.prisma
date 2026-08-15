@@ -164,6 +164,11 @@ model Subject {
   name        String
   domain      String          @default("General")
   schoolId    String          @default("default_school")
+
+  parentId    Int?
+  parent      Subject?        @relation("SubjectHierarchy", fields: [parentId], references: [id])
+  components  Subject[]       @relation("SubjectHierarchy")
+
   grades      Grade[]
   gradeSheets GradeSheet[]
   lessons     Lesson[]
