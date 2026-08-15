@@ -6,6 +6,8 @@ import { getSchoolId } from "@/lib/school";
 
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 
+export const dynamic = 'force-dynamic';
+
 const ResultListPage = async () => {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
