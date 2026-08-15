@@ -189,5 +189,47 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
         ],
       }
     ]
+  },
+  6: {
+    domains: [
+      {
+        name: "مجال العربية",
+        subjects: [
+          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
+          { search: "Grammaire", display: "قواعد اللغة" },
+          { search: "القراءة |", display: "القراءة" },
+          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+        ],
+      },
+      {
+        name: "مجال العلوم",
+        subjects: [
+          { search: "الرياضيات", display: "الرياضيات" },
+          { search: "الإيقاظ العلمي", display: "الايقاظ العلمي" },
+          { search: "التربية التكنولوجية", display: "التربية التكنولوجية" },
+        ],
+      },
+      {
+        name: "اللغات الاجنية",
+        subjects: [
+          { search: "French Oral Expression", display: "Exp. Orale" },
+          { search: "French Written Production", display: "Pro. Ecrite" },
+          { search: "French Reading", display: "Lecture" },
+          { search: "English", display: "Anglais" },
+        ],
+      },
+      {
+        name: "مجال التنشئة",
+        subjects: [
+          { search: "التربية الإسلامية", display: "تربية اسلامية" },
+          { search: "التربية الموسيقية", display: "تربية موسيقية" },
+          { search: "التربية التشكيلية", display: "تربية تشكيلية" },
+          { search: "History", display: "التاريخ" },
+          { search: "Geography", display: "الجغرافيا" },
+          { search: "Civic Education", display: "المدنية" },
+          { search: "التربية البدنية", display: "تربية بدنية" },
+        ],
+      }
+    ]
   }
 };
