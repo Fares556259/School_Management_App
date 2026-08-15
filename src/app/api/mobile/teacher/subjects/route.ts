@@ -30,12 +30,26 @@ export async function GET(req: NextRequest) {
       where: { id: teacherId },
       include: {
         subjects: {
-          select: { id: true, name: true, domain: true }
+          select: { 
+            id: true, 
+            name: true, 
+            domain: true, 
+            parentId: true,
+            components: { select: { id: true, name: true, domain: true, parentId: true } }
+          }
         },
         lessons: {
           where: { classId: Number(classId) },
           include: {
-            subject: { select: { id: true, name: true, domain: true } }
+            subject: { 
+              select: { 
+                id: true, 
+                name: true, 
+                domain: true,
+                parentId: true,
+                components: { select: { id: true, name: true, domain: true, parentId: true } }
+              } 
+            }
           }
         }
       }

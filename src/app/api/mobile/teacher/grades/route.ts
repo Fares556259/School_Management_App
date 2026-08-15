@@ -123,10 +123,16 @@ export async function GET(req: NextRequest) {
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
       include: {
-        subjects: true,
+        subjects: {
+          include: { components: true }
+        },
         lessons: {
           where: { classId: Number(classId) },
-          include: { subject: true }
+          include: { 
+            subject: {
+              include: { components: true }
+            }
+          }
         }
       }
     });
@@ -151,19 +157,27 @@ export async function GET(req: NextRequest) {
 
     const totalStudents = students.length;
 
-    const subjectIds = subjectsData.map((s: any) => s.id);
+    const subjectIds = new Set<number>();
+    subjectsData.forEach((s: any) => {
+      subjectIds.add(s.id);
+      if (s.components && s.components.length > 0) {
+        s.components.forEach((c: any) => subjectIds.add(c.id));
+      }
+    });
+
+    const allSubjectIds = Array.from(subjectIds);
 
     const allSheets = await prisma.gradeSheet.findMany({
       where: {
         classId: Number(classId),
-        subjectId: { in: subjectIds },
+        subjectId: { in: allSubjectIds },
         term
       }
     });
 
     const allGrades = await prisma.grade.findMany({
       where: {
-        subjectId: { in: subjectIds },
+        subjectId: { in: allSubjectIds },
         term,
         student: { classId: Number(classId) }
       }
@@ -177,14 +191,12 @@ export async function GET(req: NextRequest) {
       gradesBySubject.get(grade.subjectId).push(grade);
     });
 
-    const subjects = subjectsData.map((subject: any) => {
+    const processSubject = (subject: any) => {
       const gradesForSubject = gradesBySubject.get(subject.id) || [];
-      
       let gradesObj: Record<string, number> = {};
       for (const g of gradesForSubject) {
         gradesObj[g.studentId] = g.score;
       }
-      
       const gradedCount = gradesForSubject.length;
       const graded = gradedCount > 0;
 
@@ -192,11 +204,23 @@ export async function GET(req: NextRequest) {
         id: subject.id,
         name: subject.name,
         domain: subject.domain,
+        parentId: subject.parentId || null,
         graded,
         gradedCount,
         totalStudents,
-        grades: gradesObj
+        grades: gradesObj,
+        components: undefined as any[] | undefined
       };
+    };
+
+    const subjects = subjectsData.map((subject: any) => {
+      const parentProcessed = processSubject(subject);
+      if (subject.components && subject.components.length > 0) {
+        parentProcessed.components = subject.components.map((c: any) => processSubject(c));
+      } else {
+        parentProcessed.components = [];
+      }
+      return parentProcessed;
     });
 
     return NextResponse.json({
