@@ -36,7 +36,8 @@ import {
   Library,
   Sparkles,
   CircleHelp,
-  MoreVertical
+  MoreVertical,
+  ChevronDown
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
@@ -162,65 +163,161 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
   const isSuper = role === "superadmin" || role === "superuser";
   const activeRoles = isSuper ? ["superadmin", "superuser", "admin"] : [role];
 
+  // State for collapsible sections
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  // Auto-expand sections containing the active item
+  useEffect(() => {
+    const newExpanded = { ...expandedSections };
+    let changed = false;
+
+    menuItems.forEach(section => {
+      if (section.title === "MAIN") return;
+      
+      const hasActive = section.items.some(item => {
+        const targetHref = item.href === "/" ? (isSuper ? "/superadmin" : `/${role}`) : item.href;
+        return (pendingHref ? pendingHref === targetHref : pathname === targetHref) || 
+               (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
+      });
+
+      if (hasActive && !newExpanded[section.title]) {
+        newExpanded[section.title] = true;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      setExpandedSections(newExpanded);
+    }
+  }, [pathname, pendingHref, role, isSuper]);
+
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
+  };
+
   return (
     <div className="flex flex-col min-h-full h-full text-sm pb-4">
-      {menuItems.map((section) => {
-        const isSystem = section.title === "SYSTEM";
-        return (
-        <div className={`flex flex-col gap-1.5 ${isSystem ? 'mb-4' : 'mb-8'}`} key={section.title}>
-          <span className="hidden lg:block text-white/60 font-semibold text-[11px] tracking-widest uppercase ml-2 mb-1.5">
-            {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
-          </span>
-          <div className="flex flex-col gap-1">
-            {section.items.filter(item => item.visible.some(v => activeRoles.includes(v))).map((item) => {
-              const targetHref = item.href === "/" 
-                ? (isSuper ? "/superadmin" : `/${role}`) 
-                : item.href;
-              const isActive = 
-                (pendingHref ? pendingHref === targetHref : pathname === targetHref) || 
-                (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
-              
-              return (
-                <Link
-                  href={targetHref}
-                  prefetch={true}
-                  onClick={() => setPendingHref(targetHref)}
-                  onMouseEnter={() => router.prefetch(targetHref)}
-                  key={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${
-                    isActive 
-                      ? "bg-white/10 text-white shadow-sm font-semibold" 
-                      : "text-white/70 hover:bg-white/10 hover:text-white font-medium"
-                  }`}
-                >
-                  {isActive && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#7eb8f7]"></div>}
-                  <div className={`transition-all duration-200 ${
-                    isActive 
-                      ? "text-white" 
-                      : "text-white/70 group-hover:text-white"
-                  }`}>
-                    {typeof item.icon === 'string' ? (
-                      <div className="relative w-[22px] h-[22px]">
-                         <Image 
-                           src={item.icon} 
-                           alt="" 
-                           fill
-                           className={isActive ? "brightness-0" : "opacity-60"}
-                         />
-                      </div>
-                    ) : (
-                      <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                    )}
-                  </div>
-                  <span className={`hidden lg:block tracking-tight transition-transform duration-200`}>
-                    {(t.menu as any)[labelToKey[item.label]] || item.label}
+      {/* 1. Render MAIN section items directly as standalone buttons at the top */}
+      <div className="flex flex-col gap-1 mb-6 px-2">
+        {menuItems.find(s => s.title === "MAIN")?.items
+          .filter(item => item.visible.some(v => activeRoles.includes(v)))
+          .map(item => {
+            const targetHref = item.href === "/" ? (isSuper ? "/superadmin" : `/${role}`) : item.href;
+            const isActive = (pendingHref ? pendingHref === targetHref : pathname === targetHref);
+            
+            return (
+              <Link
+                href={targetHref}
+                prefetch={true}
+                onClick={() => setPendingHref(targetHref)}
+                onMouseEnter={() => router.prefetch(targetHref)}
+                key={item.label}
+                className={`flex items-center justify-center lg:justify-start gap-3 py-3 px-4 rounded-xl transition-all duration-200 group relative overflow-hidden ${
+                  isActive 
+                    ? "bg-[#2563eb] text-white shadow-md font-semibold" 
+                    : "text-white/80 hover:bg-white/10 hover:text-white font-medium"
+                }`}
+              >
+                <div className="transition-all duration-200">
+                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className="hidden lg:block tracking-tight text-[15px]">
+                  {(t.menu as any)[labelToKey[item.label]] || item.label}
+                </span>
+              </Link>
+            );
+        })}
+      </div>
+
+      {/* 2. Render other sections as collapsibles */}
+      <div className="flex flex-col gap-2 flex-1 px-2">
+        {menuItems.filter(s => s.title !== "MAIN").map((section) => {
+          const isSystem = section.title === "SYSTEM";
+          const isExpanded = expandedSections[section.title];
+          const visibleItems = section.items.filter(item => item.visible.some(v => activeRoles.includes(v)));
+          
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <div className={`flex flex-col ${isSystem ? 'mt-auto' : ''}`} key={section.title}>
+              {/* Section Header (Accordion Toggle) */}
+              <button 
+                onClick={() => toggleSection(section.title)}
+                className="hidden lg:flex items-center justify-between w-full py-2.5 px-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer"
+              >
+                <div className="flex items-center gap-3 text-white/70 group-hover:text-white transition-colors">
+                  <span className="font-semibold text-[13px] tracking-wide">
+                    {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
                   </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )})}
+                </div>
+                <ChevronDown 
+                  size={16} 
+                  className={`text-white/50 group-hover:text-white/80 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+                />
+              </button>
+
+              {/* Sub-items list */}
+              <div 
+                className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-300 ease-in-out ${
+                  isExpanded ? 'max-h-[500px] opacity-100 mt-1 lg:pl-4' : 'max-h-0 opacity-0 lg:max-h-[500px] lg:opacity-100 lg:hidden'
+                }`}
+              >
+                {/* On mobile (hidden lg), we still show the icons without accordion hiding them completely to keep the sidebar small */}
+                <div className="flex flex-col gap-1 lg:border-l lg:border-white/10 lg:pl-2 py-1 lg:py-0">
+                  {visibleItems.map((item) => {
+                    const targetHref = item.href === "/" 
+                      ? (isSuper ? "/superadmin" : `/${role}`) 
+                      : item.href;
+                    const isActive = 
+                      (pendingHref ? pendingHref === targetHref : pathname === targetHref) || 
+                      (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
+                    
+                    return (
+                      <Link
+                        href={targetHref}
+                        prefetch={true}
+                        onClick={() => setPendingHref(targetHref)}
+                        onMouseEnter={() => router.prefetch(targetHref)}
+                        key={item.label}
+                        className={`flex items-center justify-center lg:justify-start gap-3 py-2 px-3 rounded-lg transition-all duration-200 group relative ${
+                          isActive 
+                            ? "bg-white/15 text-white font-semibold" 
+                            : "text-white/60 hover:bg-white/10 hover:text-white font-medium"
+                        }`}
+                      >
+                        <div className={`transition-all duration-200 ${
+                          isActive 
+                            ? "text-white" 
+                            : "text-white/60 group-hover:text-white"
+                        }`}>
+                          {typeof item.icon === 'string' ? (
+                            <div className="relative w-[18px] h-[18px]">
+                               <Image 
+                                 src={item.icon} 
+                                 alt="" 
+                                 fill
+                                 className={isActive ? "brightness-0" : "opacity-60"}
+                               />
+                            </div>
+                          ) : (
+                            <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                          )}
+                        </div>
+                        <span className="hidden lg:block tracking-tight text-[13px] transition-transform duration-200">
+                          {(t.menu as any)[labelToKey[item.label]] || item.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* USER PROFILE FOOTER */}
       <div className="mt-auto pt-4 border-t border-white/10 hidden lg:flex items-center gap-3 px-3">
