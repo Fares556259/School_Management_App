@@ -40,9 +40,8 @@ export async function GET(request: NextRequest) {
       orderBy: { term: "desc" },
     });
 
-    if (grades.length === 0) {
-      return NextResponse.json({ results: [], summary: { average: 0, totalSubjects: 0 } });
-    }
+    // If no grades, we will still generate placeholders if levelConfig exists.
+    // Otherwise it will just return empty.
 
     const terms = Array.from(new Set(grades.map((g) => g.term)));
     const subjectIds = Array.from(new Set(grades.map((g) => g.subjectId)));
@@ -69,40 +68,63 @@ export async function GET(request: NextRequest) {
     const levelNum = classObj?.level?.level;
     const levelConfig = levelNum ? LEVEL_CONFIGS[levelNum] : undefined;
 
-    const mapSubject = (subject: any) => {
-      let mappedName = subject.name;
-      let mappedDomain = subject.domain || "General";
-      if (levelConfig) {
-        for (const domainConfig of levelConfig.domains) {
-          for (const sub of domainConfig.subjects) {
-            if (subject.name.includes(sub.search.trim())) {
-              mappedName = sub.display || subject.name;
-              mappedDomain = domainConfig.name;
-              break;
-            }
+    let finalResults: any[] = [];
+    const latestTerm = terms.length > 0 ? Math.max(...terms) : 1;
+
+    if (levelConfig) {
+      levelConfig.domains.forEach(domain => {
+        domain.subjects.forEach(sub => {
+          const matchingGrade = grades.find(g => g.subject.name.includes(sub.search.trim()));
+          if (matchingGrade) {
+            const avgData = averagesMap[`${matchingGrade.subjectId}-${matchingGrade.term}`];
+            const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : matchingGrade.score;
+            finalResults.push({
+              id: matchingGrade.id,
+              subject: sub.display,
+              domain: domain.name,
+              score: matchingGrade.score,
+              classAverage: classAvg,
+              term: matchingGrade.term,
+              date: matchingGrade.updatedAt
+            });
+          } else {
+            finalResults.push({
+              id: `placeholder-${sub.search}`,
+              subject: sub.display,
+              domain: domain.name,
+              score: null,
+              classAverage: null,
+              term: latestTerm,
+              date: new Date().toISOString()
+            });
           }
-        }
-      }
-      return { name: mappedName, domain: mappedDomain };
-    };
+        });
+      });
+    } else {
+      finalResults = grades.map((g) => {
+        const avgData = averagesMap[`${g.subjectId}-${g.term}`];
+        const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : g.score;
+        return {
+          id: g.id,
+          subject: g.subject.name,
+          domain: g.subject.domain || "General",
+          score: g.score,
+          classAverage: classAvg,
+          term: g.term,
+          date: g.updatedAt
+        };
+      });
+    }
 
-    const results = grades.map((g) => {
-      const avgData = averagesMap[`${g.subjectId}-${g.term}`];
-      const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : g.score;
-      const mapped = mapSubject(g.subject);
-      return { id: g.id, subject: mapped.name, domain: mapped.domain, score: g.score, classAverage: classAvg, term: g.term, date: g.updatedAt };
-    });
-
-    const latestTerm = Math.max(...terms);
-    const termGrades = grades.filter((g) => g.term === latestTerm);
+    const termGrades = finalResults.filter((g) => g.term === latestTerm);
     const classSubjectsCount = await prisma.subject.count({ where: { schoolId: student.schoolId } });
 
     let finalTermAvg: number | null = null;
-    if (termGrades.length >= classSubjectsCount && classSubjectsCount > 0) {
-      const domainMap: Record<string, typeof termGrades> = {};
-      termGrades.forEach((g) => {
-        const mapped = mapSubject(g.subject);
-        const domain = mapped.domain;
+    const validGrades = termGrades.filter(g => g.score !== null);
+    if (validGrades.length >= classSubjectsCount && classSubjectsCount > 0) {
+      const domainMap: Record<string, typeof validGrades> = {};
+      validGrades.forEach((g) => {
+        const domain = g.domain;
         if (!domainMap[domain]) domainMap[domain] = [];
         domainMap[domain].push(g);
       });
@@ -110,7 +132,7 @@ export async function GET(request: NextRequest) {
       finalTermAvg = parseFloat((domainAverages.reduce((a, b) => a + b, 0) / domainAverages.length).toFixed(2));
     }
 
-    return NextResponse.json({ results, summary: { latestTerm, average: finalTermAvg, totalSubjects: termGrades.length } });
+    return NextResponse.json({ results: finalResults, summary: { latestTerm, average: finalTermAvg, totalSubjects: termGrades.length } });
   } catch (error: any) {
     console.error("[Mobile Results Error]", error);
     return new NextResponse(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json" } });
