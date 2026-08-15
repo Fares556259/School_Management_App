@@ -18,10 +18,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
           { search: "الخط", display: "الخط" },
-          { search: "القراءة", display: "القراءة" },
-          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
+          { search: "القراءة |", display: "القراءة" },
+          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -48,10 +48,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
           { search: "الخط", display: "الخط" },
-          { search: "القراءة", display: "القراءة" },
-          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
+          { search: "القراءة |", display: "القراءة" },
+          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -78,10 +78,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي", display: "تواصل شفوي" },
-          { search: "اللغة العربية", display: "قواعد اللغة" },
-          { search: "القراءة", display: "القراءة" },
-          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
+          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
+          { search: "Grammaire", display: "قواعد اللغة" },
+          { search: "القراءة |", display: "القراءة" },
+          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -95,9 +95,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "اللغة الفرنسية",
         subjects: [
-          { search: "Communication", display: "Exp. Orale" },
-          { search: "Pro", display: "Pro. Ecrite" },
-          { search: "Lecture", display: "Lecture" },
+          { search: "French Oral Expression", display: "Exp. Orale" },
+          { search: "French Written Production", display: "Pro. Ecrite" },
+          { search: "French Reading", display: "Lecture" },
         ],
       },
       {
