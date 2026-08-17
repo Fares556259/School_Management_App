@@ -72,6 +72,12 @@ export default async function GradesPage({
       {/* ─── HEADER ─── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            Bulletins & Saisie des Notes
+          </h1>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">
+            Évaluez les compétences par matière et générez les bulletins officiels en temps réel.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <GradeFilter classes={classes} classId={classId} term={term} />

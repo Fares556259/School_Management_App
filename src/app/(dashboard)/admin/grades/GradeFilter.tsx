@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { Printer, Loader2, Filter, Layers, Calendar } from "lucide-react";
 
 interface ClassItem {
   id: number;
@@ -32,65 +33,75 @@ export default function GradeFilter({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">{t.gradeEntry.classLabel}</label>
-        <select
-          value={classId || ""}
-          onChange={(e) => handleChange("classId", e.target.value)}
-          disabled={isPending}
-          className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
-        >
-          {classes
-            .filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes")
-            .map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-        </select>
+    <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200/80">
+      {/* Class Selector */}
+      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <Layers size={14} className="text-slate-400 shrink-0" />
+        <div className="flex flex-col">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-tight">
+            {t.gradeEntry.classLabel}
+          </label>
+          <select
+            value={classId || ""}
+            onChange={(e) => handleChange("classId", e.target.value)}
+            disabled={isPending}
+            className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer disabled:opacity-50 py-0.5"
+          >
+            {classes
+              .filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes")
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  Classe {c.name}
+                </option>
+              ))}
+          </select>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1 relative">
-        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">{t.gradeEntry.termLabel}</label>
-        <select
-          value={term}
-          onChange={(e) => handleChange("term", e.target.value)}
-          disabled={isPending}
-          className="bg-slate-50 border border-slate-100 text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
-        >
-          <option value="1">{t.gradeEntry.term} 1</option>
-          <option value="2">{t.gradeEntry.term} 2</option>
-          <option value="3">{t.gradeEntry.term} 3</option>
-        </select>
+      {/* Term Selector */}
+      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <Calendar size={14} className="text-slate-400 shrink-0" />
+        <div className="flex flex-col">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-tight">
+            {t.gradeEntry.termLabel}
+          </label>
+          <select
+            value={term}
+            onChange={(e) => handleChange("term", e.target.value)}
+            disabled={isPending}
+            className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer disabled:opacity-50 py-0.5"
+          >
+            <option value="1">{t.gradeEntry.term} 1</option>
+            <option value="2">{t.gradeEntry.term} 2</option>
+            <option value="3">{t.gradeEntry.term} 3</option>
+          </select>
+        </div>
       </div>
 
       {isPending && (
-        <div className="flex items-center justify-center pt-5 ml-2">
-          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+        <div className="flex items-center justify-center px-2">
+          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
         </div>
       )}
 
-      <div className="ml-auto pt-5">
-        <button
-          onClick={() => {
-            if (classId) {
-                window.open(`/admin/grades/bulk/${classId}?term=${term}`, '_blank');
-            }
-          }}
-          disabled={!classId}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${
-            classId 
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95" 
-              : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-50"
-          }`}
-        >
-          <Printer size={16} />
-          {t.gradeEntry.printReportCards}
-        </button>
-      </div>
+      {/* Print All Report Cards Button */}
+      <button
+        type="button"
+        onClick={() => {
+          if (classId) {
+            window.open(`/admin/grades/bulk/${classId}?term=${term}`, '_blank');
+          }
+        }}
+        disabled={!classId}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          classId 
+            ? "bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:scale-95 ml-auto" 
+            : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-50 ml-auto"
+        }`}
+      >
+        <Printer size={15} />
+        <span>{t.gradeEntry.printReportCards}</span>
+      </button>
     </div>
   );
 }
-
-import { Printer, Loader2 } from "lucide-react";
