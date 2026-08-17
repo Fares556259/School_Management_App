@@ -193,8 +193,10 @@ export async function GET(req: NextRequest) {
     });
 
     const parseArabicName = (name: string): string => {
-      if (!name) return name;
-      return name.split("|")[0].trim();
+      if (!name) return name || "";
+      const parts = name.split("|");
+      const arabicPart = parts.find(part => /[\u0600-\u06FF]/.test(part));
+      return arabicPart ? arabicPart.trim() : parts[0].trim();
     };
 
     const processSubject = (subject: any) => {

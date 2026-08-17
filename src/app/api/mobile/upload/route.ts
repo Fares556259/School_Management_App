@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
     const fileName = `${type}-${id || "unknown"}-${Date.now()}-${sanitizedName}`;
     const filePath = `notices/${type}s/${fileName}`;
 
-    const { data, error } = await supabase.storage.from("uploads").upload(filePath, file);
+    const { data, error } = await supabase.storage.from("uploads").upload(filePath, file, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: true
+    });
 
     if (error) {
       console.error("Supabase Storage Error:", error);
