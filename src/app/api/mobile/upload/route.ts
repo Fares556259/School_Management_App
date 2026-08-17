@@ -5,6 +5,7 @@ import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: NextRequest) {
   const auth = authenticateMobileRequest(request);
@@ -12,34 +13,51 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File;
     const type = (formData.get("type") as string) || "profile";
-    const id = formData.get("id") as string;
+    const id = (formData.get("id") as string) || "unknown";
 
-    if (!file) {
+    // Support both multiple "files" and single "file"
+    const files = formData.getAll("files") as File[];
+    const singleFile = formData.get("file") as File | null;
+    const allFiles: File[] = files.length > 0 ? files : (singleFile ? [singleFile] : []);
+
+    if (allFiles.length === 0) {
       return new NextResponse(JSON.stringify({ error: "No file uploaded" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const fileName = `${type}-${id || "unknown"}-${Date.now()}-${sanitizedName}`;
-    const filePath = `notices/${type}s/${fileName}`;
+    const uploadPromises = allFiles.map(async (file, index) => {
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const randomSuffix = Math.random().toString(36).substring(2, 7);
+      const fileName = `${type}-${id}-${Date.now()}-${randomSuffix}-${sanitizedName}`;
+      const filePath = `notices/${type}s/${fileName}`;
 
-    const { data, error } = await supabase.storage.from("uploads").upload(filePath, file, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const { data, error } = await supabase.storage.from("uploads").upload(filePath, buffer, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: true
+      });
+
+      if (error) {
+        console.error("Supabase Storage Error:", error);
+        throw error;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("uploads").getPublicUrl(filePath);
+
+      return publicUrl;
     });
 
-    if (error) {
-      console.error("Supabase Storage Error:", error);
-      throw error;
-    }
+    const urls = await Promise.all(uploadPromises);
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("uploads").getPublicUrl(filePath);
-
-    return NextResponse.json({ url: publicUrl });
+    return NextResponse.json({
+      url: urls.join(','),
+      urls,
+      success: true
+    });
   } catch (error: any) {
     console.error("[Mobile Upload Error]", error);
     return new NextResponse(JSON.stringify({ error: error.message || "Upload failed" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
