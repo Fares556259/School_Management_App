@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 import IncomesListClient from "./IncomesListClient";
 
 const IncomeListPage = async ({
@@ -40,25 +41,31 @@ const IncomeListPage = async ({
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-  // Parallelize DB queries for maximum speed
-  const [data, count, uniqueCategoriesData, allData] = await Promise.all([
-    prisma.income.findMany({
-      where: query,
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: { date: "desc" },
-    }),
-    prisma.income.count({ where: query }),
-    prisma.income.findMany({
-      where: { schoolId },
-      select: { category: true },
-      distinct: ["category"],
-    }),
-    prisma.income.findMany({
-      where: { ...query, date: { gte: twelveMonthsAgo } },
-      orderBy: { date: "desc" },
-    }),
-  ]);
+  // Parallelize DB queries for maximum speed with tenant caching
+  const [data, count, uniqueCategoriesData, allData] = await getCachedTenantData(
+    schoolId,
+    'incomes',
+    [p, JSON.stringify(searchParams)],
+    () => Promise.all([
+      prisma.income.findMany({
+        where: query,
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy: { date: "desc" },
+      }),
+      prisma.income.count({ where: query }),
+      prisma.income.findMany({
+        where: { schoolId },
+        select: { category: true },
+        distinct: ["category"],
+      }),
+      prisma.income.findMany({
+        where: { ...query, date: { gte: twelveMonthsAgo } },
+        orderBy: { date: "desc" },
+      }),
+    ]),
+    300
+  );
 
   const relatedData = {
     category: uniqueCategoriesData.map((c) => ({ value: c.category, label: c.category })),

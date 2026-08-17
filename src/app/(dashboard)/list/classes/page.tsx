@@ -8,6 +8,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 import Link from "next/link";
 import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen, GraduationCap } from "lucide-react";
 import { cookies } from "next/headers";
@@ -166,48 +167,54 @@ const ClassListPage = async ({
     </tr>
   );
 
-  const [data, count, levels, teachers] = await Promise.all([
-    prisma.class.findMany({
-      where: query,
-      include: {
-        lessons: {
-          select: {
-            teacher: {
-              select: {
-                id: true,
-                name: true,
-                surname: true,
-                img: true,
+  const [data, count, levels, teachers] = await getCachedTenantData(
+    schoolId,
+    'classes',
+    [p, JSON.stringify(queryParams)],
+    () => Promise.all([
+      prisma.class.findMany({
+        where: query,
+        include: {
+          lessons: {
+            select: {
+              teacher: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+                  img: true,
+                }
               }
             }
-          }
-        },
-        level: true,
-        _count: {
-          select: {
-            students: true,
+          },
+          level: true,
+          _count: {
+            select: {
+              students: true,
+            },
           },
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.class.count({ where: query }),
-    prisma.level.findMany({ 
-      where: { schoolId }, 
-      select: { 
-        id: true, 
-        level: true, 
-        variations: true,
-        classes: {
-          select: {
-            name: true
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.class.count({ where: query }),
+      prisma.level.findMany({ 
+        where: { schoolId }, 
+        select: { 
+          id: true, 
+          level: true, 
+          variations: true,
+          classes: {
+            select: {
+              name: true
+            }
           }
-        }
-      } 
-    }),
-    prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
-  ]);
+        } 
+      }),
+      prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
+    ]),
+    300
+  );
 
   const availableClassNames: { value: string; label: string }[] = [];
   levels.forEach((l) => {

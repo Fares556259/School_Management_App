@@ -9,6 +9,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Resource, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 import { Pencil, Trash2 } from "lucide-react";
@@ -149,24 +150,30 @@ const ResourceListPage = async ({
     </tr>
   );
 
-  const [data, count] = await Promise.all([
-    prisma.resource.findMany({
-      where: query,
-      include: {
-        lesson: {
-          include: {
-            subject: true,
-            class: true,
-            teacher: true,
+  const [data, count] = await getCachedTenantData(
+    schoolId,
+    'resources',
+    [p, JSON.stringify(queryParams)],
+    () => Promise.all([
+      prisma.resource.findMany({
+        where: query,
+        include: {
+          lesson: {
+            include: {
+              subject: true,
+              class: true,
+              teacher: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.resource.count({ where: query }),
-  ]);
+        orderBy: { createdAt: "desc" },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.resource.count({ where: query }),
+    ]),
+    300
+  );
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

@@ -15,6 +15,7 @@ import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import TeacherListClient from "./TeacherListClient";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -105,22 +106,28 @@ const TeacherListPage = async ({
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);
 
-  const [data, count, subjectsData, classesData] = await Promise.all([
-    prisma.teacher.findMany({
-      where: query,
-      include: {
-        subjects: true,
-        classes: true,
-        timetable: { include: { subject: true, class: true } },
-        payments: { select: { month: true, year: true, status: true, paidAt: true } },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.teacher.count({ where: query }),
-    prisma.subject.findMany({ where: { schoolId, parentId: null }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } })
-  ]);
+  const [data, count, subjectsData, classesData] = await getCachedTenantData(
+    schoolId,
+    'teachers',
+    [p, JSON.stringify(queryParams)],
+    () => Promise.all([
+      prisma.teacher.findMany({
+        where: query,
+        include: {
+          subjects: true,
+          classes: true,
+          timetable: { include: { subject: true, class: true } },
+          payments: { select: { month: true, year: true, status: true, paidAt: true } },
+        },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.teacher.count({ where: query }),
+      prisma.subject.findMany({ where: { schoolId, parentId: null }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+      prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } })
+    ]),
+    300
+  );
 
   // Compute month-based payment stats for the summary bar
   const [mName, yStr] = selectedMonthKey.split(" ");

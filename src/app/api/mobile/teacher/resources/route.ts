@@ -178,6 +178,13 @@ export async function POST(request: NextRequest) {
       lessonId: resource.lessonId,
     }));
 
+    try {
+      const { invalidateTenantTags } = await import("@/lib/cache");
+      invalidateTenantTags(teacher.schoolId, 'resources');
+    } catch (cacheErr) {
+      console.warn("[Cache Invalidation Error]", cacheErr);
+    }
+
     return NextResponse.json(expanded);
   } catch (error: any) {
     console.error("[Teacher Resources POST Error]", error);

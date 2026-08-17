@@ -16,6 +16,7 @@ import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import StudentListClient from "./StudentListClient";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -137,55 +138,61 @@ const StudentListPage = async ({
   const summaryQuery = { ...query };
   delete summaryQuery.payments;
 
-  const [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = await Promise.all([
-    prisma.student.findMany({
-      where: query,
-      include: {
-        class: true,
-        level: true,
-        parent: true,
-        payments: { 
-          where: {
-            month: monthIdx,
-            year: yearVal,
+  const [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = await getCachedTenantData(
+    schoolId,
+    'students',
+    [p, JSON.stringify(queryParams), monthIdx, yearVal],
+    () => Promise.all([
+      prisma.student.findMany({
+        where: query,
+        include: {
+          class: true,
+          level: true,
+          parent: true,
+          payments: { 
+            where: {
+              month: monthIdx,
+              year: yearVal,
+            },
+            select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } 
           },
-          select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } 
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.student.count({ where: query }),
-    prisma.parent.findMany({ 
-      where: { schoolId },
-      select: { id: true, name: true, surname: true } 
-    }),
-    prisma.class.findMany({ 
-      where: { schoolId }, 
-      select: { id: true, name: true, level: true },
-      orderBy: { name: 'asc' }
-    }),
-    prisma.level.findMany({ 
-      where: { schoolId },
-      select: { id: true, level: true },
-      orderBy: { level: 'asc' }
-    }),
-    role === "admin" && userId ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : Promise.resolve(null),
-    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
-    prisma.student.count({ where: summaryQuery }),
-    prisma.student.count({
-      where: {
-        ...summaryQuery,
-        payments: {
-          some: {
-            month: monthIdx,
-            year: yearVal,
-            status: "PAID"
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.student.count({ where: query }),
+      prisma.parent.findMany({ 
+        where: { schoolId },
+        select: { id: true, name: true, surname: true } 
+      }),
+      prisma.class.findMany({ 
+        where: { schoolId }, 
+        select: { id: true, name: true, level: true },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.level.findMany({ 
+        where: { schoolId },
+        select: { id: true, level: true },
+        orderBy: { level: 'asc' }
+      }),
+      role === "admin" && userId ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : Promise.resolve(null),
+      prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
+      prisma.student.count({ where: summaryQuery }),
+      prisma.student.count({
+        where: {
+          ...summaryQuery,
+          payments: {
+            some: {
+              month: monthIdx,
+              year: yearVal,
+              status: "PAID"
+            }
           }
         }
-      }
-    })
-  ]);
+      })
+    ]),
+    300
+  );
 
   const studentRelatedData = {
     parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),

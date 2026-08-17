@@ -12,6 +12,7 @@ import DashboardSkeleton from "./components/DashboardSkeleton";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 import React, { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -136,7 +137,13 @@ const AdminPage = async ({
     }
   };
 
-  const stats = await getMegaStats();
+  const stats = await getCachedTenantData(
+    schoolId,
+    'dashboard',
+    [startDate.toISOString(), endDate.toISOString()],
+    () => getMegaStats(),
+    120
+  );
 
   // CORE CALCULATIONS
   const currentIncome = (stats.current_income_general || 0) + (stats.current_income_tuition || 0);

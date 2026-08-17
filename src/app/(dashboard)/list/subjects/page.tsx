@@ -1,6 +1,7 @@
 import { getRole } from "@/lib/role";
 import CrudFormModal from "@/components/CrudFormModal";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 import { createClient } from "@/utils/supabase/server";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
@@ -48,14 +49,20 @@ const SubjectListPage = async ({
     query.name = { contains: searchValue, mode: "insensitive" };
   }
 
-  const subjects = await prisma.subject.findMany({
-    where: query,
-    include: {
-      teachers: { select: { id: true, name: true, surname: true } },
-      _count: { select: { teachers: true, lessons: true } },
-    },
-    orderBy: [{ domain: "asc" }, { name: "asc" }],
-  });
+  const subjects = await getCachedTenantData(
+    schoolId,
+    'subjects',
+    [searchValue || 'all'],
+    () => prisma.subject.findMany({
+      where: query,
+      include: {
+        teachers: { select: { id: true, name: true, surname: true } },
+        _count: { select: { teachers: true, lessons: true } },
+      },
+      orderBy: [{ domain: "asc" }, { name: "asc" }],
+    }),
+    300
+  );
 
   const grouped = subjects.reduce<Record<string, typeof subjects>>((acc, s) => {
     const d = s.domain || "General";

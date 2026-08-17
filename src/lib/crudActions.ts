@@ -6,6 +6,7 @@ import { DEFAULT_SUBJECTS } from "./subjectConstants";
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { invalidateTenantTags } from "@/lib/cache";
 import { createAuditLog } from "@/lib/audit";
 import { createAssignmentNotification, createResourceNotification } from "./notifications";
 import { UserSex } from "@prisma/client";
@@ -54,6 +55,7 @@ export const createTeacher = async (data: {
       entityId: id,
       description: `Enrolled new teacher: ${data.name} ${data.surname} (${data.username})`,
     });
+    invalidateTenantTags(schoolId, 'teachers', 'dashboard');
     revalidatePath("/list/teachers");
     return { success: true };
   } catch (err: any) {
@@ -105,6 +107,7 @@ export const bulkCreateTeachers = async (teachers: any[]) => {
       });
     }
 
+    invalidateTenantTags(schoolId, 'teachers', 'dashboard');
     revalidatePath("/list/teachers");
     return { success: true };
   } catch (err: any) {
@@ -131,6 +134,7 @@ export const updateTeacher = async (
   }>
 ) => {
   try {
+    const schoolId = await getSchoolId();
     const updateData: any = {
       ...data,
       birthday: data.birthday ? new Date(data.birthday) : undefined,
@@ -153,6 +157,7 @@ export const updateTeacher = async (
       entityId: id,
       description: `Updated teacher profile: ${id}`,
     });
+    invalidateTenantTags(schoolId, 'teachers', 'dashboard');
     revalidatePath("/list/teachers");
     revalidatePath(`/list/teachers/${id}`);
     return { success: true };
@@ -164,6 +169,7 @@ export const updateTeacher = async (
 
 export const deleteTeacher = async (id: string) => {
   try {
+    const schoolId = await getSchoolId();
     const teacher = await prisma.teacher.findUnique({ where: { id } });
     await prisma.teacher.delete({ where: { id } });
     await createAuditLog({
@@ -172,6 +178,7 @@ export const deleteTeacher = async (id: string) => {
       entityId: id,
       description: `Removed teacher: ${teacher?.name} ${teacher?.surname} (${teacher?.username})`,
     });
+    invalidateTenantTags(schoolId, 'teachers', 'dashboard');
     revalidatePath("/list/teachers");
     return { success: true };
   } catch (err: any) {
@@ -236,6 +243,7 @@ export const createStudent = async (data: {
       entityId: id,
       description: `Enrolled new student: ${data.name} ${data.surname} (${data.username})`,
     });
+    invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     return { success: true };
   } catch (err: any) {
@@ -321,6 +329,7 @@ export const bulkCreateStudents = async (students: any[]) => {
       });
     }
 
+    invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     return { success: true };
   } catch (err: any) {
@@ -347,6 +356,7 @@ export const updateStudent = async (
   }>
 ) => {
   try {
+    const schoolId = await getSchoolId();
     const updateData: any = { ...data };
     if (data.birthday) updateData.birthday = new Date(data.birthday);
 
@@ -366,6 +376,7 @@ export const updateStudent = async (
       entityId: id,
       description: `Updated student profile: ${id}`,
     });
+    invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     revalidatePath(`/list/students/${id}`);
     return { success: true };
@@ -376,7 +387,9 @@ export const updateStudent = async (
 
 export const deleteStudent = async (id: string) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.student.delete({ where: { id } });
+    invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     return { success: true };
   } catch (err: any) {
@@ -414,6 +427,7 @@ export const createStaff = async (data: {
         salary: data.salary ?? 1500,
       },
     });
+    invalidateTenantTags(schoolId, 'staff', 'dashboard');
     revalidatePath("/list/staff");
     return { success: true };
   } catch (err: any) {
@@ -437,9 +451,11 @@ export const updateStaff = async (
   }>
 ) => {
   try {
+    const schoolId = await getSchoolId();
     const updateData: any = { ...data };
     if (data.birthday) updateData.birthday = new Date(data.birthday);
     await prisma.staff.update({ where: { id }, data: updateData });
+    invalidateTenantTags(schoolId, 'staff', 'dashboard');
     revalidatePath("/list/staff");
     revalidatePath(`/list/staff/${id}`);
     return { success: true };
@@ -450,6 +466,7 @@ export const updateStaff = async (
 
 export const deleteStaff = async (id: string) => {
   try {
+    const schoolId = await getSchoolId();
     const staff = await prisma.staff.findUnique({ where: { id } });
     await prisma.staff.delete({ where: { id } });
     await createAuditLog({
@@ -458,6 +475,7 @@ export const deleteStaff = async (id: string) => {
       entityId: id,
       description: `Removed staff member: ${staff?.name} ${staff?.surname} (${staff?.username})`,
     });
+    invalidateTenantTags(schoolId, 'staff', 'dashboard');
     revalidatePath("/list/staff");
     return { success: true };
   } catch (err: any) {
@@ -492,6 +510,7 @@ export const createParent = async (data: {
         img: data.img || null,
       },
     });
+    invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
@@ -511,7 +530,9 @@ export const updateParent = async (
   }>
 ) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.parent.update({ where: { id }, data });
+    invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
@@ -521,7 +542,9 @@ export const updateParent = async (
 
 export const deleteParent = async (id: string) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.parent.delete({ where: { id } });
+    invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
@@ -779,6 +802,7 @@ export const createExpense = async (data: {
       type: "expense",
       effectiveDate: new Date(data.date),
     });
+    invalidateTenantTags(schoolId, 'expenses', 'finance', 'dashboard');
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -800,6 +824,7 @@ export const updateExpense = async (
   }>
 ) => {
   try {
+    const schoolId = await getSchoolId();
     // Fetch old data for meaningful audit
     const oldExpense = await prisma.expense.findUnique({ where: { id } });
     
@@ -821,6 +846,7 @@ export const updateExpense = async (
       type: "expense",
       effectiveDate: updateData.date ?? oldExpense?.date,
     });
+    invalidateTenantTags(schoolId, 'expenses', 'finance', 'dashboard');
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -833,6 +859,7 @@ export const updateExpense = async (
 
 export const deleteExpense = async (id: number) => {
   try {
+    const schoolId = await getSchoolId();
     const oldExpense = await prisma.expense.findUnique({ where: { id } });
     await prisma.expense.delete({ where: { id } });
     await createAuditLog({
@@ -843,6 +870,7 @@ export const deleteExpense = async (id: number) => {
       amount: oldExpense?.amount,
       type: "expense",
     });
+    invalidateTenantTags(schoolId, 'expenses', 'finance', 'dashboard');
     revalidatePath("/list/expenses");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -882,6 +910,7 @@ export const createIncome = async (data: {
       type: "income",
       effectiveDate: new Date(data.date),
     });
+    invalidateTenantTags(schoolId, 'incomes', 'finance', 'dashboard');
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -903,6 +932,7 @@ export const updateIncome = async (
   }>
 ) => {
   try {
+    const schoolId = await getSchoolId();
     // Fetch old data for meaningful audit
     const oldIncome = await prisma.income.findUnique({ where: { id } });
 
@@ -924,6 +954,7 @@ export const updateIncome = async (
       type: "income",
       effectiveDate: updateData.date ?? oldIncome?.date,
     });
+    invalidateTenantTags(schoolId, 'incomes', 'finance', 'dashboard');
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -936,6 +967,7 @@ export const updateIncome = async (
 
 export const deleteIncome = async (id: number) => {
   try {
+    const schoolId = await getSchoolId();
     const oldIncome = await prisma.income.findUnique({ where: { id } });
     await prisma.income.delete({ where: { id } });
     await createAuditLog({
@@ -946,6 +978,7 @@ export const deleteIncome = async (id: number) => {
       amount: oldIncome?.amount,
       type: "income",
     });
+    invalidateTenantTags(schoolId, 'incomes', 'finance', 'dashboard');
     revalidatePath("/list/incomes");
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
@@ -1382,6 +1415,8 @@ export const createResource = async (data: {
     // Trigger Notifications
     await createResourceNotification(resource.id);
 
+    invalidateTenantTags(schoolId, 'resources');
+    revalidatePath("/list/resources");
     revalidatePath("/admin/attendance");
     return { success: true };
   } catch (err: any) {
@@ -1392,6 +1427,7 @@ export const createResource = async (data: {
 
 export const deleteResource = async (id: number) => {
   try {
+    const schoolId = await getSchoolId();
     const resource = await prisma.resource.findUnique({ where: { id } });
     await prisma.resource.delete({ where: { id } });
     
@@ -1402,6 +1438,7 @@ export const deleteResource = async (id: number) => {
       description: `Deleted resource: ${resource?.title}`,
     });
 
+    invalidateTenantTags(schoolId, 'resources');
     revalidatePath("/list/resources");
     revalidatePath("/admin/attendance");
     return { success: true };
