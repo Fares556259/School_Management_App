@@ -72,9 +72,9 @@ export default function GradeFilter({
         type="button"
         onClick={() => { if (classId) window.open(`/admin/grades/bulk/${classId}?term=${term}`, '_blank'); }}
         disabled={!classId || isPending}
-        className="h-9 flex items-center gap-2 px-4 text-xs font-bold rounded-lg transition-all bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="h-9 flex items-center gap-2 px-3.5 text-xs font-bold rounded-lg transition-all bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <Printer size={13} />
+        <Printer size={14} className="text-blue-600" />
         <span>{t.gradeEntry.printReportCards}</span>
       </button>
     </div>
