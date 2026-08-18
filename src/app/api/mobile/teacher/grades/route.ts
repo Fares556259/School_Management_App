@@ -121,22 +121,28 @@ export async function GET(req: NextRequest) {
 
     const term = Number(termStr);
 
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: teacherId },
-      include: {
-        subjects: {
-          include: { components: true }
-        },
-        lessons: {
-          where: { classId: Number(classId) },
-          include: { 
-            subject: {
-              include: { components: true }
+    const [teacher, classData] = await Promise.all([
+      prisma.teacher.findUnique({
+        where: { id: teacherId },
+        include: {
+          subjects: {
+            include: { components: true }
+          },
+          lessons: {
+            where: { classId: Number(classId) },
+            include: { 
+              subject: {
+                include: { components: true }
+              }
             }
           }
         }
-      }
-    });
+      }),
+      prisma.class.findUnique({
+        where: { id: Number(classId) },
+        include: { level: true }
+      })
+    ]);
 
     if (!teacher) {
       return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
@@ -230,7 +236,38 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const subjects = gradeableSubjects.map((subject: any) => processSubject(subject));
+    let finalSubjects = gradeableSubjects;
+    const levelNum = classData?.level?.level;
+    const { LEVEL_CONFIGS } = require("@/lib/report-cards/level-config");
+    const levelConfig = levelNum ? LEVEL_CONFIGS[levelNum] : undefined;
+
+    if (levelConfig) {
+      finalSubjects = [];
+      levelConfig.domains.forEach((domainConfig: any) => {
+        domainConfig.subjects.forEach((sub: any) => {
+          const searchTerm = sub.search.trim().toLowerCase();
+          const dbSubject = gradeableSubjects.find((s: any) =>
+            s.name.toLowerCase().includes(searchTerm)
+          );
+          if (dbSubject) {
+            finalSubjects.push({
+              ...dbSubject,
+              domain: domainConfig.name,
+              name: sub.display || parseArabicName(dbSubject.name),
+            });
+          }
+        });
+      });
+    }
+
+    const subjects = finalSubjects.map((subject: any) => {
+      const processed = processSubject(subject);
+      // Ensure the name remains what was set by LEVEL_CONFIGS if present
+      return {
+        ...processed,
+        name: levelConfig ? subject.name : processed.name
+      };
+    });
 
     return NextResponse.json({
       students,
