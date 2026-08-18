@@ -65,7 +65,7 @@ export default async function DashboardLayout({
   return (
     <div className="h-screen flex text-slate-900 print:h-auto print:block bg-[#F5F6F8]">
       {/* LEFT SIDEBAR */}
-      <aside className="w-16 md:w-20 lg:w-[260px] xl:w-[275px] shrink-0 p-3.5 lg:p-4 print:hidden z-30 sticky top-0 h-screen flex flex-col bg-[#0f1d33] text-white border-r border-white/5 transition-all duration-300">
+      <aside className="w-16 md:w-20 lg:w-[260px] xl:w-[275px] shrink-0 p-3.5 lg:p-4 print:hidden z-30 sticky top-0 h-screen flex flex-col bg-white text-slate-800 border-r border-slate-200/80 shadow-xs transition-all duration-300">
         <div className="flex items-center justify-center lg:justify-between mb-6 px-1 shrink-0">
           <Link href="/" className="flex items-center gap-2.5 min-w-0">
             <Image 
@@ -73,9 +73,9 @@ export default async function DashboardLayout({
               alt="logo" 
               width={32} 
               height={32} 
-              className="w-8 h-8 object-contain rounded-lg border border-white/10 shadow-sm bg-white shrink-0" 
+              className="w-8 h-8 object-contain rounded-lg border border-slate-200 shadow-xs bg-white shrink-0" 
             />
-            <span className="hidden lg:block font-semibold text-[15px] text-white tracking-tight truncate max-w-[170px]">
+            <span className="hidden lg:block font-bold text-[15px] text-slate-900 tracking-tight truncate max-w-[170px]">
               {schoolConfig?.schoolName || "SnapSchool"}
             </span>
           </Link>

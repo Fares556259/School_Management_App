@@ -228,12 +228,12 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                 key={item.label}
                 className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative ${
                   isActive 
-                    ? "bg-[#2563eb] text-white shadow-md shadow-blue-600/30 font-semibold" 
-                    : "text-slate-200 hover:bg-white/[0.08] hover:text-white font-medium"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20 font-semibold" 
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium"
                 }`}
               >
                 <div className="transition-transform duration-200 shrink-0">
-                  <item.icon size={19} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-white" : "text-slate-300 group-hover:text-white"} />
+                  <item.icon size={19} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-white" : "text-slate-500 group-hover:text-slate-800"} />
                 </div>
                 <span className="hidden lg:block tracking-tight text-[14px]">
                   {(t.menu as any)[labelToKey[item.label]] || item.label}
@@ -261,15 +261,15 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                 onClick={() => toggleSection(section.title)}
                 className={`flex items-center justify-center lg:justify-between w-full py-2 px-3 rounded-xl transition-all duration-200 group cursor-pointer select-none ${
                   isExpanded 
-                    ? "bg-white/[0.08] text-white font-semibold" 
-                    : "text-slate-300 hover:bg-white/[0.06] hover:text-white font-medium"
+                    ? "bg-slate-100/90 text-slate-900 font-semibold" 
+                    : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 font-medium"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {SectionIcon && (
                     <SectionIcon 
                       size={18} 
-                      className={`shrink-0 transition-colors ${isExpanded ? "text-[#7eb8f7]" : "text-slate-400 group-hover:text-slate-200"}`} 
+                      className={`shrink-0 transition-colors ${isExpanded ? "text-blue-600" : "text-slate-500 group-hover:text-slate-800"}`} 
                     />
                   )}
                   <span className="hidden lg:block font-medium text-[13.5px] tracking-tight truncate">
@@ -278,7 +278,7 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                 </div>
                 <ChevronDown 
                   size={15} 
-                  className={`hidden lg:block shrink-0 text-slate-400 group-hover:text-slate-200 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-white' : ''}`} 
+                  className={`hidden lg:block shrink-0 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-blue-600' : ''}`} 
                 />
               </button>
 
@@ -288,7 +288,7 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                   isExpanded ? 'max-h-[500px] opacity-100 mt-1 lg:pl-3' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className={`flex flex-col gap-1 lg:border-l lg:border-white/10 lg:pl-2.5 py-1 ${isRTL ? 'lg:border-l-0 lg:border-r lg:pr-2.5 lg:pl-0' : ''}`}>
+                <div className={`flex flex-col gap-1 lg:border-l lg:border-slate-200 lg:pl-2.5 py-1 ${isRTL ? 'lg:border-l-0 lg:border-r lg:pr-2.5 lg:pl-0' : ''}`}>
                   {visibleItems.map((item) => {
                     const targetHref = item.href === "/" 
                       ? (isSuper ? "/superadmin" : `/${role}`) 
@@ -306,14 +306,14 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                         key={item.label}
                         className={`flex items-center justify-center lg:justify-start gap-2.5 py-2 px-2.5 rounded-lg transition-all duration-200 group relative ${
                           isActive 
-                            ? "bg-blue-600/30 text-white font-medium border-l-2 border-blue-400" 
-                            : "text-slate-300 hover:bg-white/[0.08] hover:text-white font-normal"
+                            ? "bg-blue-50 text-blue-700 font-semibold border-l-2 border-blue-600" 
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-normal"
                         }`}
                       >
                         <div className={`transition-colors shrink-0 ${
                           isActive 
-                            ? "text-blue-400" 
-                            : "text-slate-400 group-hover:text-slate-200"
+                            ? "text-blue-600" 
+                            : "text-slate-400 group-hover:text-slate-600"
                         }`}>
                           {typeof item.icon === 'string' ? (
                             <div className="relative w-[17px] h-[17px]">
@@ -321,7 +321,7 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                                  src={item.icon} 
                                  alt="" 
                                  fill
-                                 className={isActive ? "brightness-0" : "opacity-75"}
+                                 className={isActive ? "" : "opacity-75"}
                                />
                             </div>
                           ) : (
@@ -342,16 +342,16 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
 
         {/* 3. SUBTLE UTILITY CARD (App Mobile & Parents) - Clean Outline Design */}
         {(role === "admin" || role === "superadmin" || role === "superuser" || role === "teacher") && (
-          <div className="hidden lg:flex flex-col gap-2 p-3 my-2 mx-1 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 transition-colors">
+          <div className="hidden lg:flex flex-col gap-2 p-3 my-2 mx-1 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-colors">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-blue-100/70 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
                 <Smartphone size={15} />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[12px] font-semibold text-slate-200 leading-tight truncate">
+                <span className="text-[12px] font-bold text-slate-800 leading-tight truncate">
                   Application Mobile
                 </span>
-                <span className="text-[10.5px] text-slate-400 leading-tight">
+                <span className="text-[10.5px] text-slate-500 leading-tight">
                   Accès Parents & Profs
                 </span>
               </div>
@@ -360,9 +360,9 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
             <button
               type="button"
               onClick={() => setIsShareModalOpen(true)}
-              className="mt-0.5 w-full flex items-center justify-center gap-2 py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/15 active:bg-white/20 border border-white/15 text-slate-200 hover:text-white font-medium text-[11px] tracking-wide transition-all cursor-pointer"
+              className="mt-0.5 w-full flex items-center justify-center gap-2 py-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-semibold text-[11px] tracking-wide transition-all shadow-2xs cursor-pointer"
             >
-              <QrCode size={13} className="text-blue-400 shrink-0" />
+              <QrCode size={13} className="text-blue-600 shrink-0" />
               <span>Inviter / QR Code</span>
             </button>
           </div>
@@ -370,15 +370,15 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
       </div>
 
       {/* 4. BOTTOM FOOTER SECTION (Academic Status & Account) */}
-      <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-white/10">
+      <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-slate-200">
         {/* SCHOOL & ACADEMIC YEAR BADGE */}
-        <div className="hidden lg:flex items-center gap-2.5 px-3 py-2 mx-1 rounded-xl bg-white/[0.03] border border-white/[0.08]">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+        <div className="hidden lg:flex items-center gap-2.5 px-3 py-2 mx-1 rounded-2xl bg-slate-50 border border-slate-200">
+          <div className="w-7 h-7 rounded-lg bg-emerald-100/70 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
             <Building2 size={14} />
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[12px] font-semibold text-slate-200 truncate">
+              <span className="text-[12px] font-bold text-slate-800 truncate">
                 Année 2024–2025
               </span>
               <span className="flex h-2 w-2 relative shrink-0">
@@ -386,34 +386,34 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
             </div>
-            <span className="text-[10.5px] text-slate-400 font-medium">
+            <span className="text-[10.5px] text-slate-500 font-medium">
               Trimestre 2 • En ligne
             </span>
           </div>
         </div>
 
         {/* USER PROFILE FOOTER */}
-        <div className="hidden lg:flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-xl hover:bg-white/[0.04] transition-colors">
+        <div className="hidden lg:flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-xl hover:bg-slate-100 transition-colors">
           {adminData?.img ? (
-            <Image src={adminData.img} alt="" width={32} height={32} className="rounded-full object-cover w-8 h-8 shrink-0 border border-white/10" />
+            <Image src={adminData.img} alt="" width={32} height={32} className="rounded-full object-cover w-8 h-8 shrink-0 border border-slate-200" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-blue-600/30 border border-blue-400/30 flex items-center justify-center shrink-0">
-              <span className="text-white text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center shrink-0">
+              <span className="text-blue-700 text-xs font-bold">
                 {fullName.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-[12.5px] font-semibold text-slate-200 truncate">
+            <span className="text-[12.5px] font-bold text-slate-800 truncate">
               {fullName}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider truncate">
+            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider truncate">
               {(t.navbar as any)?.[role?.toLowerCase() || ""] || role || "User"}
             </span>
           </div>
           <button 
             type="button" 
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer ml-auto shrink-0 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 cursor-pointer ml-auto shrink-0 transition-colors"
             title="Options"
           >
             <MoreVertical size={15} />
