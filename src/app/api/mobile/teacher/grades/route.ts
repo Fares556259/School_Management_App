@@ -86,6 +86,9 @@ export async function POST(req: NextRequest) {
       )
     );
 
+    const { invalidateTenantTags } = require("@/lib/cache");
+    invalidateTenantTags(teacher.schoolId, "exams", "dashboard");
+
     return NextResponse.json({
       success: true,
       gradedCount: validGrades.length,
