@@ -76,7 +76,10 @@ export async function GET(request: NextRequest) {
       targetTerms.forEach(term => {
         levelConfig.domains.forEach(domain => {
           domain.subjects.forEach(sub => {
-            const matchingGrade = grades.find(g => g.term === term && g.subject.name.toLowerCase().includes(sub.search.trim().toLowerCase()));
+            const matchingGrade = grades.find(g => {
+              const parts = g.subject.name.split('|').map((p: string) => p.trim().toLowerCase());
+              return g.term === term && (parts.includes(sub.search.trim().toLowerCase()) || g.subject.name.toLowerCase() === sub.search.trim().toLowerCase());
+            });
             if (matchingGrade) {
               const avgData = averagesMap[`${matchingGrade.subjectId}-${term}`];
               const classAvg = avgData ? parseFloat((avgData.total / avgData.count).toFixed(2)) : matchingGrade.score;

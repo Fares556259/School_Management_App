@@ -99,9 +99,10 @@ export async function GET(req: NextRequest) {
       levelConfig.domains.forEach((domainConfig: any) => {
         domainConfig.subjects.forEach((sub: any) => {
           const searchTerm = sub.search.trim().toLowerCase();
-          const dbSubject = gradeableSubjects.find((s: any) =>
-            s.name.toLowerCase().includes(searchTerm)
-          );
+          const dbSubject = gradeableSubjects.find((s: any) => {
+            const parts = s.name.split('|').map((p: string) => p.trim().toLowerCase());
+            return parts.includes(searchTerm) || s.name.toLowerCase() === searchTerm;
+          });
           if (dbSubject) {
             // Keep the original id but update domain/name
             finalSubjects.push({
