@@ -1,4 +1,5 @@
 import { getRole } from "@/lib/role";
+import { getCachedTenantData } from "@/lib/cache";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import { createClient } from "@/utils/supabase/server";
@@ -35,19 +36,23 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
     query.classId = parseInt(classId);
   }
 
-  const [data, count] = await Promise.all([
-    prisma.notice.findMany({
-      where: query,
-      include: { class: true },
-      orderBy: { date: "desc" },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.notice.count({ where: query }),
-  ]);
-
-  // Fetch classes for the filter dropdown
-  const classes = await prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+  const [data, count, classes] = await getCachedTenantData(
+    schoolId,
+    "institution",
+    [p, search, classId, schoolId],
+    () => Promise.all([
+      prisma.notice.findMany({
+        where: query,
+        include: { class: true },
+        orderBy: { date: "desc" },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.notice.count({ where: query }),
+      prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    ]),
+    300
+  );
 
   return (
     <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">

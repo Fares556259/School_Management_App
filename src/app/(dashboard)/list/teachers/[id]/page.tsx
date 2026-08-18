@@ -15,6 +15,8 @@ import { Teacher, Subject, Class } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import TeacherSalaryTracker from "./TeacherSalaryTracker";
+import { getCachedTenantData } from "@/lib/cache";
+import { getSchoolId } from "@/lib/school";
 
 const SingleTeacherPage = async ({
   params: { id },
@@ -24,6 +26,7 @@ const SingleTeacherPage = async ({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const role = await getRole();
+  const schoolId = await getSchoolId();
   const teacher:
     | (Teacher & {
         subjects: Subject[];
@@ -31,21 +34,28 @@ const SingleTeacherPage = async ({
         payments: any[];
         _count: { lessons: number; classes: number; subjects: number };
       })
-    | null = await prisma.teacher.findUnique({
-    where: { id },
-    include: {
-      subjects: true,
-      classes: true,
-      payments: true,
-      _count: {
-        select: {
-          lessons: true,
-          classes: true,
+    | null = await getCachedTenantData(
+    schoolId,
+    "teachers",
+    [id, schoolId],
+    () =>
+      prisma.teacher.findUnique({
+        where: { id },
+        include: {
           subjects: true,
+          classes: true,
+          payments: true,
+          _count: {
+            select: {
+              lessons: true,
+              classes: true,
+              subjects: true,
+            },
+          },
         },
-      },
-    },
-  });
+      }),
+    600
+  );
 
   if (!teacher) {
     return notFound();

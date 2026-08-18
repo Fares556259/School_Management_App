@@ -14,6 +14,8 @@ import { Class, Grade, Student } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import StudentPaymentTracker from "./StudentPaymentTracker";
+import { getCachedTenantData } from "@/lib/cache";
+import { getSchoolId } from "@/lib/school";
 
 const SingleStudentPage = async ({
   params: { id },
@@ -23,27 +25,35 @@ const SingleStudentPage = async ({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const role = await getRole();
+  const schoolId = await getSchoolId();
   const student:
     | (Student & {
         class: (Class & { _count: { lessons: number } }) | null;
         payments: any[];
       })
-    | null = await prisma.student.findUnique({
-    where: { id },
-    include: {
-      class: {
+    | null = await getCachedTenantData(
+    schoolId,
+    "students",
+    [id, schoolId],
+    () =>
+      prisma.student.findUnique({
+        where: { id },
         include: {
-          _count: {
-            select: {
-              lessons: true,
+          class: {
+            include: {
+              _count: {
+                select: {
+                  lessons: true,
+                },
+              },
             },
           },
+          parent: true,
+          payments: true,
         },
-      },
-      parent: true,
-      payments: true,
-    },
-  });
+      }),
+    600
+  );
 
   if (!student) {
     return notFound();

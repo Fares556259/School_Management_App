@@ -3,6 +3,7 @@ import { getSchoolId } from "@/lib/school";
 import { getRole } from "@/lib/role";
 import { notFound } from "next/navigation";
 import ClassTeachersTable from "@/components/ClassTeachersTable";
+import { getCachedTenantData } from "@/lib/cache";
 
 export default async function ClassTeachersPage({
   params: { id },
@@ -18,29 +19,16 @@ export default async function ClassTeachersPage({
   }
 
   // 1. Fetch Class details with supervisor and lessons to extract teachers
-  const activeClass = await prisma.class.findFirst({
-    where: { id: classId, schoolId },
-    include: {
-      level: true,
-      supervisor: {
-        select: {
-          id: true,
-          username: true,
-          name: true,
-          surname: true,
-          phone: true,
-          address: true,
-          img: true,
-          bloodType: true,
-          sex: true,
-          createdAt: true,
-          salary: true,
-        }
-      },
-      lessons: {
+  const activeClass = await getCachedTenantData(
+    schoolId,
+    "classes",
+    [id, schoolId],
+    () =>
+      prisma.class.findFirst({
+        where: { id: classId, schoolId },
         include: {
-          subject: true,
-          teacher: {
+          level: true,
+          supervisor: {
             select: {
               id: true,
               username: true,
@@ -53,12 +41,32 @@ export default async function ClassTeachersPage({
               sex: true,
               createdAt: true,
               salary: true,
-            }
-          }
-        }
-      }
-    }
-  });
+            },
+          },
+          lessons: {
+            include: {
+              subject: true,
+              teacher: {
+                select: {
+                  id: true,
+                  username: true,
+                  name: true,
+                  surname: true,
+                  phone: true,
+                  address: true,
+                  img: true,
+                  bloodType: true,
+                  sex: true,
+                  createdAt: true,
+                  salary: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    600
+  );
 
   if (!activeClass) {
     return notFound();

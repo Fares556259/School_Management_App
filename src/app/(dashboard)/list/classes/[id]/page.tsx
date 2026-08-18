@@ -3,6 +3,7 @@ import { getSchoolId } from "@/lib/school";
 import { getRole } from "@/lib/role";
 import { notFound } from "next/navigation";
 import ClassStudentsTable from "@/components/ClassStudentsTable";
+import { getCachedTenantData } from "@/lib/cache";
 
 export default async function ClassStudentsPage({
   params: { id },
@@ -17,57 +18,56 @@ export default async function ClassStudentsPage({
     return notFound();
   }
 
-  // 1. Fetch Class details and its enrolled students
-  const activeClass = await prisma.class.findFirst({
-    where: { id: classId, schoolId },
-    include: {
-      level: true,
-      supervisor: {
-        select: {
-          name: true,
-          surname: true,
-        }
-      },
-      students: {
-        include: {
-          parent: {
-            select: {
-              name: true,
-              surname: true,
-              phone: true,
-            }
-          }
-        },
-        orderBy: [
-          { name: "asc" },
-          { surname: "asc" }
-        ]
-      }
-    }
-  });
+  // Fetch Class details and ALL students in one cached call
+  const [activeClass, allStudents] = await getCachedTenantData(
+    schoolId,
+    "classes",
+    [id, schoolId],
+    () =>
+      Promise.all([
+        prisma.class.findFirst({
+          where: { id: classId, schoolId },
+          include: {
+            level: true,
+            supervisor: {
+              select: {
+                name: true,
+                surname: true,
+              },
+            },
+            students: {
+              include: {
+                parent: {
+                  select: {
+                    name: true,
+                    surname: true,
+                    phone: true,
+                  },
+                },
+              },
+              orderBy: [{ name: "asc" }, { surname: "asc" }],
+            },
+          },
+        }),
+        prisma.student.findMany({
+          where: { schoolId },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            class: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        }),
+      ]),
+    600
+  );
 
-  if (!activeClass) {
-    return notFound();
-  }
-
-  // 2. Fetch ALL students in the school to allow full enrollment assignment / management in the modal
-  const allStudents = await prisma.student.findMany({
-    where: { schoolId },
-    select: {
-      id: true,
-      name: true,
-      surname: true,
-      class: {
-        select: {
-          name: true
-        }
-      }
-    },
-    orderBy: [
-      { name: "asc" },
-      { surname: "asc" }
-    ]
-  });
+  if (!activeClass) return notFound();
 
   return (
     <ClassStudentsTable

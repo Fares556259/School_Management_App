@@ -1,4 +1,5 @@
 import { getRole } from "@/lib/role";
+import { getCachedTenantData } from "@/lib/cache";
 import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import { getSchoolId } from "@/lib/school";
@@ -88,26 +89,32 @@ const ParentListPage = async ({
     }
   }
 
-  const [data, count, classes, school] = await Promise.all([
-    prisma.parent.findMany({
-      where: query,
-      include: {
-        students: true,
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: { name: "asc" }
-    }),
-    prisma.parent.count({ where: query }),
-    prisma.class.findMany({
-      where: { schoolId },
-      select: { id: true, name: true },
-    }),
-    prisma.school.findUnique({
-      where: { id: schoolId },
-      select: { name: true, subdomain: true },
-    }),
-  ]);
+  const [data, count, classes, school] = await getCachedTenantData(
+    schoolId,
+    "parents",
+    [p, JSON.stringify(queryParams), schoolId],
+    () => Promise.all([
+      prisma.parent.findMany({
+        where: query,
+        include: {
+          students: true,
+        },
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy: { name: "asc" }
+      }),
+      prisma.parent.count({ where: query }),
+      prisma.class.findMany({
+        where: { schoolId },
+        select: { id: true, name: true },
+      }),
+      prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { name: true, subdomain: true },
+      }),
+    ]),
+    300
+  );
 
   const relatedData = {
     classId: classes.map(c => ({ value: c.id.toString(), label: c.name })),

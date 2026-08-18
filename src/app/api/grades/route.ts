@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
 import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
 import { revalidatePath } from "next/cache";
+import { invalidateTenantTags } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -128,7 +129,8 @@ export async function POST(req: NextRequest) {
       return Promise.all(updates);
     });
 
-    // 3. Trigger Revalidation for all relevant dashboards
+    // 3. Trigger cache invalidation + path revalidation
+    invalidateTenantTags(schoolId, 'exams');
     revalidatePath("/admin/grades");
     revalidatePath("/list/results");
 

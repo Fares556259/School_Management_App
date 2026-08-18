@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getCachedTenantData } from "@/lib/cache";
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
@@ -63,18 +64,24 @@ const StaffListPage = async ({
     }));
   }
 
-  const [staff, count] = await Promise.all([
-    prisma.staff.findMany({
-      where,
-      include: {
-        payments: { select: { month: true, year: true, status: true, paidAt: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: ITEMS_PER_PAGE,
-      skip: ITEMS_PER_PAGE * (p - 1),
-    }),
-    prisma.staff.count({ where }),
-  ]);
+  const [staff, count] = await getCachedTenantData(
+    schoolId,
+    "staff",
+    [p, JSON.stringify(queryParams), schoolId],
+    () => Promise.all([
+      prisma.staff.findMany({
+        where,
+        include: {
+          payments: { select: { month: true, year: true, status: true, paidAt: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: ITEMS_PER_PAGE,
+        skip: ITEMS_PER_PAGE * (p - 1),
+      }),
+      prisma.staff.count({ where }),
+    ]),
+    300
+  );
 
   // Compute month-based payment stats
   const selectedMonthKey = getMonthKey(searchParams.month);

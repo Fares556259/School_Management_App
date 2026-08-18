@@ -1,4 +1,5 @@
 import { getRole } from "@/lib/role";
+import { getCachedTenantData } from "@/lib/cache";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import ExamTimetableClient from "./ExamTimetableClient";
@@ -35,32 +36,39 @@ const ExamListPage = async ({
 
   // Fetch only this week's exams for the grid (or based on selected week if added later)
   // For now, let's just fetch ALL exams for the class to populate the grid
-  const data = await prisma.exam.findMany({
-    where: query,
-    include: {
-      lesson: {
+  const [data, classes, teachers, subjects, rooms] = await getCachedTenantData(
+    schoolId,
+    "exams",
+    [classId, teacherId, search, schoolId],
+    () => Promise.all([
+      prisma.exam.findMany({
+        where: query,
         include: {
-          subject: true,
-          class: true,
-          teacher: true,
+          lesson: {
+            include: {
+              subject: true,
+              class: true,
+              teacher: true,
+            },
+          },
         },
-      },
-    },
-    orderBy: {
-        startTime: 'asc'
-    }
-  });
-
-  const classes = await prisma.class.findMany({
-    where: { schoolId },
-    include: {
-        level: true
-    },
-    orderBy: { name: 'asc' }
-  });
-  const teachers = await prisma.teacher.findMany({ where: { schoolId } });
-  const subjects = await prisma.subject.findMany({ where: { schoolId } });
-  const rooms = await prisma.room.findMany({ where: { schoolId } });
+        orderBy: {
+            startTime: 'asc'
+        }
+      }),
+      prisma.class.findMany({
+        where: { schoolId },
+        include: {
+            level: true
+        },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.teacher.findMany({ where: { schoolId } }),
+      prisma.subject.findMany({ where: { schoolId } }),
+      prisma.room.findMany({ where: { schoolId } }),
+    ]),
+    300
+  );
 
   return (
     <ExamTimetableClient 

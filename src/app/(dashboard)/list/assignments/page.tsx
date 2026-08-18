@@ -1,4 +1,5 @@
 import { getRole } from "@/lib/role";
+import { getCachedTenantData } from "@/lib/cache";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -134,23 +135,29 @@ const AssignmentListPage = async ({
   );
 
   const [data, count] = await safeDbQuery(() =>
-    Promise.all([
-      prisma.assignment.findMany({
-        where: query,
-        include: {
-          lesson: {
-            include: {
-              subject: true,
-              class: true,
-              teacher: true,
+    getCachedTenantData(
+      schoolId,
+      "assignments",
+      [p, JSON.stringify(queryParams), schoolId],
+      () => Promise.all([
+        prisma.assignment.findMany({
+          where: query,
+          include: {
+            lesson: {
+              include: {
+                subject: true,
+                class: true,
+                teacher: true,
+              },
             },
           },
-        },
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
-      }),
-      prisma.assignment.count({ where: query }),
-    ])
+          take: ITEM_PER_PAGE,
+          skip: ITEM_PER_PAGE * (p - 1),
+        }),
+        prisma.assignment.count({ where: query }),
+      ]),
+      300
+    )
   );
 
   return (

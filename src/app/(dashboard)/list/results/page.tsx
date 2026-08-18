@@ -1,4 +1,5 @@
 import { getRole } from "@/lib/role";
+import { getCachedTenantData } from "@/lib/cache";
 import { createClient } from "@/utils/supabase/server";
 import prisma from "../../../../lib/prisma";
 import ResultsPageClient from "./ResultsPageClient";
@@ -6,7 +7,6 @@ import { getSchoolId } from "@/lib/school";
 
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 
-export const dynamic = 'force-dynamic';
 
 const ResultListPage = async () => {
   const supabase = createClient();
@@ -17,34 +17,40 @@ const ResultListPage = async () => {
   const schoolId = await getSchoolId();
 
   // 🐘 V3 Stabilization: Re-parallelize optimized queries with hardened pool settings
-  const [classesRaw, subjects, teachers, sheets, allStudents, lessons] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true, level: true }, orderBy: { name: "asc" } }),
-    prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
-    prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
-    prisma.gradeSheet.findMany({
-      where: { schoolId },
-      include: {
-        class: { select: { name: true, _count: { select: { students: true } } } },
-        subject: { select: { name: true } },
-        teacher: { select: { name: true, surname: true } },
-        grades: { select: { id: true, studentId: true, score: true } },
-      },
-      orderBy: [{ updatedAt: "desc" }],
-    }),
-    prisma.student.findMany({ 
-      where: { schoolId, classId: { not: undefined } },
-      select: { id: true, name: true, surname: true, classId: true }, 
-      orderBy: { name: "asc" } 
-    }),
-    prisma.lesson.findMany({
-      where: { schoolId },
-      select: {
-        classId: true,
-        subjectId: true,
-        teacher: { select: { id: true, name: true, surname: true } }
-      }
-    })
-  ]);
+  const [classesRaw, subjects, teachers, sheets, allStudents, lessons] = await getCachedTenantData(
+    schoolId,
+    "exams",
+    [schoolId],
+    () => Promise.all([
+      prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true, level: true }, orderBy: { name: "asc" } }),
+      prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
+      prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
+      prisma.gradeSheet.findMany({
+        where: { schoolId },
+        include: {
+          class: { select: { name: true, _count: { select: { students: true } } } },
+          subject: { select: { name: true } },
+          teacher: { select: { name: true, surname: true } },
+          grades: { select: { id: true, studentId: true, score: true } },
+        },
+        orderBy: [{ updatedAt: "desc" }],
+      }),
+      prisma.student.findMany({ 
+        where: { schoolId, classId: { not: undefined } },
+        select: { id: true, name: true, surname: true, classId: true }, 
+        orderBy: { name: "asc" } 
+      }),
+      prisma.lesson.findMany({
+        where: { schoolId },
+        select: {
+          classId: true,
+          subjectId: true,
+          teacher: { select: { id: true, name: true, surname: true } }
+        }
+      })
+    ]),
+    300
+  );
 
   // Derive initial students after parallel fetch completes
   const firstClassId = classesRaw?.length > 0 ? classesRaw[0].id : null;

@@ -1030,6 +1030,7 @@ export const createNotice = async (data: {
       }`,
     });
 
+    invalidateTenantTags(schoolId, 'institution');
     revalidatePath("/list/announcements");
     return { success: true };
   } catch (err: any) {
@@ -1077,6 +1078,8 @@ export const updateNotice = async (
       description: `Updated announcement: ${id}`,
     });
 
+    const schoolId = await getSchoolId();
+    invalidateTenantTags(schoolId, 'institution');
     revalidatePath("/list/announcements");
     return { success: true };
   } catch (err: any) {
@@ -1097,6 +1100,8 @@ export const deleteNotice = async (id: number) => {
       description: `Removed announcement: ${notice?.title}`,
     });
 
+    const schoolId = await getSchoolId();
+    invalidateTenantTags(schoolId, 'institution');
     revalidatePath("/list/announcements");
     return { success: true };
   } catch (err: any) {
@@ -1326,6 +1331,7 @@ export const createAssignment = async (data: {
     // Trigger Notifications
     await createAssignmentNotification(assignment.id);
 
+    invalidateTenantTags(schoolId, 'assignments');
     revalidatePath("/list/assignments");
     revalidatePath("/admin/attendance");
     return { success: true };
@@ -1360,6 +1366,8 @@ export const updateAssignment = async (
       description: `Updated assignment: ${id}`,
     });
 
+    const schoolId = await getSchoolId();
+    invalidateTenantTags(schoolId, 'assignments');
     revalidatePath("/list/assignments");
     revalidatePath("/admin/attendance");
     return { success: true };
@@ -1380,6 +1388,8 @@ export const deleteAssignment = async (id: number) => {
       description: `Deleted assignment: ${assignment?.title}`,
     });
 
+    const schoolId = await getSchoolId();
+    invalidateTenantTags(schoolId, 'assignments');
     revalidatePath("/list/assignments");
     return { success: true };
   } catch (err: any) {

@@ -3,7 +3,7 @@
 import prisma from "../../../../lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSchoolId } from "@/lib/school";
-
+import { invalidateTenantTags } from "@/lib/cache";
 export interface GradeEntry {
   studentId: string;
   score: number | null; // null = absent/no grade
@@ -46,6 +46,7 @@ export async function createGradeSheet(data: {
     )
   );
 
+  invalidateTenantTags(schoolId, 'exams');
   revalidatePath("/admin/grades");
   revalidatePath("/list/results");
   return { success: true, sheetId: sheet.id };

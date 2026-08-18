@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getCachedTenantData } from "@/lib/cache";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 
 import { getRole } from "@/lib/role";
@@ -64,15 +65,21 @@ const AuditPage = async ({
     };
   }
 
-  const [logs, count] = await prisma.$transaction([
-    prisma.auditLog.findMany({
-      where: query,
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-      orderBy: { timestamp: "desc" },
-    }),
-    prisma.auditLog.count({ where: query }),
-  ]);
+  const [logs, count] = await getCachedTenantData(
+    schoolId,
+    "dashboard",
+    [p, search, actionType, filterUser, from, to, schoolId],
+    () => prisma.$transaction([
+      prisma.auditLog.findMany({
+        where: query,
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+        orderBy: { timestamp: "desc" },
+      }),
+      prisma.auditLog.count({ where: query }),
+    ]),
+    120
+  );
 
   // Resolve Clerk IDs
   const uniqueIds = Array.from(new Set(logs.map((l) => l.performedBy).filter((id) => id !== "unknown")));

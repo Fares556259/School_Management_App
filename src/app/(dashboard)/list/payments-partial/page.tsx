@@ -1,4 +1,5 @@
 import { getRole } from "@/lib/role";
+import { getCachedTenantData } from "@/lib/cache";
 import prisma from "@/lib/prisma";
 import PartialPaymentsClient from "./PartialPaymentsClient";
 import { PaymentStatus } from "@prisma/client";
@@ -19,26 +20,32 @@ export default async function PartialPaymentsPage() {
   const t = translations[locale] || translations.en;
 
   // Fetch all partial payments
-  const payments = await prisma.payment.findMany({
-    where: {
-      schoolId,
-      status: "PARTIAL" as PaymentStatus,
-      userType: "STUDENT"
-    },
-    include: {
-      student: {
-        select: {
-          name: true,
-          surname: true,
-          level: { select: { level: true } },
-          class: { select: { name: true } }
+  const payments = await getCachedTenantData(
+    schoolId,
+    "finance",
+    [schoolId],
+    () => prisma.payment.findMany({
+      where: {
+        schoolId,
+        status: "PARTIAL" as PaymentStatus,
+        userType: "STUDENT"
+      },
+      include: {
+        student: {
+          select: {
+            name: true,
+            surname: true,
+            level: { select: { level: true } },
+            class: { select: { name: true } }
+          }
         }
+      },
+      orderBy: {
+        deferredUntil: "asc"
       }
-    },
-    orderBy: {
-      deferredUntil: "asc"
-    }
-  });
+    }),
+    300
+  );
 
   // Calculate total pending revenue from these gaps
   const totalPending = payments.reduce((acc: number, curr: any) => acc + (curr.deferredAmount || 0), 0);

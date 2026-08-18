@@ -1,17 +1,27 @@
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
+import { getCachedTenantData } from "@/lib/cache";
+import { getSchoolId } from "@/lib/school";
 
 const StudentPage = async () => {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const userId = user?.id;
+  const schoolId = await getSchoolId();
 
-  const classItem = await prisma.class.findFirst({
-    where: {
-      students: { some: { id: userId! } },
-    },
-  });
+  const classItem = await getCachedTenantData(
+    schoolId,
+    "students",
+    [userId, schoolId],
+    () =>
+      prisma.class.findFirst({
+        where: {
+          students: { some: { id: userId! } },
+        },
+      }),
+    300
+  );
 
   return (
     <div className="p-4 flex gap-4 flex-col xl:flex-row">

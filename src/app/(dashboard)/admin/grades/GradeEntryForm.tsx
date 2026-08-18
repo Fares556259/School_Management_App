@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useTransition, useMemo, useRef, useEffect } from "react";
+import React, { useState, useTransition, useMemo, useRef, useEffect, useCallback } from "react";
 import { 
   User, CheckCircle2, AlertCircle, Save, FileText, ChevronLeft, 
-  ChevronRight, Search, Sparkles, BookOpen, Check, Calculator, 
-  GraduationCap, Award, HelpCircle
+  ChevronRight, Search, BookOpen, Check, GraduationCap, Cloud,
+  CloudOff, Loader2, Award, TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -46,12 +46,20 @@ const parseFrenchName = (name: string): string => {
 
 /** Get mention / appreciation based on average */
 const getMentionInfo = (avg: number | null) => {
-  if (avg === null) return { label: "--", color: "text-slate-400 bg-slate-100 border-slate-200" };
-  if (avg >= 16) return { label: "Très Bien", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
-  if (avg >= 14) return { label: "Bien", color: "text-blue-700 bg-blue-50 border-blue-200" };
-  if (avg >= 12) return { label: "Assez Bien", color: "text-sky-700 bg-sky-50 border-sky-200" };
-  if (avg >= 10) return { label: "Passable", color: "text-amber-700 bg-amber-50 border-amber-200" };
-  return { label: "En Difficulté", color: "text-rose-700 bg-rose-50 border-rose-200" };
+  if (avg === null) return { label: "--", color: "text-slate-400 bg-slate-100 border-slate-200", dot: "bg-slate-300" };
+  if (avg >= 16) return { label: "Très Bien", color: "text-emerald-700 bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" };
+  if (avg >= 14) return { label: "Bien", color: "text-blue-700 bg-blue-50 border-blue-200", dot: "bg-blue-500" };
+  if (avg >= 12) return { label: "Assez Bien", color: "text-sky-700 bg-sky-50 border-sky-200", dot: "bg-sky-500" };
+  if (avg >= 10) return { label: "Passable", color: "text-amber-700 bg-amber-50 border-amber-200", dot: "bg-amber-500" };
+  return { label: "En Difficulté", color: "text-rose-700 bg-rose-50 border-rose-200", dot: "bg-rose-500" };
+};
+
+/** Color for a numeric score */
+const getScoreColor = (score: number | undefined) => {
+  if (score === undefined || score === null) return { card: "border-slate-200 bg-white", input: "border-slate-200 text-slate-700 focus:ring-blue-500/20 focus:border-blue-400" };
+  if (score >= 16) return { card: "border-emerald-200 bg-emerald-50/40", input: "border-emerald-300 text-emerald-800 focus:ring-emerald-500/20" };
+  if (score >= 10) return { card: "border-blue-200 bg-blue-50/40", input: "border-blue-300 text-blue-800 focus:ring-blue-500/20" };
+  return { card: "border-rose-200 bg-rose-50/40", input: "border-rose-300 text-rose-800 focus:ring-rose-500/20" };
 };
 
 export default function GradeEntryForm({
@@ -69,10 +77,11 @@ export default function GradeEntryForm({
     students[0]?.id || null
   );
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
   // Transform full subject list into gradeable targets
   const gradeableSubjects = useMemo(() => getGradeSubjects(subjects), [subjects]);
-  
+
   const [localGrades, setLocalGrades] = useState<Record<string, Record<number, number>>>(() => {
     const initial: Record<string, Record<number, number>> = {};
     students.forEach(s => {
@@ -89,6 +98,7 @@ export default function GradeEntryForm({
   const { t, locale } = useLanguage();
   const isRTL = locale === "ar";
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentIndex = students.findIndex(s => s.id === selectedStudentId);
   const selectedStudent = students[currentIndex] || students[0];
@@ -100,8 +110,8 @@ export default function GradeEntryForm({
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return students;
     const q = searchQuery.toLowerCase();
-    return students.filter(s => 
-      s.name.toLowerCase().includes(q) || 
+    return students.filter(s =>
+      s.name.toLowerCase().includes(q) ||
       s.surname.toLowerCase().includes(q)
     );
   }, [students, searchQuery]);
@@ -134,10 +144,10 @@ export default function GradeEntryForm({
     setIsDirty(true);
   };
 
-  const handleSave = async (targetStudentId?: string) => {
+  const handleSave = useCallback(async (targetStudentId?: string) => {
     const idToSave = targetStudentId || selectedStudentId;
     if (!idToSave) return;
-    
+
     setSaveStatus("saving");
     const scores = Object.entries(localGrades[idToSave] || {}).map(([subId, score]) => ({
       subjectId: parseInt(subId),
@@ -165,26 +175,39 @@ export default function GradeEntryForm({
     } catch (error) {
       setSaveStatus("error");
     }
-  };
+  }, [selectedStudentId, localGrades, term]);
+
+  // Auto-save 1.5s after last change
+  useEffect(() => {
+    if (!isDirty || !selectedStudentId) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      handleSave(selectedStudentId);
+    }, 1500);
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [localGrades, isDirty, selectedStudentId, handleSave]);
 
   // Switch student & auto-save dirty changes if any
   const handleSelectStudent = (newStudentId: string) => {
     if (isDirty && selectedStudentId) {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       handleSave(selectedStudentId);
     }
-    setSelectedStudentId(newStudentId);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedStudentId(newStudentId);
+      setIsTransitioning(false);
+    }, 120);
   };
 
   const handlePrevStudent = () => {
-    if (currentIndex > 0) {
-      handleSelectStudent(students[currentIndex - 1].id);
-    }
+    if (currentIndex > 0) handleSelectStudent(students[currentIndex - 1].id);
   };
 
   const handleNextStudent = () => {
-    if (currentIndex < students.length - 1) {
-      handleSelectStudent(students[currentIndex + 1].id);
-    }
+    if (currentIndex < students.length - 1) handleSelectStudent(students[currentIndex + 1].id);
   };
 
   // Keyboard navigation for fast entry
@@ -196,7 +219,6 @@ export default function GradeEntryForm({
         inputRefs.current[nextSub.id]?.focus();
         inputRefs.current[nextSub.id]?.select();
       } else {
-        // Move to next domain or save & next student
         const allFlattened = gradeableSubjects;
         const currentFlatIdx = allFlattened.findIndex(s => s.id === domainSubjects[subjectIndex].id);
         if (currentFlatIdx >= 0 && currentFlatIdx < allFlattened.length - 1) {
@@ -223,10 +245,9 @@ export default function GradeEntryForm({
     const enteredCount = Object.keys(studentGrades).filter(
       id => studentGrades[parseInt(id)] !== undefined && studentGrades[parseInt(id)] !== null
     ).length;
-    
+
     const isComplete = gradeableSubjects.length > 0 && enteredCount === gradeableSubjects.length;
 
-    // Group subjects by domain
     const domainMap: Record<string, typeof gradeableSubjects> = {};
     gradeableSubjects.forEach((s) => {
       const d = s.domain || "General";
@@ -235,20 +256,14 @@ export default function GradeEntryForm({
     });
 
     const domainAverages: number[] = [];
-    let totalPoints = 0;
-    let totalMax = 0;
 
-    Object.entries(domainMap).forEach(([domain, domainSubs]) => {
+    Object.entries(domainMap).forEach(([, domainSubs]) => {
       const scores = domainSubs
         .filter(s => studentGrades[s.id] !== undefined && studentGrades[s.id] !== null)
         .map(s => studentGrades[s.id]);
-        
+
       if (scores.length > 0) {
         domainAverages.push(scores.reduce((a, b) => a + b, 0) / scores.length);
-        scores.forEach(sc => {
-          totalPoints += sc;
-          totalMax += 20;
-        });
       }
     });
 
@@ -262,9 +277,18 @@ export default function GradeEntryForm({
       isComplete,
       numericAvg,
       avgDisplay: numericAvg !== null ? numericAvg.toFixed(2) : "--",
-      totalPoints: totalPoints.toFixed(1),
-      totalMax
+      completionPct: gradeableSubjects.length > 0 ? Math.round((enteredCount / gradeableSubjects.length) * 100) : 0,
     };
+  };
+
+  /** Compute domain-level average for selected student */
+  const getDomainAvg = (domainSubs: Subject[], studentId: string): number | null => {
+    const studentGrades = localGrades[studentId] || {};
+    const scores = domainSubs
+      .filter(s => studentGrades[s.id] !== undefined && studentGrades[s.id] !== null)
+      .map(s => studentGrades[s.id]);
+    if (scores.length === 0) return null;
+    return scores.reduce((a, b) => a + b, 0) / scores.length;
   };
 
   const currentMetrics = selectedStudent ? getStudentMetrics(selectedStudent.id) : null;
@@ -280,46 +304,74 @@ export default function GradeEntryForm({
 
   if (students.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200/80 shadow-sm">
-        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-600">
-          <GraduationCap size={32} />
+      <div className="flex-1 flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-200/80 shadow-sm">
+        <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-5 text-blue-500">
+          <GraduationCap size={36} />
         </div>
-        <p className="text-slate-700 font-bold text-lg">{t.gradeEntry.noStudents}</p>
+        <p className="text-slate-800 font-black text-lg mb-1">{t.gradeEntry.noStudents}</p>
+        <p className="text-slate-400 text-sm font-medium">Aucun élève inscrit dans cette classe.</p>
       </div>
     );
   }
 
+  // Auto-save cloud icon
+  const SaveIcon = () => {
+    if (saveStatus === "saving") return <Loader2 size={15} className="animate-spin text-blue-500" />;
+    if (saveStatus === "success") return <Cloud size={15} className="text-emerald-500" />;
+    if (saveStatus === "error") return <CloudOff size={15} className="text-rose-500" />;
+    if (isDirty) return <Loader2 size={15} className="animate-spin text-slate-400" />;
+    return <Cloud size={15} className="text-slate-400" />;
+  };
+
+  const saveLabel = saveStatus === "saving" ? "Enregistrement…"
+    : saveStatus === "success" ? "Notes enregistrées"
+    : saveStatus === "error" ? "Erreur d'enregistrement"
+    : isDirty ? "En attente…"
+    : "Sauvegarde auto";
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start">
+    <div className="flex flex-col lg:flex-row gap-5 items-start">
       {/* ─── LEFT SIDEBAR: STUDENT SELECTOR & SEARCH ─── */}
-      <div className="w-full lg:w-80 bg-white rounded-3xl shadow-sm border border-slate-200/80 flex flex-col shrink-0 overflow-hidden">
-        {/* Header with Search */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+      <div className="w-full lg:w-72 xl:w-80 bg-white rounded-3xl shadow-sm border border-slate-200/80 flex flex-col shrink-0 overflow-hidden sticky top-4">
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-slate-100">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <GraduationCap size={15} className="text-blue-600" />
-              {t.gradeEntry.students} ({students.length})
+              <GraduationCap size={14} className="text-blue-600" />
+              {t.gradeEntry.students}
             </span>
-            <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-              {classCompletionCount}/{students.length} complets
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+              classCompletionCount === students.length
+                ? "text-emerald-700 bg-emerald-50 border-emerald-100"
+                : "text-slate-500 bg-slate-50 border-slate-200"
+            }`}>
+              {classCompletionCount}/{students.length}
             </span>
           </div>
 
+          {/* Class progress bar */}
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+              style={{ width: `${students.length > 0 ? (classCompletionCount / students.length) * 100 : 0}%` }}
+            />
+          </div>
+
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Rechercher un élève..."
+              placeholder="Rechercher un élève…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 placeholder:text-slate-400"
+              className="w-full pl-8 pr-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all text-slate-800 placeholder:text-slate-400"
             />
           </div>
         </div>
 
         {/* Student list */}
-        <div className="max-h-[calc(100vh-280px)] min-h-[400px] overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
-          {filteredStudents.map((student, idx) => {
+        <div className="max-h-[calc(100vh-260px)] min-h-[360px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
+          {filteredStudents.map((student) => {
             const metrics = getStudentMetrics(student.id);
             const isSelected = selectedStudent?.id === student.id;
             const studentMention = getMentionInfo(metrics.numericAvg);
@@ -329,43 +381,51 @@ export default function GradeEntryForm({
                 key={student.id}
                 type="button"
                 onClick={() => handleSelectStudent(student.id)}
-                className={`w-full flex items-center justify-between p-2.5 rounded-2xl transition-all text-left group ${
+                className={`w-full flex flex-col p-3 rounded-2xl transition-all text-left group ${
                   isSelected
-                    ? "bg-[#0f1d33] text-white shadow-md shadow-slate-900/10 border border-slate-800"
-                    : "hover:bg-slate-50 border border-transparent text-slate-700"
+                    ? "bg-[#0f1d33] text-white shadow-md shadow-slate-900/10"
+                    : "hover:bg-slate-50 text-slate-700"
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  {/* Avatar Initials */}
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                    isSelected 
-                      ? "bg-white/15 text-white" 
-                      : metrics.isComplete 
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100" 
-                      : "bg-slate-100 text-slate-600"
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Avatar */}
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-[11px] shrink-0 ${
+                      isSelected
+                        ? "bg-white/15 text-white"
+                        : metrics.isComplete
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        : "bg-slate-100 text-slate-600"
+                    }`}>
+                      {student.name[0]?.toUpperCase()}{student.surname?.[0]?.toUpperCase() || ""}
+                    </div>
+                    <div className="min-w-0">
+                      <span className={`text-[13px] font-bold block truncate ${isSelected ? "text-white" : "text-slate-800 group-hover:text-blue-600"}`}>
+                        {student.name} {student.surname}
+                      </span>
+                      <span className={`text-[11px] font-medium truncate block ${isSelected ? "text-slate-300" : "text-slate-400"}`}>
+                        {metrics.enteredCount}/{metrics.totalSubjects} notes
+                      </span>
+                    </div>
+                  </div>
+                  {/* Score pill */}
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-lg shrink-0 border ${
+                    isSelected ? "bg-white/15 text-white border-white/20" : studentMention.color
                   }`}>
-                    {student.name[0]?.toUpperCase()}{student.surname?.[0]?.toUpperCase() || ""}
-                  </div>
-
-                  <div className="flex flex-col min-w-0">
-                    <span className={`text-sm font-bold truncate ${isSelected ? "text-white" : "text-slate-800 group-hover:text-blue-600"}`}>
-                      {student.name} {student.surname}
-                    </span>
-                    <span className={`text-[11px] font-medium truncate ${isSelected ? "text-slate-300" : "text-slate-400"}`}>
-                      {metrics.isComplete 
-                        ? `${metrics.enteredCount} notes saisies ✓` 
-                        : `${metrics.enteredCount}/${metrics.totalSubjects} notes`}
-                    </span>
-                  </div>
+                    {metrics.avgDisplay}
+                  </span>
                 </div>
 
-                {/* Score Pill */}
-                <div className={`px-2 py-1 rounded-xl text-xs font-black shrink-0 ${
-                  isSelected
-                    ? "bg-white/20 text-white"
-                    : studentMention.color
-                }`}>
-                  {metrics.avgDisplay}
+                {/* Per-student progress bar */}
+                <div className={`h-1 rounded-full overflow-hidden ${isSelected ? "bg-white/20" : "bg-slate-100"}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      isSelected
+                        ? metrics.isComplete ? "bg-emerald-400" : "bg-blue-400"
+                        : metrics.isComplete ? "bg-emerald-400" : "bg-blue-400"
+                    }`}
+                    style={{ width: `${metrics.completionPct}%` }}
+                  />
                 </div>
               </button>
             );
@@ -373,196 +433,210 @@ export default function GradeEntryForm({
         </div>
       </div>
 
-      {/* ─── RIGHT MAIN: STUDENT REPORT CARD GRADE SHEET ─── */}
-      <div className="flex-1 w-full bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
+      {/* ─── RIGHT MAIN: GRADE SHEET ─── */}
+      <div className="flex-1 w-full min-w-0 bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
         {selectedStudent ? (
           <>
-            {/* Top Workspace Header */}
-            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50/70 via-white to-blue-50/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              {/* Student Identity */}
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-500/20 font-black text-xl">
-                  {selectedStudent.name[0]?.toUpperCase()}{selectedStudent.surname?.[0]?.toUpperCase() || ""}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                      {selectedStudent.name} {selectedStudent.surname}
-                    </h2>
-                    <span className="text-[11px] font-extrabold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-100 uppercase">
-                      Trimestre {term}
-                    </span>
+            {/* ── Sticky Header ── */}
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-100 shadow-sm">
+              {/* Student Identity Row */}
+              <div className="px-6 pt-5 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-blue-500/20 font-black text-lg shrink-0">
+                    {selectedStudent.name[0]?.toUpperCase()}{selectedStudent.surname?.[0]?.toUpperCase() || ""}
                   </div>
-                  <p className="text-xs font-medium text-slate-500 mt-0.5">
-                    Élève #{currentIndex + 1} sur {students.length} • Saisie des notes officielle
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-lg font-black text-slate-900 tracking-tight">
+                        {selectedStudent.name} {selectedStudent.surname}
+                      </h2>
+                      <span className="text-[10px] font-extrabold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                        Trimestre {term}
+                      </span>
+                      {currentMetrics?.isComplete && (
+                        <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                          <Check size={10} /> Complet
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-medium text-slate-400 mt-0.5">
+                      Élève {currentIndex + 1} / {students.length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 w-full md:w-auto flex-wrap">
+                  {/* GPA display */}
+                  <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border ${mention.color}`}>
+                    <div className="text-right">
+                      <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">Moyenne</div>
+                      <div className="text-xl font-black leading-none">
+                        {currentMetrics?.avgDisplay}
+                        <span className="text-xs font-bold opacity-60 ml-0.5">/ 20</span>
+                      </div>
+                    </div>
+                    <div className="h-8 w-px bg-current opacity-20" />
+                    <span className="text-xs font-black">{mention.label}</span>
+                  </div>
+
+                  {/* Auto-save indicator */}
+                  <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                    saveStatus === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                    : saveStatus === "error" ? "bg-rose-50 border-rose-200 text-rose-700"
+                    : "bg-slate-50 border-slate-200 text-slate-500"
+                  }`}>
+                    <SaveIcon />
+                    <span className="hidden sm:inline">{saveLabel}</span>
+                  </div>
+
+                  {/* Bulletin link */}
+                  <Link
+                    href={`/admin/grades/${selectedStudent.id}/report-card?term=${term}`}
+                    target="_blank"
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
+                  >
+                    <FileText size={13} className="text-blue-600" />
+                    <span className="hidden sm:inline">{t.gradeEntry.viewReportCard}</span>
+                  </Link>
+
+                  {/* Manual save button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSave()}
+                    disabled={saveStatus === "saving" || !isDirty}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-xs transition-all shadow-sm ${
+                      isDirty
+                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    }`}
+                  >
+                    <Save size={13} />
+                    <span>{t.gradeEntry.saveGrades}</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Live GPA & Quick Actions */}
-              <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end flex-wrap">
-                {/* GPA Badge */}
-                <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm">
-                  <div className="flex flex-col text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Moyenne Générale</span>
-                    <span className="text-xl font-black text-slate-900 leading-none">
-                      {currentMetrics?.avgDisplay} <span className="text-xs font-bold text-slate-400">/ 20</span>
+              {/* Navigation & Keyboard Tip Row */}
+              <div className="px-6 pb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePrevStudent}
+                    disabled={currentIndex === 0}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft size={13} />
+                    <span>Préc.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextStudent}
+                    disabled={currentIndex === students.length - 1}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <span>Suiv.</span>
+                    <ChevronRight size={13} />
+                  </button>
+
+                  {/* Progress */}
+                  <div className="flex items-center gap-2 ml-2">
+                    <div className="h-1.5 w-24 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${currentMetrics?.completionPct ?? 0}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      {currentMetrics?.enteredCount}/{currentMetrics?.totalSubjects}
                     </span>
-                  </div>
-                  <div className={`px-2.5 py-1 rounded-xl text-xs font-black border ${mention.color}`}>
-                    {mention.label}
                   </div>
                 </div>
 
-                {/* View Bulletin PDF Link */}
-                <Link
-                  href={`/admin/grades/${selectedStudent.id}/report-card?term=${term}`}
-                  target="_blank"
-                  className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-all shadow-sm"
-                >
-                  <FileText size={14} className="text-blue-600" />
-                  <span>{t.gradeEntry.viewReportCard}</span>
-                </Link>
-
-                {/* Save Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSave()}
-                  disabled={saveStatus === "saving"}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs transition-all shadow-md ${
-                    saveStatus === "success" 
-                      ? "bg-emerald-600 text-white shadow-emerald-500/20" 
-                      : saveStatus === "error" 
-                      ? "bg-rose-600 text-white shadow-rose-500/20" 
-                      : isDirty
-                      ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20 animate-pulse"
-                      : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-900/10"
-                  }`}
-                >
-                  {saveStatus === "saving" ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : saveStatus === "success" ? (
-                    <CheckCircle2 size={15} />
-                  ) : (
-                    <Save size={15} />
-                  )}
-                  <span>
-                    {saveStatus === "saving" 
-                      ? t.gradeEntry.saving 
-                      : saveStatus === "success" 
-                      ? t.gradeEntry.saved 
-                      : t.gradeEntry.saveGrades}
-                  </span>
-                </button>
+                <div className="text-xs font-medium text-slate-400 hidden sm:flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-600 shadow-sm">↵</kbd>
+                  <span>matière suiv.</span>
+                </div>
               </div>
             </div>
 
-            {/* Sub-Header / Navigation Controls */}
-            <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrevStudent}
-                  disabled={currentIndex === 0}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
-                >
-                  <ChevronLeft size={14} />
-                  <span>Précédent</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextStudent}
-                  disabled={currentIndex === students.length - 1}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
-                >
-                  <span>Suivant</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-
-              <div className="text-xs font-medium text-slate-500 hidden sm:block">
-                Astuce : Appuyez sur <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[10px] font-bold text-slate-700 shadow-2xs">Entrée</kbd> ou <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[10px] font-bold text-slate-700 shadow-2xs">Tab</kbd> pour passer à la matière suivante.
-              </div>
-            </div>
-
-            {/* Domain Groups & Subject Input Matrix */}
-            <div className="p-6 overflow-y-auto space-y-8 custom-scrollbar max-h-[calc(100vh-360px)]">
+            {/* ── Domain Groups & Subject Input Matrix ── */}
+            <div
+              className={`p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1 transition-opacity duration-150 ${
+                isTransitioning ? "opacity-0" : "opacity-100"
+              }`}
+            >
               {domains.map((domain) => {
                 const domainSubs = gradeableSubjects.filter(s => (s.domain || "General") === domain);
                 if (domainSubs.length === 0) return null;
 
+                const domainAvg = selectedStudent ? getDomainAvg(domainSubs, selectedStudent.id) : null;
+                const domainMention = getMentionInfo(domainAvg);
+
                 return (
                   <div key={domain} className="space-y-3">
                     {/* Domain Header */}
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                      <div className="w-2 h-4 bg-blue-600 rounded-full" />
-                      <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">
-                        {domain}
-                      </h3>
-                      <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                        {domainSubs.length} matières
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-1 h-6 bg-blue-600 rounded-full" />
+                        <div>
+                          <h3 className="text-sm font-black text-slate-800 tracking-tight leading-tight" dir="rtl">
+                            {domain}
+                          </h3>
+                          <span className="text-[11px] font-semibold text-slate-400">
+                            {domainSubs.length} matière{domainSubs.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Domain live average */}
+                      {domainAvg !== null && (
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border ${domainMention.color}`}>
+                          <TrendingUp size={11} />
+                          Moy. {domainAvg.toFixed(2)} / 20
+                        </div>
+                      )}
                     </div>
 
-                    {/* Subject Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                    {/* Subject Cards — 2-column grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {domainSubs.map((subject, sIdx) => {
                         const score = localGrades[selectedStudent.id]?.[subject.id];
                         const arabicTitle = parseArabicName(subject.name);
                         const frenchTitle = parseFrenchName(subject.name);
-
-                        // Score Status Styling
+                        const colors = getScoreColor(score);
                         const isScoreFilled = score !== undefined && score !== null;
-                        const scoreColor = !isScoreFilled 
-                          ? "border-slate-200 bg-slate-50/50" 
-                          : score >= 16 
-                          ? "border-emerald-200 bg-emerald-50/30" 
-                          : score >= 10 
-                          ? "border-blue-200 bg-blue-50/30" 
-                          : "border-rose-200 bg-rose-50/30";
 
                         return (
                           <div
                             key={subject.id}
-                            className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 group hover:bg-white hover:shadow-sm ${scoreColor}`}
+                            className={`px-4 py-3.5 rounded-2xl border transition-all flex items-center justify-between gap-4 group hover:shadow-sm ${colors.card}`}
                           >
                             {/* Subject Info */}
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-sm font-black text-slate-800 tracking-tight truncate" dir="rtl">
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="text-[15px] font-black text-slate-800 tracking-tight leading-snug" dir="rtl">
                                 {arabicTitle}
                               </span>
-                              {frenchTitle ? (
-                                <span className="text-[11px] font-semibold text-slate-400 truncate">
+                              {frenchTitle && (
+                                <span className="text-[11px] font-semibold text-slate-400 mt-0.5">
                                   {frenchTitle}
                                 </span>
-                              ) : null}
+                              )}
                             </div>
 
                             {/* Score Input */}
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <div className="relative">
-                                <input
-                                  ref={(el) => { inputRefs.current[subject.id] = el; }}
-                                  type="number"
-                                  min="0"
-                                  max="20"
-                                  step="0.25"
-                                  placeholder="--"
-                                  value={score ?? ""}
-                                  onChange={(e) => handleScoreChange(selectedStudent.id, subject.id, e.target.value)}
-                                  onKeyDown={(e) => handleKeyDown(e, sIdx, domainSubs)}
-                                  className={`w-16 h-10 text-center font-black text-base rounded-xl border outline-none transition-all shadow-2xs ${
-                                    isScoreFilled
-                                      ? score >= 16
-                                        ? "border-emerald-300 text-emerald-800 bg-white focus:ring-2 focus:ring-emerald-500/20"
-                                        : score >= 10
-                                        ? "border-blue-300 text-blue-800 bg-white focus:ring-2 focus:ring-blue-500/20"
-                                        : "border-rose-300 text-rose-800 bg-white focus:ring-2 focus:ring-rose-500/20"
-                                      : "border-slate-300 text-slate-700 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                  }`}
-                                />
-                              </div>
-                              <span className="text-[11px] font-extrabold text-slate-400">/ 20</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <input
+                                ref={(el) => { inputRefs.current[subject.id] = el; }}
+                                type="number"
+                                min="0"
+                                max="20"
+                                step="0.25"
+                                placeholder="—"
+                                value={score ?? ""}
+                                onChange={(e) => handleScoreChange(selectedStudent.id, subject.id, e.target.value)}
+                                onKeyDown={(e) => handleKeyDown(e, sIdx, domainSubs)}
+                                className={`w-20 h-11 text-center font-black text-lg rounded-xl border-2 outline-none transition-all focus:ring-2 bg-white ${colors.input}`}
+                              />
+                              <span className="text-xs font-bold text-slate-400 leading-none">/&nbsp;20</span>
                             </div>
                           </div>
                         );
@@ -573,25 +647,20 @@ export default function GradeEntryForm({
               })}
             </div>
 
-            {/* Bottom Summary Bar */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <div className="flex items-center gap-4 text-xs font-semibold text-slate-500">
-                <span>Notes saisies : <strong className="text-slate-800">{currentMetrics?.enteredCount} / {currentMetrics?.totalSubjects}</strong></span>
-                <span>•</span>
-                <span>Total points : <strong className="text-slate-800">{currentMetrics?.totalPoints} / {currentMetrics?.totalMax}</strong></span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleNextStudent}
-                  disabled={currentIndex === students.length - 1}
-                  className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 disabled:opacity-40 transition-all flex items-center gap-1.5 shadow-sm"
-                >
-                  <span>Élève suivant</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
+            {/* ── Bottom Bar ── */}
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-between items-center gap-3">
+              <span className="text-xs font-semibold text-slate-400">
+                <strong className="text-slate-700">{currentMetrics?.enteredCount}</strong> / {currentMetrics?.totalSubjects} notes saisies
+              </span>
+              <button
+                type="button"
+                onClick={handleNextStudent}
+                disabled={currentIndex === students.length - 1}
+                className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 disabled:opacity-40 transition-all shadow-sm"
+              >
+                <span>Élève suivant</span>
+                <ChevronRight size={13} />
+              </button>
             </div>
           </>
         ) : (

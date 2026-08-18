@@ -1,4 +1,6 @@
 import prisma from "@/lib/prisma";
+import { getCachedTenantData } from "@/lib/cache";
+import { getSchoolId } from "@/lib/school";
 import { addSubscriber, removeSubscriber } from "./actions";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
@@ -9,9 +11,16 @@ export default async function ReportsManagementPage() {
   const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
   const t = translations[locale];
 
-  const subscribers = await prisma.reportSubscriber.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const schoolId = await getSchoolId();
+  const subscribers = await getCachedTenantData(
+    schoolId,
+    "institution",
+    [schoolId],
+    () => prisma.reportSubscriber.findMany({
+      orderBy: { createdAt: "desc" },
+    }),
+    120
+  );
 
   return (
     <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">

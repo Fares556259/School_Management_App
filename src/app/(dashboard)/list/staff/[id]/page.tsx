@@ -4,6 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import StaffSalaryTracker from "./StaffSalaryTracker";
+import { getCachedTenantData } from "@/lib/cache";
+import { getSchoolId } from "@/lib/school";
 
 const SingleStaffPage = async ({
   params,
@@ -13,12 +15,21 @@ const SingleStaffPage = async ({
   const role = await getRole();
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 
-  const staff = await prisma.staff.findUnique({
-    where: { id: params.id },
-    include: {
-      payments: true,
-    },
-  });
+  const schoolId = await getSchoolId();
+
+  const staff = await getCachedTenantData(
+    schoolId,
+    "staff",
+    [params.id, schoolId],
+    () =>
+      prisma.staff.findUnique({
+        where: { id: params.id },
+        include: {
+          payments: true,
+        },
+      }),
+    600
+  );
 
   if (!staff) return notFound();
 

@@ -1,6 +1,6 @@
-export const dynamic = "force-dynamic";
 
 import prisma from "@/lib/prisma";
+import { getCachedTenantData } from "@/lib/cache";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import { redirect } from "next/navigation";
@@ -60,50 +60,60 @@ const FinancePage = async ({
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
   // Fetch only last 6 months for chart (drastically reduces connection hold time)
-  const allIncomes = await prisma.income.findMany({ 
-    where: { schoolId, date: { gte: sixMonthsAgo } },
-    orderBy: { date: "desc" } 
-  });
-  
-  const allExpenses = await prisma.expense.findMany({ 
-    where: { schoolId, date: { gte: sixMonthsAgo } },
-    orderBy: { date: "desc" } 
-  });
-  
-  const filteredIncomes = type !== "expense"
-    ? await prisma.income.findMany({ where: incomeWhere, orderBy: { date: "desc" } })
-    : [];
-    
-  const filteredExpenses = type !== "income"
-    ? await prisma.expense.findMany({ where: expenseWhere, orderBy: { date: "desc" } })
-    : [];
-
-  const allTeachers = await prisma.teacher.findMany({
-    select: { 
-      id: true, 
-      name: true, 
-      surname: true, 
-      salary: true, 
-      payments: { 
-        where: { 
-          month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), 
-          year: new Date().getFullYear() 
-        } 
-      } 
-    },
-  });
-
-  const allStudents = await prisma.student.findMany({
-    include: { 
-      level: true,
-      payments: { 
-        where: { 
-          month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), 
-          year: new Date().getFullYear() 
-        } 
-      } 
-    },
-  });
+  const [
+    allIncomes,
+    allExpenses,
+    filteredIncomes,
+    filteredExpenses,
+    allTeachers,
+    allStudents
+  ] = await getCachedTenantData(
+    schoolId,
+    "finance",
+    [category, type, q, schoolId],
+    () => Promise.all([
+      prisma.income.findMany({ 
+        where: { schoolId, date: { gte: sixMonthsAgo } },
+        orderBy: { date: "desc" } 
+      }),
+      prisma.expense.findMany({ 
+        where: { schoolId, date: { gte: sixMonthsAgo } },
+        orderBy: { date: "desc" } 
+      }),
+      type !== "expense"
+        ? prisma.income.findMany({ where: incomeWhere, orderBy: { date: "desc" } })
+        : Promise.resolve([]),
+      type !== "income"
+        ? prisma.expense.findMany({ where: expenseWhere, orderBy: { date: "desc" } })
+        : Promise.resolve([]),
+      prisma.teacher.findMany({
+        select: { 
+          id: true, 
+          name: true, 
+          surname: true, 
+          salary: true, 
+          payments: { 
+            where: { 
+              month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), 
+              year: new Date().getFullYear() 
+            } 
+          } 
+        },
+      }),
+      prisma.student.findMany({
+        include: { 
+          level: true,
+          payments: { 
+            where: { 
+              month: MONTHS.indexOf(MONTHS[new Date().getMonth()]), 
+              year: new Date().getFullYear() 
+            } 
+          } 
+        },
+      })
+    ]),
+    120
+  );
 
   const unpaidTeachers = allTeachers.filter((t: any) => !t.payments.some((p: any) => p.status === "PAID"));
   const unpaidStudents = allStudents.filter((s: any) => !s.payments.some((p: any) => p.status === "PAID"));
