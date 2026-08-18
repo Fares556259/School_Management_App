@@ -70,7 +70,26 @@ export default function GradeEntryForm({
   const [searchQuery, setSearchQuery] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const gradeableSubjects = useMemo(() => getGradeSubjects(subjects), [subjects]);
+  const gradeableSubjects = useMemo(() => {
+    const DOMAIN_PRIORITY: Record<string, number> = {
+      "مجال العربية": 1,
+      "اللغة العربية": 1,
+      "اللغة الفرنسية": 2,
+      "French": 2,
+      "اللغات الأجنبية": 3,
+      "اللغات الاجنية": 3,
+      "مجال اللغات": 3,
+      "مجال العلوم": 4,
+      "مجال التنشئة": 5,
+    };
+    const raw = getGradeSubjects(subjects);
+    return raw.sort((a, b) => {
+      const pA = DOMAIN_PRIORITY[a.domain || "General"] ?? 90;
+      const pB = DOMAIN_PRIORITY[b.domain || "General"] ?? 90;
+      if (pA !== pB) return pA - pB;
+      return a.id - b.id;
+    });
+  }, [subjects]);
 
   const [localGrades, setLocalGrades] = useState<Record<string, Record<number, number>>>(() => {
     const initial: Record<string, Record<number, number>> = {};
@@ -92,11 +111,26 @@ export default function GradeEntryForm({
   const currentIndex = students.findIndex(s => s.id === selectedStudentId);
   const selectedStudent = students[currentIndex] ?? students[0];
 
-  // Group subjects by domain
-  const domains = useMemo(
-    () => Array.from(new Set(gradeableSubjects.map(s => s.domain || "General"))),
-    [gradeableSubjects]
-  );
+  // Group subjects by domain with official ordering
+  const domains = useMemo(() => {
+    const DOMAIN_PRIORITY: Record<string, number> = {
+      "مجال العربية": 1,
+      "اللغة العربية": 1,
+      "اللغة الفرنسية": 2,
+      "French": 2,
+      "اللغات الأجنبية": 3,
+      "اللغات الاجنية": 3,
+      "مجال اللغات": 3,
+      "مجال العلوم": 4,
+      "مجال التنشئة": 5,
+    };
+    const unique = Array.from(new Set(gradeableSubjects.map(s => s.domain || "General")));
+    return unique.sort((a, b) => {
+      const pA = DOMAIN_PRIORITY[a] ?? 90;
+      const pB = DOMAIN_PRIORITY[b] ?? 90;
+      return pA - pB;
+    });
+  }, [gradeableSubjects]);
 
   const domainMap = useMemo(() => {
     const map: Record<string, Subject[]> = {};
