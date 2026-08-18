@@ -37,10 +37,16 @@ export function getGradeSubjects<T extends SubjectHierarchy>(allSubjects: T[]): 
     if (components && components.length > 0) {
       // Parent has components -> add components for grading
       gradeSubjects.push(...components);
+      parentIdMap.delete(parent.id); // Mark as handled
     } else {
       // Parent has no components -> add parent for grading
       gradeSubjects.push(parent);
     }
+  });
+
+  // Include any orphaned components (where parent was filtered out of allSubjects)
+  parentIdMap.forEach(components => {
+    gradeSubjects.push(...components);
   });
 
   return gradeSubjects;

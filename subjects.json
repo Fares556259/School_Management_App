@@ -1,0 +1,1934 @@
+[
+  {
+    "id": 71,
+    "name": "Mathematics",
+    "domain": "Sciences",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 72,
+    "name": "French",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 73,
+    "name": "English",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 74,
+    "name": "Science",
+    "domain": "Sciences",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 75,
+    "name": "History",
+    "domain": "Humanities",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 76,
+    "name": "Geography",
+    "domain": "Humanities",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 77,
+    "name": "ICT",
+    "domain": "Technology",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 78,
+    "name": "Art",
+    "domain": "Arts",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 80,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 133,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 80
+      },
+      {
+        "id": 134,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 80
+      },
+      {
+        "id": 135,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 80
+      },
+      {
+        "id": 136,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 80
+      }
+    ]
+  },
+  {
+    "id": 81,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 157,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 81
+      },
+      {
+        "id": 158,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 81
+      },
+      {
+        "id": 159,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 81
+      },
+      {
+        "id": 160,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "default_school",
+        "parentId": 81
+      }
+    ]
+  },
+  {
+    "id": 82,
+    "name": "الرياضيات | Mathématiques | Mathematics",
+    "domain": "Sciences",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 83,
+    "name": "الإيقاظ العلمي | Éveil Scientifique | Science Awareness",
+    "domain": "Sciences",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 84,
+    "name": "التربية الإسلامية | Éducation Islamique | Islamic Education",
+    "domain": "Religion & Values",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 85,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Religion & Values",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 86,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Humanities",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 87,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Humanities",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 88,
+    "name": "التربية التكنولوجية | Éducation Technologique | Technical Education",
+    "domain": "Arts & Technology",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 89,
+    "name": "التربية التشكيلية | Arts Plastiques | Art Education",
+    "domain": "Arts & Technology",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 90,
+    "name": "التربية الموسيقية | Éducation Musicale | Music Education",
+    "domain": "Arts & Technology",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 91,
+    "name": "التربية البدنية | Éducation Physique | Physical Education",
+    "domain": "Sport",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 93,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": [
+      {
+        "id": 149,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 93
+      },
+      {
+        "id": 150,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 93
+      },
+      {
+        "id": 151,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 93
+      },
+      {
+        "id": 152,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 93
+      }
+    ]
+  },
+  {
+    "id": 94,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": [
+      {
+        "id": 189,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 94
+      },
+      {
+        "id": 190,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 94
+      },
+      {
+        "id": 191,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 94
+      },
+      {
+        "id": 192,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom-1",
+        "parentId": 94
+      }
+    ]
+  },
+  {
+    "id": 95,
+    "name": "الرياضيات | Mathématiques | Mathematics",
+    "domain": "Sciences",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 96,
+    "name": "الإيقاظ العلمي | Éveil Scientifique | Science Awareness",
+    "domain": "Sciences",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 97,
+    "name": "التربية الإسلامية | Éducation Islamique | Islamic Education",
+    "domain": "Religion & Values",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 98,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Religion & Values",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 99,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Humanities",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 100,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Humanities",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 101,
+    "name": "التربية التكنولوجية | Éducation Technologique | Technical Education",
+    "domain": "Arts & Technology",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 102,
+    "name": "التربية التشكيلية | Arts Plastiques | Art Education",
+    "domain": "Arts & Technology",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 103,
+    "name": "التربية الموسيقية | Éducation Musicale | Music Education",
+    "domain": "Arts & Technology",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 104,
+    "name": "التربية البدنية | Éducation Physique | Physical Education",
+    "domain": "Sport",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 105,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": [
+      {
+        "id": 153,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 105
+      },
+      {
+        "id": 154,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 105
+      },
+      {
+        "id": 155,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 105
+      },
+      {
+        "id": 156,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 105
+      }
+    ]
+  },
+  {
+    "id": 106,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": [
+      {
+        "id": 193,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 106
+      },
+      {
+        "id": 194,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 106
+      },
+      {
+        "id": 195,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 106
+      },
+      {
+        "id": 196,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "sponsorlab",
+        "parentId": 106
+      }
+    ]
+  },
+  {
+    "id": 107,
+    "name": "الرياضيات | Mathématiques | Mathematics",
+    "domain": "Sciences",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 108,
+    "name": "الإيقاظ العلمي | Éveil Scientifique | Science Awareness",
+    "domain": "Sciences",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 109,
+    "name": "التربية الإسلامية | Éducation Islamique | Islamic Education",
+    "domain": "Religion & Values",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 110,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Religion & Values",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 111,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Humanities",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 112,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Humanities",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 113,
+    "name": "التربية التكنولوجية | Éducation Technologique | Technical Education",
+    "domain": "Arts & Technology",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 114,
+    "name": "التربية التشكيلية | Arts Plastiques | Art Education",
+    "domain": "Arts & Technology",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 115,
+    "name": "التربية الموسيقية | Éducation Musicale | Music Education",
+    "domain": "Arts & Technology",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 116,
+    "name": "التربية البدنية | Éducation Physique | Physical Education",
+    "domain": "Sport",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 118,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 228,
+    "components": []
+  },
+  {
+    "id": 119,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 228,
+    "components": []
+  },
+  {
+    "id": 120,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 228,
+    "components": []
+  },
+  {
+    "id": 121,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 230,
+    "components": []
+  },
+  {
+    "id": 122,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 230,
+    "components": []
+  },
+  {
+    "id": 123,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 230,
+    "components": []
+  },
+  {
+    "id": 124,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 230,
+    "components": []
+  },
+  {
+    "id": 125,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 232,
+    "components": []
+  },
+  {
+    "id": 126,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 232,
+    "components": []
+  },
+  {
+    "id": 127,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 232,
+    "components": []
+  },
+  {
+    "id": 129,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 234,
+    "components": []
+  },
+  {
+    "id": 130,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 234,
+    "components": []
+  },
+  {
+    "id": 131,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 234,
+    "components": []
+  },
+  {
+    "id": 132,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 234,
+    "components": []
+  },
+  {
+    "id": 133,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 80,
+    "components": []
+  },
+  {
+    "id": 134,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 80,
+    "components": []
+  },
+  {
+    "id": 135,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 80,
+    "components": []
+  },
+  {
+    "id": 136,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 80,
+    "components": []
+  },
+  {
+    "id": 137,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 236,
+    "components": []
+  },
+  {
+    "id": 138,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 236,
+    "components": []
+  },
+  {
+    "id": 139,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 236,
+    "components": []
+  },
+  {
+    "id": 140,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 236,
+    "components": []
+  },
+  {
+    "id": 197,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "fares-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 198,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "fares-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 199,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "fares-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 200,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "emerald-heights-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 201,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "emerald-heights-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 202,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "emerald-heights-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 162,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 229,
+    "components": []
+  },
+  {
+    "id": 163,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 229,
+    "components": []
+  },
+  {
+    "id": 165,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 231,
+    "components": []
+  },
+  {
+    "id": 166,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 231,
+    "components": []
+  },
+  {
+    "id": 167,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 231,
+    "components": []
+  },
+  {
+    "id": 168,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": 231,
+    "components": []
+  },
+  {
+    "id": 169,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 233,
+    "components": []
+  },
+  {
+    "id": 170,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 233,
+    "components": []
+  },
+  {
+    "id": 171,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 233,
+    "components": []
+  },
+  {
+    "id": 172,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 233,
+    "components": []
+  },
+  {
+    "id": 173,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 235,
+    "components": []
+  },
+  {
+    "id": 174,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 235,
+    "components": []
+  },
+  {
+    "id": 175,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 235,
+    "components": []
+  },
+  {
+    "id": 176,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": 235,
+    "components": []
+  },
+  {
+    "id": 157,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 81,
+    "components": []
+  },
+  {
+    "id": 158,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 81,
+    "components": []
+  },
+  {
+    "id": 159,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 81,
+    "components": []
+  },
+  {
+    "id": 160,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": 81,
+    "components": []
+  },
+  {
+    "id": 177,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 237,
+    "components": []
+  },
+  {
+    "id": 178,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 237,
+    "components": []
+  },
+  {
+    "id": 179,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 237,
+    "components": []
+  },
+  {
+    "id": 180,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": 237,
+    "components": []
+  },
+  {
+    "id": 141,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 238,
+    "components": []
+  },
+  {
+    "id": 142,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 238,
+    "components": []
+  },
+  {
+    "id": 143,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 238,
+    "components": []
+  },
+  {
+    "id": 144,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 238,
+    "components": []
+  },
+  {
+    "id": 181,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 239,
+    "components": []
+  },
+  {
+    "id": 183,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 239,
+    "components": []
+  },
+  {
+    "id": 184,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 239,
+    "components": []
+  },
+  {
+    "id": 145,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 240,
+    "components": []
+  },
+  {
+    "id": 146,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 240,
+    "components": []
+  },
+  {
+    "id": 147,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 240,
+    "components": []
+  },
+  {
+    "id": 148,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 240,
+    "components": []
+  },
+  {
+    "id": 185,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 241,
+    "components": []
+  },
+  {
+    "id": 186,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 241,
+    "components": []
+  },
+  {
+    "id": 187,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 241,
+    "components": []
+  },
+  {
+    "id": 188,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": 241,
+    "components": []
+  },
+  {
+    "id": 149,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 93,
+    "components": []
+  },
+  {
+    "id": 150,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 93,
+    "components": []
+  },
+  {
+    "id": 151,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 93,
+    "components": []
+  },
+  {
+    "id": 152,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 93,
+    "components": []
+  },
+  {
+    "id": 189,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 94,
+    "components": []
+  },
+  {
+    "id": 190,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 94,
+    "components": []
+  },
+  {
+    "id": 191,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 94,
+    "components": []
+  },
+  {
+    "id": 153,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 105,
+    "components": []
+  },
+  {
+    "id": 154,
+    "name": "الخط | Écriture | Handwriting",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 105,
+    "components": []
+  },
+  {
+    "id": 155,
+    "name": "القراءة | Lecture | Reading",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 105,
+    "components": []
+  },
+  {
+    "id": 156,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 105,
+    "components": []
+  },
+  {
+    "id": 193,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 106,
+    "components": []
+  },
+  {
+    "id": 194,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 106,
+    "components": []
+  },
+  {
+    "id": 195,
+    "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 106,
+    "components": []
+  },
+  {
+    "id": 196,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": 106,
+    "components": []
+  },
+  {
+    "id": 203,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "faress-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 204,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "faress-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 205,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "faress-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 206,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "mohameds-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 207,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "mohameds-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 208,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "mohameds-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 209,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 210,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 211,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 212,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 213,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 214,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 215,
+    "name": "التاريخ | Histoire | History",
+    "domain": "Discovery Domain",
+    "schoolId": "leaders",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 216,
+    "name": "الجغرافيا | Géographie | Geography",
+    "domain": "Discovery Domain",
+    "schoolId": "leaders",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 217,
+    "name": "التربية المدنية | Éducation Civique | Civic Education",
+    "domain": "Discovery Domain",
+    "schoolId": "leaders",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 218,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 219,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "emerald-heights-academy",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 220,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 221,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "mohameds-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 222,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "default_school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 223,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 224,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 225,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "leaders",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 226,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 227,
+    "name": "الإنقليزية | Anglais | English",
+    "domain": "Languages",
+    "schoolId": "sponsorlab",
+    "parentId": null,
+    "components": []
+  },
+  {
+    "id": 228,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "fares-academy",
+    "parentId": null,
+    "components": [
+      {
+        "id": 118,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 228
+      },
+      {
+        "id": 119,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 228
+      },
+      {
+        "id": 120,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 228
+      },
+      {
+        "id": 117,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 228
+      }
+    ]
+  },
+  {
+    "id": 229,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "fares-academy",
+    "parentId": null,
+    "components": [
+      {
+        "id": 162,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 229
+      },
+      {
+        "id": 163,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 229
+      },
+      {
+        "id": 161,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 229
+      },
+      {
+        "id": 164,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "fares-academy",
+        "parentId": 229
+      }
+    ]
+  },
+  {
+    "id": 117,
+    "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 228,
+    "components": []
+  },
+  {
+    "id": 161,
+    "name": "قواعد اللغة | Grammaire | Grammar",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 229,
+    "components": []
+  },
+  {
+    "id": 164,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "fares-academy",
+    "parentId": 229,
+    "components": []
+  },
+  {
+    "id": 230,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "emerald-heights-academy",
+    "parentId": null,
+    "components": [
+      {
+        "id": 121,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 230
+      },
+      {
+        "id": 122,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 230
+      },
+      {
+        "id": 123,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 230
+      },
+      {
+        "id": 124,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 230
+      }
+    ]
+  },
+  {
+    "id": 231,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "emerald-heights-academy",
+    "parentId": null,
+    "components": [
+      {
+        "id": 165,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 231
+      },
+      {
+        "id": 166,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 231
+      },
+      {
+        "id": 167,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 231
+      },
+      {
+        "id": 168,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "emerald-heights-academy",
+        "parentId": 231
+      }
+    ]
+  },
+  {
+    "id": 232,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "faress-school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 125,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 232
+      },
+      {
+        "id": 126,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 232
+      },
+      {
+        "id": 127,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 232
+      },
+      {
+        "id": 128,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 232
+      }
+    ]
+  },
+  {
+    "id": 233,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "faress-school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 169,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 233
+      },
+      {
+        "id": 170,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 233
+      },
+      {
+        "id": 171,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 233
+      },
+      {
+        "id": 172,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "faress-school",
+        "parentId": 233
+      }
+    ]
+  },
+  {
+    "id": 128,
+    "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+    "domain": "Languages",
+    "schoolId": "faress-school",
+    "parentId": 232,
+    "components": []
+  },
+  {
+    "id": 234,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "mohameds-school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 129,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 234
+      },
+      {
+        "id": 130,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 234
+      },
+      {
+        "id": 131,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 234
+      },
+      {
+        "id": 132,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 234
+      }
+    ]
+  },
+  {
+    "id": 235,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "mohameds-school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 173,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 235
+      },
+      {
+        "id": 174,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 235
+      },
+      {
+        "id": 175,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 235
+      },
+      {
+        "id": 176,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "mohameds-school",
+        "parentId": 235
+      }
+    ]
+  },
+  {
+    "id": 236,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": null,
+    "components": [
+      {
+        "id": 137,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 236
+      },
+      {
+        "id": 138,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 236
+      },
+      {
+        "id": 139,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 236
+      },
+      {
+        "id": 140,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 236
+      }
+    ]
+  },
+  {
+    "id": 237,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "bringbringa138gmailcom",
+    "parentId": null,
+    "components": [
+      {
+        "id": 177,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 237
+      },
+      {
+        "id": 178,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 237
+      },
+      {
+        "id": 179,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 237
+      },
+      {
+        "id": 180,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "bringbringa138gmailcom",
+        "parentId": 237
+      }
+    ]
+  },
+  {
+    "id": 238,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 141,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 238
+      },
+      {
+        "id": 142,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 238
+      },
+      {
+        "id": 143,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 238
+      },
+      {
+        "id": 144,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 238
+      }
+    ]
+  },
+  {
+    "id": 239,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "rayens-school",
+    "parentId": null,
+    "components": [
+      {
+        "id": 181,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 239
+      },
+      {
+        "id": 183,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 239
+      },
+      {
+        "id": 184,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 239
+      },
+      {
+        "id": 182,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "rayens-school",
+        "parentId": 239
+      }
+    ]
+  },
+  {
+    "id": 182,
+    "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+    "domain": "Languages",
+    "schoolId": "rayens-school",
+    "parentId": 239,
+    "components": []
+  },
+  {
+    "id": 240,
+    "name": "اللغة العربية | Langue Arabe | Arabic Language",
+    "domain": "Arabic Language Domain",
+    "schoolId": "leaders",
+    "parentId": null,
+    "components": [
+      {
+        "id": 145,
+        "name": "التواصل الشفوي | Communication Orale | Oral Communication",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 240
+      },
+      {
+        "id": 146,
+        "name": "الخط | Écriture | Handwriting",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 240
+      },
+      {
+        "id": 147,
+        "name": "القراءة | Lecture | Reading",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 240
+      },
+      {
+        "id": 148,
+        "name": "الإنتاج الكتابي | Production Écrite | Written Production",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 240
+      }
+    ]
+  },
+  {
+    "id": 241,
+    "name": "اللغة الفرنسية | Langue Française | French Language",
+    "domain": "Foreign Languages Domain",
+    "schoolId": "leaders",
+    "parentId": null,
+    "components": [
+      {
+        "id": 185,
+        "name": "قواعد اللغة | Grammaire | Grammar",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 241
+      },
+      {
+        "id": 186,
+        "name": "التعبير الشفوي (فرنسية) | Expression Orale | French Oral Expression",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 241
+      },
+      {
+        "id": 187,
+        "name": "القراءة (فرنسية) | Lecture (Français) | French Reading",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 241
+      },
+      {
+        "id": 188,
+        "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+        "domain": "Languages",
+        "schoolId": "leaders",
+        "parentId": 241
+      }
+    ]
+  },
+  {
+    "id": 192,
+    "name": "الإنتاج الكتابي (فرنسية) | Production Écrite (Français) | French Written Production",
+    "domain": "Languages",
+    "schoolId": "bringbringa138gmailcom-1",
+    "parentId": 94,
+    "components": []
+  }
+]
