@@ -13,15 +13,16 @@ export interface LevelConfig {
 }
 
 export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
+  // ── Level 1: 1ère année (No French, No English) ──
   1: {
     domains: [
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
           { search: "الخط", display: "الخط" },
-          { search: "القراءة |", display: "القراءة" },
-          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -43,15 +44,16 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       }
     ]
   },
+  // ── Level 2: 2ème année (No French, No English) ──
   2: {
     domains: [
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
           { search: "الخط", display: "الخط" },
-          { search: "القراءة |", display: "القراءة" },
-          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -73,15 +75,16 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       }
     ]
   },
+  // ── Level 3: 3ème année (French starts, Grammar replaces Handwriting) ──
   3: {
     domains: [
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
-          { search: "Grammaire", display: "قواعد اللغة" },
-          { search: "القراءة |", display: "القراءة" },
-          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -95,9 +98,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "اللغة الفرنسية",
         subjects: [
-          { search: "French Oral Expression", display: "Exp. Orale" },
-          { search: "French Written Production", display: "Pro. Ecrite" },
-          { search: "French Reading", display: "Lecture" },
+          { search: "التعبير الشفوي", display: "Exp. Orale" },
+          { search: "الإنتاج الكتابي (فرنسية)", display: "Pro. Ecrite" },
+          { search: "القراءة (فرنسية)", display: "Lecture" },
         ],
       },
       {
@@ -111,15 +114,16 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       }
     ]
   },
+  // ── Level 4: 4ème année (French continues) ──
   4: {
     domains: [
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
-          { search: "Grammaire", display: "قواعد اللغة" },
-          { search: "القراءة |", display: "القراءة" },
-          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -133,9 +137,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "اللغة الفرنسية",
         subjects: [
-          { search: "French Oral Expression", display: "Exp. Orale" },
-          { search: "French Written Production", display: "Pro. Ecrite" },
-          { search: "French Reading", display: "Lecture" },
+          { search: "التعبير الشفوي", display: "Exp. Orale" },
+          { search: "الإنتاج الكتابي (فرنسية)", display: "Pro. Ecrite" },
+          { search: "القراءة (فرنسية)", display: "Lecture" },
         ],
       },
       {
@@ -149,15 +153,16 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       }
     ]
   },
+  // ── Level 5: 5ème année (French + History/Geography/Civics added) ──
   5: {
     domains: [
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
-          { search: "Grammaire", display: "قواعد اللغة" },
-          { search: "القراءة |", display: "القراءة" },
-          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -171,9 +176,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       {
         name: "اللغة الفرنسية",
         subjects: [
-          { search: "French Oral Expression", display: "Exp. Orale" },
-          { search: "French Written Production", display: "Pro. Ecrite" },
-          { search: "French Reading", display: "Lecture" },
+          { search: "التعبير الشفوي", display: "Exp. Orale" },
+          { search: "الإنتاج الكتابي (فرنسية)", display: "Pro. Ecrite" },
+          { search: "القراءة (فرنسية)", display: "Lecture" },
         ],
       },
       {
@@ -182,23 +187,24 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
           { search: "التربية الإسلامية", display: "تربية اسلامية" },
           { search: "التربية الموسيقية", display: "تربية موسيقية" },
           { search: "التربية التشكيلية", display: "تربية تشكيلية" },
-          { search: "History", display: "التاريخ" },
-          { search: "Geography", display: "الجغرافيا" },
-          { search: "Civic Education", display: "المدنية" },
+          { search: "التاريخ", display: "التاريخ" },
+          { search: "الجغرافيا", display: "الجغرافيا" },
+          { search: "التربية المدنية", display: "المدنية" },
           { search: "التربية البدنية", display: "تربية بدنية" },
         ],
       }
     ]
   },
+  // ── Level 6: 6ème année (French + English + History/Geography/Civics) ──
   6: {
     domains: [
       {
         name: "مجال العربية",
         subjects: [
-          { search: "التواصل الشفوي |", display: "تواصل شفوي" },
-          { search: "Grammaire", display: "قواعد اللغة" },
-          { search: "القراءة |", display: "القراءة" },
-          { search: "الإنتاج الكتابي |", display: "الانتاج الكتابي" },
+          { search: "التواصل الشفوي", display: "تواصل شفوي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "القراءة", display: "القراءة" },
+          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
         ],
       },
       {
@@ -210,12 +216,12 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
         ],
       },
       {
-        name: "اللغات الاجنية",
+        name: "اللغات الاجنبية",
         subjects: [
-          { search: "French Oral Expression", display: "Exp. Orale" },
-          { search: "French Written Production", display: "Pro. Ecrite" },
-          { search: "French Reading", display: "Lecture" },
-          { search: "English", display: "Anglais" },
+          { search: "التعبير الشفوي", display: "Exp. Orale" },
+          { search: "الإنتاج الكتابي (فرنسية)", display: "Pro. Ecrite" },
+          { search: "القراءة (فرنسية)", display: "Lecture" },
+          { search: "Anglais", display: "Anglais" },
         ],
       },
       {
@@ -224,9 +230,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
           { search: "التربية الإسلامية", display: "تربية اسلامية" },
           { search: "التربية الموسيقية", display: "تربية موسيقية" },
           { search: "التربية التشكيلية", display: "تربية تشكيلية" },
-          { search: "History", display: "التاريخ" },
-          { search: "Geography", display: "الجغرافيا" },
-          { search: "Civic Education", display: "المدنية" },
+          { search: "التاريخ", display: "التاريخ" },
+          { search: "الجغرافيا", display: "الجغرافيا" },
+          { search: "التربية المدنية", display: "المدنية" },
           { search: "التربية البدنية", display: "تربية بدنية" },
         ],
       }

@@ -59,59 +59,32 @@ export default async function GradesPage({
     );
   }
 
-  // Helper to normalize domain name for standard Tunisian primary school reports
-  const normalizeSubjectDomain = (domain: string, subjectName: string): string => {
-    const n = subjectName.toLowerCase();
-    if (
-      n.includes("عربية") || n.includes("arabe") || n.includes("arabic") ||
-      n.includes("تواصل") || n.includes("شفوي") || n.includes("خط") ||
-      n.includes("قراءة") || n.includes("إنتاج") || n.includes("انتاج") ||
-      n.includes("قواعد") || n.includes("املاء") || n.includes("إملاء")
-    ) {
-      if (n.includes("فرنسية") || n.includes("french") || n.includes("français")) {
-        return "اللغة الفرنسية";
-      }
-      return "مجال العربية";
-    }
-    if (
-      n.includes("فرنسية") || n.includes("french") || n.includes("français") ||
-      n.includes("lecture") || n.includes("ecrite") || n.includes("orale") ||
-      n.includes("orthographe") || n.includes("grammaire")
-    ) {
-      return "اللغة الفرنسية";
-    }
-    if (n.includes("anglais") || n.includes("english") || n.includes("إنجليزية") || n.includes("انجليزية")) {
-      return "اللغات الأجنبية";
-    }
-    if (
-      n.includes("رياضيات") || n.includes("math") ||
-      n.includes("إيقاظ") || n.includes("ايقاظ") || n.includes("science") ||
-      n.includes("تكنولوج") || n.includes("techno")
-    ) {
-      return "مجال العلوم";
-    }
-    if (
-      n.includes("إسلام") || n.includes("اسلام") || n.includes("islam") ||
-      n.includes("مدنية") || n.includes("civic") ||
-      n.includes("تاريخ") || n.includes("history") ||
-      n.includes("جغرافيا") || n.includes("geography") ||
-      n.includes("موسيق") || n.includes("music") ||
-      n.includes("تشكيل") || n.includes("art") ||
-      n.includes("بدني") || n.includes("sport") || n.includes("physique")
-    ) {
-      return "مجال التنشئة";
-    }
-    if (domain === "Languages") return "مجال العربية";
-    if (domain === "Sciences") return "مجال العلوم";
-    if (domain === "Religion & Values" || domain === "Humanities" || domain === "Arts & Technology" || domain === "Sport") return "مجال التنشئة";
-    return domain || "General";
-  };
+  // Determine Level Config for the selected class
+  const selectedClass = classes.find((c: any) => c.id === classId);
+  const levelNum = selectedClass?.level?.level;
+  const levelConfig = levelNum ? LEVEL_CONFIGS[levelNum] : undefined;
 
-  // Ensure ALL database subjects are preserved with proper domains
-  const subjects = rawSubjects.map((s: any) => ({
-    ...s,
-    domain: normalizeSubjectDomain(s.domain || "", s.name || ""),
-  }));
+  let subjects: any[] = [];
+
+  if (levelConfig) {
+    levelConfig.domains.forEach((domainConfig: any) => {
+      domainConfig.subjects.forEach((sub: any) => {
+        const searchTerm = sub.search.trim().toLowerCase();
+        const dbSubject = rawSubjects.find((s: any) =>
+          s.name.toLowerCase().includes(searchTerm)
+        );
+        if (dbSubject) {
+          subjects.push({
+            ...dbSubject,
+            domain: domainConfig.name,
+            name: sub.display || dbSubject.name,
+          });
+        }
+      });
+    });
+  } else {
+    subjects = rawSubjects;
+  }
 
   // Calculate class completion for the filter bar
   const gradeableCount = subjects.filter((s: any) => !s.parentId).length;
