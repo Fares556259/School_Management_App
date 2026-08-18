@@ -81,32 +81,121 @@ const AuditPage = async ({
     120
   );
 
-  // Resolve Clerk IDs
-  const uniqueIds = Array.from(new Set(logs.map((l) => l.performedBy).filter((id) => id !== "unknown")));
+  // Resolve Performer IDs to Human-Readable Names and Roles
+  const uniqueIds = Array.from(new Set(logs.map((l) => l.performedBy).filter((id) => id && id !== "unknown")));
   const performerMap: Record<string, any> = {};
-  
+
+  performerMap["system"] = {
+    name: "Système",
+    email: "Automatique",
+    role: "Système",
+    avatar: null,
+  };
+
   if (uniqueIds.length > 0) {
     try {
-      
-      await Promise.all(
-        uniqueIds.map(async (uid) => {
-          try {
-            const adminUser = (await supabaseAdmin.auth.admin.getUserById(uid)).data.user;
-            if (!adminUser) throw new Error("Not found");
-            const meta = adminUser.user_metadata || {};
+      // 1. Check Prisma tables for matching profiles
+      const [dbAdmins, dbTeachers, dbParents, dbStaff] = await Promise.all([
+        prisma.admin.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true, surname: true, username: true, email: true, img: true },
+        }),
+        prisma.teacher.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true, surname: true, username: true, phone: true, img: true },
+        }),
+        prisma.parent.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true, surname: true, username: true, phone: true, img: true },
+        }),
+        prisma.staff.findMany({
+          where: { id: { in: uniqueIds } },
+          select: { id: true, name: true, surname: true, username: true, role: true, img: true },
+        }),
+      ]);
+
+      dbAdmins.forEach((a) => {
+        const fullName = [a.name, a.surname].filter(Boolean).join(" ").trim();
+        performerMap[a.id] = {
+          name: fullName || a.username || (a.email ? a.email.split("@")[0] : "Administrateur"),
+          email: a.email || "Administrateur",
+          role: "Administrateur",
+          avatar: a.img || null,
+        };
+      });
+
+      dbTeachers.forEach((t) => {
+        const fullName = [t.name, t.surname].filter(Boolean).join(" ").trim();
+        performerMap[t.id] = {
+          name: fullName || t.username || "Enseignant",
+          email: t.phone || "Enseignant",
+          role: "Enseignant",
+          avatar: t.img || null,
+        };
+      });
+
+      dbParents.forEach((p) => {
+        const fullName = [p.name, p.surname].filter(Boolean).join(" ").trim();
+        performerMap[p.id] = {
+          name: fullName || p.username || "Parent",
+          email: p.phone || "Parent",
+          role: "Parent",
+          avatar: p.img || null,
+        };
+      });
+
+      dbStaff.forEach((s) => {
+        const fullName = [s.name, s.surname].filter(Boolean).join(" ").trim();
+        performerMap[s.id] = {
+          name: fullName || s.username || "Personnel",
+          email: s.role || "Personnel",
+          role: s.role || "Personnel",
+          avatar: s.img || null,
+        };
+      });
+
+      // 2. Query Supabase Auth Admin for remaining unresolved IDs
+      const unresolvedIds = uniqueIds.filter((uid) => !performerMap[uid] && uid !== "system");
+
+      if (unresolvedIds.length > 0) {
+        await Promise.all(
+          unresolvedIds.map(async (uid) => {
+            try {
+              const res = await supabaseAdmin.auth.admin.getUserById(uid);
+              const user = res.data?.user;
+              if (user) {
+                const meta = user.user_metadata || {};
+                const nameFromMeta =
+                  [meta.firstName, meta.lastName].filter(Boolean).join(" ").trim() ||
+                  meta.name ||
+                  meta.full_name ||
+                  meta.username;
+                const email = user.email || "";
+                const nameFromEmail = email ? email.split("@")[0] : null;
+
+                performerMap[uid] = {
+                  name: nameFromMeta || nameFromEmail || "Administrateur",
+                  email: email || "Administrateur",
+                  avatar: meta.imageUrl || meta.avatar_url || null,
+                  role: (meta.role as string) || "Administrateur",
+                };
+                return;
+              }
+            } catch (err) {
+              // Ignore single resolution failure
+            }
+
             performerMap[uid] = {
-              name: [meta.firstName, meta.lastName].filter(Boolean).join(" ") || meta.username || uid,
-              email: adminUser.email || "No email",
-              avatar: meta.imageUrl || null,
-              role: (meta.role as string) || "User",
+              name: "Administrateur",
+              email: "Admin",
+              role: "Administrateur",
+              avatar: null,
             };
-          } catch {
-            performerMap[uid] = { name: uid, role: "System" };
-          }
-        })
-      );
+          })
+        );
+      }
     } catch (e) {
-      console.error("Clerk resolution error:", e);
+      console.error("Performer resolution error:", e);
     }
   }
 

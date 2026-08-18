@@ -163,25 +163,38 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
         })()}
       </td>
       <td className="p-4 hidden md:table-cell">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs uppercase shrink-0 overflow-hidden shadow-xs">
-            {performerMap[item.performedBy]?.avatar ? (
-              <img src={performerMap[item.performedBy].avatar} alt="" className="object-cover w-full h-full" />
-            ) : (
-              (performerMap[item.performedBy]?.name || item.performedBy || "U").charAt(0).toUpperCase()
-            )}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-slate-700 text-xs truncate group-hover:text-slate-900 transition-colors">
-              {performerMap[item.performedBy]?.name || item.performedBy}
-            </span>
-            {performerMap[item.performedBy]?.role && (
-              <span className="text-[10px] text-slate-400 font-medium capitalize truncate">
-                {performerMap[item.performedBy].role}
-              </span>
-            )}
-          </div>
-        </div>
+        {(() => {
+          const performer = performerMap[item.performedBy];
+          const rawName = performer?.name || item.performedBy;
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawName);
+          const displayName = isUUID
+            ? (performer?.role === "Parent" ? "Parent" : performer?.role === "Enseignant" ? "Enseignant" : "Administrateur")
+            : (rawName === "system" ? "Système" : rawName);
+          const displayRole = performer?.role || (item.performedBy === "system" ? "Système" : "Administrateur");
+          const avatarLetter = (displayName || "A").charAt(0).toUpperCase();
+
+          return (
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs uppercase shrink-0 overflow-hidden shadow-2xs">
+                {performer?.avatar ? (
+                  <img src={performer.avatar} alt="" className="object-cover w-full h-full" />
+                ) : (
+                  avatarLetter
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-semibold text-slate-800 text-xs truncate group-hover:text-blue-600 transition-colors">
+                  {displayName}
+                </span>
+                {displayRole && (
+                  <span className="text-[10px] text-slate-400 font-medium capitalize truncate">
+                    {displayRole}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </td>
       <td className="p-4 hidden md:table-cell">
         <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 border border-slate-200 text-slate-600 px-2.5 py-1 rounded-md">

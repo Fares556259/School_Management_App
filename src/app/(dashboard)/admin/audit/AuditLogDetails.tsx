@@ -298,11 +298,23 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800 leading-none truncate">{performer?.name || log.performedBy}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">{performer?.email || log.performedBy}</p>
+                    <p className="text-sm font-bold text-slate-800 leading-none truncate">
+                      {(() => {
+                        const raw = performer?.name || log.performedBy;
+                        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+                          return performer?.role || "Administrateur";
+                        }
+                        return raw === "system" ? "Système" : raw;
+                      })()}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                      {performer?.email && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(performer.email)
+                        ? performer.email
+                        : (performer?.role || "Administrateur")}
+                    </p>
                   </div>
                   {performer?.role && (
-                    <span className="ml-auto flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-black bg-slate-900 text-white uppercase">
+                    <span className="ml-auto flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase">
                       {performer.role}
                     </span>
                   )}
