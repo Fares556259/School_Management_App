@@ -316,7 +316,10 @@ export const en = {
     weeklyDesc: "Draft class lesson hours, assign teacher hours, prevent room double-bookings, and optimize subject distributions.",
     exam: "Exam Calendars",
     examDesc: "Schedule test blocks, midterms, and final exam grids safely in drafts before publishing them. Build balanced assessment periods.",
-    enter: "Enter Workspace"
+    enter: "Enter Workspace",
+    lockedTitle: "Locked for Now",
+    lockedSubtitle: "This feature is currently locked and will be available in the app soon.",
+    comingSoon: "Coming Soon"
   },
   classes: {
     pageTitle: "Classes",

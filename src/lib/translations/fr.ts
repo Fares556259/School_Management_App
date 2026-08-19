@@ -316,7 +316,10 @@ export const fr = {
     weeklyDesc: "Planifiez les heures de cours, affectez les heures des enseignants, évitez les doubles réservations de salles et optimisez la répartition des matières.",
     exam: "Calendriers d'Examens",
     examDesc: "Planifiez les blocs de tests, les examens de mi-session et finaux en toute sécurité dans des brouillons avant de les publier. Créez des périodes d'évaluation équilibrées.",
-    enter: "Entrer dans l'Espace"
+    enter: "Entrer dans l'Espace",
+    lockedTitle: "Verrouillé pour le moment",
+    lockedSubtitle: "Cette fonctionnalité est actuellement verrouillée et sera bientôt disponible dans l'application.",
+    comingSoon: "Bientôt disponible"
   },
   classes: {
     pageTitle: "Classes",
