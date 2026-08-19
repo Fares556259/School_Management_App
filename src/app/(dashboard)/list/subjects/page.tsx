@@ -27,11 +27,14 @@ function parseSubjectName(name: string) {
   return { arabic: null, french: null, english: parts[0] };
 }
 
+import { redirect } from "next/navigation";
+
 const SubjectListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
+  redirect("/admin");
   const supabase = createClient();
   await supabase.auth.getUser();
   const role = await getRole();
