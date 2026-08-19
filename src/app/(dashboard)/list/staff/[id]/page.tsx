@@ -62,7 +62,7 @@ const SingleStaffPage = async ({
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/date.png" alt="" width={14} height={14} />
-                  <span>{new Intl.DateTimeFormat("en-GB").format(staff.birthday)}</span>
+                  <span>{new Intl.DateTimeFormat("en-GB").format(new Date(staff.birthday))}</span>
                 </div>
 
                 {staff.phone && (
@@ -158,7 +158,7 @@ const SingleStaffPage = async ({
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Joined:</span>
-              <span className="font-medium">{staff.createdAt.toLocaleDateString("en-GB")}</span>
+              <span className="font-medium">{new Date(staff.createdAt).toLocaleDateString("en-GB")}</span>
             </div>
           </div>
         </div>

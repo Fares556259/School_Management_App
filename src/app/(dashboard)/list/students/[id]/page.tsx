@@ -93,7 +93,7 @@ const SingleStudentPage = async ({
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
                   <Image src="/date.png" alt="" width={14} height={14} />
                   <span>
-                    {new Intl.DateTimeFormat("en-GB").format(student.birthday)}
+                    {new Intl.DateTimeFormat("en-GB").format(new Date(student.birthday))}
                   </span>
                 </div>
                 <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">

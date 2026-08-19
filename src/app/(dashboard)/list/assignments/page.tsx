@@ -100,7 +100,7 @@ const AssignmentListPage = async ({
         {item.lesson.teacher?.name + " " + item.lesson.teacher?.surname}
       </td>
       <td className="hidden md:table-cell py-4 px-6">
-        {new Intl.DateTimeFormat("en-GB").format(item.startDate)}
+        {new Intl.DateTimeFormat("en-GB").format(new Date(item.startDate))}
       </td>
       <td className="py-4 px-6">
         <div className="flex items-center justify-end gap-3">

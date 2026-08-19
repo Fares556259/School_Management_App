@@ -142,7 +142,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
                     </div>
                   </td>
                   <td className="px-4 py-4 text-[12px] font-medium text-[#5a5a5a] hidden sm:table-cell">
-                    {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.date)}
+                    {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(item.date))}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">

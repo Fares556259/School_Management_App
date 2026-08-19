@@ -116,7 +116,7 @@ const ResourceListPage = async ({
         {item.lesson.teacher?.name + " " + item.lesson.teacher?.surname}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(item.createdAt)}
+        {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(item.createdAt))}
       </td>
       <td>
         <div className="flex items-center gap-2">

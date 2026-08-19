@@ -57,14 +57,20 @@ const getMentionColor = (avg: number | null): string => {
   return "text-rose-600 font-bold";
 };
 
-export default function GradeEntryForm({
-  students, subjects, term, classId,
-}: {
-  students: Student[];
-  subjects: Subject[];
+import SubjectProofsGrid from "@/components/SubjectProofsGrid";
+import GradeDetailsModal from "@/components/GradeDetailsModal";
+
+interface Props {
+  students: any[];
+  subjects: any[];
   term: number;
   classId: number;
-}) {
+  sheets?: any[];
+}
+
+export default function GradeEntryForm({
+  students, subjects, term, classId, sheets = [],
+}: Props) {
   const [viewMode, setViewMode] = useState<"table" | "student">("table");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(students[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -93,15 +99,16 @@ export default function GradeEntryForm({
 
   const [localGrades, setLocalGrades] = useState<Record<string, Record<number, number>>>(() => {
     const initial: Record<string, Record<number, number>> = {};
-    students.forEach(s => {
+    students.forEach((s: any) => {
       initial[s.id] = {};
-      s.grades.forEach(g => { initial[s.id][g.subjectId] = g.score; });
+      s.grades?.forEach((g: any) => { initial[s.id][g.subjectId] = g.score; });
     });
     return initial;
   });
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [isDirty, setIsDirty] = useState(false);
+  const [detailsModalData, setDetailsModalData] = useState<any>(null);
   const { t } = useLanguage();
 
   // 2D Ref grid for keyboard spreadsheet navigation: gridRefs[studentIdx][subjectIdx]
@@ -636,6 +643,24 @@ export default function GradeEntryForm({
               </tfoot>
             </table>
           </div>
+
+          {/* ─── PROOFS OF GRADES SECTION ─── */}
+          <div className="mt-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="mb-6 flex flex-col gap-1">
+              <h3 className="text-lg font-bold text-slate-800">Preuves d&apos;évaluation</h3>
+              <p className="text-sm text-slate-500">Aperçu des feuilles de notes jointes par les enseignants ou scannées.</p>
+            </div>
+            <SubjectProofsGrid 
+              displayItems={gradeableSubjects.map(subj => {
+                const matchingSheet = sheets.find(s => String(s.classId) === String(classId) && s.subjectId === subj.id && String(s.term) === String(term));
+                return matchingSheet
+                  ? { type: 'existing', data: matchingSheet, subject: subj, class: { id: classId, name: "", _count: { students: students.length } }, term }
+                  : { type: 'placeholder', data: null, subject: subj, class: { id: classId, name: "", _count: { students: students.length } }, term };
+              })} 
+              readonly={false}
+              setDetailsModalData={setDetailsModalData}
+            />
+          </div>
         </div>
       ) : (
         /* ─── SINGLE STUDENT FOCUS VIEW (PAR ÉLÈVE) ─── */
@@ -838,6 +863,22 @@ export default function GradeEntryForm({
             ) : null}
           </div>
         </div>
+      )}
+
+      {/* ─── GRADE DETAILS MODAL ─── */}
+      {detailsModalData && (
+        <GradeDetailsModal
+          isOpen={detailsModalData.isOpen}
+          onClose={() => setDetailsModalData(null)}
+          classId={detailsModalData.classId}
+          subjectId={detailsModalData.subjectId}
+          term={detailsModalData.term}
+          subjectName={detailsModalData.subjectName}
+          className={detailsModalData.className}
+          teacherName={detailsModalData.teacherName}
+          students={students.filter((s: any) => s.classId === detailsModalData.classId)}
+          sheet={detailsModalData.sheet}
+        />
       )}
     </div>
   );

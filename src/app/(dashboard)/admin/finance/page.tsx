@@ -137,13 +137,13 @@ const FinancePage = async ({
     Title: i.title,
     Amount: i.amount,
     Category: i.category,
-    Date: i.date.toLocaleDateString(),
+    Date: new Date(i.date).toLocaleDateString(),
   }));
   const expenseRows = filteredExpenses.map((e) => ({
     Title: e.title,
     Amount: e.amount,
     Category: e.category,
-    Date: e.date.toLocaleDateString(),
+    Date: new Date(e.date).toLocaleDateString(),
   }));
 
   return (
@@ -241,7 +241,7 @@ const FinancePage = async ({
                   <div key={e.id} className="flex justify-between items-center border-b border-slate-50 pb-3">
                     <div>
                       <p className="font-medium text-slate-700 text-sm">{e.title}</p>
-                      <p className="text-xs text-slate-400">{e.category} · {e.date.toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-400">{e.category} · {new Date(e.date).toLocaleDateString()}</p>
                     </div>
                     <span className="text-rose-500 font-bold text-sm bg-rose-50 px-2 py-1 rounded-full">
                       -${e.amount.toLocaleString()}
@@ -272,7 +272,7 @@ const FinancePage = async ({
                   <div key={i.id} className="flex justify-between items-center border-b border-slate-50 pb-3">
                     <div>
                       <p className="font-medium text-slate-700 text-sm">{i.title}</p>
-                      <p className="text-xs text-slate-400">{i.category} · {i.date.toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-400">{i.category} · {new Date(i.date).toLocaleDateString()}</p>
                     </div>
                     <span className="text-emerald-500 font-bold text-sm bg-emerald-50 px-2 py-1 rounded-full">
                       +${i.amount.toLocaleString()}
