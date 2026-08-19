@@ -38,25 +38,25 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" }
     });
 
-    const slots: any[] = await prisma.timetableSlot.findMany({
-      where: { classId: parseInt(classId), teacherId: teacherId || undefined, isDraft: false },
-      include: { subject: true }
-    });
+    const [slots, teacherSubjects] = await Promise.all([
+      prisma.timetableSlot.findMany({
+        where: { classId: parseInt(classId), teacherId: teacherId || undefined, isDraft: false },
+        include: { subject: true }
+      }),
+      prisma.subject.findMany({
+        where: { teachers: { some: { id: teacherId } } }
+      })
+    ]);
+
     const subjectMap = new Map();
+    teacherSubjects.forEach(s => {
+      subjectMap.set(s.id, { id: s.id, name: s.name });
+    });
     slots.forEach(s => {
       if (s.subject) {
         subjectMap.set(s.subject.id, { id: s.subject.id, name: s.subject.name });
       }
     });
-
-    if (subjectMap.size === 0) {
-      const teacherSubjects = await prisma.subject.findMany({
-        where: { teachers: { some: { id: teacherId } } }
-      });
-      teacherSubjects.forEach(s => {
-        subjectMap.set(s.id, { id: s.id, name: s.name });
-      });
-    }
 
     const classSubjects = Array.from(subjectMap.values());
 
