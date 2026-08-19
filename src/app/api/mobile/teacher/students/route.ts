@@ -86,9 +86,26 @@ export async function GET(request: NextRequest) {
     const activeSlotId = slotIdParam;
 
     if (!teacherTimetableSlots.length) {
+      const classStudents = await prisma.student.findMany({
+        where: { classId: parseInt(classId) },
+        orderBy: { name: "asc" }
+      });
       return NextResponse.json({
-        students: [],
+        students: classStudents.map(s => ({
+          id: s.id,
+          name: s.name,
+          surname: s.surname,
+          img: s.img,
+          attendanceStatus: null,
+          note: "",
+          score: 0
+        })),
+        assignments: [],
+        resources: [],
+        hasLesson: false,
+        lessonId: null,
         sessions: [],
+        activeSlotId: null,
         message: "No sessions found for this class today."
       });
     }
