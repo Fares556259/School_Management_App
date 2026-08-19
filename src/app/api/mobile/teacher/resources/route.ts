@@ -48,6 +48,16 @@ export async function GET(request: NextRequest) {
         subjectMap.set(s.subject.id, { id: s.subject.id, name: s.subject.name });
       }
     });
+
+    if (subjectMap.size === 0) {
+      const teacherSubjects = await prisma.subject.findMany({
+        where: { teachers: { some: { id: teacherId } } }
+      });
+      teacherSubjects.forEach(s => {
+        subjectMap.set(s.id, { id: s.id, name: s.name });
+      });
+    }
+
     const classSubjects = Array.from(subjectMap.values());
 
     const formatted = resources.flatMap(r => {
