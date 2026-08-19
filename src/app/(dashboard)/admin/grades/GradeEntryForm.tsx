@@ -643,24 +643,6 @@ export default function GradeEntryForm({
               </tfoot>
             </table>
           </div>
-
-          {/* ─── PROOFS OF GRADES SECTION ─── */}
-          <div className="mt-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs">
-            <div className="mb-6 flex flex-col gap-1">
-              <h3 className="text-lg font-bold text-slate-800">Preuves d&apos;évaluation</h3>
-              <p className="text-sm text-slate-500">Aperçu des feuilles de notes jointes par les enseignants ou scannées.</p>
-            </div>
-            <SubjectProofsGrid 
-              displayItems={gradeableSubjects.map(subj => {
-                const matchingSheet = sheets.find(s => String(s.classId) === String(classId) && s.subjectId === subj.id && String(s.term) === String(term));
-                return matchingSheet
-                  ? { type: 'existing', data: matchingSheet, subject: subj, class: { id: classId, name: "", _count: { students: students.length } }, term }
-                  : { type: 'placeholder', data: null, subject: subj, class: { id: classId, name: "", _count: { students: students.length } }, term };
-              })} 
-              readonly={false}
-              setDetailsModalData={setDetailsModalData}
-            />
-          </div>
         </div>
       ) : (
         /* ─── SINGLE STUDENT FOCUS VIEW (PAR ÉLÈVE) ─── */
