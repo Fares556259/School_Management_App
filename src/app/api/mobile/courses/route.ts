@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (!student.classId) return NextResponse.json([]);
 
     const subjects = await prisma.subject.findMany({
-      where: { schoolId: student.schoolId },
+      where: { schoolId: student.schoolId, parentId: null },
       include: {
         lessons: {
           where: { classId: student.classId },
@@ -47,20 +47,65 @@ export async function GET(request: NextRequest) {
             teacher: { select: { name: true, surname: true } },
           },
         },
+        components: {
+          include: {
+            lessons: {
+              where: { classId: student.classId },
+              include: {
+                assignments: { orderBy: { dueDate: "desc" } },
+                resources: { orderBy: { createdAt: "desc" } },
+                teacher: { select: { name: true, surname: true } },
+              },
+            },
+          },
+        },
       },
     });
 
     const courseSummary = subjects.map((subject) => {
-      const allTasks = subject.lessons.flatMap((l) =>
-        l.assignments.map((a) => ({ id: a.id, title: a.title, description: a.description, dueDate: a.dueDate, teacher: `${l.teacher?.name} ${l.teacher?.surname}` }))
+      const allLessons = [
+        ...subject.lessons,
+        ...(subject.components ? subject.components.flatMap((c: any) => c.lessons || []) : []),
+      ];
+
+      const allTasks = allLessons.flatMap((l) =>
+        l.assignments.map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          dueDate: a.dueDate,
+          teacher: `${l.teacher?.name || ""} ${l.teacher?.surname || ""}`.trim() || undefined,
+        }))
       );
-      const allResources = subject.lessons.flatMap((l) =>
-        l.resources.flatMap((r) => {
+
+      const allResources = allLessons.flatMap((l) =>
+        l.resources.flatMap((r: any) => {
           const urls = r.url ? r.url.split(",") : [];
-          return urls.map((url, idx) => ({ id: urls.length > 1 ? `${r.id}-${idx}` : r.id, title: urls.length > 1 ? `${r.title} (${idx + 1})` : r.title, description: r.description, url, createdAt: r.createdAt, teacher: `${l.teacher?.name} ${l.teacher?.surname}` }));
+          return urls.map((url: string, idx: number) => ({
+            id: urls.length > 1 ? `${r.id}-${idx}` : r.id,
+            title: urls.length > 1 ? `${r.title} (${idx + 1})` : r.title,
+            description: r.description,
+            url,
+            createdAt: r.createdAt,
+            teacher: `${l.teacher?.name || ""} ${l.teacher?.surname || ""}`.trim() || undefined,
+          }));
         })
       );
-      return { id: subject.id, name: subject.name, teacher: subject.lessons[0]?.teacher ? `${subject.lessons[0].teacher.name} ${subject.lessons[0].teacher.surname}` : "Multiple Teachers", tasksCount: allTasks.length, resourcesCount: allResources.length, tasks: allTasks, resources: allResources };
+
+      const primaryTeacher = allLessons.find((l) => l.teacher)?.teacher;
+      const teacherName = primaryTeacher
+        ? `${primaryTeacher.name} ${primaryTeacher.surname}`
+        : "Multiple Teachers";
+
+      return {
+        id: subject.id,
+        name: subject.name,
+        teacher: teacherName,
+        tasksCount: allTasks.length,
+        resourcesCount: allResources.length,
+        tasks: allTasks,
+        resources: allResources,
+      };
     });
 
     return NextResponse.json(courseSummary);
