@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Lock } from 'lucide-react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface PrintReportActionProps {
@@ -18,13 +18,25 @@ const PrintReportAction: React.FC<PrintReportActionProps> = ({ month }) => {
   };
 
   return (
-    <button 
-      onClick={handlePrint}
-      className="group flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] border border-[#d8d8d8] text-[#080808] rounded-[4px] font-medium hover:bg-[#f9f9f9] transition-all"
-    >
-      <FileText size={16} className="text-[#080808] group-hover:scale-110 transition-transform" />
-      <span className="text-[14px]">{t.adminWidgets.export}</span>
-    </button>
+    <div className="relative inline-block cursor-not-allowed group" title={t.smartInsights?.comingSoon || "Coming Soon"}>
+      <button 
+        disabled
+        className="flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] border border-[#d8d8d8] text-[#080808] rounded-[4px] font-medium filter blur-[1px] opacity-60 pointer-events-none"
+      >
+        <FileText size={16} />
+        <span className="text-[14px]">{t.adminWidgets.export}</span>
+      </button>
+
+      {/* Small Lock Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+         <div className="flex items-center gap-1 px-2 py-0.5 bg-white/90 border border-slate-200 shadow-sm rounded-full">
+           <Lock size={10} className="text-slate-500" />
+           <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">
+             {t.smartInsights?.comingSoon || "Soon"}
+           </span>
+         </div>
+      </div>
+    </div>
   );
 };
 
