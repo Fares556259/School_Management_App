@@ -3,6 +3,8 @@ import { getScenarios } from "../../actions/profitabilityActions";
 import SimulatorInterface from "./SimulatorInterface";
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
+import { getCachedTenantData } from "@/lib/cache";
+import { getSchoolId } from "@/lib/school";
 import SimulatorLockOverlay from "./SimulatorLockOverlay";
 import SimulatorHeader from "./SimulatorHeader";
 
@@ -10,9 +12,10 @@ export default async function ProfitabilitySimulatorPage() {
   const role = await getRole();
   if (role !== "admin") redirect("/");
 
+  const schoolId = await getSchoolId();
   const [baseline, scenariosRes] = await Promise.all([
-    getSimulatorBaseline(),
-    getScenarios(),
+    getCachedTenantData(schoolId, 'finance', ['simulatorBaseline'], () => getSimulatorBaseline(), 3600),
+    getCachedTenantData(schoolId, 'finance', ['scenarios'], () => getScenarios(), 3600),
   ]);
 
   if (!baseline.success) {
