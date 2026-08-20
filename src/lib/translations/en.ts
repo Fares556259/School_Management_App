@@ -936,6 +936,7 @@ export const en = {
     currentSemester: "Current Semester",
     semester1: "Semester 1",
     semester2: "Semester 2",
+    semester3: "Semester 3",
     holidaysClosures: "Holidays & Closures",
     addHoliday: "Add Holiday",
     eventName: "Event Name",

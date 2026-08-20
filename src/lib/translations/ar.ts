@@ -936,6 +936,7 @@ export const ar = {
     currentSemester: "الفصل الدراسي الحالي",
     semester1: "الفصل الدراسي 1",
     semester2: "الفصل الدراسي 2",
+    semester3: "الفصل الدراسي 3",
     holidaysClosures: "العطلات والإغلاقات",
     addHoliday: "إضافة عطلة",
     eventName: "اسم الحدث",

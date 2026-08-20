@@ -22,6 +22,8 @@ const getSchoolConfig = cache(async () => {
     schoolName: school?.Institution?.schoolName,
     schoolLogo: school?.Institution?.schoolLogo,
     status: school?.status,
+    academicYear: school?.Institution?.academicYear,
+    currentSemester: school?.Institution?.currentSemester,
   };
 });
 
@@ -81,7 +83,7 @@ export default async function DashboardLayout({
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-          <Menu role={role!} adminData={adminProfile} />
+          <Menu role={role!} adminData={adminProfile} schoolConfig={schoolConfig} />
         </div>
       </aside>
       {/* RIGHT MAIN CONTENT */}

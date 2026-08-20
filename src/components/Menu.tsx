@@ -151,26 +151,15 @@ const menuItems: MenuSection[] = [
   },
 ];
 
-const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
+const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: any, schoolConfig?: any }) => {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
 
-  const today = new Date();
-  const currentMonth = today.getMonth(); // 0 = Jan, 7 = Aug
-  let academicYear = "";
-  if (currentMonth >= 7) {
-    academicYear = `${today.getFullYear()}–${today.getFullYear() + 1}`;
-  } else {
-    academicYear = `${today.getFullYear() - 1}–${today.getFullYear()}`;
-  }
-
-  let currentTerm = 1;
-  if (currentMonth >= 0 && currentMonth <= 2) currentTerm = 2; // Jan-Mar
-  else if (currentMonth >= 3 && currentMonth <= 5) currentTerm = 3; // Apr-Jun
-  else currentTerm = 1; // Jul-Dec
+  const academicYear = schoolConfig?.academicYear || "2024-2025";
+  const currentTerm = schoolConfig?.currentSemester || 1;
 
   const getBadgeTranslations = () => {
     switch(locale) {

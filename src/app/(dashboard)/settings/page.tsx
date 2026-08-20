@@ -691,6 +691,7 @@ const SettingsPage = () => {
                  >
                     <option value={1}>{t.systemSettings?.semester1 || "Semester 1"}</option>
                     <option value={2}>{t.systemSettings?.semester2 || "Semester 2"}</option>
+                    <option value={3}>{t.systemSettings?.semester3 || "Semester 3"}</option>
                  </select>
                </div>
             </div>
