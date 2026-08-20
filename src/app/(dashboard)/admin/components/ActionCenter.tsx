@@ -1,7 +1,7 @@
 "use client";
 import QuickPayButton from '../finance/QuickPayButton';
 import Link from 'next/link';
-import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wallet, Download, MessageSquare, Clock } from 'lucide-react';
+import { User, Calendar, ExternalLink, CheckCircle2, ArrowRight, HandCoins, Wallet, Download, MessageSquare, Clock, Lock, Sparkles } from 'lucide-react';
 import { downloadCSV } from '@/lib/csvExport';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
@@ -244,48 +244,73 @@ const ActionCenter = ({ unpaidEmployees = [], unpaidFees = [], monthLabel, engli
 
   // 2. Render
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Summary Totals */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
-        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-[4px] h-full bg-rose-500 rounded-l-[8px]" />
-          <div className="flex items-center gap-2 text-rose-600">
-             <Wallet size={16} />
-             <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.unpaidEmployees}</p>
+    <div className="relative flex flex-col gap-6 w-full">
+      {/* Blurred Content */}
+      <div className="flex flex-col gap-6 w-full filter blur-[2px] opacity-80 pointer-events-none select-none">
+        {/* Summary Totals */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
+          <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-[4px] h-full bg-rose-500 rounded-l-[8px]" />
+            <div className="flex items-center gap-2 text-rose-600">
+               <Wallet size={16} />
+               <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.unpaidEmployees}</p>
+            </div>
+            <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{`\u202A${calculatedUnpaidEmployeesTotal.toLocaleString()} DT\u202C`}</h2>
           </div>
-          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{`\u202A${calculatedUnpaidEmployeesTotal.toLocaleString()} DT\u202C`}</h2>
+
+          <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-[4px] h-full bg-emerald-500 rounded-l-[8px]" />
+            <div className="flex items-center gap-2 text-emerald-600">
+               <HandCoins size={16} />
+               <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.uncollectedFees}</p>
+            </div>
+            <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{`\u202A${calculatedUncollectedFeesTotal.toLocaleString()} DT\u202C`}</h2>
+          </div>
         </div>
 
-        <div className="bg-[#ffffff] rounded-[8px] p-6 border border-[#dddddd] shadow-sm flex flex-col gap-2 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-[4px] h-full bg-emerald-500 rounded-l-[8px]" />
-          <div className="flex items-center gap-2 text-emerald-600">
-             <HandCoins size={16} />
-             <p className="text-[14px] font-medium capitalize tracking-wide text-[#41454d]">{t.actionCenter.uncollectedFees}</p>
-          </div>
-          <h2 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{`\u202A${calculatedUncollectedFeesTotal.toLocaleString()} DT\u202C`}</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <ActionList 
+          title={t.actionCenter.unpaidEmployees} 
+          items={unpaidEmployees} 
+          color="bg-indigo-500/5 text-indigo-600" 
+          ctaLabel={t.actionCenter.processSalaries} 
+          ctaIcon={HandCoins}
+          monthLabel={monthLabel}
+          englishMonthYear={englishMonthYear}
+        />
+        <ActionList 
+          title={t.actionCenter.uncollectedFees} 
+          items={unpaidFees} 
+          color="bg-amber-500/5 text-amber-600" 
+          ctaLabel={t.actionCenter.collectPayments} 
+          ctaIcon={Calendar}
+          showSmsAction={true}
+          monthLabel={monthLabel}
+          englishMonthYear={englishMonthYear}
+        />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-      <ActionList 
-        title={t.actionCenter.unpaidEmployees} 
-        items={unpaidEmployees} 
-        color="bg-indigo-500/5 text-indigo-600" 
-        ctaLabel={t.actionCenter.processSalaries} 
-        ctaIcon={HandCoins}
-        monthLabel={monthLabel}
-        englishMonthYear={englishMonthYear}
-      />
-      <ActionList 
-        title={t.actionCenter.uncollectedFees} 
-        items={unpaidFees} 
-        color="bg-amber-500/5 text-amber-600" 
-        ctaLabel={t.actionCenter.collectPayments} 
-        ctaIcon={Calendar}
-        showSmsAction={true}
-        monthLabel={monthLabel}
-        englishMonthYear={englishMonthYear}
-      />
+      {/* Lock Overlay */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-slate-900/5 rounded-xl">
+        <div className="bg-white/95 border border-slate-200/80 shadow-lg rounded-2xl p-5 md:p-6 max-w-sm w-full text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3 shadow-sm">
+            <Lock size={20} className="stroke-[2.2px]" />
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider mb-2 border border-blue-100/60">
+            <Sparkles size={11} />
+            {t.smartInsights.comingSoon}
+          </div>
+
+          <h3 className="text-base font-extrabold text-slate-900 mb-1 tracking-tight">
+            {t.smartInsights.lockedTitle}
+          </h3>
+
+          <p className="text-slate-500 text-xs leading-relaxed max-w-xs">
+            {t.smartInsights.lockedSubtitle}
+          </p>
+        </div>
       </div>
     </div>
   );
