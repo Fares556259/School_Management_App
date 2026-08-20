@@ -10,7 +10,7 @@ const QuickAction = ({ icon: Icon, label, variant, href }: { icon: any, label: s
     primary: "bg-[#080808] hover:bg-[#222222] text-[#ffffff] border-transparent",
     secondary: "bg-[#ffffff] hover:bg-[#f9f9f9] text-[#080808] border-[#d8d8d8]",
     income: "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-sm",
-    expense: "bg-white hover:bg-rose-50 text-rose-600 border-rose-200 shadow-sm"
+    expense: "bg-rose-600 hover:bg-rose-700 text-white border-transparent shadow-sm"
   };
 
   return (
