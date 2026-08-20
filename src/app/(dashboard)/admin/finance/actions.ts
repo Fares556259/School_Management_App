@@ -51,6 +51,9 @@ export const addFinanceEntry = async (formData: FormData) => {
         },
       });
     }
+    const { invalidateTenantTags } = await import("@/lib/cache");
+    invalidateTenantTags(schoolId, "dashboard", "finance", "incomes", "expenses");
+
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
     return { success: true };

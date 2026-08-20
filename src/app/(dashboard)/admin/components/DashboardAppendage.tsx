@@ -67,17 +67,29 @@ export default async function DashboardAppendage({
 
         -- 12 Month Trends
         (SELECT json_agg(t) FROM (
-          SELECT date_trunc('month', date) as month, SUM(amount)::float as total
-          FROM "Income"
-          WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId}
-          GROUP BY 1 ORDER BY 1
+          SELECT month, SUM(total)::float as total FROM (
+            SELECT date_trunc('month', date) as month, amount as total
+            FROM "Income"
+            WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND category != 'Tuition'
+            UNION ALL
+            SELECT date_trunc('month', "paidAt") as month, amount as total
+            FROM "Payment"
+            WHERE "paidAt" >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" = 'STUDENT'
+          ) as all_income
+          GROUP BY month ORDER BY month
         ) t) as income_trend,
 
         (SELECT json_agg(t) FROM (
-          SELECT date_trunc('month', date) as month, SUM(amount)::float as total
-          FROM "Expense"
-          WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId}
-          GROUP BY 1 ORDER BY 1
+          SELECT month, SUM(total)::float as total FROM (
+            SELECT date_trunc('month', date) as month, amount as total
+            FROM "Expense"
+            WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND category != 'Salary'
+            UNION ALL
+            SELECT date_trunc('month', "paidAt") as month, amount as total
+            FROM "Payment"
+            WHERE "paidAt" >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" IN ('TEACHER', 'STAFF')
+          ) as all_expense
+          GROUP BY month ORDER BY month
         ) t) as expense_trend
     `;
     return results[0];
@@ -194,8 +206,18 @@ export default async function DashboardAppendage({
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthName = t.months[d.getMonth()];
-    const inc = (secondaryStats.income_trend || []).find((x: any) => new Date(x.month).getMonth() === d.getMonth() && new Date(x.month).getFullYear() === d.getFullYear())?.total || 0;
-    const exp = (secondaryStats.expense_trend || []).find((x: any) => new Date(x.month).getMonth() === d.getMonth() && new Date(x.month).getFullYear() === d.getFullYear())?.total || 0;
+    
+    const findMatch = (arr: any[]) => arr.find((x: any) => {
+      if (!x.month) return false;
+      const dateStr = typeof x.month === 'string' ? x.month : new Date(x.month).toISOString();
+      const parts = dateStr.split('T')[0].split('-');
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1; // 0-indexed
+      return month === d.getMonth() && year === d.getFullYear();
+    });
+
+    const inc = findMatch(secondaryStats.income_trend || [])?.total || 0;
+    const exp = findMatch(secondaryStats.expense_trend || [])?.total || 0;
     trendData.push({ month: monthName, income: inc, expense: exp });
   }
 

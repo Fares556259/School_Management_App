@@ -74,6 +74,9 @@ export const payTeacherSalary = async (
       effectiveDate,
     });
 
+    const { invalidateTenantTags } = await import("@/lib/cache");
+    invalidateTenantTags(schoolId, "dashboard", "finance", "teachers");
+
     revalidatePath("/list/teachers");
     revalidatePath("/admin");
     revalidatePath("/admin/finance");
