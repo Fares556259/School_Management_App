@@ -231,7 +231,10 @@ export const ar = {
     trends: "اتجاهات",
     actionableSteps: "خطوات قابلة للتنفيذ",
     noExt: "لا يوجد",
-    detected: "مكتشف"
+    detected: "مكتشف",
+    lockedTitle: "مغلق حالياً",
+    lockedSubtitle: "هذه الميزة مغلقة حالياً وستكون متاحة في التطبيق قريباً.",
+    comingSoon: "قريباً"
   },
   actionCenter: {
     smsLocked: "تم إرسال رسائل قصيرة (مقفل لمدة",

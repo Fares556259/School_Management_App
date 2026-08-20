@@ -231,7 +231,10 @@ export const en = {
     trends: "Trends",
     actionableSteps: "Actionable Steps",
     noExt: "No",
-    detected: "Detected"
+    detected: "Detected",
+    lockedTitle: "Locked for Now",
+    lockedSubtitle: "This feature is currently locked and will be available soon.",
+    comingSoon: "Coming Soon"
   },
   actionCenter: {
     smsLocked: "SMS Sent (Locked for",

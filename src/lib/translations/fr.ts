@@ -231,7 +231,10 @@ export const fr = {
     trends: "Tendances",
     actionableSteps: "Mesures Actionnables",
     noExt: "Aucun",
-    detected: "Détecté"
+    detected: "Détecté",
+    lockedTitle: "Verrouillé pour le moment",
+    lockedSubtitle: "Cette fonctionnalité est actuellement verrouillée et sera bientôt disponible.",
+    comingSoon: "Bientôt disponible"
   },
   actionCenter: {
     smsLocked: "SMS Envoyé (Verrouillé pour",
