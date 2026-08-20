@@ -19,7 +19,8 @@ const getSchoolConfig = cache(async () => {
     include: { Institution: true }
   });
   return {
-    schoolName: school?.Institution?.schoolName,
+    schoolName: school?.Institution?.schoolName || school?.name,
+    schoolSubdomain: school?.subdomain,
     schoolLogo: school?.Institution?.schoolLogo,
     status: school?.status,
     academicYear: school?.Institution?.academicYear,

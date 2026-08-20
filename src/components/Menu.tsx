@@ -438,6 +438,8 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
       <ShareParentLinkModal 
         isOpen={isShareModalOpen} 
         onClose={() => setIsShareModalOpen(false)} 
+        schoolName={schoolConfig?.schoolName}
+        schoolSubdomain={schoolConfig?.schoolSubdomain}
       />
     </div>
   );

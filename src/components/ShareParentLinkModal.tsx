@@ -204,7 +204,7 @@ export default function ShareParentLinkModal({
   if (!isOpen) return null;
 
   const displaySchoolName = schoolName && !schoolName.includes("@") ? schoolName : "SnapSchool";
-  const schoolSlug = (displaySchoolName && displaySchoolName !== "SnapSchool") ? slugify(displaySchoolName) : (schoolSubdomain || "snapschool-academy");
+  const schoolSlug = schoolSubdomain || "snapschool-academy";
 
   const joinUrl = typeof window !== "undefined"
     ? `${window.location.origin}/join/${schoolSlug}`

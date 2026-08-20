@@ -17,7 +17,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
         
         {/* Header */}
         <div className="text-center border-b-2 border-indigo-100 pb-4 mb-4 mt-2">
-          <h1 className="text-4xl font-extrabold text-indigo-700 mb-4">{schoolName}</h1>
+          {schoolName && schoolName !== "SnapSchool" && <h1 className="text-4xl font-extrabold text-indigo-700 mb-4">{schoolName}</h1>}
           <h2 className="text-3xl font-bold text-slate-800">Application Parentale / تطبيق الأولياء</h2>
           <p className="text-xl text-slate-500 mt-3 font-medium">Suivez la scolarité de vos enfants en temps réel !</p>
         </div>
