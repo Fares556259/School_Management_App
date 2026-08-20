@@ -31,11 +31,13 @@ interface ClassTeachersTableProps {
     teachers: Teacher[];
   };
   role: string;
+  isModal?: boolean;
 }
 
 export default function ClassTeachersTable({
   activeClass,
   role,
+  isModal = false,
 }: ClassTeachersTableProps) {
   const router = useRouter();
   const { t, locale } = useLanguage();
@@ -73,18 +75,20 @@ export default function ClassTeachersTable({
   }, [filteredTeachers, safeCurrentPage, pageSize]);
 
   return (
-    <div className="flex-1 p-6 md:p-8 bg-[#f8fafc] min-h-screen overflow-y-auto selection:bg-[#1b61c9] selection:text-white">
+    <div className={`flex-1 p-6 md:p-8 bg-[#f8fafc] ${isModal ? "min-h-full h-full overflow-y-auto" : "min-h-screen overflow-y-auto"} selection:bg-[#1b61c9] selection:text-white`}>
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
 
         {/* HEADER AREA */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
+          {!isModal && (
             <Link 
               href="/list/classes" 
               className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 border border-[#dddddd] rounded-full text-[#181d26] shadow-sm transition-all"
             >
               <ArrowLeft size={18} strokeWidth={2} />
             </Link>
+          )}
+          <div className="flex items-center gap-4">
             <div>
               <h1 className="text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight leading-none">
                 {activeClass.name} {t.classTeachers.title}

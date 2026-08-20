@@ -9,6 +9,9 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
+import ModalRouteOverlay from "@/components/ModalRouteOverlay";
+import ClassStudentsTable from "@/components/ClassStudentsTable";
+import ClassTeachersTable from "@/components/ClassTeachersTable";
 import Link from "next/link";
 import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen, GraduationCap } from "lucide-react";
 import { cookies } from "next/headers";
@@ -95,7 +98,7 @@ const ClassListPage = async ({
       className="border-b border-[#dddddd] text-[15px] text-[#41454d] hover:bg-[#f8fafc] transition-colors group"
     >
       <td className="py-4 px-6">
-        <Link href={`/list/classes/${item.id}`} className="font-medium text-[#181d26] hover:text-[#1b61c9] transition-colors">
+        <Link href={`/list/classes?viewStudents=${item.id}`} className="font-medium text-[#181d26] hover:text-[#1b61c9] transition-colors">
           {item.name}
         </Link>
       </td>
@@ -132,7 +135,7 @@ const ClassListPage = async ({
                 <span>{t.classes.viewStudents}</span>
               </Link>
               <Link 
-                href={`/list/classes/${item.id}/teachers`}
+                href={`/list/classes?viewTeachers=${item.id}`}
                 className="flex items-center gap-1.5 bg-white border border-[#dddddd] text-[#181d26] px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-slate-50 hover:shadow-sm transition-all"
               >
                 <GraduationCap size={14} />
@@ -231,7 +234,104 @@ const ClassListPage = async ({
     name: availableClassNames
   };
 
+
+  // Modal Data Fetching
+  const viewStudentsId = queryParams.viewStudents ? parseInt(queryParams.viewStudents as string) : null;
+  const viewTeachersId = queryParams.viewTeachers ? parseInt(queryParams.viewTeachers as string) : null;
+  
+  let studentsData = null;
+  let allStudentsForAssign = null;
+  if (viewStudentsId) {
+    const [activeClass, allStudents] = await getCachedTenantData(
+      schoolId,
+      "classes",
+      [viewStudentsId.toString(), schoolId],
+      () =>
+        Promise.all([
+          prisma.class.findFirst({
+            where: { id: viewStudentsId, schoolId },
+            include: {
+              level: true,
+              supervisor: { select: { name: true, surname: true } },
+              students: {
+                include: { parent: { select: { name: true, surname: true, phone: true } } },
+                orderBy: [{ name: "asc" }, { surname: "asc" }],
+              },
+            },
+          }),
+          prisma.student.findMany({
+            where: { schoolId },
+            select: { id: true, name: true, surname: true, class: { select: { name: true } } },
+            orderBy: [{ name: "asc" }, { surname: "asc" }],
+          }),
+        ]),
+      600
+    );
+    studentsData = activeClass;
+    allStudentsForAssign = allStudents;
+  }
+
+  let teachersData = null;
+  if (viewTeachersId) {
+    const activeClass = await getCachedTenantData(
+      schoolId,
+      "classes",
+      [viewTeachersId.toString(), schoolId],
+      () =>
+        prisma.class.findFirst({
+          where: { id: viewTeachersId, schoolId },
+          include: {
+            level: true,
+            supervisor: {
+              select: { id: true, username: true, name: true, surname: true, phone: true, address: true, img: true, bloodType: true, sex: true, createdAt: true, salary: true },
+            },
+            lessons: {
+              include: {
+                subject: true,
+                teacher: {
+                  select: { id: true, username: true, name: true, surname: true, phone: true, address: true, img: true, bloodType: true, sex: true, createdAt: true, salary: true },
+                },
+              },
+            },
+          },
+        }),
+      600
+    );
+
+    if (activeClass) {
+      const teachersMap = new Map();
+      if (activeClass.supervisor) {
+        teachersMap.set(activeClass.supervisor.id, {
+          ...activeClass.supervisor,
+          roleInClass: "Supervisor",
+          subjects: [],
+        });
+      }
+      activeClass.lessons.forEach(lesson => {
+        const teacher = lesson.teacher;
+        if (!teacher) return;
+        if (teachersMap.has(teacher.id)) {
+          const existing = teachersMap.get(teacher.id);
+          if (!existing.subjects.includes(lesson.subject.name)) {
+            existing.subjects.push(lesson.subject.name);
+          }
+        } else {
+          teachersMap.set(teacher.id, {
+            ...teacher,
+            roleInClass: "Subject Teacher",
+            subjects: [lesson.subject.name],
+          });
+        }
+      });
+      teachersData = {
+        ...activeClass,
+        teachers: Array.from(teachersMap.values())
+      };
+    }
+  }
+
   return (
+    <>
     <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
       {/* TOP */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 border-b border-[#e5e7eb] pb-6">
@@ -274,6 +374,55 @@ const ClassListPage = async ({
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
     </div>
+
+      {studentsData && (
+        <ModalRouteOverlay closeUrl="/list/classes">
+          <ClassStudentsTable
+            isModal={true}
+            activeClass={{
+              id: studentsData.id,
+              name: studentsData.name,
+              capacity: studentsData.capacity,
+              level: studentsData.level,
+              supervisor: studentsData.supervisor,
+              students: studentsData.students.map((student: any) => ({
+                id: student.id,
+                username: student.username,
+                name: student.name,
+                surname: student.surname,
+                phone: student.phone,
+                address: student.address,
+                img: student.img,
+                birthday: student.birthday,
+                sex: student.sex,
+                bloodType: student.bloodType,
+                createdAt: student.createdAt,
+                parent: student.parent,
+              })),
+            }}
+            allStudents={allStudentsForAssign || []}
+            role={role || ""}
+          />
+        </ModalRouteOverlay>
+      )}
+
+      {teachersData && (
+        <ModalRouteOverlay closeUrl="/list/classes">
+          <ClassTeachersTable
+            isModal={true}
+            activeClass={{
+              id: teachersData.id,
+              name: teachersData.name,
+              capacity: teachersData.capacity,
+              level: teachersData.level,
+              supervisor: teachersData.supervisor,
+              teachers: teachersData.teachers,
+            }}
+            role={role || ""}
+          />
+        </ModalRouteOverlay>
+      )}
+    </>
   );
 };
 
