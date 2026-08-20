@@ -13,7 +13,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
     return (
       <div ref={ref} className="bg-white text-slate-900 font-sans mx-auto" style={{ width: '210mm' }}>
         {/* PAGE 1: FLYER */}
-        <div style={{ height: '290mm', padding: '32px', position: 'relative', pageBreakAfter: 'always', overflow: 'hidden' }}>
+        <div className="flex flex-col" style={{ height: '290mm', padding: '32px', position: 'relative', pageBreakAfter: 'always', overflow: 'hidden' }}>
         
         {/* Header */}
         <div className="text-center border-b-2 border-indigo-100 pb-4 mb-4 mt-2">
@@ -68,7 +68,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
         </div>
 
         {/* QR Code Section */}
-        <div className="flex flex-col items-center justify-center bg-white p-8 rounded-3xl border-2 border-indigo-100 shadow-sm max-w-xl mx-auto mb-8">
+        <div className="flex flex-col items-center justify-center bg-white p-8 rounded-3xl border-2 border-indigo-100 shadow-sm max-w-xl mx-auto mb-4">
           <div className="w-56 h-56 bg-white border-4 border-white shadow-md rounded-2xl overflow-hidden mb-6">
             <img
               src={qrUrl}
@@ -84,7 +84,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
         </div>
 
         {/* Footer Features */}
-        <div className="absolute bottom-12 left-12 right-12 flex justify-between items-center border-t-2 border-slate-100 pt-8">
+        <div className="mt-auto flex justify-between items-center border-t-2 border-slate-100 pt-6 w-full">
           <div className="flex items-center gap-2 text-emerald-600 font-semibold text-lg">
             <CheckCircle2 className="w-6 h-6" /> Suivi en temps réel
           </div>
