@@ -5,15 +5,23 @@ import { aggregateDailyData } from "@/lib/reports/aggregator";
 import { generateSmartInsights } from "@/lib/reports/generator";
 import { DailyReportEmail } from "@/components/emails/DailyReportEmail";
 import { cookies } from "next/headers";
+import { getRole } from "@/lib/role";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY);
-  // In a real production scenario, you would verify an Authorization header or Vercel CRON secret here
-  // if (request.headers.get("Authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // }
+  // Verify Vercel CRON secret or manual admin authorization
+  const authHeader = request.headers.get("Authorization");
+  const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  
+  if (process.env.NODE_ENV === "production" && !isCron) {
+    // If not a cron job, check if it's a logged-in admin manually triggering it
+    const role = await getRole();
+    if (role !== "admin" && role !== "superadmin") {
+      return NextResponse.json({ error: "Unauthorized: Missing CRON secret or Admin session" }, { status: 401 });
+    }
+  }
 
   try {
     const cookieStore = cookies();
@@ -44,7 +52,7 @@ export async function GET(request: Request) {
 
     // Using a verified domain email or onboarding test email
     const { data: emailData, error } = await resend.emails.send({
-      from: "SnapSchool Reports <onboarding@resend.dev>", // Replace with verified domain in production
+      from: process.env.RESEND_FROM_EMAIL || "SnapSchool Reports <reports@snapschool.academy>", // Production ready
       to: toEmails,
       subject: `Daily School AI Report - ${dateString}`,
       react: DailyReportEmail({
