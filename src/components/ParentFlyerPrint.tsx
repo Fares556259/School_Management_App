@@ -96,8 +96,8 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
           </div>
         </div>
       </div>
-        {/* PAGE 2: INSTRUCTIONS (Placeholder for now) */}
-        <div style={{ height: '290mm', padding: '32px', position: 'relative', overflow: 'hidden' }}>
+        {/* PAGE 2: INSTRUCTIONS */}
+        <div style={{ height: '290mm', padding: '32px', position: 'relative', overflow: 'hidden', pageBreakAfter: 'always' }}>
           <div className="text-center border-b-2 border-indigo-100 pb-4 mb-6 mt-2">
             <h1 className="text-3xl font-extrabold text-indigo-700 mb-2">Guide d&apos;utilisation / دليل الاستخدام</h1>
             <p className="text-lg text-slate-500 font-medium">Découvrez comment utiliser l&apos;application / اكتشف كيف تستخدم التطبيق</p>
@@ -142,6 +142,67 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
               </div>
               <h3 className="text-lg font-bold text-slate-800">Suivi des paiements</h3>
               <p className="text-slate-500 font-semibold text-sm" dir="rtl">الأقساط المدفوعة</p>
+            </div>
+          </div>
+        </div>
+        {/* PAGE 3: SIGN UP FLOW */}
+        <div style={{ height: '290mm', padding: '32px', position: 'relative', overflow: 'hidden' }}>
+          <div className="text-center border-b-2 border-indigo-100 pb-4 mb-6 mt-2">
+            <h1 className="text-3xl font-extrabold text-indigo-700 mb-2">Comment se connecter / كيفية تسجيل الدخول</h1>
+            <p className="text-lg text-slate-500 font-medium">Étapes de première connexion / مراحل الدخول لأول مرة</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 pt-2">
+            {/* Step 1 */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/step1.png" alt="Step 1" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">1. Choisissez &quot;Parent&quot;</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">اختر &quot;ولي الأمر&quot;</p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/step2.png" alt="Step 2" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">2. Entrez votre numéro</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">أدخل رقم هاتفك</p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/step3.png" alt="Step 3" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">3. Créez un mot de passe</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">أنشئ كلمة سر جديدة</p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/step4.png" alt="Step 4" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">4. Connectez-vous !</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">تسجيل الدخول بنجاح!</p>
+            </div>
+          </div>
+
+          {/* Password Warning Footer */}
+          <div className="absolute bottom-8 left-8 right-8 bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
+            <div>
+              <p className="text-amber-800 font-bold text-lg">Mot de passe oublié ?</p>
+              <p className="text-amber-700 font-medium">Veuillez contacter l&apos;administration de l&apos;école.</p>
+            </div>
+            <div dir="rtl" className="sm:text-right">
+              <p className="text-amber-800 font-bold text-lg">هل نسيت كلمة السر؟</p>
+              <p className="text-amber-700 font-medium">الرجاء الاتصال بإدارة المدرسة.</p>
             </div>
           </div>
         </div>
