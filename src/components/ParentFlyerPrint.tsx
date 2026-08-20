@@ -146,7 +146,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
           </div>
         </div>
         {/* PAGE 3: SIGN UP FLOW */}
-        <div style={{ height: '290mm', padding: '32px', position: 'relative', overflow: 'hidden' }}>
+        <div className="flex flex-col" style={{ height: '290mm', padding: '32px', position: 'relative', overflow: 'hidden' }}>
           <div className="text-center border-b-2 border-indigo-100 pb-4 mb-6 mt-2">
             <h1 className="text-3xl font-extrabold text-indigo-700 mb-2">Comment se connecter / كيفية تسجيل الدخول</h1>
             <p className="text-lg text-slate-500 font-medium">Étapes de première connexion / مراحل الدخول لأول مرة</p>
@@ -195,7 +195,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
           </div>
 
           {/* Password Warning Footer */}
-          <div className="absolute bottom-8 left-8 right-8 bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
+          <div className="mt-auto w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
             <div>
               <p className="text-amber-800 font-bold text-lg">Mot de passe oublié ?</p>
               <p className="text-amber-700 font-medium">Veuillez contacter l&apos;administration de l&apos;école.</p>
