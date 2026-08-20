@@ -30,11 +30,11 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
             <ul className="space-y-6 text-slate-700 text-lg">
               <li className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 font-bold mt-0.5">1</div>
-                <p>Ouvrez l'appareil photo de votre smartphone et <strong>scannez le code QR</strong> ci-dessous.</p>
+                <p>Ouvrez l&apos;appareil photo de votre smartphone et <strong>scannez le code QR</strong> ci-dessous.</p>
               </li>
               <li className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 font-bold mt-0.5">2</div>
-                <p>Remplissez le formulaire d'inscription avec vos informations.</p>
+                <p>Remplissez le formulaire d&apos;inscription avec vos informations.</p>
               </li>
               <li className="flex items-start gap-4">
                 <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 font-bold mt-0.5">3</div>
