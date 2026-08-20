@@ -103,10 +103,10 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
             <p className="text-lg text-slate-500 font-medium">Découvrez comment utiliser l&apos;application / اكتشف كيف تستخدم التطبيق</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6 pt-2">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4 pt-2">
             {/* Feature 1: Schedule */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/schedule.png" alt="Schedule" className="w-full h-full object-cover object-top" />
               </div>
@@ -116,7 +116,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
 
             {/* Feature 2: Grades */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/grades.png" alt="Grades" className="w-full h-full object-cover object-top" />
               </div>
@@ -126,7 +126,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
 
             {/* Feature 3: Announcements */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/announcements.png" alt="Announcements" className="w-full h-full object-cover object-top" />
               </div>
@@ -136,7 +136,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
 
             {/* Feature 4: Payments */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/payments.png" alt="Payments" className="w-full h-full object-cover object-top" />
               </div>
@@ -155,7 +155,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
           <div className="grid grid-cols-2 gap-x-8 gap-y-6 pt-2">
             {/* Step 1 */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/step1.png" alt="Step 1" className="w-full h-full object-cover object-top" />
               </div>
@@ -165,7 +165,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
 
             {/* Step 2 */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/step2.png" alt="Step 2" className="w-full h-full object-cover object-top" />
               </div>
@@ -175,7 +175,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
 
             {/* Step 3 */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/step3.png" alt="Step 3" className="w-full h-full object-cover object-top" />
               </div>
@@ -185,7 +185,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
 
             {/* Step 4 */}
             <div className="flex flex-col items-center">
-              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+              <div className="h-[330px] w-[155px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
                 <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
                 <img src="/assets/mobile-guide/step4.png" alt="Step 4" className="w-full h-full object-cover object-top" />
               </div>
@@ -195,7 +195,7 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
           </div>
 
           {/* Password Warning Footer */}
-          <div className="mt-auto w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4">
+          <div className="mt-auto w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-2 mb-2">
             <div>
               <p className="text-amber-800 font-bold text-lg">Mot de passe oublié ?</p>
               <p className="text-amber-700 font-medium">Veuillez contacter l&apos;administration de l&apos;école.</p>
