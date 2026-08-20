@@ -48,51 +48,53 @@ export default async function DashboardAppendage({
 
   // 1. MEGA-CONSOLIDATED TRENDS & BREAKDOWNS
   const getSecondaryStats = async () => {
-    const results: any = await prisma.$queryRaw`
-      SELECT
-        -- Category breakdowns
-        (SELECT json_agg(t) FROM (
-          SELECT category, SUM(amount)::float as total 
-          FROM "Income" 
-          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Tuition' AND "schoolId" = ${schoolId}
-          GROUP BY category
-        ) t) as income_categories,
-        
-        (SELECT json_agg(t) FROM (
-          SELECT category, SUM(amount)::float as total 
-          FROM "Expense" 
-          WHERE date >= ${startDate} AND date < ${endDate} AND category != 'Salary' AND "schoolId" = ${schoolId}
-          GROUP BY category
-        ) t) as expense_categories,
+    const [incCats, expCats, allIncomes, allPayments, allExpenses] = await Promise.all([
+      prisma.income.groupBy({
+        by: ['category'],
+        _sum: { amount: true },
+        where: { schoolId, date: { gte: startDate, lt: endDate }, category: { not: 'Tuition' } }
+      }),
+      prisma.expense.groupBy({
+        by: ['category'],
+        _sum: { amount: true },
+        where: { schoolId, date: { gte: startDate, lt: endDate }, category: { not: 'Salary' } }
+      }),
+      prisma.income.findMany({
+        where: { schoolId, date: { gte: twelveMonthsAgo }, category: { not: 'Tuition' } },
+        select: { date: true, amount: true }
+      }),
+      prisma.payment.findMany({
+        where: { schoolId, paidAt: { gte: twelveMonthsAgo }, status: 'PAID' },
+        select: { paidAt: true, amount: true, userType: true }
+      }),
+      prisma.expense.findMany({
+        where: { schoolId, date: { gte: twelveMonthsAgo }, category: { not: 'Salary' } },
+        select: { date: true, amount: true }
+      })
+    ]);
 
-        -- 12 Month Trends
-        (SELECT json_agg(t) FROM (
-          SELECT month, SUM(total)::float as total FROM (
-            SELECT date_trunc('month', date) as month, amount as total
-            FROM "Income"
-            WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND category != 'Tuition'
-            UNION ALL
-            SELECT date_trunc('month', "paidAt") as month, amount as total
-            FROM "Payment"
-            WHERE "paidAt" >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" = 'STUDENT'
-          ) as all_income
-          GROUP BY month ORDER BY month
-        ) t) as income_trend,
+    // Grouping by YYYY-MM
+    const incomeTrendMap: Record<string, number> = {};
+    const expenseTrendMap: Record<string, number> = {};
 
-        (SELECT json_agg(t) FROM (
-          SELECT month, SUM(total)::float as total FROM (
-            SELECT date_trunc('month', date) as month, amount as total
-            FROM "Expense"
-            WHERE date >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND category != 'Salary'
-            UNION ALL
-            SELECT date_trunc('month', "paidAt") as month, amount as total
-            FROM "Payment"
-            WHERE "paidAt" >= ${twelveMonthsAgo} AND "schoolId" = ${schoolId} AND status = 'PAID' AND "userType" IN ('TEACHER', 'STAFF')
-          ) as all_expense
-          GROUP BY month ORDER BY month
-        ) t) as expense_trend
-    `;
-    return results[0];
+    const addTrend = (map: Record<string, number>, d: Date | null, amount: number) => {
+      if (!d) return;
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      map[key] = (map[key] || 0) + amount;
+    };
+
+    allIncomes.forEach(i => addTrend(incomeTrendMap, i.date, i.amount));
+    allPayments.filter(p => p.userType === 'STUDENT').forEach(p => addTrend(incomeTrendMap, p.paidAt, p.amount));
+    
+    allExpenses.forEach(e => addTrend(expenseTrendMap, e.date, e.amount));
+    allPayments.filter(p => p.userType === 'TEACHER' || p.userType === 'STAFF').forEach(p => addTrend(expenseTrendMap, p.paidAt, p.amount));
+
+    return {
+      income_categories: incCats.map(c => ({ category: c.category, total: c._sum.amount || 0 })),
+      expense_categories: expCats.map(c => ({ category: c.category, total: c._sum.amount || 0 })),
+      income_trend: Object.entries(incomeTrendMap).map(([k, v]) => ({ monthKey: k, total: v })),
+      expense_trend: Object.entries(expenseTrendMap).map(([k, v]) => ({ monthKey: k, total: v }))
+    };
   };
 
   const getUncollectedData = async () => {
@@ -208,9 +210,8 @@ export default async function DashboardAppendage({
     const monthName = t.months[d.getMonth()];
     
     const findMatch = (arr: any[]) => arr.find((x: any) => {
-      if (!x.month) return false;
-      const dateStr = typeof x.month === 'string' ? x.month : new Date(x.month).toISOString();
-      const parts = dateStr.split('T')[0].split('-');
+      if (!x.monthKey) return false;
+      const parts = x.monthKey.split('-');
       const year = parseInt(parts[0]);
       const month = parseInt(parts[1]) - 1; // 0-indexed
       return month === d.getMonth() && year === d.getFullYear();
