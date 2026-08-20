@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
-export default function ModalRouteOverlay({ children, closeUrl }: { children: React.ReactNode, closeUrl: string }) {
+export default function ModalRouteOverlay({ children, closeUrl, onClose }: { children: React.ReactNode, closeUrl?: string, onClose?: () => void }) {
   const router = useRouter();
   
   useEffect(() => {
@@ -16,7 +16,8 @@ export default function ModalRouteOverlay({ children, closeUrl }: { children: Re
   }, []);
 
   const handleClose = () => {
-    router.push(closeUrl);
+    if (onClose) onClose();
+    else if (closeUrl) router.push(closeUrl);
   };
 
   return (
