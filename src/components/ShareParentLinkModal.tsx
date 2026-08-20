@@ -19,6 +19,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { useRef } from "react";
+import { useReactToPrint } from "react-to-print";
+import ParentFlyerPrint from "./ParentFlyerPrint";
+import { Printer } from "lucide-react";
 
 interface ClassOption {
   id: number;
@@ -170,6 +174,11 @@ export default function ShareParentLinkModal({
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"link" | "requests">("link");
+  const flyerPrintRef = useRef<HTMLDivElement>(null);
+  const handlePrintFlyer = useReactToPrint({
+    contentRef: flyerPrintRef,
+    documentTitle: `SnapSchool_Flyer_${slugify(schoolName || "School")}`,
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -366,11 +375,23 @@ export default function ShareParentLinkModal({
                     href={joinUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-center sm:justify-start gap-1 w-fit mx-auto sm:mx-0"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-center sm:justify-start gap-1 w-fit mx-auto sm:mx-0 mb-3"
                   >
                     {t.testLink} <ExternalLink className="w-3 h-3" />
                   </a>
+                  
+                  <button 
+                    onClick={handlePrintFlyer}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-medium text-xs rounded-lg hover:bg-indigo-100 transition-colors w-full sm:w-auto border border-indigo-200"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Download / Print Flyer
+                  </button>
                 </div>
+              </div>
+              
+              <div className="hidden">
+                <ParentFlyerPrint ref={flyerPrintRef} schoolName={displaySchoolName} joinUrl={joinUrl} />
               </div>
             </div>
           ) : (
