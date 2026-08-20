@@ -11,17 +11,19 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(joinUrl)}`;
 
     return (
-      <div ref={ref} className="bg-white text-slate-900 font-sans p-12 mx-auto" style={{ width: '210mm', minHeight: '297mm', position: 'relative' }}>
+      <div ref={ref} className="bg-white text-slate-900 font-sans mx-auto" style={{ width: '210mm' }}>
+        {/* PAGE 1: FLYER */}
+        <div style={{ height: '290mm', padding: '32px', position: 'relative', pageBreakAfter: 'always', overflow: 'hidden' }}>
         
         {/* Header */}
-        <div className="text-center border-b-2 border-indigo-100 pb-8 mb-8 mt-4">
+        <div className="text-center border-b-2 border-indigo-100 pb-4 mb-4 mt-2">
           <h1 className="text-4xl font-extrabold text-indigo-700 mb-4">{schoolName}</h1>
           <h2 className="text-3xl font-bold text-slate-800">Application Parentale / تطبيق الأولياء</h2>
           <p className="text-xl text-slate-500 mt-3 font-medium">Suivez la scolarité de vos enfants en temps réel !</p>
         </div>
 
         {/* Two Column Layout for Instructions */}
-        <div className="flex gap-8 mb-12">
+        <div className="flex gap-8 mb-6">
           {/* French Side */}
           <div className="flex-1 bg-slate-50/50 p-6 rounded-2xl border border-slate-200">
             <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -66,8 +68,8 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
         </div>
 
         {/* QR Code Section */}
-        <div className="flex flex-col items-center justify-center bg-white p-8 rounded-3xl border-2 border-indigo-100 shadow-sm max-w-xl mx-auto mb-16">
-          <div className="w-72 h-72 bg-white border-4 border-white shadow-md rounded-2xl overflow-hidden mb-6">
+        <div className="flex flex-col items-center justify-center bg-white p-8 rounded-3xl border-2 border-indigo-100 shadow-sm max-w-xl mx-auto mb-8">
+          <div className="w-56 h-56 bg-white border-4 border-white shadow-md rounded-2xl overflow-hidden mb-6">
             <img
               src={qrUrl}
               alt="Join QR Code"
@@ -91,6 +93,19 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
           </div>
           <div className="flex items-center gap-2 text-emerald-600 font-semibold text-lg" dir="rtl">
             متابعة فورية <CheckCircle2 className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+        {/* PAGE 2: INSTRUCTIONS (Placeholder for now) */}
+        <div style={{ height: '290mm', padding: '32px', position: 'relative', overflow: 'hidden' }}>
+          <div className="text-center border-b-2 border-indigo-100 pb-4 mb-6 mt-2">
+            <h1 className="text-3xl font-extrabold text-indigo-700 mb-2">Guide d&apos;utilisation / دليل الاستخدام</h1>
+            <p className="text-lg text-slate-500 font-medium">Découvrez comment utiliser l&apos;application / اكتشف كيف تستخدم التطبيق</p>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center h-[200mm] text-slate-400 border-4 border-dashed border-slate-200 rounded-3xl">
+             <p className="text-2xl font-bold mb-4">Screenshots will go here!</p>
+             <p>Awaiting user uploads...</p>
           </div>
         </div>
       </div>
