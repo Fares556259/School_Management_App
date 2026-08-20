@@ -158,6 +158,31 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
 
+  const today = new Date();
+  const currentMonth = today.getMonth(); // 0 = Jan, 7 = Aug
+  let academicYear = "";
+  if (currentMonth >= 7) {
+    academicYear = `${today.getFullYear()}–${today.getFullYear() + 1}`;
+  } else {
+    academicYear = `${today.getFullYear() - 1}–${today.getFullYear()}`;
+  }
+
+  let currentTerm = 1;
+  if (currentMonth >= 0 && currentMonth <= 2) currentTerm = 2; // Jan-Mar
+  else if (currentMonth >= 3 && currentMonth <= 5) currentTerm = 3; // Apr-Jun
+  else currentTerm = 1; // Jul-Dec
+
+  const getBadgeTranslations = () => {
+    switch(locale) {
+      case "ar": return { year: "السنة", term: "الثلاثي", online: "متصل" };
+      case "fr": return { year: "Année", term: "Trimestre", online: "En ligne" };
+      case "en": 
+      default: return { year: "Year", term: "Term", online: "Online" };
+    }
+  };
+  const badgeT = getBadgeTranslations();
+
+
   useEffect(() => {
     // Reset pending state when pathname changes
     setPendingHref(null);
@@ -378,7 +403,7 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
               <span className="text-[12px] font-bold text-slate-800 truncate">
-                Année 2024–2025
+                {badgeT.year} {academicYear}
               </span>
               <span className="flex h-2 w-2 relative shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -386,7 +411,7 @@ const Menu = ({ role, adminData }: { role?: string, adminData?: any }) => {
               </span>
             </div>
             <span className="text-[10.5px] text-slate-500 font-medium">
-              Trimestre 2 • En ligne
+              {badgeT.term} {currentTerm} • {badgeT.online}
             </span>
           </div>
         </div>
