@@ -103,9 +103,46 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
             <p className="text-lg text-slate-500 font-medium">Découvrez comment utiliser l&apos;application / اكتشف كيف تستخدم التطبيق</p>
           </div>
           
-          <div className="flex flex-col items-center justify-center h-[200mm] text-slate-400 border-4 border-dashed border-slate-200 rounded-3xl">
-             <p className="text-2xl font-bold mb-4">Screenshots will go here!</p>
-             <p>Awaiting user uploads...</p>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 pt-2">
+            {/* Feature 1: Schedule */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/schedule.png" alt="Schedule" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Emploi du temps</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">جدول الأوقات</p>
+            </div>
+
+            {/* Feature 2: Grades */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/grades.png" alt="Grades" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Notes & Bulletins</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">الأعداد والنتائج</p>
+            </div>
+
+            {/* Feature 3: Announcements */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/announcements.png" alt="Announcements" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Actualités & Annonces</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">أخبار المدرسة</p>
+            </div>
+
+            {/* Feature 4: Payments */}
+            <div className="flex flex-col items-center">
+              <div className="h-[380px] w-[180px] rounded-[2rem] border-[8px] border-slate-800 overflow-hidden shadow-xl mb-3 bg-slate-100 relative">
+                <div className="absolute top-0 inset-x-0 h-4 bg-slate-800 rounded-b-xl mx-auto w-16 z-10"></div>
+                <img src="/assets/mobile-guide/payments.png" alt="Payments" className="w-full h-full object-cover object-top" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Suivi des paiements</h3>
+              <p className="text-slate-500 font-semibold text-sm" dir="rtl">الأقساط المدفوعة</p>
+            </div>
           </div>
         </div>
       </div>
