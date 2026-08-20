@@ -149,7 +149,12 @@ export async function GET(request: NextRequest) {
       orderBy: { startTime: "asc" },
     });
     const gradeSheetRemarks = await prisma.gradeSheet.findMany({
-      where: { classId: student.classId, notes: { not: "" }, updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+      where: { 
+        classId: student.classId, 
+        notes: { not: "" },
+        NOT: { notes: { contains: "AUTO_SYNCED" } },
+        updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } 
+      },
       include: { subject: true, teacher: true },
       orderBy: { updatedAt: "desc" },
       take: 5,
@@ -182,8 +187,10 @@ export async function GET(request: NextRequest) {
     });
 
     const teacherRemarks = [
-      ...gradeSheetRemarks.map((r) => ({ id: `gs-${r.id}`, note: r.notes, subject: r.subject?.name || "General", teacher: r.teacher ? `${r.teacher.name} ${r.teacher.surname}` : "Teacher", date: r.updatedAt })),
-      ...attendanceRemarks,
+      ...gradeSheetRemarks
+        .filter((r) => r.notes && !r.notes.includes("AUTO_SYNCED") && !r.notes.includes("INITIALIZED"))
+        .map((r) => ({ id: `gs-${r.id}`, note: r.notes, subject: r.subject?.name || "General", teacher: r.teacher ? `${r.teacher.name} ${r.teacher.surname}` : "Teacher", date: r.updatedAt })),
+      ...attendanceRemarks.filter((r) => r.note && !r.note.includes("AUTO_SYNCED") && !r.note.includes("INITIALIZED")),
     ];
 
     const slotToLessonMap = new Map<number, any>();

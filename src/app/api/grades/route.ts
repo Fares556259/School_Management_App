@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
           subjectId: s.subjectId,
           term,
           proofUrl: "",
-          notes: "AUTO_SYNCED_FROM_PROFILE",
+          notes: "",
           schoolId,
         })),
         skipDuplicates: true,
