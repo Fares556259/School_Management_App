@@ -8,6 +8,7 @@ import SmartFinancialInsights from "./SmartFinancialInsights";
 import GrowthAnalyticsChart from "./GrowthAnalyticsChart";
 import ActionCenter from "./ActionCenter";
 import { translations, Locale } from "@/lib/translations";
+import { getCachedTenantData } from "@/lib/cache";
 
 interface DashboardAppendageProps {
   startDate: Date;
@@ -39,7 +40,7 @@ export default async function DashboardAppendage({
   const safeFetch = async <T extends unknown>(promise: Promise<T>, fallback: T): Promise<T> => {
     return Promise.race([
       promise,
-      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 5000))
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 15000))
     ]).catch((err) => {
       console.warn(`⏱️ [APPENDAGE_TIMEOUT] ${err.message === "TIMEOUT" ? "Query timed out" : "Query failed"}. Returning fallback.`);
       return fallback;
@@ -143,11 +144,19 @@ export default async function DashboardAppendage({
   };
 
   const [secondaryStats, recentAuditLogs, uncollectedData] = await Promise.all([
-    safeFetch(getSecondaryStats(), {
-      income_categories: [], expense_categories: [], income_trend: [], expense_trend: []
-    }),
-    safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
-    safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
+    getCachedTenantData(schoolId, 'dashboard', ['secondaryStats', currentMonth, currentYear], () => 
+      safeFetch(getSecondaryStats(), {
+        income_categories: [], expense_categories: [], income_trend: [], expense_trend: []
+      }), 600
+    ),
+    getCachedTenantData(schoolId, 'dashboard', ['recentAuditLogs'], () => 
+      safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
+      60
+    ),
+    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', currentMonth, currentYear], () => 
+      safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
+      600
+    ),
   ]);
 
   // --- DATA PROCESSING ---
