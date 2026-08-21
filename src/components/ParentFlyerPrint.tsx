@@ -193,18 +193,6 @@ const ParentFlyerPrint = forwardRef<HTMLDivElement, ParentFlyerPrintProps>(
               <p className="text-slate-500 font-semibold text-sm" dir="rtl">تسجيل الدخول بنجاح!</p>
             </div>
           </div>
-
-          {/* Password Warning Footer */}
-          <div className="mt-auto w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-2 mb-2">
-            <div>
-              <p className="text-amber-800 font-bold text-lg">Mot de passe oublié ?</p>
-              <p className="text-amber-700 font-medium">Veuillez contacter l&apos;administration de l&apos;école.</p>
-            </div>
-            <div dir="rtl" className="sm:text-right">
-              <p className="text-amber-800 font-bold text-lg">هل نسيت كلمة السر؟</p>
-              <p className="text-amber-700 font-medium">الرجاء الاتصال بإدارة المدرسة.</p>
-            </div>
-          </div>
         </div>
       </div>
     );
