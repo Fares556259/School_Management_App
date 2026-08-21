@@ -34,6 +34,15 @@ const InputField = ({
         {...(register ? register(name) : {})}
         className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white"
         {...inputProps}
+        onInput={(e) => {
+          if (name === "phone") {
+            const target = e.target as HTMLInputElement;
+            target.value = target.value.replace(/[^0-9+]/g, '');
+          }
+          if (inputProps?.onInput) {
+            inputProps.onInput(e);
+          }
+        }}
         placeholder={placeholder}
         defaultValue={defaultValue}
         required={required}

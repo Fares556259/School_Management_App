@@ -43,7 +43,7 @@ const translations = {
     firstNamePlaceholder: "Prénom du parent",
     lastName: "Nom de famille *",
     lastNamePlaceholder: "Nom de famille du parent",
-    phone: "Téléphone (WhatsApp) *",
+    phone: "Téléphone *",
     relation: "Lien de parenté",
     relationFather: "Père",
     relationMother: "Mère",
@@ -89,7 +89,7 @@ const translations = {
     firstNamePlaceholder: "اسم الولي",
     lastName: "اللقب *",
     lastNamePlaceholder: "لقب الولي",
-    phone: "رقم الهاتف (واتساب) *",
+    phone: "رقم الهاتف *",
     relation: "صلة القرابة",
     relationFather: "أب",
     relationMother: "أم",
@@ -559,7 +559,7 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                         required
                         placeholder="+216 98 123 456"
                         value={parentPhone}
-                        onChange={(e) => setParentPhone(e.target.value)}
+                        onChange={(e) => setParentPhone(e.target.value.replace(/[^0-9+]/g, ''))}
                         className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors"
                       />
                     </div>
