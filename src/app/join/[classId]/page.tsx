@@ -69,6 +69,9 @@ const translations = {
     successTitle: "Demande d'inscription transmise !",
     successDesc: "La direction de l'établissement validera votre demande très prochainement.",
     successMobileNote: "Vous pourrez vous connecter à l'application mobile avec votre numéro :",
+    guideStep1: "Téléchargez l'application",
+    guideStep2: "Choisissez le profil \"Parent\"",
+    guideStep3: "Connectez-vous avec votre numéro",
     requiredError: "Veuillez remplir votre prénom, nom de famille et numéro de téléphone.",
     requiredChildError: "Veuillez remplir les informations complètes pour l'enfant #",
     invalidLink: "Lien invalide ou expiré",
@@ -115,6 +118,9 @@ const translations = {
     successTitle: "تم إرسال طلب التسجيل بنجاح!",
     successDesc: "ستقوم إدارة المدرسة بمراجعة وتأكيد طلبكم في أقرب وقت ممكن.",
     successMobileNote: "يمكنكم تسجيل الدخول إلى تطبيق الجوال باستخدام رقم الهاتف :",
+    guideStep1: "قم بتحميل التطبيق",
+    guideStep2: "اختر ملف \"ولي الأمر\"",
+    guideStep3: "سجل الدخول باستخدام رقم هاتفك",
     requiredError: "الرجاء تعبئة الاسم، اللقب ورقم الهاتف.",
     requiredChildError: "الرجاء تعبئة المعلومات الكاملة للتلميذ رقم ",
     invalidLink: "رابط غير صلح أو منتهي الصلاحية",
@@ -492,9 +498,11 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-600 mb-4 bg-white/60 p-3 rounded-xl border border-white">
-                    {t.successMobileNote} <strong className="text-blue-700" dir="ltr">{parentPhone}</strong>
-                  </p>
+                  <div className="text-xs text-slate-700 mb-5 bg-white/80 p-4 rounded-xl border border-white shadow-sm flex flex-col gap-2 font-medium">
+                    <p className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">1</span> {t.guideStep1 || "1. Téléchargez l'application"}</p>
+                    <p className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">2</span> {t.guideStep2 || "2. Choisissez le profil Parent"}</p>
+                    <p className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">3</span> {t.guideStep3 || "3. Connectez-vous avec votre numéro"}</p>
+                  </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
                     <a href="#" className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-transform hover:scale-105">
