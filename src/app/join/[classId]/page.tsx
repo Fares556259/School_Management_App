@@ -69,9 +69,10 @@ const translations = {
     successTitle: "Demande d'inscription transmise !",
     successDesc: "La direction de l'établissement validera votre demande très prochainement.",
     successMobileNote: "Vous pourrez vous connecter à l'application mobile avec votre numéro :",
-    guideStep1: "Téléchargez l'application",
-    guideStep2: "Choisissez le profil \"Parent\"",
-    guideStep3: "Connectez-vous avec votre numéro",
+    guideStep1: "Téléchargez l'application (Fichier APK)",
+    guideStep2: "Cliquez sur \"Ouvrir\" une fois le téléchargement terminé",
+    guideStep3: "Allez dans Paramètres ➔ \"Autoriser depuis cette source\"",
+    guideStep4: "Cliquez sur \"Installer\", l'application est prête !",
     requiredError: "Veuillez remplir votre prénom, nom de famille et numéro de téléphone.",
     requiredChildError: "Veuillez remplir les informations complètes pour l'enfant #",
     invalidLink: "Lien invalide ou expiré",
@@ -118,9 +119,10 @@ const translations = {
     successTitle: "تم إرسال طلب التسجيل بنجاح!",
     successDesc: "ستقوم إدارة المدرسة بمراجعة وتأكيد طلبكم في أقرب وقت ممكن.",
     successMobileNote: "يمكنكم تسجيل الدخول إلى تطبيق الجوال باستخدام رقم الهاتف :",
-    guideStep1: "قم بتحميل التطبيق",
-    guideStep2: "اختر ملف \"ولي الأمر\"",
-    guideStep3: "سجل الدخول باستخدام رقم هاتفك",
+    guideStep1: "قم بتحميل التطبيق (ملف APK)",
+    guideStep2: "اضغط على \"فتح\" بعد انتهاء التحميل",
+    guideStep3: "اذهب إلى الإعدادات ➔ \"السماح من هذا المصدر\"",
+    guideStep4: "اضغط على \"تثبيت\"، التطبيق جاهز للاستخدام!",
     requiredError: "الرجاء تعبئة الاسم، اللقب ورقم الهاتف.",
     requiredChildError: "الرجاء تعبئة المعلومات الكاملة للتلميذ رقم ",
     invalidLink: "رابط غير صلح أو منتهي الصلاحية",
@@ -498,10 +500,11 @@ export default function PublicParentJoinPage({ params }: PageProps) {
                     </div>
                   </div>
 
-                  <div className="text-xs text-slate-700 mb-5 bg-white/80 p-4 rounded-xl border border-white shadow-sm flex flex-col gap-2 font-medium">
-                    <p className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">1</span> {t.guideStep1 || "1. Téléchargez l'application"}</p>
-                    <p className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">2</span> {t.guideStep2 || "2. Choisissez le profil Parent"}</p>
-                    <p className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">3</span> {t.guideStep3 || "3. Connectez-vous avec votre numéro"}</p>
+                  <div className="text-xs text-slate-700 mb-5 bg-white/80 p-4 rounded-xl border border-white shadow-sm flex flex-col gap-3 font-medium">
+                    <p className="flex items-start gap-2.5"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-[-1px]">1</span> <span className="flex-1">{t.guideStep1 || "Téléchargez l'application (Fichier APK)"}</span></p>
+                    <p className="flex items-start gap-2.5"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-[-1px]">2</span> <span className="flex-1">{t.guideStep2 || "Cliquez sur Ouvrir"}</span></p>
+                    <p className="flex items-start gap-2.5"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-[-1px]">3</span> <span className="flex-1">{t.guideStep3 || "Allez dans Paramètres ➔ Autoriser depuis cette source"}</span></p>
+                    <p className="flex items-start gap-2.5"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-[-1px]">4</span> <span className="flex-1">{t.guideStep4 || "Cliquez sur Installer, l'application est prête !"}</span></p>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
