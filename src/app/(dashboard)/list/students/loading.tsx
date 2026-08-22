@@ -26,8 +26,8 @@ export default function Loading() {
     className: "hidden md:table-cell",
   },
   {
-    header: "Phone",
-    accessor: "phone",
+    header: "Parent",
+    accessor: "parent",
     className: "hidden lg:table-cell",
   },
   {

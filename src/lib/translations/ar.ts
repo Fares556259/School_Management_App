@@ -555,6 +555,7 @@ export const ar = {
     title: "الطلاب",
     info: "معلومات",
     grade: "المستوى",
+    parent: "الولي",
     phone: "الهاتف",
     address: "العنوان",
     paidStatus: "حالة الدفع",

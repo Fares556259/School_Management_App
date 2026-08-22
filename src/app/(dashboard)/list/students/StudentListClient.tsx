@@ -70,7 +70,7 @@ export default function StudentListClient({
       ...c,
       header: c.accessor === "info" ? t.students.info 
             : c.accessor === "grade" ? t.students.grade 
-            : c.accessor === "phone" ? t.students.phone 
+            : (c.accessor === "parent" || c.accessor === "phone") ? (t.students.parent || "Parent")
             : c.accessor === "address" ? t.students.address 
             : c.accessor === "isPaid" ? t.students.paidStatus 
             : c.accessor === "action" ? t.students.actions 
@@ -111,7 +111,16 @@ export default function StudentListClient({
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">Level {item.level.level}</td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
-          {item.phone || <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>}
+          {item.parent ? (
+            <div className="flex flex-col">
+              <span className="font-medium text-[#181d26]">{item.parent.name} {item.parent.surname}</span>
+              {item.parent.phone && (
+                <span className="text-[12px] text-[#71717a]">{item.parent.phone}</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>
+          )}
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>
           {item.address || <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>}

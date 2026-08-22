@@ -555,6 +555,7 @@ export const fr = {
     title: "Étudiants",
     info: "Info",
     grade: "Niveau",
+    parent: "Parent",
     phone: "Téléphone",
     address: "Adresse",
     paidStatus: "Statut de Paiement",

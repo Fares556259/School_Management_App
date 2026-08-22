@@ -555,6 +555,7 @@ export const en = {
     title: "Students",
     info: "Info",
     grade: "Grade",
+    parent: "Parent",
     phone: "Phone",
     address: "Address",
     paidStatus: "Paid Status",

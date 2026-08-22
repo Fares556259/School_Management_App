@@ -38,8 +38,8 @@ const columns = [
     className: "hidden md:table-cell",
   },
   {
-    header: "Phone",
-    accessor: "phone",
+    header: "Parent",
+    accessor: "parent",
     className: "hidden lg:table-cell",
   },
   {
@@ -124,6 +124,9 @@ const StudentListPage = async ({
                 { surname: { contains: word, mode: "insensitive" } },
                 { username: { contains: word, mode: "insensitive" } },
                 { phone: { contains: word, mode: "insensitive" } },
+                { parent: { name: { contains: word, mode: "insensitive" } } },
+                { parent: { surname: { contains: word, mode: "insensitive" } } },
+                { parent: { phone: { contains: word, mode: "insensitive" } } },
               ],
             }));
             break;
