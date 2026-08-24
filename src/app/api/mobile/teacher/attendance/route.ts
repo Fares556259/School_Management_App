@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
             note: formattedNote,
             score: isNaN(parsedScore as any) ? undefined : parsedScore
           },
-          create: {
+          await create: {
             studentId: record.studentId,
             date: attendanceDate,
             lessonId: effectiveLessonId,
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
 
       // Notify parent if student is absent or late, AND status actually changed
       if ((record.status === 'ABSENT' || record.status === 'LATE') && record.status !== oldRecord?.status) {
-        createAttendanceNotification(record.studentId, record.status, attendanceDate, effectiveLessonId).catch(console.error);
+        await createAttendanceNotification(record.studentId, record.status, attendanceDate, effectiveLessonId).catch(console.error);
       }
 
       // Notify parent if a remark note was left for this student, AND note actually changed
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
           : null;
         const subjectName = lessonSubject?.subject?.name || 'Class';
         // Use the raw text for the notification instead of the JSON array
-        createRemarkNotification(record.studentId, subjectName, record.note).catch(console.error);
+        await createRemarkNotification(record.studentId, subjectName, record.note).catch(console.error);
       }
     }
 
@@ -310,7 +310,7 @@ export async function POST(request: NextRequest) {
           }
         });
         // Notify parents about the new task
-        createAssignmentNotification(newAssignment.id).catch(console.error);
+        await createAssignmentNotification(newAssignment.id).catch(console.error);
       }
     }
 
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
         }
       });
       // Notify parents about the new resource
-      createResourceNotification(newResource.id).catch(console.error);
+      await createResourceNotification(newResource.id).catch(console.error);
     }
 
     return NextResponse.json({ success: true, count: results.length });

@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { teacherId, classId, title, description, attachments, dueDate } = body;
+    const { teacherId, classId, subjectId, title, description, attachments, dueDate } = body;
 
     if (!title || !classId) {
       return new NextResponse(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
-      select: { schoolId: true }
+      include: { subjects: true },
     });
 
     if (!teacher) {
@@ -128,30 +128,56 @@ export async function POST(request: NextRequest) {
     const schoolId = teacher.schoolId;
     const now = new Date();
     
-    // Find a lesson for this class/teacher today or the most recent one
-    let lesson = await prisma.lesson.findFirst({
-      where: {
-        schoolId,
-        classId: parseInt(classId),
-        teacherId
-      },
-      orderBy: { startTime: 'desc' }
-    });
-
-    // If no lesson exists, create a dummy one to hold the task
-    if (!lesson) {
-      lesson = await prisma.lesson.create({
-        data: {
-          name: "General Session",
-          day: "MONDAY", // Placeholder
-          startTime: now,
-          endTime: now,
-          subjectId: (await prisma.subject.findFirst({ where: { schoolId } }))?.id || 1,
+    // Find or create lesson for this class, teacher, and selected subject
+    let lesson = null;
+    if (subjectId) {
+      lesson = await prisma.lesson.findFirst({
+        where: {
+          schoolId,
           classId: parseInt(classId),
           teacherId,
-          schoolId
+          subjectId: parseInt(subjectId)
         }
       });
+      if (!lesson) {
+        lesson = await prisma.lesson.create({
+          data: {
+            name: "Session",
+            day: "MONDAY",
+            startTime: now,
+            endTime: now,
+            subjectId: parseInt(subjectId),
+            classId: parseInt(classId),
+            teacherId,
+            schoolId
+          }
+        });
+      }
+    } else {
+      lesson = await prisma.lesson.findFirst({
+        where: {
+          schoolId,
+          classId: parseInt(classId),
+          teacherId
+        },
+        orderBy: { startTime: 'desc' }
+      });
+
+      if (!lesson) {
+        const fallbackSubjectId = teacher.subjects?.[0]?.id || (await prisma.subject.findFirst({ where: { schoolId } }))?.id || 1;
+        lesson = await prisma.lesson.create({
+          data: {
+            name: "General Session",
+            day: "MONDAY",
+            startTime: now,
+            endTime: now,
+            subjectId: fallbackSubjectId,
+            classId: parseInt(classId),
+            teacherId,
+            schoolId
+          }
+        });
+      }
     }
 
     const parsedDueDate = dueDate && !isNaN(new Date(dueDate).getTime()) ? new Date(dueDate) : new Date(0);
@@ -168,7 +194,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    createAssignmentNotification(assignment.id).catch(console.error);
+    await createAssignmentNotification(assignment.id).catch(console.error);
 
     return NextResponse.json({ success: true, id: assignment.id });
   } catch (error: any) {
