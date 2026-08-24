@@ -14,6 +14,7 @@ export default function PaySalaryModal({
   isAdmin,
   monthName,
   paidMonths = [],
+  onSuccess,
 }: {
   teacherId: string;
   teacherName: string;
@@ -22,6 +23,7 @@ export default function PaySalaryModal({
   isAdmin: boolean;
   monthName?: string;
   paidMonths?: string[];
+  onSuccess?: (status: "PAID", targetMonth: string) => void;
 }) {
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
@@ -47,6 +49,11 @@ export default function PaySalaryModal({
     const finalAmount = Number(amountToPay);
     if (!isAdmin || !selectedMonth || isSkipping || !finalAmount || finalAmount <= 0) return;
 
+    setIsOpen(false);
+    if (onSuccess) {
+      onSuccess("PAID", selectedMonth);
+    }
+
     startTransition(async () => {
       const result = await payTeacherSalary(
         teacherId,
@@ -54,9 +61,7 @@ export default function PaySalaryModal({
         finalAmount,
         selectedMonth
       );
-      if (result.success) {
-        setIsOpen(false);
-      } else {
+      if (!result.success) {
         alert(result.error);
       }
     });

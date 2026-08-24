@@ -14,6 +14,7 @@ export default function PayStaffModal({
   isAdmin,
   monthName,
   paidMonths = [],
+  onSuccess,
 }: {
   staffId: string;
   staffName: string;
@@ -22,6 +23,7 @@ export default function PayStaffModal({
   isAdmin: boolean;
   monthName?: string;
   paidMonths?: string[];
+  onSuccess?: (status: "PAID", targetMonth: string) => void;
 }) {
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
@@ -47,6 +49,9 @@ export default function PayStaffModal({
     const finalAmount = Number(amountToPay);
     if (!isAdmin || !selectedMonth || isSkipping || !finalAmount || finalAmount <= 0) return;
 
+    setIsOpen(false);
+    if (onSuccess) onSuccess("PAID", selectedMonth);
+
     startTransition(async () => {
       const result = await payStaffSalary(
         staffId,
@@ -54,9 +59,7 @@ export default function PayStaffModal({
         finalAmount,
         selectedMonth
       );
-      if (result.success) {
-        setIsOpen(false);
-      } else {
+      if (!result.success) {
         alert(result.error);
       }
     });

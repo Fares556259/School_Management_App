@@ -16,6 +16,7 @@ export default function PayStudentModal({
   monthName,
   paidMonths = [],
   tuitionFee = 450,
+  onSuccess,
 }: {
   studentId: string;
   studentName: string;
@@ -27,6 +28,7 @@ export default function PayStudentModal({
   monthName?: string;
   paidMonths?: string[];
   tuitionFee?: number;
+  onSuccess?: (amount: number, status: "PAID" | "PARTIAL", targetMonth: string) => void;
 }) {
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
@@ -57,14 +59,19 @@ export default function PayStudentModal({
   const handlePay = () => {
     if (!isAdmin || !selectedMonth || (isSkipping && !isPartial)) return;
 
-    startTransition(async () => {
-      const recoveryMonthIdx = allMonths.indexOf(recoveryMonth);
-      const totalCumulative = initialPaidAmount + additionalAmount;
-      
-      const recoveryDate = (totalCumulative < tuitionAmount && recoveryMonthIdx !== -1) 
-        ? `2026-${String(recoveryMonthIdx + 1).padStart(2, '0')}-01`
-        : undefined;
+    const recoveryMonthIdx = allMonths.indexOf(recoveryMonth);
+    const totalCumulative = initialPaidAmount + additionalAmount;
+    
+    const recoveryDate = (totalCumulative < tuitionAmount && recoveryMonthIdx !== -1) 
+      ? `2026-${String(recoveryMonthIdx + 1).padStart(2, '0')}-01`
+      : undefined;
 
+    setIsOpen(false);
+    if (onSuccess) {
+      onSuccess(totalCumulative, totalCumulative >= tuitionAmount ? "PAID" : "PARTIAL", selectedMonth);
+    }
+
+    startTransition(async () => {
       const result = await receiveStudentPayment(
         studentId,
         studentName,
@@ -73,9 +80,7 @@ export default function PayStudentModal({
         totalCumulative, // Pass the NEW TOTAL
         recoveryDate
       );
-      if (result.success) {
-        setIsOpen(false);
-      } else {
+      if (!result.success) {
         alert(result.error);
       }
     });

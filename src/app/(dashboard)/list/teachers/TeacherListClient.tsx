@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
@@ -49,6 +49,10 @@ export default function TeacherListClient({
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const isPending = isFilterPending || isSearchPending;
   const currentClassId = searchParams.get("classId") || "";
+  const [optimisticData, setOptimisticData] = useState(initialData);
+  useEffect(() => {
+    setOptimisticData(initialData);
+  }, [initialData]);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const { t, locale } = useLanguage();
 
@@ -168,6 +172,23 @@ export default function TeacherListClient({
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
                 .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
+              onSuccess={(newStatus, targetMonth) => {
+                setOptimisticData((prev: any[]) => prev.map((t: any) => {
+                  if (t.id === item.id) {
+                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
+                    const yearVal = parseInt(targetMonth.split(" ")[1]);
+                    const payments = [...(t.payments || [])];
+                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
+                    if (existingIdx >= 0) {
+                      payments[existingIdx] = { ...payments[existingIdx], status: newStatus };
+                    } else {
+                      payments.push({ month: monthIdx, year: yearVal, status: newStatus });
+                    }
+                    return { ...t, payments };
+                  }
+                  return t;
+                }));
+              }}
             />
             {role === "admin" && (
               <>
@@ -249,7 +270,7 @@ export default function TeacherListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
       </div>
       <Pagination page={page} count={count} />
 

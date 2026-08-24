@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
@@ -52,6 +52,10 @@ export default function StudentListClient({
   const [isSearchPending, setIsSearchPending] = useState(false);
   const isPending = isFilterPending || isSearchPending;
   const currentClassId = searchParams.get("classId") || "";
+  const [optimisticData, setOptimisticData] = useState(initialData);
+  useEffect(() => {
+    setOptimisticData(initialData);
+  }, [initialData]);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -161,6 +165,23 @@ export default function StudentListClient({
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" || p.status === "PARTIAL")
                 .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
+              onSuccess={(newAmount, newStatus, targetMonth) => {
+                setOptimisticData((prev: any[]) => prev.map((s: any) => {
+                  if (s.id === item.id) {
+                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
+                    const yearVal = parseInt(targetMonth.split(" ")[1]);
+                    const payments = [...(s.payments || [])];
+                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
+                    if (existingIdx >= 0) {
+                      payments[existingIdx] = { ...payments[existingIdx], amount: newAmount, status: newStatus };
+                    } else {
+                      payments.push({ month: monthIdx, year: yearVal, amount: newAmount, status: newStatus });
+                    }
+                    return { ...s, payments };
+                  }
+                  return s;
+                }));
+              }}
             />
             {role === "admin" && (
               <>
@@ -287,7 +308,7 @@ export default function StudentListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
       </div>
       <Pagination page={page} count={count} />
 

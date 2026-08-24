@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
 import PayStaffModal from "./PayStaffModal";
@@ -34,6 +34,10 @@ export default function StaffListClient({
   selectedMonthKey,
   paidThisMonth,
 }: Props) {
+  const [optimisticData, setOptimisticData] = useState(initialData);
+  useEffect(() => {
+    setOptimisticData(initialData);
+  }, [initialData]);
   const [isSearchPending, setIsSearchPending] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const { t } = useLanguage();
@@ -103,6 +107,23 @@ export default function StaffListClient({
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
                 .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
+              onSuccess={(newStatus, targetMonth) => {
+                setOptimisticData((prev: any[]) => prev.map((s: any) => {
+                  if (s.id === item.id) {
+                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
+                    const yearVal = parseInt(targetMonth.split(" ")[1]);
+                    const payments = [...(s.payments || [])];
+                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
+                    if (existingIdx >= 0) {
+                      payments[existingIdx] = { ...payments[existingIdx], status: newStatus };
+                    } else {
+                      payments.push({ month: monthIdx, year: yearVal, status: newStatus });
+                    }
+                    return { ...s, payments };
+                  }
+                  return s;
+                }));
+              }}
             />
             {role === "admin" && (
               <>
@@ -145,7 +166,7 @@ export default function StaffListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isSearchPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={initialData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
       </div>
       <Pagination page={page} count={count} />
     </>
