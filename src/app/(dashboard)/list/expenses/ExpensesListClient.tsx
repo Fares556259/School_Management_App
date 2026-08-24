@@ -251,7 +251,7 @@ export default function ExpensesListClient({
 
       {/* QUICK CATEGORY TABS */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <Link href="/list/expenses" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+        <Link prefetch={true} href="/list/expenses" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
           {t.expensesPage.allExpenses}
         </Link>
         {(relatedData?.category || []).map((catObj) => {
@@ -259,22 +259,22 @@ export default function ExpensesListClient({
           let label = val;
           let activeClass = "bg-slate-600 text-white shadow-md";
           
-          if (val === "Salary" || val === "Salaire") {
+          if (val.toLowerCase() === "salary" || val.toLowerCase() === "salaire") {
              label = t.expensesPage.salary || val;
              activeClass = "bg-emerald-600 text-white shadow-md";
-          } else if (val === "Utility" || val === "Services publics") {
+          } else if (val.toLowerCase() === "utility" || val.toLowerCase() === "utilities" || val.toLowerCase() === "services publics") {
              label = t.expensesPage.utilities || val;
              activeClass = "bg-blue-600 text-white shadow-md";
-          } else if (val === "Maintenance" || val === "Entretien") {
+          } else if (val.toLowerCase() === "maintenance" || val.toLowerCase() === "entretien") {
              label = t.expensesPage.maintenance || val;
              activeClass = "bg-amber-600 text-white shadow-md";
-          } else if (val === "Equipment" || val === "Équipement") {
+          } else if (val.toLowerCase() === "equipment" || val.toLowerCase() === "equipement" || val.toLowerCase() === "équipement") {
              label = t.expensesPage.equipment || val;
              activeClass = "bg-orange-600 text-white shadow-md";
           }
           
           return (
-            <Link key={val} href={`/list/expenses?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+            <Link prefetch={true} key={val} href={`/list/expenses?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
               {label}
             </Link>
           );

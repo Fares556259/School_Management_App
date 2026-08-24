@@ -251,7 +251,7 @@ export default function IncomesListClient({
 
       {/* QUICK CATEGORY TABS */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <Link href="/list/incomes" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+        <Link prefetch={true} href="/list/incomes" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
           {t.incomesPage.allIncomes}
         </Link>
         {(relatedData?.category || []).map((catObj) => {
@@ -259,21 +259,21 @@ export default function IncomesListClient({
           let label = val;
           let activeClass = "bg-slate-600 text-white shadow-md";
           
-          if (val === "Tuition" || val === "Frais Scolaires") {
+          if (val.toLowerCase() === "tuition" || val.toLowerCase() === "frais scolaires") {
              label = t.incomesPage.tuition || val;
              activeClass = "bg-emerald-600 text-white shadow-md";
-          } else if (val === "Donation" || val === "Dons") {
+          } else if (val.toLowerCase() === "donation" || val.toLowerCase() === "dons") {
              label = t.incomesPage.donations || val;
              activeClass = "bg-blue-600 text-white shadow-md";
-          } else if (val === "Event" || val === "Événements") {
+          } else if (val.toLowerCase() === "event" || val.toLowerCase() === "événements" || val.toLowerCase() === "evenements") {
              label = t.incomesPage.events || val;
              activeClass = "bg-fuchsia-600 text-white shadow-md";
-          } else if (val === "Subventions") {
+          } else if (val.toLowerCase() === "subvention" || val.toLowerCase() === "subventions") {
              activeClass = "bg-amber-600 text-white shadow-md";
           }
           
           return (
-            <Link key={val} href={`/list/incomes?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+            <Link prefetch={true} key={val} href={`/list/incomes?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
               {label}
             </Link>
           );
