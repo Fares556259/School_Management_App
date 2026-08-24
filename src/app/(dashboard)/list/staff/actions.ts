@@ -75,9 +75,10 @@ export const payStaffSalary = async (
     });
 
     const { invalidateTenantTags } = await import("@/lib/cache");
-    invalidateTenantTags(schoolId, "dashboard", "finance", "staff");
+    invalidateTenantTags(schoolId, "dashboard", "finance", "staff", "expenses");
 
     revalidatePath("/list/staff");
+    revalidatePath("/list/expenses");
     revalidatePath("/admin");
     revalidatePath("/admin/finance");
     return { success: true };

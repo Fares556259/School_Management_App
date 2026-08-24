@@ -56,6 +56,8 @@ export const addFinanceEntry = async (formData: FormData) => {
 
     revalidatePath("/admin/finance");
     revalidatePath("/admin/audit");
+    revalidatePath("/list/incomes");
+    revalidatePath("/list/expenses");
     return { success: true };
   } catch (err) {
     console.error(err);

@@ -142,9 +142,11 @@ export const receiveStudentPayment = async (
     console.log(`🚀 [PAYMENT_SUCCESS] Transaction committed for ${studentName}`);
 
     const { invalidateTenantTags } = await import("@/lib/cache");
-    invalidateTenantTags(schoolId, "dashboard", "finance", "students");
+    invalidateTenantTags(schoolId, "dashboard", "finance", "students", "incomes");
 
     revalidatePath("/list/students");
+    revalidatePath("/list/incomes");
+    revalidatePath("/list/payments-partial");
     revalidatePath("/admin");
     return { success: true, data: result };
   } catch (error: any) {
