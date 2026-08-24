@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
@@ -20,12 +20,28 @@ const Pagination = ({
   const hasPrev = ITEM_PER_PAGE * (page - 1) > 0;
   const hasNext = ITEM_PER_PAGE * (page - 1) + ITEM_PER_PAGE < count;
 
+  const getUrl = (newPage: number) => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    params.set("page", newPage.toString());
+    return `${window.location.pathname}?${params.toString()}`;
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const totalPages = Math.ceil(count / ITEM_PER_PAGE);
+    const range = 2;
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - range && i <= page + range)) {
+        router.prefetch(getUrl(i));
+      }
+    }
+  }, [page, count, router]);
+
   const changePage = (newPage: number) => {
     setPendingPage(newPage);
     startTransition(() => {
-      const params = new URLSearchParams(window.location.search);
-      params.set("page", newPage.toString());
-      router.push(`${window.location.pathname}?${params.toString()}`);
+      router.push(getUrl(newPage));
     });
   };
 
@@ -35,6 +51,7 @@ const Pagination = ({
         disabled={!hasPrev || isPending}
         className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
         onClick={() => changePage(page - 1)}
+        onMouseEnter={() => router.prefetch(getUrl(page - 1))}
       >
         {isPending && pendingPage === page - 1 ? (
           <>
@@ -76,6 +93,7 @@ const Pagination = ({
                   page === p ? "bg-[#181d26] text-white border-[#181d26]" : "border-transparent hover:bg-slate-100 text-[#41454d]"
                 } ${isPending && page !== p ? "opacity-50" : ""}`}
                 onClick={() => changePage(p as number)}
+                onMouseEnter={() => router.prefetch(getUrl(p as number))}
               >
                 {isPending && pendingPage === p ? (
                   <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" />
@@ -91,6 +109,7 @@ const Pagination = ({
         disabled={!hasNext || isPending}
         className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
         onClick={() => changePage(page + 1)}
+        onMouseEnter={() => router.prefetch(getUrl(page + 1))}
       >
         {isPending && pendingPage === page + 1 ? (
           <>
