@@ -293,7 +293,8 @@ export default function CrudFormModal({
       } else {
         const val = formData.get(f.name) as string;
         if ((f.type === "number" || f.parseAsNumber) && val) {
-          values[f.name] = parseFloat(val);
+          // Unify comma and dot for international decimal input
+          values[f.name] = parseFloat(val.replace(/,/g, '.'));
         } else if (val) {
           values[f.name] = val;
         } else if (f.required) {
@@ -769,7 +770,8 @@ export default function CrudFormModal({
                         ) : (
                           <input
                             name={f.name}
-                            type={f.type}
+                            type={f.type === "number" ? "text" : f.type}
+                            inputMode={f.type === "number" ? "decimal" : undefined}
                             defaultValue={
                               f.type === "date"
                                 ? formatDate(data?.[f.name])
@@ -788,6 +790,12 @@ export default function CrudFormModal({
                                 ? "border-rose-500 focus:ring-rose-500"
                                 : "border-[#dddddd] focus:border-[#458fff] focus:ring-[#458fff]"
                             } rounded-[6px] px-4 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder-[#9297a0]`}
+                            onInput={(e) => {
+                              if (f.type === "number") {
+                                const target = e.target as HTMLInputElement;
+                                target.value = target.value.replace(/[^0-9.,]/g, '');
+                              }
+                            }}
                           />
                         )}
                       </div>
