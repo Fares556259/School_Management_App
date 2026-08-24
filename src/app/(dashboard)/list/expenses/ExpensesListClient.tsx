@@ -274,7 +274,12 @@ export default function ExpensesListClient({
           }
           
           return (
-            <Link prefetch={true} key={val} href={`/list/expenses?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+            <Link 
+              prefetch={true} 
+              key={val} 
+              href={{ pathname: "/list/expenses", query: { category: val } }} 
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
+            >
               {label}
             </Link>
           );
