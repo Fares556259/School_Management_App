@@ -41,7 +41,7 @@ export async function getCachedTenantData<T>(
   domain: CacheDomain,
   keyParts: (string | number | boolean | undefined | null)[],
   fetchFn: () => Promise<T>,
-  revalidateSec: number = 300
+  revalidateSec: number = 30
 ): Promise<T> {
   const normalizedKey = [
     `tenant-${schoolId}`,
