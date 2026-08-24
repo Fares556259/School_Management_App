@@ -419,12 +419,12 @@ export async function POST(request: NextRequest) {
       creates.length > 0 ? prisma.attendance.createMany({ data: creates }) : Promise.resolve(),
     ]);
 
-    // Trigger notifications asynchronously for ABSENT and LATE
-    records.forEach((r) => {
+    // Await notifications to ensure serverless environments (like Vercel) don't kill the process
+    await Promise.all(records.map(async (r) => {
       if (r.status !== "PRESENT") {
-        createAttendanceNotification(r.studentId, r.status, dayStart);
+        await createAttendanceNotification(r.studentId, r.status, dayStart).catch(console.error);
       }
-    });
+    }));
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
