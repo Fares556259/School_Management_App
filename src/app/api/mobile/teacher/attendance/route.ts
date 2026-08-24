@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
             note: formattedNote,
             score: isNaN(parsedScore as any) ? undefined : parsedScore
           },
-          await create: {
+          create: {
             studentId: record.studentId,
             date: attendanceDate,
             lessonId: effectiveLessonId,
