@@ -306,6 +306,9 @@ export default function CrudFormModal({
     // Handle image state: ensure null is sent if photo was explicitly removed
     values.img = imgs.length > 0 ? imgs.join(",") : null;
 
+    // Optimistic UI: Close modal instantly to remove the 3-second blocking wait
+    setOpen(false);
+
     const promise = new Promise(async (resolve, reject) => {
       startTransition(async () => {
         let result;
@@ -360,6 +363,9 @@ export default function CrudFormModal({
     if (!id) return;
     setError("");
     
+    // Optimistic UI: Close modal instantly
+    setOpen(false);
+
     const promise = new Promise(async (resolve, reject) => {
       startTransition(async () => {
         try {
