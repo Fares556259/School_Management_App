@@ -202,6 +202,7 @@ export default function CrudFormModal({
   id,
   trigger,
   relatedData,
+  onSuccess,
 }: {
   entity: EntityType;
   mode: "create" | "update" | "delete";
@@ -209,6 +210,7 @@ export default function CrudFormModal({
   id?: string | number;
   trigger?: React.ReactNode;
   relatedData?: Record<string, { value: string; label: string }[]>;
+  onSuccess?: (values: any, mode: "create" | "update" | "delete", id?: string | number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -308,6 +310,9 @@ export default function CrudFormModal({
 
     // Optimistic UI: Close modal instantly to remove the 3-second blocking wait
     setOpen(false);
+    
+    // Trigger optimistic update in parent component immediately
+    if (onSuccess) onSuccess(values, mode, id);
 
     const promise = new Promise(async (resolve, reject) => {
       startTransition(async () => {
@@ -365,6 +370,8 @@ export default function CrudFormModal({
     
     // Optimistic UI: Close modal instantly
     setOpen(false);
+
+    if (onSuccess) onSuccess({}, "delete", id);
 
     const promise = new Promise(async (resolve, reject) => {
       startTransition(async () => {

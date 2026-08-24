@@ -1,5 +1,5 @@
 "use client";
-
+import { useState, useEffect } from "react";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -33,6 +33,26 @@ export default function IncomesListClient({
   category,
 }: IncomesListClientProps) {
   const { t, locale } = useLanguage();
+
+  const [optimisticData, setOptimisticData] = useState<Income[]>(data);
+
+  useEffect(() => {
+    setOptimisticData(data);
+  }, [data]);
+
+  const handleOptimisticUpdate = (values: any, mode: "create" | "update" | "delete", id?: number | string) => {
+    if (mode === "create") {
+      setOptimisticData(prev => [{
+        id: Math.random(),
+        ...values,
+        date: values.date || new Date().toISOString(),
+      }, ...prev]);
+    } else if (mode === "update" && id) {
+      setOptimisticData(prev => prev.map(item => item.id === id ? { ...item, ...values } : item));
+    } else if (mode === "delete" && id) {
+      setOptimisticData(prev => prev.filter(item => item.id !== id));
+    }
+  };
 
   const columns = [
     {
@@ -155,8 +175,8 @@ export default function IncomesListClient({
           <FinanceDetailsModal type="income" item={item} />
           {role === "admin" && (
             <>
-              <CrudFormModal entity="income" mode="update" data={item} id={item.id} relatedData={relatedData} />
-              <CrudFormModal entity="income" mode="delete" id={item.id} />
+              <CrudFormModal entity="income" mode="update" data={item} id={item.id} relatedData={relatedData} onSuccess={handleOptimisticUpdate} />
+              <CrudFormModal entity="income" mode="delete" id={item.id} onSuccess={handleOptimisticUpdate} />
             </>
           )}
         </div>
@@ -216,7 +236,7 @@ export default function IncomesListClient({
           <div className="flex items-center gap-3 self-end md:self-auto">
             <FinanceDateFilter />
             <FinanceExportButton data={allData} filename="Incomes" />
-            {role === "admin" && <CrudFormModal entity="income" mode="create" relatedData={relatedData} />}
+            {role === "admin" && <CrudFormModal entity="income" mode="create" relatedData={relatedData} onSuccess={handleOptimisticUpdate} />}
           </div>
         </div>
       </div>
@@ -287,7 +307,7 @@ export default function IncomesListClient({
 
       {/* LIST */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
-        <Table columns={columns} renderRow={renderRow} data={data} />
+        <Table columns={columns} renderRow={renderRow} data={optimisticData} />
       </div>
       {/* PAGINATION */}
       <div className="mt-6">
