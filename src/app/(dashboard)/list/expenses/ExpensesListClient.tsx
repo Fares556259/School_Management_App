@@ -254,18 +254,31 @@ export default function ExpensesListClient({
         <Link href="/list/expenses" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
           {t.expensesPage.allExpenses}
         </Link>
-        <Link href="/list/expenses?category=Salary" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Salary' ? "bg-emerald-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.expensesPage.salary}
-        </Link>
-        <Link href="/list/expenses?category=Utility" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Utility' ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.expensesPage.utilities}
-        </Link>
-        <Link href="/list/expenses?category=Maintenance" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Maintenance' ? "bg-amber-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.expensesPage.maintenance}
-        </Link>
-        <Link href="/list/expenses?category=Equipment" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Equipment' ? "bg-orange-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.expensesPage.equipment}
-        </Link>
+        {(relatedData?.category || []).map((catObj) => {
+          const val = catObj.value;
+          let label = val;
+          let activeClass = "bg-slate-600 text-white shadow-md";
+          
+          if (val === "Salary" || val === "Salaire") {
+             label = t.expensesPage.salary || val;
+             activeClass = "bg-emerald-600 text-white shadow-md";
+          } else if (val === "Utility" || val === "Services publics") {
+             label = t.expensesPage.utilities || val;
+             activeClass = "bg-blue-600 text-white shadow-md";
+          } else if (val === "Maintenance" || val === "Entretien") {
+             label = t.expensesPage.maintenance || val;
+             activeClass = "bg-amber-600 text-white shadow-md";
+          } else if (val === "Equipment" || val === "Équipement") {
+             label = t.expensesPage.equipment || val;
+             activeClass = "bg-orange-600 text-white shadow-md";
+          }
+          
+          return (
+            <Link key={val} href={`/list/expenses?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+              {label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* LIST */}

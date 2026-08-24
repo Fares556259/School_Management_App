@@ -254,15 +254,30 @@ export default function IncomesListClient({
         <Link href="/list/incomes" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
           {t.incomesPage.allIncomes}
         </Link>
-        <Link href="/list/incomes?category=Tuition" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Tuition' ? "bg-emerald-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.incomesPage.tuition}
-        </Link>
-        <Link href="/list/incomes?category=Donation" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Donation' ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.incomesPage.donations}
-        </Link>
-        <Link href="/list/incomes?category=Event" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === 'Event' ? "bg-fuchsia-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.incomesPage.events}
-        </Link>
+        {(relatedData?.category || []).map((catObj) => {
+          const val = catObj.value;
+          let label = val;
+          let activeClass = "bg-slate-600 text-white shadow-md";
+          
+          if (val === "Tuition" || val === "Frais Scolaires") {
+             label = t.incomesPage.tuition || val;
+             activeClass = "bg-emerald-600 text-white shadow-md";
+          } else if (val === "Donation" || val === "Dons") {
+             label = t.incomesPage.donations || val;
+             activeClass = "bg-blue-600 text-white shadow-md";
+          } else if (val === "Event" || val === "Événements") {
+             label = t.incomesPage.events || val;
+             activeClass = "bg-fuchsia-600 text-white shadow-md";
+          } else if (val === "Subventions") {
+             activeClass = "bg-amber-600 text-white shadow-md";
+          }
+          
+          return (
+            <Link key={val} href={`/list/incomes?category=${encodeURIComponent(val)}`} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+              {label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* LIST */}
