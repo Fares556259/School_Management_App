@@ -120,7 +120,7 @@ export async function createAnnouncementNotifications(noticeId: number) {
     });
 
     // Send push notifications in batch
-    sendPushBatch(
+    await sendPushBatch(
       parentIds,
       notice.important ? `🚨 عاجل: ${notice.title}` : `📢 ${notice.title}`,
       notice.message.substring(0, 100) + (notice.message.length > 100 ? "..." : ""),
@@ -213,7 +213,7 @@ export async function processPaymentReminders(force: boolean = false) {
           }
           
           // Send push notification
-          sendPush(
+          await sendPush(
             student.parentId,
             "💰 Payment Reminder",
             message,
@@ -275,7 +275,7 @@ export async function createAttendanceNotification(studentId: string, status: st
     });
 
     // Send push notification
-    sendPush(
+    await sendPush(
       student.parentId,
       `📍 الحضور: ${status === 'ABSENT' ? 'غياب' : 'تأخير'}`,
       `${student.name} ${statusLabel}${lessonInfo ? lessonInfo : ` اليوم (${dateStr})`}.`,
@@ -307,6 +307,9 @@ export async function createAssignmentNotification(assignmentId: number) {
 
     const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
 
+    const rawSubject = assignment.lesson.subject.name || "";
+    const cleanSubject = rawSubject.split('|')[0].trim();
+
     // Create database notifications
     await prisma.notification.createMany({
       data: students.map((s) => ({
@@ -315,15 +318,15 @@ export async function createAssignmentNotification(assignmentId: number) {
         studentId: s.id,
         type: "ANNOUNCEMENT",
         title: `📝 مهمة جديدة: ${assignment.title}`,
-        message: `تم تعيين مهمة جديدة في ${assignment.lesson.subject.name} لـ ${s.name}.`,
+        message: `تم تعيين مهمة جديدة في ${cleanSubject} لـ ${s.name}.`,
       })),
     });
 
     // Send push notifications in batch
-    sendPushBatch(
+    await sendPushBatch(
       parentIds,
       `📝 مهمة جديدة: ${assignment.title}`,
-      `تمت إضافة مهمة جديدة في ${assignment.lesson.subject.name}.`,
+      `تمت إضافة مهمة جديدة في ${cleanSubject}.`,
       { type: "HOMEWORK", homeworkId: assignment.id }
     );
 
@@ -364,7 +367,7 @@ export async function createResourceNotification(resourceId: number) {
 
     // Send push notifications in batch
     const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
-    sendPushBatch(
+    await sendPushBatch(
       parentIds,
       `📚 ملخص جديد: ${resource.title}`,
       `تمت إضافة مواد تعليمية جديدة في مادة ${resource.lesson.subject.name}.`,
@@ -425,7 +428,7 @@ export async function createDetailedAbsenceAlert(studentId: string, history: { d
       }
     });
 
-    sendPush(
+    await sendPush(
       student.parentId,
       title,
       message,
@@ -464,7 +467,7 @@ export async function createRemarkNotification(studentId: string, subjectName: s
       }
     });
 
-    sendPush(
+    await sendPush(
       student.parentId,
       `📝 ملاحظة المعلم — ${subjectName}`,
       `"${truncated}"`,
@@ -514,7 +517,7 @@ export async function createExamScheduleNotification(classId: number, period: nu
     });
 
     // Send push notifications in batch
-    sendPushBatch(
+    await sendPushBatch(
       parentIds,
       title,
       message,
