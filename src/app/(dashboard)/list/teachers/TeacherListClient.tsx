@@ -54,12 +54,42 @@ export default function TeacherListClient({
     setOptimisticData(initialData);
   }, [initialData]);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
   const { t, locale } = useLanguage();
 
   const classList = (relatedData?.classes || []).map((c: any) => ({
     id: c.value,
     name: c.label,
   }));
+
+  
+  
+  const filteredData = optimisticData.filter((item: any) => {
+    if (clientClassId && !item.classes?.some((c: any) => String(c.id) === clientClassId)) {
+      return false;
+    }
+    if (clientSearch) {
+      const s = clientSearch.toLowerCase();
+      const matchesName = item.name?.toLowerCase().includes(s);
+      const matchesSurname = item.surname?.toLowerCase().includes(s);
+      const matchesPhone = item.phone?.toLowerCase().includes(s);
+      const matchesSubjects = item.subjects?.some((sub: any) => sub.name?.toLowerCase().includes(s));
+      if (!matchesName && !matchesSurname && !matchesPhone && !matchesSubjects) return false;
+    }
+    return true;
+  });
+
+  const ITEM_PER_PAGE = 10;
+  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const paginatedData = filteredData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
+  const displayCount = filteredData.length;
+
+  const displayPaidCount = filteredData.filter((t: any) => {
+    const monthIdx = MONTHS.indexOf(selectedMonthKey.split(" ")[0]) + 1;
+    const yearVal = parseInt(selectedMonthKey.split(" ")[1]);
+    return t.payments?.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID");
+  }).length;
 
   const translatedColumns = columns.map((c: any) => ({
     ...c,
@@ -208,8 +238,8 @@ export default function TeacherListClient({
       {/* 1. MONTH SUMMARY */}
       <div className="flex items-center justify-between mb-6">
         <MonthPaymentSummary
-          total={initialData.length}
-          paidCount={paidThisMonth}
+          total={displayCount}
+          paidCount={displayPaidCount}
           monthLabel={selectedMonthKey}
           entityName="teachers"
         />
@@ -221,22 +251,12 @@ export default function TeacherListClient({
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           {/* SEARCH AND FILTER */}
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <TableSearch onPending={setIsSearchPending} />
+            <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
-              value={currentClassId}
-              onChange={(e) => {
-                startTransition(() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (e.target.value) {
-                    params.set("classId", e.target.value);
-                  } else {
-                    params.delete("classId");
-                  }
-                  params.delete("page");
-                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                });
-              }}
+              
+              onChange={(e) => setClientClassId(e.target.value)}
+              value={clientClassId}
             >
               <option value="">{t.teachers.allClasses}</option>
               {classList.map((c: any) => (
@@ -270,9 +290,9 @@ export default function TeacherListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
       </div>
-      <Pagination page={page} count={count} />
+      <Pagination page={page} count={displayCount} />
 
       {/* MODALS */}
       {isBulkOpen && (

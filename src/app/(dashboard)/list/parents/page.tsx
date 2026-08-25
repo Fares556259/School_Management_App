@@ -72,16 +72,7 @@ const ParentListPage = async ({
               },
             };
             break;
-          case "search":
-            query.AND = value.split(" ").filter(Boolean).map((word) => ({
-              OR: [
-                { name: { contains: word, mode: "insensitive" } },
-                { surname: { contains: word, mode: "insensitive" } },
-                { username: { contains: word, mode: "insensitive" } },
-                { phone: { contains: word, mode: "insensitive" } },
-              ],
-            }));
-            break;
+
           default:
             break;
         }
@@ -99,8 +90,8 @@ const ParentListPage = async ({
         include: {
           students: true,
         },
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
+        
+        
         orderBy: { name: "asc" }
       }),
       prisma.parent.count({ where: query }),

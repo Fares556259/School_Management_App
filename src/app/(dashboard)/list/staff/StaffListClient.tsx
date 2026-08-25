@@ -39,8 +39,27 @@ export default function StaffListClient({
     setOptimisticData(initialData);
   }, [initialData]);
   const [isSearchPending, setIsSearchPending] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const { t } = useLanguage();
+
+  
+  const filteredData = initialData.filter((item: any) => {
+    if (clientSearch) {
+      const s = clientSearch.toLowerCase();
+      const matchesName = item.name?.toLowerCase().includes(s);
+      const matchesSurname = item.surname?.toLowerCase().includes(s);
+      const matchesPhone = item.phone?.toLowerCase().includes(s);
+      const matchesRole = item.role?.toLowerCase().includes(s);
+      if (!matchesName && !matchesSurname && !matchesPhone && !matchesRole) return false;
+    }
+    return true;
+  });
+
+  const ITEM_PER_PAGE = 10;
+  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const paginatedData = filteredData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
+  const displayCount = filteredData.length;
 
   const translatedColumns = columns.map((c: any) => ({
     ...c,
@@ -153,7 +172,7 @@ export default function StaffListClient({
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.staff.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch onPending={setIsSearchPending} />
+          <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
@@ -168,7 +187,7 @@ export default function StaffListClient({
       <div className={`transition-opacity duration-200 ${isSearchPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
         <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
       </div>
-      <Pagination page={page} count={count} />
+      <Pagination page={page} count={displayCount} />
     </>
   );
 }

@@ -78,27 +78,7 @@ const TeacherListPage = async ({
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            query.classes = {
-              some: {
-                id: parseInt(value),
-              },
-            };
-            break;
-          case "search":
-            query.AND = value.split(" ").filter(Boolean).map((word) => ({
-              OR: [
-                { name: { contains: word, mode: "insensitive" } },
-                { surname: { contains: word, mode: "insensitive" } },
-                { username: { contains: word, mode: "insensitive" } },
-                { phone: { contains: word, mode: "insensitive" } },
-              ],
-            }));
-            break;
-          default:
-            break;
-        }
+
       }
     }
   }
@@ -119,8 +99,8 @@ const TeacherListPage = async ({
           timetable: { include: { subject: true, class: true } },
           payments: { select: { month: true, year: true, status: true, paidAt: true } },
         },
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
+        
+        
       }),
       prisma.teacher.count({ where: query }),
       prisma.subject.findMany({ where: { schoolId, parentId: null }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
