@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye, CalendarDays, ChevronDown, AlertTriangle } from "lucide-react";
@@ -56,10 +56,13 @@ const TimetablePage = ({
     documentTitle: `Timetable_${new Date().toLocaleDateString()}`,
   });
 
-  const classId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
-  const selectedClass = classId 
-    ? classes.find(c => c.id === classId) 
-    : classes.find(c => c.name === "1A") || classes[0];
+  const urlClassId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
+  const [clientClassId, setClientClassId] = useState<number | undefined>(urlClassId);
+  const selectedClass = clientClassId 
+    ? classes.find(c => c.id === clientClassId) 
+    : urlClassId 
+      ? classes.find(c => c.id === urlClassId) 
+      : classes.find(c => c.name === "1A") || classes[0];
 
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
@@ -115,6 +118,11 @@ const TimetablePage = ({
     }
   };
 
+  const classSlots = React.useMemo(() => {
+    if (isDraftView || !selectedClass) return undefined;
+    return (allActiveSlots || []).filter((s: any) => s.classId === selectedClass.id);
+  }, [allActiveSlots, selectedClass?.id, isDraftView]);
+
   return (
     <div className="p-6 lg:p-10 flex flex-col gap-8 flex-1 bg-white">
        {/* Unified Main Dashboard Header Card */}
@@ -149,7 +157,11 @@ const TimetablePage = ({
                       className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
                       value={selectedClass?.id}
                       onChange={(e) => {
-                        router.push(`${forceDraft ? "/admin/timetable/ai" : "/admin/timetable"}?classId=${e.target.value}`);
+                        if (forceDraft) {
+                          router.push(`/admin/timetable/ai?classId=${e.target.value}`);
+                        } else {
+                          setClientClassId(parseInt(e.target.value));
+                        }
                       }}
                     >
                       {classes.map(cls => (
@@ -250,6 +262,7 @@ const TimetablePage = ({
         <ScheduleGrid 
           ref={gridRef}
           classId={selectedClass.id} 
+          slots={classSlots}
           subjects={subjects}
           teachers={teachers}
           rooms={rooms}
@@ -261,7 +274,10 @@ const TimetablePage = ({
           onMoveAction={moveTimetableSlot}
           onUpdateAction={updateTimetableSlot}
           onDeleteAction={deleteTimetableSlot}
-          onRefresh={() => setRefreshKey(prev => prev + 1)}
+          onRefresh={() => {
+            setRefreshKey(prev => prev + 1);
+            router.refresh();
+          }}
           sessions={sessions}
           isDraft={isDraftView}
         />
