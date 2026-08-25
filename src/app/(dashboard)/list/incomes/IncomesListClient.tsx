@@ -102,6 +102,7 @@ export default function IncomesListClient({
       tTitle = tTitle.replace(/^Tuition:/i, "رسوم دراسية:");
       tTitle = tTitle.replace(/^Salary:/i, "الراتب:");
       tTitle = tTitle.replace(/Recovery/i, "استرداد");
+      tTitle = tTitle.replace(/\(Multi\)/i, "(متعدد)");
       tTitle = tTitle.replace(/January/i, "يناير");
       tTitle = tTitle.replace(/February/i, "فبراير");
       tTitle = tTitle.replace(/March/i, "مارس");
@@ -118,6 +119,7 @@ export default function IncomesListClient({
       tTitle = tTitle.replace(/^Tuition:/i, "Frais Scolaires:");
       tTitle = tTitle.replace(/^Salary:/i, "Salaire:");
       tTitle = tTitle.replace(/Recovery/i, "Recouvrement");
+      tTitle = tTitle.replace(/\(Multi\)/i, "(Multi)");
       tTitle = tTitle.replace(/January/i, "Janvier");
       tTitle = tTitle.replace(/February/i, "Février");
       tTitle = tTitle.replace(/March/i, "Mars");
