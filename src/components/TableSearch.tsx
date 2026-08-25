@@ -8,9 +8,10 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 interface TableSearchProps {
   onPending?: (isPending: boolean) => void;
   onChangeImmediate?: (val: string) => void;
+  clientSideOnly?: boolean;
 }
 
-const TableSearch = ({ onPending, onChangeImmediate }: TableSearchProps = {}) => {
+const TableSearch = ({ onPending, onChangeImmediate, clientSideOnly }: TableSearchProps = {}) => {
   const router = useRouter();
   const { t } = useLanguage();
 
@@ -18,14 +19,18 @@ const TableSearch = ({ onPending, onChangeImmediate }: TableSearchProps = {}) =>
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const initialSearch = searchParams.get("search") || "";
-  const [searchValue, setSearchValue] = useState(initialSearch);
+  const [searchValue, setSearchValue] = useState(clientSideOnly ? "" : initialSearch);
 
   // Sync state if URL changes externally
   useEffect(() => {
-    setSearchValue(searchParams.get("search") || "");
-  }, [searchParams]);
+    if (!clientSideOnly) {
+      setSearchValue(searchParams.get("search") || "");
+    }
+  }, [searchParams, clientSideOnly]);
 
   useEffect(() => {
+    if (clientSideOnly) return;
+
     const timeoutId = setTimeout(() => {
       // Only push if the value actually changed to prevent infinite loops
       if (searchValue !== (searchParams.get("search") || "")) {
@@ -44,7 +49,7 @@ const TableSearch = ({ onPending, onChangeImmediate }: TableSearchProps = {}) =>
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchValue, searchParams, pathname, router]);
+  }, [searchValue, searchParams, pathname, router, clientSideOnly]);
 
   useEffect(() => {
     if (onPending && !isPending) {

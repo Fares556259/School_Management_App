@@ -160,8 +160,6 @@ const StudentListPage = async ({
             select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } 
           },
         },
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
       }),
       prisma.student.count({ where: query }),
       prisma.parent.findMany({ 

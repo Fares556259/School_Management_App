@@ -75,6 +75,10 @@ export default function StudentListClient({
     `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase())
   ) : optimisticData;
 
+  const ITEM_PER_PAGE = 10;
+  const paginatedData = displayedData.slice((page - 1) * ITEM_PER_PAGE, page * ITEM_PER_PAGE);
+  const displayCount = displayedData.length;
+
 
   const translatedColumns = columns
     .filter(c => c.accessor !== "studentId")
@@ -220,7 +224,7 @@ export default function StudentListClient({
         <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
           {/* SEARCH AND FILTER */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            <TableSearch onPending={setIsSearchPending} onChangeImmediate={setClientSearch} />
+            <TableSearch clientSideOnly={true} onChangeImmediate={setClientSearch} />
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={currentClassId}
@@ -316,9 +320,9 @@ export default function StudentListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={displayedData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
       </div>
-      <Pagination page={page} count={count} />
+      <Pagination page={page} count={displayCount} />
 
       {/* MODALS */}
       {isBulkOpen && (

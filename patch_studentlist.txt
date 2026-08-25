@@ -1,0 +1,9 @@
+  const displayedData = clientSearch ? optimisticData.filter(item => 
+    item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
+    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase())
+  ) : optimisticData;
+
+  const ITEM_PER_PAGE = 10;
+  const paginatedData = displayedData.slice((page - 1) * ITEM_PER_PAGE, page * ITEM_PER_PAGE);
+  const displayCount = displayedData.length;
