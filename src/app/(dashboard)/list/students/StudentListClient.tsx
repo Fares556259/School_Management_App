@@ -308,33 +308,6 @@ export default function StudentListClient({
                 setClientStatus(e.target.value);
               }}
             >
-              {schoolYearMonths.map(m => {
-                const [mName, yStr] = m.split(" ");
-                const mIdx = MONTHS.indexOf(mName);
-                const translatedMonth = t.months?.[mIdx] || mName;
-                return (
-                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
-                );
-              })}
-            </select>
-
-            {/* STATUS FILTER */}
-            <select
-              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
-              value={searchParams.get("status") || ""}
-              onChange={(e) => {
-                startTransition(() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (e.target.value) {
-                    params.set("status", e.target.value);
-                  } else {
-                    params.delete("status");
-                  }
-                  params.delete("page");
-                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                });
-              }}
-            >
               <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
               <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
               <option value="PARTIAL">{locale === 'ar' ? 'جزئي' : locale === 'fr' ? 'Partiel' : 'Partial'}</option>
