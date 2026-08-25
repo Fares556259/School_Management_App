@@ -54,6 +54,8 @@ export default function StudentListClient({
   const currentClassId = searchParams.get("classId") || "";
   const [optimisticData, setOptimisticData] = useState(initialData);
   const [clientSearch, setClientSearch] = useState("");
+  const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
+  const [clientStatus, setClientStatus] = useState(searchParams.get("status") || "");
 
   useEffect(() => {
     setOptimisticData(initialData);
@@ -69,11 +71,41 @@ export default function StudentListClient({
   }));
 
   const schoolYearMonths = getSchoolYearMonths();
-  const displayedData = clientSearch ? optimisticData.filter(item => 
-    item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
-    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase())
-  ) : optimisticData;
+
+  const filteredData = optimisticData.filter(item => {
+    if (clientSearch) {
+      const match = item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
+                    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase());
+      if (!match) return false;
+    }
+    if (clientClassId && String(item.classId) !== clientClassId) {
+      return false;
+    }
+    if (clientStatus) {
+      const [mName, yStr] = selectedMonthKey.split(" ");
+      const monthIdx = MONTHS.indexOf(mName) + 1;
+      const yearVal = parseInt(yStr);
+      const currentPayment = item.payments.find((p: any) => p.month === monthIdx && p.year === yearVal);
+      const isPaid = currentPayment?.status === "PAID";
+      const isPartial = currentPayment?.status === "PARTIAL";
+
+      if (clientStatus === "PAID" && !isPaid) return false;
+      if (clientStatus === "PARTIAL" && !isPartial) return false;
+      if (clientStatus === "UNPAID" && (isPaid || isPartial)) return false;
+    }
+    return true;
+  });
+
+  const displayedData = filteredData;
+  const displayTotalThisMonth = displayedData.length;
+  const displayPaidThisMonth = displayedData.filter(item => {
+    const [mName, yStr] = selectedMonthKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+    return item.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID");
+  }).length;
+
 
   const ITEM_PER_PAGE = 10;
   const paginatedData = displayedData.slice((page - 1) * ITEM_PER_PAGE, page * ITEM_PER_PAGE);
@@ -212,8 +244,8 @@ export default function StudentListClient({
       {/* 1. MONTH SUMMARY */}
       <div className="flex items-center justify-between mb-6">
         <MonthPaymentSummary
-          total={totalThisMonth}
-          paidCount={paidThisMonth}
+          total={displayTotalThisMonth}
+          paidCount={displayPaidThisMonth}
           monthLabel={selectedMonthKey}
           entityName="students"
         />
@@ -227,18 +259,9 @@ export default function StudentListClient({
             <TableSearch clientSideOnly={true} onChangeImmediate={setClientSearch} />
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
-              value={currentClassId}
+              value={clientClassId}
               onChange={(e) => {
-                startTransition(() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (e.target.value) {
-                    params.set("classId", e.target.value);
-                  } else {
-                    params.delete("classId");
-                  }
-                  params.delete("page");
-                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                });
+                setClientClassId(e.target.value);
               }}
             >
               <option value="">{locale === 'ar' ? 'جميع الأقسام' : locale === 'fr' ? 'Toutes les classes' : 'All Classes'}</option>
@@ -265,6 +288,24 @@ export default function StudentListClient({
                   params.delete("page");
                   router.push(`${pathname}?${params.toString()}`, { scroll: false });
                 });
+              }}
+            >
+              {schoolYearMonths.map(m => {
+                const [mName, yStr] = m.split(" ");
+                const mIdx = MONTHS.indexOf(mName);
+                const translatedMonth = t.months?.[mIdx] || mName;
+                return (
+                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
+                );
+              })}
+            </select>
+
+            {/* STATUS FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              value={clientStatus}
+              onChange={(e) => {
+                setClientStatus(e.target.value);
               }}
             >
               {schoolYearMonths.map(m => {
