@@ -234,11 +234,11 @@ export const receiveMultipleStudentPayments = async (
         let suffix = "";
         const isRecovery = paymentsToProcess.some((p: any) => p.isRecovery);
         if (paymentsToProcess.length > 1) {
-          suffix = " (Combined)";
+          suffix = " - Combined";
         } else if (paymentsToProcess[0].isPartial) {
-          suffix = " (Partial)";
+          suffix = " - Partial";
         } else if (isRecovery) {
-          suffix = " (Recovery)";
+          suffix = " - Recovery";
         }
         const titleRef = paymentsToProcess[0].monthYear + suffix;
 
