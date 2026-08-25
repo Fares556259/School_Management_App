@@ -17,8 +17,9 @@ const Pagination = ({
   const [isPending, startTransition] = useTransition();
   const [pendingPage, setPendingPage] = useState<number | null>(null);
 
-  const hasPrev = ITEM_PER_PAGE * (page - 1) > 0;
-  const hasNext = ITEM_PER_PAGE * (page - 1) + ITEM_PER_PAGE < count;
+  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const hasPrev = ITEM_PER_PAGE * (safePage - 1) > 0;
+  const hasNext = ITEM_PER_PAGE * (safePage - 1) + ITEM_PER_PAGE < count;
 
   const getUrl = (newPage: number) => {
     if (typeof window === "undefined") return "";
@@ -32,7 +33,7 @@ const Pagination = ({
     const totalPages = Math.ceil(count / ITEM_PER_PAGE);
     const range = 2;
     for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || (i >= page - range && i <= page + range)) {
+      if (i === 1 || i === totalPages || (i >= safePage - range && i <= safePage + range)) {
         router.prefetch(getUrl(i));
       }
     }
@@ -50,10 +51,10 @@ const Pagination = ({
       <button
         disabled={!hasPrev || isPending}
         className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        onClick={() => changePage(page - 1)}
-        onMouseEnter={() => router.prefetch(getUrl(page - 1))}
+        onClick={() => changePage(safePage - 1)}
+        onMouseEnter={() => router.prefetch(getUrl(safePage - 1))}
       >
-        {isPending && pendingPage === page - 1 ? (
+        {isPending && pendingPage === safePage - 1 ? (
           <>
             <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" />
             <span>{t.pagination.previous}</span>
@@ -72,7 +73,7 @@ const Pagination = ({
             if (
               i === 1 ||
               i === totalPages ||
-              (i >= page - range && i <= page + range)
+              (i >= safePage - range && i <= safePage + range)
             ) {
               if (pages.length > 0 && i > (pages[pages.length - 1] as number) + 1) {
                 pages.push("...");
@@ -90,8 +91,8 @@ const Pagination = ({
                 key={p}
                 disabled={isPending}
                 className={`w-8 h-8 rounded-[8px] flex items-center justify-center text-[13px] font-medium transition-all border ${
-                  page === p ? "bg-[#181d26] text-white border-[#181d26]" : "border-transparent hover:bg-slate-100 text-[#41454d]"
-                } ${isPending && page !== p ? "opacity-50" : ""}`}
+                  safePage === p ? "bg-[#181d26] text-white border-[#181d26]" : "border-transparent hover:bg-slate-100 text-[#41454d]"
+                } ${isPending && safePage !== p ? "opacity-50" : ""}`}
                 onClick={() => changePage(p as number)}
                 onMouseEnter={() => router.prefetch(getUrl(p as number))}
               >
@@ -108,10 +109,10 @@ const Pagination = ({
       <button
         disabled={!hasNext || isPending}
         className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        onClick={() => changePage(page + 1)}
-        onMouseEnter={() => router.prefetch(getUrl(page + 1))}
+        onClick={() => changePage(safePage + 1)}
+        onMouseEnter={() => router.prefetch(getUrl(safePage + 1))}
       >
-        {isPending && pendingPage === page + 1 ? (
+        {isPending && pendingPage === safePage + 1 ? (
           <>
             <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" />
             <span>{t.pagination.next}</span>

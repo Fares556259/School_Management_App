@@ -108,7 +108,8 @@ export default function StudentListClient({
 
 
   const ITEM_PER_PAGE = 10;
-  const paginatedData = displayedData.slice((page - 1) * ITEM_PER_PAGE, page * ITEM_PER_PAGE);
+  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const paginatedData = displayedData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
   const displayCount = displayedData.length;
 
 

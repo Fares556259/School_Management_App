@@ -84,9 +84,6 @@ const StudentListPage = async ({
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
-          case "classId":
-            query.classId = parseInt(value);
-            break;
           case "teacherId":
             query.class = {
               lessons: {
@@ -95,40 +92,6 @@ const StudentListPage = async ({
                 },
               },
             };
-            break;
-          case "status":
-            if (value === "PAID" || value === "PARTIAL") {
-              query.payments = {
-                some: {
-                  month: monthIdx,
-                  year: yearVal,
-                  status: value,
-                },
-              };
-            } else if (value === "UNPAID") {
-              query.payments = {
-                none: {
-                  month: monthIdx,
-                  year: yearVal,
-                  status: {
-                    in: ["PAID", "PARTIAL"],
-                  }
-                }
-              };
-            }
-            break;
-          case "search":
-            query.AND = value.split(" ").filter(Boolean).map((word) => ({
-              OR: [
-                { name: { contains: word, mode: "insensitive" } },
-                { surname: { contains: word, mode: "insensitive" } },
-                { username: { contains: word, mode: "insensitive" } },
-                { phone: { contains: word, mode: "insensitive" } },
-                { parent: { name: { contains: word, mode: "insensitive" } } },
-                { parent: { surname: { contains: word, mode: "insensitive" } } },
-                { parent: { phone: { contains: word, mode: "insensitive" } } },
-              ],
-            }));
             break;
           default:
             break;
