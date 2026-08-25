@@ -4,6 +4,79 @@ import React, { useState, useTransition, useEffect } from "react";
 import { payTeacherSalary, updateMissedHours } from "./actions";
 import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+
+const dict = {
+  en: {
+    processSalary: "Process Salary",
+    for: "For",
+    targetMonth: "Target Month",
+    selectMonth: "Select Month",
+    salaryBreakdown: "Salary Breakdown",
+    hourlyRate: "Hourly Rate",
+    monthlyHours: "Monthly Hours",
+    baseSalary: "Base Salary",
+    missedHours: "Missed Hours",
+    reset: "Reset",
+    hoursMissed: "hours missed",
+    deduction: "deduction",
+    add: "+ Add",
+    finalAmount: "Final Amount",
+    hoursToAdd: "Hours to add",
+    cancel: "Cancel",
+    confirmPayment: "Confirm Payment",
+    confirming: "Confirming...",
+    success: "Salary processed successfully!",
+    error: "Failed to process salary",
+    skipWarning: "Please pay for {earliestUnpaid} first to maintain chronological bookkeeping."
+  },
+  fr: {
+    processSalary: "Traiter le salaire",
+    for: "Pour",
+    targetMonth: "Mois cible",
+    selectMonth: "Sélectionner le mois",
+    salaryBreakdown: "Détail du salaire",
+    hourlyRate: "Taux horaire",
+    monthlyHours: "Heures mensuelles",
+    baseSalary: "Salaire de base",
+    missedHours: "Heures manquées",
+    reset: "Réinitialiser",
+    hoursMissed: "heures manquées",
+    deduction: "déduction",
+    add: "+ Ajouter",
+    finalAmount: "Montant final",
+    hoursToAdd: "Heures à ajouter",
+    cancel: "Annuler",
+    confirmPayment: "Confirmer le paiement",
+    confirming: "Confirmation...",
+    success: "Salaire traité avec succès!",
+    error: "Échec du traitement du salaire",
+    skipWarning: "Veuillez d'abord payer {earliestUnpaid} pour maintenir une comptabilité chronologique."
+  },
+  ar: {
+    processSalary: "معالجة الراتب",
+    for: "لـ",
+    targetMonth: "الشهر المستهدف",
+    selectMonth: "اختر الشهر",
+    salaryBreakdown: "تفاصيل الراتب",
+    hourlyRate: "معدل الساعة",
+    monthlyHours: "الساعات الشهرية",
+    baseSalary: "الراتب الأساسي",
+    missedHours: "الساعات الضائعة",
+    reset: "إعادة ضبط",
+    hoursMissed: "ساعات ضائعة",
+    deduction: "خصم",
+    add: "+ إضافة",
+    finalAmount: "المبلغ النهائي",
+    hoursToAdd: "الساعات المضافة",
+    cancel: "إلغاء",
+    confirmPayment: "تأكيد الدفع",
+    confirming: "جاري التأكيد...",
+    success: "تمت معالجة الراتب بنجاح!",
+    error: "فشلت معالجة الراتب",
+    skipWarning: "يرجى الدفع لشهر {earliestUnpaid} أولاً للحفاظ على التسلسل الزمني."
+  }
+};
 
 export default function PaySalaryModal({
   teacherId,
@@ -32,6 +105,9 @@ export default function PaySalaryModal({
   onSuccess?: (status: "PAID", targetMonth: string) => void;
   onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
 }) {
+  const { locale } = useLanguage();
+  const t = dict[locale as keyof typeof dict] || dict.en;
+
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
 
@@ -143,7 +219,7 @@ export default function PaySalaryModal({
         onClick={() => setIsOpen(true)}
         disabled={!isAdmin}
         className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d] disabled:opacity-50"
-        title="Process Salary"
+        title={t.processSalary}
       >
         <Banknote size={16} strokeWidth={2} />
       </button>
@@ -159,26 +235,22 @@ export default function PaySalaryModal({
           >
             {/* Header */}
             <div className="p-6 border-b border-[#f1f5f9] flex flex-col gap-1">
-              <h2 className="text-[18px] font-semibold text-[#181d26] tracking-tight">
-                Process Salary
-              </h2>
+              <h2 className="text-[18px] font-semibold text-[#181d26] tracking-tight">{t.processSalary}</h2>
               <p className="text-[13px] text-[#5a5a5a]">
-                For <span className="font-medium text-[#181d26]">{teacherName}</span>
+                {t.for} <span className="font-medium text-[#181d26]">{teacherName}</span>
               </p>
             </div>
 
             <div className="p-6">
               {/* Target Month */}
               <div className="mb-5">
-                <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">
-                  Target Month
-                </label>
+                <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">{t.targetMonth}</label>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="w-full border border-[#dddddd] bg-white rounded-[8px] px-3 py-2.5 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[14px] text-[#181d26]"
                 >
-                  <option value="" disabled>Select Month</option>
+                  <option value="" disabled>{t.selectMonth}</option>
                   {monthsList.map((m) => (
                     <option key={m} value={m}>{m}</option>
                   ))}
@@ -188,18 +260,18 @@ export default function PaySalaryModal({
               {/* Salary Breakdown */}
               {rate > 0 && monthlyHours > 0 && (
                 <div className="mb-5 p-4 bg-[#f8fafc] rounded-[8px] border border-[#e2e8f0]">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">Salary Breakdown</span>
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">{t.salaryBreakdown}</span>
                   <div className="mt-2 space-y-1">
                     <div className="flex justify-between text-[13px]">
-                      <span className="text-[#64748b]">Hourly Rate</span>
+                      <span className="text-[#64748b]">{t.hourlyRate}</span>
                       <span className="font-medium text-[#181d26]">{rate} DT/h</span>
                     </div>
                     <div className="flex justify-between text-[13px]">
-                      <span className="text-[#64748b]">Monthly Hours</span>
+                      <span className="text-[#64748b]">{t.monthlyHours}</span>
                       <span className="font-medium text-[#181d26]">{monthlyHours} h</span>
                     </div>
                     <div className="flex justify-between text-[13px] pt-1 border-t border-[#e2e8f0]">
-                      <span className="text-[#64748b]">Base Salary</span>
+                      <span className="text-[#64748b]">{t.baseSalary}</span>
                       <span className="font-semibold text-[#181d26]">{baseSalary.toLocaleString()} DT</span>
                     </div>
                   </div>
@@ -209,17 +281,13 @@ export default function PaySalaryModal({
               {/* Missed Hours Section */}
               <div className="mb-5">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-[13px] font-medium text-[#41454d]">
-                    Missed Hours
-                  </label>
+                  <label className="text-[13px] font-medium text-[#41454d]">{t.missedHours}</label>
                   {missedHours > 0 && (
                     <button
                       type="button"
                       onClick={handleResetMissedHours}
                       className="text-[11px] text-rose-500 hover:text-rose-700 font-medium"
-                    >
-                      Reset
-                    </button>
+                    >{t.reset}</button>
                   )}
                 </div>
 
@@ -230,7 +298,7 @@ export default function PaySalaryModal({
                       ? "bg-rose-50 border-rose-200 text-rose-700" 
                       : "bg-emerald-50 border-emerald-200 text-emerald-700"
                   }`}>
-                    {missedHours} hours missed
+                    {missedHours} {t.hoursMissed}
                     {missedHours > 0 && rate > 0 && (
                       <span className="text-[12px] font-normal ml-1">
                         (−{(missedHours * rate).toLocaleString()} DT)
@@ -247,7 +315,7 @@ export default function PaySalaryModal({
                       value={addHours}
                       onChange={(e) => setAddHours(e.target.value)}
                       min={0}
-                      placeholder="Hours to add"
+                      placeholder={t.hoursToAdd}
                       className="w-full border border-[#dddddd] bg-white rounded-[8px] pl-3 pr-8 py-2 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[13px] text-[#181d26]"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#94a3b8]">h</span>
@@ -257,23 +325,21 @@ export default function PaySalaryModal({
                     onClick={handleAddMissedHours}
                     disabled={!addHours || Number(addHours) <= 0}
                     className="px-3 py-2 text-[12px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-40 whitespace-nowrap"
-                  >
-                    + Add
-                  </button>
+                  >{t.add}</button>
                 </div>
               </div>
 
               {/* Final Amount */}
               <div className="mb-6 p-4 bg-[#f0fdf4] rounded-[8px] border border-[#bbf7d0]">
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] font-semibold text-[#166534]">Final Amount</span>
+                  <span className="text-[13px] font-semibold text-[#166534]">{t.finalAmount}</span>
                   <span className="text-[20px] font-bold text-[#166534]">
                     {finalAmount.toLocaleString()} <span className="text-[14px] font-normal">DT</span>
                   </span>
                 </div>
                 {deduction > 0 && (
                   <p className="text-[11px] text-[#166534] mt-1">
-                    {baseSalary.toLocaleString()} − {deduction.toLocaleString()} (deduction)
+                    {baseSalary.toLocaleString()} − {deduction.toLocaleString()} ({t.deduction})
                   </p>
                 )}
               </div>
@@ -282,7 +348,9 @@ export default function PaySalaryModal({
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-[8px] flex items-start gap-2.5">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                   <p className="text-[12px] text-amber-800 leading-relaxed">
-                    Please pay for <strong className="font-semibold">{earliestUnpaid}</strong> first to maintain chronological bookkeeping.
+                    {t.skipWarning.split("{earliestUnpaid}")[0]}
+                    <strong className="font-semibold">{earliestUnpaid}</strong>
+                    {t.skipWarning.split("{earliestUnpaid}")[1]}
                   </p>
                 </div>
               )}
@@ -293,16 +361,14 @@ export default function PaySalaryModal({
                   onClick={() => setIsOpen(false)}
                   className="flex-1 px-4 py-2.5 text-[13px] font-medium text-[#41454d] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[8px] transition-all"
                   disabled={isPending}
-                >
-                  Cancel
-                </button>
+                >{t.cancel}</button>
                 <button
                   type="button"
                   onClick={handlePay}
                   disabled={isPending || !selectedMonth || isSkipping}
                   className="flex-1 px-4 py-2.5 text-[13px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-50 shadow-sm"
                 >
-                  {isPending ? "Confirming..." : "Confirm Payment"}
+                  {isPending ? t.confirming : t.confirmPayment}
                 </button>
               </div>
             </div>
