@@ -18,8 +18,6 @@ import StudentListClient from "./StudentListClient";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
-
 type StudentList = Student & { class: Class | null } & { level: Level } & { payments: Payment[] };
 
 const columns = [
