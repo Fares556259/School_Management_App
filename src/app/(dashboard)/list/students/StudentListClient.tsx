@@ -53,6 +53,8 @@ export default function StudentListClient({
   const isPending = isFilterPending || isSearchPending;
   const currentClassId = searchParams.get("classId") || "";
   const [optimisticData, setOptimisticData] = useState(initialData);
+  const [clientSearch, setClientSearch] = useState("");
+
   useEffect(() => {
     setOptimisticData(initialData);
   }, [initialData]);
@@ -67,6 +69,12 @@ export default function StudentListClient({
   }));
 
   const schoolYearMonths = getSchoolYearMonths();
+  const displayedData = clientSearch ? optimisticData.filter(item => 
+    item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
+    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase())
+  ) : optimisticData;
+
 
   const translatedColumns = columns
     .filter(c => c.accessor !== "studentId")
@@ -212,7 +220,7 @@ export default function StudentListClient({
         <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
           {/* SEARCH AND FILTER */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            <TableSearch onPending={setIsSearchPending} />
+            <TableSearch onPending={setIsSearchPending} onChangeImmediate={setClientSearch} />
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={currentClassId}
@@ -308,7 +316,7 @@ export default function StudentListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={displayedData} />
       </div>
       <Pagination page={page} count={count} />
 

@@ -7,9 +7,10 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface TableSearchProps {
   onPending?: (isPending: boolean) => void;
+  onChangeImmediate?: (val: string) => void;
 }
 
-const TableSearch = ({ onPending }: TableSearchProps = {}) => {
+const TableSearch = ({ onPending, onChangeImmediate }: TableSearchProps = {}) => {
   const router = useRouter();
   const { t } = useLanguage();
 
@@ -64,7 +65,10 @@ const TableSearch = ({ onPending }: TableSearchProps = {}) => {
         type="text"
         placeholder={t.navbar.search || "Search..."}
         value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
+        onChange={(e) => {
+          setSearchValue(e.target.value);
+          if (onChangeImmediate) onChangeImmediate(e.target.value);
+        }}
         className="w-full bg-white border border-[#dddddd] rounded-[6px] pl-10 pr-4 py-2 text-[13px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
       />
     </div>

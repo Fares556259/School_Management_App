@@ -1,0 +1,4 @@
+        onChange={(e) => {
+          setSearchValue(e.target.value);
+          if (onChangeImmediate) onChangeImmediate(e.target.value);
+        }}
