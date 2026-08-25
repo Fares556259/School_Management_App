@@ -132,7 +132,6 @@ const TimetablePage = ({
           <div className="flex items-center gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1 text-[12px] font-medium text-[#5a5a5a]">
-                <span className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded">DEBUG slots: {allActiveSlots?.length} | classSlots: {classSlots?.length}</span>
                 <span>{forceDraft ? t.timetable.aiPlayground : t.timetable.registry}</span>
                 <span className="w-1 h-1 rounded-full bg-[#dddddd]"></span>
                 <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-600' : 'text-emerald-600'}`}>
