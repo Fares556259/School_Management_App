@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { notifyTeacherAbsenceJustified } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    await notifyTeacherAbsenceJustified(parseInt(attendanceId)).catch(console.error);
     return NextResponse.json({ success: true, attendance: updated });
   } catch (error: any) {
     console.error("[Mobile Justify Error]", error);

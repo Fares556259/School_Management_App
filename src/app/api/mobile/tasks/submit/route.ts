@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { notifyTeacherTaskSubmitted } from "@/lib/notifications";
 
 // GET: Check if a student has completed a specific task
 export async function GET(request: NextRequest) {
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
           submittedAt: new Date(),
         }
       });
+      await notifyTeacherTaskSubmitted(studentId, parseInt(assignmentId)).catch(console.error);
       return NextResponse.json({ success: true, message: "Submission updated" });
     }
 
@@ -98,6 +100,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    await notifyTeacherTaskSubmitted(studentId, parseInt(assignmentId)).catch(console.error);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[Task Submit Error]", error);
