@@ -446,6 +446,8 @@ export const ar = {
       "Parent": "الولي",
       "Blood Type": "فصيلة الدم",
       "Salary (DT)": "الراتب (DT)",
+      "Hourly Rate (DT/h)": "معدل الأجر بالساعة (DT/h)",
+      "Hours Per Month": "الساعات في الشهر",
       "Subjects": "المواد",
       "Classes": "الأقسام",
       "Male": "ذكر",

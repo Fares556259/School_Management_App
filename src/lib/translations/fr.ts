@@ -446,6 +446,8 @@ export const fr = {
       "Parent": "Parent",
       "Blood Type": "Groupe sanguin",
       "Salary (DT)": "Salaire (DT)",
+      "Hourly Rate (DT/h)": "Taux horaire (DT/h)",
+      "Hours Per Month": "Heures par mois",
       "Subjects": "Matières",
       "Classes": "Classes",
       "Male": "Garçon",
