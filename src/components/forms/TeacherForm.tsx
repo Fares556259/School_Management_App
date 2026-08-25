@@ -19,6 +19,8 @@ const schema = z.object({
   birthday: z.string().min(1, { message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   salary: z.coerce.number().optional(),
+  hourlyRate: z.coerce.number().optional(),
+  hoursPerMonth: z.coerce.number().optional(),
 });
 
 type Inputs = z.infer<typeof schema>;
@@ -49,6 +51,8 @@ const TeacherForm = ({
       birthday: data?.birthday ? new Date(data.birthday).toISOString().split("T")[0] : "",
       sex: data?.sex || "MALE",
       salary: data?.salary || 1000,
+      hourlyRate: data?.hourlyRate || undefined,
+      hoursPerMonth: data?.hoursPerMonth || undefined,
     },
   });
 
@@ -64,6 +68,8 @@ const TeacherForm = ({
         birthday: formData.birthday,
         sex: formData.sex as "MALE" | "FEMALE",
         salary: formData.salary,
+        hourlyRate: formData.hourlyRate,
+        hoursPerMonth: formData.hoursPerMonth,
         img: img || undefined,
       };
       const res = type === "create"
@@ -125,7 +131,23 @@ const TeacherForm = ({
           type="date"
         />
         <InputField
-          label="Monthly Salary ($)"
+          label="Hourly Rate (DT/h)"
+          name="hourlyRate"
+          defaultValue={data?.hourlyRate}
+          register={register}
+          error={errors.hourlyRate}
+          type="number"
+        />
+        <InputField
+          label="Hours Per Month"
+          name="hoursPerMonth"
+          defaultValue={data?.hoursPerMonth}
+          register={register}
+          error={errors.hoursPerMonth}
+          type="number"
+        />
+        <InputField
+          label="Monthly Salary (DT)"
           name="salary"
           defaultValue={data?.salary}
           register={register}

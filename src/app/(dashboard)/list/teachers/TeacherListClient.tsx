@@ -196,9 +196,12 @@ export default function TeacherListClient({
               teacherId={item.id} 
               teacherName={item.name + " " + item.surname}
               salary={item.salary}
+              hourlyRate={item.hourlyRate || undefined}
+              hoursPerMonth={item.hoursPerMonth || undefined}
               isPaid={isPaidThisMonth} 
               isAdmin={role === "admin"} 
               monthName={selectedMonthKey}
+              payments={item.payments}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
                 .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}

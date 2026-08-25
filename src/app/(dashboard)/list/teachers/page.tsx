@@ -97,7 +97,7 @@ const TeacherListPage = async ({
           subjects: true,
           classes: true,
           timetable: { include: { subject: true, class: true } },
-          payments: { select: { month: true, year: true, status: true, paidAt: true } },
+          payments: { select: { month: true, year: true, status: true, paidAt: true, missedHours: true } },
         },
         
         

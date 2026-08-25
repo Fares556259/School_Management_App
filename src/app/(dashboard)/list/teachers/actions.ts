@@ -5,15 +5,56 @@ import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { getSchoolId } from "@/lib/school";
 
+const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+export const updateMissedHours = async (
+  teacherId: string,
+  monthYear: string,
+  missedHours: number
+) => {
+  const [mName, yStr] = monthYear.split(" ");
+  const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
+  const yearVal = parseInt(yStr);
+
+  try {
+    const schoolId = await getSchoolId();
+
+    await prisma.payment.upsert({
+      where: {
+        teacherId_month_year: { teacherId, month: monthIdx, year: yearVal }
+      },
+      update: {
+        missedHours,
+      },
+      create: {
+        teacherId,
+        amount: 0,
+        month: monthIdx,
+        year: yearVal,
+        status: "PENDING",
+        userType: "TEACHER",
+        missedHours,
+        schoolId,
+      }
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to update missed hours:", err);
+    return { success: false, error: "Failed to update missed hours." };
+  }
+};
+
 export const payTeacherSalary = async (
   teacherId: string,
   teacherName: string,
   amount: number,
-  monthYear: string
+  monthYear: string,
+  missedHours?: number,
+  deduction?: number
 ) => {
-  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const [mName, yStr] = monthYear.split(" ");
-  const monthIdx = MONTHS.indexOf(mName) + 1;
+  const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
   try {
@@ -31,7 +72,8 @@ export const payTeacherSalary = async (
         update: {
           status: "PAID",
           paidAt: new Date(),
-          amount
+          amount,
+          missedHours: missedHours || 0,
         },
         create: {
           teacherId,
@@ -41,14 +83,21 @@ export const payTeacherSalary = async (
           status: "PAID",
           userType: "TEACHER",
           paidAt: new Date(),
+          missedHours: missedHours || 0,
           schoolId,
         }
       });
 
+      // Build expense title with deduction info
+      let expenseTitle = `Salary: ${teacherName} (${monthYear})`;
+      if (deduction && deduction > 0) {
+        expenseTitle += ` - ${missedHours}h missed`;
+      }
+
       // Also add to Expense table for central reporting
       await tx.expense.create({
         data: {
-          title: `Salary: ${teacherName} (${monthYear})`,
+          title: expenseTitle,
           amount,
           date: new Date(),
           category: "Salary",
@@ -68,7 +117,7 @@ export const payTeacherSalary = async (
       action: "PAY_SALARY",
       entityType: "Teacher",
       entityId: teacherId,
-      description: `Paid salary of $${amount} to ${teacherName} for ${monthYear}`,
+      description: `Paid salary of ${amount} DT to ${teacherName} for ${monthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`,
       amount,
       type: 'expense',
       effectiveDate,

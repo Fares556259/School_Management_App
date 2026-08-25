@@ -22,6 +22,8 @@ export const createTeacher = async (data: {
   birthday: string;
   sex: "MALE" | "FEMALE";
   salary?: number;
+  hourlyRate?: number;
+  hoursPerMonth?: number;
   img?: string;
   subjects?: number[];
   classes?: number[];
@@ -43,7 +45,9 @@ export const createTeacher = async (data: {
         bloodType: data.bloodType || "Inconnu",
         birthday: new Date(data.birthday),
         sex: data.sex,
-        salary: data.salary ?? 3000,
+        salary: (data.hourlyRate && data.hoursPerMonth) ? data.hourlyRate * data.hoursPerMonth : (data.salary ?? 3000),
+        hourlyRate: data.hourlyRate || null,
+        hoursPerMonth: data.hoursPerMonth || null,
         img: data.img || null,
         subjects: data.subjects ? { connect: data.subjects.map(sId => ({ id: sId })) } : undefined,
         classes: data.classes ? { connect: data.classes.map(cId => ({ id: cId })) } : undefined,
@@ -128,6 +132,8 @@ export const updateTeacher = async (
     birthday: string;
     sex: "MALE" | "FEMALE";
     salary: number;
+    hourlyRate: number;
+    hoursPerMonth: number;
     img: string | null;
     subjects: number[];
     classes: number[];
@@ -139,6 +145,11 @@ export const updateTeacher = async (
       ...data,
       birthday: data.birthday ? new Date(data.birthday) : undefined,
     };
+
+    // Auto-compute salary from hourly fields
+    if (data.hourlyRate !== undefined && data.hoursPerMonth !== undefined) {
+      updateData.salary = data.hourlyRate * data.hoursPerMonth;
+    }
     
     if (data.subjects !== undefined) {
       updateData.subjects = { set: data.subjects.map(sId => ({ id: sId })) };

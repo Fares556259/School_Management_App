@@ -1,28 +1,33 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { payTeacherSalary } from "./actions";
-import { getSchoolYearMonths, isMonthBefore } from "@/lib/dateUtils";
-
+import React, { useState, useTransition, useEffect } from "react";
+import { payTeacherSalary, updateMissedHours } from "./actions";
+import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
 
 export default function PaySalaryModal({
   teacherId,
   teacherName,
   salary,
+  hourlyRate,
+  hoursPerMonth,
   isPaid,
   isAdmin,
   monthName,
   paidMonths = [],
+  payments = [],
   onSuccess,
 }: {
   teacherId: string;
   teacherName: string;
   salary: number;
+  hourlyRate?: number;
+  hoursPerMonth?: number;
   isPaid: boolean;
   isAdmin: boolean;
   monthName?: string;
   paidMonths?: string[];
+  payments?: any[];
   onSuccess?: (status: "PAID", targetMonth: string) => void;
 }) {
   const allMonths = getSchoolYearMonths();
@@ -30,24 +35,68 @@ export default function PaySalaryModal({
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
-  const [amountToPay, setAmountToPay] = useState<number | string>(salary);
   const [isPending, startTransition] = useTransition();
+
+  // Get existing missed hours for the selected month from payments data
+  const getExistingMissedHours = (monthKey: string): number => {
+    if (!payments || !monthKey) return 0;
+    const [mName, yStr] = monthKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+    const found = payments.find(p => p.month === monthIdx && p.year === yearVal);
+    return found?.missedHours || 0;
+  };
+
+  const [missedHours, setMissedHours] = useState(0);
+  const [addHours, setAddHours] = useState<number | string>(0);
+
+  const rate = hourlyRate || 0;
+  const monthlyHours = hoursPerMonth || 0;
+  const baseSalary = rate > 0 && monthlyHours > 0 ? rate * monthlyHours : salary;
+  const deduction = missedHours * rate;
+  const finalAmount = Math.max(0, baseSalary - deduction);
 
   const earliestUnpaid = monthsList[0];
   const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
 
   useEffect(() => {
     if (isOpen) {
-      setAmountToPay(salary);
       if (!selectedMonth || paidMonths.includes(selectedMonth)) {
         setSelectedMonth(monthsList[0] || "");
       }
     }
   }, [isOpen]);
 
+  // Update missed hours when month changes
+  useEffect(() => {
+    const existing = getExistingMissedHours(selectedMonth);
+    setMissedHours(existing);
+    setAddHours(0);
+  }, [selectedMonth]);
+
+  const handleAddMissedHours = () => {
+    const toAdd = Number(addHours);
+    if (toAdd <= 0) return;
+    const newTotal = missedHours + toAdd;
+    setMissedHours(newTotal);
+    setAddHours(0);
+
+    // Save to DB in the background
+    startTransition(async () => {
+      await updateMissedHours(teacherId, selectedMonth, newTotal);
+    });
+  };
+
+  const handleResetMissedHours = () => {
+    setMissedHours(0);
+    setAddHours(0);
+    startTransition(async () => {
+      await updateMissedHours(teacherId, selectedMonth, 0);
+    });
+  };
+
   const handlePay = () => {
-    const finalAmount = Number(amountToPay);
-    if (!isAdmin || !selectedMonth || isSkipping || !finalAmount || finalAmount <= 0) return;
+    if (!isAdmin || !selectedMonth || isSkipping) return;
 
     setIsOpen(false);
     if (onSuccess) {
@@ -59,7 +108,9 @@ export default function PaySalaryModal({
         teacherId,
         teacherName,
         finalAmount,
-        selectedMonth
+        selectedMonth,
+        missedHours,
+        deduction
       );
       if (!result.success) {
         alert(result.error);
@@ -98,28 +149,8 @@ export default function PaySalaryModal({
             </div>
 
             <div className="p-6">
-              {/* Financial Summary */}
-              <div className="mb-5 p-4 bg-[#f8fafc] rounded-[8px] border border-[#e2e8f0]">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">Payment Amount</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="flex-1">
-                    <p className="text-[12px] font-medium text-[#64748b] mb-1">Base Salary: {salary} DT</p>
-                    <div className="relative flex items-center max-w-[200px]">
-                      <input 
-                        type="number" 
-                        value={amountToPay} 
-                        onChange={(e) => setAmountToPay(e.target.value)}
-                        className="w-full text-[20px] font-semibold text-[#181d26] bg-white border border-[#dddddd] rounded-[6px] pl-3 pr-10 py-1 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <span className="absolute right-3 text-[14px] font-normal text-[#64748b]">DT</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-6">
+              {/* Target Month */}
+              <div className="mb-5">
                 <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">
                   Target Month
                 </label>
@@ -133,6 +164,99 @@ export default function PaySalaryModal({
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Salary Breakdown */}
+              {rate > 0 && monthlyHours > 0 && (
+                <div className="mb-5 p-4 bg-[#f8fafc] rounded-[8px] border border-[#e2e8f0]">
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">Salary Breakdown</span>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[13px]">
+                      <span className="text-[#64748b]">Hourly Rate</span>
+                      <span className="font-medium text-[#181d26]">{rate} DT/h</span>
+                    </div>
+                    <div className="flex justify-between text-[13px]">
+                      <span className="text-[#64748b]">Monthly Hours</span>
+                      <span className="font-medium text-[#181d26]">{monthlyHours} h</span>
+                    </div>
+                    <div className="flex justify-between text-[13px] pt-1 border-t border-[#e2e8f0]">
+                      <span className="text-[#64748b]">Base Salary</span>
+                      <span className="font-semibold text-[#181d26]">{baseSalary.toLocaleString()} DT</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Missed Hours Section */}
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[13px] font-medium text-[#41454d]">
+                    Missed Hours
+                  </label>
+                  {missedHours > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleResetMissedHours}
+                      className="text-[11px] text-rose-500 hover:text-rose-700 font-medium"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                {/* Current counter */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`flex-1 px-3 py-2 rounded-[8px] border text-[14px] font-medium ${
+                    missedHours > 0 
+                      ? "bg-rose-50 border-rose-200 text-rose-700" 
+                      : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  }`}>
+                    {missedHours} hours missed
+                    {missedHours > 0 && rate > 0 && (
+                      <span className="text-[12px] font-normal ml-1">
+                        (−{(missedHours * rate).toLocaleString()} DT)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Add hours input */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      value={addHours}
+                      onChange={(e) => setAddHours(e.target.value)}
+                      min={0}
+                      placeholder="Hours to add"
+                      className="w-full border border-[#dddddd] bg-white rounded-[8px] pl-3 pr-8 py-2 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[13px] text-[#181d26]"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#94a3b8]">h</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddMissedHours}
+                    disabled={!addHours || Number(addHours) <= 0}
+                    className="px-3 py-2 text-[12px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-40 whitespace-nowrap"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Final Amount */}
+              <div className="mb-6 p-4 bg-[#f0fdf4] rounded-[8px] border border-[#bbf7d0]">
+                <div className="flex justify-between items-center">
+                  <span className="text-[13px] font-semibold text-[#166534]">Final Amount</span>
+                  <span className="text-[20px] font-bold text-[#166534]">
+                    {finalAmount.toLocaleString()} <span className="text-[14px] font-normal">DT</span>
+                  </span>
+                </div>
+                {deduction > 0 && (
+                  <p className="text-[11px] text-[#166534] mt-1">
+                    {baseSalary.toLocaleString()} − {deduction.toLocaleString()} (deduction)
+                  </p>
+                )}
               </div>
 
               {isSkipping && (
