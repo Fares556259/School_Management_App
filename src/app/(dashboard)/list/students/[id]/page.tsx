@@ -50,6 +50,8 @@ const SingleStudentPage = async ({
           },
           parent: true,
           payments: true,
+          level: true,
+
         },
       }),
     600
@@ -166,6 +168,8 @@ const SingleStudentPage = async ({
           studentName={`${student.name} ${student.surname}`}
           gradeLevel={student.levelId}
           payments={student.payments}
+          customTuition={student.customTuition}
+          levelTuitionFee={student.level?.tuitionFee || 450}
           isAdmin={role === "admin"}
         />
 
@@ -213,6 +217,8 @@ const SingleStudentPage = async ({
           studentName={student.name + " " + student.surname}
           gradeLevel={student.levelId}
           payments={student.payments}
+          customTuition={student.customTuition}
+          levelTuitionFee={student.level?.tuitionFee || 450}
           isAdmin={role === "admin"}
         />
 

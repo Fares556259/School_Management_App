@@ -199,6 +199,7 @@ export const createStudent = async (data: {
   parentId: string;
   classId: number;
   levelId?: number;
+    customTuition?: number | null;
   img?: string | null;
 }) => {
   try {
@@ -352,6 +353,7 @@ export const updateStudent = async (
     parentId: string;
     classId: number;
     levelId?: number;
+    customTuition?: number | null;
     img: string | null;
   }>
 ) => {
@@ -557,6 +559,7 @@ export const createClass = async (data: {
   name: string;
   capacity: number;
   levelId?: number;
+    customTuition?: number | null;
   supervisorId?: string;
 }) => {
   try {

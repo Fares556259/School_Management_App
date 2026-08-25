@@ -8,12 +8,16 @@ export default function StudentPaymentTracker({
   studentId,
   studentName,
   gradeLevel,
+  customTuition,
+  levelTuitionFee,
   payments,
   isAdmin,
 }: {
   studentId: string;
   studentName: string;
   gradeLevel: number;
+  customTuition?: number | null;
+  levelTuitionFee: number;
   payments: any[];
   isAdmin: boolean;
 }) {
@@ -50,7 +54,7 @@ export default function StudentPaymentTracker({
   });
 
   const isPaid = paidMonths.has(monthStr);
-  const tuitionAmount = 80 + gradeLevel * 20;
+  const tuitionAmount = customTuition ?? levelTuitionFee;
 
   const handlePay = () => {
     if (!isAdmin || isPending || isPaid) return;

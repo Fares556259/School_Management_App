@@ -61,6 +61,8 @@ model Student {
   classId       Int?
   birthday      DateTime
   levelId       Int
+  customTuition Float?
+
   schoolId      String         @default("default_school")
   attendance    Attendance[]
   grades        Grade[]

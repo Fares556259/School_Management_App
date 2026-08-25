@@ -35,7 +35,7 @@ type EntityType = "teacher" | "student" | "staff" | "parent" | "class" | "subjec
 interface FieldDef {
   name: string;
   label: string;
-  type: "text" | "email" | "number" | "date" | "select" | "multi-select" | "image" | "searchable-select" | "creatable-select";
+  type: "text" | "email" | "number" | "date" | "select" | "multi-select" | "image" | "searchable-select" | "creatable-select" | "conditional-number";
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
@@ -74,6 +74,8 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
     { name: "parentId", label: "Parent", type: "searchable-select", required: true },
     { name: "classId", label: "Class", type: "select", required: true, parseAsNumber: true },
+    { name: "customTuition", label: "Special Tuition Rate", type: "conditional-number", parseAsNumber: true },
+
     { name: "img", label: "Profile Photo", type: "image" },
   ],
   staff: [
@@ -216,6 +218,8 @@ export default function CrudFormModal({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [imgs, setImgs] = useState<string[]>(parseImgs(data?.img));
+  const [isSpecialTuition, setIsSpecialTuition] = useState<boolean>(!!data?.customTuition);
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewActiveIdx, setPreviewActiveIdx] = useState(0);
   const [uploadingImg, setUploadingImg] = useState(false);
@@ -292,9 +296,11 @@ export default function CrudFormModal({
         values[f.name] = vals.map(v => f.parseAsNumber ? parseInt(v as string, 10) : v);
       } else {
         const val = formData.get(f.name) as string;
-        if ((f.type === "number" || f.parseAsNumber) && val) {
+        if ((f.type === "number" || f.type === "conditional-number" || f.parseAsNumber) && val) {
           // Unify comma and dot for international decimal input
           values[f.name] = parseFloat(val.replace(/,/g, '.'));
+        } else if (f.type === "conditional-number" && !val) {
+          values[f.name] = null;
         } else if (val) {
           values[f.name] = val;
         } else if (f.required) {
@@ -767,6 +773,35 @@ export default function CrudFormModal({
                             placeholder={f.placeholder === "Select or type new..." ? t.placeholders?.selectOrType || f.placeholder : f.placeholder || `Select or type ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`}
                             allowCreate={true}
                           />
+                        ) : f.type === "conditional-number" ? (
+                          <div className="flex flex-col gap-2 relative">
+                            <label className="flex items-center gap-2 cursor-pointer mb-1">
+                              <input 
+                                type="checkbox" 
+                                checked={isSpecialTuition} 
+                                onChange={(e) => setIsSpecialTuition(e.target.checked)}
+                                className="w-4 h-4 text-[#458fff] rounded border-[#dddddd] focus:ring-[#458fff]"
+                              />
+                              <span className="text-[14px] font-medium text-slate-700 select-none">
+                                {t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}
+                              </span>
+                            </label>
+                            
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              name={f.name}
+                              defaultValue={data?.[f.name] || ""}
+                              disabled={!isSpecialTuition}
+                              placeholder="0.00"
+                              onChange={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = target.value.replace(/[^0-9.,]/g, '');
+                              }}
+                              className={`w-full border border-[#dddddd] rounded-[6px] px-4 py-2 text-[14px] font-normal text-[#181d26] h-[44px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm disabled:bg-slate-50 disabled:text-slate-400`}
+                            />
+                            {!isSpecialTuition && <input type="hidden" name={f.name} value="" />}
+                          </div>
                         ) : (
                           <input
                             name={f.name}
