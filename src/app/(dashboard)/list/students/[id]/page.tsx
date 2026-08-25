@@ -30,6 +30,7 @@ const SingleStudentPage = async ({
     | (Student & {
         class: (Class & { _count: { lessons: number } }) | null;
         payments: any[];
+        level: { tuitionFee: number };
       })
     | null = await getCachedTenantData(
     schoolId,
