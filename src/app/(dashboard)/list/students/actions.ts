@@ -158,7 +158,7 @@ export const receiveStudentPayment = async (
 export const receiveMultipleStudentPayments = async (
   studentId: string,
   studentName: string,
-  paymentsToProcess: { monthYear: string; amount: number; isPartial: boolean; gap: number }[]
+  paymentsToProcess: { monthYear: string; amount: number; isPartial: boolean; gap: number; isRecovery?: boolean }[]
 ) => {
   const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   
@@ -191,6 +191,7 @@ export const receiveMultipleStudentPayments = async (
         const previousAmount = existing?.amount || 0;
         const newMoney = pmt.amount - previousAmount;
         if (newMoney > 0) totalNewMoneyCollected += newMoney;
+        if (existing && newMoney > 0) pmt.isRecovery = true;
 
         const p = await tx.payment.upsert({
           where: {
@@ -230,9 +231,16 @@ export const receiveMultipleStudentPayments = async (
 
       if (totalNewMoneyCollected > 0) {
         // Find the earliest month to use as the title reference, or just combine them
-        const titleRef = paymentsToProcess.length === 1 
-          ? paymentsToProcess[0].monthYear 
-          : `${paymentsToProcess[0].monthYear} (Multi)`;
+        let suffix = "";
+        const isRecovery = paymentsToProcess.some((p: any) => p.isRecovery);
+        if (paymentsToProcess.length > 1) {
+          suffix = " (Multi)";
+        } else if (paymentsToProcess[0].isPartial) {
+          suffix = " (Partial)";
+        } else if (isRecovery) {
+          suffix = " (Recovery)";
+        }
+        const titleRef = paymentsToProcess[0].monthYear + suffix;
 
         await tx.income.create({
           data: {
