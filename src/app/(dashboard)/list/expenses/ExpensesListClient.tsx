@@ -33,6 +33,10 @@ export default function ExpensesListClient({
   category,
 }: ExpensesListClientProps) {
   const { t, locale } = useLanguage();
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientCategory, setClientCategory] = useState("");
+  const [clientFrom, setClientFrom] = useState("");
+  const [clientTo, setClientTo] = useState("");
   
   const [optimisticData, setOptimisticData] = useState<Expense[]>(data);
 
@@ -185,6 +189,27 @@ export default function ExpensesListClient({
   );
 
   // Compute stats
+  
+  const filteredData = optimisticData.filter((item: any) => {
+    if (clientCategory && item.category?.toLowerCase() !== clientCategory.toLowerCase()) return false;
+    
+    if (clientFrom && new Date(item.date) < new Date(clientFrom)) return false;
+    if (clientTo && new Date(item.date) > new Date(clientTo)) return false;
+    
+    if (clientSearch) {
+      const s = clientSearch.toLowerCase();
+      const matchesTitle = item.name?.toLowerCase().includes(s);
+      const matchesCat = item.category?.toLowerCase().includes(s);
+      if (!matchesTitle && !matchesCat) return false;
+    }
+    return true;
+  });
+  
+  const ITEM_PER_PAGE = 10;
+  const safePage = (p && !isNaN(p) && p > 0) ? p : 1;
+  const paginatedData = filteredData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
+  const displayCount = filteredData.length;
+
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -193,7 +218,7 @@ export default function ExpensesListClient({
   let lastMonthTotal = 0;
   let ytdTotal = 0;
 
-  allData.forEach(expense => {
+  filteredData.forEach(expense => {
     const d = new Date(expense.date);
     const m = d.getMonth();
     const y = d.getFullYear();
@@ -224,7 +249,7 @@ export default function ExpensesListClient({
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             {t.expensesPage.pageTitle}
-            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{count}</span>
+            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{displayCount}</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
             <Info className="w-4 h-4 opacity-70" />
@@ -232,9 +257,9 @@ export default function ExpensesListClient({
           </p>
         </div>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch />
+          <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
           <div className="flex items-center gap-3 self-end md:self-auto">
-            <FinanceDateFilter />
+            <FinanceDateFilter clientSideOnly onChangeImmediate={(from, to) => { setClientFrom(from); setClientTo(to); }} currentClientFrom={clientFrom} currentClientTo={clientTo} />
             <FinanceExportButton data={allData} filename="Expenses" />
             {role === "admin" && <CrudFormModal entity="expense" mode="create" relatedData={relatedData} onSuccess={handleOptimisticUpdate} />}
           </div>
@@ -271,7 +296,7 @@ export default function ExpensesListClient({
 
       {/* QUICK CATEGORY TABS */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <Link prefetch={true} href="/list/expenses" className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!category ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+        <Link prefetch={true} href="#" onClick={(e) => { e.preventDefault(); setClientCategory(""); }} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!clientCategory ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
           {t.expensesPage.allExpenses}
         </Link>
         {(relatedData?.category || []).map((catObj) => {
@@ -294,25 +319,24 @@ export default function ExpensesListClient({
           }
           
           return (
-            <Link 
-              prefetch={true} 
+            <button 
               key={val} 
-              href={{ pathname: "/list/expenses", query: { category: val } }} 
-              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${category === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
+              onClick={() => setClientCategory(val)} 
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${clientCategory === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
             >
               {label}
-            </Link>
+            </button>
           );
         })}
       </div>
 
       {/* LIST */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">
-        <Table columns={columns} renderRow={renderRow} data={optimisticData} />
+        <Table columns={columns} renderRow={renderRow} data={paginatedData} />
       </div>
       {/* PAGINATION */}
       <div className="mt-6">
-        <Pagination page={p} count={count} />
+        <Pagination page={p} count={displayCount} />
       </div>
     </div>
   );

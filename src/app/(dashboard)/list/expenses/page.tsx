@@ -74,8 +74,8 @@ const ExpenseListPage = async ({
   return (
     <ExpensesListClient
       data={data}
-      count={count}
-      allData={allData}
+      count={data.length}
+      allData={data}
       relatedData={relatedData}
       role={role}
       p={p}

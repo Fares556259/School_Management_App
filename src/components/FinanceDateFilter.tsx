@@ -5,17 +5,22 @@ import { useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 
-export default function FinanceDateFilter() {
+export default function FinanceDateFilter({ clientSideOnly, onChangeImmediate, currentClientFrom, currentClientTo }: { clientSideOnly?: boolean; onChangeImmediate?: (from: string, to: string) => void; currentClientFrom?: string; currentClientTo?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentFrom = searchParams.get("from") || "";
-  const currentTo = searchParams.get("to") || "";
+  const currentFrom = clientSideOnly ? (currentClientFrom || "") : (searchParams.get("from") || "");
+  const currentTo = clientSideOnly ? (currentClientTo || "") : (searchParams.get("to") || "");
 
   const [isOpen, setIsOpen] = useState(false);
   const [tempFrom, setTempFrom] = useState(currentFrom);
   const [tempTo, setTempTo] = useState(currentTo);
 
   const applyFilter = (from: string, to: string) => {
+    if (clientSideOnly && onChangeImmediate) {
+      onChangeImmediate(from, to);
+      setIsOpen(false);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (from) params.set("from", from);
     else params.delete("from");

@@ -17,52 +17,21 @@ const IncomeListPage = async ({
 
   const schoolId = await getSchoolId();
 
-  // URL QUERY PARAMS CONDITION
-  const query: Prisma.IncomeWhereInput = { schoolId };
-
-  if (search) {
-    query.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { category: { contains: search, mode: "insensitive" } },
-    ];
-  }
-
-  if (category) {
-    query.category = { equals: category, mode: "insensitive" };
-  }
-
-  if (from || to) {
-    query.date = {
-      gte: from ? new Date(from) : undefined,
-      lte: to ? new Date(to) : undefined,
-    };
-  }
-
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-  // Parallelize DB queries for maximum speed with tenant caching
-  const [data, count, uniqueCategoriesData, allData] = await getCachedTenantData(
+  // Fetch all incomes for client-side filtering
+  const [data, uniqueCategoriesData] = await getCachedTenantData(
     schoolId,
     'incomes',
-    [p, JSON.stringify(searchParams)],
+    [],
     () => Promise.all([
       prisma.income.findMany({
-        where: query,
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
+        where: { schoolId },
         orderBy: { date: "desc" },
       }),
-      prisma.income.count({ where: query }),
       prisma.income.findMany({
         where: { schoolId },
         select: { category: true },
         distinct: ["category"],
-      }),
-      prisma.income.findMany({
-        where: { ...query, date: { gte: twelveMonthsAgo } },
-        orderBy: { date: "desc" },
-      }),
+      })
     ]),
     300
   );
@@ -74,8 +43,8 @@ const IncomeListPage = async ({
   return (
     <IncomesListClient
       data={data}
-      count={count}
-      allData={allData}
+      count={data.length}
+      allData={data}
       relatedData={relatedData}
       role={role}
       p={p}
