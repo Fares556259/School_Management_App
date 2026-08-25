@@ -222,6 +222,23 @@ export default function TeacherListClient({
                   return t;
                 }));
               }}
+              onMissedHoursUpdate={(targetMonth, newTotal) => {
+                setOptimisticData((prev: any[]) => prev.map((t: any) => {
+                  if (t.id === item.id) {
+                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
+                    const yearVal = parseInt(targetMonth.split(" ")[1]);
+                    const payments = [...(t.payments || [])];
+                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
+                    if (existingIdx >= 0) {
+                      payments[existingIdx] = { ...payments[existingIdx], missedHours: newTotal };
+                    } else {
+                      payments.push({ month: monthIdx, year: yearVal, status: "PENDING", missedHours: newTotal });
+                    }
+                    return { ...t, payments };
+                  }
+                  return t;
+                }));
+              }}
             />
             {role === "admin" && (
               <>

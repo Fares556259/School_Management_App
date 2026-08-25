@@ -38,6 +38,10 @@ export const updateMissedHours = async (
       }
     });
 
+    const { invalidateTenantTags } = await import("@/lib/cache");
+    invalidateTenantTags(schoolId, "dashboard", "teachers");
+    revalidatePath("/list/teachers");
+
     return { success: true };
   } catch (err) {
     console.error("Failed to update missed hours:", err);

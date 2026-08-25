@@ -29,6 +29,7 @@ export default function PaySalaryModal({
   paidMonths?: string[];
   payments?: any[];
   onSuccess?: (status: "PAID", targetMonth: string) => void;
+  onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
 }) {
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
@@ -80,6 +81,10 @@ export default function PaySalaryModal({
     const newTotal = missedHours + toAdd;
     setMissedHours(newTotal);
     setAddHours(0);
+    
+    if (onMissedHoursUpdate) {
+      onMissedHoursUpdate(selectedMonth, newTotal);
+    }
 
     // Save to DB in the background
     startTransition(async () => {
@@ -90,6 +95,11 @@ export default function PaySalaryModal({
   const handleResetMissedHours = () => {
     setMissedHours(0);
     setAddHours(0);
+    
+    if (onMissedHoursUpdate) {
+      onMissedHoursUpdate(selectedMonth, 0);
+    }
+    
     startTransition(async () => {
       await updateMissedHours(teacherId, selectedMonth, 0);
     });
