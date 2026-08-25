@@ -148,7 +148,7 @@ export default function IncomesListClient({
       </td>
       <td className="p-4 text-right">
         <div className="flex items-center justify-end font-bold text-slate-700">
-          {item.amount.toLocaleString()}
+          {item.amount.toLocaleString("fr-FR")}
           <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
@@ -247,7 +247,7 @@ export default function IncomesListClient({
           <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
           <span className="text-sm font-semibold text-slate-500 mb-2">{t.incomesPage.totalThisMonth}</span>
           <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-slate-800">{thisMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+            <span className="text-3xl font-bold text-slate-800">{thisMonthTotal.toLocaleString("fr-FR")} <span className="text-xl font-medium text-slate-400">DT</span></span>
             <span className={`text-sm font-semibold mb-1 flex items-center gap-0.5 ${percentChange >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
               {percentChange >= 0 ? "+" : ""}{percentChange}%
             </span>
@@ -257,14 +257,14 @@ export default function IncomesListClient({
           <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
           <span className="text-sm font-semibold text-slate-500 mb-2">{t.incomesPage.totalLastMonth}</span>
           <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-slate-800">{lastMonthTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+            <span className="text-3xl font-bold text-slate-800">{lastMonthTotal.toLocaleString("fr-FR")} <span className="text-xl font-medium text-slate-400">DT</span></span>
           </div>
         </div>
         <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-fuchsia-200 transition-colors">
           <div className="absolute right-0 top-0 w-16 h-16 bg-fuchsia-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
           <span className="text-sm font-semibold text-slate-500 mb-2">{t.incomesPage.totalYTD}</span>
           <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-slate-800">{ytdTotal.toLocaleString()} <span className="text-xl font-medium text-slate-400">DT</span></span>
+            <span className="text-3xl font-bold text-slate-800">{ytdTotal.toLocaleString("fr-FR")} <span className="text-xl font-medium text-slate-400">DT</span></span>
           </div>
         </div>
       </div>

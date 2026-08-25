@@ -69,7 +69,7 @@ export default async function PartialPaymentsPage() {
           <div className="absolute right-0 top-0 w-16 h-16 bg-orange-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
           <span className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">{(t as any).recovery?.totalToRecover || "Total to Recover"}</span>
           <div className="flex items-end gap-2">
-            <span className="text-3xl font-black text-orange-600">{totalPending.toLocaleString(locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US")}</span>
+            <span className="text-3xl font-black text-orange-600">{totalPending.toLocaleString("fr-FR")}</span>
             <span className="text-xl font-bold text-slate-400 mb-0.5">DT</span>
           </div>
         </div>

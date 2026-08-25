@@ -101,13 +101,13 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
       </td>
       <td className="p-4 text-right">
         <div className="flex items-center justify-end font-bold text-emerald-600">
-          {item.amount.toLocaleString()}
+          {item.amount.toLocaleString("fr-FR")}
           <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>
       <td className="p-4 hidden lg:table-cell text-right">
         <div className="flex items-center justify-end font-bold text-rose-500">
-          {item.deferredAmount?.toLocaleString()}
+          {item.deferredAmount?.toLocaleString("fr-FR")}
           <span className="text-slate-400 font-medium ml-1">DT</span>
         </div>
       </td>

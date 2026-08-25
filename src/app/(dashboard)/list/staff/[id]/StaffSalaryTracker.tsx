@@ -22,7 +22,7 @@ export default function StaffSalaryTracker({
   const [paidMonths, setPaidMonths] = useState<Set<string>>(() => {
     const s = new Set<string>();
     payments.forEach((p) => {
-      if (p.status === "PAID") s.add(`${MONTHS[p.month]} ${p.year}`);
+      if (p.status === "PAID") s.add(`{MONTHS[p.month]} {p.year}`);
     });
     return s;
   });
@@ -85,12 +85,12 @@ export default function StaffSalaryTracker({
       <div className="flex flex-col items-center gap-3">
         <div className="flex w-full items-center justify-between px-2">
           <span className="text-sm font-medium text-slate-500">Monthly Salary:</span>
-          <span className="text-sm font-bold text-slate-700">${salary.toLocaleString()}</span>
+          <span className="text-sm font-bold text-slate-700">{salary.toLocaleString("fr-FR") + " DT"}</span>
         </div>
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
           <span className="text-sm font-medium text-slate-500">Status:</span>
           <span
-            className={`px-3 py-1 text-xs font-bold rounded-full ${
+            className={`px-3 py-1 text-xs font-bold rounded-full {
               isPaid
                 ? "bg-emerald-100 text-emerald-700"
                 : "bg-rose-100 text-rose-700"
@@ -106,7 +106,7 @@ export default function StaffSalaryTracker({
             disabled={isPending}
             className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-md transition-all disabled:opacity-50 shadow-sm hover:shadow-md"
           >
-            {isPending ? "Processing..." : `Pay $${salary} for ${monthStr}`}
+            {isPending ? "Processing..." : `Pay {salary} for {monthStr}`}
           </button>
         )}
       </div>
