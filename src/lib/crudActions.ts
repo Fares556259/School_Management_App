@@ -246,6 +246,7 @@ export const createStudent = async (data: {
         parentId: data.parentId,
         classId: data.classId,
         levelId: finalLevelId,
+        customTuition: data.customTuition || null,
         img: data.img || null,
       },
     });
