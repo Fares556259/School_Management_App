@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { receiveStudentPayment } from "./actions";
-import { getSchoolYearMonths, isMonthBefore } from "@/lib/dateUtils";
+import React, { useState, useTransition, useEffect } from "react";
+import { receiveMultipleStudentPayments } from "./actions";
+import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
 
 export default function PayStudentModal({
@@ -16,6 +16,7 @@ export default function PayStudentModal({
   monthName,
   paidMonths = [],
   tuitionFee = 450,
+  payments = [],
   onSuccess,
 }: {
   studentId: string;
@@ -28,60 +29,140 @@ export default function PayStudentModal({
   monthName?: string;
   paidMonths?: string[];
   tuitionFee?: number;
+  payments?: any[];
   onSuccess?: (amount: number, status: "PAID" | "PARTIAL", targetMonth: string) => void;
 }) {
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
 
-  const tuitionAmount = tuitionFee;
-  const remainingBalance = tuitionAmount - initialPaidAmount;
-  const displayBalance = remainingBalance < 0 ? 0 : remainingBalance;
-
+  const tuitionAmount = tuitionFee || 450;
+  
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
+  
+  // Dynamically compute the already paid amount for the currently selected month
+  const dynamicInitialPaidAmount = React.useMemo(() => {
+    if (!payments || !selectedMonth) return initialPaidAmount || 0;
+    const [mName, yStr] = selectedMonth.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+    const found = payments.find(p => p.month === monthIdx && p.year === yearVal);
+    return found?.amount || 0;
+  }, [selectedMonth, payments, initialPaidAmount]);
+
+  const remainingBalance = tuitionAmount - dynamicInitialPaidAmount;
+  const displayBalance = remainingBalance < 0 ? 0 : remainingBalance;
+
   const [additionalAmount, setAdditionalAmount] = useState(displayBalance);
   const [recoveryMonth, setRecoveryMonth] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  // Initialize the modal state when it opens
+  // Reset additionalAmount when the modal opens or selectedMonth changes
   useEffect(() => {
     if (isOpen) {
-      // If the current target month is already paid, jump to the first unpaid one
       if (!selectedMonth || paidMonths.includes(selectedMonth)) {
         const nextMonth = monthsList[0] || "";
         setSelectedMonth(nextMonth);
+      } else {
+        setAdditionalAmount(displayBalance);
       }
-      // Always reset additional amount to the remaining balance for the current target month
-      setAdditionalAmount(displayBalance);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, selectedMonth]);
 
   const handlePay = () => {
     if (!isAdmin || !selectedMonth || (isSkipping && !isPartial)) return;
 
-    const recoveryMonthIdx = allMonths.indexOf(recoveryMonth);
-    const totalCumulative = initialPaidAmount + additionalAmount;
+    let moneyToDistribute = additionalAmount;
+    let currentIdx = allMonths.indexOf(selectedMonth);
     
-    const recoveryDate = (totalCumulative < tuitionAmount && recoveryMonthIdx !== -1) 
-      ? `2026-${String(recoveryMonthIdx + 1).padStart(2, '0')}-01`
-      : undefined;
+    const paymentsToProcess: any[] = [];
+    
+    // We loop to distribute moneyToDistribute across subsequent months
+    while ((moneyToDistribute > 0 || paymentsToProcess.length === 0) && currentIdx >= 0 && currentIdx < allMonths.length) {
+       const mKey = allMonths[currentIdx];
+       const [mName, yStr] = mKey.split(" ");
+       const monthIdx = MONTHS.indexOf(mName) + 1;
+       const yearVal = parseInt(yStr);
+       
+       const found = payments?.find(p => p.month === monthIdx && p.year === yearVal);
+       const alreadyPaid = found?.amount || 0;
+       
+       if (currentIdx === allMonths.indexOf(selectedMonth)) {
+         // This is the primary month
+         const targetTotal = alreadyPaid + moneyToDistribute;
+         if (targetTotal > tuitionAmount) {
+             const applyHere = tuitionAmount - alreadyPaid;
+             // Apply just enough to pay this month fully, if applyHere > 0
+             // But wait, what if they overpaid this month already?
+             const actualApply = applyHere > 0 ? applyHere : 0;
+             paymentsToProcess.push({
+                 monthYear: mKey,
+                 amount: alreadyPaid + actualApply,
+                 isPartial: false,
+                 gap: 0
+             });
+             moneyToDistribute -= actualApply;
+         } else {
+             paymentsToProcess.push({
+                 monthYear: mKey,
+                 amount: targetTotal,
+                 isPartial: targetTotal < tuitionAmount,
+                 gap: tuitionAmount - targetTotal
+             });
+             moneyToDistribute = 0;
+         }
+       } else {
+         // This is a cascading month
+         if (moneyToDistribute > 0) {
+             const targetTotal = alreadyPaid + moneyToDistribute;
+             if (targetTotal > tuitionAmount) {
+                 const applyHere = tuitionAmount - alreadyPaid;
+                 const actualApply = applyHere > 0 ? applyHere : 0;
+                 paymentsToProcess.push({
+                     monthYear: mKey,
+                     amount: alreadyPaid + actualApply,
+                     isPartial: false,
+                     gap: 0
+                 });
+                 moneyToDistribute -= actualApply;
+             } else {
+                 paymentsToProcess.push({
+                     monthYear: mKey,
+                     amount: targetTotal,
+                     isPartial: targetTotal < tuitionAmount,
+                     gap: tuitionAmount - targetTotal
+                 });
+                 moneyToDistribute = 0;
+             }
+         }
+       }
+       currentIdx++;
+    }
+    
+    // If there is STILL moneyToDistribute (e.g. paid for whole year and excess), apply it to the last processed month
+    if (moneyToDistribute > 0 && paymentsToProcess.length > 0) {
+        paymentsToProcess[paymentsToProcess.length - 1].amount += moneyToDistribute;
+        paymentsToProcess[paymentsToProcess.length - 1].isPartial = false; // Overpaid
+        paymentsToProcess[paymentsToProcess.length - 1].gap = 0;
+    }
 
     setIsOpen(false);
     if (onSuccess) {
-      onSuccess(totalCumulative, totalCumulative >= tuitionAmount ? "PAID" : "PARTIAL", selectedMonth);
+      // Just fire onSuccess for the selectedMonth to optimistically update it
+      const prm = paymentsToProcess[0];
+      if (prm) {
+         onSuccess(prm.amount, prm.isPartial ? "PARTIAL" : "PAID", prm.monthYear);
+      }
     }
 
     startTransition(async () => {
-      const result = await receiveStudentPayment(
+      const result = await receiveMultipleStudentPayments(
         studentId,
         studentName,
-        tuitionAmount, 
-        selectedMonth,
-        totalCumulative, // Pass the NEW TOTAL
-        recoveryDate
+        paymentsToProcess
       );
-      if (!result.success) {
+      if (!result.success && 'error' in result) {
         alert(result.error);
       }
     });

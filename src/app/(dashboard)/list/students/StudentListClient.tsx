@@ -208,6 +208,7 @@ export default function StudentListClient({
               initialPaidAmount={currentPayment?.amount || 0}
               isAdmin={role === "admin"}
               monthName={clientMonthKey}
+              payments={item.payments}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" || p.status === "PARTIAL")
                 .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
