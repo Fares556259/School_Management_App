@@ -127,9 +127,11 @@ export default function TeacherListClient({
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
-    const isPaidThisMonth = item.payments.some(
-      (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
+    const paymentThisMonth = item.payments.find(
+      (p) => p.month === monthIdx && p.year === yearVal
     );
+    const paymentStatusThisMonth = paymentThisMonth?.status || "UNPAID";
+    const isPaidThisMonth = paymentStatusThisMonth === "PAID";
 
     const allSubjectsMap = new Map();
     item.subjects?.forEach(s => allSubjectsMap.set(s.id, s));
@@ -184,9 +186,13 @@ export default function TeacherListClient({
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">{t.teachers.notProvided}</span>}</td>
         <td className="py-4 px-6">
-          {isPaidThisMonth ? (
+          {paymentStatusThisMonth === "PAID" ? (
             <span className="px-2.5 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium whitespace-nowrap">
               {t.teachers.paid}
+            </span>
+          ) : paymentStatusThisMonth === "PARTIAL" ? (
+            <span className="px-2.5 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium whitespace-nowrap">
+              {t.teachers.partial}
             </span>
           ) : (
             <span className="px-2.5 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium whitespace-nowrap">

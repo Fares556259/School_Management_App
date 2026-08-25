@@ -52,10 +52,11 @@ export const updateMissedHours = async (
 export const payTeacherSalary = async (
   teacherId: string,
   teacherName: string,
-  amount: number,
+  amountPaidNow: number,
   monthYear: string,
   missedHours?: number,
-  deduction?: number
+  deduction?: number,
+  isAdvance: boolean = false
 ) => {
   const [mName, yStr] = monthYear.split(" ");
   const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
@@ -65,6 +66,20 @@ export const payTeacherSalary = async (
     const schoolId = await getSchoolId();
 
     const payment = await prisma.$transaction(async (tx) => {
+      // Find existing to add to total
+      const existing = await tx.payment.findUnique({
+        where: {
+          teacherId_month_year: {
+            teacherId,
+            month: monthIdx,
+            year: yearVal
+          }
+        }
+      });
+
+      const newTotalAmount = (existing?.amount || 0) + amountPaidNow;
+      const newStatus = isAdvance ? "PARTIAL" : "PAID";
+
       const p = await tx.payment.upsert({
         where: {
           teacherId_month_year: {
@@ -74,17 +89,17 @@ export const payTeacherSalary = async (
           }
         },
         update: {
-          status: "PAID",
+          status: newStatus,
           paidAt: new Date(),
-          amount,
-          missedHours: missedHours || 0,
+          amount: newTotalAmount,
+          missedHours: missedHours !== undefined ? missedHours : existing?.missedHours || 0,
         },
         create: {
           teacherId,
-          amount,
+          amount: newTotalAmount,
           month: monthIdx,
           year: yearVal,
-          status: "PAID",
+          status: newStatus,
           userType: "TEACHER",
           paidAt: new Date(),
           missedHours: missedHours || 0,
@@ -93,7 +108,10 @@ export const payTeacherSalary = async (
       });
 
       // Build expense title with deduction info
-      let expenseTitle = `Salary: ${teacherName} (${monthYear})`;
+      let expenseTitle = isAdvance 
+        ? `Advance: ${teacherName} (${monthYear})`
+        : `Salary: ${teacherName} (${monthYear})`;
+        
       if (deduction && deduction > 0) {
         expenseTitle += ` - ${missedHours}h missed`;
       }
@@ -102,7 +120,7 @@ export const payTeacherSalary = async (
       await tx.expense.create({
         data: {
           title: expenseTitle,
-          amount,
+          amount: amountPaidNow,
           date: new Date(),
           category: "Salary",
           referenceType: "TeacherSalary",
@@ -118,11 +136,13 @@ export const payTeacherSalary = async (
 
     const effectiveDate = new Date(yearVal, monthIdx - 1, 1);
     await createAuditLog({
-      action: "PAY_SALARY",
+      action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
       entityType: "Teacher",
       entityId: teacherId,
-      description: `Paid salary of ${amount} DT to ${teacherName} for ${monthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`,
-      amount,
+      description: isAdvance
+        ? `Paid advance of ${amountPaidNow} DT to ${teacherName} for ${monthYear}`
+        : `Paid salary of ${amountPaidNow} DT to ${teacherName} for ${monthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`,
+      amount: amountPaidNow,
       type: 'expense',
       effectiveDate,
     });

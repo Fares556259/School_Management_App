@@ -602,6 +602,7 @@ export const ar = {
     noSubjects: "لا توجد مواد",
     noClasses: "لا توجد أقسام",
     notProvided: "غير متوفر",
+    partial: "سلفة",
     outOfTeachers: "من أصل {count} أستاذ"
   },
   staff: {

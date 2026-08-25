@@ -26,7 +26,7 @@ const dict = {
     cancel: "Cancel",
     confirmPayment: "Confirm Payment",
     confirming: "Confirming...",
-    success: "Salary processed successfully!",
+    success: "Salary processed successfully!", advanceSuccess: "Advance recorded!", advance: "Advance (Avance)", advanceAmount: "Advance Amount", giveAdvance: "Give Advance", advancePaid: "Advance Paid", remainingToPay: "Remaining to Pay", fullSalary: "Full Salary",
     error: "Failed to process salary",
     skipWarning: "Please pay for {earliestUnpaid} first to maintain chronological bookkeeping."
   },
@@ -49,7 +49,7 @@ const dict = {
     cancel: "Annuler",
     confirmPayment: "Confirmer le paiement",
     confirming: "Confirmation...",
-    success: "Salaire traité avec succès!",
+    success: "Salaire traité avec succès!", advanceSuccess: "Avance enregistrée!", advance: "Avance", advanceAmount: "Montant avance", giveAdvance: "Donner une avance", advancePaid: "Avance payée", remainingToPay: "Reste à payer", fullSalary: "Salaire complet",
     error: "Échec du traitement du salaire",
     skipWarning: "Veuillez d'abord payer {earliestUnpaid} pour maintenir une comptabilité chronologique."
   },
@@ -72,7 +72,7 @@ const dict = {
     cancel: "إلغاء",
     confirmPayment: "تأكيد الدفع",
     confirming: "جاري التأكيد...",
-    success: "تمت معالجة الراتب بنجاح!",
+    success: "تمت معالجة الراتب بنجاح!", advanceSuccess: "تم تسجيل السلفة!", advance: "سلفة", advanceAmount: "مبلغ السلفة", giveAdvance: "إعطاء سلفة", advancePaid: "سلفة مدفوعة", remainingToPay: "المتبقي للدفع", fullSalary: "الراتب الكامل",
     error: "فشلت معالجة الراتب",
     skipWarning: "يرجى الدفع لشهر {earliestUnpaid} أولاً للحفاظ على التسلسل الزمني."
   }
@@ -102,7 +102,7 @@ export default function PaySalaryModal({
   monthName?: string;
   paidMonths?: string[];
   payments?: any[];
-  onSuccess?: (status: "PAID", targetMonth: string) => void;
+  onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string) => void;
   onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
 }) {
   const { locale } = useLanguage();
@@ -116,6 +116,15 @@ export default function PaySalaryModal({
   const [isPending, startTransition] = useTransition();
 
   // Get existing missed hours for the selected month from payments data
+  const getExistingAdvance = (monthKey: string): number => {
+    if (!payments || !monthKey) return 0;
+    const [mName, yStr] = monthKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+    const found = payments.find(p => p.month === monthIdx && p.year === yearVal && p.status === "PARTIAL");
+    return found?.amount || 0;
+  };
+
   const getExistingMissedHours = (monthKey: string): number => {
     if (!payments || !monthKey) return 0;
     const [mName, yStr] = monthKey.split(" ");
@@ -127,12 +136,15 @@ export default function PaySalaryModal({
 
   const [missedHours, setMissedHours] = useState(0);
   const [addHours, setAddHours] = useState<number | string>(0);
+  const [isAdvanceMode, setIsAdvanceMode] = useState(false);
+  const [advanceInput, setAdvanceInput] = useState<number | string>("");
 
   const rate = hourlyRate || 0;
   const monthlyHours = hoursPerMonth || 0;
   const baseSalary = rate > 0 && monthlyHours > 0 ? rate * monthlyHours : salary;
+  const existingAdvance = getExistingAdvance(selectedMonth);
   const deduction = missedHours * rate;
-  const finalAmount = Math.max(0, baseSalary - deduction);
+  const finalAmount = Math.max(0, baseSalary - deduction - existingAdvance);
 
   const earliestUnpaid = monthsList[0];
   const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
@@ -192,23 +204,27 @@ export default function PaySalaryModal({
 
   const handlePay = () => {
     if (!isAdmin || !selectedMonth || isSkipping) return;
+    
+    const amountToPay = isAdvanceMode ? Number(advanceInput) : finalAmount;
+    if (isAdvanceMode && (amountToPay <= 0 || amountToPay > finalAmount)) return;
 
     setIsOpen(false);
     if (onSuccess) {
-      onSuccess("PAID", selectedMonth);
+      onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth);
     }
 
     startTransition(async () => {
       const result = await payTeacherSalary(
         teacherId,
         teacherName,
-        finalAmount,
+        amountToPay,
         selectedMonth,
-        missedHours,
-        deduction
+        isAdvanceMode ? undefined : missedHours,
+        isAdvanceMode ? undefined : deduction,
+        isAdvanceMode
       );
       if (!result.success) {
-        alert(result.error);
+        console.error("Failed to process payment");
       }
     });
   };
@@ -256,6 +272,35 @@ export default function PaySalaryModal({
                   ))}
                 </select>
               </div>
+
+              {/* Advance Toggle */}
+              <div className="mb-5 flex items-center justify-between p-3 border border-[#e2e8f0] rounded-[8px] bg-[#f8fafc]">
+                <label className="text-[13px] font-medium text-[#41454d] cursor-pointer" onClick={() => setIsAdvanceMode(!isAdvanceMode)}>
+                  {t.giveAdvance}
+                </label>
+                <input 
+                  type="checkbox" 
+                  checked={isAdvanceMode}
+                  onChange={(e) => setIsAdvanceMode(e.target.checked)}
+                  className="w-4 h-4 cursor-pointer accent-[#181d26]"
+                />
+              </div>
+
+              {isAdvanceMode ? (
+                <div className="mb-5">
+                  <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">{t.advanceAmount} (Max: {finalAmount} DT)</label>
+                  <input
+                    type="number"
+                    value={advanceInput}
+                    onChange={(e) => setAdvanceInput(e.target.value)}
+                    placeholder="0.00"
+                    min={0}
+                    max={finalAmount}
+                    className="w-full border border-[#dddddd] bg-white rounded-[8px] px-3 py-2.5 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[14px] text-[#181d26]"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col">
 
               {/* Salary Breakdown */}
               {rate > 0 && monthlyHours > 0 && (
@@ -337,12 +382,17 @@ export default function PaySalaryModal({
                     {finalAmount.toLocaleString()} <span className="text-[14px] font-normal">DT</span>
                   </span>
                 </div>
-                {deduction > 0 && (
+                {deduction > 0 || existingAdvance > 0 ? (
                   <p className="text-[11px] text-[#166534] mt-1">
-                    {baseSalary.toLocaleString()} − {deduction.toLocaleString()} ({t.deduction})
+                    {baseSalary.toLocaleString()} 
+                    {deduction > 0 ? ` − ${deduction.toLocaleString()} (${t.deduction})` : ""}
+                    {existingAdvance > 0 ? ` − ${existingAdvance.toLocaleString()} (${t.advancePaid})` : ""}
                   </p>
-                )}
+                ) : null}
               </div>
+
+                </div>
+              )}
 
               {isSkipping && (
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-[8px] flex items-start gap-2.5">

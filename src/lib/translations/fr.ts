@@ -606,6 +606,7 @@ export const fr = {
     noSubjects: "Aucune matière",
     noClasses: "Aucune classe",
     notProvided: "Non renseigné",
+    partial: "Avance",
     outOfTeachers: "sur {count} enseignants"
   },
   staff: {

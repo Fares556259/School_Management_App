@@ -600,6 +600,7 @@ export const en = {
     noSubjects: "No subjects",
     noClasses: "No classes",
     notProvided: "Not provided",
+    partial: "Advance",
     outOfTeachers: "out of {count} teachers"
   },
   staff: {
