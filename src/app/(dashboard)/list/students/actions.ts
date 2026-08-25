@@ -234,7 +234,7 @@ export const receiveMultipleStudentPayments = async (
         let suffix = "";
         const isRecovery = paymentsToProcess.some((p: any) => p.isRecovery);
         if (paymentsToProcess.length > 1) {
-          suffix = " (Multi)";
+          suffix = " (Combined)";
         } else if (paymentsToProcess[0].isPartial) {
           suffix = " (Partial)";
         } else if (isRecovery) {

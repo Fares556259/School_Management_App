@@ -102,6 +102,7 @@ export default function IncomesListClient({
       tTitle = tTitle.replace(/^Tuition:/i, "رسوم دراسية:");
       tTitle = tTitle.replace(/^Salary:/i, "الراتب:");
       tTitle = tTitle.replace(/Recovery/i, "استرداد");
+      tTitle = tTitle.replace(/\(Combined\)/i, "(دفعة مجمعة)");
       tTitle = tTitle.replace(/\(Multi\)/i, "(متعدد)");
       tTitle = tTitle.replace(/\(Partial\)/i, "(جزئي)");
       tTitle = tTitle.replace(/\(Recovery\)/i, "(استرداد)");
@@ -121,6 +122,7 @@ export default function IncomesListClient({
       tTitle = tTitle.replace(/^Tuition:/i, "Frais Scolaires:");
       tTitle = tTitle.replace(/^Salary:/i, "Salaire:");
       tTitle = tTitle.replace(/Recovery/i, "Recouvrement");
+      tTitle = tTitle.replace(/\(Combined\)/i, "(Paiement groupé)");
       tTitle = tTitle.replace(/\(Multi\)/i, "(Multi)");
       tTitle = tTitle.replace(/\(Partial\)/i, "(Partiel)");
       tTitle = tTitle.replace(/\(Recovery\)/i, "(Recouvrement)");
