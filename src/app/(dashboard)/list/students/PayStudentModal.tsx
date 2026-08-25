@@ -35,10 +35,11 @@ export default function PayStudentModal({
 
   const tuitionAmount = tuitionFee;
   const remainingBalance = tuitionAmount - initialPaidAmount;
+  const displayBalance = remainingBalance < 0 ? 0 : remainingBalance;
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
-  const [additionalAmount, setAdditionalAmount] = useState(remainingBalance);
+  const [additionalAmount, setAdditionalAmount] = useState(displayBalance);
   const [recoveryMonth, setRecoveryMonth] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -51,7 +52,7 @@ export default function PayStudentModal({
         setSelectedMonth(nextMonth);
       }
       // Always reset additional amount to the remaining balance for the current target month
-      setAdditionalAmount(remainingBalance);
+      setAdditionalAmount(displayBalance);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -170,7 +171,7 @@ export default function PayStudentModal({
                     {isPartial ? "Additional Amount" : "Amount Received"}
                   </label>
                   <span className="text-[12px] text-[#64748b]">
-                    Balance: <strong className="text-[#181d26] font-medium">{remainingBalance} DT</strong>
+                    Balance: <strong className="text-[#181d26] font-medium">{displayBalance} DT</strong>
                   </span>
                 </div>
                 <div className="relative">
@@ -178,8 +179,8 @@ export default function PayStudentModal({
                     type="number"
                     value={additionalAmount}
                     onChange={(e) => setAdditionalAmount(Number(e.target.value))}
-                    max={remainingBalance}
-                    min={1}
+                    max={displayBalance > 0 ? displayBalance : 0}
+                    min={0}
                     className="w-full border border-[#dddddd] bg-white rounded-[8px] pl-3 pr-10 py-2.5 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[14px] text-[#181d26]"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[#94a3b8]">DT</span>
@@ -226,7 +227,7 @@ export default function PayStudentModal({
                 <button
                   type="button"
                   onClick={handlePay}
-                  disabled={isPending || !selectedMonth || (isSkipping && !isPartial) || additionalAmount <= 0}
+                  disabled={isPending || !selectedMonth || (isSkipping && !isPartial) || additionalAmount < 0}
                   className="flex-1 px-4 py-2.5 text-[13px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-50 shadow-sm"
                 >
                   {isPending ? "Confirming..." : "Confirm Payment"}
