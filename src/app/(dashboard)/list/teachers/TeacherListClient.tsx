@@ -227,7 +227,7 @@ export default function TeacherListClient({
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
                 .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
-              onSuccess={(newStatus, targetMonth) => {
+              onSuccess={(newStatus, targetMonth, amountPaidNow) => {
                 setOptimisticData((prev: any[]) => prev.map((t: any) => {
                   if (t.id === item.id) {
                     const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
@@ -235,9 +235,9 @@ export default function TeacherListClient({
                     const payments = [...(t.payments || [])];
                     const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
                     if (existingIdx >= 0) {
-                      payments[existingIdx] = { ...payments[existingIdx], status: newStatus };
+                      payments[existingIdx] = { ...payments[existingIdx], status: newStatus, amount: (payments[existingIdx].amount || 0) + amountPaidNow };
                     } else {
-                      payments.push({ month: monthIdx, year: yearVal, status: newStatus });
+                      payments.push({ month: monthIdx, year: yearVal, status: newStatus, amount: amountPaidNow });
                     }
                     return { ...t, payments };
                   }

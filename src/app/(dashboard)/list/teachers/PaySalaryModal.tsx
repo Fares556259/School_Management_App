@@ -102,7 +102,7 @@ export default function PaySalaryModal({
   monthName?: string;
   paidMonths?: string[];
   payments?: any[];
-  onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string) => void;
+  onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string, amount: number) => void;
   onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
 }) {
   const { locale } = useLanguage();
@@ -210,7 +210,7 @@ export default function PaySalaryModal({
 
     setIsOpen(false);
     if (onSuccess) {
-      onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth);
+      onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth, amountToPay);
     }
 
     startTransition(async () => {
@@ -318,6 +318,22 @@ export default function PaySalaryModal({
                     <div className="flex justify-between text-[13px] pt-1 border-t border-[#e2e8f0]">
                       <span className="text-[#64748b]">{t.baseSalary}</span>
                       <span className="font-semibold text-[#181d26]">{baseSalary.toLocaleString()} DT</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+                            {/* Advance History Section */}
+              {!isAdvanceMode && existingAdvance > 0 && (
+                <div className="mb-5">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[13px] font-medium text-[#41454d]">
+                      {t.advancePaid}
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 px-3 py-2 rounded-[8px] border text-[14px] font-medium bg-amber-50 border-amber-200 text-amber-700">
+                      {existingAdvance.toLocaleString()} DT
                     </div>
                   </div>
                 </div>
