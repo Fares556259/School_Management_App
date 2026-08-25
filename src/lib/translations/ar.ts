@@ -437,6 +437,8 @@ export const ar = {
       "Phone": "الهاتف",
       "Address": "العنوان",
       "Profile Photo": "صورة الملف الشخصي",
+      "Special Tuition Rate": "تخفيض / رسوم خاصة",
+
       "Username": "اسم المستخدم",
       "Sex": "الجنس",
       "Birthday": "تاريخ الميلاد",

@@ -437,6 +437,8 @@ export const en = {
       "Phone": "Phone",
       "Address": "Address",
       "Profile Photo": "Profile Photo",
+      "Special Tuition Rate": "Special Tuition Rate",
+
       "Username": "Username",
       "Sex": "Sex",
       "Birthday": "Birthday",

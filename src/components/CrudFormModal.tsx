@@ -506,9 +506,11 @@ export default function CrudFormModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {fields.map((f) => (
                       <div key={f.name} className={f.name === "address" ? "sm:col-span-2" : ""}>
-                        <label className="block text-[14px] font-medium text-[#181d26] mb-2">
-                          {t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label} {f.required && <span className="text-rose-500">*</span>}
-                        </label>
+                        {f.type !== "conditional-number" && (
+                          <label className="block text-[14px] font-medium text-[#181d26] mb-2">
+                            {t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label} {f.required && <span className="text-rose-500">*</span>}
+                          </label>
+                        )}
                         {f.type === "select" ? (
                           <select
                             name={f.name}

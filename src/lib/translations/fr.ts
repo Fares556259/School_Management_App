@@ -437,6 +437,8 @@ export const fr = {
       "Phone": "Téléphone",
       "Address": "Adresse",
       "Profile Photo": "Photo de Profil",
+      "Special Tuition Rate": "Frais de scolarité spéciaux",
+
       "Username": "Nom d'utilisateur",
       "Sex": "Sexe",
       "Birthday": "Date de naissance",
