@@ -85,7 +85,7 @@ export default function StaffSalaryTracker({
       <div className="flex flex-col items-center gap-3">
         <div className="flex w-full items-center justify-between px-2">
           <span className="text-sm font-medium text-slate-500">Monthly Salary:</span>
-          <span className="text-sm font-bold text-slate-700">{salary.toLocaleString("fr-FR") + " DT"}</span>
+          <span className="text-sm font-bold text-slate-700">{salary.toLocaleString("en-US").replace(/,/g, " ") + " DT"}</span>
         </div>
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
           <span className="text-sm font-medium text-slate-500">Status:</span>
