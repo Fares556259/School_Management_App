@@ -24,7 +24,7 @@ async function sendPush(parentId: string, title: string, body: string, data: any
       body,
       data,
       channelId: data.channelId || 'default',
-      priority: 'high',
+      priority: 'high' as const,
     }];
 
     await expo.sendPushNotificationsAsync(messages);
@@ -55,7 +55,7 @@ async function sendPushBatch(parentIds: string[], title: string, body: string, d
         body,
         data,
         channelId: data.channelId || 'default',
-        priority: 'high',
+        priority: 'high' as const,
       }));
 
     if (messages.length === 0) return;
