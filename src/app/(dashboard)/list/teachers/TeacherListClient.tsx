@@ -86,7 +86,12 @@ export default function TeacherListClient({
       const yearVal = parseInt(yStr);
       const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
       const actualStatus = payment ? payment.status : "UNPAID";
-      if (actualStatus !== clientStatus) return false;
+      
+      if (clientStatus === "UNPAID") {
+        if (actualStatus !== "UNPAID" && actualStatus !== "PENDING") return false;
+      } else {
+        if (actualStatus !== clientStatus) return false;
+      }
     }
     return true;
   });
@@ -319,7 +324,6 @@ export default function TeacherListClient({
             >
               <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
               <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
-              <option value="PARTIAL">{locale === 'ar' ? 'جزئي' : locale === 'fr' ? 'Partiel' : 'Partial'}</option>
               <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
             </select>
           </div>
