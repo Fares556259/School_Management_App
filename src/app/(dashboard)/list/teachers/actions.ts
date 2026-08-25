@@ -56,7 +56,9 @@ export const payTeacherSalary = async (
   monthYear: string,
   missedHours?: number,
   deduction?: number,
-  isAdvance: boolean = false
+  isAdvance: boolean = false,
+  expenseTitleInput?: string,
+  auditDescriptionInput?: string
 ) => {
   const [mName, yStr] = monthYear.split(" ");
   const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
@@ -108,11 +110,11 @@ export const payTeacherSalary = async (
       });
 
       // Build expense title with deduction info
-      let expenseTitle = isAdvance 
+      let expenseTitle = expenseTitleInput || (isAdvance 
         ? `Advance: ${teacherName} (${monthYear})`
-        : `Salary: ${teacherName} (${monthYear})`;
+        : `Salary: ${teacherName} (${monthYear})`);
         
-      if (deduction && deduction > 0) {
+      if (!expenseTitleInput && deduction && deduction > 0) {
         expenseTitle += ` - ${missedHours}h missed`;
       }
 
@@ -139,9 +141,9 @@ export const payTeacherSalary = async (
       action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
       entityType: "Teacher",
       entityId: teacherId,
-      description: isAdvance
+      description: auditDescriptionInput || (isAdvance
         ? `Paid advance of ${amountPaidNow} DT to ${teacherName} for ${monthYear}`
-        : `Paid salary of ${amountPaidNow} DT to ${teacherName} for ${monthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`,
+        : `Paid salary of ${amountPaidNow} DT to ${teacherName} for ${monthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`),
       amount: amountPaidNow,
       type: 'expense',
       effectiveDate,

@@ -26,7 +26,7 @@ const dict = {
     cancel: "Cancel",
     confirmPayment: "Confirm Payment",
     confirming: "Confirming...",
-    success: "Salary processed successfully!", advanceSuccess: "Advance recorded!", advance: "Advance (Avance)", advanceAmount: "Advance Amount", giveAdvance: "Give Advance", advancePaid: "Advance Paid", remainingToPay: "Remaining to Pay", fullSalary: "Full Salary",
+    expensePrefix: "Salary", expenseAdvancePrefix: "Advance", auditSalary: "Paid salary of {amount} DT to {name} for {month}", auditAdvance: "Paid advance of {amount} DT to {name} for {month}", missedSuffix: "missed", deductionSuffix: "deduction", success: "Salary processed successfully!", advanceSuccess: "Advance recorded!", advance: "Advance (Avance)", advanceAmount: "Advance Amount", giveAdvance: "Give Advance", advancePaid: "Advance Paid", remainingToPay: "Remaining to Pay", fullSalary: "Full Salary",
     error: "Failed to process salary",
     skipWarning: "Please pay for {earliestUnpaid} first to maintain chronological bookkeeping."
   },
@@ -49,7 +49,7 @@ const dict = {
     cancel: "Annuler",
     confirmPayment: "Confirmer le paiement",
     confirming: "Confirmation...",
-    success: "Salaire traité avec succès!", advanceSuccess: "Avance enregistrée!", advance: "Avance", advanceAmount: "Montant avance", giveAdvance: "Donner une avance", advancePaid: "Avance payée", remainingToPay: "Reste à payer", fullSalary: "Salaire complet",
+    expensePrefix: "Salaire", expenseAdvancePrefix: "Avance", auditSalary: "Salaire payé de {amount} DT à {name} pour {month}", auditAdvance: "Avance payée de {amount} DT à {name} pour {month}", missedSuffix: "manquées", deductionSuffix: "déduction", success: "Salaire traité avec succès!", advanceSuccess: "Avance enregistrée!", advance: "Avance", advanceAmount: "Montant avance", giveAdvance: "Donner une avance", advancePaid: "Avance payée", remainingToPay: "Reste à payer", fullSalary: "Salaire complet",
     error: "Échec du traitement du salaire",
     skipWarning: "Veuillez d'abord payer {earliestUnpaid} pour maintenir une comptabilité chronologique."
   },
@@ -72,7 +72,7 @@ const dict = {
     cancel: "إلغاء",
     confirmPayment: "تأكيد الدفع",
     confirming: "جاري التأكيد...",
-    success: "تمت معالجة الراتب بنجاح!", advanceSuccess: "تم تسجيل السلفة!", advance: "سلفة", advanceAmount: "مبلغ السلفة", giveAdvance: "إعطاء سلفة", advancePaid: "سلفة مدفوعة", remainingToPay: "المتبقي للدفع", fullSalary: "الراتب الكامل",
+    expensePrefix: "راتب", expenseAdvancePrefix: "سلفة", auditSalary: "تم دفع راتب قدره {amount} د.ت إلى {name} لشهر {month}", auditAdvance: "تم دفع سلفة قدرها {amount} د.ت إلى {name} لشهر {month}", missedSuffix: "ساعات ضائعة", deductionSuffix: "خصم", success: "تمت معالجة الراتب بنجاح!", advanceSuccess: "تم تسجيل السلفة!", advance: "سلفة", advanceAmount: "مبلغ السلفة", giveAdvance: "إعطاء سلفة", advancePaid: "سلفة مدفوعة", remainingToPay: "المتبقي للدفع", fullSalary: "الراتب الكامل",
     error: "فشلت معالجة الراتب",
     skipWarning: "يرجى الدفع لشهر {earliestUnpaid} أولاً للحفاظ على التسلسل الزمني."
   }
@@ -214,6 +214,22 @@ export default function PaySalaryModal({
     }
 
     startTransition(async () => {
+      let expenseTitle = isAdvanceMode 
+        ? `${t.expenseAdvancePrefix}: ${teacherName} (${selectedMonth})`
+        : `${t.expensePrefix}: ${teacherName} (${selectedMonth})`;
+        
+      if (!isAdvanceMode && deduction > 0) {
+        expenseTitle += ` - ${missedHours}h ${t.missedSuffix}`;
+      }
+
+      let auditDesc = isAdvanceMode
+        ? t.auditAdvance.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth)
+        : t.auditSalary.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth);
+        
+      if (!isAdvanceMode && deduction > 0) {
+        auditDesc += ` (${missedHours}h ${t.missedSuffix}, -${deduction} DT ${t.deductionSuffix})`;
+      }
+
       const result = await payTeacherSalary(
         teacherId,
         teacherName,
@@ -221,7 +237,9 @@ export default function PaySalaryModal({
         selectedMonth,
         isAdvanceMode ? undefined : missedHours,
         isAdvanceMode ? undefined : deduction,
-        isAdvanceMode
+        isAdvanceMode,
+        expenseTitle,
+        auditDesc
       );
       if (!result.success) {
         console.error("Failed to process payment");
