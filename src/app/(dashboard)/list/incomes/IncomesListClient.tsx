@@ -6,12 +6,12 @@ import TableSearch from "@/components/TableSearch";
 import { Income } from "@prisma/client";
 import Link from "next/link";
 import CrudFormModal from "@/components/CrudFormModal";
-import FinanceDateFilter from "@/components/FinanceDateFilter";
 import FinanceExportButton from "@/components/FinanceExportButton";
 import { Receipt, Calendar, Info } from "lucide-react";
 import { ProofViewerButton } from "@/components/ProofViewerModal";
 import FinanceDetailsModal from "@/components/FinanceDetailsModal";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { MONTHS, getSchoolYearMonths, getMonthKey } from "@/lib/dateUtils";
 
 interface IncomesListClientProps {
   data: Income[];
@@ -35,8 +35,7 @@ export default function IncomesListClient({
   const { t, locale } = useLanguage();
   const [clientSearch, setClientSearch] = useState("");
   const [clientCategory, setClientCategory] = useState("");
-  const [clientFrom, setClientFrom] = useState("");
-  const [clientTo, setClientTo] = useState("");
+  const [clientMonthKey, setClientMonthKey] = useState(getMonthKey(undefined));
 
   const [optimisticData, setOptimisticData] = useState<Income[]>(data);
 
@@ -190,12 +189,9 @@ export default function IncomesListClient({
 
   // Compute stats
   
-  const filteredData = optimisticData.filter((item: any) => {
+  // 1. Base filter (Search + Category) - used for computing stats
+  const baseFilteredData = optimisticData.filter((item: any) => {
     if (clientCategory && item.category?.toLowerCase() !== clientCategory.toLowerCase()) return false;
-    
-    if (clientFrom && new Date(item.date) < new Date(clientFrom)) return false;
-    if (clientTo && new Date(item.date) > new Date(clientTo)) return false;
-    
     if (clientSearch) {
       const s = clientSearch.toLowerCase();
       const matchesTitle = item.title?.toLowerCase().includes(s);
@@ -204,36 +200,49 @@ export default function IncomesListClient({
     }
     return true;
   });
-  
-  const ITEM_PER_PAGE = 10;
-  const safePage = (p && !isNaN(p) && p > 0) ? p : 1;
-  const paginatedData = filteredData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
-  const displayCount = filteredData.length;
 
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  // 2. Compute stats from baseFilteredData
+  let targetMonth = new Date().getMonth();
+  let targetYear = new Date().getFullYear();
+  if (clientMonthKey) {
+    const [mName, yStr] = clientMonthKey.split(" ");
+    targetMonth = MONTHS.indexOf(mName);
+    targetYear = parseInt(yStr);
+  }
 
   let thisMonthTotal = 0;
   let lastMonthTotal = 0;
   let ytdTotal = 0;
 
-  filteredData.forEach(income => {
+  baseFilteredData.forEach((income: any) => {
     const d = new Date(income.date);
     const m = d.getMonth();
     const y = d.getFullYear();
     
-    if (y === currentYear) {
+    if (y === targetYear) {
       ytdTotal += income.amount;
-      if (m === currentMonth) {
+      if (m === targetMonth) {
         thisMonthTotal += income.amount;
-      } else if (m === currentMonth - 1 || (currentMonth === 0 && m === 11 && y === currentYear - 1)) {
+      } else if (m === targetMonth - 1 || (targetMonth === 0 && m === 11 && y === targetYear - 1)) {
         lastMonthTotal += income.amount;
       }
-    } else if (currentMonth === 0 && m === 11 && y === currentYear - 1) {
+    } else if (targetMonth === 0 && m === 11 && y === targetYear - 1) {
        lastMonthTotal += income.amount;
     }
   });
+
+  // 3. Table data filter (additionally filter by Month)
+  const tableData = baseFilteredData.filter((item: any) => {
+    if (!clientMonthKey) return true;
+    const d = new Date(item.date);
+    return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+  });
+
+  const ITEM_PER_PAGE = 10;
+  const safePage = (p && !isNaN(p) && p > 0) ? p : 1;
+  const paginatedData = tableData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
+  const displayCount = tableData.length;
+
 
   const percentChange = lastMonthTotal === 0 
     ? 100 
@@ -259,7 +268,23 @@ export default function IncomesListClient({
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
           <div className="flex items-center gap-3 self-end md:self-auto">
-            <FinanceDateFilter clientSideOnly onChangeImmediate={(from, to) => { setClientFrom(from); setClientTo(to); }} currentClientFrom={clientFrom} currentClientTo={clientTo} />
+            
+            <select
+              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-lamaSky focus:ring-1 focus:ring-lamaSky transition-all shadow-sm"
+              value={clientMonthKey}
+              onChange={(e) => setClientMonthKey(e.target.value)}
+            >
+              <option value="">{locale === 'ar' ? 'كل الأشهر' : locale === 'fr' ? 'Tous les mois' : 'All months'}</option>
+              {getSchoolYearMonths().map(m => {
+                const [mName, yStr] = m.split(" ");
+                const mIdx = MONTHS.indexOf(mName);
+                const translatedMonth = t.months?.[mIdx] || mName;
+                return (
+                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
+                );
+              })}
+            </select>
+    
             <FinanceExportButton data={allData} filename="Incomes" />
             {role === "admin" && <CrudFormModal entity="income" mode="create" relatedData={relatedData} onSuccess={handleOptimisticUpdate} />}
           </div>
