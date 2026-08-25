@@ -17,6 +17,7 @@ export default function PaySalaryModal({
   paidMonths = [],
   payments = [],
   onSuccess,
+  onMissedHoursUpdate,
 }: {
   teacherId: string;
   teacherName: string;
