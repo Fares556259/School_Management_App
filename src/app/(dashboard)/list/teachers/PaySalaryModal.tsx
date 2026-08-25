@@ -62,9 +62,17 @@ export default function PaySalaryModal({
   const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
 
   useEffect(() => {
+    if (monthName && !paidMonths.includes(monthName)) {
+      setSelectedMonth(monthName);
+    }
+  }, [monthName]);
+
+  useEffect(() => {
     if (isOpen) {
       if (!selectedMonth || paidMonths.includes(selectedMonth)) {
         setSelectedMonth(monthsList[0] || "");
+      } else if (monthName && !paidMonths.includes(monthName)) {
+        setSelectedMonth(monthName);
       }
     }
   }, [isOpen]);

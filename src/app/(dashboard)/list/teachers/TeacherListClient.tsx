@@ -16,7 +16,7 @@ import ResetPasswordButton from "@/components/ResetPasswordButton";
 import { Sparkles, ChevronDown, BookOpen, Layers } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { MONTHS } from "@/lib/dateUtils";
+import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Teacher, Subject, Class, Payment } from "@prisma/client";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
@@ -56,7 +56,10 @@ export default function TeacherListClient({
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
+  const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
+  const [clientStatus, setClientStatus] = useState("");
   const { t, locale } = useLanguage();
+  const schoolYearMonths = getSchoolYearMonths();
 
   const classList = (relatedData?.classes || []).map((c: any) => ({
     id: c.value,
@@ -77,6 +80,14 @@ export default function TeacherListClient({
       const matchesSubjects = item.subjects?.some((sub: any) => sub.name?.toLowerCase().includes(s));
       if (!matchesName && !matchesSurname && !matchesPhone && !matchesSubjects) return false;
     }
+    if (clientStatus) {
+      const [mName, yStr] = clientMonthKey.split(" ");
+      const monthIdx = MONTHS.indexOf(mName) + 1;
+      const yearVal = parseInt(yStr);
+      const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
+      const actualStatus = payment ? payment.status : "UNPAID";
+      if (actualStatus !== clientStatus) return false;
+    }
     return true;
   });
 
@@ -86,8 +97,8 @@ export default function TeacherListClient({
   const displayCount = filteredData.length;
 
   const displayPaidCount = filteredData.filter((t: any) => {
-    const monthIdx = MONTHS.indexOf(selectedMonthKey.split(" ")[0]) + 1;
-    const yearVal = parseInt(selectedMonthKey.split(" ")[1]);
+    const monthIdx = MONTHS.indexOf(clientMonthKey.split(" ")[0]) + 1;
+    const yearVal = parseInt(clientMonthKey.split(" ")[1]);
     return t.payments?.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID");
   }).length;
 
@@ -107,7 +118,7 @@ export default function TeacherListClient({
   const renderRow = (
     item: Teacher & { subjects: Subject[]; classes: Class[]; payments: Payment[]; timetable?: any[] }
   ) => {
-    const [mName, yStr] = selectedMonthKey.split(" ");
+    const [mName, yStr] = clientMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
@@ -200,7 +211,7 @@ export default function TeacherListClient({
               hoursPerMonth={item.hoursPerMonth || undefined}
               isPaid={isPaidThisMonth} 
               isAdmin={role === "admin"} 
-              monthName={selectedMonthKey}
+              monthName={clientMonthKey}
               payments={item.payments}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
@@ -260,7 +271,7 @@ export default function TeacherListClient({
         <MonthPaymentSummary
           total={displayCount}
           paidCount={displayPaidCount}
-          monthLabel={selectedMonthKey}
+          monthLabel={clientMonthKey}
           entityName="teachers"
         />
       </div>
@@ -270,7 +281,7 @@ export default function TeacherListClient({
         <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.teachers.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           {/* SEARCH AND FILTER */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
@@ -282,6 +293,34 @@ export default function TeacherListClient({
               {classList.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
+            </select>
+
+            {/* MONTH FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              value={clientMonthKey}
+              onChange={(e) => setClientMonthKey(e.target.value)}
+            >
+              {schoolYearMonths.map(m => {
+                const [mName, yStr] = m.split(" ");
+                const mIdx = MONTHS.indexOf(mName);
+                const translatedMonth = t.months?.[mIdx] || mName;
+                return (
+                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
+                );
+              })}
+            </select>
+
+            {/* STATUS FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              value={clientStatus}
+              onChange={(e) => setClientStatus(e.target.value)}
+            >
+              <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
+              <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
+              <option value="PARTIAL">{locale === 'ar' ? 'جزئي' : locale === 'fr' ? 'Partiel' : 'Partial'}</option>
+              <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
             </select>
           </div>
           <div className="flex items-center gap-2 self-end md:self-auto">
