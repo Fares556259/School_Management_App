@@ -9,6 +9,9 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
 import QueryProvider from "@/providers/QueryProvider";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 const jakarta = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
   variable: '--font-jakarta',
@@ -40,6 +43,7 @@ export default function RootLayout({
               <NavigationLoader />
             </Suspense>
             {children}
+            <ToastContainer position="top-right" autoClose={3000} />
             <SpeedInsights />
           </LanguageProvider>
         </QueryProvider>

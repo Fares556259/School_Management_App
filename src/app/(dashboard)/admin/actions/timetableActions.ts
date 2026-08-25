@@ -47,6 +47,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
           startTime: data.startTime || "08:00 AM",
           endTime: data.endTime || "09:00 AM",
           classId: data.classId!,
+          schoolId: schoolId,
           subjectId: data.subjectId,
           teacherId: data.teacherId,
           roomId: data.roomId,
@@ -331,9 +332,23 @@ export async function getAllRooms() {
 export async function getAllActiveTimetableSlots() {
   try {
     const schoolId = await getSchoolId();
+    // Fetch all class IDs for this school first
+    const classes = await prisma.class.findMany({
+      where: { schoolId },
+      select: { id: true }
+    });
+    const classIds = classes.map(c => c.id);
+
     const slots = await prisma.timetableSlot.findMany({
-      where: { schoolId, isDraft: false },
-      select: { roomId: true, day: true, slotNumber: true, classId: true }
+      where: { 
+        classId: { in: classIds },
+        isDraft: false 
+      },
+      include: {
+        subject: true,
+        teacher: true,
+        room: true,
+      },
     });
     return { success: true, data: slots };
   } catch (error: any) {

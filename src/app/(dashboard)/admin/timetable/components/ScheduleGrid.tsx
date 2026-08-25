@@ -70,8 +70,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   useEffect(() => {
     if (fetchDataAction && classId) {
       // If parent provided slots (e.g. from server cache) and we are just switching classes,
-      // skip the network fetch for instant loading.
-      if (propSlots && isInitialMount.current) {
+      // skip the network fetch for instant loading, UNLESS it's empty (to ensure we didn't fail to load all slots).
+      if (propSlots && propSlots.length > 0 && isInitialMount.current) {
         isInitialMount.current = false;
         setIsLoading(false);
         return;
