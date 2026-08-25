@@ -107,7 +107,7 @@ const StudentListPage = async ({
   const [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = await getCachedTenantData(
     schoolId,
     'students',
-    [p, JSON.stringify(queryParams), monthIdx, yearVal],
+    [p, JSON.stringify(queryParams)],
     () => Promise.all([
       prisma.student.findMany({
         where: query,
@@ -116,10 +116,6 @@ const StudentListPage = async ({
           level: true,
           parent: true,
           payments: { 
-            where: {
-              month: monthIdx,
-              year: yearVal,
-            },
             select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } 
           },
         },

@@ -56,6 +56,7 @@ export default function StudentListClient({
   const [clientSearch, setClientSearch] = useState("");
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
   const [clientStatus, setClientStatus] = useState(searchParams.get("status") || "");
+  const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
 
   useEffect(() => {
     setOptimisticData(initialData);
@@ -83,7 +84,7 @@ export default function StudentListClient({
       return false;
     }
     if (clientStatus) {
-      const [mName, yStr] = selectedMonthKey.split(" ");
+      const [mName, yStr] = clientMonthKey.split(" ");
       const monthIdx = MONTHS.indexOf(mName) + 1;
       const yearVal = parseInt(yStr);
       const currentPayment = item.payments.find((p: any) => p.month === monthIdx && p.year === yearVal);
@@ -100,7 +101,7 @@ export default function StudentListClient({
   const displayedData = filteredData;
   const displayTotalThisMonth = displayedData.length;
   const displayPaidThisMonth = displayedData.filter(item => {
-    const [mName, yStr] = selectedMonthKey.split(" ");
+    const [mName, yStr] = clientMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
     return item.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID");
@@ -129,7 +130,7 @@ export default function StudentListClient({
   const renderRow = (
     item: Student & { class: Class | null; level: Level; payments: Payment[]; parent?: any }
   ) => {
-    const [mName, yStr] = selectedMonthKey.split(" ");
+    const [mName, yStr] = clientMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
@@ -206,7 +207,7 @@ export default function StudentListClient({
               isPartial={isPartialThisMonth}
               initialPaidAmount={currentPayment?.amount || 0}
               isAdmin={role === "admin"}
-              monthName={selectedMonthKey}
+              monthName={clientMonthKey}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" || p.status === "PARTIAL")
                 .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
@@ -247,7 +248,7 @@ export default function StudentListClient({
         <MonthPaymentSummary
           total={displayTotalThisMonth}
           paidCount={displayPaidThisMonth}
-          monthLabel={selectedMonthKey}
+          monthLabel={clientMonthKey}
           entityName="students"
         />
       </div>
@@ -274,21 +275,9 @@ export default function StudentListClient({
             {/* MONTH FILTER */}
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
-              value={selectedMonthKey}
+              value={clientMonthKey}
               onChange={(e) => {
-                startTransition(() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  const val = e.target.value;
-                  if (val) {
-                    const [mName, yStr] = val.split(" ");
-                    const mIdx = MONTHS.indexOf(mName);
-                    params.set("month", `${mIdx}-${yStr}`);
-                  } else {
-                    params.delete("month");
-                  }
-                  params.delete("page");
-                  router.push(`${pathname}?${params.toString()}`, { scroll: false });
-                });
+                setClientMonthKey(e.target.value);
               }}
             >
               {schoolYearMonths.map(m => {
