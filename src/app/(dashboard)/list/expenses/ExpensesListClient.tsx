@@ -35,7 +35,7 @@ export default function ExpensesListClient({
   const { t, locale } = useLanguage();
   const [clientSearch, setClientSearch] = useState("");
   const [clientCategory, setClientCategory] = useState("");
-  const [clientMonthKey, setClientMonthKey] = useState(getMonthKey(undefined));
+  const [clientMonthKey, setClientMonthKey] = useState("");
   
   const [optimisticData, setOptimisticData] = useState<Expense[]>(data);
 
