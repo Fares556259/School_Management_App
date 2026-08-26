@@ -580,10 +580,10 @@ const SettingsPage = () => {
                       <span className="text-sm font-black text-slate-700">{t.systemSettings?.level || "Level"} {lvl.level}</span>
                     </div>
                     <div className="relative max-w-[100px]">
-                      <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">$</span>
+                      <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">DT</span>
                       <input 
                         type="number"
-                        className="w-full bg-white border border-[#dddddd] rounded-[6px] ps-6 pe-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-end"
+                        className="w-full bg-white border border-[#dddddd] rounded-[6px] ps-8 pe-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-end"
                         value={lvl.tuitionFee}
                         onChange={(e) => handleUpdateLevelFee(lvl.id, e.target.value)}
                       />
