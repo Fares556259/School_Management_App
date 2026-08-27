@@ -65,12 +65,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Use getSession() instead of getUser() to avoid Vercel Edge Middleware 504 timeouts.
-  // getSession() reads the local cookie instantly without a network request.
+  // Use getUser() so Supabase automatically refreshes expired JWT tokens via the refresh token.
+  // Without this, users get randomly signed out after 1 hour when their JWT expires.
+  // We wrap it in a 3s timeout so a slow Supabase response never causes a 504.
   let user = null;
   try {
-    const { data } = await supabase.auth.getSession();
-    user = data?.session?.user ?? null;
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+    const authCall = supabase.auth.getUser().then(({ data }) => data?.user ?? null);
+    user = await Promise.race([authCall, timeout]);
   } catch (error) {
     console.error("[MIDDLEWARE] Supabase auth error:", error);
   }
