@@ -39,13 +39,15 @@ const SuperadminMenu = () => {
 
       {/* Logout pinned to bottom */}
       <div className="pt-4 border-t border-slate-100 mt-auto">
-        <Link
-          href="/logout"
-          className="flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all duration-200"
-        >
-          <LogOut size={18} strokeWidth={2} />
-          <span className="hidden lg:block font-semibold tracking-tight">Logout</span>
-        </Link>
+        <form action="/api/auth/signout" method="POST" className="w-full">
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all duration-200"
+          >
+            <LogOut size={18} strokeWidth={2} />
+            <span className="hidden lg:block font-semibold tracking-tight">Logout</span>
+          </button>
+        </form>
       </div>
     </div>
   );

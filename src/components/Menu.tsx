@@ -310,6 +310,24 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                       (pendingHref ? pendingHref === targetHref : pathname === targetHref) || 
                       (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
                     
+                    if (item.href === "/logout") {
+                      return (
+                        <form key={item.label} action="/api/auth/signout" method="POST" className="w-full">
+                          <button
+                            type="submit"
+                            className="flex items-center justify-center lg:justify-start gap-2.5 py-2 px-2.5 rounded-lg transition-all duration-200 group relative w-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-normal"
+                          >
+                            <div className="transition-colors shrink-0 text-slate-400 group-hover:text-slate-600">
+                              <item.icon size={17} strokeWidth={2} />
+                            </div>
+                            <span className="hidden lg:block tracking-tight text-[13px] transition-transform duration-200 truncate">
+                              {(t.menu as any)[labelToKey[item.label]] || item.label}
+                            </span>
+                          </button>
+                        </form>
+                      );
+                    }
+
                     return (
                       <Link
                         href={targetHref}
