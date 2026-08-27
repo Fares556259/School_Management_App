@@ -32,7 +32,8 @@ const ResourceListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   const userId = user?.id;
   const role = await getRole();
   const { page, ...queryParams } = searchParams;

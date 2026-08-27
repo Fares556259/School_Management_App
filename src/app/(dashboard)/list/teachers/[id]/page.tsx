@@ -24,7 +24,8 @@ const SingleTeacherPage = async ({
   params: { id: string };
 }) => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   const role = await getRole();
   const schoolId = await getSchoolId();
   const teacher:

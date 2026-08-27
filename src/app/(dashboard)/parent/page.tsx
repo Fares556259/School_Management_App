@@ -6,7 +6,8 @@ import { getSchoolId } from "@/lib/school";
 
 const ParentPage = async () => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   const userId = user?.id;
   const schoolId = await getSchoolId();
 

@@ -308,7 +308,8 @@ export default function Homepage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
       if (user) {
         setIsSignedIn(true);
         const role = user.user_metadata?.role as string | undefined;

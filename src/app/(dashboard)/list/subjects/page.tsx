@@ -36,7 +36,7 @@ const SubjectListPage = async ({
 }) => {
   redirect("/admin");
   const supabase = createClient();
-  await supabase.auth.getUser();
+  await supabase.auth.getSession();
   const role = await getRole();
   const schoolId = await getSchoolId();
 
