@@ -272,6 +272,13 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
               <button 
                 type="button"
                 onClick={() => toggleSection(section.title)}
+                onMouseEnter={() => {
+                  // Prefetch all pages in this section when hovering the header
+                  visibleItems.forEach(item => {
+                    const href = item.href === "/" ? (isSuper ? "/superadmin" : `/${role}`) : item.href;
+                    if (href !== "/logout") router.prefetch(href);
+                  });
+                }}
                 className={`flex items-center justify-center lg:justify-between w-full py-2 px-3 rounded-xl transition-all duration-200 group cursor-pointer select-none ${
                   isExpanded 
                     ? "bg-slate-100/90 text-slate-900 font-semibold" 
