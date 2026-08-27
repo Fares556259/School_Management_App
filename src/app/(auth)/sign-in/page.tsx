@@ -55,14 +55,11 @@ export default function SignInPage() {
       const status = data.user?.user_metadata?.status as string | undefined;
 
       if (role === "superadmin") {
-        router.refresh();
-        router.push("/superadmin");
+        window.location.href = "/superadmin";
       } else if (role === "admin" && status === "active") {
-        router.refresh();
-        router.push("/admin");
+        window.location.href = "/admin";
       } else {
-        router.refresh();
-        router.push("/waiting-approval");
+        window.location.href = "/waiting-approval";
       }
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue. Veuillez réanalyser vos identifiants.");
