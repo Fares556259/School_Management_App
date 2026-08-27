@@ -15,7 +15,10 @@ import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import React, { Suspense } from "react";
 
-export const dynamic = "force-dynamic";
+// No force-dynamic — we rely on getCachedTenantData (write-through cache).
+// Every mutation (incomes, expenses, salaries, students) calls invalidateTenantTags('dashboard')
+// which instantly busts the cache so data is always fresh after any change.
+
 
 const AdminPage = async ({
   searchParams,
