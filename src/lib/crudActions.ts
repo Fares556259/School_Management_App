@@ -1471,3 +1471,27 @@ export const deleteResource = async (id: number) => {
     return { success: false, error: err?.message || "Failed to delete resource." };
   }
 };
+
+// ===================== PHONE DUPLICATE CHECK =====================
+
+/**
+ * Checks if a phone number already exists for another parent in the same school.
+ * Used in the Add New Parent form for real-time duplicate detection.
+ */
+export const checkParentPhoneExists = async (phone: string): Promise<{ exists: boolean; parentName?: string }> => {
+  try {
+    if (!phone || phone.trim().length < 6) return { exists: false };
+    const schoolId = await getSchoolId();
+    const existing = await prisma.parent.findFirst({
+      where: { schoolId, phone: phone.trim() },
+      select: { name: true, surname: true },
+    });
+    if (existing) {
+      return { exists: true, parentName: `${existing.name} ${existing.surname}` };
+    }
+    return { exists: false };
+  } catch {
+    return { exists: false };
+  }
+};
+

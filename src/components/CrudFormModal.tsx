@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
 import SearchableSelect from "./SearchableSelect";
@@ -16,7 +16,7 @@ import {
   createSubject, updateSubject, deleteSubject,
   createExpense, updateExpense, deleteExpense,
   createIncome, updateIncome, deleteIncome,
-  enrollFamily, 
+  enrollFamily, checkParentPhoneExists,
 } from "@/lib/crudActions";
 import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2, Eye, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -227,6 +227,27 @@ export default function CrudFormModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { t } = useLanguage();
 
+  // Phone duplicate detection (parent create mode only)
+  const [phoneExists, setPhoneExists] = useState<{ exists: boolean; parentName?: string }>({ exists: false });
+  const [checkingPhone, setCheckingPhone] = useState(false);
+  const phoneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    if (phoneDebounceRef.current) clearTimeout(phoneDebounceRef.current);
+    if (!value || value.trim().length < 6) {
+      setPhoneExists({ exists: false });
+      setCheckingPhone(false);
+      return;
+    }
+    setCheckingPhone(true);
+    phoneDebounceRef.current = setTimeout(async () => {
+      const result = await checkParentPhoneExists(value.trim());
+      setPhoneExists(result);
+      setCheckingPhone(false);
+    }, 500);
+  }, []);
+
+
   // Unified Enrollment State
   const [students, setStudents] = useState<any[]>([
     { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
@@ -241,6 +262,9 @@ export default function CrudFormModal({
       setError("");
       setUploadingImg(false);
       setUploadProgress(0);
+      setPhoneExists({ exists: false });
+      setCheckingPhone(false);
+      if (phoneDebounceRef.current) clearTimeout(phoneDebounceRef.current);
       setStudents([
         { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
       ]);
@@ -806,36 +830,57 @@ export default function CrudFormModal({
                             {!isSpecialTuition && <input type="hidden" name={f.name} value="" />}
                           </div>
                         ) : (
-                          <input
-                            name={f.name}
-                            type={f.type === "number" ? "text" : f.type}
-                            inputMode={f.type === "number" ? "decimal" : undefined}
-                            defaultValue={
-                              f.type === "date"
-                                ? formatDate(data?.[f.name])
-                                : data?.[f.name] || ""
-                            }
-                            required={f.required}
-                            placeholder={(() => {
-                              if (f.placeholder === "e.g., Annual Charity Event") return t.placeholders?.incomeDesc || f.placeholder;
-                              if (f.placeholder === "e.g., Bus Fuel - Route A") return t.placeholders?.expenseDesc || f.placeholder;
-                              if (f.placeholder === "e.g. Secretary, Guard, Janitor") return t.placeholders?.staffRole || f.placeholder;
-                              return t.crud.fields[f.placeholder as keyof typeof t.crud.fields] || f.placeholder;
-                            })()}
-                            step={f.type === "number" ? "0.01" : undefined}
-                            className={`w-full border ${
-                              error && f.name === error.split(" ")[0].toLowerCase()
-                                ? "border-rose-500 focus:ring-rose-500"
-                                : "border-[#dddddd] focus:border-[#458fff] focus:ring-[#458fff]"
-                            } rounded-[6px] px-4 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder-[#9297a0]`}
-                            onInput={(e) => {
-                              if (f.type === "number") {
-                                const target = e.target as HTMLInputElement;
-                                target.value = target.value.replace(/[^0-9.,]/g, '');
+                          <>
+                            <input
+                              name={f.name}
+                              type={f.type === "number" ? "text" : f.type}
+                              inputMode={f.type === "number" ? "decimal" : undefined}
+                              defaultValue={
+                                f.type === "date"
+                                  ? formatDate(data?.[f.name])
+                                  : data?.[f.name] || ""
                               }
-                            }}
-                          />
+                              required={f.required}
+                              placeholder={(() => {
+                                if (f.placeholder === "e.g., Annual Charity Event") return t.placeholders?.incomeDesc || f.placeholder;
+                                if (f.placeholder === "e.g., Bus Fuel - Route A") return t.placeholders?.expenseDesc || f.placeholder;
+                                if (f.placeholder === "e.g. Secretary, Guard, Janitor") return t.placeholders?.staffRole || f.placeholder;
+                                return t.crud.fields[f.placeholder as keyof typeof t.crud.fields] || f.placeholder;
+                              })()}
+                              step={f.type === "number" ? "0.01" : undefined}
+                              onChange={entity === "parent" && mode === "create" && f.name === "phone" ? (e) => handlePhoneChange(e.target.value) : undefined}
+                              className={`w-full border ${
+                                entity === "parent" && mode === "create" && f.name === "phone" && phoneExists.exists
+                                  ? "border-rose-500 focus:border-rose-500 focus:ring-rose-200 bg-rose-50"
+                                  : error && f.name === error.split(" ")[0].toLowerCase()
+                                  ? "border-rose-500 focus:ring-rose-500"
+                                  : "border-[#dddddd] focus:border-[#458fff] focus:ring-[#458fff]"
+                              } rounded-[6px] px-4 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:ring-1 transition-colors shadow-sm placeholder-[#9297a0]`}
+                              onInput={(e) => {
+                                if (f.type === "number") {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = target.value.replace(/[^0-9.,]/g, '');
+                                }
+                              }}
+                            />
+                            {/* Phone duplicate warning */}
+                            {entity === "parent" && mode === "create" && f.name === "phone" && (
+                              <div className="mt-1.5 min-h-[20px]">
+                                {checkingPhone && (
+                                  <p className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium">
+                                    <Loader2 size={11} className="animate-spin" /> Vérification...
+                                  </p>
+                                )}
+                                {!checkingPhone && phoneExists.exists && (
+                                  <p className="flex items-center gap-1.5 text-[12px] text-rose-600 font-semibold">
+                                    ⚠️ Ce numéro appartient déjà à {phoneExists.parentName}. Changez le numéro pour continuer.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </>
                         )}
+
                       </div>
                     ))}
                   </div>
@@ -941,8 +986,8 @@ export default function CrudFormModal({
                     </button>
                     <button
                       type="submit"
-                      disabled={isPending || uploadingImg}
-                      className="px-6 py-2.5 text-[16px] font-medium text-white bg-[#181d26] hover:bg-[#0d1218] rounded-[12px] transition-colors disabled:opacity-50"
+                      disabled={isPending || uploadingImg || (entity === "parent" && mode === "create" && (phoneExists.exists || checkingPhone))}
+                      className="px-6 py-2.5 text-[16px] font-medium text-white bg-[#181d26] hover:bg-[#0d1218] rounded-[12px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isPending ? t.crud.saving : uploadingImg ? t.crud.uploading : mode === "create" ? t.crud.create : t.crud.saveChanges}
                     </button>
