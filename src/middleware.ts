@@ -65,14 +65,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Wrap in try/catch — if Supabase is unreachable, treat user as unauthenticated
+  // Use getSession() instead of getUser() to avoid Vercel Edge Middleware 504 timeouts.
+  // getSession() reads the local cookie instantly without a network request.
   let user = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data?.user ?? null;
+    const { data } = await supabase.auth.getSession();
+    user = data?.session?.user ?? null;
   } catch (error) {
     console.error("[MIDDLEWARE] Supabase auth error:", error);
-    // Allow the request through for public routes; redirect to sign-in otherwise
   }
 
   const pathname = request.nextUrl.pathname;
