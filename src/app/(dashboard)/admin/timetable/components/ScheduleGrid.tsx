@@ -220,10 +220,10 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 return (
                   <div 
                     key={hour} 
-                    className="absolute top-0 bottom-0 border-l border-[#dddddd] flex items-center px-2"
+                    className="absolute top-0 bottom-0 border-l border-[#dddddd]"
                     style={{ left: `${pct}%` }}
                   >
-                    <span className="text-[11px] font-semibold text-slate-400 bg-[#f8fafc] -translate-x-1/2">
+                    <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-[11px] font-semibold text-slate-500 bg-[#f8fafc] px-2 z-10">
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -270,12 +270,20 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   {timeMarkers.map(hour => {
                     if (hour < startHour || hour > endHour) return null;
                     const pct = ((hour - startHour) / totalHours) * 100;
+                    const halfPct = ((hour + 0.5 - startHour) / totalHours) * 100;
                     return (
-                      <div 
-                        key={`line-${hour}`} 
-                        className="absolute top-0 bottom-0 border-l border-[#f1f5f9] pointer-events-none"
-                        style={{ left: `${pct}%` }}
-                      />
+                      <React.Fragment key={`line-group-${hour}`}>
+                        <div 
+                          className="absolute top-0 bottom-0 border-l border-slate-300 pointer-events-none z-0"
+                          style={{ left: `${pct}%` }}
+                        />
+                        {hour < endHour && (
+                          <div 
+                            className="absolute top-0 bottom-0 border-l border-dashed border-slate-200 pointer-events-none z-0"
+                            style={{ left: `${halfPct}%` }}
+                          />
+                        )}
+                      </React.Fragment>
                     );
                   })}
 
@@ -283,7 +291,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   {daySlots.map(slot => (
                     <div 
                       key={slot.id}
-                      className="absolute top-2 bottom-2 p-1 transition-all"
+                      className="absolute top-1 bottom-1 p-0.5 transition-all"
                       style={{ 
                         left: calcLeft(slot.startTime), 
                         width: calcWidth(slot.duration || 120),
@@ -321,7 +329,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   {/* Add Slot Button / Dropzone at the end */}
                   {isEditMode && parseTime(lastSlotEndTime) < endHour && (
                     <div
-                      className="absolute top-2 bottom-2 p-1 transition-all"
+                      className="absolute top-1 bottom-1 p-0.5 transition-all"
                       style={{ 
                         left: calcLeft(lastSlotEndTime), 
                         width: "80px",

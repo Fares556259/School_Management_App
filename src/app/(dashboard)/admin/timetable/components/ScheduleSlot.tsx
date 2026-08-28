@@ -206,43 +206,41 @@ const ScheduleSlot = ({
         <div 
           draggable={isEditMode && !!slot}
           onDragStart={handleDragStart}
-          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border p-3.5 rounded-[6px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-sm' : ''} overflow-hidden`}
+          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border p-2 px-3 rounded-[6px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-sm' : ''} overflow-hidden`}
         >
           {/* Subtle gradient overlay for depth */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
           
-          <div className="flex items-start justify-between relative z-10 mb-2">
-            <h3 className="text-[14px] font-medium text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors line-clamp-2">
+          <div className="flex items-start justify-between relative z-10 mb-1">
+            <h3 className="text-[13px] font-semibold text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors line-clamp-2">
               {subjectName || "Unscheduled Subject"}
             </h3>
             {isEditMode && (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="p-1.5 opacity-0 group-hover:opacity-100 bg-white/80 hover:bg-white rounded-lg shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden"
+                className="p-1 opacity-0 group-hover:opacity-100 bg-white/80 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden flex-shrink-0"
               >
-                <Edit2 size={14} />
+                <Edit2 size={12} />
               </button>
             )}
           </div>
           
-          <div className="mt-1 flex flex-col gap-1">
-            <p className="text-[12px] font-medium text-[#41454d] opacity-80">
+          <div className="flex flex-col">
+            <p className="text-[11px] font-medium text-[#41454d] opacity-80 truncate">
               {teacherName}
             </p>
           </div>
 
-          <div className="mt-auto flex items-center justify-between pt-3 relative z-10">
-             <div className="flex items-center gap-2">
-               <div className="bg-[#ffffff]/80 px-2 py-1 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1.5">
-                  <span className="text-[11px] font-medium text-[#41454d]">{slot.room?.name || "Room TBA"}</span>
-               </div>
-               {slot?.startTime && (
-                 <div className="bg-[#ffffff]/80 px-2 py-1 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1">
-                    <Clock size={11} className="text-[#5a5a5a]" />
-                    <span className="text-[11px] font-semibold text-[#181d26]">{slot.startTime} - {slot.endTime}</span>
-                 </div>
-               )}
+          <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5 relative z-10">
+             <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center max-w-full overflow-hidden">
+                <span className="text-[10px] font-medium text-[#41454d] truncate">{slot.room?.name || "Room TBA"}</span>
              </div>
+             {slot?.startTime && (
+               <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1 flex-shrink-0">
+                  <Clock size={10} className="text-[#5a5a5a]" />
+                  <span className="text-[10px] font-semibold text-[#181d26] whitespace-nowrap">{slot.startTime} - {slot.endTime}</span>
+               </div>
+             )}
           </div>
         </div>
       )}
