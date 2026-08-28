@@ -221,21 +221,24 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       <div className="w-full overflow-x-auto rounded-[12px] border border-slate-200 bg-white shadow-sm">
         <div className="min-w-[800px]">
           {/* HEADER ROW */}
-          <div className="flex h-12 border-b border-slate-200 bg-[#f8fafc]">
+          <div className="flex h-14 border-b border-slate-200 bg-[#f8fafc] shadow-sm relative z-10">
             <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest">
               Jour
             </div>
-            <div className="flex-1 relative flex items-center">
+            <div className="flex-1 relative">
               {timeMarkers.map(hour => {
                 if (hour < startHour || hour > endHour) return null;
                 const pct = ((hour - startHour) / totalHours) * 100;
                 return (
                   <div 
                     key={hour} 
-                    className="absolute top-0 bottom-0 border-l border-slate-200"
+                    className="absolute top-0 bottom-0"
                     style={{ left: `${pct}%` }}
                   >
-                    <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-[11px] font-semibold text-slate-500 bg-[#f8fafc] px-2 z-10">
+                    {/* Tick mark */}
+                    <div className="absolute bottom-0 w-[2px] h-3 bg-slate-300 -translate-x-1/2 rounded-t-[1px]" />
+                    {/* Time Label */}
+                    <span className="absolute bottom-4 -translate-x-1/2 text-[13px] font-semibold text-slate-600">
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -286,12 +289,12 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                     return (
                       <React.Fragment key={`line-group-${hour}`}>
                         <div 
-                          className="absolute top-0 bottom-0 border-l border-slate-300 pointer-events-none z-0"
+                          className="absolute top-0 bottom-0 border-l border-slate-200 pointer-events-none z-0"
                           style={{ left: `${pct}%` }}
                         />
-                        {hour < endHour && (
+                        {halfPct <= 100 && (
                           <div 
-                            className="absolute top-0 bottom-0 border-l border-dashed border-slate-200 pointer-events-none z-0"
+                            className="absolute top-0 bottom-0 border-l border-dashed border-slate-100 pointer-events-none z-0"
                             style={{ left: `${halfPct}%` }}
                           />
                         )}
