@@ -206,7 +206,7 @@ const ScheduleSlot = ({
         <div 
           draggable={isEditMode && !!slot}
           onDragStart={handleDragStart}
-          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border p-2 px-3 rounded-[6px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-sm' : ''} overflow-hidden`}
+          className={`w-full h-full ${getSlotColor(parseInt(subjectId) || 0)} border border-white/60 shadow-sm p-2 px-3 rounded-[8px] transition-all flex flex-col relative group ${isEditMode && !!slot ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''} overflow-hidden`}
         >
           {/* Subtle gradient overlay for depth */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>

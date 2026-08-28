@@ -206,11 +206,11 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
         </div>
       )}
 
-      <div className="w-full overflow-x-auto rounded-[12px] border border-[#dddddd] bg-white shadow-sm">
+      <div className="w-full overflow-x-auto rounded-[12px] border border-slate-200 bg-white shadow-sm">
         <div className="min-w-[800px]">
           {/* HEADER ROW */}
-          <div className="flex h-12 border-b border-[#dddddd] bg-[#f8fafc]">
-            <div className="w-28 flex-shrink-0 border-e border-[#dddddd] flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest">
+          <div className="flex h-12 border-b border-slate-200 bg-[#f8fafc]">
+            <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest">
               Jour
             </div>
             <div className="flex-1 relative flex items-center">
@@ -220,7 +220,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 return (
                   <div 
                     key={hour} 
-                    className="absolute top-0 bottom-0 border-l border-[#dddddd]"
+                    className="absolute top-0 bottom-0 border-l border-slate-200"
                     style={{ left: `${pct}%` }}
                   >
                     <span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-[11px] font-semibold text-slate-500 bg-[#f8fafc] px-2 z-10">
@@ -253,9 +253,9 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             const lastSlotEndTime = lastSlot ? lastSlot.endTime : dayStartTime;
 
             return (
-              <div key={d} className="flex h-[130px] border-b border-[#dddddd] last:border-b-0 group">
+              <div key={d} className="flex h-[110px] border-b border-slate-200 last:border-b-0 group">
                 {/* DAY LABEL */}
-                <div className="w-28 flex-shrink-0 border-e border-[#dddddd] flex flex-col items-center justify-center bg-white group-hover:bg-[#f8fafc] transition-colors relative z-20">
+                <div className="w-28 flex-shrink-0 border-e border-slate-200 flex flex-col items-center justify-center bg-slate-50/30 group-hover:bg-slate-50 transition-colors relative z-20">
                   <span className="font-bold text-[13px] text-slate-700 capitalize">{dayLabels[d]}</span>
                   {dateObj && (
                     <span className="text-[10px] font-medium text-slate-400 mt-1">
@@ -265,7 +265,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 </div>
                 
                 {/* TIMELINE AREA */}
-                <div className="flex-1 relative bg-white overflow-hidden">
+                <div className="flex-1 relative bg-white group-hover:bg-slate-50/20 transition-colors overflow-hidden">
                   {/* Background grid lines */}
                   {timeMarkers.map(hour => {
                     if (hour < startHour || hour > endHour) return null;
