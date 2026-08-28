@@ -805,7 +805,7 @@ const SettingsPage = () => {
                </div>
             </div>
             <p className="text-xs text-slate-500 bg-white p-3 rounded-md border border-slate-100">
-              Ces heures définissent le cadre de la journée. Chaque créneau d'emploi du temps peut ensuite durer 1h, 1h30 ou 2h et s'alignera automatiquement à l'intérieur de ces horaires.
+              Ces heures définissent le cadre de la journée. Chaque créneau d&apos;emploi du temps peut ensuite durer 1h, 1h30 ou 2h et s&apos;alignera automatiquement à l&apos;intérieur de ces horaires.
             </p>
           </div>
 
