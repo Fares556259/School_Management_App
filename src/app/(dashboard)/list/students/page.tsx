@@ -154,7 +154,10 @@ const StudentListPage = async ({
 
   const studentRelatedData = {
     parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
-    classId: classes.map((c) => ({ value: String(c.id), label: c.name })),
+    classId: [
+      { value: "null", label: "Non affecté(e)" },
+      ...classes.map((c) => ({ value: String(c.id), label: c.name }))
+    ],
     levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
     schoolName: school?.name || "SnapSchool",
     schoolSubdomain: school?.subdomain || "snapschool-academy",

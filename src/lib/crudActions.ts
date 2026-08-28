@@ -208,7 +208,7 @@ export const createStudent = async (data: {
   birthday: string;
   sex: "MALE" | "FEMALE";
   parentId: string;
-  classId: number;
+  classId?: number | null | string;
   levelId?: number;
     customTuition?: number | null;
   img?: string | null;
@@ -218,12 +218,18 @@ export const createStudent = async (data: {
 
     // Auto-fetch levelId from class if not provided
     let finalLevelId = data.levelId;
+    let finalClassId = data.classId && data.classId !== "null" && data.classId !== "" ? parseInt(String(data.classId)) : null;
+
     if (!finalLevelId || finalLevelId === 0) {
-      const targetClass = await prisma.class.findUnique({
-        where: { id: data.classId },
-        select: { levelId: true }
-      });
-      finalLevelId = targetClass?.levelId || 1;
+      if (finalClassId) {
+        const targetClass = await prisma.class.findUnique({
+          where: { id: finalClassId },
+          select: { levelId: true }
+        });
+        finalLevelId = targetClass?.levelId || 1;
+      } else {
+        finalLevelId = 1;
+      }
     }
 
     const finalUsername = data.username || 
@@ -244,7 +250,7 @@ export const createStudent = async (data: {
         birthday: new Date(data.birthday),
         sex: data.sex,
         parentId: data.parentId,
-        classId: data.classId,
+        classId: finalClassId,
         levelId: finalLevelId,
         customTuition: data.customTuition || null,
         img: data.img || null,
@@ -363,7 +369,7 @@ export const updateStudent = async (
     birthday: string;
     sex: "MALE" | "FEMALE";
     parentId: string;
-    classId: number;
+    classId: number | string | null;
     levelId?: number;
     customTuition?: number | null;
     img: string | null;
@@ -375,12 +381,18 @@ export const updateStudent = async (
     if (data.birthday) updateData.birthday = new Date(data.birthday);
 
     // Auto-update levelId if classId changed
-    if (data.classId) {
-      const targetClass = await prisma.class.findUnique({
-        where: { id: data.classId },
-        select: { levelId: true }
-      });
-      if (targetClass) updateData.levelId = targetClass.levelId;
+    if ('classId' in data) {
+      if (data.classId && data.classId !== "null" && data.classId !== "") {
+        const parsedClassId = parseInt(String(data.classId));
+        updateData.classId = parsedClassId;
+        const targetClass = await prisma.class.findUnique({
+          where: { id: parsedClassId },
+          select: { levelId: true }
+        });
+        if (targetClass) updateData.levelId = targetClass.levelId;
+      } else {
+        updateData.classId = null;
+      }
     }
 
     await prisma.student.update({ where: { id }, data: updateData });
@@ -1266,10 +1278,19 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
       // 2. Create Students
       for (const child of children) {
         // Auto-fetch levelId from class
-        const targetClass = await tx.class.findUnique({
-          where: { id: parseInt(child.classId) },
-          select: { levelId: true }
-        });
+        let finalLevelId = 1;
+        let finalClassId = null;
+        
+        if (child.classId && child.classId !== "null" && child.classId !== "") {
+          finalClassId = parseInt(child.classId);
+          const targetClass = await tx.class.findUnique({
+            where: { id: finalClassId },
+            select: { levelId: true }
+          });
+          if (targetClass?.levelId) {
+            finalLevelId = targetClass.levelId;
+          }
+        }
 
         const studentUsername = child.username || 
           `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
@@ -1282,15 +1303,16 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             name: child.name,
             surname: child.surname,
             phone: child.phone || null,
-            address: child.address || parent.address,
+            address: parent.address, // inherit parent address
             bloodType: child.bloodType || "O+",
             birthday: new Date(child.birthday),
             sex: child.sex,
             parentId: parent.id,
-            classId: parseInt(child.classId),
-            levelId: targetClass?.levelId || 1,
+            classId: finalClassId,
+            levelId: finalLevelId,
             img: child.img || null,
-          }
+            customTuition: child.customTuition || null,
+          },
         });
       }
 

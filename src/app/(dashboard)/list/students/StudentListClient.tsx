@@ -67,7 +67,7 @@ export default function StudentListClient({
   const { t, locale } = useLanguage();
 
   const classList = (relatedData?.classId || []).map((c: any) => ({
-    id: parseInt(c.value, 10),
+    id: c.value === "null" ? "null" : parseInt(c.value, 10),
     name: c.label,
   }));
 

@@ -74,7 +74,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
     { name: "parentId", label: "Parent", type: "searchable-select", required: true },
-    { name: "classId", label: "Class", type: "select", required: true, parseAsNumber: true },
+    { name: "classId", label: "Class", type: "select", required: false, parseAsNumber: true },
     { name: "customTuition", label: "Special Tuition Rate", type: "conditional-number", parseAsNumber: true },
 
     { name: "img", label: "Profile Photo", type: "image" },
@@ -361,7 +361,7 @@ export default function CrudFormModal({
                 bloodType: "O+",
               }));
 
-              const missingInfo = studentList.some(s => !s.name || !s.surname || !s.classId);
+              const missingInfo = studentList.some(s => !s.name || !s.surname);
               if (missingInfo) {
                 setError("Please fill in all student details.");
                 return reject("Missing student details");
@@ -955,10 +955,9 @@ export default function CrudFormModal({
                                 />
                               </div>
                               <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.class || "Class"} *</label>
+                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.class || "Class"}</label>
                                 <select
                                   name={`student-${index}-classId`}
-                                  required
                                   className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                 >
                                   {relatedData?.classId?.map(o => (

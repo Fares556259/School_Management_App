@@ -109,7 +109,10 @@ const ParentListPage = async ({
   );
 
   const relatedData = {
-    classId: classes.map(c => ({ value: c.id.toString(), label: c.name })),
+    classId: [
+      { value: "null", label: "Non affecté(e)" },
+      ...classes.map((c) => ({ value: c.id.toString(), label: c.name }))
+    ],
     schoolName: school?.name || "SnapSchool",
     schoolSubdomain: school?.subdomain || "snapschool-academy",
   };
