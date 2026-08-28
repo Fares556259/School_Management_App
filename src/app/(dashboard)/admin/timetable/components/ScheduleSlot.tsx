@@ -152,27 +152,34 @@ const ScheduleSlot = ({
     }
   };
 
-  // 1. Filter Teachers
-  const filteredTeachers = teachers.filter((t) => {
-    // Check if teacher is assigned to this class
-    const teachesClass = t.classes?.some((c: any) => c.id === classId);
-    
-    // If a subject is selected, also check if the teacher teaches that subject
-    if (subjectId) {
-      const teachesSubject = t.subjects?.some((s: any) => s.id === parseInt(subjectId));
-      return teachesClass && teachesSubject;
+  // 1. Group Subjects based on class assignment
+  const classTeacherSubjectIds = new Set<number>();
+  teachers.forEach(t => {
+    if (t.classes?.some((c: any) => c.id === classId)) {
+      t.subjects?.forEach((s: any) => classTeacherSubjectIds.add(s.id));
     }
-    
-    // If no subject is selected, just return teachers for this class
-    return teachesClass;
   });
 
-  // 2. Filter Rooms
+  const availableSubjects = subjects.filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId);
+  const classSubjects = availableSubjects.filter(s => classTeacherSubjectIds.has(s.id));
+  const otherSubjects = availableSubjects.filter(s => !classTeacherSubjectIds.has(s.id));
+
+  // 2. Group Teachers
+  const filterBySubject = (tArr: any[]) => {
+    if (!subjectId || subjectId === "FREE") return tArr;
+    return tArr.filter(t => t.subjects?.some((s: any) => s.id === parseInt(subjectId)));
+  };
+  
+  const classTeachers = filterBySubject(teachers.filter(t => t.classes?.some((c: any) => c.id === classId)));
+  const otherTeachers = filterBySubject(teachers.filter(t => !t.classes?.some((c: any) => c.id === classId)));
+
+  // 3. Group Rooms
   const occupiedRoomIds = allActiveSlots
     .filter((s: any) => s.day === day && s.slotNumber === period && s.classId !== classId && s.roomId)
     .map((s: any) => s.roomId);
 
-  const filteredRooms = rooms.filter((r) => !occupiedRoomIds.includes(r.id));
+  const availableRooms = rooms.filter((r) => !occupiedRoomIds.includes(r.id));
+  const occupiedRooms = rooms.filter((r) => occupiedRoomIds.includes(r.id));
 
   if (!slot && !isEditMode) return null;
 
@@ -291,12 +298,20 @@ const ScheduleSlot = ({
                   >
                     <option value="">Select Subject</option>
                     <option value="FREE" className="font-semibold text-amber-700 bg-amber-50">☕ Pause / Temps Libre (راحة)</option>
-                    {subjects
-                      .filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId)
-                      .map(s => (
-                        <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
-                      ))
-                    }
+                    {classSubjects.length > 0 && (
+                      <optgroup label="Class Subjects (Recommended)">
+                        {classSubjects.map(s => (
+                          <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {otherSubjects.length > 0 && (
+                      <optgroup label={classSubjects.length > 0 ? "Other Subjects" : "All Subjects"}>
+                        {otherSubjects.map(s => (
+                          <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                     <BookOpen size={16} />
@@ -314,9 +329,20 @@ const ScheduleSlot = ({
                       disabled={type === 'exam'}
                     >
                       <option value="">Select Teacher</option>
-                      {filteredTeachers.map(t => (
-                        <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
-                      ))}
+                      {classTeachers.length > 0 && (
+                        <optgroup label="Class Teachers (Recommended)">
+                          {classTeachers.map(t => (
+                            <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {otherTeachers.length > 0 && (
+                        <optgroup label={classTeachers.length > 0 ? "Other Teachers" : "All Teachers"}>
+                          {otherTeachers.map(t => (
+                            <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                       <User size={16} />
@@ -336,9 +362,20 @@ const ScheduleSlot = ({
                       onChange={(e) => setRoomId(e.target.value)}
                     >
                       <option value="">Select Room</option>
-                      {filteredRooms.map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
+                      {availableRooms.length > 0 && (
+                        <optgroup label="Available Rooms">
+                          {availableRooms.map(r => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {occupiedRooms.length > 0 && (
+                        <optgroup label="Occupied Rooms (Conflict!)">
+                          {occupiedRooms.map(r => (
+                            <option key={r.id} value={r.id} disabled className="text-red-400 bg-red-50 italic">{r.name} (In Use)</option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                       <MapPin size={16} />
