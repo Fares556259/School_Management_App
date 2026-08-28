@@ -309,11 +309,10 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                 </div>
               </div>
             )}
-            {displaySessions.map((session, idx) => (
-              <div key={session.id || idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0 group/row`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
+            {Array.from({ length: Math.max(4, ...displaySlots.map(s => (s as any).slotNumber || 1)) }).map((_, idx) => (
+              <div key={idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0 group/row`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
                 <div className="flex flex-col items-center justify-center bg-[#ffffff] p-4 relative border-e border-[#dddddd] group-hover/row:bg-[#f8fafc] transition-colors">
-                   <span className="text-[13px] font-medium text-[#181d26] leading-none">{idx + 1}</span>
-                   <span className="text-[11px] font-normal text-[#5a5a5a] mt-1.5 whitespace-nowrap">{session.time}</span>
+                   <span className="text-[13px] font-medium text-[#181d26] leading-none">Créneau {idx + 1}</span>
                 </div>
 
                 {displayDays.map((item) => {
@@ -334,8 +333,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         classId={classId}
                         day={d as Day}
                         period={idx + 1}
-                        startTime={session.time.split(" - ")[0]}
-                        endTime={session.time.split(" - ")[1]}
+                        startTime={s?.startTime || ""}
+                        endTime={s?.endTime || ""}
                         subjects={subjects}
                         teachers={teachers}
                         rooms={rooms}

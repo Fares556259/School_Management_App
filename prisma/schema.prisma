@@ -328,6 +328,8 @@ model Institution {
   currentSemester Int      @default(2)
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
   holidays        Json?    @default("[]")
+  dayStartTime    String   @default("08:00")
+  dayEndTime      String   @default("14:00")
   yearStart       DateTime @default(dbgenerated("'2025-09-01 00:00:00'::timestamp without time zone"))
   yearEnd         DateTime @default(dbgenerated("'2026-06-30 00:00:00'::timestamp without time zone"))
   updatedAt       DateTime @updatedAt
@@ -468,6 +470,7 @@ model TimetableSlot {
   startTime  String
   endTime    String
   slotNumber Int
+  duration   Int      @default(120)
   subjectId  Int?
   teacherId  String?
   classId    Int
@@ -482,6 +485,7 @@ model TimetableSlot {
 
   @@unique([classId, day, slotNumber, isDraft])
 }
+
 
 model DailyReportLog {
   id       String   @id @default(cuid())

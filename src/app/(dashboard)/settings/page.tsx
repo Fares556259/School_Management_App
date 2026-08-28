@@ -773,88 +773,40 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {/* SESSIONS CONFIG */}
+          {/* SCHOOL TIMETABLE CONFIG */}
           <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
              <div className="flex items-center justify-between mb-2">
                <div className="flex items-center gap-2">
                 <Clock className="text-indigo-600" size={18} />
-                <h2 className="text-[16px] font-medium text-[#181d26]">{t.systemSettings?.dailySessions || "Daily Sessions"}</h2>
+                <h2 className="text-[16px] font-medium text-[#181d26]">School Timetable (Heures de classe)</h2>
                </div>
-               <button 
-                type="button"
-                onClick={addSession}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
-               >
-                 <Plus size={14} /> {t.systemSettings?.addSession || "Add Session"}
-               </button>
             </div>
-            <div className="flex flex-col gap-4">
-               <AnimatePresence mode="popLayout">
-                {config?.sessions?.map((session: any, idx: number) => (
-                  <motion.div 
-                    key={session.id || idx}
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, x: -20 }}
-                    layout
-                    className="flex flex-col sm:flex-row items-end gap-3 p-5 bg-white rounded-[12px] border border-[#dddddd] group relative"
-                  >
-                      <div className="flex flex-col gap-1.5 flex-1 w-full">
-                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{t.systemSettings?.sessionLabel || "Session Label"}</label>
-                        <div className="w-full bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-3 py-2.5 text-[14px] font-medium text-[#9297a0] cursor-not-allowed">
-                          {`Session ${idx + 1}`}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5 flex-[2] w-full">
-                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{t.systemSettings?.timeWindow || "Time Window"}</label>
-                        <select 
-                          className="w-full bg-white border border-slate-100 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
-                          value={session.time}
-                          onChange={e => {
-                            const newSessions = [...config.sessions];
-                            newSessions[idx] = { 
-                              id: idx + 1, 
-                              label: `Session ${idx + 1}`, 
-                              time: e.target.value 
-                            };
-                            setConfig({ ...config, sessions: newSessions });
-                          }}
-                        >
-                          <option value="08:00 - 10:00">08:00 - 10:00</option>
-                          <option value="10:00 - 12:00">10:00 - 12:00</option>
-                          <option value="12:00 - 14:00">12:00 - 14:00</option>
-                          <option value="14:00 - 16:00">14:00 - 16:00</option>
-                          <option value="16:00 - 18:00">16:00 - 18:00</option>
-                        </select>
-                      </div>
-                        <button 
-                          type="button"
-                          onClick={() => removeSession(idx)}
-                          className="p-2.5 bg-white border border-[#dddddd] rounded-[6px] text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all shadow-sm mb-0.5"
-                          title="Remove Session"
-                        >
-                        <Trash2 size={16} />
-                      </button>
-                  </motion.div>
-                ))}
-               </AnimatePresence>
-
-               {config.sessions.length === 0 && (
-                 <div className="py-12 flex flex-col items-center justify-center border border-dashed border-[#dddddd] rounded-[12px] gap-4 bg-[#f8fafc]">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-200">
-                      <Clock size={24} />
-                    </div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.systemSettings?.noSessionsDefined || "No sessions defined"}</p>
-                    <button 
-                      type="button"
-                      onClick={addSession}
-                      className="px-4 py-2 bg-white border border-[#dddddd] rounded-[6px] text-[13px] font-medium text-[#181d26] hover:bg-[#f8fafc] transition-all shadow-sm"
-                    >
-                      {t.systemSettings?.initializeFirstSession || "Initialize first session"}
-                    </button>
-                 </div>
-               )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               {/* Day Start Time */}
+               <div className="flex flex-col gap-1.5 w-full">
+                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Heure de début (Start Time)</label>
+                 <input 
+                   type="time"
+                   className="w-full bg-white border border-[#dddddd] rounded-[6px] px-3 py-2.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all"
+                   value={config?.dayStartTime || "08:00"}
+                   onChange={e => setConfig({ ...config, dayStartTime: e.target.value })}
+                 />
+               </div>
+               
+               {/* Day End Time */}
+               <div className="flex flex-col gap-1.5 w-full">
+                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Heure de fin (End Time)</label>
+                 <input 
+                   type="time"
+                   className="w-full bg-white border border-[#dddddd] rounded-[6px] px-3 py-2.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all"
+                   value={config?.dayEndTime || "14:00"}
+                   onChange={e => setConfig({ ...config, dayEndTime: e.target.value })}
+                 />
+               </div>
             </div>
+            <p className="text-xs text-slate-500 bg-white p-3 rounded-md border border-slate-100">
+              Ces heures définissent le cadre de la journée. Chaque créneau d'emploi du temps peut ensuite durer 1h, 1h30 ou 2h et s'alignera automatiquement à l'intérieur de ces horaires.
+            </p>
           </div>
 
           {/* FLOATING SAVE BAR */}

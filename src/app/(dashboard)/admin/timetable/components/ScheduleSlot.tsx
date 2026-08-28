@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Day } from "@prisma/client";
-import { Edit2, BookOpen, X, Check, Trash2, User, MapPin } from "lucide-react";
+import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock } from "lucide-react";
 
 const dayLabels: { [key in Day]: string } = {
   [Day.MONDAY]: "Lundi",
@@ -12,6 +12,13 @@ const dayLabels: { [key in Day]: string } = {
   [Day.FRIDAY]: "Vendredi",
   [Day.SATURDAY]: "Samedi",
 };
+
+// Add minutes to "HH:MM", returns "HH:MM"
+function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + (m || 0) + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 
 interface SlotProps {
   slot: any;
@@ -61,6 +68,7 @@ const ScheduleSlot = ({
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [roomId, setRoomId] = useState("");
+  const [duration, setDuration] = useState<number>(slot?.duration || 120);
 
   const pastelColors = [
     "bg-[#F0F4FF] border-[#D6E4FF]", // Blue
@@ -85,6 +93,7 @@ const ScheduleSlot = ({
       setTeacherId(slot?.lesson?.teacherId || "");
     }
     setRoomId(slot?.roomId?.toString() || "");
+    setDuration(slot?.duration || 120);
   }, [slot, type]);
 
   const handleUpdate = async () => {
@@ -98,7 +107,8 @@ const ScheduleSlot = ({
           day: day,
           slotNumber: period,
           startTime,
-          endTime,
+          endTime: addMinutes(startTime, duration),
+          duration,
           roomId: parseInt(roomId) || null,
           examPeriod: examPeriod,
           targetDate: targetDate?.toISOString(),
@@ -115,8 +125,9 @@ const ScheduleSlot = ({
         setLoading(false);
     }
   };
-  
+
   const handleDelete = async () => {
+
     if (!onDeleteAction || !slot?.id) return;
     
     if (window.confirm("Are you sure you want to delete this session?")) {
@@ -219,8 +230,16 @@ const ScheduleSlot = ({
           </div>
 
           <div className="mt-auto flex items-center justify-between pt-3 relative z-10">
-             <div className="bg-[#ffffff]/80 px-2 py-1 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1.5">
-                <span className="text-[11px] font-medium text-[#41454d]">{slot.room?.name || "Room TBA"}</span>
+             <div className="flex items-center gap-2">
+               <div className="bg-[#ffffff]/80 px-2 py-1 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium text-[#41454d]">{slot.room?.name || "Room TBA"}</span>
+               </div>
+               {slot?.startTime && (
+                 <div className="bg-[#ffffff]/80 px-2 py-1 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1">
+                    <Clock size={11} className="text-[#5a5a5a]" />
+                    <span className="text-[11px] font-semibold text-[#181d26]">{slot.startTime} - {slot.endTime}</span>
+                 </div>
+               )}
              </div>
           </div>
         </div>
@@ -241,7 +260,7 @@ const ScheduleSlot = ({
                     {slot?.id ? "Modifier Session" : "Ajouter Session"}
                   </h3>
                   <p className="text-sm text-[#41454d] mt-1">
-                    {dayLabels[day] || String(day)} · {startTime} - {endTime}
+                    {dayLabels[day] || String(day)} · {startTime ? `${startTime} - ${endTime}` : `Créneau ${period}`}
                   </p>
                 </div>
               </div>
@@ -314,6 +333,25 @@ const ScheduleSlot = ({
                   </select>
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                     <MapPin size={16} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Duration Input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-[#181d26] ml-1">Durée (Duration)</label>
+                <div className="relative">
+                  <select 
+                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
+                    value={duration}
+                    onChange={(e) => setDuration(Number(e.target.value))}
+                  >
+                    <option value={60}>1 Heure</option>
+                    <option value={90}>1 Heure 30</option>
+                    <option value={120}>2 Heures</option>
+                  </select>
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                    <Clock size={16} />
                   </div>
                 </div>
               </div>

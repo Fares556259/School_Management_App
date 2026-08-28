@@ -111,12 +111,26 @@ function getDateForDay(targetDay: Day, currentWeekStart: Date) {
   return date;
 }
 
-// Internal helper for session times mapping
-const sessionTimes = [
-  { start: "08:00", end: "10:00" },
-  { start: "10:00", end: "12:00" },
-  { start: "12:00", end: "14:00" },
-];
+// Internal helper for dynamic session times based on dayStartTime
+async function getExamSessionTime(slotNumber: number) {
+  const schoolId = await getSchoolId();
+  const institution = await prisma.institution.findFirst({
+    where: { schoolId },
+    select: { dayStartTime: true }
+  });
+  
+  const dayStart = (institution as any)?.dayStartTime || "08:00";
+  const [startH, startM] = dayStart.split(":").map(Number);
+  
+  // Defaulting exam blocks to 2 hours
+  const totalMinsStart = startH * 60 + (startM || 0) + (slotNumber - 1) * 120;
+  const totalMinsEnd = totalMinsStart + 120;
+  
+  const start = `${String(Math.floor(totalMinsStart / 60)).padStart(2, '0')}:${String(totalMinsStart % 60).padStart(2, '0')}`;
+  const end = `${String(Math.floor(totalMinsEnd / 60)).padStart(2, '0')}:${String(totalMinsEnd % 60).padStart(2, '0')}`;
+  
+  return { start, end };
+}
 
 export async function updateExamSlot(data: {
   id: number;
@@ -135,7 +149,7 @@ export async function updateExamSlot(data: {
     
     // Use targetDate if provided (most precise)
     const examDate = data.targetDate ? new Date(data.targetDate) : getDateForDay(data.day, startDate);
-    const session = sessionTimes[data.slotNumber - 1] || sessionTimes[0];
+    const session = await getExamSessionTime(data.slotNumber);
 
     const startTime = new Date(examDate);
     const [hStart, mStart] = session.start.split(":").map(Number);
@@ -222,7 +236,7 @@ export async function moveExam(examId: number, targetDay: Day, targetSlotNumber:
     const monday = startDate;
     
         const examDate = getDateForDay(targetDay, monday);
-        const session = sessionTimes[targetSlotNumber - 1];
+        const session = await getExamSessionTime(targetSlotNumber);
     
         const startTime = new Date(examDate);
         const [hStart, mStart] = session.start.split(":").map(Number);
@@ -320,7 +334,7 @@ export async function bulkUpdateExams(classId: number, period: number, slots: an
                 examDate.setDate(examDate.getDate() + dayOffset);
 
                 const slotNum = Number(slot.slotNumber) || 1;
-                const session = sessionTimes[slotNum - 1] || sessionTimes[0];
+                const session = await getExamSessionTime(slotNum);
 
                 const startTime = new Date(examDate);
                 const [hStart, mStart] = session.start.split(":").map(Number);

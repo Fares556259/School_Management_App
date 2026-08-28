@@ -24,6 +24,8 @@ export async function getSchoolConfig() {
         currentSemester: true,
         sessions: true,
         holidays: true,
+        dayStartTime: true,
+        dayEndTime: true,
         yearStart: true,
         yearEnd: true,
         updatedAt: true
@@ -46,6 +48,8 @@ export async function getSchoolConfig() {
           yearStart: new Date("2025-09-01"),
           yearEnd: new Date("2026-06-30"),
           holidays: [],
+          dayStartTime: "08:00",
+          dayEndTime: "14:00",
         },
         select: {
           id: true,
@@ -62,6 +66,8 @@ export async function getSchoolConfig() {
           currentSemester: true,
           sessions: true,
           holidays: true,
+          dayStartTime: true,
+          dayEndTime: true,
           yearStart: true,
           yearEnd: true,
           updatedAt: true
@@ -73,6 +79,8 @@ export async function getSchoolConfig() {
     if (config) {
       if (!config.yearEnd) (config as any).yearEnd = new Date("2026-06-30");
       if (!config.holidays) (config as any).holidays = [];
+      if (!(config as any).dayStartTime) (config as any).dayStartTime = "08:00";
+      if (!(config as any).dayEndTime) (config as any).dayEndTime = "14:00";
     }
 
     return { success: true, data: config };
@@ -82,18 +90,12 @@ export async function getSchoolConfig() {
   }
 }
 
+
 export async function updateSchoolConfig(data: any) {
   try {
-    // 1. Fetch current config to check for session count changes
     const schoolId = await getSchoolId();
-    const currentConfig = await prisma.institution.findFirst({ 
-      where: { schoolId },
-      select: { sessions: true } 
-    });
-    const oldSessions = currentConfig?.sessions ? (typeof currentConfig.sessions === 'string' ? JSON.parse(currentConfig.sessions as string) : currentConfig.sessions as any[]) : [];
-    const newSessions = data.sessions || [];
 
-    // 2. Prepare data for update with strict field mapping and validation
+    // Prepare data for update
     const updateData: any = {
       schoolName: data.schoolName,
       schoolLogo: data.schoolLogo,
@@ -107,23 +109,20 @@ export async function updateSchoolConfig(data: any) {
       currentSemester: data.currentSemester,
       holidays: data.holidays || [],
       sessions: data.sessions || [],
+      dayStartTime: data.dayStartTime || "08:00",
+      dayEndTime: data.dayEndTime || "14:00",
     };
 
-    // Safely handle dates to avoid "Invalid Date" Prisma errors
+    // Safely handle dates
     const start = data.yearStart ? new Date(data.yearStart) : null;
     if (start && !isNaN(start.getTime())) updateData.yearStart = start;
-    
     const end = data.yearEnd ? new Date(data.yearEnd) : null;
     if (end && !isNaN(end.getTime())) updateData.yearEnd = end;
 
-    // 2. Update the Institution (using schoolId as resilient unique key)
     const updated = await prisma.institution.upsert({
-      where: { schoolId: data.schoolId || await getSchoolId() },
+      where: { schoolId: data.schoolId || schoolId },
       update: updateData,
-      create: { 
-        ...updateData, 
-        schoolId: data.schoolId || await getSchoolId()
-      },
+      create: { ...updateData, schoolId: data.schoolId || schoolId },
       select: {
         id: true,
         schoolId: true,
@@ -139,38 +138,13 @@ export async function updateSchoolConfig(data: any) {
         currentSemester: true,
         sessions: true,
         holidays: true,
+        dayStartTime: true,
+        dayEndTime: true,
         yearStart: true,
         yearEnd: true,
         updatedAt: true
       }
     });
-
-    // 3. Synchronize TimetableSlots
-    if (Array.isArray(newSessions)) {
-      await Promise.all(newSessions.map(async (session: any, index: number) => {
-        if (session.time && session.time.includes(" - ")) {
-          const [start, end] = session.time.split(" - ");
-          const slotNumber = index + 1;
-
-          await prisma.timetableSlot.updateMany({
-            where: { slotNumber },
-            data: {
-              startTime: start.trim(),
-              endTime: end.trim()
-            }
-          });
-        }
-      }));
-
-      // 4. Cleanuporphaned slots if session count decreased
-      if (newSessions.length < oldSessions.length) {
-        await prisma.timetableSlot.deleteMany({
-          where: {
-            slotNumber: { gt: newSessions.length }
-          }
-        });
-      }
-    }
 
     revalidatePath("/settings");
     revalidatePath("/list/exams");
@@ -182,7 +156,9 @@ export async function updateSchoolConfig(data: any) {
   }
 }
 
+
 export async function getLevelTuitionFees() {
+
   try {
     const schoolId = await getSchoolId();
 

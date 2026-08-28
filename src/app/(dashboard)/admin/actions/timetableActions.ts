@@ -12,7 +12,45 @@ export type TimetableSlotUpdate = {
   startTime?: string;
   endTime?: string;
   roomId?: number | null;
+  duration?: number; // minutes: 60, 90, or 120
 };
+
+// Adds minutes to a "HH:MM" string, returns "HH:MM"
+function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + (m || 0) + minutes;
+  const hh = Math.floor(total / 60);
+  const mm = total % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+// Recalculates startTime/endTime for all slots in a class+day based on their
+// slotNumber order and each slot's duration, starting from the school dayStartTime.
+export async function recalculateSlotTimes(classId: number, day: Day, isDraft: boolean = false) {
+  const schoolId = await getSchoolId();
+  const institution = await prisma.institution.findFirst({
+    where: { schoolId },
+    select: { dayStartTime: true }
+  });
+  const dayStart = (institution as any)?.dayStartTime || "08:00";
+
+  const slots = await prisma.timetableSlot.findMany({
+    where: { classId, day, isDraft },
+    orderBy: { slotNumber: "asc" }
+  });
+
+  let cursor = dayStart;
+  for (const slot of slots) {
+    const dur = slot.duration || 120;
+    const newStart = cursor;
+    const newEnd = addMinutes(cursor, dur);
+    await prisma.timetableSlot.update({
+      where: { id: slot.id },
+      data: { startTime: newStart, endTime: newEnd }
+    });
+    cursor = newEnd;
+  }
+}
 
 export async function getTimetableByClass(classId: number, isDraft: boolean = false) {
   try {
@@ -37,48 +75,84 @@ export async function getTimetableByClass(classId: number, isDraft: boolean = fa
 
 export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?: number, day?: Day, slotNumber?: number, isDraft?: boolean }) {
   try {
+    const schoolId = await getSchoolId();
+    const isDraft = data.isDraft || false;
+
     if (data.id === -1) {
-      const schoolId = await getSchoolId();
-      // CREATE NEW SLOT
+      // CREATE NEW SLOT — get next slotNumber for this day
+      const existingSlots = await prisma.timetableSlot.findMany({
+        where: { classId: data.classId!, day: data.day!, isDraft },
+        orderBy: { slotNumber: "asc" }
+      });
+      const nextSlotNumber = data.slotNumber ?? (existingSlots.length + 1);
+      const duration = data.duration || 120;
+
+      // Calculate start/end from previous slot's endTime or school dayStartTime
+      const institution = await prisma.institution.findFirst({
+        where: { schoolId },
+        select: { dayStartTime: true, dayEndTime: true }
+      });
+      const dayStart = (institution as any)?.dayStartTime || "08:00";
+      const dayEnd = (institution as any)?.dayEndTime || "14:00";
+
+      // Find the last slot in this day to cascade from
+      const prevSlot = existingSlots[existingSlots.length - 1];
+      const slotStart = prevSlot ? prevSlot.endTime : dayStart;
+      const slotEnd = addMinutes(slotStart, duration);
+
+      // Block if slot would exceed school day end
+      const [eH, eM] = dayEnd.split(":").map(Number);
+      const [sH, sM] = slotEnd.split(":").map(Number);
+      if (sH * 60 + sM > eH * 60 + eM) {
+        return { success: false, error: `Dépasse la fin de journée (${dayEnd}). Réduisez la durée ou supprimez d'autres créneaux.` };
+      }
+
       const created = await prisma.timetableSlot.create({
         data: {
           day: data.day!,
-          slotNumber: data.slotNumber!,
-          startTime: data.startTime || "08:00 AM",
-          endTime: data.endTime || "09:00 AM",
+          slotNumber: nextSlotNumber,
+          startTime: data.startTime || slotStart,
+          endTime: data.endTime || slotEnd,
+          duration,
           classId: data.classId!,
-          schoolId: schoolId,
+          schoolId,
           subjectId: data.subjectId,
           teacherId: data.teacherId,
           roomId: data.roomId,
-          isDraft: data.isDraft || false,
+          isDraft,
         }
       });
       revalidatePath(`/admin/timetable`);
       return { success: true, data: created };
     }
 
+    // UPDATE existing slot
+    const updatePayload: any = {
+      subjectId: data.subjectId,
+      teacherId: data.teacherId,
+      roomId: data.roomId,
+    };
+    if (data.duration !== undefined) {
+      updatePayload.duration = data.duration;
+      // Recalculate end time based on new duration
+      const existing = await prisma.timetableSlot.findUnique({ where: { id: data.id } });
+      if (existing) {
+        updatePayload.endTime = addMinutes(existing.startTime, data.duration);
+        // Also cascade to subsequent slots on the same day
+        await prisma.timetableSlot.update({ where: { id: data.id }, data: updatePayload });
+        await recalculateSlotTimes(existing.classId, existing.day, existing.isDraft);
+        revalidatePath(`/admin/timetable`);
+        return { success: true };
+      }
+    }
+    if (data.startTime) updatePayload.startTime = data.startTime;
+    if (data.endTime) updatePayload.endTime = data.endTime;
+
     const updated = await prisma.timetableSlot.update({
       where: { id: data.id },
-      data: {
-        subjectId: data.subjectId,
-        teacherId: data.teacherId,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        roomId: data.roomId,
-      },
+      data: updatePayload,
     });
-    
-    // Get classId for revalidation
-    const slot = await prisma.timetableSlot.findUnique({
-      where: { id: data.id },
-      select: { classId: true }
-    });
-
-    if (slot) {
-      revalidatePath(`/admin/timetable`);
-    }
-
+    revalidatePath(`/admin/timetable`);
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Error updating timetable slot:", error);
@@ -87,6 +161,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
 }
 
 export async function getAllClasses() {
+
   try {
     const schoolId = await getSchoolId();
     const classes = await prisma.class.findMany({
@@ -172,6 +247,12 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
       }
     });
 
+    await recalculateSlotTimes(sourceSlot.classId, sourceSlot.day, sourceSlot.isDraft);
+    if (sourceSlot.day !== targetDay) {
+      await recalculateSlotTimes(sourceSlot.classId, targetDay, sourceSlot.isDraft);
+    }
+    
+    revalidatePath(`/admin/timetable`);
     return { success: true };
   } catch (error: any) {
     console.error("Error moving timetable slot:", error);
@@ -183,7 +264,7 @@ export async function deleteTimetableSlot(id: number) {
   try {
     const slot = await prisma.timetableSlot.findUnique({
       where: { id },
-      select: { classId: true }
+      select: { classId: true, day: true, isDraft: true }
     });
     
     await prisma.timetableSlot.delete({
@@ -191,6 +272,7 @@ export async function deleteTimetableSlot(id: number) {
     });
     
     if (slot) {
+      await recalculateSlotTimes(slot.classId, slot.day, slot.isDraft);
       revalidatePath(`/admin/timetable`);
     }
     return { success: true };
@@ -214,6 +296,7 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
     if (!classInfo) return { success: false, error: "Class not found" };
     
     const schoolId = classInfo.schoolId;
+    const daysToRecalc = new Set<Day>();
 
     await prisma.$transaction(async (tx) => {
       await tx.timetableSlot.deleteMany({
@@ -224,10 +307,13 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
         .map(slot => {
           const subId = Number(slot.subjectId);
           if (!subId || isNaN(subId)) return null;
+          const d = String(slot.day || "MONDAY").toUpperCase() as Day;
+          daysToRecalc.add(d);
           return {
-            day: String(slot.day || "MONDAY").toUpperCase() as Day,
-            startTime: slot.startTime || "08:00 AM",
-            endTime: slot.endTime || "09:00 AM",
+            day: d,
+            startTime: "08:00", // Will be recalculated
+            endTime: "10:00",
+            duration: Number(slot.duration) || 120,
             slotNumber: Number(slot.slotNumber) || 1,
             subjectId: subId,
             teacherId: slot.teacherId ? String(slot.teacherId) : null,
@@ -244,6 +330,10 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
         });
       }
     });
+
+    for (const d of Array.from(daysToRecalc)) {
+      await recalculateSlotTimes(classId, d, isDraft);
+    }
 
     revalidatePath(`/admin/timetable`);
     revalidatePath(`/list/exams`);

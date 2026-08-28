@@ -34,12 +34,11 @@ export async function generateTimetableFromPrompt(
     Each object MUST have:
     {
       "day": "MONDAY | TUESDAY | WEDNESDAY | THURSDAY | FRIDAY | SATURDAY",
-      "startTime": "string (e.g. 08:00)",
-      "endTime": "string (e.g. 10:00)",
-      "slotNumber": number (1, 2 or 3),
+      "slotNumber": number (1, 2, 3, etc.),
+      "duration": number (60, 90, or 120 in minutes),
       "room": "string (e.g. Room 101)",
       "subjectId": number (match ID from available subjects),
-      "teacherId": "string (match ID from available teachers who teach that subject)",
+      "teacherId": "string (match ID from available teachers)",
       "classId": ${classContext.id}
     }
 
@@ -48,11 +47,9 @@ export async function generateTimetableFromPrompt(
 
     IMPORTANT:
     - Return ONLY the JSON array.
-    - Slot 1: 08:00 - 10:00
-    - Slot 2: 10:00 - 12:00
-    - Slot 3: 12:00 - 14:00
+    - Omit startTime and endTime (these will be auto-calculated).
     - Handle overlaps: Don't assign more than one subject to the same slot/day.
-    - Aim for a balanced schedule if instructions are vague.
+    - Default duration is 120 minutes if unspecified.
   `;
 
   try {
