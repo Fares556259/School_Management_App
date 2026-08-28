@@ -159,7 +159,9 @@ export default function StudentListClient({
             <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? t.students.noClass}</p>
           </div>
         </td>
-        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">Level {item.level.level}</td>
+        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">
+          {item.classId ? `Level ${item.level.level}` : "-"}
+        </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
           {item.parent ? (
             <div className="flex flex-col">
