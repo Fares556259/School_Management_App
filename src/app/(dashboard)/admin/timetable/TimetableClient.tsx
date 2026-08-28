@@ -264,6 +264,7 @@ const TimetablePage = ({
         <ScheduleGrid 
           ref={gridRef}
           classId={selectedClass.id} 
+          classNameStr={selectedClass.name}
           slots={classSlots}
           subjects={subjects}
           teachers={teachers}

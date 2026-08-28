@@ -41,6 +41,7 @@ interface SlotProps {
   examPeriod?: number;
   targetDate?: Date;
   compactMode?: boolean;
+  classNameStr?: string;
 }
 
 const ScheduleSlot = ({ 
@@ -62,7 +63,8 @@ const ScheduleSlot = ({
   usedSubjectIds,
   examPeriod,
   targetDate,
-  compactMode = false
+  compactMode = false,
+  classNameStr = ""
 }: SlotProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -296,17 +298,17 @@ const ScheduleSlot = ({
                     value={subjectId}
                     onChange={(e) => setSubjectId(e.target.value)}
                   >
-                    <option value="">Select Subject</option>
+                    <option value="">Sélectionner une matière</option>
                     <option value="FREE" className="font-semibold text-amber-700 bg-amber-50">☕ Pause / Temps Libre (راحة)</option>
                     {classSubjects.length > 0 && (
-                      <optgroup label="Class Subjects (Recommended)">
+                      <optgroup label={classNameStr ? `Matières de la classe ${classNameStr}` : "Matières de la classe"}>
                         {classSubjects.map(s => (
                           <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
                         ))}
                       </optgroup>
                     )}
                     {otherSubjects.length > 0 && (
-                      <optgroup label={classSubjects.length > 0 ? "Other Subjects" : "All Subjects"}>
+                      <optgroup label={classSubjects.length > 0 ? "Autres Matières" : "Toutes les Matières"}>
                         {otherSubjects.map(s => (
                           <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
                         ))}
@@ -328,16 +330,16 @@ const ScheduleSlot = ({
                       onChange={(e) => setTeacherId(e.target.value)}
                       disabled={type === 'exam'}
                     >
-                      <option value="">Select Teacher</option>
+                      <option value="">Sélectionner un enseignant</option>
                       {classTeachers.length > 0 && (
-                        <optgroup label="Class Teachers (Recommended)">
+                        <optgroup label={classNameStr ? `Enseignants de la classe ${classNameStr}` : "Enseignants de la classe"}>
                           {classTeachers.map(t => (
                             <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
                           ))}
                         </optgroup>
                       )}
                       {otherTeachers.length > 0 && (
-                        <optgroup label={classTeachers.length > 0 ? "Other Teachers" : "All Teachers"}>
+                        <optgroup label={classTeachers.length > 0 ? "Autres Enseignants" : "Tous les Enseignants"}>
                           {otherTeachers.map(t => (
                             <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
                           ))}
@@ -361,21 +363,21 @@ const ScheduleSlot = ({
                       value={roomId}
                       onChange={(e) => setRoomId(e.target.value)}
                     >
-                      <option value="">Select Room</option>
-                      {availableRooms.length > 0 && (
-                        <optgroup label="Available Rooms">
-                          {availableRooms.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {occupiedRooms.length > 0 && (
-                        <optgroup label="Occupied Rooms (Conflict!)">
-                          {occupiedRooms.map(r => (
-                            <option key={r.id} value={r.id} disabled className="text-red-400 bg-red-50 italic">{r.name} (In Use)</option>
-                          ))}
-                        </optgroup>
-                      )}
+                    <option value="">Sélectionner une salle</option>
+                    {availableRooms.length > 0 && (
+                      <optgroup label="Salles Disponibles">
+                        {availableRooms.map(r => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {occupiedRooms.length > 0 && (
+                      <optgroup label="Salles Occupées (Conflit possible)">
+                        {occupiedRooms.map(r => (
+                          <option key={r.id} value={r.id} className="text-red-500 bg-red-50 font-medium">⚠️ {r.name} (Déjà occupée)</option>
+                        ))}
+                      </optgroup>
+                    )}
                     </select>
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                       <MapPin size={16} />

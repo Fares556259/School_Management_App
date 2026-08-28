@@ -27,6 +27,7 @@ interface ScheduleGridProps {
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
   isDraft?: boolean;
+  classNameStr?: string;
 }
 
 const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
@@ -49,7 +50,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   onUpdateAction,
   onDeleteAction,
   onRefresh,
-  isDraft = false
+  isDraft = false,
+  classNameStr = ""
 }, ref) => {
   const [localSlots, setLocalSlots] = useState<any[]>(propSlots || []);
   const [isLoading, setIsLoading] = useState(!propSlots && !!fetchDataAction);
@@ -320,6 +322,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         <ScheduleSlot 
                           slot={slot} 
                           classId={classId}
+                          classNameStr={classNameStr}
                           day={d}
                           period={slot.slotNumber}
                           startTime={slot.startTime}
@@ -360,6 +363,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         <ScheduleSlot 
                           slot={undefined} 
                           classId={classId}
+                          classNameStr={classNameStr}
                           day={d}
                           period={appendSlotNumber}
                           startTime={lastSlotEndTime}
