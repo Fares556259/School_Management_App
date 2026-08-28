@@ -1282,8 +1282,7 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
 
       // 2. Create Students
       for (const child of children) {
-        // Auto-fetch levelId from class
-        let finalLevelId = 1;
+        let finalLevelId: number | undefined;
         let finalClassId = null;
         
         if (child.classId && child.classId !== "null" && child.classId !== "") {
@@ -1295,6 +1294,11 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
           if (targetClass?.levelId) {
             finalLevelId = targetClass.levelId;
           }
+        }
+        
+        if (!finalLevelId) {
+          const firstLevel = await tx.level.findFirst({ where: { schoolId } });
+          finalLevelId = firstLevel?.id || 1;
         }
 
         const studentUsername = child.username || 
