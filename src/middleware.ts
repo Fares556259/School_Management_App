@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
   // We wrap it in a 3s timeout so a slow Supabase response never causes a 504.
   let user = null;
   try {
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
     const authCall = supabase.auth.getUser().then(({ data }) => data?.user ?? null);
     user = await Promise.race([authCall, timeout]);
   } catch (error) {

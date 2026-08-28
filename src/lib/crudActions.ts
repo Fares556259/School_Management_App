@@ -220,22 +220,25 @@ export const createStudent = async (data: {
     let finalLevelId = data.levelId;
     let finalClassId = data.classId && data.classId !== "null" && data.classId !== "" ? parseInt(String(data.classId)) : null;
 
+    const schoolId = await getSchoolId();
+
     if (!finalLevelId || finalLevelId === 0) {
       if (finalClassId) {
         const targetClass = await prisma.class.findUnique({
           where: { id: finalClassId },
           select: { levelId: true }
         });
-        finalLevelId = targetClass?.levelId || 1;
-      } else {
-        finalLevelId = 1;
+        finalLevelId = targetClass?.levelId;
+      }
+      
+      if (!finalLevelId) {
+        const firstLevel = await prisma.level.findFirst({ where: { schoolId } });
+        finalLevelId = firstLevel?.id || 1;
       }
     }
 
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
-
-    const schoolId = await getSchoolId();
 
     await prisma.student.create({
       data: {
@@ -266,6 +269,7 @@ export const createStudent = async (data: {
     revalidatePath("/list/students");
     return { success: true };
   } catch (err: any) {
+    console.error("[createStudent] Error:", err);
     return { success: false, error: err?.message || "Failed to create student." };
   }
 };
@@ -540,7 +544,8 @@ export const createParent = async (data: {
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err?.message || "Failed to create parent." };
+    console.error("[enrollFamily] Error:", err);
+    return { success: false, error: err?.message || "Failed to enroll family." };
   }
 };
 

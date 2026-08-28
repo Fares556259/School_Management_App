@@ -321,7 +321,9 @@ export default function CrudFormModal({
         values[f.name] = vals.map(v => f.parseAsNumber ? parseInt(v as string, 10) : v);
       } else {
         const val = formData.get(f.name) as string;
-        if ((f.type === "number" || f.type === "conditional-number" || f.parseAsNumber) && val) {
+        if (val === "null") {
+          values[f.name] = null;
+        } else if ((f.type === "number" || f.type === "conditional-number" || f.parseAsNumber) && val) {
           // Unify comma and dot for international decimal input
           values[f.name] = parseFloat(val.replace(/,/g, '.'));
         } else if (f.type === "conditional-number" && !val) {
