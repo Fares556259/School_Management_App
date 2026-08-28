@@ -235,16 +235,16 @@ const ScheduleSlot = ({
             </div>
           )}
 
-          <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5 relative z-10">
+          <div className="mt-auto flex items-center gap-1.5 pt-1.5 relative z-10 min-w-0 overflow-hidden w-full">
              {slot.subjectId && (
-               <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center max-w-full overflow-hidden">
+               <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center shrink overflow-hidden min-w-0">
                   <span className="text-[10px] font-medium text-[#41454d] truncate">{slot.room?.name || "Room TBA"}</span>
                </div>
              )}
              {slot?.startTime && (
-               <div className={`bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1 flex-shrink-0 ${!slot.subjectId ? 'mt-1' : ''}`}>
-                  <Clock size={10} className="text-[#5a5a5a]" />
-                  <span className="text-[10px] font-semibold text-[#181d26] whitespace-nowrap">{slot.startTime} - {slot.endTime}</span>
+               <div className={`bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1 shrink overflow-hidden min-w-0 ${!slot.subjectId ? 'mt-1' : ''}`}>
+                  <Clock size={10} className="text-[#5a5a5a] shrink-0" />
+                  <span className="text-[10px] font-semibold text-[#181d26] truncate">{slot.startTime} - {slot.endTime}</span>
                </div>
              )}
           </div>

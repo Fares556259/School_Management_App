@@ -23,7 +23,7 @@ interface ScheduleGridProps {
   dayEndTime?: string;
   fetchDataAction?: (id: number, isDraft?: boolean) => Promise<{ success: boolean; data?: any[] }>;
   onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
-  onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
+  onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string; data?: any }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
   isDraft?: boolean;
@@ -112,6 +112,18 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     const hours = durationMins / 60;
     const pct = (hours / totalHours) * 100;
     return `${Math.min(100, pct)}%`;
+  };
+
+  const handleOptimisticUpdate = async (data: any) => {
+    const res = await onUpdateAction({ ...data, isDraft });
+    if (res.success && res.data) {
+      setLocalSlots(prev => {
+        const exists = prev.find(p => p.id === res.data.id);
+        if (exists) return prev.map(p => p.id === res.data.id ? res.data : p);
+        return [...prev, res.data];
+      });
+    }
+    return res;
   };
 
   const handleDragOver = (e: React.DragEvent, targetId: string) => {
@@ -314,7 +326,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           rooms={rooms}
                           allActiveSlots={allActiveSlots || []}
                           usedSubjectIds={daySlots.map(s => s.subjectId).filter(Boolean)}
-                          onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
+                          onUpdateAction={handleOptimisticUpdate}
                           onDeleteAction={onDeleteAction}
                           onRefresh={onRefresh}
                           isEditMode={isEditMode}
@@ -354,7 +366,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           rooms={rooms}
                           allActiveSlots={allActiveSlots || []}
                           usedSubjectIds={daySlots.map(s => s.subjectId).filter(Boolean)}
-                          onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
+                          onUpdateAction={handleOptimisticUpdate}
                           onDeleteAction={onDeleteAction}
                           onRefresh={onRefresh}
                           isEditMode={isEditMode}
