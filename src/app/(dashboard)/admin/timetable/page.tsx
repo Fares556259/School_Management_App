@@ -25,17 +25,16 @@ const TimetablePage = async ({
   const allActiveSlots = (allSlotsRes.success ? allSlotsRes.data : []) as any[];
   
   // Extract sessions from config
-  let sessions = configRes.success ? (configRes.data as any).sessions : [];
-  if (typeof sessions === 'string') {
-    try { sessions = JSON.parse(sessions); } catch (e) { sessions = []; }
-  }
+  const dayStartTime = configRes.success ? (configRes.data as any).dayStartTime || "08:00" : "08:00";
+  const dayEndTime = configRes.success ? (configRes.data as any).dayEndTime || "18:00" : "18:00";
 
   return (
     <TimetableClient 
       classes={classes} 
       subjects={subjects} 
       teachers={teachers} 
-      sessions={sessions}
+      dayStartTime={dayStartTime}
+      dayEndTime={dayEndTime}
       rooms={rooms}
       allActiveSlots={allActiveSlots}
     />

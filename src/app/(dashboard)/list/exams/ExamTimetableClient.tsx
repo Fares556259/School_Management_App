@@ -25,7 +25,6 @@ import {
   publishExamScheduleToStudents
 } from "../../admin/actions/examActions";
 import ExamTimetablePrint from "../../admin/timetable/components/ExamTimetablePrint";
-import { defaultSessions } from "../../admin/timetable/components/ScheduleGrid";
 import { getSchoolConfig } from "../../admin/actions/schoolActions";
 import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
 
@@ -57,7 +56,9 @@ const ExamTimetableClient = ({
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [schoolConfig, setSchoolConfig] = useState<any>(null);
-  const [dynamicSessions, setDynamicSessions] = useState<any[]>(defaultSessions);
+  const [dayStartTime, setDayStartTime] = useState<string>("08:00");
+  const [dayEndTime, setDayEndTime] = useState<string>("18:00");
+  const [dynamicSessions, setDynamicSessions] = useState<any[]>([{id:1, time:"08:00 - 10:00"},{id:2, time:"10:00 - 12:00"},{id:3, time:"12:00 - 14:00"}]);
 
   // Draft States
   const [isDraftView, setIsDraftView] = useState(forceDraft);
@@ -97,13 +98,13 @@ const ExamTimetableClient = ({
     getSchoolConfig().then(res => {
       if (res.success && res.data) {
         setSchoolConfig(res.data);
+        if (res.data.dayStartTime) setDayStartTime(res.data.dayStartTime as string);
+        if (res.data.dayEndTime) setDayEndTime(res.data.dayEndTime as string);
         if (res.data.sessions) {
           try {
             const parsed = typeof res.data.sessions === 'string' ? JSON.parse(res.data.sessions) : res.data.sessions;
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setDynamicSessions(parsed);
-            }
-          } catch (e) { console.error("Session parse error", e); }
+            if (Array.isArray(parsed) && parsed.length > 0) setDynamicSessions(parsed);
+          } catch(e) {}
         }
       }
     });
@@ -514,7 +515,8 @@ const ExamTimetableClient = ({
               onUpdateAction={(data) => updateExamSlot({ ...data, isDraft: isDraftView })}
               onDeleteAction={deleteExam}
               onRefresh={() => fetchSlots(true)}
-              sessions={dynamicSessions}
+              dayStartTime={dayStartTime}
+              dayEndTime={dayEndTime}
               isDraft={isDraftView}
             />
           )}

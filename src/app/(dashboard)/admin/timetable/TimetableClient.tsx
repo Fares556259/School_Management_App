@@ -23,7 +23,8 @@ const TimetablePage = ({
   classes,
   subjects,
   teachers,
-  sessions,
+  dayStartTime,
+  dayEndTime,
   rooms,
   allActiveSlots,
   forceDraft = false,
@@ -31,7 +32,8 @@ const TimetablePage = ({
   classes: any[];
   subjects: any[];
   teachers: any[];
-  sessions?: any[];
+  dayStartTime?: string;
+  dayEndTime?: string;
   rooms: any[];
   allActiveSlots?: any[];
   forceDraft?: boolean;
@@ -278,7 +280,8 @@ const TimetablePage = ({
             setRefreshKey(prev => prev + 1);
             router.refresh();
           }}
-          sessions={sessions}
+          dayStartTime={dayStartTime}
+          dayEndTime={dayEndTime}
           isDraft={isDraftView}
         />
       )}

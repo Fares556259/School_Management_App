@@ -39,6 +39,7 @@ interface SlotProps {
   usedSubjectIds: number[];
   examPeriod?: number;
   targetDate?: Date;
+  compactMode?: boolean;
 }
 
 const ScheduleSlot = ({ 
@@ -59,7 +60,8 @@ const ScheduleSlot = ({
   type,
   usedSubjectIds,
   examPeriod,
-  targetDate
+  targetDate,
+  compactMode = false
 }: SlotProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -192,12 +194,12 @@ const ScheduleSlot = ({
         isEditMode && (
           <button 
               onClick={() => setIsEditing(true)}
-              className="w-full h-full border border-dashed border-[#dddddd] bg-[#f8fafc] rounded-[6px] flex flex-col items-center justify-center text-[#9297a0] hover:border-[#a0a5b0] hover:text-[#181d26] hover:bg-[#ffffff] hover:shadow-sm transition-all group print:hidden"
+              className="w-full h-full border-none bg-transparent flex flex-col items-center justify-center text-[#9297a0] hover:text-[#181d26] transition-all group print:hidden"
           >
-            <div className="w-8 h-8 rounded-full bg-[#ffffff] border border-[#dddddd] flex items-center justify-center transition-colors">
+            <div className="w-8 h-8 rounded-full bg-[#ffffff] border border-[#dddddd] flex items-center justify-center transition-colors hover:shadow-sm">
                <BookOpen size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="text-[12px] font-medium mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>
+            {!compactMode && <span className="text-[12px] font-medium mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>}
           </button>
         )
       ) : (

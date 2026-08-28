@@ -2,14 +2,9 @@ import React, { useEffect, useState, forwardRef } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import ScheduleSlot from "./ScheduleSlot";
 import { Day } from "@prisma/client";
+import { Plus } from "lucide-react";
 
 const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
-
-export const defaultSessions = [
-  { id: 1, label: "Session 1", time: "08:00 - 10:00" },
-  { id: 2, label: "Session 2", time: "10:00 - 12:00" },
-  { id: 3, label: "Session 3", time: "12:00 - 14:00" },
-];
 
 interface ScheduleGridProps {
   slots?: any[];
@@ -24,12 +19,13 @@ interface ScheduleGridProps {
   examPeriod?: number;
   startDate?: Date;
   endDate?: Date;
+  dayStartTime?: string;
+  dayEndTime?: string;
   fetchDataAction?: (id: number, isDraft?: boolean) => Promise<{ success: boolean; data?: any[] }>;
   onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
-  sessions?: { id: number; label: string; time: string }[];
   isDraft?: boolean;
 }
 
@@ -46,12 +42,13 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   examPeriod,
   startDate,
   endDate,
+  dayStartTime = "08:00",
+  dayEndTime = "18:00",
   fetchDataAction,
   onMoveAction,
   onUpdateAction,
   onDeleteAction,
   onRefresh,
-  sessions: propSessions,
   isDraft = false
 }, ref) => {
   const [localSlots, setLocalSlots] = useState<any[]>(propSlots || []);
@@ -60,7 +57,6 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const isInitialMount = React.useRef(true);
   const { t } = useLanguage();
 
-  const displaySessions = propSessions || defaultSessions;
   const displaySlots = localSlots.length > 0 ? localSlots : (propSlots || []);
 
   useEffect(() => {
@@ -69,8 +65,6 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
   useEffect(() => {
     if (fetchDataAction && classId) {
-      // If parent provided slots (e.g. from server cache) and we are just switching classes,
-      // skip the network fetch for instant loading, UNLESS it's empty (to ensure we didn't fail to load all slots).
       if (propSlots && propSlots.length > 0 && isInitialMount.current) {
         isInitialMount.current = false;
         setIsLoading(false);
@@ -78,9 +72,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       }
 
       const loadData = async () => {
-        if (isInitialMount.current) {
-          setIsLoading(true);
-        }
+        if (isInitialMount.current) setIsLoading(true);
         const res = await fetchDataAction(classId, isDraft);
         if (res.success && res.data) {
           setLocalSlots(res.data);
@@ -98,13 +90,37 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     }
   }, [propSlots]);
 
-  const handleDragOver = (e: React.DragEvent, day: Day, period: number) => {
-    if (!isEditMode) return;
-    e.preventDefault();
-    setDraggedOver(`${day}-${period}`);
+  // Helpers for time calculation
+  const parseTime = (timeStr: string) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h + (m || 0) / 60;
+  };
+  
+  const startHour = parseTime(dayStartTime);
+  const endHour = parseTime(dayEndTime);
+  const totalHours = Math.max(1, endHour - startHour);
+
+  const calcLeft = (timeStr: string) => {
+    if (!timeStr) return "0%";
+    const t = parseTime(timeStr);
+    const pct = ((t - startHour) / totalHours) * 100;
+    return `${Math.max(0, Math.min(100, pct))}%`;
   };
 
-  const handleDrop = async (e: React.DragEvent, targetDay: Day, targetPeriod: number) => {
+  const calcWidth = (durationMins: number) => {
+    if (!durationMins) return "0%";
+    const hours = durationMins / 60;
+    const pct = (hours / totalHours) * 100;
+    return `${Math.min(100, pct)}%`;
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    setDraggedOver(targetId);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetDay: Day, targetSlotNumber: number) => {
     if (!isEditMode) return;
     e.preventDefault();
     setDraggedOver(null);
@@ -114,73 +130,27 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     const slotId = parseInt(slotIdStr, 10);
     const currentSlots = [...displaySlots];
 
-    // Compute target date and session time for exam type
-    const session = displaySessions.find((s) => s.id === targetPeriod) || displaySessions[0];
-    const [hStart, mStart] = (session.time || "08:00 - 10:00").split(" - ")[0].split(":").map(Number);
-    const [hEnd, mEnd] = (session.time || "08:00 - 10:00").split(" - ")[1].split(":").map(Number);
-
-    let targetDateObj: Date | null = null;
-    const displayDaysList = getDisplayDays();
-    if (Array.isArray(displayDaysList) && typeof displayDaysList[0] === "object") {
-      const matchObj = (displayDaysList as { day: Day; date: Date }[]).find((d) => d.day === targetDay);
-      if (matchObj) targetDateObj = matchObj.date;
-    }
-    if (!targetDateObj && startDate) {
-      const daysMap: Record<Day, number> = {
-        MONDAY: 0, TUESDAY: 1, WEDNESDAY: 2, THURSDAY: 3, FRIDAY: 4, SATURDAY: 5
-      };
-      const offset = daysMap[targetDay] ?? 0;
-      targetDateObj = new Date(startDate);
-      targetDateObj.setDate(targetDateObj.getDate() + offset);
-    }
-    if (!targetDateObj) {
-      targetDateObj = new Date();
-    }
-
-    const newStart = new Date(targetDateObj);
-    newStart.setHours(hStart, mStart || 0, 0, 0);
-
-    const newEnd = new Date(targetDateObj);
-    newEnd.setHours(hEnd, mEnd || 0, 0, 0);
-
-    // 1. OPTIMISTIC UPDATE: Update UI instantly (0ms delay)
+    // Optimistic UI for visual snap
     const nextSlots = currentSlots.map((slot) => {
       const isMovedSlot = slot.id === slotId || slot.lessonId === slotId;
       if (isMovedSlot) {
         return {
           ...slot,
           day: targetDay,
-          slotNumber: targetPeriod,
-          startTime: newStart.toISOString(),
-          endTime: newEnd.toISOString(),
-          lesson: slot.lesson ? { ...slot.lesson, day: targetDay, startTime: newStart, endTime: newEnd } : slot.lesson,
+          slotNumber: targetSlotNumber,
         };
       }
-
-      const isTargetSlot = (slot.day === targetDay || slot.lesson?.day === targetDay) && slot.slotNumber === targetPeriod;
-      if (isTargetSlot) {
-        const movedSlot = currentSlots.find((s) => s.id === slotId || s.lessonId === slotId);
-        const sourceDay = movedSlot?.day || movedSlot?.lesson?.day || targetDay;
-        const sourcePeriod = movedSlot?.slotNumber || 1;
-        return {
-          ...slot,
-          day: sourceDay,
-          slotNumber: sourcePeriod,
-          lesson: slot.lesson ? { ...slot.lesson, day: sourceDay } : slot.lesson,
-        };
-      }
-
       return slot;
     });
-
     setLocalSlots(nextSlots);
 
-    // 2. SILENT BACKGROUND SERVER UPDATE
     try {
-      const res = await onMoveAction(slotId, targetDay, targetPeriod, examPeriod);
+      const res = await onMoveAction(slotId, targetDay, targetSlotNumber, examPeriod);
       if (!res.success) {
         setLocalSlots(currentSlots);
         alert(res.error || "Impossible de déplacer le créneau.");
+      } else {
+        onRefresh(); // Trigger refresh to get recalculated cascading times
       }
     } catch (err) {
       setLocalSlots(currentSlots);
@@ -197,163 +167,201 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     [Day.SATURDAY]: t.timetable.saturday,
   };
 
-  // Determine which days to show
   const getDisplayDays = () => {
     if (type === 'timetable') return days;
-    
-    // If no dates at all, just return standard days
     if (!startDate) return days;
-
-    // If we have a start date but no end date, default to a 6-day range
     const end = endDate || new Date(new Date(startDate).setDate(startDate.getDate() + 5));
-    
     const diffTime = Math.abs(end.getTime() - startDate.getTime());
-    const diffDays = Math.min(Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1, 14); // max 14 days
+    const diffDays = Math.min(Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1, 14);
     
-    // Create a list of day enums based on the start date + range
     const result: { day: Day; date: Date }[] = [];
     for (let i = 0; i < diffDays; i++) {
         const d = new Date(startDate);
         d.setDate(d.getDate() + i);
         const nativeDay = d.getDay(); 
-        
-        // Skip Sunday (0)
         if (nativeDay === 0) continue;
-        
         const dayNames = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
         const mappedDay = dayNames[nativeDay - 1] || Day.MONDAY;
-        
         result.push({ day: mappedDay, date: d });
     }
     return result;
   };
 
-  const displayDays = getDisplayDays();
+  const displayDaysList = getDisplayDays();
 
-  // Helper to find slot in array based on type
-  const findSlot = (day: Day, sessionId: number, targetDate?: Date) => {
-    return displaySlots.find(s => {
-      if (!s || !s.startTime) return false;
-      
-      if (type === "timetable") {
-        return s.day === day && s.slotNumber === sessionId;
-      } else {
-        const sDate = new Date(s.startTime);
-        if (isNaN(sDate.getTime())) return false; // Skip invalid dates
-        
-        // Exact date matching (YYYY-MM-DD)
-        const isSameDate = targetDate 
-          ? sDate.toLocaleDateString('en-CA') === targetDate.toLocaleDateString('en-CA')
-          : true;
-
-        if (!isSameDate) return false;
-
-        // Session matching by hour range
-        const hour = sDate.getHours();
-        const session = displaySessions.find(sess => sess.id === sessionId);
-        if (!session || !session.time) return false;
-
-        const [hStart] = session.time.split(" - ")[0].split(":").map(Number);
-        const [hEnd] = session.time.split(" - ")[1].split(":").map(Number);
-        
-        // Match if the exam start hour falls within the session window
-        const isCorrectSession = hour >= hStart && hour < hEnd;
-
-        if (targetDate) {
-          return isCorrectSession;
-        } else {
-          const nativeDay = sDate.getDay();
-          const dayIdx = nativeDay === 0 ? 5 : nativeDay - 1;
-          const mappedDay = days[dayIdx];
-          return mappedDay === day && isCorrectSession;
-        }
-      }
-    });
-  };
-
-  const usedSubjectIds = type === "exam" 
-    ? displaySlots.map(s => s.lesson?.subjectId).filter(Boolean)
-    : [];
+  // Generate timeline markers (every hour)
+  const timeMarkers: number[] = [];
+  for (let i = Math.floor(startHour); i <= Math.ceil(endHour); i++) {
+    timeMarkers.push(i);
+  }
 
   return (
-    <div ref={ref} className="bg-white overflow-hidden print:shadow-none print:border-none print:m-0 print:p-0">
-      <div className="overflow-x-auto">
-        <div className="min-w-[1200px] print:min-w-0 border border-[#dddddd] rounded-[8px] overflow-hidden bg-white shadow-sm">
-          <div className={`grid border-b border-[#dddddd] bg-[#ffffff]`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
-            <div className="h-10 flex items-center justify-center border-e border-[#dddddd]">
-               <span className="text-[12px] font-medium text-[#5a5a5a] capitalize tracking-wide">{t.timetable.time}</span>
+    <div className="w-full flex flex-col relative" ref={ref}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[12px]">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{t.timetable.loading}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="w-full overflow-x-auto rounded-[12px] border border-[#dddddd] bg-white shadow-sm">
+        <div className="min-w-[800px]">
+          {/* HEADER ROW */}
+          <div className="flex h-12 border-b border-[#dddddd] bg-[#f8fafc]">
+            <div className="w-28 flex-shrink-0 border-e border-[#dddddd] flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest">
+              Jour
             </div>
-            {displayDays.map((item) => {
-              const d = typeof item === 'string' ? item : item.day;
-              const date = typeof item === 'string' ? null : item.date;
-              let label = dayLabels[d as Day] || String(d);
-              if (date) {
-                label += ` ${date.getDate()}`;
-              }
-              return (
-                <div key={label} className="h-10 flex items-center justify-center border-e border-[#dddddd] last:border-e-0">
-                   <span className="text-[12px] font-medium text-[#181d26] capitalize tracking-wide whitespace-nowrap px-4 overflow-hidden text-ellipsis">
-                     {label}
-                   </span>
-                </div>
-              );
-            })}
+            <div className="flex-1 relative flex items-center">
+              {timeMarkers.map(hour => {
+                if (hour < startHour || hour > endHour) return null;
+                const pct = ((hour - startHour) / totalHours) * 100;
+                return (
+                  <div 
+                    key={hour} 
+                    className="absolute top-0 bottom-0 border-l border-[#dddddd] flex items-center px-2"
+                    style={{ left: `${pct}%` }}
+                  >
+                    <span className="text-[11px] font-semibold text-slate-400 bg-[#f8fafc] -translate-x-1/2">
+                      {hour.toString().padStart(2, '0')}:00
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex flex-col relative">
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[40px]">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{t.timetable.loading}</span>
-                </div>
-              </div>
-            )}
-            {Array.from({ length: Math.max(4, ...displaySlots.map(s => (s as any).slotNumber || 1)) }).map((_, idx) => (
-              <div key={idx} className={`grid items-stretch border-b border-[#dddddd] last:border-b-0 group/row`} style={{ gridTemplateColumns: `100px repeat(${displayDays.length}, minmax(0, 1fr))` }}>
-                <div className="flex flex-col items-center justify-center bg-[#ffffff] p-4 relative border-e border-[#dddddd] group-hover/row:bg-[#f8fafc] transition-colors">
-                   <span className="text-[13px] font-medium text-[#181d26] leading-none">Créneau {idx + 1}</span>
-                </div>
+          {/* DAY ROWS */}
+          {displayDaysList.map((item) => {
+            const d = typeof item === 'string' ? item : item.day;
+            const dateObj = typeof item === 'string' ? undefined : item.date;
+            
+            // Filter slots for this day
+            let daySlots = displaySlots.filter(s => {
+              if (type === "timetable") return s.day === d;
+              if (!s.startTime) return false;
+              const sDate = new Date(s.startTime);
+              return dateObj ? sDate.toLocaleDateString('en-CA') === dateObj.toLocaleDateString('en-CA') : true;
+            }).sort((a, b) => (a.slotNumber || 0) - (b.slotNumber || 0));
 
-                {displayDays.map((item) => {
-                  const d = typeof item === 'string' ? item : item.day;
-                  const dateObj = typeof item === 'string' ? undefined : item.date;
-                  const s = findSlot(d as Day, idx + 1, dateObj);
-                  const isDraggedOver = draggedOver === `${d}-${idx + 1}`;
-                  return (
-                    <div 
-                      key={`${d}-${idx + 1}`} 
-                      className={`min-h-[140px] flex items-stretch transition-all border-e border-[#dddddd] last:border-e-0 ${isDraggedOver ? 'bg-[#f8fafc]' : 'bg-[#ffffff] p-2 hover:bg-[#f8fafc]'}`}
-                      onDragOver={(e) => handleDragOver(e, d as Day, idx + 1)}
-                      onDragLeave={() => setDraggedOver(null)}
-                      onDrop={(e) => handleDrop(e, d as Day, idx + 1)}
-                    >
-                      <ScheduleSlot 
-                        slot={s} 
-                        classId={classId}
-                        day={d as Day}
-                        period={idx + 1}
-                        startTime={s?.startTime || ""}
-                        endTime={s?.endTime || ""}
-                        subjects={subjects}
-                        teachers={teachers}
-                        rooms={rooms}
-                        allActiveSlots={allActiveSlots || []}
-                        usedSubjectIds={usedSubjectIds}
-                        onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
-                        onDeleteAction={onDeleteAction}
-                        onRefresh={onRefresh}
-                        isEditMode={isEditMode}
-                        type={type}
-                        examPeriod={examPeriod}
-                        targetDate={dateObj}
+            const maxSlotNum = daySlots.length > 0 ? Math.max(...daySlots.map(s => s.slotNumber)) : 0;
+            const appendSlotNumber = maxSlotNum + 1;
+            
+            // Find the end time of the last slot to position the Add button
+            const lastSlot = daySlots[daySlots.length - 1];
+            const lastSlotEndTime = lastSlot ? lastSlot.endTime : dayStartTime;
+
+            return (
+              <div key={d} className="flex h-[130px] border-b border-[#dddddd] last:border-b-0 group">
+                {/* DAY LABEL */}
+                <div className="w-28 flex-shrink-0 border-e border-[#dddddd] flex flex-col items-center justify-center bg-white group-hover:bg-[#f8fafc] transition-colors relative z-20">
+                  <span className="font-bold text-[13px] text-slate-700 capitalize">{dayLabels[d]}</span>
+                  {dateObj && (
+                    <span className="text-[10px] font-medium text-slate-400 mt-1">
+                      {dateObj.toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                
+                {/* TIMELINE AREA */}
+                <div className="flex-1 relative bg-white overflow-hidden">
+                  {/* Background grid lines */}
+                  {timeMarkers.map(hour => {
+                    if (hour < startHour || hour > endHour) return null;
+                    const pct = ((hour - startHour) / totalHours) * 100;
+                    return (
+                      <div 
+                        key={`line-${hour}`} 
+                        className="absolute top-0 bottom-0 border-l border-[#f1f5f9] pointer-events-none"
+                        style={{ left: `${pct}%` }}
                       />
+                    );
+                  })}
+
+                  {/* Existing Slots */}
+                  {daySlots.map(slot => (
+                    <div 
+                      key={slot.id}
+                      className="absolute top-2 bottom-2 p-1 transition-all"
+                      style={{ 
+                        left: calcLeft(slot.startTime), 
+                        width: calcWidth(slot.duration || 120),
+                        zIndex: draggedOver === `slot-${slot.id}` ? 10 : 1
+                      }}
+                      onDragOver={(e) => handleDragOver(e, `slot-${slot.id}`)}
+                      onDragLeave={() => setDraggedOver(null)}
+                      onDrop={(e) => handleDrop(e, d, slot.slotNumber)}
+                    >
+                      <div className={`w-full h-full rounded-[8px] transition-all ${draggedOver === `slot-${slot.id}` ? 'ring-2 ring-indigo-500 scale-[1.02] opacity-70' : ''}`}>
+                        <ScheduleSlot 
+                          slot={slot} 
+                          classId={classId}
+                          day={d}
+                          period={slot.slotNumber}
+                          startTime={slot.startTime}
+                          endTime={slot.endTime}
+                          subjects={subjects}
+                          teachers={teachers}
+                          rooms={rooms}
+                          allActiveSlots={allActiveSlots || []}
+                          usedSubjectIds={daySlots.map(s => s.subjectId).filter(Boolean)}
+                          onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
+                          onDeleteAction={onDeleteAction}
+                          onRefresh={onRefresh}
+                          isEditMode={isEditMode}
+                          type={type}
+                          examPeriod={examPeriod}
+                          targetDate={dateObj}
+                        />
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
+
+                  {/* Add Slot Button / Dropzone at the end */}
+                  {isEditMode && parseTime(lastSlotEndTime) < endHour && (
+                    <div
+                      className="absolute top-2 bottom-2 p-1 transition-all"
+                      style={{ 
+                        left: calcLeft(lastSlotEndTime), 
+                        width: "80px",
+                        zIndex: 1
+                      }}
+                      onDragOver={(e) => handleDragOver(e, `empty-${d}`)}
+                      onDragLeave={() => setDraggedOver(null)}
+                      onDrop={(e) => handleDrop(e, d, appendSlotNumber)}
+                    >
+                      <div className={`w-full h-full rounded-[8px] border-2 border-dashed transition-all flex items-center justify-center
+                        ${draggedOver === `empty-${d}` ? 'border-indigo-500 bg-indigo-50 text-indigo-600' : 'border-[#e2e8f0] bg-slate-50/50 text-slate-400 hover:bg-slate-100 hover:border-slate-300'}`}
+                      >
+                        <ScheduleSlot 
+                          slot={undefined} 
+                          classId={classId}
+                          day={d}
+                          period={appendSlotNumber}
+                          startTime={lastSlotEndTime}
+                          endTime=""
+                          subjects={subjects}
+                          teachers={teachers}
+                          rooms={rooms}
+                          allActiveSlots={allActiveSlots || []}
+                          usedSubjectIds={daySlots.map(s => s.subjectId).filter(Boolean)}
+                          onUpdateAction={(data) => onUpdateAction({ ...data, isDraft })}
+                          onDeleteAction={onDeleteAction}
+                          onRefresh={onRefresh}
+                          isEditMode={isEditMode}
+                          type={type}
+                          examPeriod={examPeriod}
+                          targetDate={dateObj}
+                          compactMode={true}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -361,5 +369,4 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 });
 
 ScheduleGrid.displayName = "ScheduleGrid";
-
 export default ScheduleGrid;
