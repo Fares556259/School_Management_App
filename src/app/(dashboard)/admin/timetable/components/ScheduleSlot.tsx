@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Day } from "@prisma/client";
 import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock } from "lucide-react";
 
@@ -88,7 +89,7 @@ const ScheduleSlot = ({
   // Sync state when slot prop changes
   useEffect(() => {
     if (type === "timetable") {
-      setSubjectId(slot?.subjectId?.toString() || "");
+      setSubjectId(slot ? (slot.subjectId ? slot.subjectId.toString() : "FREE") : "");
       setTeacherId(slot?.teacherId || "");
     } else {
       setSubjectId(slot?.lesson?.subjectId?.toString() || "");
@@ -101,17 +102,18 @@ const ScheduleSlot = ({
   const handleUpdate = async () => {
     setLoading(true);
     try {
+        const isFree = subjectId === "FREE";
         const res = await onUpdateAction({
           id: slot?.id ?? -1,
-          subjectId: parseInt(subjectId) || null,
-          teacherId: teacherId || null,
+          subjectId: isFree ? null : (parseInt(subjectId) || null),
+          teacherId: isFree ? null : (teacherId || null),
           classId: classId,
           day: day,
           slotNumber: period,
           startTime,
           endTime: addMinutes(startTime, duration),
           duration,
-          roomId: parseInt(roomId) || null,
+          roomId: isFree ? null : (parseInt(roomId) || null),
           examPeriod: examPeriod,
           targetDate: targetDate?.toISOString(),
         });
@@ -212,8 +214,8 @@ const ScheduleSlot = ({
           <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
           
           <div className="flex items-start justify-between relative z-10 mb-1">
-            <h3 className="text-[13px] font-semibold text-[#181d26] leading-snug group-hover:text-[#1b61c9] transition-colors line-clamp-2">
-              {subjectName || "Unscheduled Subject"}
+            <h3 className={`text-[13px] font-semibold leading-snug transition-colors line-clamp-2 ${!slot.subjectId ? 'text-slate-600' : 'text-[#181d26] group-hover:text-[#1b61c9]'}`}>
+              {slot.subjectId ? (subjectName || "Unscheduled Subject") : "☕ Pause / Temps Libre"}
             </h3>
             {isEditMode && (
               <button 
@@ -225,18 +227,22 @@ const ScheduleSlot = ({
             )}
           </div>
           
-          <div className="flex flex-col">
-            <p className="text-[11px] font-medium text-[#41454d] opacity-80 truncate">
-              {teacherName}
-            </p>
-          </div>
+          {slot.subjectId && (
+            <div className="flex flex-col">
+              <p className="text-[11px] font-medium text-[#41454d] opacity-80 truncate">
+                {teacherName}
+              </p>
+            </div>
+          )}
 
           <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5 relative z-10">
-             <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center max-w-full overflow-hidden">
-                <span className="text-[10px] font-medium text-[#41454d] truncate">{slot.room?.name || "Room TBA"}</span>
-             </div>
+             {slot.subjectId && (
+               <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center max-w-full overflow-hidden">
+                  <span className="text-[10px] font-medium text-[#41454d] truncate">{slot.room?.name || "Room TBA"}</span>
+               </div>
+             )}
              {slot?.startTime && (
-               <div className="bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1 flex-shrink-0">
+               <div className={`bg-[#ffffff]/80 px-1.5 py-0.5 rounded-[4px] border border-[#dddddd]/50 flex items-center gap-1 flex-shrink-0 ${!slot.subjectId ? 'mt-1' : ''}`}>
                   <Clock size={10} className="text-[#5a5a5a]" />
                   <span className="text-[10px] font-semibold text-[#181d26] whitespace-nowrap">{slot.startTime} - {slot.endTime}</span>
                </div>
@@ -246,9 +252,9 @@ const ScheduleSlot = ({
       )}
 
       {/* Modern Fixed Popover Modal overlay */}
-      {isEditing && (
-        <div className="fixed inset-0 z-[150] bg-[#181d26]/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-xl shadow-lg border border-[#dddddd] overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+      {isEditing && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] bg-[#181d26]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl border border-[#dddddd] overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-[#dddddd]">
               <div className="flex items-center gap-3">
@@ -284,6 +290,7 @@ const ScheduleSlot = ({
                     onChange={(e) => setSubjectId(e.target.value)}
                   >
                     <option value="">Select Subject</option>
+                    <option value="FREE" className="font-semibold text-amber-700 bg-amber-50">☕ Pause / Temps Libre (راحة)</option>
                     {subjects
                       .filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === subjectId)
                       .map(s => (
@@ -295,47 +302,50 @@ const ScheduleSlot = ({
                     <BookOpen size={16} />
                   </div>
                 </div>
-              </div>
-
-              {/* Teacher Input */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ml-1">Teacher</label>
-                <div className="relative">
-                  <select 
-                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
-                    value={teacherId}
-                    onChange={(e) => setTeacherId(e.target.value)}
-                  >
-                    <option value="">Select Teacher</option>
-                    {filteredTeachers.map(t => (
-                      <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
-                    ))}
-                  </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                    <User size={16} />
+                            {/* Teacher Input */}
+              {subjectId !== "FREE" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-[#181d26] ml-1">Teacher</label>
+                  <div className="relative">
+                    <select 
+                      className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer disabled:opacity-50"
+                      value={teacherId}
+                      onChange={(e) => setTeacherId(e.target.value)}
+                      disabled={type === 'exam'}
+                    >
+                      <option value="">Select Teacher</option>
+                      {filteredTeachers.map(t => (
+                        <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
+                      ))}
+                    </select>
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                      <User size={16} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Room Input */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ml-1">Room</label>
-                <div className="relative">
-                  <select 
-                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value)}
-                  >
-                    <option value="">Room (TBA)</option>
-                    {filteredRooms.map(r => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                    <MapPin size={16} />
+              {subjectId !== "FREE" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-[#181d26] ml-1">Room</label>
+                  <div className="relative">
+                    <select 
+                      className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
+                      value={roomId}
+                      onChange={(e) => setRoomId(e.target.value)}
+                    >
+                      <option value="">Select Room</option>
+                      {filteredRooms.map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                      <MapPin size={16} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}  </div>
 
               {/* Duration Input */}
               <div className="flex flex-col gap-1.5">
@@ -391,7 +401,8 @@ const ScheduleSlot = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
