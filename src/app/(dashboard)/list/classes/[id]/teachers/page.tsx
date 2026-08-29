@@ -75,14 +75,7 @@ export default async function ClassTeachersPage({
   // Aggregate all unique teachers
   const teachersMap = new Map();
 
-  // Add supervisor if exists
-  if (activeClass.supervisor) {
-    teachersMap.set(activeClass.supervisor.id, {
-      ...activeClass.supervisor,
-      roleInClass: "Supervisor",
-      subjects: [],
-    });
-  }
+  
 
   // Add lesson teachers
   activeClass.lessons.forEach(lesson => {
@@ -99,7 +92,7 @@ export default async function ClassTeachersPage({
     } else {
       teachersMap.set(teacher.id, {
         ...teacher,
-        roleInClass: "Subject Teacher",
+        
         subjects: [lesson.subject.name],
       });
     }

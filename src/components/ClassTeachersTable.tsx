@@ -103,7 +103,7 @@ export default function ClassTeachersTable({
         </div>
 
         {/* INFO HIGHLIGHT BARS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
             <div className="w-12 h-12 rounded-full bg-[#f5e9d4] flex items-center justify-center text-[#181d26] font-medium shrink-0 group-hover:scale-105 transition-transform">
               Lv
@@ -124,17 +124,7 @@ export default function ClassTeachersTable({
               </span>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
-            <div className="w-12 h-12 rounded-full bg-[#ffc3a0] flex items-center justify-center text-[#181d26] shrink-0 group-hover:scale-105 transition-transform">
-              <Users size={18} strokeWidth={2} />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">{t.classTeachers.supervisor}</span>
-              <span className="text-[18px] font-normal text-[#181d26] truncate max-w-[200px]">
-                {activeClass.supervisor ? `${activeClass.supervisor.name} ${activeClass.supervisor.surname}` : t.classTeachers.noSupervisor}
-              </span>
-            </div>
-          </div>
+          
         </div>
 
         {/* TABLE CONTAINER CARD */}
@@ -175,7 +165,7 @@ export default function ClassTeachersTable({
               <thead>
                 <tr className="border-b border-[#dddddd] text-[13px] font-medium text-[#41454d] bg-slate-50">
                   <th className="py-4 px-6 font-medium">{t.classTeachers.teacherName}</th>
-                  <th className="py-4 px-6 font-medium">{t.classTeachers.roleInClass}</th>
+                  
                   <th className="py-4 px-6 font-medium">{t.classTeachers.subjects}</th>
                   <th className="py-4 px-6 font-medium">{t.classTeachers.address}</th>
                   <th className="py-4 px-6 font-medium">{t.classTeachers.phone}</th>
