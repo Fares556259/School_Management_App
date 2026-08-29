@@ -19,13 +19,12 @@ export default async function ClassStudentsPage({
   }
 
   // Fetch Class details and ALL students in one cached call
-  const [activeClass] = await getCachedTenantData(
+  const activeClass = await getCachedTenantData(
     schoolId,
     "classes",
-    [id, schoolId],
+    [id, schoolId, "students"],
     () =>
-      Promise.all([
-        prisma.class.findFirst({
+      prisma.class.findFirst({
           where: { id: classId, schoolId },
           include: {
             level: true,
@@ -49,7 +48,6 @@ export default async function ClassStudentsPage({
             },
           },
         }),
-      ]),
     600
   );
 

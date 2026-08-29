@@ -22,7 +22,7 @@ export default async function ClassTeachersPage({
   const activeClass = await getCachedTenantData(
     schoolId,
     "classes",
-    [id, schoolId],
+    [id, schoolId, "teachers"],
     () =>
       prisma.class.findFirst({
         where: { id: classId, schoolId },
