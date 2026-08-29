@@ -79,9 +79,11 @@ export default function StaffListClient({
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
-    const isPaidThisMonth = item.payments.some(
-      (p) => p.month === monthIdx && p.year === yearVal && p.status === "PAID"
+    const paymentThisMonth = item.payments.find(
+      (p) => p.month === monthIdx && p.year === yearVal
     );
+    const paymentStatusThisMonth = paymentThisMonth?.status || "UNPAID";
+    const isPaidThisMonth = paymentStatusThisMonth === "PAID";
 
     return (
       <tr
@@ -104,9 +106,13 @@ export default function StaffListClient({
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">{item.phone || <span className="text-[#a1a1aa] italic text-[13px]">{t.staff.notProvided}</span>}</td>
         <td className="hidden md:table-cell py-4 px-6 font-semibold text-[14px] text-[#181d26]">{item.salary} DT</td>
         <td className="py-4 px-6">
-          {isPaidThisMonth ? (
+          {paymentStatusThisMonth === "PAID" ? (
             <span className="px-2.5 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium whitespace-nowrap">
               {t.staff.paid}
+            </span>
+          ) : paymentStatusThisMonth === "PARTIAL" ? (
+            <span className="px-2.5 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium whitespace-nowrap">
+              {(t.staff as any).partial || "Advance"}
             </span>
           ) : (
             <span className="px-2.5 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium whitespace-nowrap">
@@ -123,6 +129,7 @@ export default function StaffListClient({
               isPaid={isPaidThisMonth} 
               isAdmin={role === "admin"} 
               monthName={selectedMonthKey}
+              payments={item.payments}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
                 .map(p => `${MONTHS[p.month - 1] || "Unknown"} ${p.year}`)}
