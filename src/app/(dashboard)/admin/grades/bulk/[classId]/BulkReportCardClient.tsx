@@ -226,23 +226,23 @@ const parseArabicDomainName = (domainName: string): string => {
         <div key={report.header.studentName} className="report-card-page p-6 md:p-8 mb-10 bg-white border-4 border-double border-slate-200 shadow-xl print:shadow-none print:border-slate-300 print:m-0 print:p-6" dir="rtl">
             {/* HEADER */}
             <div className="relative mb-8">
-                <div className="bg-slate-400 border border-slate-500 rounded-sm px-4 pt-3 pb-7 flex justify-between items-start text-slate-900 font-bold text-[12px]">
+                <div className="bg-blue-600 border-2 border-blue-700 rounded-sm px-4 pt-3 pb-7 flex justify-between items-start text-white font-bold text-[12px] shadow-sm">
                     <div className="text-right space-y-4">
                         <div className="text-sm font-black tracking-wide">المندوبية الجهوية للتربية</div>
-                        <div>بـ <span className="text-slate-700 font-normal tracking-widest">......................................................</span></div>
+                        <div>بـ <span className="text-blue-200 font-normal tracking-widest">......................................................</span></div>
                     </div>
 
                     <div className="text-right space-y-4 ml-8">
-                        <div>المدرسة الابتدائية : <span className="text-slate-700 font-normal tracking-widest">................................................</span></div>
+                        <div>المدرسة الابتدائية : <span className="text-blue-200 font-normal tracking-widest">................................................</span></div>
                         <div>السنة الدّراسية : 
-                           <span className="text-slate-700 font-normal tracking-widest mr-2">...............</span> / <span className="text-slate-700 font-normal tracking-widest">...............</span> 20
+                           <span className="text-blue-200 font-normal tracking-widest mr-2">...............</span> / <span className="text-blue-200 font-normal tracking-widest">...............</span> 20
                         </div>
                     </div>
                 </div>
                 
                 <div className="absolute -bottom-5 left-1/2 -translate-x-1/2">
-                    <div className="bg-slate-300 border border-slate-500 px-12 py-1.5 rounded-xl shadow-sm text-center min-w-[220px]">
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight">{getTermText(report.header.term)}</h2>
+                    <div className="bg-white border-4 border-blue-600 px-12 py-1.5 rounded-2xl shadow-md text-center min-w-[220px]">
+                        <h2 className="text-xl font-black text-blue-900 tracking-tight">{getTermText(report.header.term)}</h2>
                     </div>
                 </div>
             </div>
@@ -273,18 +273,18 @@ const parseArabicDomainName = (domainName: string): string => {
                     
                     {/* General Average Block */}
                     <div className="flex gap-1 h-16">
-                        <div className="flex-[1.5] border border-slate-400 flex flex-col rounded-sm overflow-hidden bg-slate-300 p-0.5">
-                            <div className="bg-slate-500 text-white text-[12px] font-black text-center py-1 rounded-t-lg mx-1 mt-0.5 shadow-inner">معدل الثلاثي</div>
-                            <div className="flex-1 bg-white flex items-center justify-center font-black text-lg text-blue-800 tracking-tight border border-slate-400 mt-0.5 rounded-sm">
+                        <div className="flex-[1.5] border-2 border-blue-600 flex flex-col rounded-sm overflow-hidden bg-blue-600 p-0.5">
+                            <div className="bg-blue-700 text-white text-[12px] font-black text-center py-1 rounded-t-lg mx-1 mt-0.5 shadow-inner">معدل الثلاثي</div>
+                            <div className="flex-1 bg-white flex items-center justify-center font-black text-lg text-blue-900 tracking-tight mt-0.5 rounded-sm">
                                 {report.header.generalAverage.toFixed(2)}
                             </div>
                         </div>
-                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-slate-400">
-                            <div className="text-[7px] text-slate-700 bg-slate-300 text-center font-bold py-1">أعلى<br/>معدل بالقسم</div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border-2 border-blue-200">
+                            <div className="text-[7px] text-blue-900 bg-blue-100 text-center font-bold py-1">أعلى<br/>معدل بالقسم</div>
                             <div className="flex-1 flex items-center justify-center font-bold text-blue-600 text-[10px] bg-white">{report.header.maxAverage.toFixed(2)}</div>
                         </div>
-                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-slate-400">
-                            <div className="text-[7px] text-slate-700 bg-slate-300 text-center font-bold py-1">أدنى<br/>معدل بالقسم</div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border-2 border-blue-200">
+                            <div className="text-[7px] text-blue-900 bg-blue-100 text-center font-bold py-1">أدنى<br/>معدل بالقسم</div>
                             <div className="flex-1 flex items-center justify-center font-bold text-red-600 text-[10px] bg-white">{report.header.minAverage.toFixed(2)}</div>
                         </div>
                     </div>
@@ -293,15 +293,15 @@ const parseArabicDomainName = (domainName: string): string => {
                     
 
                     {/* Behavior / Notes */}
-                    <div className="border border-slate-400 rounded-sm flex flex-col h-[100px] mt-1 relative pt-4 bg-white">
-                        <div className="absolute top-0 right-2 bg-slate-300 text-slate-800 text-[8px] font-bold px-3 py-1 border-b border-l border-r border-slate-400 rounded-b-sm">
+                    <div className="border border-blue-300 rounded-sm flex flex-col h-[100px] mt-1 relative pt-4 bg-white">
+                        <div className="absolute top-0 right-2 bg-blue-100 text-blue-900 text-[8px] font-bold px-3 py-1 border-b border-l border-r border-blue-300 rounded-b-md shadow-sm">
                             ملاحظات المدرس(ة) حول السلوك والمواظبة
                         </div>
                     </div>
 
                     {/* Certificate */}
-                    <div className="border border-slate-400 rounded-sm flex flex-col h-[60px] mt-1 relative pt-5 bg-white">
-                        <div className="absolute top-0 right-8 bg-slate-300 text-slate-800 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-slate-400 rounded-b-sm">
+                    <div className="border border-blue-300 rounded-sm flex flex-col h-[60px] mt-1 relative pt-5 bg-white">
+                        <div className="absolute top-0 right-8 bg-blue-100 text-blue-900 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-blue-300 rounded-b-md shadow-sm">
                             الشهادة
                         </div>
                         <div className="flex-1 flex items-center justify-center font-black text-blue-800 text-[11px]">
@@ -310,8 +310,8 @@ const parseArabicDomainName = (domainName: string): string => {
                     </div>
 
                     {/* Principal */}
-                    <div className="border border-slate-400 rounded-sm flex flex-col h-[85px] mt-1 relative bg-white">
-                        <div className="absolute top-0 right-4 bg-slate-300 text-slate-800 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-slate-400 rounded-b-sm z-10">
+                    <div className="border border-blue-300 rounded-sm flex flex-col h-[85px] mt-1 relative bg-white">
+                        <div className="absolute top-0 right-4 bg-blue-100 text-blue-900 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-blue-300 rounded-b-md shadow-sm z-10">
                             مدير(ة) المدرسة
                         </div>
                         <div className="absolute bottom-2 right-2 text-[8px] text-slate-800 font-bold">التاريخ : ...................</div>
@@ -319,8 +319,8 @@ const parseArabicDomainName = (domainName: string): string => {
                     </div>
 
                     {/* Parent */}
-                    <div className="border border-slate-400 rounded-sm flex flex-col h-[60px] mt-1 relative bg-white">
-                        <div className="absolute top-0 right-4 bg-slate-300 text-slate-800 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-slate-400 rounded-b-sm">
+                    <div className="border border-blue-300 rounded-sm flex flex-col h-[60px] mt-1 relative bg-white">
+                        <div className="absolute top-0 right-4 bg-blue-100 text-blue-900 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-blue-300 rounded-b-md shadow-sm">
                             إمضاء الولي
                         </div>
                     </div>
