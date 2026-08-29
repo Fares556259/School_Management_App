@@ -343,85 +343,81 @@ const renderDomainTable = (domainName: string, subjects: any[], domainAvg: numbe
 
             {/* PRE-TABLE INFO HEADER */}
             <div className="flex justify-between items-end mb-2 border-b border-slate-200 pb-1 px-1">
+               <div className="text-[10px] font-bold text-slate-800 flex items-center gap-2">
+                  التلميذ(ة):  <span className="text-blue-700 text-sm font-black uppercase">{data.header.studentName}</span>
+               
+               </div>
                <div className="flex gap-8 text-[10px] font-bold text-slate-800 w-[250px] justify-between">
+                  
                   <div className="flex items-center gap-1">عدد التلاميذ المرسمين: <span className="text-slate-400 font-normal">..................</span></div>
                   <div className="flex items-center gap-1">القسم: <span className="text-blue-700 font-black">{data.header.class}</span></div>
-               </div>
-               <div className="text-[10px] font-bold text-slate-800 flex items-center gap-2">
-                  التلميذ(ة): <span className="text-blue-700 text-sm font-black uppercase">{data.header.studentName}</span>
+               
                </div>
             </div>
 
             {/* TWO COLUMN MAIN BODY */}
-            <div className="grid grid-cols-[1fr_2.5fr] gap-4 h-full items-start">
+            <div className="grid grid-cols-[2.8fr_1fr] gap-4 h-full items-start">
                 
+                {/* RIGHT COLUMN - DOMAINS */}
+                <div className="flex flex-col">
+                    {data.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
+                </div>
                 {/* LEFT COLUMN */}
                 <div className="flex flex-col gap-2">
                     
                     {/* General Average Block */}
                     <div className="flex gap-1 h-16">
-                        <div className="flex-[1.5] border-2 border-blue-600 flex flex-col rounded-sm overflow-hidden">
-                            <div className="bg-blue-600 text-white text-[10px] font-black text-center py-1">معدل الثلاثي</div>
-                            <div className="flex-1 bg-white flex items-center justify-center font-black text-lg text-blue-800 tracking-tight">
+                        <div className="flex-[1.5] border border-slate-400 flex flex-col rounded-sm overflow-hidden bg-slate-300 p-0.5">
+                            <div className="bg-slate-500 text-white text-[12px] font-black text-center py-1 rounded-t-lg mx-1 mt-0.5 shadow-inner">معدل الثلاثي</div>
+                            <div className="flex-1 bg-white flex items-center justify-center font-black text-lg text-blue-800 tracking-tight border border-slate-400 mt-0.5 rounded-sm">
                                 {data.header.generalAverage.toFixed(2)}
                             </div>
                         </div>
-                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-blue-200">
-                            <div className="text-[7px] text-slate-500 bg-slate-50 text-center font-bold py-1">أعلى<br/>معدل بالقسم</div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-slate-400">
+                            <div className="text-[7px] text-slate-700 bg-slate-300 text-center font-bold py-1">أعلى<br/>معدل بالقسم</div>
                             <div className="flex-1 flex items-center justify-center font-bold text-blue-600 text-[10px] bg-white">{data.header.maxAverage.toFixed(2)}</div>
                         </div>
-                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-blue-200">
-                            <div className="text-[7px] text-slate-500 bg-slate-50 text-center font-bold py-1">أدنى<br/>معدل بالقسم</div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-slate-400">
+                            <div className="text-[7px] text-slate-700 bg-slate-300 text-center font-bold py-1">أدنى<br/>معدل بالقسم</div>
                             <div className="flex-1 flex items-center justify-center font-bold text-red-600 text-[10px] bg-white">{data.header.minAverage.toFixed(2)}</div>
                         </div>
                     </div>
 
                     {/* Rank Block */}
-                    <div className="border border-blue-200 rounded-sm p-1 flex justify-center items-center bg-blue-50/50 mt-1">
-                        <span className="text-[10px] font-black text-blue-800">الرتبة: {data.header.rank}</span>
-                    </div>
+                    
 
                     {/* Behavior / Notes */}
-                    <div className="border border-blue-200 rounded-sm flex flex-col h-[100px] mt-1 shadow-sm overflow-hidden">
-                        <div className="bg-slate-50 text-[8px] font-black text-slate-500 text-center py-1.5 border-b border-blue-200 uppercase tracking-widest">
+                    <div className="border border-slate-400 rounded-sm flex flex-col h-[100px] mt-1 relative pt-4 bg-white">
+                        <div className="absolute top-0 right-2 bg-slate-300 text-slate-800 text-[8px] font-bold px-3 py-1 border-b border-l border-r border-slate-400 rounded-b-sm">
                             ملاحظات المدرس(ة) حول السلوك والمواظبة
                         </div>
-                        <div className="flex-1 bg-white"></div>
                     </div>
 
                     {/* Certificate */}
-                    <div className="border border-blue-200 rounded-sm flex flex-col h-[60px] mt-1 shadow-sm overflow-hidden">
-                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                    <div className="border border-slate-400 rounded-sm flex flex-col h-[60px] mt-1 relative pt-5 bg-white">
+                        <div className="absolute top-0 right-8 bg-slate-300 text-slate-800 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-slate-400 rounded-b-sm">
                             الشهادة
                         </div>
-                        <div className="flex-1 bg-white flex items-center justify-center font-black text-blue-600 text-[11px]">
+                        <div className="flex-1 flex items-center justify-center font-black text-blue-800 text-[11px]">
                             {getCertificate(data.header.generalAverage)}
                         </div>
                     </div>
 
                     {/* Principal */}
-                    <div className="border border-blue-200 rounded-sm flex flex-col h-[85px] mt-1 relative shadow-sm overflow-hidden">
-                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                    <div className="border border-slate-400 rounded-sm flex flex-col h-[85px] mt-1 relative bg-white">
+                        <div className="absolute top-0 right-4 bg-slate-300 text-slate-800 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-slate-400 rounded-b-sm z-10">
                             مدير(ة) المدرسة
                         </div>
-                        <div className="flex-1 bg-white relative">
-                          <div className="absolute bottom-2 right-2 text-[8px] text-slate-500 font-bold">التاريخ : ...................</div>
-                          <div className="absolute bottom-2 left-2 text-[7px] text-slate-400 font-bold">(الختم والإمضاء)</div>
-                        </div>
+                        <div className="absolute bottom-2 right-2 text-[8px] text-slate-800 font-bold">التاريخ : ...................</div>
+                        <div className="absolute bottom-2 left-2 text-[7px] text-slate-600 font-bold">(الختم والإمضاء)</div>
                     </div>
 
                     {/* Parent */}
-                    <div className="border border-blue-200 rounded-sm flex flex-col h-[60px] mt-1 shadow-sm overflow-hidden">
-                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                    <div className="border border-slate-400 rounded-sm flex flex-col h-[60px] mt-1 relative bg-white">
+                        <div className="absolute top-0 right-4 bg-slate-300 text-slate-800 text-[9px] font-bold px-6 py-1 border-b border-l border-r border-slate-400 rounded-b-sm">
                             إمضاء الولي
                         </div>
-                        <div className="flex-1 bg-white"></div>
                     </div>
-                </div>
-
-                {/* RIGHT COLUMN - DOMAINS */}
-                <div className="flex flex-col">
-                    {data.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
                 </div>
             </div>
         </div>
