@@ -128,6 +128,7 @@ const parseArabicDomainName = (domainName: string): string => {
   if (upper.includes("ART") || upper.includes("TECH")) return "مجال الفنون والتكنولوجيا";
   if (upper.includes("HUMAN")) return "مجال الإنسانيات والعلوم الاجتماعية";
   if (upper.includes("FOREIGN") || upper.includes("LANG")) return "مجال اللغات";
+  if (upper === "اللغة الفرنسية") return "مجال اللغة الفرنسية";
   if (upper.includes("RELIG") || upper.includes("VALU") || upper.includes("ISLAM")) return "مجال التربية الإسلامية والقيم";
   if (upper.includes("MATH") || upper.includes("SCI")) return "مجال الرياضيات والعلوم";
   if (upper.includes("DISCOV")) return "مجال التنشئة الاجتماعية";
@@ -161,19 +162,19 @@ const parseArabicDomainName = (domainName: string): string => {
         }
 
         return (
-          <div key={domainName} className="border-2 border-blue-600 mb-6 overflow-hidden rounded-md">
-            <div className="bg-blue-600 text-white text-center font-bold py-1.5 text-sm uppercase">
+          <div key={domainName} className="border-2 border-blue-600 mb-3 overflow-hidden rounded-md">
+            <div className="bg-blue-600 text-white text-center font-bold py-1 text-sm uppercase tracking-wider">
               {parseArabicDomainName(domainName)}
             </div>
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-slate-50 border-b border-blue-600 text-[10px] font-black text-slate-900">
+              <thead className="bg-slate-50 border-b border-blue-600 text-[9px] font-black text-slate-900">
                 <tr>
-                  <th className="py-2 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
-                  <th className="py-2 px-2 border-l border-blue-100">العدد/20</th>
-                  <th className="py-2 px-2 border-l border-blue-100">معدل {parseArabicDomainName(domainName)}</th>
-                  <th className="py-2 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
-                  <th className="py-2 px-2 border-l border-blue-100">أعلى عدد</th>
-                  <th className="py-2 px-2 text-center text-[8px]">أدنى عدد</th>
+                  <th className="py-1 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
+                  <th className="py-1 px-2 border-l border-blue-100">العدد/20</th>
+                  <th className="py-1 px-2 border-l border-blue-100">معدل {parseArabicDomainName(domainName)}</th>
+                  <th className="py-1 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
+                  <th className="py-1 px-2 border-l border-blue-100">أعلى عدد</th>
+                  <th className="py-1 px-2 text-center">أدنى عدد</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,7 +182,7 @@ const parseArabicDomainName = (domainName: string): string => {
                   if (row.type === "sub-header") {
                       return (
                         <tr key={idx} className="bg-blue-50/20">
-                          <td colSpan={2} className="py-1 px-4 font-black text-blue-800 border-b border-blue-100 text-xs">{row.label}</td>
+                          <td colSpan={2} className="py-0.5 px-4 font-black text-blue-800 border-b border-blue-100 text-xs">{row.label}</td>
                           <td colSpan={4} className="border-b border-blue-100"></td>
                         </tr>
                       );
@@ -189,8 +190,8 @@ const parseArabicDomainName = (domainName: string): string => {
                   if (row.type === "sub-total") {
                     return (
                       <tr key={idx} className="bg-slate-50 border-b border-blue-100">
-                        <td className="py-1.5 px-6 font-black text-slate-900 border-l border-blue-100 text-xs italic">{row.label}</td>
-                        <td className="py-1.5 px-2 text-center font-black text-blue-700 border-l border-blue-100 bg-blue-50/50">{row.score.toFixed(2)}</td>
+                        <td className="py-1 px-6 font-black text-slate-900 border-l border-blue-100 text-[10px] italic">{row.label}</td>
+                        <td className="py-1 px-2 text-center font-black text-blue-700 border-l border-blue-100 bg-blue-50/50">{row.score.toFixed(2)}</td>
                         <td className="border-l border-blue-100"></td>
                         <td className="border-l border-blue-100 font-bold text-[10px] italic text-slate-400 text-center px-2">ـ</td>
                         <td className="border-l border-blue-100"></td>
@@ -200,16 +201,18 @@ const parseArabicDomainName = (domainName: string): string => {
                   }
                   return (
                     <tr key={idx} className="border-b border-blue-100 group">
-                        <td className="py-2 px-6 font-bold text-slate-700 border-l border-blue-100 text-[11px] bg-blue-600/[0.01]">{row.label}</td>
-                        <td className="py-2 px-2 text-center font-black text-slate-900 border-l border-blue-100">{row.score.toFixed(2)}</td>
+                        <td className="py-1 px-4 font-bold text-slate-700 border-l border-blue-100 text-[10px] bg-blue-600/[0.01] leading-tight">{row.label}</td>
+                        <td className="py-1 px-2 text-center font-black text-slate-900 border-l border-blue-100 text-xs">{row.score.toFixed(2)}</td>
                         {idx === 0 && (
-                            <td rowSpan={rows.length} className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100">
-                                {domainAvg.toFixed(2)}
-                            </td>
+                            <>
+                                <td rowSpan={rows.length} className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100">
+                                    {domainAvg.toFixed(2)}
+                                </td>
+                                <td rowSpan={rows.length} className="py-1 px-2 border-l border-blue-100 min-w-[120px]"></td>
+                            </>
                         )}
-                        <td className="py-2 px-2 border-l border-blue-100"></td>
-                        <td className="py-2 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">{row.maxScore?.toFixed(2) || "ـ"}</td>
-                        <td className="py-2 px-2 text-center text-red-600/70 text-[10px] font-bold">{row.minScore?.toFixed(2) || "ـ"}</td>
+                        <td className="py-1 px-2 text-center text-blue-600/70 text-[9px] border-l border-blue-100 font-bold">{row.maxScore?.toFixed(2) || "ـ"}</td>
+                        <td className="py-1 px-2 text-center text-red-600/70 text-[9px] font-bold">{row.minScore?.toFixed(2) || "ـ"}</td>
                     </tr>
                   );
                 })}
@@ -220,24 +223,24 @@ const parseArabicDomainName = (domainName: string): string => {
       };
 
       return (
-        <div key={report.header.studentName} className="report-card-page p-8 md:p-12 mb-10 bg-white border-4 border-double border-slate-200 shadow-xl print:shadow-none print:border-slate-300 print:m-0 print:p-8" dir="rtl">
+        <div key={report.header.studentName} className="report-card-page p-6 md:p-8 mb-10 bg-white border-4 border-double border-slate-200 shadow-xl print:shadow-none print:border-slate-300 print:m-0 print:p-6" dir="rtl">
             {/* HEADER */}
-            <div className="flex justify-between items-start mb-8 pb-4">
+            <div className="flex justify-between items-start mb-4 pb-2 border-b-2 border-slate-100">
                 <div className="text-right space-y-0.5">
-                    <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">الجمهورية التونسية</h3>
-                    <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">وزارة التربية</h3>
-                    <h4 className="text-[10px] font-medium text-slate-600">المندوبية الجهوية للتربية</h4>
+                    <h3 className="font-bold text-xs tracking-tight text-slate-900 leading-none">الجمهورية التونسية</h3>
+                    <h3 className="font-bold text-xs tracking-tight text-slate-900 leading-none">وزارة التربية</h3>
+                    <h4 className="text-[9px] font-medium text-slate-600 mt-1">المندوبية الجهوية للتربية</h4>
                 </div>
                 
                 <div className="text-center">
-                    <div className="bg-slate-50 border-2 border-slate-100 px-10 py-1.5 rounded-full mb-2 inline-block">
-                        <h2 className="text-md font-black text-slate-800 tracking-tight">{getTermText(report.header.term)}</h2>
+                    <div className="bg-slate-50 border-2 border-slate-200 px-8 py-1 rounded-full mb-1 inline-block shadow-sm">
+                        <h2 className="text-sm font-black text-slate-800 tracking-tight">{getTermText(report.header.term)}</h2>
                     </div>
                 </div>
 
                 <div className="text-left space-y-0.5">
-                    <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight text-left">المدرسة الابتدائية الخاصة</h3>
-                    <div className="text-[10px] font-bold text-slate-700 text-left">السنة الدراسية 2024-2025</div>
+                    <h3 className="font-bold text-xs tracking-tight text-slate-900 leading-none">المدرسة الابتدائية الخاصة</h3>
+                    <div className="text-[9px] font-bold text-slate-700 text-left mt-1">السنة الدراسية 2024-2025</div>
                 </div>
             </div>
 

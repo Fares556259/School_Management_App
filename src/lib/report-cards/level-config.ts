@@ -87,36 +87,40 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     domains: [
       {
         name: "مجال العربية",
+        coefficient: 2,
         subjects: [
-          { search: "التواصل الشفوي", display: "تواصل شفوي" },
-          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "التواصل الشفوي", display: "التواصل الشفوي والمحفوظات" },
           { search: "القراءة", display: "القراءة" },
-          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة (رسم/نحو/صرف)" },
+          { search: "الإنتاج الكتابي", display: "الإنتاج الكتابي" },
         ],
       },
       {
         name: "مجال العلوم",
+        coefficient: 2,
         subjects: [
           { search: "الرياضيات", display: "الرياضيات" },
-          { search: "الإيقاظ العلمي", display: "الايقاظ العلمي" },
+          { search: "الإيقاظ العلمي", display: "الإيقاظ العلمي" },
           { search: "التربية التكنولوجية", display: "التربية التكنولوجية" },
         ],
       },
       {
-        name: "اللغة الفرنسية",
+        name: "مجال التنشئة",
+        coefficient: 1,
         subjects: [
-          { search: "التعبير الشفوي", display: "Exp. Orale" },
-          { search: "الإنتاج الكتابي (فرنسية)", display: "Pro. Ecrite" },
-          { search: "القراءة (فرنسية)", display: "Lecture" },
+          { search: "التربية الإسلامية", display: "التربية الإسلامية" },
+          { search: "التربية التشكيلية", display: "التربية التشكيلية" },
+          { search: "التربية الموسيقية", display: "التربية الموسيقية" },
+          { search: "التربية البدنية", display: "التربية البدنية" },
         ],
       },
       {
-        name: "مجال التنشئة",
+        name: "اللغة الفرنسية",
+        coefficient: 1.5,
         subjects: [
-          { search: "التربية الإسلامية", display: "تربية اسلامية" },
-          { search: "التربية الموسيقية", display: "تربية موسيقية" },
-          { search: "التربية التشكيلية", display: "تربية تشكيلية" },
-          { search: "التربية البدنية", display: "تربية بدنية" },
+          { search: "التعبير الشفوي", display: "Exp. orale et récitation" },
+          { search: "القراءة (فرنسية)", display: "Lecture" },
+          { search: "الإنتاج الكتابي (فرنسية)", display: "Prod. écrite, écriture et dictée" },
         ],
       }
     ]
@@ -126,36 +130,40 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     domains: [
       {
         name: "مجال العربية",
+        coefficient: 2,
         subjects: [
-          { search: "التواصل الشفوي", display: "تواصل شفوي" },
-          { search: "قواعد اللغة", display: "قواعد اللغة" },
+          { search: "التواصل الشفوي", display: "التواصل الشفوي والمحفوظات" },
           { search: "القراءة", display: "القراءة" },
-          { search: "الإنتاج الكتابي", display: "الانتاج الكتابي" },
+          { search: "قواعد اللغة", display: "قواعد اللغة (رسم/نحو/صرف)" },
+          { search: "الإنتاج الكتابي", display: "الإنتاج الكتابي" },
         ],
       },
       {
         name: "مجال العلوم",
+        coefficient: 2,
         subjects: [
           { search: "الرياضيات", display: "الرياضيات" },
-          { search: "الإيقاظ العلمي", display: "الايقاظ العلمي" },
+          { search: "الإيقاظ العلمي", display: "الإيقاظ العلمي" },
           { search: "التربية التكنولوجية", display: "التربية التكنولوجية" },
         ],
       },
       {
-        name: "اللغة الفرنسية",
+        name: "مجال التنشئة",
+        coefficient: 1,
         subjects: [
-          { search: "التعبير الشفوي", display: "Exp. Orale" },
-          { search: "الإنتاج الكتابي (فرنسية)", display: "Pro. Ecrite" },
-          { search: "القراءة (فرنسية)", display: "Lecture" },
+          { search: "التربية الإسلامية", display: "التربية الإسلامية" },
+          { search: "التربية التشكيلية", display: "التربية التشكيلية" },
+          { search: "التربية الموسيقية", display: "التربية الموسيقية" },
+          { search: "التربية البدنية", display: "التربية البدنية" },
         ],
       },
       {
-        name: "مجال التنشئة",
+        name: "اللغة الفرنسية",
+        coefficient: 1.5,
         subjects: [
-          { search: "التربية الإسلامية", display: "تربية اسلامية" },
-          { search: "التربية الموسيقية", display: "تربية موسيقية" },
-          { search: "التربية التشكيلية", display: "تربية تشكيلية" },
-          { search: "التربية البدنية", display: "تربية بدنية" },
+          { search: "التعبير الشفوي", display: "Exp. orale et récitation" },
+          { search: "القراءة (فرنسية)", display: "Lecture" },
+          { search: "الإنتاج الكتابي (فرنسية)", display: "Prod. écrite, écriture et dictée" },
         ],
       }
     ]
