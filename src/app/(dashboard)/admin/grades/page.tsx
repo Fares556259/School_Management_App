@@ -131,6 +131,7 @@ export default async function GradesPage({
           term={term}
           classId={classId}
           sheets={sheets}
+          levelNum={levelNum}
         />
       )}
     </div>

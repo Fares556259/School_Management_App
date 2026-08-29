@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
 
     // Build the effective domain map based on level config or legacy fallback
     const effectiveDomainMap: Record<string, typeof allSubjects> = {};
+    const domainCoefficients: Record<string, number> = {};
     const displayMap: Record<number, string> = {};
     let expectedSubjectCount = 0;
 
@@ -62,6 +63,7 @@ export async function GET(req: NextRequest) {
       // Level-specific configuration logic
       levelConfig.domains.forEach(domainConfig => {
         effectiveDomainMap[domainConfig.name] = [];
+        domainCoefficients[domainConfig.name] = domainConfig.coefficient ?? 1;
         domainConfig.subjects.forEach(sub => {
           const dbSubject = allSubjects.find(s => s.name.includes(sub.search.trim()));
           if (dbSubject) {
@@ -76,6 +78,7 @@ export async function GET(req: NextRequest) {
       allSubjects.forEach((s) => {
         if (!effectiveDomainMap[s.domain]) effectiveDomainMap[s.domain] = [];
         effectiveDomainMap[s.domain].push(s);
+        domainCoefficients[s.domain] = 1;
         expectedSubjectCount++;
       });
     }
@@ -109,20 +112,27 @@ export async function GET(req: NextRequest) {
 
       // Domain averages: average of all subject scores in that domain
       const domainAverages: Record<string, number> = {};
+      let totalWeightedSum = 0;
+      let totalCoefficients = 0;
+
       Object.entries(effectiveDomainMap).forEach(([domain, subjects]) => {
         const domainScores = subjects
           .filter(s => gradeMap[s.id] !== undefined)
           .map(s => gradeMap[s.id]);
           
         if (domainScores.length > 0) {
-          domainAverages[domain] = domainScores.reduce((a, b) => a + b, 0) / domainScores.length;
+          const domainAvg = domainScores.reduce((a, b) => a + b, 0) / domainScores.length;
+          domainAverages[domain] = domainAvg;
+          
+          const coef = domainCoefficients[domain] ?? 1;
+          totalWeightedSum += (domainAvg * coef);
+          totalCoefficients += coef;
         }
       });
 
-      // General average: simple average of domain averages
-      const domainAvgValues = Object.values(domainAverages);
-      const generalAverage = domainAvgValues.length > 0
-        ? domainAvgValues.reduce((a, b) => a + b, 0) / domainAvgValues.length
+      // General average: weighted average of domain averages
+      const generalAverage = totalCoefficients > 0
+        ? totalWeightedSum / totalCoefficients
         : 0;
 
       return { domainAverages, generalAverage };

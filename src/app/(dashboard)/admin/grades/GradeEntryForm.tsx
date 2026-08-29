@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getGradeSubjects } from "@/lib/subject-utils";
+import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 
 interface Subject {
   id: number;
@@ -66,10 +67,11 @@ interface Props {
   term: number;
   classId: number;
   sheets?: any[];
+  levelNum?: number;
 }
 
 export default function GradeEntryForm({
-  students, subjects, term, classId, sheets = [],
+  students, subjects, term, classId, sheets = [], levelNum
 }: Props) {
   const [viewMode, setViewMode] = useState<"table" | "student">("table");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(students[0]?.id || null);
@@ -301,14 +303,34 @@ export default function GradeEntryForm({
     const entered = gradeableSubjects.filter(s => g[s.id] !== undefined).length;
     const isComplete = gradeableSubjects.length > 0 && entered === gradeableSubjects.length;
 
-    const domainAvgs = Object.values(domainMap)
-      .map(subs => {
-        const scores = subs.filter(s => g[s.id] !== undefined).map(s => g[s.id]);
-        return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-      })
-      .filter((v): v is number => v !== null);
+    let avg: number | null = null;
+    let totalWeightedSum = 0;
+    let totalCoefficients = 0;
+    let hasAnyGrades = false;
 
-    const avg = domainAvgs.length ? domainAvgs.reduce((a, b) => a + b, 0) / domainAvgs.length : null;
+    // Build coefficient map for this level
+    const domainCoefficients: Record<string, number> = {};
+    if (levelNum && LEVEL_CONFIGS[levelNum]) {
+      LEVEL_CONFIGS[levelNum].domains.forEach(d => {
+        domainCoefficients[d.name] = d.coefficient ?? 1;
+      });
+    }
+
+    Object.entries(domainMap).forEach(([domain, subs]) => {
+      const scores = subs.filter(s => g[s.id] !== undefined).map(s => g[s.id]);
+      if (scores.length > 0) {
+        hasAnyGrades = true;
+        const domainAvg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const coef = domainCoefficients[domain] ?? 1;
+        totalWeightedSum += (domainAvg * coef);
+        totalCoefficients += coef;
+      }
+    });
+
+    if (hasAnyGrades && totalCoefficients > 0) {
+      avg = totalWeightedSum / totalCoefficients;
+    }
+
     return { entered, total: gradeableSubjects.length, isComplete, avg, avgDisplay: avg !== null ? avg.toFixed(2) : "—" };
   };
 

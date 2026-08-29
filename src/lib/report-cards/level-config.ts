@@ -5,6 +5,7 @@ export interface SubjectConfig {
 
 export interface DomainConfig {
   name: string;
+  coefficient?: number; // Optional coefficient for weighted average calculation
   subjects: SubjectConfig[];
 }
 
@@ -18,6 +19,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     domains: [
       {
         name: "مجال العربية",
+        coefficient: 2,
         subjects: [
           { search: "التواصل الشفوي", display: "تواصل شفوي" },
           { search: "الخط", display: "الخط" },
@@ -27,6 +29,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       },
       {
         name: "مجال العلوم",
+        coefficient: 2,
         subjects: [
           { search: "الرياضيات", display: "الرياضيات" },
           { search: "الإيقاظ العلمي", display: "الايقاظ العلمي" },
@@ -35,6 +38,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       },
       {
         name: "مجال التنشئة",
+        coefficient: 1,
         subjects: [
           { search: "التربية الإسلامية", display: "تربية اسلامية" },
           { search: "التربية الموسيقية", display: "تربية موسيقية" },
@@ -49,6 +53,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     domains: [
       {
         name: "مجال العربية",
+        coefficient: 2,
         subjects: [
           { search: "التواصل الشفوي", display: "تواصل شفوي" },
           { search: "الخط", display: "الخط" },
@@ -58,6 +63,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       },
       {
         name: "مجال العلوم",
+        coefficient: 2,
         subjects: [
           { search: "الرياضيات", display: "الرياضيات" },
           { search: "الإيقاظ العلمي", display: "الايقاظ العلمي" },
@@ -66,6 +72,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
       },
       {
         name: "مجال التنشئة",
+        coefficient: 1,
         subjects: [
           { search: "التربية الإسلامية", display: "تربية اسلامية" },
           { search: "التربية الموسيقية", display: "تربية موسيقية" },
