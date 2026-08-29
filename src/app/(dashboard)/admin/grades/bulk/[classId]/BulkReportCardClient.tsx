@@ -171,10 +171,10 @@ const parseArabicDomainName = (domainName: string): string => {
                 <tr>
                   <th className="py-1 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
                   <th className="py-1 px-2 border-l border-blue-100">العدد/20</th>
-                  <th className="py-1 px-2 border-l border-blue-100">معدل {parseArabicDomainName(domainName)}</th>
+                  <th className="py-1 px-2 border-l border-blue-100">معدل المجال</th>
                   <th className="py-1 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
-                  <th className="py-1 px-2 border-l border-blue-100">أعلى عدد</th>
-                  <th className="py-1 px-2 text-center">أدنى عدد</th>
+                  <th className="py-1 px-1 border-l border-blue-100 text-[7px] text-center leading-tight">أعلى<br/>عدد بالقسم</th>
+                  <th className="py-1 px-1 text-center text-[7px] leading-tight">أدنى<br/>عدد بالقسم</th>
                 </tr>
               </thead>
               <tbody>
@@ -225,11 +225,11 @@ const parseArabicDomainName = (domainName: string): string => {
       return (
         <div key={report.header.studentName} className="report-card-page p-6 md:p-8 mb-10 bg-white border-4 border-double border-slate-200 shadow-xl print:shadow-none print:border-slate-300 print:m-0 print:p-6" dir="rtl">
             {/* HEADER */}
-            <div className="flex justify-between items-start mb-4 pb-2 border-b-2 border-slate-100">
+            <div className="flex justify-between items-start mb-2 pb-1 border-b-2 border-slate-100">
                 <div className="text-right space-y-0.5">
-                    <h3 className="font-bold text-xs tracking-tight text-slate-900 leading-none">الجمهورية التونسية</h3>
-                    <h3 className="font-bold text-xs tracking-tight text-slate-900 leading-none">وزارة التربية</h3>
-                    <h4 className="text-[9px] font-medium text-slate-600 mt-1">المندوبية الجهوية للتربية</h4>
+                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none">الجمهورية التونسية</h3>
+                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none">وزارة التربية</h3>
+                    <h4 className="text-[8px] font-medium text-slate-600 mt-1">المندوبية الجهوية للتربية</h4>
                 </div>
                 
                 <div className="text-center">
@@ -239,81 +239,92 @@ const parseArabicDomainName = (domainName: string): string => {
                 </div>
 
                 <div className="text-left space-y-0.5">
-                    <h3 className="font-bold text-xs tracking-tight text-slate-900 leading-none">المدرسة الابتدائية الخاصة</h3>
-                    <div className="text-[9px] font-bold text-slate-700 text-left mt-1">السنة الدراسية 2024-2025</div>
+                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none text-left">المدرسة الابتدائية الخاصة</h3>
+                    <div className="text-[8px] font-bold text-slate-700 text-left mt-1">السنة الدراسية 2024-2025</div>
                 </div>
             </div>
 
-            {/* INFO BOXES */}
-            <div className="flex gap-4 mb-4">
-                <div className="flex-1 border-2 border-slate-200 p-4 rounded-sm bg-white flex flex-col justify-between space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
-                            <span className="text-lg font-black text-blue-700 uppercase">{report.header.studentName}</span>
-                        </div>
-                        <span className="bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0">
-                           الرتبة: {report.header.rank}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-400">القسم :</span>
-                        <span className="text-md font-black text-slate-800">{report.header.class}</span>
-                    </div>
-                    <div className="absolute top-1 left-3 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
-                    الرتبة: {report.header.rank}
-                    </div>
-                </div>
+            {/* PRE-TABLE INFO HEADER */}
+            <div className="flex justify-between items-end mb-2 border-b border-slate-200 pb-1 px-1">
+               <div className="flex gap-8 text-[10px] font-bold text-slate-800 w-[250px] justify-between">
+                  <div className="flex items-center gap-1">عدد التلاميذ المرسمين: <span className="text-slate-400 font-normal">..................</span></div>
+                  <div className="flex items-center gap-1">القسم: <span className="text-blue-700 font-black">{report.header.class}</span></div>
+               </div>
+               <div className="text-[10px] font-bold text-slate-800 flex items-center gap-2">
+                  التلميذ(ة): <span className="text-blue-700 text-sm font-black uppercase">{report.header.studentName}</span>
+               </div>
+            </div>
 
-                <div className="flex-[1.2] flex gap-2">
-                    <div className="flex-1 flex flex-col items-center border-2 border-blue-600 rounded-sm overflow-hidden">
-                        <div className="bg-blue-600 text-white text-[9px] font-black w-full text-center py-1">معدل الثلاثي</div>
-                        <div className="flex-1 flex items-center justify-center font-black text-xl text-blue-900">{report.header.generalAverage.toFixed(2)}</div>
+            {/* TWO COLUMN MAIN BODY */}
+            <div className="grid grid-cols-[1fr_2.5fr] gap-4 h-full items-start">
+                
+                {/* LEFT COLUMN */}
+                <div className="flex flex-col gap-2">
+                    
+                    {/* General Average Block */}
+                    <div className="flex gap-1 h-16">
+                        <div className="flex-[1.5] border-2 border-blue-600 flex flex-col rounded-sm overflow-hidden">
+                            <div className="bg-blue-600 text-white text-[10px] font-black text-center py-1">معدل الثلاثي</div>
+                            <div className="flex-1 bg-white flex items-center justify-center font-black text-lg text-blue-800 tracking-tight">
+                                {report.header.generalAverage.toFixed(2)}
+                            </div>
+                        </div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-blue-200">
+                            <div className="text-[7px] text-slate-500 bg-slate-50 text-center font-bold py-1">أعلى<br/>معدل بالقسم</div>
+                            <div className="flex-1 flex items-center justify-center font-bold text-blue-600 text-[10px] bg-white">{report.header.maxAverage.toFixed(2)}</div>
+                        </div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-blue-200">
+                            <div className="text-[7px] text-slate-500 bg-slate-50 text-center font-bold py-1">أدنى<br/>معدل بالقسم</div>
+                            <div className="flex-1 flex items-center justify-center font-bold text-red-600 text-[10px] bg-white">{report.header.minAverage.toFixed(2)}</div>
+                        </div>
                     </div>
-                    <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                        <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أعلى معدل</div>
-                        <div className="flex-1 flex items-center justify-center font-black text-sm text-slate-700">{report.header.maxAverage.toFixed(2)}</div>
+
+                    {/* Rank Block */}
+                    <div className="border border-blue-200 rounded-sm p-1 flex justify-center items-center bg-blue-50/50 mt-1">
+                        <span className="text-[10px] font-black text-blue-800">الرتبة: {report.header.rank}</span>
                     </div>
-                    <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                        <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أدنى معدل</div>
-                        <div className="flex-1 flex items-center justify-center font-black text-sm text-slate-700">{report.header.minAverage.toFixed(2)}</div>
+
+                    {/* Behavior / Notes */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[100px] mt-1 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[8px] font-black text-slate-500 text-center py-1.5 border-b border-blue-200 uppercase tracking-widest">
+                            ملاحظات المدرس(ة) حول السلوك والمواظبة
+                        </div>
+                        <div className="flex-1 bg-white"></div>
                     </div>
-                    <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                        <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">الشهادة</div>
-                        <div className="flex-1 flex items-center justify-center font-black text-[10px] text-blue-600 leading-none px-1">
+
+                    {/* Certificate */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[60px] mt-1 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                            الشهادة
+                        </div>
+                        <div className="flex-1 bg-white flex items-center justify-center font-black text-blue-600 text-[11px]">
                             {getCertificate(report.header.generalAverage)}
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* DOMAINS */}
-            <div className="flex flex-col">
-                {report.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
-            </div>
+                    {/* Principal */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[85px] mt-1 relative shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                            مدير(ة) المدرسة
+                        </div>
+                        <div className="flex-1 bg-white relative">
+                          <div className="absolute bottom-2 right-2 text-[8px] text-slate-500 font-bold">التاريخ : ...................</div>
+                          <div className="absolute bottom-2 left-2 text-[7px] text-slate-400 font-bold">(الختم والإمضاء)</div>
+                        </div>
+                    </div>
 
-            {/* FOOTER - Behavior & Stamp */}
-            <div className="mt-8 grid grid-cols-3 gap-8">
-                <div className="border-2 border-slate-100 p-4 rounded-xl min-h-[120px]">
-                    <h5 className="text-[10px] font-black uppercase text-slate-400 mb-2 underline decoration-blue-200 underline-offset-4">
-                        ملاحظات حول السلوك والمواظبة
-                    </h5>
-                    <div className="h-full pt-2">
-                        <div className="h-px bg-slate-50 w-full mb-3" />
-                        <div className="h-px bg-slate-50 w-full mb-3" />
+                    {/* Parent */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[60px] mt-1 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                            إمضاء الولي
+                        </div>
+                        <div className="flex-1 bg-white"></div>
                     </div>
                 </div>
-                
-                <div className="flex flex-col items-center justify-start pt-4 text-center">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12 italic">إمضاء الولي</p>
-                    <div className="w-32 h-px bg-slate-100" />
-                </div>
 
-                <div className="flex flex-col items-center justify-start pt-4 text-center">
-                    <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-12">مديرة المدرسة</p>
-                    <div className="w-24 h-24 border-2 border-blue-50 rounded-full flex items-center justify-center opacity-20">
-                        <span className="text-[8px] font-black rotate-12">STAMP HERE</span>
-                    </div>
+                {/* RIGHT COLUMN - DOMAINS */}
+                <div className="flex flex-col">
+                    {report.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
                 </div>
             </div>
         </div>
