@@ -121,7 +121,7 @@ const StudentListPage = async ({
       prisma.student.count({ where: query }),
       prisma.parent.findMany({ 
         where: { schoolId },
-        select: { id: true, name: true, surname: true } 
+        select: { id: true, name: true, surname: true, phone: true } 
       }),
       prisma.class.findMany({ 
         where: { schoolId }, 
@@ -153,7 +153,7 @@ const StudentListPage = async ({
   );
 
   const studentRelatedData = {
-    parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}` })),
+    parentId: parents.map((p) => ({ value: p.id, label: `${p.name} ${p.surname}`, rightText: p.phone, searchString: `${p.name} ${p.surname} ${p.phone || ""}` })),
     classId: [
       { value: "null", label: "Non affecté(e)" },
       ...classes.map((c) => ({ value: String(c.id), label: c.name }))

@@ -5,6 +5,8 @@ import React, { useState, useRef, useEffect } from "react";
 interface Option {
   value: string;
   label: string;
+  rightText?: string;
+  searchString?: string;
 }
 
 interface SearchableSelectProps {
@@ -43,9 +45,10 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   }, [defaultValue, options]);
 
   // Filter options based on search term
-  const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOptions = options.filter((option) => {
+    const target = (option.searchString || option.label).toLowerCase();
+    return target.includes(searchTerm.toLowerCase());
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -138,9 +141,14 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   }`}
                   onClick={() => handleSelect(option)}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-2 overflow-hidden gap-1">
+                    <span className="truncate">{option.label}</span>
+                    {option.rightText && (
+                      <span className="text-xs text-slate-500 whitespace-nowrap bg-slate-100 px-2 py-0.5 rounded flex-shrink-0">{option.rightText}</span>
+                    )}
+                  </div>
                   {selectedValue === option.value && (
-                    <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-indigo-500 flex-shrink-0 ml-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}

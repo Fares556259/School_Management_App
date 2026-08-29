@@ -37,7 +37,7 @@ interface FieldDef {
   label: string;
   type: "text" | "email" | "number" | "date" | "select" | "multi-select" | "image" | "searchable-select" | "creatable-select" | "conditional-number";
   required?: boolean;
-  options?: { value: string; label: string }[];
+  options?: { value: string; label: string; rightText?: string; searchString?: string }[];
   placeholder?: string;
   parseAsNumber?: boolean;
 }
