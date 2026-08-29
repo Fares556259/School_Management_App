@@ -225,22 +225,25 @@ const parseArabicDomainName = (domainName: string): string => {
       return (
         <div key={report.header.studentName} className="report-card-page p-6 md:p-8 mb-10 bg-white border-4 border-double border-slate-200 shadow-xl print:shadow-none print:border-slate-300 print:m-0 print:p-6" dir="rtl">
             {/* HEADER */}
-            <div className="flex justify-between items-start mb-2 pb-1 border-b-2 border-slate-100">
-                <div className="text-right space-y-0.5">
-                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none">الجمهورية التونسية</h3>
-                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none">وزارة التربية</h3>
-                    <h4 className="text-[8px] font-medium text-slate-600 mt-1">المندوبية الجهوية للتربية</h4>
-                </div>
-                
-                <div className="text-center">
-                    <div className="bg-slate-50 border-2 border-slate-200 px-8 py-1 rounded-full mb-1 inline-block shadow-sm">
-                        <h2 className="text-sm font-black text-slate-800 tracking-tight">{getTermText(report.header.term)}</h2>
+            <div className="relative mb-8">
+                <div className="bg-slate-400 border border-slate-500 rounded-sm px-4 pt-3 pb-7 flex justify-between items-start text-slate-900 font-bold text-[12px]">
+                    <div className="text-right space-y-4">
+                        <div className="text-sm font-black tracking-wide">المندوبية الجهوية للتربية</div>
+                        <div>بـ <span className="text-slate-700 font-normal tracking-widest">......................................................</span></div>
+                    </div>
+
+                    <div className="text-right space-y-4 ml-8">
+                        <div>المدرسة الابتدائية : <span className="text-slate-700 font-normal tracking-widest">................................................</span></div>
+                        <div>السنة الدّراسية : 
+                           <span className="text-slate-700 font-normal tracking-widest mr-2">...............</span> / <span className="text-slate-700 font-normal tracking-widest">...............</span> 20
+                        </div>
                     </div>
                 </div>
-
-                <div className="text-left space-y-0.5">
-                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none text-left">المدرسة الابتدائية الخاصة</h3>
-                    <div className="text-[8px] font-bold text-slate-700 text-left mt-1">السنة الدراسية 2024-2025</div>
+                
+                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2">
+                    <div className="bg-slate-300 border border-slate-500 px-12 py-1.5 rounded-xl shadow-sm text-center min-w-[220px]">
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">{getTermText(report.header.term)}</h2>
+                    </div>
                 </div>
             </div>
 
