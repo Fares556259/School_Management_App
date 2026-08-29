@@ -89,7 +89,7 @@ export default function ClassActionModals({
                 parent: student.parent,
               })),
             }}
-            allStudents={studentsData.allStudents || []}
+            
             role={role}
           />
         </ModalRouteOverlay>

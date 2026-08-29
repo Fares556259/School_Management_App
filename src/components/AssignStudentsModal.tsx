@@ -18,17 +18,19 @@ interface StudentOption {
 interface AssignStudentsModalProps {
   classId: number;
   className: string;
-  students: StudentOption[];
 }
+
+import { fetchAllStudentsOptionAction } from "@/app/(dashboard)/list/classes/actions";
 
 export default function AssignStudentsModal({
   classId,
   className,
-  students,
 }: AssignStudentsModalProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -49,15 +51,25 @@ export default function AssignStudentsModal({
   }, []);
 
   // Initialize selectedIds with students already in this class
-  const handleOpen = () => {
-    const currentClassStudentIds = students
-      .filter((s) => s.class?.name === className)
-      .map((s) => s.id);
-    setSelectedIds(currentClassStudentIds);
+  const handleOpen = async () => {
+    setOpen(true);
     setError("");
     setSearch("");
     setShowDropdown(false);
-    setOpen(true);
+    setLoading(true);
+    
+    try {
+      const allStudents = await fetchAllStudentsOptionAction();
+      setStudents(allStudents);
+      const currentClassStudentIds = allStudents
+        .filter((s) => s.class?.name === className)
+        .map((s) => s.id);
+      setSelectedIds(currentClassStudentIds);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 1. Search dropdown matches (students NOT already selected, matching the search text)
@@ -113,7 +125,7 @@ export default function AssignStudentsModal({
         className="flex items-center gap-2 border border-purple-600 text-purple-600 bg-white hover:bg-purple-50 px-4 py-2 rounded-[10px] text-[14px] font-medium transition-colors shadow-sm shrink-0"
         title="Assign existing students to this class"
       >
-        <Plus size={16} strokeWidth={2.5} />
+        {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={2.5} />}
         <span>Add Students</span>
       </button>
 

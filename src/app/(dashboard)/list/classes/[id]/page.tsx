@@ -19,7 +19,7 @@ export default async function ClassStudentsPage({
   }
 
   // Fetch Class details and ALL students in one cached call
-  const [activeClass, allStudents] = await getCachedTenantData(
+  const [activeClass] = await getCachedTenantData(
     schoolId,
     "classes",
     [id, schoolId],
@@ -48,20 +48,6 @@ export default async function ClassStudentsPage({
               orderBy: [{ name: "asc" }, { surname: "asc" }],
             },
           },
-        }),
-        prisma.student.findMany({
-          where: { schoolId },
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            class: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          orderBy: [{ name: "asc" }, { surname: "asc" }],
         }),
       ]),
     600
@@ -92,7 +78,6 @@ export default async function ClassStudentsPage({
           parent: student.parent,
         })),
       }}
-      allStudents={allStudents}
       role={role || ""}
     />
   );

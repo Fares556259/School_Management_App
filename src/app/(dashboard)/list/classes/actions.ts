@@ -83,3 +83,23 @@ export async function fetchClassTeachersAction(classId: number) {
     teachers: Array.from(teachersMap.values())
   };
 }
+
+export async function fetchAllStudentsOptionAction() {
+  const schoolId = await getSchoolId();
+  if (!schoolId) return [];
+  
+  return prisma.student.findMany({
+    where: { schoolId },
+    select: {
+      id: true,
+      name: true,
+      surname: true,
+      class: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: [{ name: "asc" }, { surname: "asc" }],
+  });
+}

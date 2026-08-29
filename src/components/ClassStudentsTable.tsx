@@ -43,19 +43,12 @@ interface ClassStudentsTableProps {
     supervisor: { name: string; surname: string } | null;
     students: Student[];
   };
-  allStudents: {
-    id: string;
-    name: string;
-    surname: string;
-    class: { name: string } | null;
-  }[];
   role: string;
   isModal?: boolean;
 }
 
 export default function ClassStudentsTable({
   activeClass,
-  allStudents,
   role,
   isModal = false,
 }: ClassStudentsTableProps) {
@@ -247,10 +240,9 @@ export default function ClassStudentsTable({
           {role === "admin" && (
             <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
               <AssignStudentsModal
-                classId={activeClass.id}
-                className={activeClass.name}
-                students={allStudents}
-              />
+                              classId={activeClass.id}
+                              className={activeClass.name}
+                            />
             </div>
           )}
         </div>
@@ -533,7 +525,6 @@ export default function ClassStudentsTable({
                             <AssignStudentsModal
                               classId={activeClass.id}
                               className={activeClass.name}
-                              students={allStudents}
                             />
                           </div>
                         )}
