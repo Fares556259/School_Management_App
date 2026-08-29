@@ -40,7 +40,6 @@ interface ClassStudentsTableProps {
     name: string;
     capacity: number;
     level: { level: number } | null;
-    supervisor: { name: string; surname: string } | null;
     students: Student[];
   };
   role: string;
@@ -248,7 +247,7 @@ export default function ClassStudentsTable({
         </div>
 
         {/* INFO HIGHLIGHT BARS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
             <div className="w-12 h-12 rounded-full bg-[#f5e9d4] flex items-center justify-center text-[#181d26] font-medium shrink-0 group-hover:scale-105 transition-transform">
               Lv
@@ -269,17 +268,7 @@ export default function ClassStudentsTable({
               </span>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
-            <div className="w-12 h-12 rounded-full bg-[#ffc3a0] flex items-center justify-center text-[#181d26] shrink-0 group-hover:scale-105 transition-transform">
-              <Users size={18} strokeWidth={2} />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">Supervisor</span>
-              <span className="text-[18px] font-normal text-[#181d26] truncate max-w-[200px]">
-                {activeClass.supervisor ? `${activeClass.supervisor.name} ${activeClass.supervisor.surname}` : "No Supervisor"}
-              </span>
-            </div>
-          </div>
+          
         </div>
 
         {/* ERROR MESSAGE DISPLAY */}

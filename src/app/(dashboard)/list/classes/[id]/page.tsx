@@ -28,12 +28,7 @@ export default async function ClassStudentsPage({
           where: { id: classId, schoolId },
           include: {
             level: true,
-            supervisor: {
-              select: {
-                name: true,
-                surname: true,
-              },
-            },
+            
             students: {
               include: {
                 parent: {
@@ -60,7 +55,6 @@ export default async function ClassStudentsPage({
         name: activeClass.name,
         capacity: activeClass.capacity,
         level: activeClass.level,
-        supervisor: activeClass.supervisor,
         students: activeClass.students.map((student) => ({
           id: student.id,
           username: student.username,
