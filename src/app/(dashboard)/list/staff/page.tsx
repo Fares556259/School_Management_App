@@ -72,7 +72,7 @@ const StaffListPage = async ({
       prisma.staff.findMany({
         where,
         include: {
-          payments: { select: { month: true, year: true, status: true, paidAt: true } },
+          payments: { select: { month: true, year: true, status: true, paidAt: true, amount: true } },
         },
         orderBy: { createdAt: "desc" },
         take: ITEMS_PER_PAGE,

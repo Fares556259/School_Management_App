@@ -1,16 +1,11 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 async function main() {
-  const slots = await prisma.timetableSlot.findMany({
-    where: { classId: 1, day: "MONDAY" },
-    include: { subject: true }
-  })
-  const lessons = await prisma.lesson.findMany({
-    where: { classId: 1, day: "MONDAY" }
-  })
-  console.log("SLOTS:", JSON.stringify(slots, null, 2))
-  console.log("LESSONS:", JSON.stringify(lessons, null, 2))
+  const p = await prisma.payment.findMany({
+    where: { userType: "STAFF" }
+  });
+  console.log(p);
 }
 
-main().finally(() => prisma.$disconnect())
+main().finally(() => prisma.$disconnect());

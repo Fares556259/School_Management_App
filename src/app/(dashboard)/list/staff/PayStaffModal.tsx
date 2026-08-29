@@ -70,7 +70,7 @@ export default function PayStaffModal({
   monthName?: string;
   paidMonths?: string[];
   payments?: any[];
-  onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string) => void;
+  onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string, amountPaidNow: number) => void;
 }) {
   const { locale } = useLanguage();
   const t = dict[locale as keyof typeof dict] || dict.en;
@@ -117,7 +117,7 @@ export default function PayStaffModal({
     if (!isAdmin || !selectedMonth || isSkipping || !amt || amt <= 0) return;
 
     setIsOpen(false);
-    if (onSuccess) onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth);
+    if (onSuccess) onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth, amt);
 
     startTransition(async () => {
       const result = await payStaffSalary(
