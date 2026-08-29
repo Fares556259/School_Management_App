@@ -14,6 +14,7 @@ import AssignStudentsModal from "./AssignStudentsModal";
 import StudentDetailsModal from "./StudentDetailsModal";
 import ConfirmModal from "./ConfirmModal";
 import { assignStudentsToClass, removeStudentFromClass } from "@/lib/crudActions";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface Student {
   id: string;
@@ -51,6 +52,7 @@ export default function ClassStudentsTable({
   role,
   isModal = false,
 }: ClassStudentsTableProps) {
+  const { t } = useLanguage();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -150,11 +152,11 @@ export default function ClassStudentsTable({
     const count = selectedIds.length;
     setConfirmModal({
       isOpen: true,
-      title: `Remove ${count} student${count > 1 ? "s" : ""}`,
+      title: t.classStudents.removeBulkTitle.replace("{count}", String(count)),
       message: (
         <>
-          <p className="mb-2">Are you sure you want to remove {count} student{count > 1 ? "s" : ""} from this class?</p>
-          <p>Note: They will remain in the system and can be assigned to another class later.</p>
+          <p className="mb-2">{t.classStudents.removeBulkDesc.replace("{count}", String(count))}</p>
+          <p>{t.classStudents.removeStudentNote}</p>
         </>
       ),
       onConfirm: () => {
@@ -184,11 +186,11 @@ export default function ClassStudentsTable({
     setError("");
     setConfirmModal({
       isOpen: true,
-      title: "Remove Student",
+      title: t.classStudents.removeStudent,
       message: (
         <>
-          <p className="mb-2">Are you sure you want to remove <strong className="text-[#181d26]">{studentName}</strong> from this class?</p>
-          <p>Note: The student will remain in the system and can be re-assigned to a class at any time.</p>
+          <p className="mb-2">{t.classStudents.removeStudentDesc.replace("{name}", studentName)}</p>
+          <p>{t.classStudents.removeStudentNote}</p>
         </>
       ),
       onConfirm: () => {
@@ -225,12 +227,12 @@ export default function ClassStudentsTable({
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight leading-none">
-                {activeClass.name} Students
+                {activeClass.name} {t.classStudents.pageTitle}
               </h1>
               <div className="flex items-center gap-2 mt-2 text-[13px] font-medium text-[#41454d]">
-                <Link href="/list/classes" className="hover:text-[#1b61c9] transition-colors">Classes</Link>
+                <Link href="/list/classes" className="hover:text-[#1b61c9] transition-colors">{t.classStudents.classes}</Link>
                 <span>/</span>
-                <span className="text-slate-400">Students</span>
+                <span className="text-slate-400">{t.classStudents.pageTitle}</span>
               </div>
             </div>
           </div>
@@ -253,8 +255,8 @@ export default function ClassStudentsTable({
               Lv
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">Grade Level</span>
-              <span className="text-[18px] font-normal text-[#181d26]">Class Level {activeClass.level?.level || "-"}</span>
+              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">{t.classStudents.gradeLevel}</span>
+              <span className="text-[18px] font-normal text-[#181d26]">{t.classStudents.classLevel} {activeClass.level?.level || "-"}</span>
             </div>
           </div>
           <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">
@@ -262,9 +264,9 @@ export default function ClassStudentsTable({
               {activeClass.students.length}
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">Enrolled / Capacity</span>
+              <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">{t.classStudents.enrolledCapacity}</span>
               <span className="text-[18px] font-normal text-[#181d26]">
-                {activeClass.students.length} / {activeClass.capacity} Students
+                {activeClass.students.length} / {activeClass.capacity} {t.classStudents.studentsText}
               </span>
             </div>
           </div>
@@ -301,7 +303,7 @@ export default function ClassStudentsTable({
                 <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[12px] text-[#181d26] font-bold">
                   {selectedIds.length}
                 </div>
-                <span>Student{selectedIds.length > 1 ? "s" : ""} selected for bulk action</span>
+                <span>{t.classStudents.studentsSelectedForBulk}</span>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button
@@ -321,7 +323,7 @@ export default function ClassStudentsTable({
                     ) : (
                       <Trash2 size={14} />
                     )}
-                    <span>Unenroll from Class</span>
+                    <span>{t.classStudents.unenrollFromClass}</span>
                   </button>
                 )}
               </div>
@@ -353,7 +355,7 @@ export default function ClassStudentsTable({
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#41454d]" size={16} />
                 <input
                   type="text"
-                  placeholder="Search by name or roll..."
+                  placeholder={t.classStudents.searchPlaceholder}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -380,12 +382,12 @@ export default function ClassStudentsTable({
                       />
                     </div>
                   </th>
-                  <th className="py-4 px-6 font-medium">Students Name</th>
-                  <th className="py-4 px-4 text-center w-20 font-medium">Roll</th>
-                  <th className="py-4 px-6 font-medium">Address</th>
-                  <th className="py-4 px-6 font-medium">Date of Birth</th>
-                  <th className="py-4 px-6 font-medium">Phone</th>
-                  {role === "admin" && <th className="py-4 px-6 text-right w-28 font-medium">Action</th>}
+                  <th className="py-4 px-6 font-medium">{t.classStudents.studentName}</th>
+                  <th className="py-4 px-4 text-center w-20 font-medium">{t.classStudents.roll}</th>
+                  <th className="py-4 px-6 font-medium">{t.classStudents.address}</th>
+                  <th className="py-4 px-6 font-medium">{t.classStudents.dob}</th>
+                  <th className="py-4 px-6 font-medium">{t.classStudents.phone}</th>
+                  {role === "admin" && <th className="py-4 px-6 text-right w-28 font-medium">{t.classStudents.action}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#dddddd]">

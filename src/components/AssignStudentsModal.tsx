@@ -126,7 +126,7 @@ export default function AssignStudentsModal({
         title="Assign existing students to this class"
       >
         {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={2.5} />}
-        <span>Add Students</span>
+        <span>{t.classStudents?.addStudents || "Add Students"}</span>
       </button>
 
       <AnimatePresence>
