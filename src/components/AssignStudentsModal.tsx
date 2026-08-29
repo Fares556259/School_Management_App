@@ -5,6 +5,7 @@ import { Users, Search, X, Check, Loader2, Plus, UserMinus } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion";
 import { assignStudentsToClass } from "@/lib/crudActions";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface StudentOption {
@@ -95,9 +96,11 @@ export default function AssignStudentsModal({
     startTransition(async () => {
       const result = await assignStudentsToClass(classId, selectedIds);
       if (result.success) {
+        toast.success("Student assignments updated successfully!");
         setOpen(false);
         router.refresh();
       } else {
+        toast.error(result.error || "Failed to update assignments.");
         setError(result.error || "Failed to update assignments.");
       }
     });

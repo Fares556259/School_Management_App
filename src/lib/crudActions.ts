@@ -699,6 +699,10 @@ export const removeStudentFromClass = async (studentId: string) => {
     });
     revalidatePath("/list/classes");
     revalidatePath("/list/students");
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes');
+      invalidateTenantTags(schoolId, 'students');
+    }
     return { success: true };
   } catch (err: any) {
     console.error("removeStudentFromClass error:", err);
@@ -738,6 +742,10 @@ export const assignStudentsToClass = async (classId: number, studentIds: string[
 
     revalidatePath("/list/classes");
     revalidatePath("/list/students");
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes');
+      invalidateTenantTags(schoolId, 'students');
+    }
     return { success: true };
   } catch (err: any) {
     console.error("assignStudentsToClass error:", err);

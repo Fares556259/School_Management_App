@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import AssignStudentsModal from "./AssignStudentsModal";
 import StudentDetailsModal from "./StudentDetailsModal";
 import ConfirmModal from "./ConfirmModal";
@@ -172,8 +173,10 @@ export default function ClassStudentsTable({
           const failed = results.filter((r) => !r.success);
           if (failed.length === 0) {
             setSelectedIds([]);
+            toast.success(`${count} student(s) removed successfully.`);
             router.refresh();
           } else {
+            toast.error(`Failed to remove ${failed.length} student(s).`);
             setError(`Failed to remove ${failed.length} student(s). Please try again.`);
             router.refresh();
           }
@@ -201,8 +204,10 @@ export default function ClassStudentsTable({
           const result = await removeStudentFromClass(studentId);
           if (result.success) {
             setSelectedIds((prev) => prev.filter((id) => id !== studentId));
+            toast.success(`${studentName} removed successfully.`);
             router.refresh();
           } else {
+            toast.error(result.error || "Failed to remove student.");
             setError(result.error || "Failed to remove student.");
           }
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
