@@ -9,7 +9,6 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
-import ClassActionModals from "@/components/ClassActionModals";
 import Link from "next/link";
 import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen, GraduationCap } from "lucide-react";
 import { cookies } from "next/headers";
@@ -124,12 +123,22 @@ const ClassListPage = async ({
         <div className="flex items-center justify-end gap-3">
           {role === "admin" && (
             <>
-              <ClassActionModals 
-                classId={item.id} 
-                role={role || ""}
-                viewStudentsText={t.classes.viewStudents} 
-                viewTeachersText={t.classes.viewTeachers} 
-              />
+              <div className="flex items-center gap-2">
+                <Link 
+                  href={`/list/classes/${item.id}`}
+                  className="flex items-center gap-1.5 bg-white border border-[#dddddd] text-[#181d26] px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-slate-50 hover:shadow-sm transition-all"
+                >
+                  <Users size={14} />
+                  <span>{t.classes.viewStudents}</span>
+                </Link>
+                <Link 
+                  href={`/list/classes/${item.id}/teachers`}
+                  className="flex items-center gap-1.5 bg-white border border-[#dddddd] text-[#181d26] px-3 py-1.5 rounded-full text-[13px] font-medium hover:bg-slate-50 hover:shadow-sm transition-all"
+                >
+                  <GraduationCap size={14} />
+                  <span>{t.classes.viewTeachers}</span>
+                </Link>
+              </div>
               <CrudFormModal 
                 entity="class" 
                 mode="update" 
