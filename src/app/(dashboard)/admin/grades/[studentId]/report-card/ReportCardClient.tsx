@@ -159,6 +159,7 @@ const parseArabicDomainName = (domainName: string): string => {
   if (upper.includes("ART") || upper.includes("TECH")) return "مجال الفنون والتكنولوجيا";
   if (upper.includes("HUMAN")) return "مجال الإنسانيات والعلوم الاجتماعية";
   if (upper.includes("FOREIGN") || upper.includes("LANG")) return "مجال اللغات";
+  if (upper === "اللغة الفرنسية") return "مجال اللغة الفرنسية";
   if (upper.includes("RELIG") || upper.includes("VALU") || upper.includes("ISLAM")) return "مجال التربية الإسلامية والقيم";
   if (upper.includes("MATH") || upper.includes("SCI")) return "مجال الرياضيات والعلوم";
   if (upper.includes("DISCOV")) return "مجال التنشئة الاجتماعية";
@@ -166,70 +167,136 @@ const parseArabicDomainName = (domainName: string): string => {
   return trimmed;
 };
 
-  // UI Domain rendering helpers
-  const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
-    const rows: any[] = subjects.map((s) => ({ ...s, label: parseArabicName(s.name) }));
+const renderDomainTable = (domainName: string, subjects: any[], domainAvg: number) => {
+        let rows: any[] = [];
+        
+        // Handle French Grouping within Foreign Languages Domain
+        if (domainName.toUpperCase().includes("FOREIGN") || domainName.toUpperCase().includes("LANGUES")) {
+          const frenchSubjects = subjects.filter(s => s.name.startsWith("French"));
+          const nonFrenchSubjects = subjects.filter(s => !s.name.startsWith("French"));
+          
+          if (frenchSubjects.length > 0) {
+            rows.push({ label: "* اللغة الفرنسية", type: "sub-header" });
+            frenchSubjects.forEach(s => rows.push({ ...s, label: parseArabicName(s.name.replace("French ", "")) }));
+            
+            const frenchTotal = frenchSubjects.reduce((acc, s) => acc + s.score, 0);
+            const frenchAvg = frenchTotal / frenchSubjects.length;
+            rows.push({ label: "معدل اللغة الفرنسية", score: frenchAvg, type: "sub-total" });
+          }
+          
+          nonFrenchSubjects.forEach(s => rows.push({ ...s, label: parseArabicName(s.name) }));
+        } else {
+          subjects.forEach(s => {
+            rows.push({ ...s, label: parseArabicName(s.name) });
+          });
+        }
 
-    if (rows.length === 0) return null;
-
-    return (
-      <div key={domainName} className="border-2 border-blue-600 mb-6 overflow-hidden rounded-md">
-        <div className="bg-blue-600 text-white text-center font-bold py-1.5 text-sm uppercase">
-          {parseArabicDomainName(domainName)}
-        </div>
-        <table className="w-full text-sm border-collapse">
-          <thead className="bg-slate-50 border-b border-blue-600 text-[10px] font-black text-slate-900">
-            <tr>
-              <th className="py-2 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
-              <th className="py-2 px-2 border-l border-blue-100">العدد/20</th>
-              <th className="py-2 px-2 border-l border-blue-100">معدل {parseArabicDomainName(domainName)}</th>
-              <th className="py-2 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
-              <th className="py-2 px-2 border-l border-blue-100">أعلى عدد</th>
-              <th className="py-2 px-2 text-center text-[8px]">أدنى عدد</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <tr key={idx} className="border-b border-blue-100 group">
-                <td className="py-2 px-6 font-bold text-slate-700 border-l border-blue-100 text-[11px] bg-blue-600/[0.01]" dir="rtl">
-                  {row.label}
-                </td>
-                <td className="py-2 px-2 text-center font-black text-slate-900 border-l border-blue-100">
-                  {row.score.toFixed(2)}
-                </td>
-                {idx === 0 && (
-                  <td
-                    rowSpan={rows.length}
-                    className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100"
-                  >
-                    {domainAvg.toFixed(2)}
-                  </td>
-                )}
-                <td className="py-2 px-2 border-l border-blue-100"></td>
-                <td className="py-2 px-2 text-center text-blue-600/70 text-[10px] border-l border-blue-100 font-bold">
-                  {row.maxScore?.toFixed(2) || "ـ"}
-                </td>
-                <td className="py-2 px-2 text-center text-red-600/70 text-[10px] font-bold">
-                  {row.minScore?.toFixed(2) || "ـ"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+        return (
+          <div key={domainName} className="border-2 border-blue-600 mb-3 overflow-hidden rounded-md">
+            <div className="bg-blue-600 text-white text-center font-bold py-1 text-sm uppercase tracking-wider">
+              {parseArabicDomainName(domainName)}
+            </div>
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-slate-50 border-b border-blue-600 text-[9px] font-black text-slate-900">
+                <tr>
+                  <th className="py-1 px-2 text-right w-1/3 border-l border-blue-100">المادة</th>
+                  <th className="py-1 px-2 border-l border-blue-100">العدد/20</th>
+                  <th className="py-1 px-2 border-l border-blue-100">معدل المجال</th>
+                  <th className="py-1 px-2 border-l border-blue-100 w-1/4">توصيات المدرس(ة)</th>
+                  <th className="py-1 px-1 border-l border-blue-100 text-[7px] text-center leading-tight">أعلى<br/>عدد بالقسم</th>
+                  <th className="py-1 px-1 text-center text-[7px] leading-tight">أدنى<br/>عدد بالقسم</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => {
+                  if (row.type === "sub-header") {
+                      return (
+                        <tr key={idx} className="bg-blue-50/20">
+                          <td colSpan={2} className="py-0.5 px-4 font-black text-blue-800 border-b border-blue-100 text-xs">{row.label}</td>
+                          <td colSpan={4} className="border-b border-blue-100"></td>
+                        </tr>
+                      );
+                  }
+                  if (row.type === "sub-total") {
+                    return (
+                      <tr key={idx} className="bg-slate-50 border-b border-blue-100">
+                        <td className="py-1 px-6 font-black text-slate-900 border-l border-blue-100 text-[10px] italic">{row.label}</td>
+                        <td className="py-1 px-2 text-center font-black text-blue-700 border-l border-blue-100 bg-blue-50/50">{row.score.toFixed(2)}</td>
+                        <td className="border-l border-blue-100"></td>
+                        <td className="border-l border-blue-100 font-bold text-[10px] italic text-slate-400 text-center px-2">ـ</td>
+                        <td className="border-l border-blue-100"></td>
+                        <td></td>
+                      </tr>
+                    );
+                  }
+                  return (
+                    <tr key={idx} className="border-b border-blue-100 group">
+                        <td className="py-1 px-4 font-bold text-slate-700 border-l border-blue-100 text-[10px] bg-blue-600/[0.01] leading-tight">{row.label}</td>
+                        <td className="py-1 px-2 text-center font-black text-slate-900 border-l border-blue-100 text-xs">{row.score.toFixed(2)}</td>
+                        {idx === 0 && (
+                            <>
+                                <td rowSpan={rows.length} className="text-center font-black text-lg text-blue-700 bg-blue-50/30 border-l border-blue-100">
+                                    {domainAvg.toFixed(2)}
+                                </td>
+                                <td rowSpan={rows.length} className="py-1 px-2 border-l border-blue-100 min-w-[120px]"></td>
+                            </>
+                        )}
+                        <td className="py-1 px-2 text-center text-blue-600/70 text-[9px] border-l border-blue-100 font-bold">{row.maxScore?.toFixed(2) || "ـ"}</td>
+                        <td className="py-1 px-2 text-center text-red-600/70 text-[9px] font-bold">{row.minScore?.toFixed(2) || "ـ"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 pb-20 selection:bg-blue-100" dir="rtl">
+    <div className="max-w-4xl mx-auto space-y-4 pb-20 selection:bg-blue-100 print:max-w-none print:w-full print:p-0 print:m-0" dir="rtl">
       {/* PRINT STYLES */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page { margin: 1cm; size: auto; }
-          body { background: white !important; font-family: 'Inter', sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          @page { margin: 0; size: A4; }
+          
+          /* CRITICAL: Force all ancestors to be visible for multi-page printing */
+          html, body, main, div, section, article {
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+            max-height: none !important;
+            flex: none !important;
+          }
+
+          body { 
+            background: white !important; 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+          }
+
           .print-hidden { display: none !important; }
-          .report-root { padding: 0 !important; margin: 0 !important; border: none !important; }
-          .card-container { box-shadow: none !important; border: none !important; border: 1px solid #e2e8f0 !important; margin: 0 !important; border-radius: 0 !important; }
+          .print-block { display: block !important; }
+
+          .report-card-page { 
+            margin: 0 !important; 
+            padding: 1.5cm !important;
+            height: 297mm !important; 
+            width: 210mm !important;
+            page-break-after: always !important; 
+            break-after: page !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: hidden !important;
+            display: block !important;
+            position: relative !important;
+            visibility: visible !important;
+          }
+
+          .bulk-print-container {
+            display: block !important;
+            width: 100% !important;
+            visibility: visible !important;
+          }
         }
       ` }} />
 
@@ -252,93 +319,111 @@ const parseArabicDomainName = (domainName: string): string => {
       </div>
 
       {/* REPORT CARD */}
-      <div className="report-root bg-white p-8 md:p-12 shadow-2xl border-4 border-double border-slate-200 card-container">
-        
-        {/* HEADER */}
-        <div className="flex justify-between items-start mb-8 pb-4">
-            <div className="text-right space-y-0.5">
-                <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">الجمهورية التونسية</h3>
-                <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight">وزارة التربية</h3>
-                <h4 className="text-[10px] font-medium text-slate-600">المندوبية الجهوية للتربية</h4>
-            </div>
-            
-            <div className="text-center">
-                <div className="bg-slate-50 border-2 border-slate-100 px-10 py-1.5 rounded-full mb-2 inline-block">
-                    <h2 className="text-md font-black text-slate-800 tracking-tight">{getTermText(data.header.term)}</h2>
+      <div className="print-block">
+        <div className="report-card-page p-6 md:p-8 mb-10 bg-white border-4 border-double border-slate-200 shadow-xl print:shadow-none print:border-slate-300 print:m-0 print:p-6" dir="rtl">
+            {/* HEADER */}
+            <div className="flex justify-between items-start mb-2 pb-1 border-b-2 border-slate-100">
+                <div className="text-right space-y-0.5">
+                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none">الجمهورية التونسية</h3>
+                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none">وزارة التربية</h3>
+                    <h4 className="text-[8px] font-medium text-slate-600 mt-1">المندوبية الجهوية للتربية</h4>
                 </div>
-            </div>
-
-            <div className="text-left space-y-0.5">
-                <h3 className="font-bold text-sm tracking-tight text-slate-900 leading-tight text-left">المدرسة الابتدائية الخاصة</h3>
-                <div className="text-[10px] font-bold text-slate-700 text-left">السنة الدراسية 2024-2025</div>
-            </div>
-        </div>
-
-        {/* INFO BOXES */}
-        <div className="flex gap-4 mb-4">
-            <div className="flex-1 border-2 border-slate-200 p-4 rounded-sm bg-white flex flex-col justify-between space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-400">الإسم واللقب :</span>
-                        <span className="text-lg font-black text-blue-700">{data.header.studentName}</span>
-                    </div>
-                    <span className="bg-blue-600 text-white px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0">
-                       الرتبة: {data.header.rank}
-                    </span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400">القسم :</span>
-                    <span className="text-md font-black text-slate-800">{data.header.class}</span>
-                </div>
-            </div>
-
-            <div className="flex-[1.2] flex gap-2">
-                <div className="flex-1 flex flex-col items-center border-2 border-blue-600 rounded-sm overflow-hidden">
-                    <div className="bg-blue-600 text-white text-[9px] font-black w-full text-center py-1">معدل الثلاثي</div>
-                    <div className="flex-1 flex items-center justify-center font-black text-xl text-blue-900">{data.header.generalAverage.toFixed(2)}</div>
-                </div>
-                <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أعلى معدل</div>
-                    <div className="flex-1 flex items-center justify-center font-black text-sm text-slate-700">{data.header.maxAverage.toFixed(2)}</div>
-                </div>
-                <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">أدنى معدل</div>
-                    <div className="flex-1 flex items-center justify-center font-black text-sm text-slate-700">{data.header.minAverage.toFixed(2)}</div>
-                </div>
-                <div className="flex-1 flex flex-col items-center border-2 border-slate-200 rounded-sm overflow-hidden text-center">
-                    <div className="bg-slate-50 text-slate-500 text-[8px] font-bold w-full py-1">الشهادة</div>
-                    <div className="flex-1 flex items-center justify-center font-black text-[10px] text-blue-600 leading-none px-1">
-                        {getCertificate(data.header.generalAverage)}
+                
+                <div className="text-center">
+                    <div className="bg-slate-50 border-2 border-slate-200 px-8 py-1 rounded-full mb-1 inline-block shadow-sm">
+                        <h2 className="text-sm font-black text-slate-800 tracking-tight">{getTermText(data.header.term)}</h2>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        {/* DOMAINS */}
-        <div className="flex flex-col">
-            {data.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
-        </div>
-
-        {/* FOOTER */}
-        <div className="grid grid-cols-3 gap-6 mt-8">
-            <div className="flex flex-col border-2 border-slate-200 min-h-[140px] rounded-sm">
-                <div className="bg-slate-50 py-1 text-center font-bold text-[9px] border-b border-slate-200">ملاحظات حول السلوك و المواظبة</div>
-                <div className="flex-1 p-3"></div>
-            </div>
-            <div className="flex flex-col border-2 border-slate-200 min-h-[140px] rounded-sm relative items-center justify-center">
-                <div className="bg-slate-50 py-1 text-center font-bold text-[9px] border-b border-slate-200 w-full absolute top-0">مديرة المدرسة</div>
-                <div className="w-16 h-16 border border-slate-200 rounded-full flex items-center justify-center opacity-10">
-                    <span className="text-[6px] font-bold">STAMP</span>
+                <div className="text-left space-y-0.5">
+                    <h3 className="font-bold text-[10px] tracking-tight text-slate-900 leading-none text-left">المدرسة الابتدائية الخاصة</h3>
+                    <div className="text-[8px] font-bold text-slate-700 text-left mt-1">السنة الدراسية 2024-2025</div>
                 </div>
             </div>
-            <div className="flex flex-col border-2 border-slate-200 min-h-[140px] rounded-sm">
-                <div className="bg-slate-50 py-1 text-center font-bold text-[9px] border-b border-slate-200">إمضاء الولي</div>
-                <div className="flex-1 p-3"></div>
-            </div>
-        </div>
 
-        <div className="mt-8 text-center border-t border-slate-100 pt-3">
-             <p className="text-[8px] font-black text-slate-200 tracking-[0.6em] uppercase">EDUFINANCE SCHOOL MANAGEMENT SYSTEM - 2025</p>
+            {/* PRE-TABLE INFO HEADER */}
+            <div className="flex justify-between items-end mb-2 border-b border-slate-200 pb-1 px-1">
+               <div className="flex gap-8 text-[10px] font-bold text-slate-800 w-[250px] justify-between">
+                  <div className="flex items-center gap-1">عدد التلاميذ المرسمين: <span className="text-slate-400 font-normal">..................</span></div>
+                  <div className="flex items-center gap-1">القسم: <span className="text-blue-700 font-black">{data.header.class}</span></div>
+               </div>
+               <div className="text-[10px] font-bold text-slate-800 flex items-center gap-2">
+                  التلميذ(ة): <span className="text-blue-700 text-sm font-black uppercase">{data.header.studentName}</span>
+               </div>
+            </div>
+
+            {/* TWO COLUMN MAIN BODY */}
+            <div className="grid grid-cols-[1fr_2.5fr] gap-4 h-full items-start">
+                
+                {/* LEFT COLUMN */}
+                <div className="flex flex-col gap-2">
+                    
+                    {/* General Average Block */}
+                    <div className="flex gap-1 h-16">
+                        <div className="flex-[1.5] border-2 border-blue-600 flex flex-col rounded-sm overflow-hidden">
+                            <div className="bg-blue-600 text-white text-[10px] font-black text-center py-1">معدل الثلاثي</div>
+                            <div className="flex-1 bg-white flex items-center justify-center font-black text-lg text-blue-800 tracking-tight">
+                                {data.header.generalAverage.toFixed(2)}
+                            </div>
+                        </div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-blue-200">
+                            <div className="text-[7px] text-slate-500 bg-slate-50 text-center font-bold py-1">أعلى<br/>معدل بالقسم</div>
+                            <div className="flex-1 flex items-center justify-center font-bold text-blue-600 text-[10px] bg-white">{data.header.maxAverage.toFixed(2)}</div>
+                        </div>
+                        <div className="flex-1 flex flex-col rounded-sm overflow-hidden border border-blue-200">
+                            <div className="text-[7px] text-slate-500 bg-slate-50 text-center font-bold py-1">أدنى<br/>معدل بالقسم</div>
+                            <div className="flex-1 flex items-center justify-center font-bold text-red-600 text-[10px] bg-white">{data.header.minAverage.toFixed(2)}</div>
+                        </div>
+                    </div>
+
+                    {/* Rank Block */}
+                    <div className="border border-blue-200 rounded-sm p-1 flex justify-center items-center bg-blue-50/50 mt-1">
+                        <span className="text-[10px] font-black text-blue-800">الرتبة: {data.header.rank}</span>
+                    </div>
+
+                    {/* Behavior / Notes */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[100px] mt-1 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[8px] font-black text-slate-500 text-center py-1.5 border-b border-blue-200 uppercase tracking-widest">
+                            ملاحظات المدرس(ة) حول السلوك والمواظبة
+                        </div>
+                        <div className="flex-1 bg-white"></div>
+                    </div>
+
+                    {/* Certificate */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[60px] mt-1 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                            الشهادة
+                        </div>
+                        <div className="flex-1 bg-white flex items-center justify-center font-black text-blue-600 text-[11px]">
+                            {getCertificate(data.header.generalAverage)}
+                        </div>
+                    </div>
+
+                    {/* Principal */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[85px] mt-1 relative shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                            مدير(ة) المدرسة
+                        </div>
+                        <div className="flex-1 bg-white relative">
+                          <div className="absolute bottom-2 right-2 text-[8px] text-slate-500 font-bold">التاريخ : ...................</div>
+                          <div className="absolute bottom-2 left-2 text-[7px] text-slate-400 font-bold">(الختم والإمضاء)</div>
+                        </div>
+                    </div>
+
+                    {/* Parent */}
+                    <div className="border border-blue-200 rounded-sm flex flex-col h-[60px] mt-1 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 text-[9px] font-black text-slate-500 text-center py-1 border-b border-blue-200 uppercase tracking-widest">
+                            إمضاء الولي
+                        </div>
+                        <div className="flex-1 bg-white"></div>
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN - DOMAINS */}
+                <div className="flex flex-col">
+                    {data.domains.map(domain => renderDomainTable(domain.domain, domain.subjects, domain.domainAverage))}
+                </div>
+            </div>
         </div>
       </div>
     </div>
