@@ -5,6 +5,7 @@ import { Users, Search, X, Check, Loader2, Plus, UserMinus } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion";
 import { assignStudentsToClass } from "@/lib/crudActions";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface StudentOption {
   id: string;
@@ -25,6 +26,7 @@ export default function AssignStudentsModal({
   students,
 }: AssignStudentsModalProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -135,10 +137,10 @@ export default function AssignStudentsModal({
               <div className="p-6 border-b border-[#dddddd] flex items-center justify-between">
                 <div>
                   <h3 className="text-[20px] font-medium text-[#181d26] tracking-tight">
-                    Assign Students to {className}
+                    {t.classes.assignStudents} {className}
                   </h3>
                   <p className="text-[#41454d] text-[13px] font-normal mt-1">
-                    Search and select students to enroll them in this class.
+                    {t.classes.searchSelectStudents}
                   </p>
                 </div>
                 <button
@@ -202,17 +204,15 @@ export default function AssignStudentsModal({
                             <div className="flex flex-col">
                               <span>{student.name} {student.surname}</span>
                               <span className="text-[12px] font-normal text-[#41454d] mt-0.5">
-                                {student.class ? `Current Class: ${student.class.name}` : "Unassigned"}
+                                {student.class ? `${t.classes.movingFrom} ${student.class.name}` : t.classes.unassigned}
                               </span>
                             </div>
-                            <span className="text-[11px] font-medium bg-purple-50 border border-purple-100 text-purple-600 px-2 py-1 rounded-[6px]">
-                              Select
-                            </span>
+                            <span className="text-[11px] font-medium bg-purple-50 border border-purple-100 text-purple-600 px-2 py-1 rounded-[6px]">{t.classes.select}</span>
                           </div>
                         ))
                       ) : (
                         <div className="px-4 py-5 text-center text-[13px] font-medium text-[#41454d] bg-[#f8fafc] italic">
-                          No matching students found
+                          {t.classes.noMatchingStudents}
                         </div>
                       )}
                     </motion.div>
@@ -224,15 +224,13 @@ export default function AssignStudentsModal({
               <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 min-h-[300px] custom-scrollbar bg-white">
                 <div className="flex items-center justify-between border-b border-[#dddddd] pb-3">
                   <h4 className="text-[14px] font-medium text-[#41454d]">
-                    Currently Selected Students ({selectedIds.length})
+                    {t.classes.currentlySelected} ({selectedIds.length})
                   </h4>
                   {selectedIds.length > 0 && (
                     <button
                       onClick={() => setSelectedIds([])}
                       className="text-[13px] font-medium text-rose-500 hover:text-rose-600 transition-colors"
-                    >
-                      Deselect All
-                    </button>
+                    >{t.classes.deselectAll}</button>
                   )}
                 </div>
 
@@ -258,20 +256,14 @@ export default function AssignStudentsModal({
                                 {student.name} {student.surname}
                               </span>
                               <span className="text-[12px] font-normal text-[#41454d] mt-1">
-                                {isCurrentlyInThisClass 
-                                  ? "Already Enrolled" 
-                                  : student.class 
-                                    ? `Moving from ${student.class.name}` 
-                                    : "Unassigned"}
+                                {isCurrentlyInThisClass ? t.classes.alreadyEnrolled : student.class ? `${t.classes.movingFrom} ${student.class.name}` : t.classes.unassigned}
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-3">
                             {isCurrentlyInThisClass && (
-                              <span className="text-[11px] font-medium text-purple-600 bg-purple-50 border border-purple-100 px-2 py-1 rounded-[6px] leading-none">
-                                Enrolled
-                              </span>
+                              <span className="text-[11px] font-medium text-purple-600 bg-purple-50 border border-purple-100 px-2 py-1 rounded-[6px] leading-none">{t.classes.enrolled}</span>
                             )}
                             <button
                               type="button"
@@ -291,10 +283,10 @@ export default function AssignStudentsModal({
                         <Users size={20} />
                       </div>
                       <h5 className="text-[14px] font-medium text-[#181d26] mb-1">
-                        No Students Selected
+                        {t.classes.noStudentsSelected}
                       </h5>
                       <p className="text-[13px] font-normal text-[#41454d] max-w-xs mx-auto">
-                        Type a student name in the search bar above and select them from the dropdown matches to add them here.
+                        {t.classes.typeToSearch}
                       </p>
                     </div>
                   )}
@@ -311,7 +303,7 @@ export default function AssignStudentsModal({
 
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-medium text-[#41454d]">
-                    {selectedIds.length} Student(s) Selected
+                    {selectedIds.length} {t.classes.studentsSelected}
                   </span>
                   
                   <div className="flex gap-3">
@@ -320,9 +312,7 @@ export default function AssignStudentsModal({
                       disabled={isPending}
                       onClick={() => setOpen(false)}
                       className="px-5 py-2.5 bg-white border border-[#dddddd] rounded-[10px] text-[14px] font-medium text-[#41454d] hover:bg-[#f8fafc] hover:text-[#181d26] transition-colors disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
+                    >{t.classes.cancel}</button>
                     <button
                       type="button"
                       disabled={isPending}
@@ -332,10 +322,10 @@ export default function AssignStudentsModal({
                       {isPending ? (
                         <>
                           <Loader2 className="animate-spin" size={16} />
-                          <span>Saving...</span>
+                          <span>{t.classes.saving}</span>
                         </>
                       ) : (
-                        <span>Save Assignment</span>
+                        <span>{t.classes.saveAssignment}</span>
                       )}
                     </button>
                   </div>
