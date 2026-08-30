@@ -10,7 +10,7 @@ import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { MONTHS } from "@/lib/dateUtils";
+import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Staff, Payment } from "@prisma/client";
 
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -40,11 +40,14 @@ export default function StaffListClient({
   }, [initialData]);
   const [isSearchPending, setIsSearchPending] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
+  const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
+  const [clientStatus, setClientStatus] = useState("");
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const schoolYearMonths = getSchoolYearMonths();
 
   
-  const filteredData = initialData.filter((item: any) => {
+  const filteredData = optimisticData.filter((item: any) => {
     if (clientSearch) {
       const s = clientSearch.toLowerCase();
       const matchesName = item.name?.toLowerCase().includes(s);
@@ -53,13 +56,33 @@ export default function StaffListClient({
       const matchesRole = item.role?.toLowerCase().includes(s);
       if (!matchesName && !matchesSurname && !matchesPhone && !matchesRole) return false;
     }
+    if (clientStatus) {
+      const [mName, yStr] = clientMonthKey.split(" ");
+      const monthIdx = MONTHS.indexOf(mName) + 1;
+      const yearVal = parseInt(yStr);
+      const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
+      const actualStatus = payment ? payment.status : "UNPAID";
+      
+      if (clientStatus === "UNPAID") {
+        if (actualStatus !== "UNPAID" && actualStatus !== "PENDING") return false;
+      } else {
+        if (actualStatus !== clientStatus) return false;
+      }
+    }
     return true;
   });
 
   const ITEM_PER_PAGE = 10;
   const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
   const paginatedData = filteredData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
+
   const displayCount = filteredData.length;
+
+  const displayPaidCount = filteredData.filter((t: any) => {
+    const monthIdx = MONTHS.indexOf(clientMonthKey.split(" ")[0]) + 1;
+    const yearVal = parseInt(clientMonthKey.split(" ")[1]);
+    return t.payments?.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID");
+  }).length;
 
   const translatedColumns = columns.map((c: any) => ({
     ...c,
@@ -75,7 +98,7 @@ export default function StaffListClient({
   const renderRow = (
     item: Staff & { payments: Payment[] }
   ) => {
-    const [mName, yStr] = selectedMonthKey.split(" ");
+    const [mName, yStr] = clientMonthKey.split(" ");
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
@@ -128,7 +151,7 @@ export default function StaffListClient({
               salary={item.salary}
               isPaid={isPaidThisMonth} 
               isAdmin={role === "admin"} 
-              monthName={selectedMonthKey}
+              monthName={clientMonthKey}
               payments={item.payments}
               paidMonths={item.payments
                 .filter(p => p.status === "PAID" && p.month > 0 && p.month <= 12)
@@ -168,9 +191,9 @@ export default function StaffListClient({
       {/* 1. MONTH SUMMARY */}
       <div className="flex items-center justify-between mb-6">
         <MonthPaymentSummary
-          total={initialData.length}
-          paidCount={paidThisMonth}
-          monthLabel={selectedMonthKey}
+          total={displayCount}
+          paidCount={displayPaidCount}
+          monthLabel={clientMonthKey}
           entityName="staff"
         />
       </div>
@@ -179,7 +202,37 @@ export default function StaffListClient({
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.staff.title}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
+            
+            {/* MONTH FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              value={clientMonthKey}
+              onChange={(e) => setClientMonthKey(e.target.value)}
+            >
+              {schoolYearMonths.map(m => {
+                const [mName, yStr] = m.split(" ");
+                const mIdx = MONTHS.indexOf(mName);
+                const translatedMonth = (t as any).months?.[mIdx] || mName;
+                return (
+                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
+                );
+              })}
+            </select>
+
+            {/* STATUS FILTER */}
+            <select
+              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              value={clientStatus}
+              onChange={(e) => setClientStatus(e.target.value)}
+            >
+              <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
+              <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
+              <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
+            </select>
+          </div>
+
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
