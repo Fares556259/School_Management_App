@@ -52,10 +52,14 @@ const AdminPage = async ({
     prevEndDate = new Date(startDate.getTime());
     prevStartDate = new Date(startDate.getTime() - duration);
   } else {
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    prevEndDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Show data of ALL TIME when no date filter is applied
+    // We start from a reasonable historical date (e.g. 2023) up to the end of the current year.
+    startDate = new Date(2023, 0, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59); // End of current month
+    
+    const duration = endDate.getTime() - startDate.getTime();
+    prevEndDate = new Date(startDate.getTime());
+    prevStartDate = new Date(startDate.getTime() - duration);
   }
 
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
