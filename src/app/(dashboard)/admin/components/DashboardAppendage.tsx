@@ -137,7 +137,7 @@ export default async function DashboardAppendage({
   };
 
   const [secondaryStats, recentAuditLogs, uncollectedData] = await Promise.all([
-    getCachedTenantData(schoolId, 'dashboard', ['secondaryStats', currentMonth, currentYear], () => 
+    getCachedTenantData(schoolId, 'dashboard', ['secondaryStats', startDate.toISOString(), endDate.toISOString()], () => 
       safeFetch(getSecondaryStats(), {
         income_categories: [], expense_categories: [], income_trend: [], expense_trend: []
       }), 600
@@ -146,7 +146,7 @@ export default async function DashboardAppendage({
       safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
       60
     ),
-    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', currentMonth, currentYear], () => 
+    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', startDate.toISOString(), endDate.toISOString()], () => 
       safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
       600
     ),
@@ -247,7 +247,7 @@ export default async function DashboardAppendage({
               </div>
            </div>
            <div className="flex-1 min-h-0 relative">
-             <GrowthAnalyticsChart data={trendData} />
+             <GrowthAnalyticsChart data={trendData} currentIncome={currentIncome} currentExpense={currentExpense} />
            </div>
         </div>
       </section>

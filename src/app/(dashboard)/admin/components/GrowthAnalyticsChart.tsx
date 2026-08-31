@@ -33,13 +33,13 @@ const SummaryItem = ({ label, value, colorHex }: { label: string, value: number,
   </div>
 );
 
-const GrowthAnalyticsChart = ({ data }: { data: GrowthData[] }) => {
+const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: GrowthData[], currentIncome?: number, currentExpense?: number }) => {
   const [view, setView] = useState<"all" | "income" | "expense" | "profit">("all");
   const { t } = useLanguage();
 
   const lastIndex = data.length - 1;
-  const lastIncome = data[lastIndex].income;
-  const lastExpense = data[lastIndex].expense;
+  const lastIncome = currentIncome !== undefined ? currentIncome : data[lastIndex].income;
+  const lastExpense = currentExpense !== undefined ? currentExpense : data[lastIndex].expense;
 
   // 🔥 Improved weighted growth
   const getGrowth = (key: "income" | "expense") => {
