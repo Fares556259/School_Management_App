@@ -85,11 +85,11 @@ const AdminPage = async ({
         
         // Financials - Current
         prisma.income.aggregate({
-          where: { schoolId, date: { gte: startDate, lt: endDate }, category: { not: 'Tuition' } },
+          where: { schoolId, date: { gte: startDate, lt: endDate } },
           _sum: { amount: true }
         }),
         prisma.expense.aggregate({
-          where: { schoolId, date: { gte: startDate, lt: endDate }, category: { not: 'Salary' } },
+          where: { schoolId, date: { gte: startDate, lt: endDate } },
           _sum: { amount: true }
         }),
         prisma.payment.aggregate({
@@ -103,11 +103,11 @@ const AdminPage = async ({
 
         // Financials - Previous
         prisma.income.aggregate({
-          where: { schoolId, date: { gte: prevStartDate, lt: prevEndDate }, category: { not: 'Tuition' } },
+          where: { schoolId, date: { gte: prevStartDate, lt: prevEndDate } },
           _sum: { amount: true }
         }),
         prisma.expense.aggregate({
-          where: { schoolId, date: { gte: prevStartDate, lt: prevEndDate }, category: { not: 'Salary' } },
+          where: { schoolId, date: { gte: prevStartDate, lt: prevEndDate } },
           _sum: { amount: true }
         }),
         prisma.payment.aggregate({
@@ -149,12 +149,12 @@ const AdminPage = async ({
   );
 
   // CORE CALCULATIONS
-  const currentIncome = (stats.current_income_general || 0) + (stats.current_income_tuition || 0);
-  const currentExpense = (stats.current_expense_general || 0) + (stats.current_expense_salary || 0);
+  const currentIncome = (stats.current_income_general || 0);
+  const currentExpense = (stats.current_expense_general || 0);
   const currentBalance = currentIncome - currentExpense;
 
-  const prevIncome = (stats.prev_income_general || 0) + (stats.prev_income_tuition || 0);
-  const prevExpense = (stats.prev_expense_general || 0) + (stats.prev_expense_salary || 0);
+  const prevIncome = (stats.prev_income_general || 0);
+  const prevExpense = (stats.prev_expense_general || 0);
   const prevBalance = prevIncome - prevExpense;
 
   // 3. ENRICH CONTEXT FOR AI ASSISTANT (CONSOLIDATED CORE ONLY)

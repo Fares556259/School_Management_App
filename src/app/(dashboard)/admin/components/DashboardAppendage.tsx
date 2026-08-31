@@ -49,27 +49,23 @@ export default async function DashboardAppendage({
 
   // 1. MEGA-CONSOLIDATED TRENDS & BREAKDOWNS
   const getSecondaryStats = async () => {
-    const [incCats, expCats, allIncomes, allPayments, allExpenses] = await Promise.all([
+    const [incCats, expCats, allIncomes, allExpenses] = await Promise.all([
       prisma.income.groupBy({
         by: ['category'],
         _sum: { amount: true },
-        where: { schoolId, date: { gte: startDate, lt: endDate }, category: { not: 'Tuition' } }
+        where: { schoolId, date: { gte: startDate, lt: endDate } }
       }),
       prisma.expense.groupBy({
         by: ['category'],
         _sum: { amount: true },
-        where: { schoolId, date: { gte: startDate, lt: endDate }, category: { not: 'Salary' } }
+        where: { schoolId, date: { gte: startDate, lt: endDate } }
       }),
       prisma.income.findMany({
-        where: { schoolId, date: { gte: twelveMonthsAgo }, category: { not: 'Tuition' } },
+        where: { schoolId, date: { gte: twelveMonthsAgo } },
         select: { date: true, amount: true }
       }),
-      prisma.payment.findMany({
-        where: { schoolId, paidAt: { gte: twelveMonthsAgo }, status: 'PAID' },
-        select: { paidAt: true, amount: true, userType: true }
-      }),
       prisma.expense.findMany({
-        where: { schoolId, date: { gte: twelveMonthsAgo }, category: { not: 'Salary' } },
+        where: { schoolId, date: { gte: twelveMonthsAgo } },
         select: { date: true, amount: true }
       })
     ]);
@@ -80,15 +76,12 @@ export default async function DashboardAppendage({
 
     const addTrend = (map: Record<string, number>, d: Date | null, amount: number) => {
       if (!d) return;
-      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       map[key] = (map[key] || 0) + amount;
     };
 
     allIncomes.forEach(i => addTrend(incomeTrendMap, i.date, i.amount));
-    allPayments.filter(p => p.userType === 'STUDENT').forEach(p => addTrend(incomeTrendMap, p.paidAt, p.amount));
-    
     allExpenses.forEach(e => addTrend(expenseTrendMap, e.date, e.amount));
-    allPayments.filter(p => p.userType === 'TEACHER' || p.userType === 'STAFF').forEach(p => addTrend(expenseTrendMap, p.paidAt, p.amount));
 
     return {
       income_categories: incCats.map(c => ({ category: c.category, total: c._sum.amount || 0 })),
@@ -238,15 +231,8 @@ export default async function DashboardAppendage({
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
-  const incomeBreakdown = [
-    { name: 'Tuition', value: currentIncome - (secondaryStats.income_categories || []).reduce((a: any, b: any) => a + (b.total || 0), 0), type: 'income' as const },
-    ...(secondaryStats.income_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'income' as const }))
-  ];
-
-  const expenseBreakdown = [
-    { name: 'Salaries', value: currentExpense - (secondaryStats.expense_categories || []).reduce((a: any, b: any) => a + (b.total || 0), 0), type: 'expense' as const },
-    ...(secondaryStats.expense_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'expense' as const }))
-  ];
+  const incomeBreakdown = (secondaryStats.income_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'income' as const }));
+  const expenseBreakdown = (secondaryStats.expense_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'expense' as const }));
 
   const fullBreakdown = [...incomeBreakdown, ...expenseBreakdown];
 
