@@ -171,7 +171,7 @@ export const fr = {
     commandCenter: "Centre de Commandement",
     commandCenterDesc: "Supervision financière et opérationnelle en temps réel",
     growthAnalytics: "Analytiques de Croissance",
-    growthAnalyticsDesc: "Performance sur 12 mois + Projection IA",
+    growthAnalyticsDesc: "Analyse des Performances",
     revenue: "Revenus",
     expense: "Dépenses",
     criticalActions: "Actions Critiques",

@@ -171,7 +171,7 @@ export const en = {
     commandCenter: "Command Center",
     commandCenterDesc: "Real-time school financial & operational oversight",
     growthAnalytics: "Growth Analytics",
-    growthAnalyticsDesc: "12-Month Performance + AI Projection",
+    growthAnalyticsDesc: "Performance Analytics",
     revenue: "Revenue",
     expense: "Expense",
     criticalActions: "Critical Actions",

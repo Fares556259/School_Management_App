@@ -61,22 +61,29 @@ export default async function DashboardAppendage({
         where: { schoolId, date: { gte: startDate, lt: endDate } }
       }),
       prisma.income.findMany({
-        where: { schoolId, date: { gte: twelveMonthsAgo } },
+        where: { schoolId, date: { gte: startDate, lt: endDate } },
         select: { date: true, amount: true }
       }),
       prisma.expense.findMany({
-        where: { schoolId, date: { gte: twelveMonthsAgo } },
+        where: { schoolId, date: { gte: startDate, lt: endDate } },
         select: { date: true, amount: true }
       })
     ]);
 
-    // Grouping by YYYY-MM
+    const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const useDays = durationDays <= 60;
+
     const incomeTrendMap: Record<string, number> = {};
     const expenseTrendMap: Record<string, number> = {};
 
     const addTrend = (map: Record<string, number>, d: Date | null, amount: number) => {
       if (!d) return;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      let key;
+      if (useDays) {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      } else {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
       map[key] = (map[key] || 0) + amount;
     };
 
@@ -207,21 +214,42 @@ export default async function DashboardAppendage({
 
   // Calculate trends
   const trendData = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthName = t.months[d.getMonth()];
-    
-    const findMatch = (arr: any[]) => arr.find((x: any) => {
-      if (!x.monthKey) return false;
-      const parts = x.monthKey.split('-');
-      const year = parseInt(parts[0]);
-      const month = parseInt(parts[1]) - 1; // 0-indexed
-      return month === d.getMonth() && year === d.getFullYear();
-    });
+  const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+  const useDays = durationDays <= 60;
 
-    const inc = findMatch(secondaryStats.income_trend || [])?.total || 0;
-    const exp = findMatch(secondaryStats.expense_trend || [])?.total || 0;
-    trendData.push({ month: monthName, income: inc, expense: exp });
+  if (useDays) {
+    // Generate daily points
+    for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const date = d.getDate();
+      const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+      const label = `${date} ${t.months[d.getMonth()].slice(0, 3)}`;
+      
+      const inc = (secondaryStats.income_trend || []).find((x: any) => x.monthKey === dateKey)?.total || 0;
+      const exp = (secondaryStats.expense_trend || []).find((x: any) => x.monthKey === dateKey)?.total || 0;
+      trendData.push({ month: label, income: inc, expense: exp });
+    }
+  } else {
+    // Generate monthly points
+    let current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+    if (endDate.getDate() > 1) {
+      endMonth.setMonth(endMonth.getMonth() + 1);
+    }
+    
+    while (current < endMonth) {
+      const year = current.getFullYear();
+      const month = current.getMonth() + 1;
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const label = `${t.months[current.getMonth()].slice(0, 3)} ${year}`;
+      
+      const inc = (secondaryStats.income_trend || []).find((x: any) => x.monthKey === monthKey)?.total || 0;
+      const exp = (secondaryStats.expense_trend || []).find((x: any) => x.monthKey === monthKey)?.total || 0;
+      trendData.push({ month: label, income: inc, expense: exp });
+      
+      current.setMonth(current.getMonth() + 1);
+    }
   }
 
   const normalize = (name: string) => {

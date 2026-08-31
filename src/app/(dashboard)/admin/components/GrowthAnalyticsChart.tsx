@@ -18,7 +18,6 @@ interface GrowthData {
   month: string;
   income: number;
   expense: number;
-  isPredictive?: boolean;
 }
 
 const SummaryItem = ({ label, value, colorHex }: { label: string, value: number, colorHex: string }) => (
@@ -122,18 +121,15 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
     const localizedMonth = mIdx !== -1 ? t.months[mIdx] : label;
 
     if (active && payload && payload.length) {
-      const isPredictive = payload[0].payload.isPredictive;
-      const income = payload.find((p: any) => p.dataKey === "historicalIncome" || p.dataKey === "predictiveIncome")?.value || 0;
-      const expense = payload.find((p: any) => p.dataKey === "historicalExpense" || p.dataKey === "predictiveExpense")?.value || 0;
+      const income = payload.find((p: any) => p.dataKey === "historicalIncome")?.value || 0;
+      const expense = payload.find((p: any) => p.dataKey === "historicalExpense")?.value || 0;
       const profit = income - expense;
 
       return (
         <div className="bg-white/95 p-4 rounded-2xl shadow-2xl border border-slate-100 backdrop-blur-xl">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between gap-4">
             <span>{localizedMonth}</span>
-            {isPredictive && (
-                <span className="bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-lg text-[8px] border border-indigo-100 font-black">{t.analyticsChart.aiProjection}</span>
-            )}
+
           </p>
           <div className="flex flex-col gap-2">
             {[
@@ -263,28 +259,7 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
               <Line type="monotone" dataKey="historicalProfit" stroke="#6366F1" strokeWidth={2} dot={false} isAnimationActive={false} />
             )}
 
-            {/* Predictive Lines (Dashed) */}
-            {(view === "all" || view === "income") && (
-               <Line type="monotone" dataKey="predictiveIncome" stroke="#10B981" strokeWidth={3} strokeDasharray="6 6" dot={false} isAnimationActive={false} />
-            )}
-            {(view === "all" || view === "expense") && (
-               <Line type="monotone" dataKey="predictiveExpense" stroke="#F43F5E" strokeWidth={2} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
-            )}
-            {(view === "all" || view === "profit") && (
-               <Line type="monotone" dataKey="predictiveProfit" stroke="#6366F1" strokeWidth={2} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
-            )}
 
-            {/* Break-even Indicator */}
-            {breakEvenPoint && view === "all" && (
-              <ReferenceDot
-                x={breakEvenPoint.month}
-                y={breakEvenPoint.profit}
-                r={4}
-                fill="#6366F1"
-                stroke="#fff"
-                strokeWidth={2}
-              />
-            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
