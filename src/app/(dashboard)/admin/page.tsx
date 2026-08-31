@@ -67,75 +67,28 @@ const AdminPage = async ({
   // 1. DATA FETCHING (CONSOLIDATED MEGA-QUERY FOR 90% LATENCY REDUCTION)
   const getMegaStats = async () => {
     try {
-      const [
-        student_count,
-        teacher_count,
-        staff_count,
-        class_count,
-        currentIncomes,
-        currentExpenses,
-        currentStudentPayments,
-        currentPersonnelPayments,
-        prevIncomes,
-        prevExpenses,
-        prevStudentPayments,
-        prevPersonnelPayments
-      ] = await Promise.all([
-        prisma.student.count({ where: { schoolId } }),
-        prisma.teacher.count({ where: { schoolId } }),
-        prisma.staff.count({ where: { schoolId } }),
-        prisma.class.count({ where: { schoolId } }),
-        
-        // Financials - Current
-        prisma.income.aggregate({
-          where: { schoolId, date: { gte: startDate, lt: endDate } },
-          _sum: { amount: true }
-        }),
-        prisma.expense.aggregate({
-          where: { schoolId, date: { gte: startDate, lt: endDate } },
-          _sum: { amount: true }
-        }),
-        prisma.payment.aggregate({
-          where: { schoolId, status: 'PAID', userType: 'STUDENT', paidAt: { gte: startDate, lt: endDate } },
-          _sum: { amount: true }
-        }),
-        prisma.payment.aggregate({
-          where: { schoolId, status: 'PAID', userType: { in: ['TEACHER', 'STAFF'] }, paidAt: { gte: startDate, lt: endDate } },
-          _sum: { amount: true }
-        }),
+      const rawRes = await prisma.$queryRaw`
+        SELECT 
+          (SELECT COUNT(*) FROM "Student" WHERE "schoolId" = ${schoolId})::int as student_count,
+          (SELECT COUNT(*) FROM "Teacher" WHERE "schoolId" = ${schoolId})::int as teacher_count,
+          (SELECT COUNT(*) FROM "Staff" WHERE "schoolId" = ${schoolId})::int as staff_count,
+          (SELECT COUNT(*) FROM "Class" WHERE "schoolId" = ${schoolId})::int as class_count,
+          (SELECT COALESCE(SUM(amount), 0) FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate})::float as current_income_general,
+          (SELECT COALESCE(SUM(amount), 0) FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate})::float as current_expense_general,
+          (SELECT COALESCE(SUM(amount), 0) FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate})::float as prev_income_general,
+          (SELECT COALESCE(SUM(amount), 0) FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate})::float as prev_expense_general
+      `;
 
-        // Financials - Previous
-        prisma.income.aggregate({
-          where: { schoolId, date: { gte: prevStartDate, lt: prevEndDate } },
-          _sum: { amount: true }
-        }),
-        prisma.expense.aggregate({
-          where: { schoolId, date: { gte: prevStartDate, lt: prevEndDate } },
-          _sum: { amount: true }
-        }),
-        prisma.payment.aggregate({
-          where: { schoolId, status: 'PAID', userType: 'STUDENT', paidAt: { gte: prevStartDate, lt: prevEndDate } },
-          _sum: { amount: true }
-        }),
-        prisma.payment.aggregate({
-          where: { schoolId, status: 'PAID', userType: { in: ['TEACHER', 'STAFF'] }, paidAt: { gte: prevStartDate, lt: prevEndDate } },
-          _sum: { amount: true }
-        })
-      ]);
-
+      const data = (rawRes as any)[0];
       return {
-        student_count,
-        teacher_count,
-        staff_count,
-        class_count,
-        current_income_general: currentIncomes._sum.amount || 0,
-        current_expense_general: currentExpenses._sum.amount || 0,
-        current_income_tuition: currentStudentPayments._sum.amount || 0,
-        current_expense_salary: currentPersonnelPayments._sum.amount || 0,
-        prev_income_general: prevIncomes._sum.amount || 0,
-        prev_expense_general: prevExpenses._sum.amount || 0,
-        prev_income_tuition: prevStudentPayments._sum.amount || 0,
-        prev_expense_salary: prevPersonnelPayments._sum.amount || 0
+        student_count: data.student_count || 0,
+        teacher_count: data.teacher_count || 0,
+        staff_count: data.staff_count || 0,
+        class_count: data.class_count || 0,
+        current_income_general: data.current_income_general || 0,
+        current_expense_general: data.current_expense_general || 0,
+        prev_income_general: data.prev_income_general || 0,
+        prev_expense_general: data.prev_expense_general || 0,
       };
     } catch (error) {
       console.error("❌ [DASHBOARD_FETCH_ERROR]:", error);
