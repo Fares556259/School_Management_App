@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, X } from 'lucide-react';
+import { Calendar, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { DateRangePicker, RangeKeyDict, defaultStaticRanges, defaultInputRanges } from 'react-date-range';
 import { addDays, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear, format, endOfDay } from 'date-fns';
@@ -27,6 +27,7 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ activeStartDate, acti
   const initialStartDate = activeStartDate ? new Date(activeStartDate) : startOfMonth(new Date());
   const initialEndDate = activeEndDate ? new Date(activeEndDate) : endOfMonth(new Date());
 
+  const [isPending, startTransition] = useTransition();
   const [state, setState] = useState([
     {
       startDate: initialStartDate,
@@ -52,8 +53,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ activeStartDate, acti
     params.delete('month');
     params.delete('year');
     params.delete('timeFilter');
-    router.push(`?${params.toString()}`, { scroll: false });
     setIsOpen(false);
+    startTransition(() => {
+      router.push(`?${params.toString()}`, { scroll: false });
+    });
   };
 
   const clearFilter = (e: React.MouseEvent) => {
@@ -65,8 +68,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ activeStartDate, acti
     params.delete('year');
     params.delete('timeFilter');
     setState([{ startDate: startOfMonth(new Date()), endDate: endOfMonth(new Date()), key: 'selection' }]);
-    router.push(`?${params.toString()}`, { scroll: false });
     setIsOpen(false);
+    startTransition(() => {
+      router.push(`?${params.toString()}`, { scroll: false });
+    });
   };
 
   const isFiltered = !!(activeStartDate && activeEndDate);
@@ -77,7 +82,7 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ activeStartDate, acti
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] rounded-[4px] border transition-all ${isFiltered ? 'border-[#080808] ring-1 ring-[#080808]' : 'border-[#d8d8d8] hover:bg-[#f9f9f9]'}`}
       >
-        <Calendar size={16} className="text-[#080808]" />
+        {isPending ? <Loader2 size={16} className="text-[#080808] animate-spin" /> : <Calendar size={16} className="text-[#080808]" />}
         <span className="text-[14px] font-medium text-[#080808] tracking-tight">
           {isFiltered ? `${format(state[0].startDate, 'MMM d, yyyy', {locale: dfnsLocale})} - ${format(state[0].endDate, 'MMM d, yyyy', {locale: dfnsLocale})}` : t.adminWidgets.selectPeriod || 'Select Period'}
         </span>

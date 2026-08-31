@@ -49,7 +49,11 @@ export default async function DashboardAppendage({
 
   // 1. MEGA-CONSOLIDATED TRENDS & BREAKDOWNS
   const getSecondaryStats = async () => {
-    const [incCats, expCats, allIncomes, allExpenses] = await Promise.all([
+    const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const useDays = durationDays <= 60;
+    const formatStr = useDays ? 'YYYY-MM-DD' : 'YYYY-MM';
+
+    const [incCats, expCats, rawIncomes, rawExpenses] = await Promise.all([
       prisma.income.groupBy({
         by: ['category'],
         _sum: { amount: true },
@@ -60,35 +64,29 @@ export default async function DashboardAppendage({
         _sum: { amount: true },
         where: { schoolId, date: { gte: startDate, lt: endDate } }
       }),
-      prisma.income.findMany({
-        where: { schoolId, date: { gte: startDate, lt: endDate } },
-        select: { date: true, amount: true }
-      }),
-      prisma.expense.findMany({
-        where: { schoolId, date: { gte: startDate, lt: endDate } },
-        select: { date: true, amount: true }
-      })
+      prisma.$queryRaw`
+        SELECT to_char(date, ${formatStr}) as monthKey, SUM(amount) as total
+        FROM "Income"
+        WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate}
+        GROUP BY 1
+      `,
+      prisma.$queryRaw`
+        SELECT to_char(date, ${formatStr}) as monthKey, SUM(amount) as total
+        FROM "Expense"
+        WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate}
+        GROUP BY 1
+      `
     ]);
-
-    const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const useDays = durationDays <= 60;
 
     const incomeTrendMap: Record<string, number> = {};
     const expenseTrendMap: Record<string, number> = {};
 
-    const addTrend = (map: Record<string, number>, d: Date | null, amount: number) => {
-      if (!d) return;
-      let key;
-      if (useDays) {
-        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      } else {
-        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      }
-      map[key] = (map[key] || 0) + amount;
-    };
-
-    allIncomes.forEach(i => addTrend(incomeTrendMap, i.date, i.amount));
-    allExpenses.forEach(e => addTrend(expenseTrendMap, e.date, e.amount));
+    (rawIncomes as any[]).forEach(i => {
+      incomeTrendMap[i.monthkey || i.monthKey] = Number(i.total);
+    });
+    (rawExpenses as any[]).forEach(e => {
+      expenseTrendMap[e.monthkey || e.monthKey] = Number(e.total);
+    });
 
     return {
       income_categories: incCats.map(c => ({ category: c.category, total: c._sum.amount || 0 })),
