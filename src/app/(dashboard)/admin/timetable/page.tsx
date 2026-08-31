@@ -1,7 +1,8 @@
-export const dynamic = "force-dynamic";
-
 import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms, getAllActiveTimetableSlots } from "../actions/timetableActions";
 import { getSchoolConfig } from "../actions/schoolActions";
+import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
+
 import TimetableClient from "./TimetableClient";
 
 const TimetablePage = async ({
@@ -9,14 +10,24 @@ const TimetablePage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  // Parallelize actions for fast page loads
-  const [classesRes, subjectsTeachersRes, configRes, roomsRes, allSlotsRes] = await Promise.all([
-    getAllClasses(),
-    getAllSubjectsAndTeachers(),
-    getSchoolConfig(),
-    getAllRooms(),
-    getAllActiveTimetableSlots(),
-  ]);
+
+
+  const schoolId = await getSchoolId();
+
+  // Parallelize actions for fast page loads, wrapped in cache
+  const [classesRes, subjectsTeachersRes, configRes, roomsRes, allSlotsRes] = await getCachedTenantData(
+    schoolId,
+    'classes',
+    ['timetable-full', schoolId],
+    () => Promise.all([
+      getAllClasses(),
+      getAllSubjectsAndTeachers(),
+      getSchoolConfig(),
+      getAllRooms(),
+      getAllActiveTimetableSlots(),
+    ]),
+    300 // Cache for 5 minutes
+  );
 
   const classes = (classesRes.success ? classesRes.data : []) as any[];
   const subjects = (subjectsTeachersRes.success ? subjectsTeachersRes.subjects : []) as any[];
