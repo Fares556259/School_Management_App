@@ -245,7 +245,7 @@ export default function StaffListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isSearchPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={optimisticData} />
+        <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
       </div>
       <Pagination page={page} count={displayCount} />
     </>
