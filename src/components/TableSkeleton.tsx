@@ -14,7 +14,7 @@ const TableSkeleton = ({
           <tr className="border-y border-[#dddddd] text-[13px] font-medium text-[#41454d] bg-slate-50/50">
             {columns.map((col) => (
               <th key={col.accessor} className={`py-4 px-6 ${col.className || ""}`}>
-                {col.header}
+                <div className="h-4 bg-slate-200 animate-pulse rounded-md w-20" />
               </th>
             ))}
           </tr>
