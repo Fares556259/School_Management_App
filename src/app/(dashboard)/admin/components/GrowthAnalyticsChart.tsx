@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import {
+  AreaChart,
   Area,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
-  ReferenceDot,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
 } from "recharts";
 
 interface GrowthData {
@@ -36,90 +36,23 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
   const [view, setView] = useState<"all" | "income" | "expense" | "profit">("all");
   const { t } = useLanguage();
 
-  const lastIndex = data.length - 1;
-  const lastIncome = currentIncome !== undefined ? currentIncome : data[lastIndex].income;
-  const lastExpense = currentExpense !== undefined ? currentExpense : data[lastIndex].expense;
-
-  // 🔥 Improved weighted growth
-  const getGrowth = (key: "income" | "expense") => {
-    if (data.length < 2) return 0;
-
-    const recentGrowth =
-      data.length > 2
-        ? data[lastIndex][key] - data[lastIndex - 1][key]
-        : 0;
-
-    const overallGrowth =
-      (data[lastIndex][key] - data[0][key]) / data.length;
-
-    return recentGrowth * 0.7 + overallGrowth * 0.3;
-  };
-
-  const incomeGrowth = getGrowth("income");
-  const expenseGrowth = getGrowth("expense");
+  const lastIndex = data.length > 0 ? data.length - 1 : 0;
+  const lastIncome = currentIncome !== undefined ? currentIncome : (data[lastIndex]?.income || 0);
+  const lastExpense = currentExpense !== undefined ? currentExpense : (data[lastIndex]?.expense || 0);
+  const netProfit = lastIncome - lastExpense;
+  const isHealthy = netProfit >= 0;
+  const trend = isHealthy ? t.analyticsChart.healthyGrowth : t.analyticsChart.expensesGrowing;
 
   // Base data
-  const forecastData: any[] = data.map((d, index) => ({
+  const forecastData: any[] = data.map((d) => ({
     ...d,
     profit: d.income - d.expense,
     historicalIncome: d.income,
     historicalExpense: d.expense,
     historicalProfit: d.income - d.expense,
-    predictiveIncome: index === lastIndex ? d.income : null,
-    predictiveExpense: index === lastIndex ? d.expense : null,
-    predictiveProfit: index === lastIndex ? (d.income - d.expense) : null,
   }));
 
-  // Month handling (Data from backend uses English)
-  const englishMonths = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
-  ];
-
-  let lastMonthIndex = englishMonths.indexOf(data[lastIndex].month);
-  if (lastMonthIndex === -1) {
-    lastMonthIndex = englishMonths.findIndex(m =>
-      m.startsWith(data[lastIndex].month) ||
-      data[lastIndex].month.startsWith(m)
-    );
-  }
-
-  // 🔮 Forecast next 3 months
-  for (let i = 1; i <= 3; i++) {
-    const nextMonthIndex = (lastMonthIndex + i) % 12;
-    const newMonth = englishMonths[nextMonthIndex];
-
-    const income = Math.max(0, lastIncome + incomeGrowth * i);
-    const expense = Math.max(0, lastExpense + expenseGrowth * i);
-
-    forecastData.push({
-      month: newMonth,
-      income,
-      expense,
-      profit: income - expense,
-      historicalIncome: null,
-      historicalExpense: null,
-      historicalProfit: null,
-      predictiveIncome: income,
-      predictiveExpense: expense,
-      predictiveProfit: income - expense,
-      isPredictive: true,
-    });
-  }
-
-  // 📊 Insight
-  const trend =
-    incomeGrowth > expenseGrowth
-      ? `${t.analyticsChart.healthyGrowth} 📈`
-      : `${t.analyticsChart.expensesGrowing} ⚠️`;
-
-  // 🎯 Break-even
-  const breakEvenPoint = forecastData.find((d) => d.profit >= 0);
-
   const CustomTooltip = ({ active, payload, label }: any) => {
-    const mIdx = englishMonths.indexOf(label);
-    const localizedMonth = mIdx !== -1 ? t.months[mIdx] : label;
-
     if (active && payload && payload.length) {
       const income = payload.find((p: any) => p.dataKey === "historicalIncome")?.value || 0;
       const expense = payload.find((p: any) => p.dataKey === "historicalExpense")?.value || 0;
@@ -128,8 +61,7 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
       return (
         <div className="bg-white/95 p-4 rounded-2xl shadow-2xl border border-slate-100 backdrop-blur-xl">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between gap-4">
-            <span>{localizedMonth}</span>
-
+            <span>{label}</span>
           </p>
           <div className="flex flex-col gap-2">
             {[
@@ -156,18 +88,17 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
 
   return (
     <div className="w-full h-full flex flex-col gap-6">
-      {/* 🔝 Summary & Insights */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex gap-8">
           <SummaryItem label={t.analyticsChart.revenue} value={lastIncome} colorHex="#10b981" />
           <SummaryItem label={t.analyticsChart.expenses} value={lastExpense} colorHex="#f43f5e" />
-          <SummaryItem label={t.analyticsChart.netProfit} value={lastIncome - lastExpense} colorHex="#6366f1" />
+          <SummaryItem label={t.analyticsChart.netProfit} value={netProfit} colorHex="#6366f1" />
         </div>
         
         <div className="flex flex-col items-end gap-3">
            <div className="px-3 py-1.5 bg-[#f9f9f9] rounded-[4px] border border-[#d8d8d8]">
               <span className="text-[11px] font-medium text-[#5a5a5a] uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                <span className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'bg-indigo-500' : 'bg-rose-500'} animate-pulse`} />
                 {trend}
               </span>
            </div>
@@ -197,71 +128,68 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
         </div>
       </div>
 
-      {/* 📈 Chart */}
       <div className="w-full h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={forecastData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.15}/>
-                <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.1}/>
-                <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1}/>
-                <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" strokeOpacity={0.5} />
-            <XAxis 
-              dataKey="month" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
-              tickFormatter={(v) => {
-                const idx = englishMonths.indexOf(v);
-                return idx !== -1 ? t.months[idx] : v;
-              }}
-              dy={10}
-            />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
-              tickFormatter={(v) => `\u202A${v < 0 ? '-' : ''}${Math.abs(v / 1000).toFixed(0)}k DT\u202C`}
-            />
+        {data.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={forecastData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" strokeOpacity={0.5} />
+              <XAxis 
+                dataKey="month" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
+                dy={10}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
+                tickFormatter={(v) => `\u202A${v < 0 ? '-' : ''}${Math.abs(v / 1000).toFixed(0)}k DT\u202C`}
+              />
 
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366F1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366F1', strokeWidth: 1, strokeDasharray: '4 4' }} />
 
-            {/* Areas */}
-            {(view === "all" || view === "income") && (
-              <Area type="monotone" dataKey="historicalIncome" fill="url(#colorIncome)" stroke="none" isAnimationActive={false} />
-            )}
-            {(view === "all" || view === "expense") && (
-              <Area type="monotone" dataKey="historicalExpense" fill="url(#colorExpense)" stroke="none" isAnimationActive={false} />
-            )}
-            {(view === "profit") && (
-              <Area type="monotone" dataKey="profit" fill="url(#colorProfit)" stroke="none" isAnimationActive={false} />
-            )}
+              {(view === "all" || view === "income") && (
+                <Area type="monotone" dataKey="historicalIncome" fill="url(#colorIncome)" stroke="none" isAnimationActive={false} />
+              )}
+              {(view === "all" || view === "expense") && (
+                <Area type="monotone" dataKey="historicalExpense" fill="url(#colorExpense)" stroke="none" isAnimationActive={false} />
+              )}
+              {(view === "profit") && (
+                <Area type="monotone" dataKey="historicalProfit" fill="url(#colorProfit)" stroke="none" isAnimationActive={false} />
+              )}
 
-            {/* Historical Lines */}
-            {(view === "all" || view === "income") && (
-              <Line type="monotone" dataKey="historicalIncome" stroke="#10B981" strokeWidth={3} dot={false} isAnimationActive={false} />
-            )}
-            {(view === "all" || view === "expense") && (
-              <Line type="monotone" dataKey="historicalExpense" stroke="#F43F5E" strokeWidth={2} dot={false} isAnimationActive={false} />
-            )}
-            {(view === "all" || view === "profit") && (
-              <Line type="monotone" dataKey="historicalProfit" stroke="#6366F1" strokeWidth={2} dot={false} isAnimationActive={false} />
-            )}
-
-
-          </ComposedChart>
-        </ResponsiveContainer>
+              {(view === "all" || view === "income") && (
+                <Line type="monotone" dataKey="historicalIncome" stroke="#10B981" strokeWidth={3} dot={data.length === 1} isAnimationActive={false} />
+              )}
+              {(view === "all" || view === "expense") && (
+                <Line type="monotone" dataKey="historicalExpense" stroke="#F43F5E" strokeWidth={2} dot={data.length === 1} isAnimationActive={false} />
+              )}
+              {(view === "all" || view === "profit") && (
+                <Line type="monotone" dataKey="historicalProfit" stroke="#6366F1" strokeWidth={2} dot={data.length === 1} isAnimationActive={false} />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-slate-400 font-medium text-sm">
+            {/* Fallback when data is empty */}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, X } from 'lucide-react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { DateRangePicker, RangeKeyDict, defaultStaticRanges, defaultInputRanges } from 'react-date-range';
-import { addDays, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
+import { addDays, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear, format, endOfDay } from 'date-fns';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { ar, fr, enUS } from 'date-fns/locale';
@@ -48,7 +48,7 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ activeStartDate, acti
   const handleApply = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('start', state[0].startDate.toISOString());
-    params.set('end', state[0].endDate.toISOString());
+    params.set('end', endOfDay(state[0].endDate).toISOString());
     params.delete('month');
     params.delete('year');
     params.delete('timeFilter');
