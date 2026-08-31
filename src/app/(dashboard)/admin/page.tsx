@@ -4,7 +4,7 @@ import KpiStrip from "./components/KpiStrip";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
 import FinancialKpiSection from "./components/FinancialKpiSection";
-import MonthYearFilter from "./components/MonthYearFilter";
+import DateRangeFilter from "./components/DateRangeFilter";
 import SnapAssistant from "./components/SnapAssistant";
 import PrintReportAction from "./components/PrintReportAction";
 import DashboardAppendage from "./components/DashboardAppendage";
@@ -30,9 +30,8 @@ const AdminPage = async ({
   const t = translations[locale];
 
   const { 
-    timeFilter = "thisMonth", 
-    month: queryMonth, 
-    year: queryYear 
+    start: queryStart,
+    end: queryEnd,
   } = searchParams || {};
 
   const schoolId = await getSchoolId();
@@ -45,13 +44,13 @@ const AdminPage = async ({
   let prevStartDate: Date;
   let prevEndDate: Date;
 
-  if (queryMonth && queryYear) {
-    const m = parseInt(queryMonth);
-    const y = parseInt(queryYear);
-    startDate = new Date(y, m, 1);
-    endDate = new Date(y, m + 1, 1);
-    prevStartDate = new Date(y, m - 1, 1);
-    prevEndDate = new Date(y, m, 1);
+  if (queryStart && queryEnd) {
+    startDate = new Date(queryStart);
+    endDate = new Date(queryEnd);
+    
+    const duration = endDate.getTime() - startDate.getTime();
+    prevEndDate = new Date(startDate.getTime());
+    prevStartDate = new Date(startDate.getTime() - duration);
   } else {
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -181,7 +180,7 @@ const AdminPage = async ({
         <div className="flex flex-wrap items-center gap-4">
            <PrintReportAction month={`${t.months[startDate.getMonth()]} ${startDate.getFullYear()}`} />
            <div className="h-10 w-[1px] bg-slate-200 hidden md:block mx-2" />
-           <MonthYearFilter activeMonth={queryMonth} activeYear={queryYear} />
+           <DateRangeFilter activeStartDate={queryStart} activeEndDate={queryEnd} />
            <QuickActionBar />
         </div>
       </div>
@@ -196,7 +195,7 @@ const AdminPage = async ({
           currentBalance={currentBalance}
           prevBalance={prevBalance}
           revenueGap={0}
-          isCustomRange={!!(queryMonth && queryYear)}
+          isCustomRange={!!(queryStart && queryEnd)}
         />
 
         <OperationsSnapshot 
