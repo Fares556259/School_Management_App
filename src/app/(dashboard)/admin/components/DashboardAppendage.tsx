@@ -2,6 +2,7 @@
 
 import React from 'react';
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { MONTHS } from "@/lib/dateUtils";
 import FiscalDistribution from "./FiscalDistribution";
 import SmartFinancialInsights from "./SmartFinancialInsights";
@@ -65,13 +66,13 @@ export default async function DashboardAppendage({
         where: { schoolId, date: { gte: startDate, lt: endDate } }
       }),
       prisma.$queryRaw`
-        SELECT to_char(date, ${formatStr}) as monthKey, SUM(amount) as total
+        SELECT to_char(date, ${Prisma.raw(`'${formatStr}'`)}) as "monthKey", SUM(amount) as total
         FROM "Income"
         WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate}
         GROUP BY 1
       `,
       prisma.$queryRaw`
-        SELECT to_char(date, ${formatStr}) as monthKey, SUM(amount) as total
+        SELECT to_char(date, ${Prisma.raw(`'${formatStr}'`)}) as "monthKey", SUM(amount) as total
         FROM "Expense"
         WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate}
         GROUP BY 1
