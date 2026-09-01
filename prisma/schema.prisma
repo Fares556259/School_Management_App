@@ -483,7 +483,8 @@ model TimetableSlot {
   subject    Subject? @relation(fields: [subjectId], references: [id])
   teacher    Teacher? @relation(fields: [teacherId], references: [id])
 
-  @@unique([classId, day, slotNumber, isDraft])
+  groupId    Int      @default(1)
+  @@unique([classId, day, slotNumber, groupId, isDraft])
 }
 
 

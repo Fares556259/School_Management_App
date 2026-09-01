@@ -79,12 +79,16 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
     const isDraft = data.isDraft || false;
 
     if (data.id === -1) {
-      // CREATE NEW SLOT — get next slotNumber for this day
+      // CREATE NEW SLOT
       const existingSlots = await prisma.timetableSlot.findMany({
         where: { classId: data.classId!, day: data.day!, isDraft },
         orderBy: { slotNumber: "asc" }
       });
       const nextSlotNumber = data.slotNumber ?? (existingSlots.length + 1);
+      
+      // Calculate next groupId to prevent constraint violations when adding to an existing slot block
+      const existingGroupSlots = existingSlots.filter(s => s.slotNumber === nextSlotNumber);
+      const nextGroupId = existingGroupSlots.length > 0 ? Math.max(...existingGroupSlots.map(s => s.groupId || 1)) + 1 : 1;
       const duration = data.duration || 120;
 
       // Calculate start/end from previous slot's endTime or school dayStartTime
@@ -200,36 +204,46 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
 
     if (!sourceSlot) return { success: false, error: "Source slot not found" };
 
-    // Check if target slot is occupied
-    const targetOccupied = await prisma.timetableSlot.findUnique({
+    // Find all slots in the source group
+    const sourceSlots = await prisma.timetableSlot.findMany({
       where: {
-        classId_day_slotNumber_isDraft: {
-          classId: sourceSlot.classId,
-          day: targetDay,
-          slotNumber: targetSlotNumber,
-          isDraft: sourceSlot.isDraft,
-        },
+        classId: sourceSlot.classId,
+        day: sourceSlot.day,
+        slotNumber: sourceSlot.slotNumber,
+        isDraft: sourceSlot.isDraft,
+      },
+    });
+
+    // Check if target slot is occupied by any group
+    const targetOccupied = await prisma.timetableSlot.findMany({
+      where: {
+        classId: sourceSlot.classId,
+        day: targetDay,
+        slotNumber: targetSlotNumber,
+        isDraft: sourceSlot.isDraft,
       },
     });
 
     await prisma.$transaction(async (tx) => {
-      if (targetOccupied) {
-        // SWAP: Move target occupied slot to source position
-        await tx.timetableSlot.update({
-          where: { id: targetOccupied.id },
+      if (targetOccupied.length > 0) {
+        // SWAP: Move target occupied slots to limbo first
+        await tx.timetableSlot.updateMany({
+          where: { id: { in: targetOccupied.map(t => t.id) } },
           data: { slotNumber: -1 }, // Move to limbo
         });
 
-        await tx.timetableSlot.update({
-          where: { id: sourceSlot.id },
+        // Move source slots to target
+        await tx.timetableSlot.updateMany({
+          where: { id: { in: sourceSlots.map(s => s.id) } },
           data: {
             day: targetDay,
             slotNumber: targetSlotNumber,
           },
         });
 
-        await tx.timetableSlot.update({
-          where: { id: targetOccupied.id },
+        // Move target slots to source
+        await tx.timetableSlot.updateMany({
+          where: { id: { in: targetOccupied.map(t => t.id) } },
           data: {
             day: sourceSlot.day,
             slotNumber: sourceSlot.slotNumber,
@@ -237,8 +251,8 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
         });
       } else {
         // SIMPLE MOVE
-        await tx.timetableSlot.update({
-          where: { id: sourceSlot.id },
+        await tx.timetableSlot.updateMany({
+          where: { id: { in: sourceSlots.map(s => s.id) } },
           data: {
             day: targetDay,
             slotNumber: targetSlotNumber,

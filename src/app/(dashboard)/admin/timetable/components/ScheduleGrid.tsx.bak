@@ -339,7 +339,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           teachers={teachers}
                           rooms={rooms}
                           allActiveSlots={allActiveSlots || []}
-                          usedSubjectIds={rawDaySlots.map((s: any) => s.subjectId).filter(Boolean)}
+                          usedSubjectIds={daySlots.map(s => s.subjectId).filter(Boolean)}
                           onUpdateAction={handleOptimisticUpdate}
                           onDeleteAction={onDeleteAction}
                           onRefresh={onRefresh}
@@ -380,7 +380,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           teachers={teachers}
                           rooms={rooms}
                           allActiveSlots={allActiveSlots || []}
-                          usedSubjectIds={rawDaySlots.map((s: any) => s.subjectId).filter(Boolean)}
+                          usedSubjectIds={daySlots.map(s => s.subjectId).filter(Boolean)}
                           onUpdateAction={handleOptimisticUpdate}
                           onDeleteAction={onDeleteAction}
                           onRefresh={onRefresh}

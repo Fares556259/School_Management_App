@@ -28,7 +28,7 @@ export async function GET() {
 
     // Seed Timetable Slot for Wednesday
     await prisma.timetableSlot.upsert({
-      where: { classId_day_slotNumber_groupId_isDraft: {  classId, day: Day.WEDNESDAY, slotNumber: 1, isDraft: false , groupId: 1 } },
+      where: { classId_day_slotNumber_isDraft: { classId, day: Day.WEDNESDAY, slotNumber: 1, isDraft: false } },
       update: {},
       create: {
         day: Day.WEDNESDAY,
@@ -42,7 +42,7 @@ export async function GET() {
       }
     });
     await prisma.timetableSlot.upsert({
-      where: { classId_day_slotNumber_groupId_isDraft: {  classId, day: Day.WEDNESDAY, slotNumber: 2, isDraft: false , groupId: 1 } },
+      where: { classId_day_slotNumber_isDraft: { classId, day: Day.WEDNESDAY, slotNumber: 2, isDraft: false } },
       update: {},
       create: {
         day: Day.WEDNESDAY,

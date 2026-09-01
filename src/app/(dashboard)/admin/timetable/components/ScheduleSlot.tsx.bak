@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Day } from "@prisma/client";
-import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock, Plus } from "lucide-react";
+import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock } from "lucide-react";
 
 const dayLabels: { [key in Day]: string } = {
   [Day.MONDAY]: "Lundi",
