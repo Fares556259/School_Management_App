@@ -118,10 +118,27 @@ const ScheduleSlot = ({
     }
   }, [slot, type]);
 
+
   const handleUpdate = async () => {
     setLoading(true);
     try {
       let allSuccess = true;
+      
+      // Find deleted sessions
+      if (slotsArray && slotsArray.length > 0) {
+        const currentSessionIds = sessions.map(s => s.id).filter(id => id && id !== -1);
+        const originalSessionIds = slotsArray.map((s: any) => s.id);
+        
+        for (const originalId of originalSessionIds) {
+          if (!currentSessionIds.includes(originalId)) {
+            if (onDeleteAction) {
+              const delRes = await onDeleteAction(originalId);
+              if (!delRes.success) allSuccess = false;
+            }
+          }
+        }
+      }
+
       for (const sess of sessions) {
         const isFree = sess.subjectId === "FREE";
         const res = await onUpdateAction({
