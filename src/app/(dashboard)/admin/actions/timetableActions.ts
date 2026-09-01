@@ -128,7 +128,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         }
       });
       revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
       return { success: true, data: created };
     }
 
@@ -148,7 +148,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         await prisma.timetableSlot.update({ where: { id: data.id }, data: updatePayload });
         await recalculateSlotTimes(existing.classId, existing.day, existing.isDraft);
         revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
         return { success: true };
       }
     }
@@ -160,7 +160,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
       data: updatePayload,
     });
     revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Error updating timetable slot:", error);
@@ -271,7 +271,7 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
     }
     
     revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
     return { success: true };
   } catch (error: any) {
     console.error("Error moving timetable slot:", error);
@@ -293,7 +293,7 @@ export async function deleteTimetableSlot(id: number) {
     if (slot) {
       await recalculateSlotTimes(slot.classId, slot.day, slot.isDraft);
       revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
     }
     return { success: true };
   } catch (error: any) {
@@ -356,7 +356,7 @@ export async function bulkUpdateTimetableSlots(classId: number, slots: any[], is
     }
 
     revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
     revalidatePath(`/list/exams`);
     return { success: true };
   } catch (error: any) {
@@ -405,7 +405,7 @@ export async function publishDraftTimetable(classId: number) {
     });
 
     revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
     return { success: true };
   } catch (error: any) {
     console.error("Publish draft error:", error);
@@ -420,7 +420,7 @@ export async function discardDraftTimetable(classId: number) {
     });
 
     revalidatePath(`/admin/timetable`);
-      try { invalidateTenantTags(schoolId, "classes"); } catch(e) {}
+      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
     return { success: true };
   } catch (error: any) {
     console.error("Discard draft error:", error);
