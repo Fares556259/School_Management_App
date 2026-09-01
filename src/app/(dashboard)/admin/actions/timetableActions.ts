@@ -168,10 +168,10 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
   }
 }
 
-export async function getAllClasses() {
+export async function getAllClasses(tenantId?: string) {
 
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = tenantId || await getSchoolId();
     const classes = await prisma.class.findMany({
       where: { schoolId },
       include: { level: true },
@@ -183,9 +183,9 @@ export async function getAllClasses() {
   }
 }
 
-export async function getAllSubjectsAndTeachers() {
+export async function getAllSubjectsAndTeachers(tenantId?: string) {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = tenantId || await getSchoolId();
     const subjects = await prisma.subject.findMany({ where: { schoolId, parentId: null } });
     const teachers = await prisma.teacher.findMany({ 
       where: { schoolId },
@@ -428,9 +428,9 @@ export async function discardDraftTimetable(classId: number) {
   }
 }
 
-export async function getAllRooms() {
+export async function getAllRooms(tenantId?: string) {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = tenantId || await getSchoolId();
     const rooms = await prisma.room.findMany({
       where: { schoolId },
       orderBy: { name: 'asc' }
@@ -442,9 +442,9 @@ export async function getAllRooms() {
   }
 }
 
-export async function getAllActiveTimetableSlots() {
+export async function getAllActiveTimetableSlots(tenantId?: string) {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = tenantId || await getSchoolId();
     // Fetch all class IDs for this school first
     const classes = await prisma.class.findMany({
       where: { schoolId },

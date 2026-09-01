@@ -4,9 +4,9 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSchoolId } from "@/lib/school";
 
-export async function getSchoolConfig() {
+export async function getSchoolConfig(tenantId?: string) {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = tenantId || await getSchoolId();
     let config = await prisma.institution.findFirst({
       where: { schoolId },
       select: {

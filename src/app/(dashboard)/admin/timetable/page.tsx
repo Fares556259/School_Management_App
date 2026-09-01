@@ -20,11 +20,11 @@ const TimetablePage = async ({
     'classes',
     ['timetable-full', schoolId],
     () => Promise.all([
-      getAllClasses(),
-      getAllSubjectsAndTeachers(),
-      getSchoolConfig(),
-      getAllRooms(),
-      getAllActiveTimetableSlots(),
+      getAllClasses(schoolId),
+      getAllSubjectsAndTeachers(schoolId),
+      getSchoolConfig(schoolId),
+      getAllRooms(schoolId),
+      getAllActiveTimetableSlots(schoolId),
     ]),
     300 // Cache for 5 minutes
   );
