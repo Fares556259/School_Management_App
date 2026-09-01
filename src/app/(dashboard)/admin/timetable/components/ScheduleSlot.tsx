@@ -233,7 +233,7 @@ const ScheduleSlot = ({
               <div key={s.id || idx} className={`flex-1 w-full ${getSlotColor(colorSubject || 0)} border border-white/60 shadow-sm p-1.5 px-2 rounded-[6px] flex flex-col justify-between overflow-hidden relative`}>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
                 <div className="flex items-start justify-between relative z-10">
-                  <h3 className={`text-[11px] font-bold leading-snug line-clamp-1 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
+                  <h3 title={rawSubjectName} className={`text-[11px] font-bold leading-snug line-clamp-1 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
                     {colorSubject ? (subjectName || "Unscheduled") : "☕ Libre"}
                   </h3>
                   {isEditMode && idx === 0 && (
