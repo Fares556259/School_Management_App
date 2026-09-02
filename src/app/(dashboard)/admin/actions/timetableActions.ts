@@ -76,6 +76,7 @@ export async function getTimetableByClass(classId: number, isDraft: boolean = fa
 
 export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?: number, day?: Day, slotNumber?: number, isDraft?: boolean }) {
   try {
+    let debugSlotNumber, debugGroupId;
     const schoolId = await getSchoolId();
     const isDraft = data.isDraft || false;
 
@@ -86,10 +87,12 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         orderBy: { slotNumber: "asc" }
       });
       const nextSlotNumber = data.slotNumber !== undefined ? Number(data.slotNumber) : (existingSlots.length + 1);
+      debugSlotNumber = nextSlotNumber;
       
       // Calculate next groupId to prevent constraint violations when adding to an existing slot block
       const existingGroupSlots = existingSlots.filter(s => s.slotNumber === nextSlotNumber);
       const nextGroupId = existingGroupSlots.length > 0 ? Math.max(...existingGroupSlots.map(s => s.groupId || 1)) + 1 : 1;
+      debugGroupId = nextGroupId;
       const duration = data.duration || 120;
 
       // Calculate start/end from previous slot's endTime or school dayStartTime
@@ -165,7 +168,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Error updating timetable slot:", error);
-    return { success: false, error: error.message + ` | DEBUG: nextSlotNumber=${typeof nextSlotNumber === "undefined" ? "undefined" : nextSlotNumber}, nextGroupId=${typeof nextGroupId === "undefined" ? "undefined" : nextGroupId}, classId=${data.classId}, day=${data.day}` };
+    return { success: false, error: error.message + ` | DEBUG: nextSlotNumber=${debugSlotNumber}, nextGroupId=${debugGroupId}, classId=${data.classId}, day=${data.day}` };
   }
 }
 
