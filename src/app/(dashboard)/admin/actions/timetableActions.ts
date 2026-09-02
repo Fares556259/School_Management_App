@@ -126,6 +126,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
           subjectId: data.subjectId,
           teacherId: data.teacherId,
           roomId: data.roomId,
+          groupId: nextGroupId,
           isDraft,
         }
       });
