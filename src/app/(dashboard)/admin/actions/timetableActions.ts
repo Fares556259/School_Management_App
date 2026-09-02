@@ -85,7 +85,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         where: { classId: data.classId!, day: data.day!, isDraft },
         orderBy: { slotNumber: "asc" }
       });
-      const nextSlotNumber = data.slotNumber ?? (existingSlots.length + 1);
+      const nextSlotNumber = data.slotNumber !== undefined ? Number(data.slotNumber) : (existingSlots.length + 1);
       
       // Calculate next groupId to prevent constraint violations when adding to an existing slot block
       const existingGroupSlots = existingSlots.filter(s => s.slotNumber === nextSlotNumber);
@@ -165,7 +165,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Error updating timetable slot:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message + ` | DEBUG: nextSlotNumber=${typeof nextSlotNumber === "undefined" ? "undefined" : nextSlotNumber}, nextGroupId=${typeof nextGroupId === "undefined" ? "undefined" : nextGroupId}, classId=${data.classId}, day=${data.day}` };
   }
 }
 
