@@ -211,19 +211,75 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const sessions = slots.map((slot) => {
-      const lessonObj = slotToLessonMap.get(slot.id);
-      let att = attendance.find((a) => a.lessonId === lessonObj?.id) || attendance.find((a) => a.lessonId === null);
-      let finalStatus = att?.status || null;
-      if (!finalStatus && slot.endTime) {
-        try {
-          const { hours, minutes } = parseTime(slot.endTime);
-          const sessionEnd = new Date(now);
-          sessionEnd.setHours(hours, minutes, 0, 0);
-          if (new Date() > sessionEnd) finalStatus = "PRESENT";
-        } catch (e) {}
+    // Group slots by slotNumber so that multi-group (split) sessions appear as one item to parents
+    const slotsByNumber = new Map<number, typeof slots>();
+    slots.forEach((slot) => {
+      if (!slotsByNumber.has(slot.slotNumber)) slotsByNumber.set(slot.slotNumber, []);
+      slotsByNumber.get(slot.slotNumber)!.push(slot);
+    });
+
+    const sessions = Array.from(slotsByNumber.values()).map((groupSlots) => {
+      // If it's a split session (multiple groups), merge their subjects with " / " separator
+      const isSplit = groupSlots.length > 1;
+
+      const subjectNames = groupSlots
+        .map(s => s.subject?.name?.split("|")[0].trim() || "Free Period")
+        .filter((v, i, arr) => arr.indexOf(v) === i); // deduplicate
+
+      const mergedSubject = subjectNames.join(" / ");
+
+      // For attendance: check if ANY group slot has a matching lesson and attendance
+      let finalStatus: string | null = null;
+      let attScore: number | null = null;
+
+      for (const slot of groupSlots) {
+        const lessonObj = slotToLessonMap.get(slot.id);
+        let att = attendance.find((a) => a.lessonId === lessonObj?.id) || attendance.find((a) => a.lessonId === null);
+        let status = att?.status || null;
+        if (!status && slot.endTime) {
+          try {
+            const { hours, minutes } = parseTime(slot.endTime);
+            const sessionEnd = new Date(now);
+            sessionEnd.setHours(hours, minutes, 0, 0);
+            if (new Date() > sessionEnd) status = "PRESENT";
+          } catch (e) {}
+        }
+        if (status && !finalStatus) {
+          finalStatus = status;
+          attScore = att?.score || null;
+        }
       }
-      return { id: slot.id, slotNumber: slot.slotNumber, subject: slot.subject?.name || "Free Period", teacher: slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : null, teacherImg: slot.teacher?.img || null, room: slot.room || "TBD", startTime: slot.startTime, endTime: slot.endTime, attendance: finalStatus, score: att?.score || null };
+
+      const firstSlot = groupSlots[0];
+
+      // Teacher info: for split sessions show all teachers, for single show just one
+      const teacherStr = isSplit
+        ? groupSlots
+            .map(s => s.teacher ? `${s.teacher.name} ${s.teacher.surname}` : null)
+            .filter(Boolean)
+            .filter((v, i, arr) => arr.indexOf(v) === i)
+            .join(" / ")
+        : (firstSlot.teacher ? `${firstSlot.teacher.name} ${firstSlot.teacher.surname}` : null);
+
+      return {
+        id: firstSlot.id,
+        slotNumber: firstSlot.slotNumber,
+        subject: mergedSubject,
+        isSplit,
+        groups: isSplit ? groupSlots.map(s => ({
+          slotId: s.id,
+          subject: s.subject?.name?.split("|")[0].trim() || "Free Period",
+          teacher: s.teacher ? `${s.teacher.name} ${s.teacher.surname}` : null,
+          teacherImg: s.teacher?.img || null,
+        })) : undefined,
+        teacher: teacherStr,
+        teacherImg: firstSlot.teacher?.img || null,
+        room: firstSlot.room || "TBD",
+        startTime: firstSlot.startTime,
+        endTime: firstSlot.endTime,
+        attendance: finalStatus,
+        score: attScore,
+      };
     });
 
     const submittedIds = new Set(submissions.map((s) => s.assignmentId));
