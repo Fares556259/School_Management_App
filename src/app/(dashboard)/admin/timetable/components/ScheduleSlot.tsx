@@ -157,6 +157,7 @@ const ScheduleSlot = ({
         });
         if (!res.success) {
           console.error("Save failed:", res.error);
+          alert("Save failed: " + (res.error || "Unknown error"));
           allSuccess = false;
         }
       }
