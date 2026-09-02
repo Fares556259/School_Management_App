@@ -241,40 +241,91 @@ const ScheduleSlot = ({
         <div 
           draggable={isEditMode && !!firstSlot}
           onDragStart={handleDragStart}
-          className={`w-full h-full border border-slate-200/50 p-1 rounded-[8px] transition-all flex flex-col gap-1 relative group ${isEditMode && !!firstSlot ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''} overflow-hidden`}
+          className={`w-full h-full rounded-[8px] transition-all relative group ${isEditMode && !!firstSlot ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''} overflow-hidden`}
         >
-          {slotsArray.map((s, idx) => {
-             const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-             const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
-             const teacherName = type === "timetable" 
-               ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "No Teacher Assigned")
-               : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "No Teacher Assigned");
-             const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
-             return (
-              <div key={s.id || idx} className={`flex-1 w-full ${getSlotColor(colorSubject || 0)} border border-white/60 shadow-sm p-1.5 px-2 rounded-[6px] flex flex-col justify-between overflow-hidden relative`}>
-                <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
-                <div className="flex items-start justify-between relative z-10">
-                  <h3 title={rawSubjectName} className={`text-[11px] font-bold leading-snug line-clamp-1 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
+          {/* Edit button */}
+          {isEditMode && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="absolute top-1 right-1 z-20 p-1 bg-white/90 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden"
+            >
+              <Edit2 size={12} />
+            </button>
+          )}
+
+          {slotsArray.length === 1 ? (
+            /* Single group: original card */
+            (() => {
+              const s = slotsArray[0];
+              const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
+              const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+              const teacherName = type === "timetable"
+                ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "No Teacher Assigned")
+                : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "No Teacher Assigned");
+              const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
+              return (
+                <div className={`w-full h-full border border-slate-200/50 ${getSlotColor(colorSubject || 0)} p-1.5 px-2 rounded-[8px] flex flex-col justify-between overflow-hidden relative`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+                  <h3 title={rawSubjectName} className={`text-[11px] font-bold leading-snug line-clamp-2 relative z-10 pr-6 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
                     {colorSubject ? (subjectName || "Unscheduled") : "☕ Libre"}
                   </h3>
-                  {isEditMode && idx === 0 && (
-                    <button 
-                      onClick={() => setIsEditing(true)}
-                      className="p-1 bg-white/80 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden flex-shrink-0"
-                    >
-                      <Edit2 size={12} />
-                    </button>
+                  {colorSubject && (
+                    <p className="text-[9px] font-medium text-[#41454d] opacity-80 truncate relative z-10 mt-1">
+                      {teacherName} • {s.room?.name || "TBA"}
+                    </p>
                   )}
                 </div>
-                
-                {colorSubject && (
-                  <p className="text-[9px] font-medium text-[#41454d] opacity-80 truncate relative z-10 mt-1">
-                    {teacherName} • {s.room?.name || "TBA"}
-                  </p>
-                )}
+              );
+            })()
+          ) : slotsArray.length === 2 ? (
+            /* Two groups: side-by-side split */
+            <div className="w-full h-full flex border border-slate-200/60 rounded-[8px] overflow-hidden relative">
+              {slotsArray.map((s, idx) => {
+                const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
+                const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+                const teacherName = type === "timetable"
+                  ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "")
+                  : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "");
+                const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
+                return (
+                  <div key={s.id || idx} className={`flex-1 ${getSlotColor(colorSubject || 0)} flex flex-col justify-between p-1.5 overflow-hidden relative ${idx === 0 ? 'border-r border-white/70' : ''}`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+                    <span className="text-[8px] font-bold uppercase tracking-wide opacity-40 relative z-10">G{idx + 1}</span>
+                    <h3 title={rawSubjectName} className={`text-[10px] font-bold leading-snug line-clamp-2 relative z-10 ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
+                      {colorSubject ? (subjectName || "—") : "☕ Libre"}
+                    </h3>
+                    {colorSubject && (
+                      <p className="text-[8px] font-medium text-[#41454d] opacity-70 truncate relative z-10 mt-0.5">
+                        {teacherName}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Center divider badge */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-white border border-slate-300 flex items-center justify-center shadow-sm pointer-events-none">
+                <span className="text-[9px] font-bold text-slate-400">÷</span>
               </div>
-             )
-          })}
+            </div>
+          ) : (
+            /* 3+ groups: compact numbered list */
+            <div className={`w-full h-full border border-slate-200/50 ${getSlotColor(slotsArray[0]?.subjectId || 0)} rounded-[8px] flex flex-col gap-0.5 p-1.5 overflow-hidden relative`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+              {slotsArray.map((s, idx) => {
+                const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
+                const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+                const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
+                return (
+                  <div key={s.id || idx} className="flex items-center gap-1 relative z-10">
+                    <span className="text-[7px] font-bold bg-white/60 rounded px-0.5 text-slate-500 flex-shrink-0">G{idx + 1}</span>
+                    <span className={`text-[9px] font-semibold truncate ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
+                      {colorSubject ? (subjectName || "—") : "Libre"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
