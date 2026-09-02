@@ -139,10 +139,13 @@ const ScheduleSlot = ({
         }
       }
 
+      let currentMaxGroupId = slotsArray && slotsArray.length > 0 ? Math.max(...slotsArray.map((s: any) => s.groupId || 1)) : 0;
+
       for (const sess of sessions) {
         const isFree = sess.subjectId === "FREE";
         const res = await onUpdateAction({
           id: sess.id ?? -1,
+          groupId: sess.id === -1 ? (++currentMaxGroupId) : (sess.groupId || undefined),
           subjectId: isFree ? null : (parseInt(sess.subjectId) || null),
           teacherId: isFree ? null : (sess.teacherId || null),
           classId: classId,

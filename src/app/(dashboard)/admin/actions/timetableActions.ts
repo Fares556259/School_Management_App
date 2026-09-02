@@ -14,6 +14,7 @@ export type TimetableSlotUpdate = {
   endTime?: string;
   roomId?: number | null;
   duration?: number; // minutes: 60, 90, or 120
+  groupId?: number;
 };
 
 // Adds minutes to a "HH:MM" string, returns "HH:MM"
@@ -89,7 +90,7 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
       
       // Calculate next groupId to prevent constraint violations when adding to an existing slot block
       const existingGroupSlots = existingSlots.filter(s => s.slotNumber === nextSlotNumber);
-      const nextGroupId = existingGroupSlots.length > 0 ? Math.max(...existingGroupSlots.map(s => s.groupId || 1)) + 1 : 1;
+      const nextGroupId = data.groupId !== undefined ? data.groupId : (existingGroupSlots.length > 0 ? Math.max(...existingGroupSlots.map(s => s.groupId || 1)) + 1 : 1);
       const duration = data.duration || 120;
 
       // Calculate start/end from previous slot's endTime or school dayStartTime
