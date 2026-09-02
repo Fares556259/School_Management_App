@@ -256,7 +256,7 @@ const ScheduleSlot = ({
                   {isEditMode && idx === 0 && (
                     <button 
                       onClick={() => setIsEditing(true)}
-                      className="p-1 opacity-0 group-hover:opacity-100 bg-white/80 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden flex-shrink-0"
+                      className="p-1 bg-white/80 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden flex-shrink-0"
                     >
                       <Edit2 size={12} />
                     </button>

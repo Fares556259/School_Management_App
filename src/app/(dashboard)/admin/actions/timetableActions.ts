@@ -107,7 +107,8 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
 
       // Block if slot would exceed school day end
       const [eH, eM] = dayEnd.split(":").map(Number);
-      const [sH, sM] = slotEnd.split(":").map(Number);
+      const actualSlotEnd = data.endTime || slotEnd;
+      const [sH, sM] = actualSlotEnd.split(":").map(Number);
       if (sH * 60 + sM > eH * 60 + eM) {
         return { success: false, error: `Dépasse la fin de journée (${dayEnd}). Réduisez la durée ou supprimez d'autres créneaux.` };
       }
