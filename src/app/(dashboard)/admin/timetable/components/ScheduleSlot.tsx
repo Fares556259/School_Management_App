@@ -288,7 +288,7 @@ const ScheduleSlot = ({
                   : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "");
                 const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
                 return (
-                  <div key={s.id || idx} className={`flex-1 ${getSlotColor(colorSubject || 0)} flex flex-col justify-between p-1.5 overflow-hidden relative ${idx === 0 ? 'border-r border-white/70' : ''}`}>
+                  <div key={s.id || idx} className={`flex-1 ${getSlotColor(colorSubject || 0)} flex flex-col justify-between p-1.5 overflow-hidden relative ${idx === 0 ? 'border-r-2 border-slate-200' : ''}`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
                     <span className="text-[8px] font-bold uppercase tracking-wide opacity-40 relative z-10">G{idx + 1}</span>
                     <h3 title={rawSubjectName} className={`text-[10px] font-bold leading-snug line-clamp-2 relative z-10 ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
@@ -302,10 +302,6 @@ const ScheduleSlot = ({
                   </div>
                 );
               })}
-              {/* Center divider badge */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-white border border-slate-300 flex items-center justify-center shadow-sm pointer-events-none">
-                <span className="text-[9px] font-bold text-slate-400">÷</span>
-              </div>
             </div>
           ) : (
             /* 3+ groups: compact numbered list */
