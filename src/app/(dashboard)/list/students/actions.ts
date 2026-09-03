@@ -88,12 +88,14 @@ export const receiveStudentPayment = async (
 
       // 2. Add to Income table
       if (newMoneyCollected > 0) {
+        const isRecoverySingle = !!existing;
+        const incomeCategory = isRecoverySingle ? "Recovery" : isPartial ? "Partial" : "Tuition";
         await tx.income.create({
         data: {
             title: `Tuition: ${studentName} (${monthYear}) ${existing ? "- Recovery" : ""}`,
             amount: newMoneyCollected,
             date: new Date(),
-            category: "Tuition",
+            category: incomeCategory,
             referenceType: "StudentPayment",
             referenceId: p.id.toString(),
             schoolId,
@@ -242,12 +244,14 @@ export const receiveMultipleStudentPayments = async (
         }
         const titleRef = paymentsToProcess[0].monthYear + suffix;
 
+        const bulkCategory = isRecovery ? "Recovery" : paymentsToProcess[0].isPartial ? "Partial" : "Tuition";
+
         await tx.income.create({
           data: {
             title: `Tuition: ${studentName} (${titleRef})`,
             amount: totalNewMoneyCollected,
             date: new Date(),
-            category: "Tuition",
+            category: bulkCategory,
             referenceType: "StudentPayment",
             referenceId: upsertedPayments[0].id.toString(), // tie to first payment
             schoolId,

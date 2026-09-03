@@ -90,9 +90,11 @@ export default function IncomesListClient({
   const getCategoryColor = (cat: string) => {
     const c = cat.toLowerCase();
     if (c.includes("tuition")) return "text-emerald-700 bg-emerald-50 border-emerald-200";
-    if (c.includes("donation")) return "text-blue-700 bg-blue-50 border-blue-200";
+    if (c.includes("recovery") || c.includes("recouvrement")) return "text-blue-700 bg-blue-50 border-blue-200";
+    if (c.includes("partial") || c.includes("partiel")) return "text-orange-700 bg-orange-50 border-orange-200";
+    if (c.includes("donation")) return "text-indigo-700 bg-indigo-50 border-indigo-200";
     if (c.includes("event")) return "text-fuchsia-700 bg-fuchsia-50 border-fuchsia-200";
-    if (c.includes("grant")) return "text-orange-700 bg-orange-50 border-orange-200";
+    if (c.includes("grant")) return "text-amber-700 bg-amber-50 border-amber-200";
     return "text-slate-700 bg-slate-50 border-slate-200";
   };
 
@@ -340,9 +342,15 @@ export default function IncomesListClient({
           if (val.toLowerCase() === "tuition" || val.toLowerCase() === "frais scolaires") {
              label = t.incomesPage.tuition || val;
              activeClass = "bg-emerald-600 text-white shadow-md";
+          } else if (val.toLowerCase() === "recovery" || val.toLowerCase() === "recouvrement") {
+             label = locale === "ar" ? "استرداد" : locale === "fr" ? "Recouvrement" : "Recovery";
+             activeClass = "bg-blue-600 text-white shadow-md";
+          } else if (val.toLowerCase() === "partial" || val.toLowerCase() === "partiel") {
+             label = locale === "ar" ? "جزئي" : locale === "fr" ? "Partiel" : "Partial";
+             activeClass = "bg-orange-600 text-white shadow-md";
           } else if (val.toLowerCase() === "donation" || val.toLowerCase() === "dons") {
              label = t.incomesPage.donations || val;
-             activeClass = "bg-blue-600 text-white shadow-md";
+             activeClass = "bg-indigo-600 text-white shadow-md";
           } else if (val.toLowerCase() === "event" || val.toLowerCase() === "événements" || val.toLowerCase() === "evenements") {
              label = t.incomesPage.events || val;
              activeClass = "bg-fuchsia-600 text-white shadow-md";
