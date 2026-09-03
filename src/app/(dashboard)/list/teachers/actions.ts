@@ -124,7 +124,7 @@ export const payTeacherSalary = async (
           title: expenseTitle,
           amount: amountPaidNow,
           date: new Date(),
-          category: "Salary",
+          category: isAdvance ? "Advance" : "Salary",
           referenceType: "TeacherSalary",
           referenceId: p.id.toString(),
           schoolId,

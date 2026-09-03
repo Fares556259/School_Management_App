@@ -89,7 +89,8 @@ export default function ExpensesListClient({
 
   const getCategoryColor = (cat: string) => {
     const c = cat.toLowerCase();
-    if (c.includes("salary")) return "text-emerald-700 bg-emerald-50 border-emerald-200";
+    if (c.includes("salary") || c.includes("salaire")) return "text-emerald-700 bg-emerald-50 border-emerald-200";
+    if (c.includes("advance") || c.includes("avance")) return "text-purple-700 bg-purple-50 border-purple-200";
     if (c.includes("utilit")) return "text-blue-700 bg-blue-50 border-blue-200";
     if (c.includes("equip")) return "text-orange-700 bg-orange-50 border-orange-200";
     if (c.includes("maintenance")) return "text-amber-700 bg-amber-50 border-amber-200";
@@ -101,6 +102,7 @@ export default function ExpensesListClient({
     if (locale === "ar") {
       tTitle = tTitle.replace(/^Tuition:/i, "رسوم دراسية:");
       tTitle = tTitle.replace(/^Salary:/i, "الراتب:");
+      tTitle = tTitle.replace(/^Advance:/i, "سلفة:");
       tTitle = tTitle.replace(/Recovery/i, "استرداد");
       tTitle = tTitle.replace(/January/i, "يناير");
       tTitle = tTitle.replace(/February/i, "فبراير");
@@ -117,6 +119,7 @@ export default function ExpensesListClient({
     } else if (locale === "fr") {
       tTitle = tTitle.replace(/^Tuition:/i, "Frais Scolaires:");
       tTitle = tTitle.replace(/^Salary:/i, "Salaire:");
+      tTitle = tTitle.replace(/^Advance:/i, "Avance:");
       tTitle = tTitle.replace(/Recovery/i, "Recouvrement");
       tTitle = tTitle.replace(/January/i, "Janvier");
       tTitle = tTitle.replace(/February/i, "Février");
@@ -332,6 +335,9 @@ export default function ExpensesListClient({
           if (val.toLowerCase() === "salary" || val.toLowerCase() === "salaire") {
              label = t.expensesPage.salary || val;
              activeClass = "bg-emerald-600 text-white shadow-md";
+          } else if (val.toLowerCase() === "advance" || val.toLowerCase() === "avance") {
+             label = locale === "ar" ? "السلف" : locale === "fr" ? "Avances" : "Advances";
+             activeClass = "bg-purple-600 text-white shadow-md";
           } else if (val.toLowerCase() === "utility" || val.toLowerCase() === "utilities" || val.toLowerCase() === "services publics") {
              label = t.expensesPage.utilities || val;
              activeClass = "bg-blue-600 text-white shadow-md";
