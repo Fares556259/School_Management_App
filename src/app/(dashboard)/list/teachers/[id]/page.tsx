@@ -6,8 +6,7 @@ import prisma from "@/lib/prisma";
 import { Teacher, Subject, Class } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import TeacherSalaryTracker from "./TeacherSalaryTracker";
-import SalarySummaryCard from "./SalarySummaryCard";
+import TeacherFinanceHub from "./TeacherFinanceHub";
 import TeacherSchedule, { ScheduleItem } from "./TeacherSchedule";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
@@ -361,81 +360,15 @@ const SingleTeacherPage = async ({
           />
         </div>
 
-        {/* RIGHT COLUMN: SHORTCUTS, FINANCE & SALARY SUMMARY */}
+        {/* RIGHT COLUMN: FINANCIAL HUB & PERFORMANCE */}
         <div className="w-full xl:w-1/3 flex flex-col gap-6">
-          {/* QUICK SHORTCUTS CARD */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-              <GraduationCap size={16} className="text-indigo-600" />
-              <span>Accès rapides</span>
-            </h2>
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <Link
-                href={`/list/classes?teacherId=${teacher.id}`}
-                className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-100 hover:border-indigo-100 transition-all flex flex-col justify-between gap-2 group"
-              >
-                <div className="flex items-center justify-between text-slate-500 group-hover:text-indigo-600">
-                  <Users size={16} />
-                  <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <span className="font-semibold text-slate-700 group-hover:text-indigo-900">
-                  Classes ({teacher._count.classes})
-                </span>
-              </Link>
-
-              <Link
-                href={`/list/students?teacherId=${teacher.id}`}
-                className="p-3 rounded-xl bg-slate-50 hover:bg-purple-50/70 border border-slate-100 hover:border-purple-100 transition-all flex flex-col justify-between gap-2 group"
-              >
-                <div className="flex items-center justify-between text-slate-500 group-hover:text-purple-600">
-                  <GraduationCap size={16} />
-                  <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <span className="font-semibold text-slate-700 group-hover:text-purple-900">
-                  Élèves
-                </span>
-              </Link>
-
-              <Link
-                href={`/list/exams?teacherId=${teacher.id}`}
-                className="p-3 rounded-xl bg-slate-50 hover:bg-rose-50/70 border border-slate-100 hover:border-rose-100 transition-all flex flex-col justify-between gap-2 group"
-              >
-                <div className="flex items-center justify-between text-slate-500 group-hover:text-rose-600">
-                  <FileCheck size={16} />
-                  <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <span className="font-semibold text-slate-700 group-hover:text-rose-900">
-                  Examens
-                </span>
-              </Link>
-
-              <Link
-                href={`/list/assignments?teacherId=${teacher.id}`}
-                className="p-3 rounded-xl bg-slate-50 hover:bg-amber-50/70 border border-slate-100 hover:border-amber-100 transition-all flex flex-col justify-between gap-2 group"
-              >
-                <div className="flex items-center justify-between text-slate-500 group-hover:text-amber-600">
-                  <FileText size={16} />
-                  <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <span className="font-semibold text-slate-700 group-hover:text-amber-900">
-                  Devoirs
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          {/* SALARY SUMMARY CARD */}
-          <SalarySummaryCard
-            salary={teacher.salary}
-            payments={teacher.payments}
-          />
-
-          {/* TEACHER SALARY TRACKER */}
-          <TeacherSalaryTracker 
+          {/* UNIFIED FINANCIAL HUB */}
+          <TeacherFinanceHub
             teacherId={teacher.id}
             teacherName={teacherFullName}
             salary={teacher.salary}
+            hourlyRate={teacher.hourlyRate}
+            hoursPerMonth={teacher.hoursPerMonth}
             payments={teacher.payments}
             isAdmin={role === "admin"}
           />
