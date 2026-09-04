@@ -49,7 +49,7 @@ export default function TornadoChart({ baselineProfit, simulatedProfit, impacts 
         </div>
         <div className="text-right">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Simulator Profit</p>
-           <p className="text-sm font-black text-indigo-600">${Math.floor(simulatedProfit).toLocaleString()}</p>
+           <p className="text-sm font-black text-indigo-600">{Math.floor(simulatedProfit).toLocaleString("en-US").replace(/,/g, " ")} DT</p>
         </div>
       </div>
 

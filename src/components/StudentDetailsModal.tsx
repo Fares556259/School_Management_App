@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, X } from "lucide-react";
+import { Eye, X, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -91,7 +91,13 @@ export default function StudentDetailsModal({
                   <div className="flex items-center gap-2 text-[13px] font-normal text-[#41454d]">
                     <span>الطلاب</span>
                     <span className="text-[#9297a0]">/</span>
-                    <span>{student.name} {student.surname}</span>
+                    <Link
+                      href={`/list/students/${student.id}`}
+                      className="text-blue-600 hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <span>{student.name} {student.surname}</span>
+                      <ExternalLink size={12} />
+                    </Link>
                   </div>
                 </div>
                 <button
@@ -265,7 +271,14 @@ export default function StudentDetailsModal({
               </div>
 
               {/* FOOTER */}
-              <div className="px-6 py-4 border-t border-[#dddddd] flex items-center justify-end gap-3 bg-white">
+              <div className="px-6 py-4 border-t border-[#dddddd] flex items-center justify-between gap-3 bg-white">
+                <Link
+                  href={`/list/students/${student.id}`}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-[10px] text-[13px] font-medium transition-colors shadow-sm flex items-center gap-2"
+                >
+                  <span>الملف الشخصي الكامل</span>
+                  <ExternalLink size={15} />
+                </Link>
                 <button
                   onClick={() => setOpen(false)}
                   className="px-5 py-2.5 bg-[#181d26] text-white hover:bg-[#0d1218] rounded-[10px] text-[14px] font-medium transition-colors shadow-sm"

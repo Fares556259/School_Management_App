@@ -67,7 +67,7 @@ const FinanceChartClient = ({
         <div className="flex flex-col">
           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Total Income</span>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-black text-slate-800 tracking-tight">${totalIncome.toLocaleString()}</span>
+            <span className="text-2xl font-black text-slate-800 tracking-tight">{totalIncome.toLocaleString("en-US").replace(/,/g, " ")} DT</span>
             <div className="p-1 rounded-full bg-emerald-50 text-emerald-500">
               <ArrowUpRight size={14} />
             </div>
@@ -77,7 +77,7 @@ const FinanceChartClient = ({
         <div className="flex flex-col">
           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Total Expenses</span>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-black text-slate-800 tracking-tight">${totalExpense.toLocaleString()}</span>
+            <span className="text-2xl font-black text-slate-800 tracking-tight">{totalExpense.toLocaleString("en-US").replace(/,/g, " ")} DT</span>
             <div className="p-1 rounded-full bg-rose-50 text-rose-500">
               <ArrowDownRight size={14} />
             </div>
@@ -88,7 +88,7 @@ const FinanceChartClient = ({
           <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Net Result</span>
           <div className="flex items-center gap-2">
             <span className={`text-2xl font-black tracking-tight ${netResult >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-              ${netResult.toLocaleString()}
+              {netResult.toLocaleString("en-US").replace(/,/g, " ")} DT
             </span>
             <div className={`p-1 rounded-full ${netResult >= 0 ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"}`}>
               {netResult > 0 ? <ArrowUpRight size={14} /> : netResult < 0 ? <ArrowDownRight size={14} /> : <Minus size={14} />}
@@ -125,7 +125,7 @@ const FinanceChartClient = ({
               }}
               itemStyle={{ fontWeight: 800, fontSize: "12px" }}
               labelStyle={{ fontWeight: 800, color: "#64748b", marginBottom: "8px", fontSize: "10px", textTransform: "uppercase" }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]}
+              formatter={(value: number) => [`${value.toLocaleString("en-US").replace(/,/g, " ")} DT`, undefined]}
             />
             <Line
               type="monotone"

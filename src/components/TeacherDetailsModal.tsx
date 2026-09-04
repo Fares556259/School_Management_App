@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, X } from "lucide-react";
+import { Eye, X, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import PaymentTimeline from "@/components/PaymentTimeline";
 
 interface TeacherDetailsModalProps {
@@ -92,7 +93,13 @@ export default function TeacherDetailsModal({
                   <div className="flex items-center gap-2 text-[13px] font-normal text-[#41454d]">
                     <span>Teachers</span>
                     <span className="text-[#9297a0]">/</span>
-                    <span>{teacher.name} {teacher.surname}</span>
+                    <Link
+                      href={`/list/teachers/${teacher.id}`}
+                      className="text-blue-600 hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <span>{teacher.name} {teacher.surname}</span>
+                      <ExternalLink size={12} />
+                    </Link>
                   </div>
                 </div>
                 <button
@@ -152,7 +159,7 @@ export default function TeacherDetailsModal({
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">Base Salary</span>
-                        <span className="text-[14px] font-medium text-[#181d26]">${teacher.salary.toLocaleString()}</span>
+                        <span className="text-[14px] font-medium text-[#181d26]">{teacher.salary.toLocaleString("en-US").replace(/,/g, " ")} DT</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">Blood Type</span>
@@ -275,7 +282,14 @@ export default function TeacherDetailsModal({
               </div>
 
               {/* FOOTER */}
-              <div className="px-6 py-4 border-t border-[#dddddd] flex items-center justify-end gap-3 bg-white">
+              <div className="px-6 py-4 border-t border-[#dddddd] flex items-center justify-between gap-3 bg-white">
+                <Link
+                  href={`/list/teachers/${teacher.id}`}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-[10px] text-[13px] font-medium transition-colors shadow-sm flex items-center gap-2"
+                >
+                  <span>Profil complet & Emploi du temps</span>
+                  <ExternalLink size={15} />
+                </Link>
                 <button
                   onClick={() => setOpen(false)}
                   className="px-5 py-2.5 bg-[#181d26] text-white hover:bg-[#0d1218] rounded-[10px] text-[14px] font-medium transition-colors shadow-sm"

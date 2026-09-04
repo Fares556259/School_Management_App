@@ -42,16 +42,16 @@ export const DailyReportEmail = ({
             <Row>
               <Column>
                 <Text style={statLabel}>Income Today</Text>
-                <Text style={{ ...statValue, color: "#10b981" }}>${financialData.totalIncomeToday}</Text>
+                <Text style={{ ...statValue, color: "#10b981" }}>{financialData.totalIncomeToday} DT</Text>
               </Column>
               <Column>
                 <Text style={statLabel}>Expenses Today</Text>
-                <Text style={{ ...statValue, color: "#ef4444" }}>${financialData.totalExpensesToday}</Text>
+                <Text style={{ ...statValue, color: "#ef4444" }}>{financialData.totalExpensesToday} DT</Text>
               </Column>
               <Column>
                 <Text style={statLabel}>Net</Text>
                 <Text style={{ ...statValue, color: financialData.netResult >= 0 ? "#10b981" : "#ef4444" }}>
-                  ${financialData.netResult}
+                  {financialData.netResult} DT
                 </Text>
               </Column>
             </Row>
@@ -59,7 +59,7 @@ export const DailyReportEmail = ({
 
           <Section style={section}>
             <Heading as="h2" style={h2}>⚠️ Unpaid Alerts</Heading>
-            <Text style={text}>Total Unpaid Amount: <strong style={{ color: "#ef4444" }}>${payments.totalUnpaidAmount}</strong></Text>
+            <Text style={text}>Total Unpaid Amount: <strong style={{ color: "#ef4444" }}>{payments.totalUnpaidAmount} DT</strong></Text>
             <ul style={list}>
               <li style={listItem}>{payments.unpaidStudents} Students are unpaid.</li>
               <li style={listItem}>{payments.unpaidTeachers} Teachers are unpaid.</li>

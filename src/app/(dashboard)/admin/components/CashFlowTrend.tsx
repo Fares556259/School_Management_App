@@ -38,11 +38,11 @@ const CashFlowTrend: React.FC<CashFlowTrendProps> = ({ data }) => {
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-4">
               <span className="text-[11px] font-bold text-slate-500">Income</span>
-              <span className="text-sm font-black text-indigo-500">${Math.round(payload[0].value).toLocaleString()}</span>
+              <span className="text-sm font-black text-indigo-500">{Math.round(payload[0].value).toLocaleString("en-US").replace(/,/g, " ")} DT</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-[11px] font-bold text-slate-500">Expense</span>
-              <span className="text-sm font-black text-rose-500">${Math.round(payload[1].value).toLocaleString()}</span>
+              <span className="text-sm font-black text-rose-500">{Math.round(payload[1].value).toLocaleString("en-US").replace(/,/g, " ")} DT</span>
             </div>
           </div>
         </div>

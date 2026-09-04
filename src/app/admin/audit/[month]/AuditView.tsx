@@ -181,7 +181,7 @@ const AuditView = ({ initialAnalysis, monthLabel, totalIncome, totalExpense, pro
                             <div className="p-6 bg-[#F8FAFC] rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-3 opacity-10"><DollarSign size={40} /></div>
                                 <p className="text-[9pt] font-black text-slate-400 uppercase tracking-widest mb-4 font-montserrat">Total Revenue</p>
-                                <p className="text-[20pt] font-montserrat font-black text-[#0F172A] mb-1 font-inter">${totalIncome.toLocaleString()}</p>
+                                <p className="text-[20pt] font-montserrat font-black text-[#0F172A] mb-1 font-inter">{totalIncome.toLocaleString("en-US").replace(/,/g, " ")} DT</p>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <ArrowUpRight size={14} className="text-emerald-500" />
                                     <span className="text-[9pt] font-black text-emerald-600 font-montserrat">8.2%</span>
@@ -191,7 +191,7 @@ const AuditView = ({ initialAnalysis, monthLabel, totalIncome, totalExpense, pro
                             <div className="p-6 bg-[#F8FAFC] rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-3 opacity-10"><CreditCard size={40} /></div>
                                 <p className="text-[9pt] font-black text-slate-400 uppercase tracking-widest mb-4 font-montserrat">Expenses</p>
-                                <p className="text-[20pt] font-montserrat font-black text-[#0F172A] mb-1 font-inter">${totalExpense.toLocaleString()}</p>
+                                <p className="text-[20pt] font-montserrat font-black text-[#0F172A] mb-1 font-inter">{totalExpense.toLocaleString("en-US").replace(/,/g, " ")} DT</p>
                                 <div className="flex items-center gap-1.5">
                                     <ArrowDownRight size={14} className="text-rose-500" />
                                     <span className="text-[9pt] font-black text-rose-500 font-montserrat">2.1%</span>
@@ -201,7 +201,7 @@ const AuditView = ({ initialAnalysis, monthLabel, totalIncome, totalExpense, pro
                             <div className="p-6 bg-[#0F172A] rounded-3xl shadow-xl shadow-blue-900/10 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-3 opacity-10 text-white"><TrendingUp size={40} /></div>
                                 <p className="text-[9pt] font-black text-white/40 uppercase tracking-widest mb-4 font-montserrat">Net Profit</p>
-                                <p className="text-[20pt] font-montserrat font-black text-white mb-1 font-inter">${profit.toLocaleString()}</p>
+                                <p className="text-[20pt] font-montserrat font-black text-white mb-1 font-inter">{profit.toLocaleString("en-US").replace(/,/g, " ")} DT</p>
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                                     <span className="text-[9pt] font-black text-blue-400 font-montserrat">Positive</span>
@@ -220,7 +220,7 @@ const AuditView = ({ initialAnalysis, monthLabel, totalIncome, totalExpense, pro
                         {/* DATA VISUALIZATION SECTION */}
                         <div className="grid grid-cols-2 gap-8">
                             <div className="space-y-4">
-                                <h3 className="text-[14pt] font-montserrat font-black text-[#0F172A] uppercase tracking-wider">Revenue vs Expenses (USD)</h3>
+                                <h3 className="text-[14pt] font-montserrat font-black text-[#0F172A] uppercase tracking-wider">Revenue vs Expenses (DT)</h3>
                                 <div className="h-[250px] w-full bg-[#fbfcfd] p-4 rounded-3xl border border-slate-50">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={trendData} barGap={8}>
@@ -266,20 +266,20 @@ const AuditView = ({ initialAnalysis, monthLabel, totalIncome, totalExpense, pro
                                     <tbody className="text-[11pt] font-inter">
                                         <tr className="border-t border-slate-50">
                                             <td className="p-5 font-bold text-slate-700">Student Tuition Revenue</td>
-                                            <td className="p-5 text-right text-slate-400">${(totalIncome * 0.9).toLocaleString()}</td>
-                                            <td className="p-5 text-right text-blue-600 font-black">${totalIncome.toLocaleString()}</td>
+                                            <td className="p-5 text-right text-slate-400">{(totalIncome * 0.9).toLocaleString("en-US").replace(/,/g, " ")} DT</td>
+                                            <td className="p-5 text-right text-blue-600 font-black">{totalIncome.toLocaleString("en-US").replace(/,/g, " ")} DT</td>
                                             <td className="p-5 text-right text-emerald-500 font-bold">+10.0%</td>
                                         </tr>
                                         <tr className="border-t border-slate-50">
                                             <td className="p-5 font-bold text-slate-700">Operating Expenditures</td>
-                                            <td className="p-5 text-right text-slate-400">${(totalExpense * 1.1).toLocaleString()}</td>
-                                            <td className="p-5 text-right text-rose-500 font-black">${totalExpense.toLocaleString()}</td>
+                                            <td className="p-5 text-right text-slate-400">{(totalExpense * 1.1).toLocaleString("en-US").replace(/,/g, " ")} DT</td>
+                                            <td className="p-5 text-right text-rose-500 font-black">{totalExpense.toLocaleString("en-US").replace(/,/g, " ")} DT</td>
                                             <td className="p-5 text-right text-emerald-500 font-bold">-9.1%</td>
                                         </tr>
                                         <tr className="bg-[#0F172A] text-white">
                                             <td className="p-6 font-black font-montserrat text-[12pt]">Net Performance (Surplus)</td>
-                                            <td className="p-6 text-right text-white/40 font-bold">${(totalIncome * 0.9 - totalExpense * 1.1).toLocaleString()}</td>
-                                            <td className="p-6 text-right text-blue-400 font-black text-[14pt]">${profit.toLocaleString()}</td>
+                                            <td className="p-6 text-right text-white/40 font-bold">{(totalIncome * 0.9 - totalExpense * 1.1).toLocaleString("en-US").replace(/,/g, " ")} DT</td>
+                                            <td className="p-6 text-right text-blue-400 font-black text-[14pt]">{profit.toLocaleString("en-US").replace(/,/g, " ")} DT</td>
                                             <td className="p-6 text-right text-emerald-400 font-black">+14.2%</td>
                                         </tr>
                                     </tbody>

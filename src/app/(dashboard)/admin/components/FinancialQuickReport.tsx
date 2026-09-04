@@ -106,21 +106,21 @@ const FinancialQuickReport: React.FC<FinancialQuickReportProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 bg-slate-50 rounded-2xl flex flex-col gap-1">
               <span className="text-[10px] uppercase font-bold text-slate-400">Total Income</span>
-              <span className="text-sm font-black text-slate-700 tracking-tight">${income.toLocaleString()}</span>
+              <span className="text-sm font-black text-slate-700 tracking-tight">{income.toLocaleString("en-US").replace(/,/g, " ")} DT</span>
             </div>
             <div className="p-3 bg-slate-50 rounded-2xl flex flex-col gap-1">
               <span className="text-[10px] uppercase font-bold text-slate-400">Total Expense</span>
-              <span className="text-sm font-black text-slate-700 tracking-tight">${expense.toLocaleString()}</span>
+              <span className="text-sm font-black text-slate-700 tracking-tight">{expense.toLocaleString("en-US").replace(/,/g, " ")} DT</span>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
             <div className="flex flex-col items-center">
-              <span className="text-sm font-black text-slate-800">${Math.round(balance / 1000)}k</span>
+              <span className="text-sm font-black text-slate-800">{Math.round(balance / 1000)}k DT</span>
               <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Profit</span>
             </div>
             <div className="flex flex-col items-center border-l border-r border-slate-100">
-              <span className="text-sm font-black text-rose-500">${Math.round(unpaid / 1000)}k</span>
+              <span className="text-sm font-black text-rose-500">{Math.round(unpaid / 1000)}k DT</span>
               <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Arrears</span>
             </div>
             <div className="flex flex-col items-center">

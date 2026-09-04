@@ -249,7 +249,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                           <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26]">{t.name} {t.surname || ""}</td>
                           <td className="px-5 py-4 text-[13px] font-medium text-slate-600">{t.email || t.phone || "N/A"}</td>
                           <td className="px-5 py-4 text-[13px] font-mono text-indigo-600">{t.username}</td>
-                          <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26] text-right">${t.salary}</td>
+                          <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26] text-right">{t.salary.toLocaleString("en-US").replace(/,/g, " ")} DT</td>
                         </tr>
                       ))}
                     </tbody>

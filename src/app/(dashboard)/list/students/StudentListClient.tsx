@@ -13,7 +13,7 @@ import StudentDetailsModal from "@/components/StudentDetailsModal";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { Sparkles, Users, Eye } from "lucide-react";
+import { Sparkles, Users, Eye, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
@@ -146,18 +146,25 @@ export default function StudentListClient({
         key={item.id}
         className="border-b border-[#dddddd] hover:bg-[#f8fafc] transition-colors group"
       >
-        <td className="flex items-center gap-4 py-4 px-6">
-          <Image
-            src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noAvatar.png"}
-            alt=""
-            width={40}
-            height={40}
-            className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd]"
-          />
-          <div className="flex flex-col">
-            <h3 className="text-[14px] font-medium text-[#181d26]">{item.name} {item.surname}</h3>
-            <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? t.students.noClass}</p>
-          </div>
+        <td className="py-4 px-6">
+          <Link
+            href={`/list/students/${item.id}`}
+            className="flex items-center gap-4 group/name"
+          >
+            <Image
+              src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noAvatar.png"}
+              alt=""
+              width={40}
+              height={40}
+              className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd] group-hover/name:border-blue-400 transition-colors"
+            />
+            <div className="flex flex-col">
+              <h3 className="text-[14px] font-medium text-[#181d26] group-hover/name:text-blue-600 group-hover/name:underline transition-colors">
+                {item.name} {item.surname}
+              </h3>
+              <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? t.students.noClass}</p>
+            </div>
+          </Link>
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">
           {item.classId ? `Level ${item.level.level}` : "-"}
@@ -200,6 +207,13 @@ export default function StudentListClient({
               schoolName={relatedData.schoolName}
               adminName={relatedData.adminName}
             />
+            <Link
+              href={`/list/students/${item.id}`}
+              className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors text-[#41454d]"
+              title="Profil complet"
+            >
+              <ExternalLink size={15} strokeWidth={2} />
+            </Link>
             <PayStudentModal
               studentId={item.id}
               studentName={item.name + " " + item.surname}

@@ -158,17 +158,17 @@ const FinancePage = async ({
       <div className="flex gap-4 justify-between flex-wrap">
         <div className="rounded-2xl bg-indigo-500 p-6 flex-1 min-w-[180px] shadow-sm">
           <h2 className="text-sm font-semibold text-indigo-200 uppercase tracking-widest">Total Income</h2>
-          <h1 className="text-3xl font-bold text-white mt-2">${totalIncome.toLocaleString()}</h1>
+          <h1 className="text-3xl font-bold text-white mt-2">{totalIncome.toLocaleString("en-US").replace(/,/g, " ")} DT</h1>
           <p className="text-xs text-indigo-200 mt-2">{allIncomes.length} records</p>
         </div>
         <div className="rounded-2xl bg-rose-500 p-6 flex-1 min-w-[180px] shadow-sm">
           <h2 className="text-sm font-semibold text-rose-200 uppercase tracking-widest">Total Expenses</h2>
-          <h1 className="text-3xl font-bold text-white mt-2">${totalExpense.toLocaleString()}</h1>
+          <h1 className="text-3xl font-bold text-white mt-2">{totalExpense.toLocaleString("en-US").replace(/,/g, " ")} DT</h1>
           <p className="text-xs text-rose-200 mt-2">{allExpenses.length} records</p>
         </div>
         <div className={`rounded-2xl p-6 flex-1 min-w-[180px] shadow-sm ${netProfit >= 0 ? "bg-emerald-500" : "bg-red-500"}`}>
           <h2 className="text-sm font-semibold text-emerald-100 uppercase tracking-widest">Net Balance</h2>
-          <h1 className="text-3xl font-bold text-white mt-2">${netProfit.toLocaleString()}</h1>
+          <h1 className="text-3xl font-bold text-white mt-2">{netProfit.toLocaleString("en-US").replace(/,/g, " ")} DT</h1>
           <p className="text-xs text-emerald-100 mt-2">Overall</p>
         </div>
         <div className="rounded-2xl bg-amber-500 p-6 flex-1 min-w-[180px] shadow-sm">
@@ -244,7 +244,7 @@ const FinancePage = async ({
                       <p className="text-xs text-slate-400">{e.category} · {new Date(e.date).toLocaleDateString()}</p>
                     </div>
                     <span className="text-rose-500 font-bold text-sm bg-rose-50 px-2 py-1 rounded-full">
-                      -${e.amount.toLocaleString()}
+                      -{e.amount.toLocaleString("en-US").replace(/,/g, " ")} DT
                     </span>
                   </div>
                 ))
@@ -275,7 +275,7 @@ const FinancePage = async ({
                       <p className="text-xs text-slate-400">{i.category} · {new Date(i.date).toLocaleDateString()}</p>
                     </div>
                     <span className="text-emerald-500 font-bold text-sm bg-emerald-50 px-2 py-1 rounded-full">
-                      +${i.amount.toLocaleString()}
+                      +{i.amount.toLocaleString("en-US").replace(/,/g, " ")} DT
                     </span>
                   </div>
                 ))
@@ -301,7 +301,7 @@ const FinancePage = async ({
                 >
                   <span className="text-sm font-medium text-slate-700">{t.name} {t.surname}</span>
                   <span className="text-xs text-rose-500 font-bold bg-rose-50 px-2 py-1 rounded-full">
-                    ${t.salary} due
+                    {t.salary.toLocaleString("en-US").replace(/,/g, " ")} DT due
                   </span>
                 </Link>
               ))}
@@ -325,7 +325,7 @@ const FinancePage = async ({
                   >
                     <span className="text-sm font-medium text-slate-700">{s.name} {s.surname}</span>
                     <span className="text-xs text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded-full">
-                      ${tuitionAmount} due
+                      {tuitionAmount.toLocaleString("en-US").replace(/,/g, " ")} DT due
                     </span>
                   </Link>
                 );
