@@ -7,10 +7,8 @@ import Pagination from "@/components/Pagination";
 import BulkTeacherImport from "./BulkTeacherImport";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
-import TeacherDetailsModal from "@/components/TeacherDetailsModal";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
-
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import { Sparkles, ChevronDown, BookOpen, Layers, ExternalLink } from "lucide-react";
@@ -221,7 +219,6 @@ export default function TeacherListClient({
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
-            <TeacherDetailsModal teacher={item} />
             <Link
               href={`/list/teachers/${item.id}`}
               className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors text-[#41454d]"
