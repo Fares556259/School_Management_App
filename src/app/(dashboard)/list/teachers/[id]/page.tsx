@@ -73,6 +73,36 @@ const SingleTeacherPage = async ({
     600
   );
 
+  const allTeachers = await getCachedTenantData(
+    schoolId,
+    "teachers",
+    [schoolId, "quick_nav_list"],
+    async () => {
+      return prisma.teacher.findMany({
+        where: { schoolId },
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          img: true,
+          sex: true,
+          activated: true,
+          subjects: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [
+          { name: "asc" },
+          { surname: "asc" },
+        ],
+      });
+    },
+    600
+  );
+
   if (!teacher) {
     return notFound();
   }
@@ -142,6 +172,7 @@ const SingleTeacherPage = async ({
       teacherFullName={teacherFullName}
       totalHours={totalHours}
       isAdmin={role === "admin"}
+      allTeachers={allTeachers || []}
     />
   );
 };

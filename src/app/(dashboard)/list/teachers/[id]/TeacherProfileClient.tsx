@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import FormModal from "@/components/FormModal";
 import TeacherFinanceHub from "./TeacherFinanceHub";
 import TeacherSchedule, { ScheduleItem } from "./TeacherSchedule";
 import { getUserAvatar } from "@/lib/avatar";
+import { 
+  TeacherBreadcrumbNav, 
+  TeacherSideDrawer, 
+  FloatingTeacherNavTrigger, 
+  QuickTeacherItem 
+} from "./TeacherQuickNav";
 import { 
   Phone, 
   MapPin, 
@@ -33,6 +39,7 @@ interface TeacherProfileClientProps {
   teacherFullName: string;
   totalHours: number;
   isAdmin: boolean;
+  allTeachers?: QuickTeacherItem[];
 }
 
 export default function TeacherProfileClient({
@@ -43,8 +50,30 @@ export default function TeacherProfileClient({
   teacherFullName,
   totalHours,
   isAdmin,
+  allTeachers = [],
 }: TeacherProfileClientProps) {
   const [activeTab, setActiveTab] = useState<"finance" | "schedule" | "overview">("finance");
+  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
+  const [isSideNavPinned, setIsSideNavPinned] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedPin = localStorage.getItem("teacher_nav_pinned");
+      if (savedPin === "true") {
+        setIsSideNavPinned(true);
+      }
+    } catch {}
+  }, []);
+
+  const handleTogglePin = () => {
+    setIsSideNavPinned((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("teacher_nav_pinned", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
@@ -52,22 +81,24 @@ export default function TeacherProfileClient({
   const totalPaid = (teacher.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
 
   return (
-    <div className="flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
-      {/* 1. TOP BREADCRUMB */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+    <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 ${
+      isSideNavPinned ? "lg:pr-[330px]" : ""
+    }`}>
+      {/* 1. TOP BREADCRUMB & QUICK NAV */}
+      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
           <Link 
             href="/list/teachers" 
-            className="flex items-center gap-1.5 hover:text-blue-600 transition-colors font-medium text-slate-600"
+            className="flex items-center gap-1.5 hover:text-blue-600 transition-colors font-medium text-slate-600 shrink-0"
           >
             <ArrowLeft size={16} />
             <span>Enseignants</span>
           </Link>
-          <span className="text-slate-300">/</span>
-          <span className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-none">
+          <span className="text-slate-300 shrink-0">/</span>
+          <span className="font-semibold text-slate-800 truncate max-w-[150px] sm:max-w-none">
             {teacherFullName}
           </span>
-          <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+          <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
             teacher.activated 
               ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
               : "bg-amber-50 text-amber-700 border border-amber-200"
@@ -77,11 +108,22 @@ export default function TeacherProfileClient({
           </span>
         </div>
 
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            <FormModal table="teacher" type="update" data={teacher} />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Quick Stepper & Switcher */}
+          {allTeachers.length > 0 && (
+            <TeacherBreadcrumbNav
+              currentTeacherId={teacher.id}
+              teachers={allTeachers}
+              onOpenList={() => setIsSideNavOpen(true)}
+            />
+          )}
+
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <FormModal table="teacher" type="update" data={teacher} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 2. UNIFIED TEACHER IDENTITY & METRIC HEADER */}
@@ -351,6 +393,24 @@ export default function TeacherProfileClient({
           />
         </div>
       )}
+
+      {/* Floating Edge Trigger (when closed & not pinned) */}
+      <FloatingTeacherNavTrigger
+        onOpen={() => setIsSideNavOpen(true)}
+        totalTeachers={allTeachers.length}
+        isPinned={isSideNavPinned}
+      />
+
+      {/* Side Drawer / Panel */}
+      <TeacherSideDrawer
+        currentTeacherId={teacher.id}
+        teachers={allTeachers}
+        isOpen={isSideNavOpen}
+        isPinned={isSideNavPinned}
+        onClose={() => setIsSideNavOpen(false)}
+        onToggleOpen={() => setIsSideNavOpen((prev) => !prev)}
+        onTogglePin={handleTogglePin}
+      />
     </div>
   );
 }
