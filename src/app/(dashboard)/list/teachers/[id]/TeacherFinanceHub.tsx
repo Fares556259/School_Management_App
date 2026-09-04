@@ -13,7 +13,8 @@ import {
   Banknote,
   Calendar,
   Sparkles,
-  Scissors
+  Scissors,
+  FileText
 } from "lucide-react";
 import { payTeacherSalary } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
@@ -129,7 +130,6 @@ export default function TeacherFinanceHub({
       const rate = hourlyRate || 15;
       return sum + p.missedHours * rate;
     }
-    // Also check if salary > amount on a PAID record
     if (p.status === "PAID" && salary > p.amount) {
       return sum + (salary - p.amount);
     }
@@ -204,326 +204,385 @@ export default function TeacherFinanceHub({
 
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
+  const formatDate = (dateStr?: Date | string | null) => {
+    if (!dateStr) return "Date non renseignée";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "Date non renseignée";
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(d);
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex flex-col gap-5">
-      {/* 1. HEADER */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-            <Wallet size={18} />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-800 leading-tight">
-              Rémunération & Salaires
-            </h2>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Année scolaire {academicStartYear}/{academicEndYear}
-            </p>
-          </div>
-        </div>
-
-        {/* Base salary badge */}
-        <div className="text-right">
-          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-            Salaire de base
-          </span>
-          <span className="text-sm font-black text-slate-800">
-            {fmt(salary)}
-          </span>
-        </div>
-      </div>
-
-      {/* 2. EXACT KPI STATS GRID */}
-      <div className="grid grid-cols-2 gap-2.5">
+    <div className="flex flex-col gap-6 w-full">
+      {/* 1. TOP FINANCIAL KPIS (4 BALANCED CARDS FULL WIDTH) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Versé */}
-        <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+        <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">
               Total Versé
             </span>
-            <CheckCircle2 size={13} className="text-emerald-600" />
+            <span className="text-2xl font-black text-emerald-950 block mt-1">
+              {fmt(totalPaid)}
+            </span>
+            <span className="text-xs text-emerald-600 font-medium block mt-0.5">
+              {paidMonthsCount} {paidMonthsCount > 1 ? "mois réglés" : "mois réglé"}
+            </span>
           </div>
-          <p className="text-lg font-black text-emerald-900 leading-tight">
-            {fmt(totalPaid)}
-          </p>
-          <span className="text-[10px] text-emerald-600 font-medium mt-1">
-            {paidMonthsCount} {paidMonthsCount > 1 ? "mois réglés" : "mois réglé"}
-          </span>
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+            <CheckCircle2 size={24} />
+          </div>
         </div>
 
         {/* Avances Versées */}
-        <div className="p-3 bg-purple-50/70 border border-purple-100 rounded-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
+        <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 block">
               Avances
             </span>
-            <TrendingUp size={13} className="text-purple-600" />
+            <span className="text-2xl font-black text-purple-950 block mt-1">
+              {fmt(totalAdvances)}
+            </span>
+            <span className="text-xs text-purple-600 font-medium block mt-0.5">
+              {totalAdvances > 0 ? "Avances en cours" : "Aucune avance"}
+            </span>
           </div>
-          <p className="text-lg font-black text-purple-900 leading-tight">
-            {fmt(totalAdvances)}
-          </p>
-          <span className="text-[10px] text-purple-600 font-medium mt-1">
-            {totalAdvances > 0 ? "Avances en cours" : "Aucune avance"}
-          </span>
+          <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 shrink-0">
+            <TrendingUp size={24} />
+          </div>
         </div>
 
-        {/* Déductions / Absences */}
-        <div className="p-3 bg-amber-50/70 border border-amber-100 rounded-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
+        {/* Déductions / Retenues */}
+        <div className="bg-white p-5 rounded-2xl border border-amber-100 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 block">
               Déductions
             </span>
-            <Scissors size={13} className="text-amber-600" />
+            <span className="text-2xl font-black text-amber-950 block mt-1">
+              {fmt(totalDeductions)}
+            </span>
+            <span className="text-xs text-amber-600 font-medium block mt-0.5">
+              {totalDeductions > 0 ? "Retenues d'absence" : "Aucune retenue"}
+            </span>
           </div>
-          <p className="text-lg font-black text-amber-900 leading-tight">
-            {fmt(totalDeductions)}
-          </p>
-          <span className="text-[10px] text-amber-600 font-medium mt-1">
-            {totalDeductions > 0 ? "Absences déduites" : "Aucune retenue"}
-          </span>
+          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+            <Scissors size={24} />
+          </div>
         </div>
 
-        {/* Solde Restant Dû */}
-        <div className={`p-3 rounded-xl border flex flex-col justify-between ${
+        {/* Reste Dû */}
+        <div className={`p-5 rounded-2xl border shadow-xs flex items-center justify-between hover:shadow-md transition-shadow ${
           outstandingBalance > 0 
-            ? "bg-rose-50 border-rose-200" 
-            : "bg-slate-50 border-slate-100"
+            ? "bg-rose-50/50 border-rose-200" 
+            : "bg-white border-slate-100"
         }`}>
-          <div className="flex items-center justify-between mb-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${
+          <div>
+            <span className={`text-[11px] font-bold uppercase tracking-wider block ${
               outstandingBalance > 0 ? "text-rose-700" : "text-slate-500"
             }`}>
               Reste Dû
             </span>
-            <AlertCircle size={13} className={outstandingBalance > 0 ? "text-rose-600" : "text-slate-400"} />
+            <span className={`text-2xl font-black block mt-1 ${
+              outstandingBalance > 0 ? "text-rose-950" : "text-slate-800"
+            }`}>
+              {outstandingBalance > 0 ? fmt(outstandingBalance) : "0 DT"}
+            </span>
+            <span className={`text-xs font-semibold block mt-0.5 ${
+              outstandingBalance > 0 ? "text-rose-600" : "text-emerald-600"
+            }`}>
+              {outstandingBalance > 0 ? "Paiement en attente" : "✓ Tout est réglé"}
+            </span>
           </div>
-          <p className={`text-lg font-black leading-tight ${
-            outstandingBalance > 0 ? "text-rose-900" : "text-slate-700"
+          <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${
+            outstandingBalance > 0 
+              ? "bg-rose-100/60 border-rose-300 text-rose-600" 
+              : "bg-slate-50 border-slate-200 text-slate-400"
           }`}>
-            {outstandingBalance > 0 ? fmt(outstandingBalance) : "0 DT"}
-          </p>
-          <span className={`text-[10px] font-semibold mt-1 ${
-            outstandingBalance > 0 ? "text-rose-600" : "text-emerald-600"
-          }`}>
-            {outstandingBalance > 0 ? "Paiement en attente" : "✓ Tout est réglé"}
-          </span>
-        </div>
-      </div>
-
-      {/* 3. ANNUAL 10-MONTH TIMELINE (Sep -> Juin) */}
-      <div className="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100">
-        <div className="flex items-center justify-between mb-2.5">
-          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-            Suivi Annuel (10 Mois)
-          </span>
-          <span className="text-[10px] font-semibold text-slate-400">
-            {paidMonthsCount}/10 Réglés
-          </span>
-        </div>
-
-        {/* Month Pills Strip */}
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
-          {academicMonths.map((m) => {
-            const isSelected = m.month === selectedMonth && m.year === selectedYear;
-            
-            let bgClass = "bg-slate-200 text-slate-600 hover:bg-slate-300";
-            let iconText = "";
-
-            if (m.status === "PAID") {
-              bgClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-xs";
-              iconText = "✓";
-            } else if (m.status === "PARTIAL") {
-              bgClass = "bg-purple-500 text-white hover:bg-purple-600";
-              iconText = "½";
-            } else if (m.status === "OVERDUE") {
-              bgClass = "bg-rose-500 text-white hover:bg-rose-600";
-              iconText = "!";
-            } else {
-              bgClass = "bg-slate-100 text-slate-400 hover:bg-slate-200";
-            }
-
-            return (
-              <button
-                key={`${m.month}-${m.year}`}
-                onClick={() => {
-                  setSelectedMonth(m.month);
-                  setSelectedYear(m.year);
-                }}
-                className={`py-1.5 px-1 rounded-lg text-center transition-all flex flex-col items-center justify-center gap-0.5 relative ${
-                  isSelected ? "ring-2 ring-indigo-500 ring-offset-1 scale-105 z-10" : ""
-                } ${bgClass}`}
-                title={`${m.fullLabel}: ${
-                  m.status === "PAID" 
-                    ? `Payé (${fmt(m.payment?.amount || salary)})` 
-                    : m.status === "PARTIAL" 
-                    ? `Avance (${fmt(m.payment?.amount || 0)})` 
-                    : m.status === "OVERDUE" 
-                    ? "En retard" 
-                    : "À venir"
-                }`}
-              >
-                <span className="text-[10px] font-bold leading-none block">
-                  {m.label}
-                </span>
-                {iconText && (
-                  <span className="text-[8px] font-black leading-none block opacity-90">
-                    {iconText}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Status Legend */}
-        <div className="flex items-center justify-between flex-wrap gap-2 mt-3 pt-2.5 border-t border-slate-200/60 text-[10px] text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Payé</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-purple-400" />
-            <span>Avance</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span>En retard</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-slate-200" />
-            <span>À venir</span>
+            <AlertCircle size={24} />
           </div>
         </div>
       </div>
 
-      {/* 4. INTERACTIVE MONTH ACTION BAR */}
-      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-3">
-        {/* Month selector switcher */}
-        <div className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200/60">
-          <button
-            onClick={handlePrevMonth}
-            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
-            title="Mois précédent"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <div className="text-center">
-            <span className="text-xs font-bold text-slate-800 block">
-              {selectedFullLabel}
-            </span>
-            <span className="text-[10px] text-slate-400 block font-medium">
-              Créneau de paie sélectionné
-            </span>
-          </div>
-          <button
-            onClick={handleNextMonth}
-            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
-            title="Mois suivant"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
+      {/* 2. DUAL BALANCED WORKSTATION: TIMELINE & ACTION (7 cols) + HISTORY & BREAKDOWN (5 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT WORKSTATION (7 OF 12 COLS) */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          {/* ANNUAL 10-MONTH TIMELINE */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+              <div>
+                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                  <Calendar size={18} className="text-indigo-600" />
+                  <span>Suivi Annuel des Salaires</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Année académique {academicStartYear}/{academicEndYear} · {paidMonthsCount}/10 mois réglés
+                </p>
+              </div>
+              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 text-right">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Salaire Mensuel</span>
+                <span className="text-xs font-black text-slate-800">{fmt(salary)}</span>
+              </div>
+            </div>
 
-        {/* Selected Month Status Details */}
-        <div className="flex items-center justify-between px-1 text-xs">
-          <span className="text-slate-500 font-medium">Statut du mois :</span>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-            isSelectedPaid 
-              ? "bg-emerald-100 text-emerald-700" 
-              : isSelectedPartial 
-              ? "bg-purple-100 text-purple-700" 
-              : "bg-rose-100 text-rose-700"
-          }`}>
-            {isSelectedPaid ? "PAYÉ" : isSelectedPartial ? "AVANCE" : "NON RÉGLÉ"}
-          </span>
-        </div>
+            {/* 10 Month Interactive Pills */}
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+              {academicMonths.map((m) => {
+                const isSelected = m.month === selectedMonth && m.year === selectedYear;
+                
+                let bgClass = "bg-slate-100 text-slate-600 hover:bg-slate-200";
+                let badgeText = "";
 
-        {/* Action Button: Pay or Settled */}
-        {isSelectedPaid ? (
-          <div className="w-full py-2.5 px-3 bg-emerald-50 border border-emerald-200 rounded-lg text-center flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700">
-            <CheckCircle2 size={14} />
-            <span>
-              Salaire réglé ({fmt(currentSelectedPayment?.amount || salary)})
-              {currentSelectedPayment?.paidAt ? ` le ${new Date(currentSelectedPayment.paidAt).toLocaleDateString("fr-FR")}` : ""}
-            </span>
-          </div>
-        ) : isAdmin ? (
-          <button
-            onClick={handlePaySalary}
-            disabled={isPending}
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Banknote size={15} />
-            <span>
-              {isPending
-                ? "Traitement en cours..."
-                : isSelectedPartial
-                ? `Compléter le salaire pour ${selectedMonthName}`
-                : `Régler ${fmt(salary)} pour ${selectedMonthName}`}
-            </span>
-          </button>
-        ) : (
-          <div className="w-full py-2 text-center text-xs text-slate-400 italic">
-            Paiement en attente de validation par l&apos;administration.
-          </div>
-        )}
-      </div>
+                if (m.status === "PAID") {
+                  bgClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-xs";
+                  badgeText = "✓";
+                } else if (m.status === "PARTIAL") {
+                  bgClass = "bg-purple-500 text-white hover:bg-purple-600";
+                  badgeText = "½";
+                } else if (m.status === "OVERDUE") {
+                  bgClass = "bg-rose-500 text-white hover:bg-rose-600";
+                  badgeText = "!";
+                } else {
+                  bgClass = "bg-slate-50 text-slate-400 border border-slate-200/60 hover:bg-slate-100";
+                }
 
-      {/* 5. PAYMENT HISTORY */}
-      {payments.length > 0 && (
-        <div className="border-t border-slate-100 pt-3">
-          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-            <span>Historique des paiements</span>
-            <span className="text-[10px] text-slate-400 font-medium lowercase">
-              {payments.length} versement{payments.length > 1 ? "s" : ""}
-            </span>
-          </h3>
-
-          <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-            {[...payments]
-              .sort((a, b) => b.year - a.year || b.month - a.month)
-              .map((p) => {
-                const pMonthName = MONTHS[p.month - 1] || `Mois ${p.month}`;
-                const hasDeduction = p.missedHours && p.missedHours > 0;
                 return (
-                  <div 
-                    key={p.id}
-                    className="p-2.5 rounded-lg bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors"
+                  <button
+                    key={`${m.month}-${m.year}`}
+                    onClick={() => {
+                      setSelectedMonth(m.month);
+                      setSelectedYear(m.year);
+                    }}
+                    className={`py-2 px-1 rounded-xl text-center transition-all flex flex-col items-center justify-center gap-1 relative ${
+                      isSelected ? "ring-2 ring-indigo-500 ring-offset-2 scale-105 z-10" : ""
+                    } ${bgClass}`}
+                    title={`${m.fullLabel}: ${
+                      m.status === "PAID" 
+                        ? `Payé (${fmt(m.payment?.amount || salary)})` 
+                        : m.status === "PARTIAL" 
+                        ? `Avance (${fmt(m.payment?.amount || 0)})` 
+                        : m.status === "OVERDUE" 
+                        ? "En retard" 
+                        : "À venir"
+                    }`}
                   >
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 block">
-                        {pMonthName} {p.year}
+                    <span className="text-xs font-bold leading-none block">
+                      {m.label}
+                    </span>
+                    {badgeText && (
+                      <span className="text-[9px] font-black leading-none block opacity-95">
+                        {badgeText}
                       </span>
-                      <span className="text-[10px] text-slate-400 block">
-                        {p.paidAt ? new Date(p.paidAt).toLocaleDateString("fr-FR") : "Date non renseignée"}
-                        {hasDeduction && (
-                          <span className="text-amber-600 font-semibold ml-1.5">
-                            (-{p.missedHours}h retenue)
-                          </span>
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="text-right flex items-center gap-2">
-                      <span className={`text-xs font-black ${
-                        p.status === "PAID" ? "text-emerald-700" :
-                        p.status === "PARTIAL" ? "text-purple-700" : "text-rose-600"
-                      }`}>
-                        {fmt(p.amount)}
-                      </span>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                        p.status === "PAID" ? "bg-emerald-100 text-emerald-700" :
-                        p.status === "PARTIAL" ? "bg-purple-100 text-purple-700" : "bg-rose-100 text-rose-700"
-                      }`}>
-                        {p.status}
-                      </span>
-                    </div>
-                  </div>
+                    )}
+                  </button>
                 );
               })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between flex-wrap gap-3 mt-5 pt-4 border-t border-slate-100 text-xs text-slate-500">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="font-medium">Payé</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                <span className="font-medium">Avance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                <span className="font-medium">En retard</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-300" />
+                <span className="font-medium">À venir</span>
+              </div>
+            </div>
+          </div>
+
+          {/* INTERACTIVE MONTH CONTROLLER */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex flex-col gap-4">
+            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+              <button
+                onClick={handlePrevMonth}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs"
+                title="Mois précédent"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <div className="text-center">
+                <span className="text-sm font-black text-slate-800 block">
+                  {selectedFullLabel}
+                </span>
+                <span className="text-[11px] text-slate-400 block font-medium">
+                  Créneau de paie sélectionné
+                </span>
+              </div>
+              <button
+                onClick={handleNextMonth}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs"
+                title="Mois suivant"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            {/* Status info strip */}
+            <div className="flex items-center justify-between px-2 text-xs">
+              <span className="text-slate-500 font-medium">Statut pour {selectedMonthName} :</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                isSelectedPaid 
+                  ? "bg-emerald-100 text-emerald-800" 
+                  : isSelectedPartial 
+                  ? "bg-purple-100 text-purple-800" 
+                  : "bg-rose-100 text-rose-800"
+              }`}>
+                {isSelectedPaid ? "PAYÉ" : isSelectedPartial ? "AVANCE VERSÉE" : "NON RÉGLÉ"}
+              </span>
+            </div>
+
+            {/* Action Box */}
+            {isSelectedPaid ? (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-800">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold block">
+                      Salaire réglé pour {selectedMonthName}
+                    </span>
+                    <span className="text-[11px] text-emerald-600 block">
+                      Montant versé : {fmt(currentSelectedPayment?.amount || salary)}
+                      {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-extrabold px-2.5 py-1 bg-white rounded-lg border border-emerald-200 text-emerald-700">
+                  {fmt(currentSelectedPayment?.amount || salary)}
+                </span>
+              </div>
+            ) : isAdmin ? (
+              <button
+                onClick={handlePaySalary}
+                disabled={isPending}
+                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Banknote size={16} />
+                <span>
+                  {isPending
+                    ? "Traitement en cours..."
+                    : isSelectedPartial
+                    ? `Compléter le salaire (${fmt(Math.max(0, salary - (currentSelectedPayment?.amount || 0)))}) pour ${selectedMonthName}`
+                    : `Régler le salaire de ${fmt(salary)} pour ${selectedMonthName}`}
+                </span>
+              </button>
+            ) : (
+              <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-center text-xs text-slate-400 italic">
+                En attente d&apos;exécution par l&apos;administrateur.
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* RIGHT WORKSTATION (5 OF 12 COLS) */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          {/* PAYMENT HISTORY */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <CreditCard size={18} className="text-slate-600" />
+                <h3 className="text-base font-bold text-slate-800">
+                  Historique des Versements
+                </h3>
+              </div>
+              <span className="text-xs font-semibold text-slate-400">
+                {payments.length} versement{payments.length > 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+              {payments.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs italic">
+                  Aucun versement enregistré pour cette année scolaire.
+                </div>
+              ) : (
+                [...payments]
+                  .sort((a, b) => b.year - a.year || b.month - a.month)
+                  .map((p) => {
+                    const pMonthName = MONTHS[p.month - 1] || `Mois ${p.month}`;
+                    const hasDeduction = p.missedHours && p.missedHours > 0;
+                    return (
+                      <div 
+                        key={p.id}
+                        className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors"
+                      >
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">
+                            {pMonthName} {p.year}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            {formatDate(p.paidAt)}
+                            {hasDeduction && (
+                              <span className="text-amber-600 font-semibold ml-1.5">
+                                (-{p.missedHours}h absence)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="text-right flex items-center gap-2">
+                          <span className={`text-xs font-black ${
+                            p.status === "PAID" ? "text-emerald-700" :
+                            p.status === "PARTIAL" ? "text-purple-700" : "text-rose-600"
+                          }`}>
+                            {fmt(p.amount)}
+                          </span>
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                            p.status === "PAID" ? "bg-emerald-100 text-emerald-800" :
+                            p.status === "PARTIAL" ? "bg-purple-100 text-purple-800" : "bg-rose-100 text-rose-800"
+                          }`}>
+                            {p.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+
+          {/* CONTRACTUAL META CARD */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+              <FileText size={16} className="text-slate-500" />
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Paramètres de Paie
+              </h4>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs">
+              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Salaire mensuel de base :</span>
+                <span className="font-bold text-slate-800">{fmt(salary)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Taux de retenue horaire :</span>
+                <span className="font-bold text-slate-800">{hourlyRate ? `${hourlyRate} DT / h` : "15 DT / h"}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">Volume mensuel théorique :</span>
+                <span className="font-bold text-slate-800">{hoursPerMonth ? `${hoursPerMonth}h / mois` : "40h / mois"}</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-slate-500">Période académique :</span>
+                <span className="font-semibold text-slate-700">{academicStartYear} - {academicEndYear}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
