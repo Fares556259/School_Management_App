@@ -127,8 +127,6 @@ export default function TeacherFinanceHub({
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [modalTrackedHours, setModalTrackedHours] = useState<number>(0);
   const [modalDeductionMode, setModalDeductionMode] = useState<"PENDING" | "APPLIED" | "EXCUSED">("PENDING");
-  const [modalDeductAll, setModalDeductAll] = useState<boolean>(true);
-  const [modalCustomDeductHours, setModalCustomDeductHours] = useState<string>("");
 
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
   const [advanceAmountInput, setAdvanceAmountInput] = useState<string>("");
@@ -328,11 +326,6 @@ export default function TeacherFinanceHub({
     const meta = parsePaymentMeta(currentSelectedPayment);
     setModalTrackedHours(meta.trackedHours);
     setModalDeductionMode(meta.deductionStatus);
-    const isAll = meta.deductedHours === meta.trackedHours || meta.deductedHours === 0;
-    setModalDeductAll(isAll);
-    setModalCustomDeductHours(
-      meta.deductedHours > 0 ? String(meta.deductedHours) : String(meta.trackedHours)
-    );
     setIsAbsenceModalOpen(true);
   };
 
@@ -481,15 +474,7 @@ export default function TeacherFinanceHub({
   const handleSaveMissedHours = () => {
     if (!isAdmin || isPending) return;
     const tracked = Math.max(0, modalTrackedHours);
-    let deducted = 0;
-    if (modalDeductionMode === "APPLIED") {
-      if (modalDeductAll) {
-        deducted = tracked;
-      } else {
-        const parsedCustom = Number(modalCustomDeductHours);
-        deducted = isNaN(parsedCustom) ? tracked : Math.min(tracked, Math.max(0, parsedCustom));
-      }
-    }
+    const deducted = modalDeductionMode === "APPLIED" ? tracked : 0;
 
     const meta: PaymentMeta = {
       trackedHours: tracked,
@@ -672,9 +657,7 @@ export default function TeacherFinanceHub({
   };
 
   // Absence Modal Live Financial Preview Calculations
-  const modalDeductedHoursCalc = modalDeductionMode === "APPLIED"
-    ? (modalDeductAll ? modalTrackedHours : Math.min(modalTrackedHours, Math.max(0, Number(modalCustomDeductHours || 0))))
-    : 0;
+  const modalDeductedHoursCalc = modalDeductionMode === "APPLIED" ? modalTrackedHours : 0;
   const modalDeductionAmountCalc = modalDeductedHoursCalc * effectiveHourlyRate;
   const modalProjectedNetToPay = Math.max(
     0,
@@ -1646,118 +1629,38 @@ export default function TeacherFinanceHub({
                     </button>
 
                     {/* Option 2: APPLIED (Déduire du salaire) */}
-                    <div
+                    <button
+                      type="button"
                       onClick={() => setModalDeductionMode("APPLIED")}
-                      className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col gap-2.5 cursor-pointer ${
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
                         modalDeductionMode === "APPLIED"
                           ? "bg-rose-50/60 border-rose-400 ring-2 ring-rose-500/20 shadow-xs"
                           : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
                       }`}
                     >
-                      <div className="flex items-start gap-3.5">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-                          modalDeductionMode === "APPLIED"
-                            ? "bg-rose-600 text-white border-rose-600"
-                            : "bg-rose-50 text-rose-600 border-rose-200"
-                        }`}>
-                          <Scissors size={18} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-slate-900">
-                              Déduire du salaire
-                            </span>
-                            {modalTrackedHours > 0 && (
-                              <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white border border-rose-200 text-rose-600 shrink-0 shadow-2xs">
-                                -{fmt(modalDeductionAmountCalc)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                            Retenir immédiatement les heures manquées sur la paie nette de {frMonthName}.
-                          </p>
-                        </div>
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                        modalDeductionMode === "APPLIED"
+                          ? "bg-rose-600 text-white border-rose-600"
+                          : "bg-rose-50 text-rose-600 border-rose-200"
+                      }`}>
+                        <Scissors size={18} />
                       </div>
-
-                      {/* Sub-controls when APPLIED is selected */}
-                      {modalDeductionMode === "APPLIED" && modalTrackedHours > 0 && (
-                        <div 
-                          className="ml-12 pt-2.5 border-t border-rose-200/70 flex flex-col gap-2.5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-rose-900 uppercase tracking-wider">
-                              Volume à déduire :
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-900">
+                            Déduire du salaire
+                          </span>
+                          {modalTrackedHours > 0 && (
+                            <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white border border-rose-200 text-rose-600 shrink-0 shadow-2xs">
+                              -{fmt(modalTrackedHours * effectiveHourlyRate)}
                             </span>
-                            <span className="text-[11px] font-bold text-rose-700">
-                              Total sélectionné : {modalDeductAll ? modalTrackedHours : Math.min(modalTrackedHours, Math.max(1, Number(modalCustomDeductHours || 1)))}h
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setModalDeductAll(true)}
-                              className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-between ${
-                                modalDeductAll
-                                  ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
-                                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                              }`}
-                            >
-                              <span>Totalité ({modalTrackedHours}h)</span>
-                              <span className={`text-[10px] ${modalDeductAll ? "text-rose-100" : "text-rose-600 font-bold"}`}>
-                                -{fmt(modalTrackedHours * effectiveHourlyRate)}
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setModalDeductAll(false);
-                                if (!modalCustomDeductHours || Number(modalCustomDeductHours) <= 0) {
-                                  setModalCustomDeductHours(String(Math.min(modalTrackedHours, 1)));
-                                }
-                              }}
-                              className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-between ${
-                                !modalDeductAll
-                                  ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
-                                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                              }`}
-                            >
-                              <span>Partiel</span>
-                              <span className={`text-[10px] ${!modalDeductAll ? "text-rose-100" : "text-slate-400"}`}>
-                                Personnalisé
-                              </span>
-                            </button>
-                          </div>
-
-                          {!modalDeductAll && (
-                            <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-rose-200">
-                              <span className="text-xs font-medium text-slate-700">
-                                Nombre d&apos;heures à déduire :
-                              </span>
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={modalTrackedHours}
-                                  value={modalCustomDeductHours}
-                                  onChange={(e) => {
-                                    const val = Math.max(1, Math.min(modalTrackedHours, Number(e.target.value) || 1));
-                                    setModalCustomDeductHours(String(val));
-                                  }}
-                                  className="w-16 px-2 py-1 border border-rose-300 rounded-lg text-xs font-black text-center text-rose-700 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
-                                />
-                                <span className="text-xs font-semibold text-slate-500">h</span>
-                                <span className="text-xs font-black text-rose-600 ml-1">
-                                  (-{fmt(Math.min(modalTrackedHours, Number(modalCustomDeductHours || 1)) * effectiveHourlyRate)})
-                                </span>
-                              </div>
-                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                          Retenir immédiatement les {modalTrackedHours}h d&apos;absence sur la paie nette de {frMonthName}.
+                        </p>
+                      </div>
+                    </button>
 
                     {/* Option 3: EXCUSED (Absence justifiée / Rattrapée) */}
                     <button
