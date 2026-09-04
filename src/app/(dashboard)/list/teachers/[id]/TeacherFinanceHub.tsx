@@ -20,8 +20,7 @@ import {
   Minus,
   RotateCcw,
   ArrowRight,
-  ShieldCheck,
-  DollarSign
+  ShieldCheck
 } from "lucide-react";
 import { payTeacherSalary, updateMissedHours, carryOverMissedHours } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
@@ -1809,8 +1808,7 @@ export default function TeacherFinanceHub({
                     : "bg-indigo-50/70 border-indigo-300/80 text-indigo-950"
                 }`}>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                      <DollarSign size={13} className="text-slate-500" />
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
                       {isSelectedPaid ? "Conséquence financière :" : `Aperçu de la paie (${frMonthName}) :`}
                     </span>
                     <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
