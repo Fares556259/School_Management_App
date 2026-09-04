@@ -18,9 +18,10 @@ import {
   X,
   Plus,
   Minus,
-  RotateCcw
+  RotateCcw,
+  ArrowRight
 } from "lucide-react";
-import { payTeacherSalary, updateMissedHours } from "../actions";
+import { payTeacherSalary, updateMissedHours, carryOverMissedHours } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
 
 interface PaymentRecord {
@@ -196,15 +197,25 @@ export default function TeacherFinanceHub({
   const frMonthName = frMonthConfig?.fullFr || selectedMonthName;
   const selectedDisplayLabel = `${frMonthName} ${selectedYear}`;
 
+  // Next academic month helper (for carrying over hours)
+  const currentMonthConfigIndex = ACADEMIC_MONTHS_CONFIG.findIndex((c) => c.month === selectedMonth);
+  const nextMonthConfig =
+    currentMonthConfigIndex >= 0 && currentMonthConfigIndex < ACADEMIC_MONTHS_CONFIG.length - 1
+      ? ACADEMIC_MONTHS_CONFIG[currentMonthConfigIndex + 1]
+      : null;
+  const nextMonthYear = nextMonthConfig
+    ? academicStartYear + nextMonthConfig.offsetYear
+    : null;
+  const nextMonthFullLabel = nextMonthConfig
+    ? `${nextMonthConfig.fullFr} ${nextMonthYear}`
+    : null;
+
   const isSelectedPaid = currentSelectedPayment?.status === "PAID";
   const isSelectedPartial = currentSelectedPayment?.status === "PARTIAL";
 
   // Deduction & Missed Hours Counter for Selected Month
   const selectedMeta = parsePaymentMeta(currentSelectedPayment);
-  let selectedTrackedHours = selectedMeta.trackedHours;
-  if (selectedTrackedHours === 0 && isSelectedPaid && baseMonthlySalary > currentSelectedPayment.amount) {
-    selectedTrackedHours = Math.round((baseMonthlySalary - currentSelectedPayment.amount) / effectiveHourlyRate);
-  }
+  const selectedTrackedHours = selectedMeta.trackedHours;
   const selectedDeductedHours =
     selectedMeta.deductionStatus === "APPLIED"
       ? (selectedMeta.deductedHours || selectedTrackedHours)
@@ -548,6 +559,104 @@ export default function TeacherFinanceHub({
     });
   };
 
+  const handleCarryOver = (hours: number, targetMonthLabel: string) => {
+    if (!isAdmin || isPending || hours <= 0 || !targetMonthLabel) return;
+    startTransition(async () => {
+      const result = await carryOverMissedHours(
+        teacherId,
+        selectedFullLabel,
+        targetMonthLabel,
+        hours
+      );
+      if (result.success) {
+        const [targetMName, targetYStr] = targetMonthLabel.split(" ");
+        const targetMonthIdx = MONTHS.indexOf(targetMName) + 1;
+        const targetYearVal = parseInt(targetYStr);
+
+        setPayments((prev) => {
+          let foundTarget = false;
+          const updated = prev.map((p) => {
+            if (p.month === selectedMonth && p.year === selectedYear) {
+              const meta: PaymentMeta = {
+                trackedHours: 0,
+                deductedHours: 0,
+                deductionStatus: "EXCUSED",
+                notes: `Reporté (${hours}h) sur ${targetMonthLabel}`,
+              };
+              return { ...p, missedHours: 0, img: JSON.stringify(meta) };
+            }
+            if (p.month === targetMonthIdx && p.year === targetYearVal) {
+              foundTarget = true;
+              const targetMeta = parsePaymentMeta(p);
+              const updatedMeta: PaymentMeta = {
+                trackedHours: targetMeta.trackedHours + hours,
+                deductedHours: targetMeta.deductedHours,
+                deductionStatus: "PENDING",
+                notes: `Inclus report de ${hours}h depuis ${selectedFullLabel}`,
+              };
+              return {
+                ...p,
+                missedHours: targetMeta.trackedHours + hours,
+                img: JSON.stringify(updatedMeta),
+              };
+            }
+            return p;
+          });
+
+          if (!foundTarget) {
+            const newMeta: PaymentMeta = {
+              trackedHours: hours,
+              deductedHours: 0,
+              deductionStatus: "PENDING",
+              notes: `Inclus report de ${hours}h depuis ${selectedFullLabel}`,
+            };
+            const newRecord: PaymentRecord = {
+              id: Date.now(),
+              month: targetMonthIdx,
+              year: targetYearVal,
+              amount: 0,
+              status: "PENDING",
+              missedHours: hours,
+              paidAt: null,
+              img: JSON.stringify(newMeta),
+            };
+            return [newRecord, ...updated];
+          }
+
+          return updated;
+        });
+        setIsAbsenceModalOpen(false);
+      } else {
+        alert(result.error || "Une erreur est survenue lors du report des heures.");
+      }
+    });
+  };
+
+  const handleExcusePendingOnPaid = () => {
+    if (!isAdmin || isPending) return;
+    const meta: PaymentMeta = {
+      trackedHours: selectedTrackedHours,
+      deductedHours: 0,
+      deductionStatus: "EXCUSED",
+      notes: "Absence justifiée",
+    };
+    startTransition(async () => {
+      const result = await updateMissedHours(teacherId, selectedFullLabel, selectedTrackedHours, meta);
+      if (result.success) {
+        setPayments((prev) =>
+          prev.map((p) =>
+            p.month === selectedMonth && p.year === selectedYear
+              ? { ...p, img: JSON.stringify(meta) }
+              : p
+          )
+        );
+        setIsAbsenceModalOpen(false);
+      } else {
+        alert(result.error || "Une erreur est survenue lors de l'enregistrement.");
+      }
+    });
+  };
+
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
   const formatDate = (dateStr?: Date | string | null) => {
@@ -873,37 +982,82 @@ export default function TeacherFinanceHub({
               </div>
             )}
 
-            {/* 2. PENDING TRACKING: BLUE/INDIGO COUNTER BLOCK */}
+            {/* 2. PENDING TRACKING: BLUE/INDIGO IF UNPAID, AMBER TRANSFER ALERT IF PAID */}
             {selectedMeta.deductionStatus === "PENDING" && selectedTrackedHours > 0 && (
-              <div className="p-4 bg-indigo-50/70 border border-indigo-200/80 rounded-xl flex items-center justify-between gap-3 text-indigo-950 shadow-2xs animate-in fade-in duration-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
-                    <Clock size={20} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-indigo-950 block">
-                        Compteur d&apos;absence : {selectedTrackedHours}h enregistrées
-                      </span>
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-200/70 text-indigo-800">
-                        En suivi
+              isSelectedPaid ? (
+                <div className="p-4 bg-amber-50/80 border border-amber-200/90 rounded-xl flex items-center justify-between gap-3 text-amber-950 shadow-2xs animate-in fade-in duration-200 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
+                      <Clock size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-amber-950 block">
+                          {selectedTrackedHours}h d&apos;absence non déduites (Mois clôturé)
+                        </span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                          À reporter
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-amber-700 font-medium block mt-0.5">
+                        Le salaire de ce mois a déjà été payé. Vous pouvez reporter ces heures sur le mois suivant ou les considérer comme justifiées.
                       </span>
                     </div>
-                    <span className="text-[11px] text-indigo-700 font-medium block mt-0.5">
-                      Heures comptabilisées · Aucune retenue déduite aujourd&apos;hui (0 DT)
-                    </span>
                   </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {nextMonthFullLabel && (
+                        <button
+                          onClick={() => handleCarryOver(selectedTrackedHours, nextMonthFullLabel)}
+                          disabled={isPending}
+                          className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                          title={`Reporter les ${selectedTrackedHours}h sur ${nextMonthFullLabel}`}
+                        >
+                          <ArrowRight size={13} />
+                          <span>Reporter sur {nextMonthConfig?.labelFr}</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={handleExcusePendingOnPaid}
+                        disabled={isPending}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs transition-colors"
+                      >
+                        Justifier (0h)
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {isAdmin && !isSelectedPaid && (
-                  <button
-                    onClick={openAbsenceModal}
-                    className="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-indigo-300 hover:bg-indigo-50 text-indigo-700 font-bold text-xs shadow-2xs transition-colors flex items-center gap-1.5"
-                  >
-                    <Scissors size={13} className="text-rose-500" />
-                    <span>Décider de la retenue</span>
-                  </button>
-                )}
-              </div>
+              ) : (
+                <div className="p-4 bg-indigo-50/70 border border-indigo-200/80 rounded-xl flex items-center justify-between gap-3 text-indigo-950 shadow-2xs animate-in fade-in duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
+                      <Clock size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-indigo-950 block">
+                          Compteur d&apos;absence : {selectedTrackedHours}h enregistrées
+                        </span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-200/70 text-indigo-800">
+                          En suivi
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-indigo-700 font-medium block mt-0.5">
+                        Heures comptabilisées · Aucune retenue déduite aujourd&apos;hui (0 DT)
+                      </span>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      onClick={openAbsenceModal}
+                      className="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-indigo-300 hover:bg-indigo-50 text-indigo-700 font-bold text-xs shadow-2xs transition-colors flex items-center gap-1.5"
+                    >
+                      <Scissors size={13} className="text-rose-500" />
+                      <span>Décider de la retenue</span>
+                    </button>
+                  )}
+                </div>
+              )
             )}
 
             {/* 3. EXCUSED: EMERALD BLOCK */}
@@ -970,12 +1124,18 @@ export default function TeacherFinanceHub({
                       {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
                     </span>
                     {(selectedDeductionAmount > 0 || selectedAdvanceAmount > 0) && (
-                      <span className="text-[10px] text-emerald-800/80 block mt-1 font-semibold">
-                        Décomposition : {fmt(baseMonthlySalary)} (base)
-                        {selectedDeductionAmount > 0 ? ` − ${fmt(selectedDeductionAmount)} (absence)` : ""}
-                        {selectedAdvanceAmount > 0 ? ` − ${fmt(selectedAdvanceAmount)} (avance)` : ""}
-                        {" = "}{fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))} net versé
-                      </span>
+                      <div className="text-[10px] text-emerald-800/80 mt-1 font-semibold flex flex-col gap-0.5">
+                        <span>
+                          Détail : {fmt(baseMonthlySalary)} (base)
+                          {selectedDeductionAmount > 0 ? ` − ${fmt(selectedDeductionAmount)} (retenue absence)` : ""}
+                          {selectedDeductionAmount > 0 ? ` = ${fmt(baseMonthlySalary - selectedDeductionAmount)} net dû` : ""}
+                        </span>
+                        {selectedAdvanceAmount > 0 && (
+                          <span className="text-amber-800/80">
+                            (dont {fmt(selectedAdvanceAmount)} versé en avance · solde final : {fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))})
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1271,144 +1431,252 @@ export default function TeacherFinanceHub({
                   Décision pour le salaire de {frMonthName} :
                 </label>
 
-                {/* Option A: PENDING (En suivi dans le compteur, 0 DT déduit) */}
-                <button
-                  type="button"
-                  onClick={() => setModalDeductionMode("PENDING")}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
-                    modalDeductionMode === "PENDING"
-                      ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-2xs"
-                      : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                    modalDeductionMode === "PENDING" ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
-                  }`}>
-                    {modalDeductionMode === "PENDING" && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900 block">
-                        ⏱️ Enregistrer en suivi seul (Ne pas couper le salaire)
-                      </span>
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                        0 DT déduit
+                {isSelectedPaid ? (
+                  <>
+                    {/* NOTICE: Month is paid */}
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                      <Clock size={16} className="text-amber-700 shrink-0" />
+                      <span>
+                        Ce mois est déjà <strong>clôturé et payé</strong> ({fmt(currentSelectedPayment?.amount || baseMonthlySalary)}). Les retenues ne peuvent plus être prélevées rétroactivement sur ce mois.
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Les heures s&apos;accumulent dans le compteur sans impact immédiat. Vous pourrez décider de la retenue plus tard lors de la paie.
-                    </p>
-                  </div>
-                </button>
 
-                {/* Option B: APPLIED (Appliquer la retenue sur salaire) */}
-                <div
-                  onClick={() => setModalDeductionMode("APPLIED")}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col gap-3 cursor-pointer ${
-                    modalDeductionMode === "APPLIED"
-                      ? "bg-rose-50/60 border-rose-300 ring-2 ring-rose-500/20 shadow-2xs"
-                      : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
-                  }`}
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                      modalDeductionMode === "APPLIED" ? "border-rose-600 bg-rose-600" : "border-slate-300 bg-white"
-                    }`}>
-                      {modalDeductionMode === "APPLIED" && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900 block">
-                          ✂️ Appliquer la retenue sur le salaire
-                        </span>
-                        {modalTrackedHours > 0 && (
-                          <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white border border-rose-200 text-rose-600">
-                            -{fmt((modalDeductAll ? modalTrackedHours : Math.min(modalTrackedHours, Number(modalCustomDeductHours || 0))) * effectiveHourlyRate)}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                        Déduire directement les séances manquées du salaire net de {frMonthName}.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Sub-controls when APPLIED is selected */}
-                  {modalDeductionMode === "APPLIED" && modalTrackedHours > 0 && (
-                    <div 
-                      className="ml-8 pt-2.5 border-t border-rose-200/60 flex flex-col gap-2"
-                      onClick={(e) => e.stopPropagation()}
+                    {/* Option A: PENDING (Assiduité seule) */}
+                    <button
+                      type="button"
+                      onClick={() => setModalDeductionMode("PENDING")}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                        modalDeductionMode === "PENDING"
+                          ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-2xs"
+                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                      }`}
                     >
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
-                        <input
-                          type="radio"
-                          name="deductAll"
-                          checked={modalDeductAll}
-                          onChange={() => setModalDeductAll(true)}
-                          className="text-rose-600 focus:ring-rose-500"
-                        />
-                        <span>Déduire la totalité du compteur ({modalTrackedHours}h = -{fmt(modalTrackedHours * effectiveHourlyRate)})</span>
-                      </label>
-
-                      <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                        <input
-                          type="radio"
-                          name="deductAll"
-                          checked={!modalDeductAll}
-                          onChange={() => setModalDeductAll(false)}
-                          className="text-rose-600 focus:ring-rose-500"
-                        />
-                        <span>Déduire partiellement :</span>
-                        {!modalDeductAll && (
-                          <div className="flex items-center gap-1.5 ml-1">
-                            <input
-                              type="number"
-                              min="1"
-                              max={modalTrackedHours}
-                              value={modalCustomDeductHours}
-                              onChange={(e) => setModalCustomDeductHours(e.target.value)}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded-lg text-xs font-bold text-center focus:ring-1 focus:ring-rose-500"
-                            />
-                            <span className="text-slate-500">h</span>
-                            <span className="font-bold text-rose-600 ml-1">
-                              (-{fmt(Math.min(modalTrackedHours, Number(modalCustomDeductHours || 0)) * effectiveHourlyRate)})
-                            </span>
-                          </div>
-                        )}
+                      <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                        modalDeductionMode === "PENDING" ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+                      }`}>
+                        {modalDeductionMode === "PENDING" && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
-                    </div>
-                  )}
-                </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 block">
+                            ⏱️ Enregistrement d&apos;assiduité seul
+                          </span>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                            Sans retenue
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                          Conserver ces heures dans l&apos;historique de présence de {frMonthName} sans modification du salaire déjà versé.
+                        </p>
+                      </div>
+                    </button>
 
-                {/* Option C: EXCUSED (Absence justifiée, 0 DT déduit) */}
-                <button
-                  type="button"
-                  onClick={() => setModalDeductionMode("EXCUSED")}
-                  className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
-                    modalDeductionMode === "EXCUSED"
-                      ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-2xs"
-                      : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                    modalDeductionMode === "EXCUSED" ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
-                  }`}>
-                    {modalDeductionMode === "EXCUSED" && <div className="w-2 h-2 rounded-full bg-white" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900 block">
-                        🛡️ Absence justifiée / Séances rattrapées
-                      </span>
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                        Plein salaire
-                      </span>
+                    {/* Option B: CARRY OVER TO NEXT MONTH */}
+                    {nextMonthFullLabel && (
+                      <button
+                        type="button"
+                        onClick={() => setModalDeductionMode("APPLIED")}
+                        className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                          modalDeductionMode === "APPLIED"
+                            ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-500/20 shadow-2xs"
+                            : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                          modalDeductionMode === "APPLIED" ? "border-amber-600 bg-amber-600" : "border-slate-300 bg-white"
+                        }`}>
+                          {modalDeductionMode === "APPLIED" && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900 block">
+                              ➡️ Reporter sur {nextMonthConfig?.labelFr} ({nextMonthFullLabel})
+                            </span>
+                            {modalTrackedHours > 0 && (
+                              <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white border border-amber-300 text-amber-800">
+                                -{fmt(modalTrackedHours * effectiveHourlyRate)} sur {nextMonthConfig?.labelFr}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                            Transfère automatiquement ces {modalTrackedHours}h d&apos;absence vers {nextMonthFullLabel} pour qu&apos;elles soient déduites sur sa prochaine fiche de paie.
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Option C: EXCUSED */}
+                    <button
+                      type="button"
+                      onClick={() => setModalDeductionMode("EXCUSED")}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                        modalDeductionMode === "EXCUSED"
+                          ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-2xs"
+                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                        modalDeductionMode === "EXCUSED" ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
+                      }`}>
+                        {modalDeductionMode === "EXCUSED" && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 block">
+                            🛡️ Absence justifiée / Séances rattrapées
+                          </span>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            Validé
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                          L&apos;absence est justifiée ou les cours ont été rattrapés. Aucune retenue (0 DT déduit).
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Option A: PENDING (En suivi dans le compteur, 0 DT déduit) */}
+                    <button
+                      type="button"
+                      onClick={() => setModalDeductionMode("PENDING")}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                        modalDeductionMode === "PENDING"
+                          ? "bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-500/20 shadow-2xs"
+                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                        modalDeductionMode === "PENDING" ? "border-indigo-600 bg-indigo-600" : "border-slate-300 bg-white"
+                      }`}>
+                        {modalDeductionMode === "PENDING" && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 block">
+                            ⏱️ Enregistrer en suivi seul (Ne pas couper le salaire)
+                          </span>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                            0 DT déduit
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                          Les heures s&apos;accumulent dans le compteur sans impact immédiat. Vous pourrez décider de la retenue plus tard lors de la paie.
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Option B: APPLIED (Appliquer la retenue sur salaire) */}
+                    <div
+                      onClick={() => setModalDeductionMode("APPLIED")}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col gap-3 cursor-pointer ${
+                        modalDeductionMode === "APPLIED"
+                          ? "bg-rose-50/60 border-rose-300 ring-2 ring-rose-500/20 shadow-2xs"
+                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                          modalDeductionMode === "APPLIED" ? "border-rose-600 bg-rose-600" : "border-slate-300 bg-white"
+                        }`}>
+                          {modalDeductionMode === "APPLIED" && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900 block">
+                              ✂️ Appliquer la retenue sur le salaire
+                            </span>
+                            {modalTrackedHours > 0 && (
+                              <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white border border-rose-200 text-rose-600">
+                                -{fmt((modalDeductAll ? modalTrackedHours : Math.min(modalTrackedHours, Number(modalCustomDeductHours || 0))) * effectiveHourlyRate)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                            Déduire directement les séances manquées du salaire net de {frMonthName}.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Sub-controls when APPLIED is selected */}
+                      {modalDeductionMode === "APPLIED" && modalTrackedHours > 0 && (
+                        <div 
+                          className="ml-8 pt-2.5 border-t border-rose-200/60 flex flex-col gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
+                            <input
+                              type="radio"
+                              name="deductAll"
+                              checked={modalDeductAll}
+                              onChange={() => setModalDeductAll(true)}
+                              className="text-rose-600 focus:ring-rose-500"
+                            />
+                            <span>Déduire la totalité du compteur ({modalTrackedHours}h = -{fmt(modalTrackedHours * effectiveHourlyRate)})</span>
+                          </label>
+
+                          <div className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                            <input
+                              type="radio"
+                              name="deductAll"
+                              checked={!modalDeductAll}
+                              onChange={() => setModalDeductAll(false)}
+                              className="text-rose-600 focus:ring-rose-500"
+                            />
+                            <span>Déduire partiellement :</span>
+                            {!modalDeductAll && (
+                              <div className="flex items-center gap-1.5 ml-1">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max={modalTrackedHours}
+                                  value={modalCustomDeductHours}
+                                  onChange={(e) => setModalCustomDeductHours(e.target.value)}
+                                  className="w-16 px-2 py-1 border border-slate-300 rounded-lg text-xs font-bold text-center focus:ring-1 focus:ring-rose-500"
+                                />
+                                <span className="text-slate-500">h</span>
+                                <span className="font-bold text-rose-600 ml-1">
+                                  (-{fmt(Math.min(modalTrackedHours, Number(modalCustomDeductHours || 0)) * effectiveHourlyRate)})
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      L&apos;absence est justifiée ou les cours ont été rattrapés. Aucune retenue sur le salaire (0 DT déduit).
-                    </p>
-                  </div>
-                </button>
+
+                    {/* Option C: EXCUSED (Absence justifiée, 0 DT déduit) */}
+                    <button
+                      type="button"
+                      onClick={() => setModalDeductionMode("EXCUSED")}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 ${
+                        modalDeductionMode === "EXCUSED"
+                          ? "bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20 shadow-2xs"
+                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                        modalDeductionMode === "EXCUSED" ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
+                      }`}>
+                        {modalDeductionMode === "EXCUSED" && <div className="w-2 h-2 rounded-full bg-white" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 block">
+                            🛡️ Absence justifiée / Séances rattrapées
+                          </span>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            Plein salaire
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                          L&apos;absence est justifiée ou les cours ont été rattrapés. Aucune retenue sur le salaire (0 DT déduit).
+                        </p>
+                      </div>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1438,10 +1706,20 @@ export default function TeacherFinanceHub({
                 </button>
                 <button
                   type="button"
-                  onClick={handleSaveMissedHours}
+                  onClick={() => {
+                    if (isSelectedPaid && modalDeductionMode === "APPLIED" && nextMonthFullLabel) {
+                      handleCarryOver(modalTrackedHours, nextMonthFullLabel);
+                    } else if (isSelectedPaid && modalDeductionMode === "EXCUSED") {
+                      handleExcusePendingOnPaid();
+                    } else {
+                      handleSaveMissedHours();
+                    }
+                  }}
                   disabled={isPending}
                   className={`px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 ${
-                    modalDeductionMode === "APPLIED"
+                    isSelectedPaid && modalDeductionMode === "APPLIED"
+                      ? "bg-amber-600 hover:bg-amber-700 shadow-amber-200"
+                      : modalDeductionMode === "APPLIED"
                       ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200"
                       : modalDeductionMode === "EXCUSED"
                       ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
@@ -1450,6 +1728,8 @@ export default function TeacherFinanceHub({
                 >
                   {isPending ? (
                     <span>Enregistrement...</span>
+                  ) : isSelectedPaid && modalDeductionMode === "APPLIED" ? (
+                    <span>Reporter sur {nextMonthConfig?.labelFr} ({modalTrackedHours}h)</span>
                   ) : modalDeductionMode === "APPLIED" ? (
                     <span>
                       Appliquer la retenue (-{fmt((modalDeductAll ? modalTrackedHours : Math.min(modalTrackedHours, Number(modalCustomDeductHours || 0))) * effectiveHourlyRate)})
