@@ -20,20 +20,8 @@ import {
   BookOpen, 
   Clock, 
   CreditCard, 
-  GraduationCap, 
-  FileText, 
-  FileCheck, 
   ArrowLeft,
-  ChevronRight,
-  ShieldCheck,
-  CheckCircle2
 } from "lucide-react";
-import dynamic from "next/dynamic";
-
-const Performance = dynamic(() => import("@/components/Performance"), {
-  ssr: false,
-  loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-2xl border border-slate-100"></div>
-});
 
 const SingleTeacherPage = async ({
   params: { id },
@@ -135,7 +123,7 @@ const SingleTeacherPage = async ({
   return (
     <div className="flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
       {/* 1. TOP BREADCRUMB & PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Link 
             href="/list/teachers" 
@@ -165,204 +153,203 @@ const SingleTeacherPage = async ({
         )}
       </div>
 
-      {/* 2. MAIN TWO-COLUMN LAYOUT */}
-      <div className="flex flex-col xl:flex-row gap-6 items-start">
-        {/* LEFT COLUMN: HERO CARD, METRICS, TIMETABLE */}
-        <div className="w-full xl:w-2/3 flex flex-col gap-6">
-          {/* PROFILE HERO CARD */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm relative overflow-hidden">
-            {/* Subtle top banner accent */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+      {/* 2. TOP BANNER: HERO IDENTITY CARD (8 cols) + 4 KPI METRICS (4 cols in 2x2 grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* HERO CARD */}
+        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          {/* Subtle top banner accent */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
-            <div className="flex flex-col md:flex-row gap-6 pt-2">
-              {/* AVATAR */}
-              <div className="flex flex-col items-center sm:items-start shrink-0">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden relative border-2 border-slate-100 shadow-sm bg-slate-50">
-                  <Image
-                    src={teacher.img && teacher.img !== "null" && teacher.img !== "undefined" ? teacher.img : "/noAvatar.png"}
-                    alt={teacherFullName}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+          <div className="flex flex-col md:flex-row gap-6 pt-1">
+            {/* AVATAR */}
+            <div className="flex flex-col items-center sm:items-start shrink-0">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden relative border-2 border-slate-100 shadow-sm bg-slate-50">
+                <Image
+                  src={teacher.img && teacher.img !== "null" && teacher.img !== "undefined" ? teacher.img : "/noAvatar.png"}
+                  alt={teacherFullName}
+                  fill
+                  className="object-cover"
+                />
               </div>
+            </div>
 
-              {/* DETAILS */}
-              <div className="flex-1 flex flex-col justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <h1 className="text-2xl font-bold text-slate-800">
-                      {teacherFullName}
-                    </h1>
-                  </div>
+            {/* DETAILS */}
+            <div className="flex-1 flex flex-col justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 mb-0.5">
+                  {teacherFullName}
+                </h1>
 
-                  <p className="text-xs text-slate-400 font-medium mb-3">
-                    Enseignant / Corps professoral · ID: <span className="font-mono text-slate-500">{teacher.id.substring(0, 8)}...</span>
-                  </p>
+                <p className="text-xs text-slate-400 font-medium mb-3">
+                  Enseignant / Corps professoral · ID: <span className="font-mono text-slate-500">{teacher.id.substring(0, 8)}...</span>
+                </p>
 
-                  {/* SUBJECTS & CLASSES PILLS */}
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
-                    {cleanSubjects.length > 0 ? (
-                      cleanSubjects.map((subj, idx) => (
-                        <span 
-                          key={idx}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1"
-                        >
-                          <BookOpen size={12} className="text-blue-500" />
-                          {subj}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Aucune matière assignée</span>
-                    )}
-
-                    {teacher.classes.length > 0 && teacher.classes.map((cls) => (
+                {/* SUBJECTS & CLASSES PILLS */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {cleanSubjects.length > 0 ? (
+                    cleanSubjects.map((subj, idx) => (
                       <span 
-                        key={cls.id}
-                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-100 flex items-center gap-1"
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1"
                       >
-                        <Users size={12} className="text-purple-500" />
-                        {cls.name}
+                        <BookOpen size={12} className="text-blue-500" />
+                        {subj}
                       </span>
-                    ))}
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">Aucune matière assignée</span>
+                  )}
+
+                  {teacher.classes.length > 0 && teacher.classes.map((cls) => (
+                    <span 
+                      key={cls.id}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-100 flex items-center gap-1"
+                    >
+                      <Users size={12} className="text-purple-500" />
+                      {cls.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* METADATA STRIP */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
+                {/* Phone */}
+                <div className="flex items-center gap-2 text-slate-600">
+                  <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
+                    <Phone size={13} />
+                  </div>
+                  <div className="truncate">
+                    <span className="text-[10px] text-slate-400 block font-semibold uppercase">Téléphone</span>
+                    {teacher.phone ? (
+                      <a href={`tel:${teacher.phone}`} className="font-semibold text-slate-700 hover:text-blue-600 truncate block">
+                        {teacher.phone}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 italic">Non renseigné</span>
+                    )}
                   </div>
                 </div>
 
-                {/* METADATA STRIP */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-slate-100 text-xs">
-                  {/* Phone */}
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
-                      <Phone size={13} />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Téléphone</span>
-                      {teacher.phone ? (
-                        <a href={`tel:${teacher.phone}`} className="font-semibold text-slate-700 hover:text-blue-600 truncate block">
-                          {teacher.phone}
-                        </a>
-                      ) : (
-                        <span className="text-slate-400 italic">Non renseigné</span>
-                      )}
-                    </div>
+                {/* Birthday */}
+                <div className="flex items-center gap-2 text-slate-600">
+                  <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
+                    <CalendarIcon size={13} />
                   </div>
-
-                  {/* Birthday */}
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
-                      <CalendarIcon size={13} />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Naissance</span>
-                      <span className="font-semibold text-slate-700 truncate block">
-                        {new Intl.DateTimeFormat("fr-FR").format(new Date(teacher.birthday))}
-                      </span>
-                    </div>
+                  <div className="truncate">
+                    <span className="text-[10px] text-slate-400 block font-semibold uppercase">Naissance</span>
+                    <span className="font-semibold text-slate-700 truncate block">
+                      {new Intl.DateTimeFormat("fr-FR").format(new Date(teacher.birthday))}
+                    </span>
                   </div>
+                </div>
 
-                  {/* Blood Type */}
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-rose-500 border border-slate-100 shrink-0">
-                      <Droplet size={13} />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Groupe sanguin</span>
-                      <span className="font-semibold text-slate-700 block">
-                        {teacher.bloodType || "Inconnu"}
-                      </span>
-                    </div>
+                {/* Blood Type */}
+                <div className="flex items-center gap-2 text-slate-600">
+                  <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-rose-500 border border-slate-100 shrink-0">
+                    <Droplet size={13} />
                   </div>
+                  <div className="truncate">
+                    <span className="text-[10px] text-slate-400 block font-semibold uppercase">Groupe sanguin</span>
+                    <span className="font-semibold text-slate-700 block">
+                      {teacher.bloodType || "Inconnu"}
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Salary */}
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
-                      <Banknote size={13} />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Salaire</span>
-                      <span className="font-bold text-emerald-700 block">
-                        {teacher.salary.toLocaleString("en-US").replace(/,/g, " ")} DT
-                      </span>
-                    </div>
+                {/* Salary */}
+                <div className="flex items-center gap-2 text-slate-600">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
+                    <Banknote size={13} />
+                  </div>
+                  <div className="truncate">
+                    <span className="text-[10px] text-slate-400 block font-semibold uppercase">Salaire</span>
+                    <span className="font-bold text-emerald-700 block">
+                      {teacher.salary.toLocaleString("en-US").replace(/,/g, " ")} DT
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* 4 MODERN KPI STAT CARDS */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {/* KPI 1: Classes */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0">
-                <Users size={20} />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-800 block leading-tight">
-                  {teacher._count.classes}
-                </span>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
-                  Classes
-                </span>
-              </div>
+        {/* 4 KPI METRICS (2x2 GRID MATCHING HERO HEIGHT) */}
+        <div className="lg:col-span-4 grid grid-cols-2 gap-3.5">
+          {/* KPI 1: Classes */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5 hover:shadow-md transition-shadow">
+            <div className="w-11 h-11 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+              <Users size={20} />
             </div>
-
-            {/* KPI 2: Subjects */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                <BookOpen size={20} />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-800 block leading-tight">
-                  {cleanSubjects.length}
-                </span>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
-                  Matières
-                </span>
-              </div>
-            </div>
-
-            {/* KPI 3: Weekly Sessions */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                <Clock size={20} />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-800 block leading-tight">
-                  {scheduleItems.length}
-                </span>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
-                  Séances / sem.
-                </span>
-              </div>
-            </div>
-
-            {/* KPI 4: Payments Made */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                <CreditCard size={20} />
-              </div>
-              <div>
-                <span className="text-xl font-black text-slate-800 block leading-tight">
-                  {teacher.payments.length}
-                </span>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
-                  Paiements
-                </span>
-              </div>
+            <div>
+              <span className="text-2xl font-black text-slate-800 block leading-tight">
+                {teacher._count.classes}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
+                Classes
+              </span>
             </div>
           </div>
 
-          {/* DEDICATED MODERN TIMETABLE */}
+          {/* KPI 2: Subjects */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5 hover:shadow-md transition-shadow">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+              <BookOpen size={20} />
+            </div>
+            <div>
+              <span className="text-2xl font-black text-slate-800 block leading-tight">
+                {cleanSubjects.length}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
+                Matières
+              </span>
+            </div>
+          </div>
+
+          {/* KPI 3: Weekly Sessions */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5 hover:shadow-md transition-shadow">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+              <Clock size={20} />
+            </div>
+            <div>
+              <span className="text-2xl font-black text-slate-800 block leading-tight">
+                {scheduleItems.length}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
+                Séances / sem.
+              </span>
+            </div>
+          </div>
+
+          {/* KPI 4: Payments Made */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5 hover:shadow-md transition-shadow">
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+              <CreditCard size={20} />
+            </div>
+            <div>
+              <span className="text-2xl font-black text-slate-800 block leading-tight">
+                {teacher.payments.length}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-tight">
+                Paiements
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CORE WORKSTATIONS SIDE-BY-SIDE: EMPLOI DU TEMPS (7 cols) & FINANCE HUB (5 cols) */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* EMPLOI DU TEMPS (7 OF 12 COLS = 58.3%) */}
+        <div className="xl:col-span-7">
           <TeacherSchedule 
             items={scheduleItems}
             teacherName={teacherFullName}
           />
         </div>
 
-        {/* RIGHT COLUMN: FINANCIAL HUB & PERFORMANCE */}
-        <div className="w-full xl:w-1/3 flex flex-col gap-6">
-          {/* UNIFIED FINANCIAL HUB */}
+        {/* FINANCIAL HUB (5 OF 12 COLS = 41.7%) */}
+        <div className="xl:col-span-5">
           <TeacherFinanceHub
             teacherId={teacher.id}
             teacherName={teacherFullName}
@@ -372,9 +359,6 @@ const SingleTeacherPage = async ({
             payments={teacher.payments}
             isAdmin={role === "admin"}
           />
-
-          {/* PERFORMANCE CARD */}
-          <Performance />
         </div>
       </div>
     </div>
