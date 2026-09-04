@@ -502,7 +502,9 @@ export const ar = {
       "Female": "أنثى",
       "Role": "الدور",
       "Class Name": "اسم القسم",
-      "Capacity": "السعة"
+      "Capacity": "السعة",
+      "Father / Male": "أب / ذكر",
+      "Mother / Female": "أم / أنثى"
     },
     entities: {
       subject: "المادة",

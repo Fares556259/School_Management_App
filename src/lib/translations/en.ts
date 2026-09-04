@@ -500,7 +500,9 @@ export const en = {
       "Female": "Female",
       "Role": "Role",
       "Class Name": "Class Name",
-      "Capacity": "Capacity"
+      "Capacity": "Capacity",
+      "Father / Male": "Father / Male",
+      "Mother / Female": "Mother / Female"
     },
     entities: {
       subject: "Subject",

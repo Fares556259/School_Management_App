@@ -48,7 +48,7 @@ export const createTeacher = async (data: {
         salary: (data.hourlyRate && data.hoursPerMonth) ? data.hourlyRate * data.hoursPerMonth : (data.salary ?? 3000),
         hourlyRate: data.hourlyRate || null,
         hoursPerMonth: data.hoursPerMonth || null,
-        img: data.img || null,
+        img: data.img || (data.sex === "FEMALE" ? "/avatars/teacher_female.jpg" : "/avatars/teacher_male.jpg"),
         subjects: data.subjects ? { connect: data.subjects.map(sId => ({ id: sId })) } : undefined,
         classes: data.classes ? { connect: data.classes.map(cId => ({ id: cId })) } : undefined,
       },
@@ -256,7 +256,7 @@ export const createStudent = async (data: {
         classId: finalClassId,
         levelId: finalLevelId,
         customTuition: data.customTuition || null,
-        img: data.img || null,
+        img: data.img || (data.sex === "FEMALE" ? "/avatars/student_female.jpg" : "/avatars/student_male.jpg"),
       },
     });
     await createAuditLog({
@@ -515,11 +515,12 @@ export const deleteStaff = async (id: string) => {
 
 // ===================== PARENT =====================
 export const createParent = async (data: {
-  username: string;
+  username?: string;
   name: string;
   surname: string;
   phone: string;
   address: string;
+  sex?: string;
   img?: string | null;
 }) => {
   try {
@@ -527,6 +528,7 @@ export const createParent = async (data: {
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${data.phone.slice(-4)}`;
 
     const schoolId = await getSchoolId();
+    const defaultImg = data.sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
 
     await prisma.parent.create({
       data: {
@@ -537,15 +539,15 @@ export const createParent = async (data: {
         surname: data.surname,
         phone: data.phone,
         address: data.address,
-        img: data.img || null,
+        img: data.img || defaultImg,
       },
     });
     invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
-    console.error("[enrollFamily] Error:", err);
-    return { success: false, error: err?.message || "Failed to enroll family." };
+    console.error("[createParent] Error:", err);
+    return { success: false, error: err?.message || "Failed to create parent." };
   }
 };
 
@@ -557,12 +559,19 @@ export const updateParent = async (
     surname: string;
     phone: string;
     address: string;
+    sex: string;
     img: string | null;
   }>
 ) => {
   try {
     const schoolId = await getSchoolId();
-    await prisma.parent.update({ where: { id }, data });
+    const { sex, ...restData } = data as any;
+
+    if (sex && (!restData.img || restData.img.startsWith("/avatars/parent_"))) {
+      restData.img = sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
+    }
+
+    await prisma.parent.update({ where: { id }, data: restData });
     invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
@@ -1269,6 +1278,8 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         },
       });
 
+      const parentDefaultImg = parentData.sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
+
       if (!parent) {
         // Generate a clean username if not provided
         const genUsername = parentData.username || 
@@ -1283,9 +1294,17 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             surname: parentData.surname,
             phone: parentData.phone,
             address: parentData.address,
-            img: parentData.img || null,
+            img: parentData.img || parentDefaultImg,
           }
         });
+      } else {
+        // If parent already exists but doesn't have an img, or has a default avatar
+        if (!parent.img || parent.img.startsWith("/avatars/parent_")) {
+          await tx.parent.update({
+            where: { id: parent.id },
+            data: { img: parentData.img || parentDefaultImg }
+          });
+        }
       }
 
       // 2. Create Students
@@ -1312,6 +1331,8 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         const studentUsername = child.username || 
           `${child.name.toLowerCase()}.${child.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
+        const childDefaultImg = (child.sex === "FEMALE" || child.sex === "female") ? "/avatars/student_female.jpg" : "/avatars/student_male.jpg";
+
         await tx.student.create({
           data: {
             schoolId,
@@ -1327,7 +1348,7 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             parentId: parent.id,
             classId: finalClassId,
             levelId: finalLevelId,
-            img: child.img || null,
+            img: child.img || childDefaultImg,
             customTuition: child.customTuition || null,
           },
         });

@@ -502,7 +502,9 @@ export const fr = {
       "Female": "Fille",
       "Role": "Rôle",
       "Class Name": "Nom de la classe",
-      "Capacity": "Capacité"
+      "Capacity": "Capacité",
+      "Father / Male": "Père / Homme",
+      "Mother / Female": "Mère / Femme"
     },
     entities: {
       subject: "Matière",

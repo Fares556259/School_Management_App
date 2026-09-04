@@ -25,7 +25,10 @@ import { ProofViewerModal } from "./ProofViewerModal";
 const parseImgs = (val: any): string[] => {
   if (!val) return [];
   if (Array.isArray(val)) return val.filter(Boolean);
-  if (typeof val === "string") return val.split(",").filter(Boolean);
+  if (typeof val === "string") {
+    if (val.startsWith("/avatars/")) return [];
+    return val.split(",").filter(Boolean);
+  }
   if (typeof val === "object" && val.secure_url) return [val.secure_url];
   return [];
 };
@@ -104,6 +107,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   parent: [
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
+    { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Father / Male" }, { value: "FEMALE", label: "Mother / Female" }] },
     { name: "phone", label: "Phone", type: "text", required: true },
     { name: "address", label: "Address", type: "text", required: true },
     { name: "img", label: "Profile Photo", type: "image" },
@@ -541,7 +545,12 @@ export default function CrudFormModal({
                         {f.type === "select" ? (
                           <select
                             name={f.name}
-                            defaultValue={data?.[f.name] || ""}
+                            defaultValue={
+                              data?.[f.name] || 
+                              (entity === "parent" && f.name === "sex" 
+                                ? (data?.img?.includes("female") ? "FEMALE" : "MALE") 
+                                : "")
+                            }
                             required={f.required}
                             className="w-full border border-[#dddddd] rounded-[6px] px-4 py-2.5 text-[14px] font-normal text-[#181d26] bg-white h-[44px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors shadow-sm"
                           >
