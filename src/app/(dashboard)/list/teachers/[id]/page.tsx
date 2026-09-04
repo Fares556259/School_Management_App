@@ -15,6 +15,7 @@ import { Teacher, Subject, Class } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import TeacherSalaryTracker from "./TeacherSalaryTracker";
+import SalarySummaryCard from "./SalarySummaryCard";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
 
@@ -205,6 +206,11 @@ const SingleTeacherPage = async ({
             </Link>
           </div>
         </div>
+
+        <SalarySummaryCard
+          salary={teacher.salary}
+          payments={teacher.payments}
+        />
 
         <TeacherSalaryTracker 
           teacherId={teacher.id}

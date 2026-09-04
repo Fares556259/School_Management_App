@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import StaffSalaryTracker from "./StaffSalaryTracker";
+import SalarySummaryCard from "./SalarySummaryCard";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
 
@@ -111,6 +112,12 @@ const SingleStaffPage = async ({
           </div>
         </div>
 
+        {/* SALARY SUMMARY */}
+        <SalarySummaryCard
+          salary={staff.salary}
+          payments={staff.payments}
+        />
+
         {/* SALARY TRACKER */}
         <StaffSalaryTracker
           staffId={staff.id}
@@ -136,7 +143,7 @@ const SingleStaffPage = async ({
                     <p className="text-xs text-gray-500">Paid on {p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "-"}</p>
                   </div>
                   <span className={`font-bold text-sm ${p.status === "PAID" ? "text-emerald-600" : "text-amber-500"}`}>
-                    ${p.amount}
+                    {p.amount.toLocaleString("en-US").replace(/,/g, " ")} DT
                   </span>
                 </div>
               ))

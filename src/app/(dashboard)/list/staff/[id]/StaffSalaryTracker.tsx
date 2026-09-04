@@ -19,12 +19,17 @@ export default function StaffSalaryTracker({
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPending, startTransition] = useTransition();
-  const [paidMonths, setPaidMonths] = useState<Set<string>>(() => {
-    const s = new Set<string>();
+
+  // FIX Bug 1: proper template literals + correct month index (p.month is 1-based, so -1 for array)
+  const [paidMonths, setPaidMonths] = useState<Map<string, string>>(() => {
+    const m = new Map<string, string>();
     payments.forEach((p) => {
-      if (p.status === "PAID") s.add(`{MONTHS[p.month]} {p.year}`);
+      if (p.status === "PAID" || p.status === "PARTIAL") {
+        const key = `${MONTHS[p.month - 1]} ${p.year}`;
+        m.set(key, p.status);
+      }
     });
-    return s;
+    return m;
   });
 
   const handlePrevMonth = () => {
@@ -48,25 +53,36 @@ export default function StaffSalaryTracker({
     year: "numeric",
   });
 
-  const isPaid = paidMonths.has(monthStr);
+  const status = paidMonths.get(monthStr);
+  const isPaid = status === "PAID";
+  const isPartial = status === "PARTIAL";
 
   const handlePay = () => {
     if (!isAdmin || isPending || isPaid) return;
     startTransition(async () => {
       const result = await payStaffSalary(staffId, staffName, salary, monthStr);
       if (result.success) {
-        setPaidMonths((prev) => new Set(prev).add(monthStr));
+        setPaidMonths((prev) => new Map(prev).set(monthStr, "PAID"));
       } else {
         alert(result.error);
       }
     });
   };
 
-  return (
-    <div className="bg-white p-4 rounded-md">
-      <h1 className="text-xl font-semibold mb-4">Salary Tracker</h1>
+  const badgeClass = isPaid
+    ? "bg-emerald-100 text-emerald-700"
+    : isPartial
+    ? "bg-purple-100 text-purple-700"
+    : "bg-rose-100 text-rose-700";
 
-      <div className="flex items-center justify-between bg-slate-50 p-3 rounded-md mb-4 border border-slate-100">
+  const badgeLabel = isPaid ? "PAID" : isPartial ? "ADVANCE" : "UNPAID";
+
+  return (
+    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm mt-4">
+      <h1 className="text-base font-bold text-slate-800 mb-4">Salary Tracker</h1>
+
+      {/* Month navigator */}
+      <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg mb-4 border border-slate-100">
         <button
           onClick={handlePrevMonth}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
@@ -85,18 +101,16 @@ export default function StaffSalaryTracker({
       <div className="flex flex-col items-center gap-3">
         <div className="flex w-full items-center justify-between px-2">
           <span className="text-sm font-medium text-slate-500">Monthly Salary:</span>
-          <span className="text-sm font-bold text-slate-700">{salary.toLocaleString("en-US").replace(/,/g, " ") + " DT"}</span>
+          <span className="text-sm font-bold text-slate-700">
+            {salary.toLocaleString("en-US").replace(/,/g, " ") + " DT"}
+          </span>
         </div>
+
+        {/* FIX Bug 2: proper template literal className */}
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
           <span className="text-sm font-medium text-slate-500">Status:</span>
-          <span
-            className={`px-3 py-1 text-xs font-bold rounded-full {
-              isPaid
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-rose-100 text-rose-700"
-            }`}
-          >
-            {isPaid ? "PAID" : "UNPAID"}
+          <span className={`px-3 py-1 text-xs font-bold rounded-full ${badgeClass}`}>
+            {badgeLabel}
           </span>
         </div>
 
@@ -104,9 +118,14 @@ export default function StaffSalaryTracker({
           <button
             onClick={handlePay}
             disabled={isPending}
-            className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-md transition-all disabled:opacity-50 shadow-sm hover:shadow-md"
+            className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 shadow-sm hover:shadow-md text-sm"
           >
-            {isPending ? "Processing..." : `Pay {salary} for {monthStr}`}
+            {/* FIX Bug 3: proper template literal button label */}
+            {isPending
+              ? "Processing..."
+              : isPartial
+              ? `Complete salary for ${monthStr}`
+              : `Pay ${salary.toLocaleString("en-US").replace(/,/g, " ")} DT for ${monthStr}`}
           </button>
         )}
       </div>
