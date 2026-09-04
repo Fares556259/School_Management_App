@@ -677,7 +677,7 @@ export default function TeacherFinanceHub({
             <span className="text-2xl font-black text-emerald-950 block mt-1">
               {fmt(totalPaid)}
             </span>
-            <span className="text-xs text-emerald-600 font-medium block mt-0.5">
+            <span className="text-[11px] text-emerald-500 font-medium block mt-0.5">
               {paidMonthsCount} {paidMonthsCount > 1 ? "mois réglés" : "mois réglé"}
             </span>
           </div>
@@ -695,7 +695,7 @@ export default function TeacherFinanceHub({
             <span className="text-2xl font-black text-amber-950 block mt-1">
               {fmt(totalAdvances)}
             </span>
-            <span className="text-xs text-amber-600 font-medium block mt-0.5">
+            <span className="text-[11px] text-amber-500 font-medium block mt-0.5">
               {totalAdvances > 0 ? "Avances sur salaires" : "Aucune avance"}
             </span>
           </div>
@@ -713,7 +713,7 @@ export default function TeacherFinanceHub({
             <span className="text-2xl font-black text-rose-950 block mt-1">
               {fmt(totalDeductions)}
             </span>
-            <span className="text-xs text-rose-600 font-medium block mt-0.5">
+            <span className="text-[11px] text-rose-500 font-medium block mt-0.5">
               {totalDeductions > 0 ? "Retenues d'absence" : "Aucune retenue"}
             </span>
           </div>
@@ -739,8 +739,8 @@ export default function TeacherFinanceHub({
             }`}>
               {outstandingBalance > 0 ? fmt(outstandingBalance) : "0 DT"}
             </span>
-            <span className={`text-xs font-semibold block mt-0.5 ${
-              outstandingBalance > 0 ? "text-rose-600" : "text-emerald-600"
+            <span className={`text-[11px] font-medium block mt-0.5 ${
+              outstandingBalance > 0 ? "text-rose-500" : "text-emerald-500"
             }`}>
               {outstandingBalance > 0 ? "Paiement en attente" : "✓ Tout est réglé"}
             </span>
@@ -748,9 +748,9 @@ export default function TeacherFinanceHub({
           <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${
             outstandingBalance > 0 
               ? "bg-rose-100/60 border-rose-300 text-rose-600" 
-              : "bg-slate-50 border-slate-200 text-slate-400"
+              : "bg-emerald-50 border-emerald-200 text-emerald-500"
           }`}>
-            <AlertCircle size={24} />
+            {outstandingBalance > 0 ? <AlertCircle size={24} /> : <CheckCircle2 size={24} />}
           </div>
         </div>
       </div>
@@ -770,10 +770,6 @@ export default function TeacherFinanceHub({
                 <p className="text-xs text-slate-400 mt-0.5">
                   Année académique {academicStartYear}/{academicEndYear} · {paidMonthsCount}/10 mois réglés
                 </p>
-              </div>
-              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 text-right">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Salaire Mensuel</span>
-                <span className="text-xs font-black text-slate-800">{fmt(salary)}</span>
               </div>
             </div>
 
@@ -832,21 +828,21 @@ export default function TeacherFinanceHub({
             </div>
 
             {/* Legend (Avance in Yellow/Amber) */}
-            <div className="flex items-center justify-between flex-wrap gap-3 mt-5 pt-4 border-t border-slate-100 text-xs text-slate-500">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <div className="flex items-center justify-between flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                 <span className="font-medium">Payé</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                 <span className="font-medium">Avance</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                 <span className="font-medium">En retard</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-200 border border-slate-300" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-200 border border-slate-300 shrink-0" />
                 <span className="font-medium">À venir</span>
               </div>
             </div>
@@ -854,72 +850,65 @@ export default function TeacherFinanceHub({
 
           {/* INTERACTIVE MONTH CONTROLLER & DETAILED FINANCIAL BREAKDOWN CARD */}
           <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex flex-col gap-5">
-            {/* Month Carousel Selector */}
-            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+            {/* Unified Month Nav + Status Strip */}
+            <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 gap-3 transition-colors ${
+              isSelectedPaid
+                ? "bg-emerald-50/60 border-emerald-200"
+                : isSelectedPartial
+                ? "bg-amber-50/60 border-amber-200"
+                : "bg-slate-50 border-slate-200/70"
+            }`}>
+              {/* ← Prev */}
               <button
                 onClick={handlePrevMonth}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs shrink-0"
                 title="Mois précédent"
               >
                 <ChevronLeft size={18} />
               </button>
-              <div className="text-center">
-                <span className="text-sm font-black text-slate-800 block">
-                  {selectedDisplayLabel}
-                </span>
-                <span className="text-[11px] text-slate-400 block font-medium">
-                  Créneau de paie sélectionné
-                </span>
+
+              {/* Centre: Month + Status badge + Amount */}
+              <div className="flex-1 flex flex-col sm:flex-row items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-slate-900">{selectedDisplayLabel}</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${
+                    isSelectedPaid
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                      : isSelectedPartial
+                      ? "bg-amber-100 text-amber-800 border-amber-200"
+                      : "bg-rose-100 text-rose-800 border-rose-200"
+                  }`}>
+                    {isSelectedPaid ? "PAYÉ" : isSelectedPartial ? "AVANCE" : "NON RÉGLÉ"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {isSelectedPaid
+                      ? "Versé :"
+                      : isSelectedPartial
+                      ? "Solde restant :"
+                      : "Net à régler :"}
+                  </span>
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-lg border shadow-2xs ${
+                    isSelectedPaid
+                      ? "bg-white text-emerald-800 border-emerald-200"
+                      : isSelectedPartial
+                      ? "bg-white text-amber-900 border-amber-300"
+                      : "bg-white text-slate-800 border-slate-200"
+                  }`}>
+                    {fmt(isSelectedPaid ? (currentSelectedPayment?.amount || baseMonthlySalary) : selectedRemainingToPay)}
+                  </span>
+                </div>
               </div>
+
+              {/* → Next */}
               <button
                 onClick={handleNextMonth}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs shrink-0"
                 title="Mois suivant"
               >
                 <ChevronRight size={18} />
               </button>
-            </div>
-
-            {/* Status info strip & Financial status */}
-            <div className="flex items-center justify-between px-1 text-xs gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 font-medium">Statut pour {frMonthName} :</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                  isSelectedPaid 
-                    ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
-                    : isSelectedPartial 
-                    ? "bg-amber-100 text-amber-800 border-amber-200" 
-                    : "bg-rose-100 text-rose-800 border-rose-200"
-                }`}>
-                  {isSelectedPaid ? "PAYÉ" : isSelectedPartial ? "AVANCE VERSÉE" : "NON RÉGLÉ"}
-                </span>
-              </div>
-
-              {/* Solde restant / Net à régler moved to top bar */}
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 font-semibold">
-                  {isSelectedPaid 
-                    ? "Montant versé :" 
-                    : isSelectedPartial 
-                    ? `Solde restant (${frMonthName}) :` 
-                    : `Net à régler (${frMonthName}) :`}
-                </span>
-                <span className={`text-xs sm:text-sm font-black px-2.5 py-1 rounded-xl border shadow-2xs ${
-                  isSelectedPaid
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : isSelectedPartial
-                    ? "bg-amber-50 text-amber-900 border-amber-300"
-                    : "bg-slate-100 text-slate-800 border-slate-200"
-                }`}>
-                  {fmt(isSelectedPaid ? (currentSelectedPayment?.amount || baseMonthlySalary) : selectedRemainingToPay)}
-                </span>
-              </div>
-            </div>
-
-            {/* Contractual Base Salary Row */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200/70 rounded-xl text-xs">
-              <span className="font-semibold text-slate-600">Salaire mensuel de base contractuel :</span>
-              <span className="font-black text-slate-900 text-sm">{fmt(baseMonthlySalary)}</span>
             </div>
 
             {/* 1. APPLIED DEDUCTION: RED BLOCK */}
@@ -1073,53 +1062,62 @@ export default function TeacherFinanceHub({
               </div>
             )}
 
+            {/* DIVIDER before action block */}
+            <div className="border-t border-slate-100 pt-1" />
+
             {/* SETTLEMENT / NET PAYMENT SUMMARY BLOCK */}
             {isSelectedPaid ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-900 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
-                    <CheckCircle2 size={20} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-emerald-950 block">
-                      Salaire net réglé pour {frMonthName}
-                    </span>
-                    <span className="text-[11px] text-emerald-700 block mt-0.5">
-                      Montant versé : {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
-                      {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
-                    </span>
-                    {(selectedDeductionAmount > 0 || selectedAdvanceAmount > 0) && (
-                      <div className="text-[10px] text-emerald-800/80 mt-1 font-semibold flex flex-col gap-0.5">
-                        <span>
-                          Détail : {fmt(baseMonthlySalary)} (base)
-                          {selectedDeductionAmount > 0 ? ` − ${fmt(selectedDeductionAmount)} (retenue absence)` : ""}
-                          {selectedDeductionAmount > 0 ? ` = ${fmt(baseMonthlySalary - selectedDeductionAmount)} net dû` : ""}
-                        </span>
-                        {selectedAdvanceAmount > 0 && (
-                          <span className="text-amber-800/80">
-                            (dont {fmt(selectedAdvanceAmount)} versé en avance · solde final : {fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))})
+              <div className="flex flex-col gap-2">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-900 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                      <CheckCircle2 size={20} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-emerald-950 block">
+                        Salaire net réglé pour {frMonthName}
+                      </span>
+                      <span className="text-[11px] text-emerald-700 block mt-0.5">
+                        Montant versé : {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
+                        {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
+                      </span>
+                      {(selectedDeductionAmount > 0 || selectedAdvanceAmount > 0) && (
+                        <div className="text-[10px] text-emerald-800/80 mt-1 font-semibold flex flex-col gap-0.5">
+                          <span>
+                            Détail : {fmt(baseMonthlySalary)} (base)
+                            {selectedDeductionAmount > 0 ? ` − ${fmt(selectedDeductionAmount)} (retenue absence)` : ""}
+                            {selectedDeductionAmount > 0 ? ` = ${fmt(baseMonthlySalary - selectedDeductionAmount)} net dû` : ""}
                           </span>
-                        )}
-                      </div>
-                    )}
+                          {selectedAdvanceAmount > 0 && (
+                            <span className="text-amber-800/80">
+                              (dont {fmt(selectedAdvanceAmount)} versé en avance · solde final : {fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="inline-block text-xs sm:text-sm font-extrabold px-3 py-1 bg-white rounded-lg border border-emerald-200 text-emerald-700 shadow-2xs">
+                      {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <span className="inline-block text-xs sm:text-sm font-extrabold px-3 py-1 bg-white rounded-lg border border-emerald-200 text-emerald-700 shadow-2xs">
-                    {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
-                  </span>
-                </div>
+                {/* Absence link row — visible below settlement, not buried inside it */}
                 {isAdmin && (
-                  <div className="flex justify-end pt-1">
-                    <button
-                      onClick={openAbsenceModal}
-                      className="py-2 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-2 transition-all shadow-2xs"
-                      title="Consulter ou ajuster les heures d'absence"
-                    >
-                      <Clock size={14} className="text-slate-500" />
-                      <span>{selectedTrackedHours > 0 ? `Compteur absence (${selectedTrackedHours}h)` : "Ajuster absence"}</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={openAbsenceModal}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-indigo-600 text-xs font-medium transition-colors group w-fit"
+                    title="Consulter ou ajuster les heures d'absence"
+                  >
+                    <Clock size={13} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                    <span>
+                      {selectedTrackedHours > 0
+                        ? `Gérer les heures d'absence (${selectedTrackedHours}h enregistrées)`
+                        : "Enregistrer une absence"}
+                    </span>
+                    <ChevronRight size={12} className="text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                  </button>
                 )}
               </div>
             ) : isSelectedPartial ? (
@@ -1359,20 +1357,32 @@ export default function TeacherFinanceHub({
               </h4>
             </div>
 
-            <div className="flex flex-col gap-3 text-xs">
-              <div className="flex items-center justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">Salaire mensuel de base :</span>
-                <span className="font-bold text-slate-800">{fmt(salary)}</span>
+            <div className="flex flex-col gap-0 text-xs">
+              {/* Base salary — visually prominent */}
+              <div className={`flex items-center justify-between py-2.5 px-3 rounded-xl mb-1 ${
+                salary === 0 ? "bg-amber-50 border border-amber-200/60" : "bg-slate-50"
+              }`}>
+                <span className="text-slate-600 font-semibold">Salaire mensuel de base</span>
+                <div className="flex items-center gap-2">
+                  <span className={`font-black text-sm ${salary === 0 ? "text-amber-700" : "text-slate-900"}`}>
+                    {fmt(salary)}
+                  </span>
+                  {salary === 0 && (
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                      Non défini
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+              <div className="flex items-center justify-between py-2 px-1 border-b border-slate-50">
                 <span className="text-slate-500">Taux de retenue horaire :</span>
                 <span className="font-bold text-slate-800">{effectiveHourlyRate} DT / h</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+              <div className="flex items-center justify-between py-2 px-1 border-b border-slate-50">
                 <span className="text-slate-500">Volume mensuel théorique :</span>
                 <span className="font-bold text-slate-800">{hoursPerMonth ? `${hoursPerMonth}h / mois` : "40h / mois"}</span>
               </div>
-              <div className="flex items-center justify-between py-1">
+              <div className="flex items-center justify-between py-2 px-1">
                 <span className="text-slate-500">Période académique :</span>
                 <span className="font-semibold text-slate-700">{academicStartYear} - {academicEndYear}</span>
               </div>
