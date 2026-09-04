@@ -229,7 +229,7 @@ export default function CrudFormModal({
   const [previewActiveIdx, setPreviewActiveIdx] = useState(0);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   // Phone duplicate detection (parent create mode only)
   const [phoneExists, setPhoneExists] = useState<{ exists: boolean; parentName?: string }>({ exists: false });
@@ -567,7 +567,13 @@ export default function CrudFormModal({
                               name={f.name}
                               options={f.options || []}
                               defaultValue={data?.[f.name]?.map((item: any) => item.id.toString()) || []}
-                              placeholder={`Select ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`}
+                              placeholder={
+                                locale === "fr"
+                                  ? `Sélectionner ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
+                                  : locale === "ar"
+                                  ? `اختر ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
+                                  : `Select ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
+                              }
                             />
                           </div>
                         ) : f.type === "image" ? (
