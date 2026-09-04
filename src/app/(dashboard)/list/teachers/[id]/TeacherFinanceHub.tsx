@@ -900,55 +900,6 @@ export default function TeacherFinanceHub({
                   {isSelectedPaid ? "PAYÉ" : isSelectedPartial ? "AVANCE VERSÉE" : "NON RÉGLÉ"}
                 </span>
               </div>
-
-              {isAdmin && (
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={openAbsenceModal}
-                    className={`px-2.5 py-1 rounded-lg border font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-2xs ${
-                      selectedTrackedHours > 0
-                        ? selectedMeta.deductionStatus === "APPLIED"
-                          ? "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"
-                          : selectedMeta.deductionStatus === "EXCUSED"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                          : "border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100"
-                        : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
-                    }`}
-                    title="Gérer le compteur d'absence et les retenues"
-                  >
-                    <Clock
-                      size={13}
-                      className={
-                        selectedTrackedHours > 0
-                          ? selectedMeta.deductionStatus === "APPLIED"
-                            ? "text-rose-600"
-                            : selectedMeta.deductionStatus === "EXCUSED"
-                            ? "text-emerald-600"
-                            : "text-indigo-600"
-                          : "text-slate-500"
-                      }
-                    />
-                    <span>
-                      {selectedTrackedHours > 0
-                        ? `Compteur absence (${selectedTrackedHours}h)`
-                        : "Ajuster absence"}
-                    </span>
-                  </button>
-                  {!isSelectedPaid && (
-                    <button
-                      onClick={() => {
-                        setAdvanceAmountInput("");
-                        setIsAdvanceModalOpen(true);
-                      }}
-                      className="px-2.5 py-1 rounded-lg border border-amber-200 hover:border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
-                      title="Verser une avance sur salaire"
-                    >
-                      <TrendingUp size={13} className="text-amber-600" />
-                      <span>Avance</span>
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Contractual Base Salary Row */}
@@ -1144,6 +1095,18 @@ export default function TeacherFinanceHub({
                     {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
                   </span>
                 </div>
+                {isAdmin && (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={openAbsenceModal}
+                      className="py-2 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-2 transition-all shadow-2xs"
+                      title="Consulter ou ajuster les heures d'absence"
+                    >
+                      <Clock size={14} className="text-slate-500" />
+                      <span>{selectedTrackedHours > 0 ? `Compteur absence (${selectedTrackedHours}h)` : "Ajuster absence"}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : isSelectedPartial ? (
               <div className="flex flex-col gap-3">
@@ -1158,17 +1121,73 @@ export default function TeacherFinanceHub({
                     {fmt(selectedRemainingToPay)}
                   </span>
                 </div>
-                {isAdmin && (
-                  <button
-                    onClick={() => handleSettleRemaining(selectedRemainingToPay, selectedTrackedHours, selectedDeductionAmount)}
-                    disabled={isPending}
-                    className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Banknote size={16} />
-                    <span>
-                      {isPending ? "Règlement en cours..." : `Régler le solde restant (${fmt(selectedRemainingToPay)})`}
-                    </span>
-                  </button>
+
+                {isAdmin ? (
+                  <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                    {/* 1. REGLEMENT (SOLDE RESTANT) */}
+                    <button
+                      onClick={() => handleSettleRemaining(selectedRemainingToPay, selectedTrackedHours, selectedDeductionAmount)}
+                      disabled={isPending}
+                      className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Banknote size={16} />
+                      <span>
+                        {isPending ? "Règlement en cours..." : `Régler le solde (${fmt(selectedRemainingToPay)})`}
+                      </span>
+                    </button>
+
+                    {/* 2. VERSEMENT AVANCE */}
+                    <button
+                      onClick={() => {
+                        setAdvanceAmountInput("");
+                        setIsAdvanceModalOpen(true);
+                      }}
+                      disabled={isPending || selectedRemainingToPay <= 0}
+                      className="py-3 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-2xs"
+                      title="Verser une autre avance"
+                    >
+                      <TrendingUp size={15} className="text-amber-600" />
+                      <span>Verser avance</span>
+                    </button>
+
+                    {/* 3. ABSENCE */}
+                    <button
+                      onClick={openAbsenceModal}
+                      disabled={isPending}
+                      className={`py-3 px-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-2xs disabled:opacity-50 ${
+                        selectedTrackedHours > 0
+                          ? selectedMeta.deductionStatus === "APPLIED"
+                            ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
+                            : selectedMeta.deductionStatus === "EXCUSED"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                            : "border-indigo-300 bg-indigo-50 text-indigo-800 hover:bg-indigo-100"
+                          : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                      }`}
+                      title="Gérer le compteur d'absence et les retenues"
+                    >
+                      <Clock
+                        size={15}
+                        className={
+                          selectedTrackedHours > 0
+                            ? selectedMeta.deductionStatus === "APPLIED"
+                              ? "text-rose-600"
+                              : selectedMeta.deductionStatus === "EXCUSED"
+                              ? "text-emerald-600"
+                              : "text-indigo-600"
+                            : "text-slate-500"
+                        }
+                      />
+                      <span>
+                        {selectedTrackedHours > 0
+                          ? `Absence (${selectedTrackedHours}h)`
+                          : "Ajuster absence"}
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-center text-xs text-slate-400 italic">
+                    En attente d&apos;exécution par l&apos;administrateur.
+                  </div>
                 )}
               </div>
             ) : (
@@ -1186,7 +1205,8 @@ export default function TeacherFinanceHub({
                 </div>
 
                 {isAdmin ? (
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                    {/* 1. REGLEMENT DU SALAIRE */}
                     <button
                       onClick={() => handlePayNetSalary(selectedRemainingToPay, selectedTrackedHours, selectedDeductionAmount)}
                       disabled={isPending}
@@ -1197,16 +1217,53 @@ export default function TeacherFinanceHub({
                         {isPending ? "Traitement..." : `Régler le salaire (${fmt(selectedRemainingToPay)})`}
                       </span>
                     </button>
+
+                    {/* 2. VERSEMENT AVANCE */}
                     <button
                       onClick={() => {
                         setAdvanceAmountInput("");
                         setIsAdvanceModalOpen(true);
                       }}
-                      disabled={isPending}
-                      className="py-3 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      disabled={isPending || selectedRemainingToPay <= 0}
+                      className="py-3 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-2xs"
+                      title="Verser une avance sur salaire"
                     >
                       <TrendingUp size={15} className="text-amber-600" />
                       <span>Verser avance</span>
+                    </button>
+
+                    {/* 3. ABSENCE */}
+                    <button
+                      onClick={openAbsenceModal}
+                      disabled={isPending}
+                      className={`py-3 px-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-2xs disabled:opacity-50 ${
+                        selectedTrackedHours > 0
+                          ? selectedMeta.deductionStatus === "APPLIED"
+                            ? "border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100"
+                            : selectedMeta.deductionStatus === "EXCUSED"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                            : "border-indigo-300 bg-indigo-50 text-indigo-800 hover:bg-indigo-100"
+                          : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                      }`}
+                      title="Gérer le compteur d'absence et les retenues"
+                    >
+                      <Clock
+                        size={15}
+                        className={
+                          selectedTrackedHours > 0
+                            ? selectedMeta.deductionStatus === "APPLIED"
+                              ? "text-rose-600"
+                              : selectedMeta.deductionStatus === "EXCUSED"
+                              ? "text-emerald-600"
+                              : "text-indigo-600"
+                            : "text-slate-500"
+                        }
+                      />
+                      <span>
+                        {selectedTrackedHours > 0
+                          ? `Absence (${selectedTrackedHours}h)`
+                          : "Ajuster absence"}
+                      </span>
                     </button>
                   </div>
                 ) : (
