@@ -897,8 +897,8 @@ export default function TeacherFinanceHub({
               </button>
             </div>
 
-            {/* Status info strip & Admin quick actions */}
-            <div className="flex items-center justify-between px-1 text-xs gap-2 flex-wrap">
+            {/* Status info strip & Financial status */}
+            <div className="flex items-center justify-between px-1 text-xs gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-slate-500 font-medium">Statut pour {frMonthName} :</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
@@ -909,6 +909,26 @@ export default function TeacherFinanceHub({
                     : "bg-rose-100 text-rose-800 border-rose-200"
                 }`}>
                   {isSelectedPaid ? "PAYÉ" : isSelectedPartial ? "AVANCE VERSÉE" : "NON RÉGLÉ"}
+                </span>
+              </div>
+
+              {/* Solde restant / Net à régler moved to top bar */}
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-semibold">
+                  {isSelectedPaid 
+                    ? "Montant versé :" 
+                    : isSelectedPartial 
+                    ? `Solde restant (${frMonthName}) :` 
+                    : `Net à régler (${frMonthName}) :`}
+                </span>
+                <span className={`text-xs sm:text-sm font-black px-2.5 py-1 rounded-xl border shadow-2xs ${
+                  isSelectedPaid
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    : isSelectedPartial
+                    ? "bg-amber-50 text-amber-900 border-amber-300"
+                    : "bg-slate-100 text-slate-800 border-slate-200"
+                }`}>
+                  {fmt(isSelectedPaid ? (currentSelectedPayment?.amount || baseMonthlySalary) : selectedRemainingToPay)}
                 </span>
               </div>
             </div>
@@ -1121,18 +1141,6 @@ export default function TeacherFinanceHub({
               </div>
             ) : isSelectedPartial ? (
               <div className="flex flex-col gap-3">
-                <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-center justify-between text-xs text-amber-900">
-                  <div>
-                    <span className="font-bold block">Solde restant à régler pour {frMonthName} :</span>
-                    <span className="text-[11px] text-amber-700 block mt-0.5">
-                      {fmt(baseMonthlySalary)} (base) {selectedAdvanceAmount > 0 ? `− ${fmt(selectedAdvanceAmount)} (avance)` : ""} {selectedDeductionAmount > 0 ? `− ${fmt(selectedDeductionAmount)} (absence)` : ""}
-                    </span>
-                  </div>
-                  <span className="text-sm font-black text-amber-800 px-3 py-1 bg-white rounded-lg border border-amber-200 shadow-2xs">
-                    {fmt(selectedRemainingToPay)}
-                  </span>
-                </div>
-
                 {isAdmin ? (
                   <div className="flex flex-col sm:flex-row items-stretch gap-2">
                     {/* 1. REGLEMENT (SOLDE RESTANT) */}
@@ -1203,18 +1211,6 @@ export default function TeacherFinanceHub({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-slate-800 block">Solde net calculé à verser :</span>
-                    <span className="text-[11px] text-slate-500 block mt-0.5">
-                      {fmt(baseMonthlySalary)} (base) {selectedDeductionAmount > 0 ? `− ${fmt(selectedDeductionAmount)} (retenue absence)` : ""}
-                    </span>
-                  </div>
-                  <span className="text-sm font-black text-slate-900 px-3 py-1 bg-white rounded-lg border border-slate-200 shadow-2xs">
-                    {fmt(selectedRemainingToPay)}
-                  </span>
-                </div>
-
                 {isAdmin ? (
                   <div className="flex flex-col sm:flex-row items-stretch gap-2">
                     {/* 1. REGLEMENT DU SALAIRE */}
