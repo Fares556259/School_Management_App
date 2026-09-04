@@ -10,7 +10,13 @@ const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "
 export const updateMissedHours = async (
   teacherId: string,
   monthYear: string,
-  missedHours: number
+  missedHours: number,
+  meta?: {
+    trackedHours?: number;
+    deductedHours?: number;
+    deductionStatus?: "PENDING" | "APPLIED" | "EXCUSED";
+    notes?: string;
+  }
 ) => {
   const [mName, yStr] = monthYear.split(" ");
   const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
@@ -18,6 +24,7 @@ export const updateMissedHours = async (
 
   try {
     const schoolId = await getSchoolId();
+    const imgData = meta ? JSON.stringify(meta) : undefined;
 
     await prisma.payment.upsert({
       where: {
@@ -25,6 +32,7 @@ export const updateMissedHours = async (
       },
       update: {
         missedHours,
+        ...(imgData !== undefined ? { img: imgData } : {}),
       },
       create: {
         teacherId,
@@ -34,6 +42,7 @@ export const updateMissedHours = async (
         status: "PENDING",
         userType: "TEACHER",
         missedHours,
+        ...(imgData !== undefined ? { img: imgData } : {}),
         schoolId,
       }
     });
@@ -58,7 +67,13 @@ export const payTeacherSalary = async (
   deduction?: number,
   isAdvance: boolean = false,
   expenseTitleInput?: string,
-  auditDescriptionInput?: string
+  auditDescriptionInput?: string,
+  meta?: {
+    trackedHours?: number;
+    deductedHours?: number;
+    deductionStatus?: "PENDING" | "APPLIED" | "EXCUSED";
+    notes?: string;
+  }
 ) => {
   const [mName, yStr] = monthYear.split(" ");
   const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
@@ -66,6 +81,7 @@ export const payTeacherSalary = async (
 
   try {
     const schoolId = await getSchoolId();
+    const imgData = meta ? JSON.stringify(meta) : undefined;
 
     const payment = await prisma.$transaction(async (tx) => {
       // Find existing to add to total
@@ -95,6 +111,7 @@ export const payTeacherSalary = async (
           paidAt: new Date(),
           amount: newTotalAmount,
           missedHours: missedHours !== undefined ? missedHours : existing?.missedHours || 0,
+          ...(imgData !== undefined ? { img: imgData } : {}),
         },
         create: {
           teacherId,
@@ -105,6 +122,7 @@ export const payTeacherSalary = async (
           userType: "TEACHER",
           paidAt: new Date(),
           missedHours: missedHours || 0,
+          ...(imgData !== undefined ? { img: imgData } : {}),
           schoolId,
         }
       });
