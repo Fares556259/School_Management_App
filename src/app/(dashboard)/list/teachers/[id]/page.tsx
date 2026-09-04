@@ -17,12 +17,12 @@ const SingleTeacherPage = async ({
   const role = await getRole();
   const schoolId = await getSchoolId();
 
-  const teacher = await getCachedTenantData(
+  const [teacher, teacherExpenses] = await getCachedTenantData(
     schoolId,
     "teachers",
-    [id, schoolId],
-    () =>
-      prisma.teacher.findUnique({
+    [id, schoolId, "profile_v2"],
+    async () => {
+      const t = await prisma.teacher.findUnique({
         where: { id },
         include: {
           subjects: true,
@@ -51,7 +51,25 @@ const SingleTeacherPage = async ({
             },
           },
         },
-      }),
+      });
+
+      if (!t) return [null, []];
+
+      const pIds = (t.payments || []).map((p: any) => p.id.toString());
+      const exp = await prisma.expense.findMany({
+        where: {
+          schoolId,
+          OR: [
+            ...(pIds.length > 0 ? [{ referenceType: "TeacherSalary", referenceId: { in: pIds } }] : []),
+            { referenceType: "TeacherSalary", referenceId: id },
+            { category: "Advance", title: { contains: t.name } }
+          ]
+        },
+        orderBy: { date: "asc" },
+      });
+
+      return [t, exp];
+    },
     600
   );
 
@@ -118,6 +136,7 @@ const SingleTeacherPage = async ({
   return (
     <TeacherProfileClient
       teacher={teacher}
+      expenses={teacherExpenses}
       cleanSubjects={cleanSubjects}
       scheduleItems={scheduleItems}
       teacherFullName={teacherFullName}

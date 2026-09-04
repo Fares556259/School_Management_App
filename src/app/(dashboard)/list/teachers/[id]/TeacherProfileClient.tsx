@@ -27,6 +27,7 @@ import {
 
 interface TeacherProfileClientProps {
   teacher: any;
+  expenses?: any[];
   cleanSubjects: string[];
   scheduleItems: ScheduleItem[];
   teacherFullName: string;
@@ -36,6 +37,7 @@ interface TeacherProfileClientProps {
 
 export default function TeacherProfileClient({
   teacher,
+  expenses = [],
   cleanSubjects,
   scheduleItems,
   teacherFullName,
@@ -316,6 +318,7 @@ export default function TeacherProfileClient({
             hourlyRate={teacher.hourlyRate}
             hoursPerMonth={teacher.hoursPerMonth}
             payments={teacher.payments}
+            expenses={expenses}
             isAdmin={isAdmin}
           />
         </div>
@@ -339,6 +342,7 @@ export default function TeacherProfileClient({
             hourlyRate={teacher.hourlyRate}
             hoursPerMonth={teacher.hoursPerMonth}
             payments={teacher.payments}
+            expenses={expenses}
             isAdmin={isAdmin}
           />
           <TeacherSchedule 
