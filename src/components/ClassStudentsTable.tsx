@@ -15,6 +15,7 @@ import StudentDetailsModal from "./StudentDetailsModal";
 import ConfirmModal from "./ConfirmModal";
 import { assignStudentsToClass, removeStudentFromClass } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getUserAvatar } from "@/lib/avatar";
 
 interface Student {
   id: string;
@@ -426,7 +427,7 @@ export default function ClassStudentsTable({
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full overflow-hidden relative bg-slate-100 shrink-0 border border-[#dddddd]">
                             <Image 
-                              src={student.img || "/noAvatar.png"} 
+                              src={getUserAvatar(student.img, "student", student.sex)} 
                               alt={`${student.name} ${student.surname}`} 
                               fill 
                               className="object-cover" 

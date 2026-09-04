@@ -16,6 +16,7 @@ import { createClient } from "@/utils/supabase/server";
 import StudentPaymentTracker from "./StudentPaymentTracker";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
+import { getUserAvatar } from "@/lib/avatar";
 
 const SingleStudentPage = async ({
   params: { id },
@@ -75,7 +76,7 @@ const SingleStudentPage = async ({
           <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
             <div className="w-1/3">
               <Image
-                src={student.img || "/noAvatar.png"}
+                src={getUserAvatar(student.img, "student", student.sex)}
                 alt=""
                 width={144}
                 height={144}
@@ -230,7 +231,7 @@ const SingleStudentPage = async ({
             <h1 className="text-xl font-semibold">Parent Info</h1>
             <div className="flex items-center gap-4 mt-4">
               <Image
-                src={(student as any).parent.img || "/noAvatar.png"}
+                src={getUserAvatar((student as any).parent.img, "parent", (student as any).parent.sex)}
                 alt=""
                 width={70}
                 height={70}

@@ -12,8 +12,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Staff, Payment } from "@prisma/client";
-
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getUserAvatar } from "@/lib/avatar";
 
 interface Props {
   initialData: any[];
@@ -119,7 +119,7 @@ export default function StaffListClient({
             className="flex items-center gap-4 group/name"
           >
             <Image
-              src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noAvatar.png"}
+              src={getUserAvatar(item.img, "staff", (item as any).sex)}
               alt=""
               width={40}
               height={40}

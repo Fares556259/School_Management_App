@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getUserAvatar } from "@/lib/avatar";
 
 interface Teacher {
   id: string;
@@ -182,7 +183,7 @@ export default function ClassTeachersTable({
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full overflow-hidden relative bg-slate-100 shrink-0 border border-[#dddddd]">
                           <Image 
-                            src={teacher.img || "/noAvatar.png"} 
+                            src={getUserAvatar(teacher.img, "teacher", teacher.sex)} 
                             alt={`${teacher.name} ${teacher.surname}`} 
                             fill 
                             className="object-cover" 

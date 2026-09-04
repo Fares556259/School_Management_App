@@ -8,6 +8,7 @@ import CrudFormModal from "@/components/CrudFormModal";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import Image from "next/image";
 import { Parent, Student } from "@prisma/client";
+import { getUserAvatar } from "@/lib/avatar";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -64,7 +65,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
     >
       <td className="flex items-center gap-4 p-4">
         <Image
-          src={item.img || "/noAvatar.png"}
+          src={getUserAvatar(item.img, "parent", (item as any).sex)}
           alt=""
           width={40}
           height={40}

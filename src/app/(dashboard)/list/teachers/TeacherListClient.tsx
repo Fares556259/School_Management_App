@@ -19,6 +19,7 @@ import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Teacher, Subject, Class, Payment } from "@prisma/client";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getUserAvatar } from "@/lib/avatar";
 
 interface Props {
   initialData: any[];
@@ -154,7 +155,7 @@ export default function TeacherListClient({
             className="flex items-center gap-4 group/name"
           >
             <Image
-              src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noAvatar.png"}
+              src={getUserAvatar(item.img, "teacher", item.sex)}
               alt=""
               width={40}
               height={40}

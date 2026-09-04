@@ -8,6 +8,7 @@ import { getAIUsageStats, toggleTestAIQuota } from "@/app/(dashboard)/admin/acti
 import { Sparkles, Lock, Unlock, RefreshCw, Search, Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
+import { getUserAvatar } from "@/lib/avatar";
 
 const Navbar = ({ adminData: initialAdminData, role = "User" }: { adminData?: any, role?: string }) => {
   const { t } = useLanguage();
@@ -63,13 +64,13 @@ const Navbar = ({ adminData: initialAdminData, role = "User" }: { adminData?: an
 
         {/* USER PROFILE */}
         <div className="flex items-center ml-2 border-l border-[#dddddd] pl-4">
-          {adminData?.img ? (
-            <Image src={adminData.img} alt="Profile" width={32} height={32} className="rounded-full object-cover w-8 h-8 shadow-sm border border-[#dddddd]" />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-gray-200 border border-[#dddddd] flex items-center justify-center">
-              <span className="text-gray-500 text-xs font-bold">U</span>
-            </div>
-          )}
+          <Image 
+            src={getUserAvatar(adminData?.img, role, adminData?.sex)} 
+            alt="Profile" 
+            width={32} 
+            height={32} 
+            className="rounded-full object-cover w-8 h-8 shadow-sm border border-[#dddddd]" 
+          />
           <form action="/api/auth/signout" method="POST" className="ml-3">
             <button type="submit" className="text-xs text-red-500 hover:underline">
               Sign out

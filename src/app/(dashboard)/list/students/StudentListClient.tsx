@@ -18,6 +18,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Student, Class, Level, Payment } from "@prisma/client";
+import { getUserAvatar } from "@/lib/avatar";
 
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
 import { Share2 } from "lucide-react";
@@ -152,7 +153,7 @@ export default function StudentListClient({
             className="flex items-center gap-4 group/name"
           >
             <Image
-              src={(item.img && item.img !== "null" && item.img !== "undefined" && item.img.trim() !== "") ? item.img : "/noAvatar.png"}
+              src={getUserAvatar(item.img, "student", item.sex)}
               alt=""
               width={40}
               height={40}

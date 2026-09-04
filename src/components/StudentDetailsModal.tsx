@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import PaymentTimeline from "@/components/PaymentTimeline";
+import { getUserAvatar } from "@/lib/avatar";
 
 interface StudentDetailsModalProps {
   student: {
@@ -117,7 +118,7 @@ export default function StudentDetailsModal({
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden relative border border-[#dddddd] bg-white shrink-0">
                       <Image
-                        src={student.img || "/noAvatar.png"}
+                        src={getUserAvatar(student.img, "student", student.sex)}
                         alt={`${student.name} ${student.surname}`}
                         fill
                         className="object-cover"

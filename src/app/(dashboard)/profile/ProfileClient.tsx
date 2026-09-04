@@ -7,6 +7,7 @@ import { updateAdminProfile, getAdminProfile } from "../admin/actions/profileAct
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Mail, Phone, Camera, Check, AlertCircle, UploadCloud } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getUserAvatar } from "@/lib/avatar";
 
 const ProfileClient = () => {
   const router = useRouter();
@@ -30,7 +31,7 @@ const ProfileClient = () => {
   const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [img, setImg] = useState("/noAvatar.png");
+  const [img, setImg] = useState("/avatars/staff_male.jpg");
 
   // Sync state when data loads
   useEffect(() => {
@@ -39,7 +40,7 @@ const ProfileClient = () => {
       setSurname(serverData.surname || "");
       setEmail(serverData.email || "");
       setPhone(serverData.phone || "");
-      setImg(serverData.img || "/noAvatar.png");
+      setImg(getUserAvatar(serverData.img, "admin", (serverData as any).sex));
     }
   }, [serverData]);
 
@@ -61,7 +62,7 @@ const ProfileClient = () => {
         surname,
         email,
         phone,
-        img: img !== "/noAvatar.png" ? img : undefined,
+        img: (img && !img.startsWith("/avatars/") && img !== "/noAvatar.png") ? img : undefined,
       };
       
       const res = await updateAdminProfile(payload);

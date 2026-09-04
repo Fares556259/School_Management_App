@@ -6,6 +6,7 @@ import Link from "next/link";
 import FormModal from "@/components/FormModal";
 import TeacherFinanceHub from "./TeacherFinanceHub";
 import TeacherSchedule, { ScheduleItem } from "./TeacherSchedule";
+import { getUserAvatar } from "@/lib/avatar";
 import { 
   Phone, 
   MapPin, 
@@ -91,7 +92,7 @@ export default function TeacherProfileClient({
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden relative border-2 border-slate-100 shadow-sm bg-slate-50 shrink-0">
               <Image
-                src={teacher.img && teacher.img !== "null" && teacher.img !== "undefined" ? teacher.img : "/noAvatar.png"}
+                src={getUserAvatar(teacher.img, "teacher", teacher.sex)}
                 alt={teacherFullName}
                 fill
                 className="object-cover"

@@ -7,6 +7,7 @@ import StaffSalaryTracker from "./StaffSalaryTracker";
 import SalarySummaryCard from "./SalarySummaryCard";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
+import { getUserAvatar } from "@/lib/avatar";
 
 const SingleStaffPage = async ({
   params,
@@ -46,7 +47,7 @@ const SingleStaffPage = async ({
           <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
             <div className="w-1/3">
               <Image
-                src={staff.img || "/noAvatar.png"}
+                src={getUserAvatar(staff.img, "staff", (staff as any).sex)}
                 alt=""
                 width={144}
                 height={144}
