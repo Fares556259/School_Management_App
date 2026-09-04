@@ -6,11 +6,10 @@ import {
   Clock, 
   MapPin, 
   Users, 
-  BookOpen, 
   Printer, 
   LayoutGrid, 
   ListOrdered, 
-  AlertCircle,
+  CalendarPlus,
   Sparkles
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +40,13 @@ const DAYS_CONFIG: {
   { key: "THURSDAY", labelFr: "Jeudi", labelAr: "الخميس", labelEn: "Thursday", shortFr: "Jeu" },
   { key: "FRIDAY", labelFr: "Vendredi", labelAr: "الجمعة", labelEn: "Friday", shortFr: "Ven" },
   { key: "SATURDAY", labelFr: "Samedi", labelAr: "السبت", labelEn: "Saturday", shortFr: "Sam" },
+];
+
+const STANDARD_PERIODS = [
+  { startTime: "08:00", endTime: "10:00" },
+  { startTime: "10:00", endTime: "12:00" },
+  { startTime: "14:00", endTime: "16:00" },
+  { startTime: "16:00", endTime: "18:00" },
 ];
 
 const PASTEL_THEMES = [
@@ -83,10 +89,8 @@ export default function TeacherSchedule({
     groupedByDay[dayKey].sort((a, b) => a.startTime.localeCompare(b.startTime));
   });
 
-  const hasSaturday = groupedByDay.SATURDAY.length > 0;
-  const activeDays = hasSaturday 
-    ? DAYS_CONFIG 
-    : DAYS_CONFIG.filter(d => d.key !== "SATURDAY");
+  // Always show Monday through Saturday for a complete weekly view
+  const activeDays = DAYS_CONFIG;
 
   // Calculate total weekly hours
   const totalWeeklyMinutes = items.reduce((acc, curr) => {
@@ -115,7 +119,11 @@ export default function TeacherSchedule({
             <h2 className="text-lg font-bold text-slate-800">
               Emploi du temps
             </h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+              items.length > 0 
+                ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                : "bg-slate-50 text-slate-500 border-slate-200"
+            }`}>
               {totalHours > 0 ? `${totalHours}h / semaine` : `${items.length} séances`}
             </span>
           </div>
@@ -125,7 +133,17 @@ export default function TeacherSchedule({
         </div>
 
         {/* CONTROLS */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {/* ACTION BUTTON TO SCHEDULE */}
+          <Link
+            href="/admin/timetable"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold transition-colors border border-indigo-100"
+            title="Gérer les créneaux dans le planificateur d'emploi du temps"
+          >
+            <CalendarPlus size={14} />
+            <span>Gérer l&apos;emploi du temps</span>
+          </Link>
+
           {/* VIEW SWITCHER */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
@@ -163,28 +181,11 @@ export default function TeacherSchedule({
         </div>
       </div>
 
-      {/* CONTENT */}
-      {items.length === 0 ? (
-        <div className="py-16 flex flex-col items-center justify-center text-center px-4">
-          <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-3 border border-slate-100">
-            <CalendarIcon size={26} />
-          </div>
-          <h3 className="text-base font-bold text-slate-700">Aucun cours assigné</h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm">
-            Cet enseignant n&apos;a pas encore de créneaux programmés dans l&apos;emploi du temps hebdomadaire.
-          </p>
-          <Link
-            href="/admin/timetable"
-            className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm inline-flex items-center gap-1.5"
-          >
-            <Sparkles size={14} />
-            <span>Ouvrir le planificateur</span>
-          </Link>
-        </div>
-      ) : viewMode === "grid" ? (
+      {/* CONTENT: ALWAYS DISPLAY THE SCHEDULE GRID (NEVER EMPTY BLANK VOID) */}
+      {viewMode === "grid" ? (
         /* WEEKLY GRID MATRIX */
         <div className="mt-5 overflow-x-auto pb-2">
-          <div className={`grid gap-3 min-w-[700px] ${activeDays.length === 6 ? "grid-cols-6" : "grid-cols-5"}`}>
+          <div className="grid grid-cols-6 gap-3 min-w-[760px]">
             {activeDays.map((dayConfig) => {
               const daySlots = groupedByDay[dayConfig.key];
               const isToday = new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase() === dayConfig.key;
@@ -208,17 +209,36 @@ export default function TeacherSchedule({
                       {dayConfig.labelFr}
                     </span>
                     <span className={`text-[10px] font-medium block mt-0.5 ${isToday ? "text-indigo-100" : "text-slate-400"}`}>
-                      {daySlots.length} {daySlots.length > 1 ? "séances" : "séance"}
+                      {daySlots.length > 0 
+                        ? `${daySlots.length} ${daySlots.length > 1 ? "séances" : "séance"}`
+                        : "0 séance"}
                     </span>
                   </div>
 
                   {/* SLOTS LIST */}
-                  <div className="p-2 flex flex-col gap-2 flex-1 min-h-[220px]">
+                  <div className="p-2 flex flex-col gap-2 flex-1 min-h-[300px]">
                     {daySlots.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center p-3 text-center border border-dashed border-slate-200 rounded-lg">
-                        <span className="text-[11px] text-slate-400 italic">Libre</span>
-                      </div>
+                      /* If no classes on this day, show the clean standard periods with subtle empty slots */
+                      STANDARD_PERIODS.map((period, pIdx) => (
+                        <div
+                          key={pIdx}
+                          className="rounded-xl border border-dashed border-slate-200/90 bg-white/60 p-2.5 flex flex-col justify-between min-h-[64px] transition-colors hover:bg-white hover:border-slate-300"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                              <Clock size={10} />
+                              {period.startTime} - {period.endTime}
+                            </span>
+                          </div>
+                          <div className="text-center py-1">
+                            <span className="text-[10px] text-slate-300 font-medium">
+                              Libre
+                            </span>
+                          </div>
+                        </div>
+                      ))
                     ) : (
+                      /* If classes are scheduled, display the vibrant subject cards */
                       daySlots.map((slot, index) => {
                         const theme = PASTEL_THEMES[(slot.subjectId || index) % PASTEL_THEMES.length];
                         return (
@@ -309,17 +329,9 @@ export default function TeacherSchedule({
               .filter((d) => selectedDay === "ALL" || selectedDay === d.key)
               .map((d) => {
                 const daySlots = groupedByDay[d.key];
-                if (daySlots.length === 0 && selectedDay !== "ALL") {
-                  return (
-                    <div key={d.key} className="py-8 text-center text-slate-400 text-xs italic">
-                      Aucun cours programmé le {d.labelFr}.
-                    </div>
-                  );
-                }
-                if (daySlots.length === 0) return null;
-
+                
                 return (
-                  <div key={d.key} className="rounded-xl border border-slate-100 overflow-hidden">
+                  <div key={d.key} className="rounded-xl border border-slate-100 overflow-hidden bg-white">
                     <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                         {d.labelFr}
@@ -330,42 +342,48 @@ export default function TeacherSchedule({
                     </div>
 
                     <div className="p-3 divide-y divide-slate-100">
-                      {daySlots.map((slot, idx) => {
-                        const theme = PASTEL_THEMES[(slot.subjectId || idx) % PASTEL_THEMES.length];
-                        return (
-                          <div key={slot.id || idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <div className="text-center min-w-[90px] bg-slate-100/80 px-2.5 py-1.5 rounded-lg border border-slate-200/50">
-                                <span className="text-xs font-bold text-slate-700 block leading-tight">
-                                  {slot.startTime}
-                                </span>
-                                <span className="text-[10px] text-slate-400 block leading-tight">
-                                  {slot.endTime}
-                                </span>
-                              </div>
-                              <div>
-                                <h4 className="text-sm font-bold text-slate-800">
-                                  {slot.subjectName}
-                                </h4>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                                    {slot.className}
+                      {daySlots.length === 0 ? (
+                        <div className="py-4 text-center text-slate-400 text-xs italic">
+                          Aucune séance programmée le {d.labelFr}.
+                        </div>
+                      ) : (
+                        daySlots.map((slot, idx) => {
+                          const theme = PASTEL_THEMES[(slot.subjectId || idx) % PASTEL_THEMES.length];
+                          return (
+                            <div key={slot.id || idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className="text-center min-w-[90px] bg-slate-100/80 px-2.5 py-1.5 rounded-lg border border-slate-200/50">
+                                  <span className="text-xs font-bold text-slate-700 block leading-tight">
+                                    {slot.startTime}
                                   </span>
-                                  {slot.roomName && (
-                                    <span className="text-xs text-slate-400 flex items-center gap-1">
-                                      <MapPin size={11} />
-                                      {slot.roomName}
+                                  <span className="text-[10px] text-slate-400 block leading-tight">
+                                    {slot.endTime}
+                                  </span>
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-bold text-slate-800">
+                                    {slot.subjectName}
+                                  </h4>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                                      {slot.className}
                                     </span>
-                                  )}
+                                    {slot.roomName && (
+                                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                                        <MapPin size={11} />
+                                        {slot.roomName}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${theme.bg} ${theme.border} ${theme.text}`}>
+                                {slot.duration ? `${slot.duration} min` : "Séance"}
+                              </span>
                             </div>
-                            <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${theme.bg} ${theme.border} ${theme.text}`}>
-                              {slot.duration ? `${slot.duration} min` : "Séance"}
-                            </span>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 );
