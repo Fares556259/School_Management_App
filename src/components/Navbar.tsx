@@ -36,9 +36,13 @@ const Navbar = ({ adminData: initialAdminData, role = "User" }: { adminData?: an
       {/* LEFT: PAGE TITLE */}
       <div className="hidden md:flex items-center flex-1">
         <h1 className="text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px]">
-          {pathSegments.length > 0 
-            ? ((t.menu as any)?.[pathSegments[pathSegments.length - 1]] || pathSegments[pathSegments.length - 1].charAt(0).toUpperCase() + pathSegments[pathSegments.length - 1].slice(1))
-            : "Dashboard"}
+          {(() => {
+            if (pathSegments.length === 0) return "Dashboard";
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            const isId = /^[0-9a-fA-F-]{10,}$|^\d+$/.test(lastSegment) || lastSegment.length > 20;
+            const targetSegment = isId && pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : lastSegment;
+            return (t.menu as any)?.[targetSegment] || targetSegment.charAt(0).toUpperCase() + targetSegment.slice(1);
+          })()}
         </h1>
       </div>
 
