@@ -50,7 +50,9 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
     { name: "phone", label: "Phone", type: "text", required: true },
+    { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "address", label: "Address", type: "text", required: true },
+    { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male (Homme)" }, { value: "FEMALE", label: "Female (Femme)" }] },
     { name: "bloodType", label: "Blood Type", type: "select", required: false, options: [
       { value: "A+", label: "A+" },
       { value: "A-", label: "A-" },
@@ -62,8 +64,6 @@ const entityFields: Record<EntityType, FieldDef[]> = {
       { value: "O-", label: "O-" },
       { value: "Inconnu", label: "Inconnu" }
     ] },
-    { name: "birthday", label: "Birthday", type: "date", required: true },
-    { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male (Homme)" }, { value: "FEMALE", label: "Female (Femme)" }] },
     { name: "hourlyRate", label: "Hourly Rate (DT/h)", type: "number" },
     { name: "hoursPerMonth", label: "Hours Per Month", type: "number" },
     { name: "subjects", label: "Subjects", type: "multi-select", parseAsNumber: true },
@@ -536,7 +536,7 @@ export default function CrudFormModal({
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {fields.map((f) => (
-                      <div key={f.name} className={f.name === "address" ? "sm:col-span-2" : ""}>
+                      <div key={f.name} className={f.name === "address" || f.type === "multi-select" ? "sm:col-span-2" : ""}>
                         {f.type !== "conditional-number" && (
                           <label className="block text-[14px] font-medium text-[#181d26] mb-2">
                             {t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label} {f.required && <span className="text-rose-500">*</span>}

@@ -28,6 +28,7 @@ export default function MultiSelect({
 }: MultiSelectProps) {
   const [selected, setSelected] = useState<string[]>(defaultValue);
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpwards, setOpenUpwards] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -85,14 +86,59 @@ export default function MultiSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Focus search input when dropdown opens
+  // Check placement on scroll or resize when open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const checkPlacement = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const scrollParent = containerRef.current.closest(".overflow-y-auto") || document.body;
+      const parentRect = scrollParent.getBoundingClientRect();
+
+      const spaceBelowInParent = parentRect.bottom - rect.bottom;
+      const spaceBelowInWindow = window.innerHeight - rect.bottom;
+      const spaceAboveInParent = rect.top - parentRect.top;
+
+      const shouldOpenUpwards =
+        (spaceBelowInParent < 240 || spaceBelowInWindow < 240) && spaceAboveInParent > 150;
+      setOpenUpwards(shouldOpenUpwards);
+    };
+
+    const scrollParent = containerRef.current?.closest(".overflow-y-auto");
+    scrollParent?.addEventListener("scroll", checkPlacement);
+    window.addEventListener("resize", checkPlacement);
+    return () => {
+      scrollParent?.removeEventListener("scroll", checkPlacement);
+      window.removeEventListener("resize", checkPlacement);
+    };
+  }, [isOpen]);
+
+  // Focus search input when dropdown opens WITHOUT scrolling the modal
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
-        searchInputRef.current?.focus();
+        searchInputRef.current?.focus({ preventScroll: true });
       }, 50);
     }
   }, [isOpen]);
+
+  const handleToggle = () => {
+    if (!isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const scrollParent = containerRef.current.closest(".overflow-y-auto") || document.body;
+      const parentRect = scrollParent.getBoundingClientRect();
+
+      const spaceBelowInParent = parentRect.bottom - rect.bottom;
+      const spaceBelowInWindow = window.innerHeight - rect.bottom;
+      const spaceAboveInParent = rect.top - parentRect.top;
+
+      const shouldOpenUpwards =
+        (spaceBelowInParent < 240 || spaceBelowInWindow < 240) && spaceAboveInParent > 150;
+      setOpenUpwards(shouldOpenUpwards);
+    }
+    setIsOpen((prev) => !prev);
+  };
 
   const toggleOption = (value: string) => {
     setSelected((prev) => {
@@ -162,7 +208,7 @@ export default function MultiSelect({
             ? "border-[#458fff] ring-2 ring-[#458fff]/20 shadow-sm"
             : "border-[#dddddd] hover:border-slate-300"
         } rounded-[6px] px-3 py-1.5 text-[14px] bg-white cursor-pointer transition-all flex items-center justify-between gap-2`}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleToggle}
       >
         <div className="flex flex-wrap gap-1.5 flex-1 items-center py-0.5">
           {selectedOptions.length > 0 ? (
@@ -202,14 +248,18 @@ export default function MultiSelect({
         </div>
       </div>
 
-      {/* Dropdown Menu with Checkboxes */}
+      {/* Dropdown Menu with Checkboxes (Smart Top or Bottom placement) */}
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-1.5 w-full bg-white border border-slate-200 rounded-[8px] shadow-xl max-h-[300px] flex flex-col z-[150] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          className={`absolute left-0 w-full bg-white border border-slate-200 rounded-[8px] shadow-2xl flex flex-col z-[200] overflow-hidden ${
+            openUpwards
+              ? "bottom-full mb-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150"
+              : "top-full mt-1.5 animate-in fade-in slide-in-from-top-2 duration-150"
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Bar: Search & Quick Batch Actions */}
-          <div className="p-2 border-b border-slate-100 bg-slate-50/80 flex flex-col gap-1.5">
+          <div className="p-2 border-b border-slate-100 bg-slate-50/90 flex flex-col gap-1.5">
             <div className="relative flex items-center">
               <Search size={13} className="absolute left-2.5 text-slate-400 pointer-events-none" />
               <input
@@ -231,17 +281,17 @@ export default function MultiSelect({
               )}
             </div>
 
-            {/* Quick Actions Header */}
+            {/* Quick Actions Header - guaranteed single line with whitespace-nowrap */}
             {options.length > 0 && (
-              <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
-                <span className="font-semibold text-slate-600">
+              <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 whitespace-nowrap gap-2">
+                <span className="font-semibold text-slate-600 whitespace-nowrap">
                   {labels.selectedCount(selected.length)}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 whitespace-nowrap">
                   <button
                     type="button"
                     onClick={handleSelectAll}
-                    className="text-[#458fff] hover:text-[#2563eb] font-semibold hover:underline"
+                    className="text-[#458fff] hover:text-[#2563eb] font-semibold hover:underline whitespace-nowrap"
                   >
                     {labels.selectAll}
                   </button>
@@ -249,7 +299,7 @@ export default function MultiSelect({
                   <button
                     type="button"
                     onClick={handleDeselectAll}
-                    className="text-slate-500 hover:text-slate-800 font-medium hover:underline"
+                    className="text-slate-500 hover:text-slate-800 font-medium hover:underline whitespace-nowrap"
                   >
                     {labels.deselectAll}
                   </button>
@@ -258,8 +308,8 @@ export default function MultiSelect({
             )}
           </div>
 
-          {/* Options List with Checkboxes */}
-          <div className="p-1 space-y-0.5 overflow-y-auto max-h-[210px] custom-scrollbar flex-1">
+          {/* Options List with Checkboxes (Compact scroll area) */}
+          <div className="p-1 space-y-0.5 overflow-y-auto max-h-[170px] custom-scrollbar flex-1">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => {
                 const isSelected = selected.includes(opt.value);
@@ -267,7 +317,7 @@ export default function MultiSelect({
                   <div
                     key={opt.value}
                     onClick={() => toggleOption(opt.value)}
-                    className={`group flex items-center gap-2.5 px-2.5 py-2 cursor-pointer rounded-[6px] transition-all select-none ${
+                    className={`group flex items-center gap-2.5 px-2.5 py-1.5 cursor-pointer rounded-[6px] transition-all select-none ${
                       isSelected
                         ? "bg-blue-50/80 hover:bg-blue-100/70 text-slate-900"
                         : "hover:bg-slate-50 text-slate-700"
