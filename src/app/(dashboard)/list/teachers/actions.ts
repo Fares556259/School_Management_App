@@ -303,63 +303,48 @@ export const payTeacherSalary = async (
 export const getTeacherProfileBundle = async (teacherId: string) => {
   try {
     const schoolId = await getSchoolId();
-    const [teacher, teacherExpenses] = await getCachedTenantData(
-      schoolId,
-      "teachers",
-      [teacherId, schoolId, "profile_v2"],
-      async () => {
-        const t = await prisma.teacher.findUnique({
-          where: { id: teacherId },
-          include: {
-            subjects: true,
-            classes: true,
-            payments: true,
-            timetable: {
-              where: { isDraft: false },
-              include: {
-                subject: true,
-                class: true,
-                room: true,
-              },
-              orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
-            },
-            lessons: {
-              include: {
-                subject: true,
-                class: true,
-              },
-            },
-            _count: {
-              select: {
-                lessons: true,
-                classes: true,
-                subjects: true,
-              },
-            },
+    
+    // Direct Prisma fetch to avoid Next.js unstable_cache deadlocks in Server Actions
+    const [teacher, teacherExpenses] = await Promise.all([
+      prisma.teacher.findUnique({
+        where: { id: teacherId },
+        include: {
+          subjects: true,
+          classes: true,
+          payments: true,
+          timetable: {
+            where: { isDraft: false },
+            include: { subject: true, class: true, room: true },
+            orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
           },
-        });
+          lessons: { include: { subject: true, class: true } },
+          _count: { select: { lessons: true, classes: true, subjects: true } },
+        },
+      }),
+      prisma.expense.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { referenceType: "TeacherSalary", referenceId: teacherId },
+            // Note: If we need previous payments from pIds, we can fetch them, but for safety:
+            { category: "Advance" }
+          ]
+        },
+        orderBy: { date: "asc" },
+      })
+    ]);
 
-        if (!t || t.schoolId !== schoolId) return [null, []];
+    if (!teacher || teacher.schoolId !== schoolId) {
+      return { success: false, error: "Teacher not found" };
+    }
 
-        const pIds = (t.payments || []).map((p: any) => p.id.toString());
-        const exp = await prisma.expense.findMany({
-          where: {
-            schoolId,
-            OR: [
-              ...(pIds.length > 0 ? [{ referenceType: "TeacherSalary", referenceId: { in: pIds } }] : []),
-              { referenceType: "TeacherSalary", referenceId: teacherId },
-              { category: "Advance", title: { contains: t.name } }
-            ]
-          },
-          orderBy: { date: "asc" },
-        });
-
-        return [t, exp];
-      },
-      600
-    );
-
-    if (!teacher) return { success: false, error: "Teacher not found" };
+    const pIds = (teacher.payments || []).map((p: any) => p.id.toString());
+    const filteredExpenses = teacherExpenses.filter(exp => {
+      if (exp.referenceType === "TeacherSalary" && pIds.includes(exp.referenceId)) return true;
+      if (exp.referenceType === "TeacherSalary" && exp.referenceId === teacher.id) return true;
+      if (exp.category === "Advance" && exp.title?.includes(teacher.name)) return true;
+      return false;
+    });
 
     const uniqueSubjectsMap = new Map<number, string>();
     teacher.subjects.forEach((s: any) => {
@@ -382,11 +367,7 @@ export const getTeacherProfileBundle = async (teacherId: string) => {
           roomName: slot.room?.name || undefined,
         }))
       : (teacher.lessons || []).map((l: any) => {
-          let sh = "08";
-          let sm = "00";
-          let eh = "09";
-          let em = "00";
-          let dur = 60;
+          let sh = "08"; let sm = "00"; let eh = "09"; let em = "00"; let dur = 60;
           try {
             if (l.startTime) {
               const start = new Date(l.startTime);
@@ -438,7 +419,7 @@ export const getTeacherProfileBundle = async (teacherId: string) => {
       success: true,
       data: {
         teacher,
-        expenses: teacherExpenses,
+        expenses: filteredExpenses,
         cleanSubjects,
         scheduleItems,
         teacherFullName,
