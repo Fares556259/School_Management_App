@@ -278,7 +278,7 @@ export default function TeacherProfileClient({
 
           {isAdmin && (
             <div className="flex items-center gap-2">
-              <FormModal table="teacher" type="update" data={teacher} />
+              <FormModal key={teacher.id} table="teacher" type="update" data={teacher} />
             </div>
           )}
         </div>
