@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 
 interface TeacherProfileClientProps {
+  initialTeacherId?: string;
+  initialBundlesMap?: Record<string, TeacherBundle>;
   teacher: any;
   expenses?: any[];
   cleanSubjects: string[];
@@ -53,6 +55,8 @@ export interface TeacherBundle {
 }
 
 export default function TeacherProfileClient({
+  initialTeacherId,
+  initialBundlesMap,
   teacher: initialTeacher,
   expenses: initialExpenses = [],
   cleanSubjects: initialCleanSubjects,
@@ -65,31 +69,41 @@ export default function TeacherProfileClient({
   const [activeTab, setActiveTab] = useState<"finance" | "schedule" | "overview">("finance");
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [isSideNavPinned, setIsSideNavPinned] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
 
-  const [currentBundle, setCurrentBundle] = useState<TeacherBundle>({
-    teacher: initialTeacher,
-    expenses: initialExpenses,
-    cleanSubjects: initialCleanSubjects,
-    scheduleItems: initialScheduleItems,
-    teacherFullName: initialTeacherFullName,
-    totalHours: initialTotalHours,
+  // Active teacher ID
+  const [activeTeacherId, setActiveTeacherId] = useState<string>(
+    initialTeacherId || initialTeacher.id
+  );
+
+  // In-memory preloaded bundles map for instant 0ms switching
+  const [bundlesMap, setBundlesMap] = useState<Record<string, TeacherBundle>>(() => {
+    if (initialBundlesMap && Object.keys(initialBundlesMap).length > 0) {
+      return initialBundlesMap;
+    }
+    return {
+      [initialTeacher.id]: {
+        teacher: initialTeacher,
+        expenses: initialExpenses,
+        cleanSubjects: initialCleanSubjects,
+        scheduleItems: initialScheduleItems,
+        teacherFullName: initialTeacherFullName,
+        totalHours: initialTotalHours,
+      },
+    };
   });
 
-  const cacheRef = useRef<Map<string, TeacherBundle>>(new Map());
-  const fetchingIdsRef = useRef<Set<string>>(new Set());
-
-  // Seed cache on mount / initial teacher change
+  // Sync if initial props change
   useEffect(() => {
-    cacheRef.current.set(initialTeacher.id, {
-      teacher: initialTeacher,
-      expenses: initialExpenses,
-      cleanSubjects: initialCleanSubjects,
-      scheduleItems: initialScheduleItems,
-      teacherFullName: initialTeacherFullName,
-      totalHours: initialTotalHours,
-    });
-  }, [initialTeacher, initialExpenses, initialCleanSubjects, initialScheduleItems, initialTeacherFullName, initialTotalHours]);
+    if (initialTeacherId && initialTeacherId !== activeTeacherId) {
+      setActiveTeacherId(initialTeacherId);
+    }
+  }, [initialTeacherId, activeTeacherId]);
+
+  useEffect(() => {
+    if (initialBundlesMap) {
+      setBundlesMap((prev) => ({ ...prev, ...initialBundlesMap }));
+    }
+  }, [initialBundlesMap]);
 
   useEffect(() => {
     try {
@@ -110,94 +124,27 @@ export default function TeacherProfileClient({
     });
   };
 
-  const fetchTeacherBundle = useCallback(async (id: string): Promise<TeacherBundle | null> => {
-    if (cacheRef.current.has(id)) {
-      return cacheRef.current.get(id)!;
-    }
-    if (fetchingIdsRef.current.has(id)) {
-      return new Promise((resolve) => {
-        const interval = setInterval(() => {
-          if (cacheRef.current.has(id)) {
-            clearInterval(interval);
-            resolve(cacheRef.current.get(id)!);
-          }
-          if (!fetchingIdsRef.current.has(id) && !cacheRef.current.has(id)) {
-            clearInterval(interval);
-            resolve(null);
-          }
-        }, 30);
-      });
-    }
+  // Instant synchronous teacher switch (0ms)
+  const handleSelectTeacher = useCallback((id: string) => {
+    if (id === activeTeacherId) return;
 
-    fetchingIdsRef.current.add(id);
-    try {
-      const res = await getTeacherProfileBundle(id);
-      if (res.success && res.data) {
-        cacheRef.current.set(id, res.data as TeacherBundle);
-        return res.data as TeacherBundle;
-      }
-      return null;
-    } catch {
-      return null;
-    } finally {
-      fetchingIdsRef.current.delete(id);
-    }
-  }, []);
-
-  const handleSelectTeacher = useCallback(async (id: string) => {
-    if (id === currentBundle.teacher.id) return;
-
-    // Instant 0ms switch if already cached
-    if (cacheRef.current.has(id)) {
-      const bundle = cacheRef.current.get(id)!;
-      setCurrentBundle(bundle);
+    if (bundlesMap[id]) {
+      setActiveTeacherId(id);
       window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       return;
     }
 
-    // Otherwise fetch smoothly without unmounting or blurring
-    setIsSwitching(true);
-    const bundle = await fetchTeacherBundle(id);
-    setIsSwitching(false);
-
-    if (bundle) {
-      setCurrentBundle(bundle);
-      window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
-      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-    } else {
-      window.location.href = `/list/teachers/${id}`;
-    }
-  }, [currentBundle.teacher.id, fetchTeacherBundle]);
-
-  const handlePrefetchTeacher = useCallback((id: string) => {
-    if (!cacheRef.current.has(id) && !fetchingIdsRef.current.has(id)) {
-      fetchTeacherBundle(id);
-    }
-  }, [fetchTeacherBundle]);
-
-  // Proactive adjacent prefetching: immediately cache previous and next teachers
-  useEffect(() => {
-    const currentIndex = allTeachers.findIndex((t) => t.id === currentBundle.teacher.id);
-    if (currentIndex !== -1) {
-      const prev = currentIndex > 0 ? allTeachers[currentIndex - 1] : null;
-      const next = currentIndex < allTeachers.length - 1 ? allTeachers[currentIndex + 1] : null;
-
-      if (next) handlePrefetchTeacher(next.id);
-      if (prev) handlePrefetchTeacher(prev.id);
-
-      // Background prefetch remaining teachers in idle time
-      const timer = setTimeout(() => {
-        allTeachers.forEach((t) => {
-          if (t.id !== currentBundle.teacher.id) {
-            handlePrefetchTeacher(t.id);
-          }
-        });
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentBundle.teacher.id, allTeachers, handlePrefetchTeacher]);
+    // Dynamic fallback if teacher not in initial preloaded bundles
+    getTeacherProfileBundle(id).then((res) => {
+      if (res.success && res.data) {
+        setBundlesMap((prev) => ({ ...prev, [id]: res.data as TeacherBundle }));
+        setActiveTeacherId(id);
+        window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
+        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      }
+    });
+  }, [activeTeacherId, bundlesMap]);
 
   // Handle browser Back / Forward (popstate)
   useEffect(() => {
@@ -205,20 +152,23 @@ export default function TeacherProfileClient({
       const match = window.location.pathname.match(/\/list\/teachers\/([^/?#]+)/);
       if (match && match[1]) {
         const idFromUrl = match[1];
-        if (idFromUrl !== currentBundle.teacher.id) {
-          if (cacheRef.current.has(idFromUrl)) {
-            setCurrentBundle(cacheRef.current.get(idFromUrl)!);
-          } else {
-            fetchTeacherBundle(idFromUrl).then((b) => {
-              if (b) setCurrentBundle(b);
-            });
-          }
+        if (bundlesMap[idFromUrl]) {
+          setActiveTeacherId(idFromUrl);
         }
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [currentBundle.teacher.id, fetchTeacherBundle]);
+  }, [bundlesMap]);
+
+  const currentBundle = bundlesMap[activeTeacherId] || {
+    teacher: initialTeacher,
+    expenses: initialExpenses,
+    cleanSubjects: initialCleanSubjects,
+    scheduleItems: initialScheduleItems,
+    teacherFullName: initialTeacherFullName,
+    totalHours: initialTotalHours,
+  };
 
   const {
     teacher,
@@ -238,11 +188,6 @@ export default function TeacherProfileClient({
     <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 ${
       isSideNavPinned ? "lg:pr-[330px]" : ""
     }`}>
-      {/* Subtle top indicator during first-time cold fetch */}
-      {isSwitching && (
-        <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 animate-pulse z-[9999]" />
-      )}
-
       {/* 1. TOP BREADCRUMB & QUICK NAV */}
       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
@@ -275,8 +220,6 @@ export default function TeacherProfileClient({
               teachers={allTeachers}
               onOpenList={() => setIsSideNavOpen(true)}
               onSelectTeacher={handleSelectTeacher}
-              onPrefetchTeacher={handlePrefetchTeacher}
-              isSwitching={isSwitching}
             />
           )}
 
@@ -577,7 +520,6 @@ export default function TeacherProfileClient({
         onToggleOpen={() => setIsSideNavOpen((prev) => !prev)}
         onTogglePin={handleTogglePin}
         onSelectTeacher={handleSelectTeacher}
-        onPrefetchTeacher={handlePrefetchTeacher}
       />
     </div>
   );

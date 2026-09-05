@@ -309,7 +309,7 @@ export const getTeacherProfileBundle = async (teacherId: string) => {
       [teacherId, schoolId, "profile_v2"],
       async () => {
         const t = await prisma.teacher.findUnique({
-          where: { id: teacherId, schoolId },
+          where: { id: teacherId },
           include: {
             subjects: true,
             classes: true,
@@ -339,7 +339,7 @@ export const getTeacherProfileBundle = async (teacherId: string) => {
           },
         });
 
-        if (!t) return [null, []];
+        if (!t || t.schoolId !== schoolId) return [null, []];
 
         const pIds = (t.payments || []).map((p: any) => p.id.toString());
         const exp = await prisma.expense.findMany({

@@ -35,7 +35,6 @@ interface TeacherSideDrawerProps {
   onClose: () => void;
   onTogglePin: () => void;
   onSelectTeacher?: (id: string) => void;
-  onPrefetchTeacher?: (id: string) => void;
 }
 
 export function TeacherBreadcrumbNav({
@@ -43,15 +42,11 @@ export function TeacherBreadcrumbNav({
   teachers,
   onOpenList,
   onSelectTeacher,
-  onPrefetchTeacher,
-  isSwitching = false,
 }: {
   currentTeacherId: string;
   teachers: QuickTeacherItem[];
   onOpenList: () => void;
   onSelectTeacher?: (id: string) => void;
-  onPrefetchTeacher?: (id: string) => void;
-  isSwitching?: boolean;
 }) {
   const currentIndex = teachers.findIndex((t) => t.id === currentTeacherId);
   const total = teachers.length;
@@ -63,30 +58,23 @@ export function TeacherBreadcrumbNav({
     <div className="flex items-center gap-1.5 sm:gap-2">
       {/* Index and Prev/Next buttons */}
       <div className="flex items-center bg-white border border-slate-200/80 rounded-xl p-0.5 shadow-2xs text-xs font-semibold text-slate-700">
-        <a
-          href={prevTeacher ? `/list/teachers/${prevTeacher.id}` : "#"}
-          data-no-loader="true"
-          onClick={(e) => {
-            if (!prevTeacher) return;
-            if (onSelectTeacher) {
-              e.preventDefault();
+        <button
+          type="button"
+          onClick={() => {
+            if (prevTeacher && onSelectTeacher) {
               onSelectTeacher(prevTeacher.id);
             }
           }}
-          onMouseEnter={() => {
-            if (prevTeacher && onPrefetchTeacher) onPrefetchTeacher(prevTeacher.id);
-          }}
+          disabled={!prevTeacher}
           className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
             prevTeacher 
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400"
           }`}
           title={prevTeacher ? `Précédent : ${prevTeacher.name} ${prevTeacher.surname}` : "Premier enseignant"}
-          aria-disabled={!prevTeacher}
-          tabIndex={prevTeacher ? 0 : -1}
         >
           <ChevronLeft size={16} />
-        </a>
+        </button>
 
         <button
           type="button"
@@ -99,37 +87,30 @@ export function TeacherBreadcrumbNav({
           <span>{total}</span>
         </button>
 
-        <a
-          href={nextTeacher ? `/list/teachers/${nextTeacher.id}` : "#"}
-          data-no-loader="true"
-          onClick={(e) => {
-            if (!nextTeacher) return;
-            if (onSelectTeacher) {
-              e.preventDefault();
+        <button
+          type="button"
+          onClick={() => {
+            if (nextTeacher && onSelectTeacher) {
               onSelectTeacher(nextTeacher.id);
             }
           }}
-          onMouseEnter={() => {
-            if (nextTeacher && onPrefetchTeacher) onPrefetchTeacher(nextTeacher.id);
-          }}
+          disabled={!nextTeacher}
           className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
             nextTeacher 
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400"
           }`}
           title={nextTeacher ? `Suivant : ${nextTeacher.name} ${nextTeacher.surname}` : "Dernier enseignant"}
-          aria-disabled={!nextTeacher}
-          tabIndex={nextTeacher ? 0 : -1}
         >
           <ChevronRight size={16} />
-        </a>
+        </button>
       </div>
 
       {/* Quick Switcher Trigger */}
       <button
         type="button"
         onClick={onOpenList}
-        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs"
+        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
         title="Parcourir tous les enseignants"
       >
         <Users size={14} className="text-indigo-600" />
@@ -147,7 +128,6 @@ export function TeacherSideDrawer({
   onClose,
   onTogglePin,
   onSelectTeacher,
-  onPrefetchTeacher,
 }: TeacherSideDrawerProps) {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -285,21 +265,16 @@ export function TeacherSideDrawer({
               const remainingSubjectsCount = (t.subjects?.length || 0) - 1;
 
               return (
-                <a
+                <button
                   key={t.id}
-                  href={`/list/teachers/${t.id}`}
-                  data-no-loader="true"
-                  onClick={(e) => {
+                  type="button"
+                  onClick={() => {
                     if (onSelectTeacher) {
-                      e.preventDefault();
                       onSelectTeacher(t.id);
                       if (!isPinned) onClose();
                     }
                   }}
-                  onMouseEnter={() => {
-                    if (onPrefetchTeacher) onPrefetchTeacher(t.id);
-                  }}
-                  className={`group flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
+                  className={`w-full text-left group flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
                     isCurrent
                       ? "bg-indigo-50/80 border border-indigo-200/80 shadow-2xs"
                       : "hover:bg-slate-50 border border-transparent"
@@ -349,7 +324,7 @@ export function TeacherSideDrawer({
                   {!isCurrent && (
                     <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
                   )}
-                </a>
+                </button>
               );
             })
           )}
@@ -389,7 +364,7 @@ export function FloatingTeacherNavTrigger({
     <button
       type="button"
       onClick={onOpen}
-      className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-indigo-400/30"
+      className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-indigo-400/30 cursor-pointer"
       title="Ouvrir la liste des enseignants"
       aria-label="Ouvrir la liste des enseignants"
     >
