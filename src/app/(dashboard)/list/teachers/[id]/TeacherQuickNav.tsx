@@ -35,6 +35,7 @@ interface TeacherSideDrawerProps {
   onClose: () => void;
   onTogglePin: () => void;
   onSelectTeacher?: (id: string) => void;
+  onPrefetchTeacher?: (id: string) => void;
   activeTab?: string;
 }
 
@@ -43,12 +44,14 @@ export function TeacherBreadcrumbNav({
   teachers,
   onOpenList,
   onSelectTeacher,
+  onPrefetchTeacher,
   activeTab,
 }: {
   currentTeacherId: string;
   teachers: QuickTeacherItem[];
   onOpenList: () => void;
   onSelectTeacher?: (id: string) => void;
+  onPrefetchTeacher?: (id: string) => void;
   activeTab?: string;
 }) {
   const currentIndex = teachers.findIndex((t) => t.id === currentTeacherId);
@@ -65,6 +68,7 @@ export function TeacherBreadcrumbNav({
         <a
           href={prevTeacher ? `/list/teachers/${prevTeacher.id}${tabSuffix}` : "#"}
           data-no-loader="true"
+          onMouseEnter={() => { if (prevTeacher && onPrefetchTeacher) onPrefetchTeacher(prevTeacher.id); }}
           onClick={(e) => {
             if (!prevTeacher) return;
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -97,6 +101,7 @@ export function TeacherBreadcrumbNav({
         <a
           href={nextTeacher ? `/list/teachers/${nextTeacher.id}${tabSuffix}` : "#"}
           data-no-loader="true"
+          onMouseEnter={() => { if (nextTeacher && onPrefetchTeacher) onPrefetchTeacher(nextTeacher.id); }}
           onClick={(e) => {
             if (!nextTeacher) return;
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -138,6 +143,7 @@ export function TeacherSideDrawer({
   onClose,
   onTogglePin,
   onSelectTeacher,
+  onPrefetchTeacher,
   activeTab,
 }: TeacherSideDrawerProps) {
   const [search, setSearch] = useState("");
@@ -281,6 +287,7 @@ export function TeacherSideDrawer({
                   key={t.id}
                   href={`/list/teachers/${t.id}${tabSuffix}`}
                   data-no-loader="true"
+                  onMouseEnter={() => { if (onPrefetchTeacher) onPrefetchTeacher(t.id); }}
                   onClick={(e) => {
                     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                     e.preventDefault();
