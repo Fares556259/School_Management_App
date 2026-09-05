@@ -1078,11 +1078,23 @@ export default function TeacherFinanceHub({
                     </div>
                     <div>
                       <span className="text-xs font-bold text-emerald-950 block">
-                        Salaire net réglé pour {frMonthName}
+                        {selectedAdvanceAmount > 0 
+                          ? `Solde final réglé pour ${frMonthName}`
+                          : `Salaire net réglé pour ${frMonthName}`}
                       </span>
                       <span className="text-[11px] text-emerald-700 block mt-0.5">
-                        Montant versé : {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
-                        {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
+                        {selectedAdvanceAmount > 0 ? (
+                          <>
+                            Dernier versement (solde) : <strong className="font-extrabold text-emerald-950">{fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))}</strong>
+                            {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
+                            {" · "}Total net versé : <strong className="font-bold text-emerald-900">{fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount))}</strong>
+                          </>
+                        ) : (
+                          <>
+                            Montant versé : {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount))}
+                            {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
+                          </>
+                        )}
                       </span>
                       {(selectedDeductionAmount > 0 || selectedAdvanceAmount > 0) && (
                         <div className="text-[10px] text-emerald-800/80 mt-1 font-semibold flex flex-col gap-0.5">
@@ -1092,18 +1104,25 @@ export default function TeacherFinanceHub({
                             {selectedDeductionAmount > 0 ? ` = ${fmt(baseMonthlySalary - selectedDeductionAmount)} net dû` : ""}
                           </span>
                           {selectedAdvanceAmount > 0 && (
-                            <span className="text-amber-800/80">
-                              (dont {fmt(selectedAdvanceAmount)} versé en avance · solde final : {fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))})
+                            <span className="text-amber-800 font-medium">
+                              (Avance déduite : {fmt(selectedAdvanceAmount)} · Solde final réglé : {fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))})
                             </span>
                           )}
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex flex-col items-end">
                     <span className="inline-block text-xs sm:text-sm font-extrabold px-3 py-1 bg-white rounded-lg border border-emerald-200 text-emerald-700 shadow-2xs">
-                      {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount))}
+                      {selectedAdvanceAmount > 0
+                        ? fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))
+                        : fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount))}
                     </span>
+                    {selectedAdvanceAmount > 0 && (
+                      <span className="text-[10px] font-bold text-emerald-700 mt-1">
+                        Solde final
+                      </span>
+                    )}
                   </div>
                 </div>
                 {/* Absence link row — visible below settlement, not buried inside it */}
@@ -1298,6 +1317,18 @@ export default function TeacherFinanceHub({
                     const hasAppliedDeduction = pMeta.deductionStatus === "APPLIED" && pMeta.deductedHours > 0;
                     const hasPendingTracking = pMeta.deductionStatus === "PENDING" && pMeta.trackedHours > 0;
                     const isExcused = pMeta.deductionStatus === "EXCUSED" && pMeta.trackedHours > 0;
+                    
+                    const pAdvances = expensesList.filter(
+                      (e) =>
+                        p.id &&
+                        String(e.referenceId) === String(p.id) &&
+                        (e.category === "Advance" ||
+                          e.title?.toLowerCase().includes("advance") ||
+                          e.title?.toLowerCase().includes("avance"))
+                    );
+                    const pAdvanceTotal = pAdvances.reduce((sum, e) => sum + (e.amount || 0), 0);
+                    const pFinalSettlement = Math.max(0, p.amount - pAdvanceTotal);
+
                     return (
                       <div 
                         key={p.id}
@@ -1309,6 +1340,11 @@ export default function TeacherFinanceHub({
                           </span>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
                             {formatDate(p.paidAt)}
+                            {p.status === "PAID" && pAdvanceTotal > 0 && (
+                              <span className="text-amber-700 font-semibold ml-1.5">
+                                (Avance : {fmt(pAdvanceTotal)} · Solde : {fmt(pFinalSettlement)})
+                              </span>
+                            )}
                             {hasAppliedDeduction && (
                               <span className="text-rose-600 font-semibold ml-1.5">
                                 (-{pMeta.deductedHours}h absence)
