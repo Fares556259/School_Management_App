@@ -275,6 +275,54 @@ export default async function SingleStudentPage({
     };
   });
 
+  // 4. Fetch lightweight list of ALL students in the school for the quick nav drawer
+  const allSchoolStudents = await getCachedTenantData(
+    schoolId,
+    "students",
+    ["all_students_nav", schoolId],
+    () =>
+      prisma.student.findMany({
+        where: { schoolId },
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          img: true,
+          sex: true,
+          classId: true,
+          class: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          phone: true,
+          parent: {
+            select: {
+              phone: true,
+            },
+          },
+        },
+        orderBy: [
+          { class: { name: "asc" } },
+          { surname: "asc" },
+          { name: "asc" },
+        ],
+      }),
+    300
+  );
+
+  const allStudentsList: QuickStudentItem[] = (allSchoolStudents || []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    surname: s.surname,
+    img: s.img,
+    sex: s.sex,
+    className: s.class?.name || null,
+    classId: s.classId,
+    phone: s.phone || s.parent?.phone || null,
+  }));
+
   const levelTuitionFee = student.class?.level?.tuitionFee || 0;
   const gradeLevel = student.class?.level?.level || 1;
 
@@ -293,6 +341,7 @@ export default async function SingleStudentPage({
       gradeLevel={gradeLevel}
       isAdmin={isAdmin}
       classmates={classmatesList}
+      allStudents={allStudentsList}
     />
   );
 }

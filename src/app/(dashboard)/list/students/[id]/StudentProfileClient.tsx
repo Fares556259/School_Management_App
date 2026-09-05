@@ -65,6 +65,7 @@ interface StudentProfileClientProps {
   gradeLevel: number;
   isAdmin: boolean;
   classmates?: QuickStudentItem[];
+  allStudents?: QuickStudentItem[];
 }
 
 export default function StudentProfileClient({
@@ -81,6 +82,7 @@ export default function StudentProfileClient({
   gradeLevel,
   isAdmin,
   classmates = [],
+  allStudents = [],
 }: StudentProfileClientProps) {
   // Sync activeTab with URL ?tab= query parameter on mount if present
   const [activeTab, setActiveTab] = useState<"tuition" | "grades" | "attendance" | "schedule" | "overview">(() => {
@@ -335,6 +337,7 @@ export default function StudentProfileClient({
               students={classmates}
               onOpenList={() => setIsSideNavOpen(true)}
               onSelectStudent={handleSelectStudent}
+              onPrefetchStudent={handlePrefetchStudent}
               activeTab={activeTab}
             />
           )}
@@ -712,21 +715,22 @@ export default function StudentProfileClient({
       {/* Floating Edge Trigger (when closed & not pinned) */}
       <FloatingStudentNavTrigger
         onOpen={() => setIsSideNavOpen(true)}
-        totalStudents={classmates.length}
+        totalStudents={allStudents.length > 0 ? allStudents.length : classmates.length}
         isPinned={isSideNavPinned}
       />
 
       {/* Side Drawer / Panel */}
       <StudentSideDrawer
         currentStudentId={student.id}
-        students={classmates}
-        className={student.class?.name}
+        currentClassName={student.class?.name}
+        students={allStudents.length > 0 ? allStudents : classmates}
         isOpen={isSideNavOpen}
         isPinned={isSideNavPinned}
         onClose={() => setIsSideNavOpen(false)}
         onToggleOpen={() => setIsSideNavOpen((prev) => !prev)}
         onTogglePin={handleTogglePin}
         onSelectStudent={handleSelectStudent}
+        onPrefetchStudent={handlePrefetchStudent}
         activeTab={activeTab}
       />
     </div>
