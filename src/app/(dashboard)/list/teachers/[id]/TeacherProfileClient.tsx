@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import FormModal from "@/components/FormModal";
 import TeacherFinanceHub from "./TeacherFinanceHub";
 import TeacherSchedule, { ScheduleItem } from "./TeacherSchedule";
 import { getUserAvatar } from "@/lib/avatar";
+import { getTeacherProfileBundle } from "../actions";
 import { 
   TeacherBreadcrumbNav, 
   TeacherSideDrawer, 
@@ -42,19 +43,53 @@ interface TeacherProfileClientProps {
   allTeachers?: QuickTeacherItem[];
 }
 
+export interface TeacherBundle {
+  teacher: any;
+  expenses: any[];
+  cleanSubjects: string[];
+  scheduleItems: ScheduleItem[];
+  teacherFullName: string;
+  totalHours: number;
+}
+
 export default function TeacherProfileClient({
-  teacher,
-  expenses = [],
-  cleanSubjects,
-  scheduleItems,
-  teacherFullName,
-  totalHours,
+  teacher: initialTeacher,
+  expenses: initialExpenses = [],
+  cleanSubjects: initialCleanSubjects,
+  scheduleItems: initialScheduleItems,
+  teacherFullName: initialTeacherFullName,
+  totalHours: initialTotalHours,
   isAdmin,
   allTeachers = [],
 }: TeacherProfileClientProps) {
   const [activeTab, setActiveTab] = useState<"finance" | "schedule" | "overview">("finance");
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [isSideNavPinned, setIsSideNavPinned] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  const [currentBundle, setCurrentBundle] = useState<TeacherBundle>({
+    teacher: initialTeacher,
+    expenses: initialExpenses,
+    cleanSubjects: initialCleanSubjects,
+    scheduleItems: initialScheduleItems,
+    teacherFullName: initialTeacherFullName,
+    totalHours: initialTotalHours,
+  });
+
+  const cacheRef = useRef<Map<string, TeacherBundle>>(new Map());
+  const fetchingIdsRef = useRef<Set<string>>(new Set());
+
+  // Seed cache on mount / initial teacher change
+  useEffect(() => {
+    cacheRef.current.set(initialTeacher.id, {
+      teacher: initialTeacher,
+      expenses: initialExpenses,
+      cleanSubjects: initialCleanSubjects,
+      scheduleItems: initialScheduleItems,
+      teacherFullName: initialTeacherFullName,
+      totalHours: initialTotalHours,
+    });
+  }, [initialTeacher, initialExpenses, initialCleanSubjects, initialScheduleItems, initialTeacherFullName, initialTotalHours]);
 
   useEffect(() => {
     try {
@@ -75,6 +110,125 @@ export default function TeacherProfileClient({
     });
   };
 
+  const fetchTeacherBundle = useCallback(async (id: string): Promise<TeacherBundle | null> => {
+    if (cacheRef.current.has(id)) {
+      return cacheRef.current.get(id)!;
+    }
+    if (fetchingIdsRef.current.has(id)) {
+      return new Promise((resolve) => {
+        const interval = setInterval(() => {
+          if (cacheRef.current.has(id)) {
+            clearInterval(interval);
+            resolve(cacheRef.current.get(id)!);
+          }
+          if (!fetchingIdsRef.current.has(id) && !cacheRef.current.has(id)) {
+            clearInterval(interval);
+            resolve(null);
+          }
+        }, 30);
+      });
+    }
+
+    fetchingIdsRef.current.add(id);
+    try {
+      const res = await getTeacherProfileBundle(id);
+      if (res.success && res.data) {
+        cacheRef.current.set(id, res.data as TeacherBundle);
+        return res.data as TeacherBundle;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      fetchingIdsRef.current.delete(id);
+    }
+  }, []);
+
+  const handleSelectTeacher = useCallback(async (id: string) => {
+    if (id === currentBundle.teacher.id) return;
+
+    // Instant 0ms switch if already cached
+    if (cacheRef.current.has(id)) {
+      const bundle = cacheRef.current.get(id)!;
+      setCurrentBundle(bundle);
+      window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      return;
+    }
+
+    // Otherwise fetch smoothly without unmounting or blurring
+    setIsSwitching(true);
+    const bundle = await fetchTeacherBundle(id);
+    setIsSwitching(false);
+
+    if (bundle) {
+      setCurrentBundle(bundle);
+      window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    } else {
+      window.location.href = `/list/teachers/${id}`;
+    }
+  }, [currentBundle.teacher.id, fetchTeacherBundle]);
+
+  const handlePrefetchTeacher = useCallback((id: string) => {
+    if (!cacheRef.current.has(id) && !fetchingIdsRef.current.has(id)) {
+      fetchTeacherBundle(id);
+    }
+  }, [fetchTeacherBundle]);
+
+  // Proactive adjacent prefetching: immediately cache previous and next teachers
+  useEffect(() => {
+    const currentIndex = allTeachers.findIndex((t) => t.id === currentBundle.teacher.id);
+    if (currentIndex !== -1) {
+      const prev = currentIndex > 0 ? allTeachers[currentIndex - 1] : null;
+      const next = currentIndex < allTeachers.length - 1 ? allTeachers[currentIndex + 1] : null;
+
+      if (next) handlePrefetchTeacher(next.id);
+      if (prev) handlePrefetchTeacher(prev.id);
+
+      // Background prefetch remaining teachers in idle time
+      const timer = setTimeout(() => {
+        allTeachers.forEach((t) => {
+          if (t.id !== currentBundle.teacher.id) {
+            handlePrefetchTeacher(t.id);
+          }
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentBundle.teacher.id, allTeachers, handlePrefetchTeacher]);
+
+  // Handle browser Back / Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const match = window.location.pathname.match(/\/list\/teachers\/([^/?#]+)/);
+      if (match && match[1]) {
+        const idFromUrl = match[1];
+        if (idFromUrl !== currentBundle.teacher.id) {
+          if (cacheRef.current.has(idFromUrl)) {
+            setCurrentBundle(cacheRef.current.get(idFromUrl)!);
+          } else {
+            fetchTeacherBundle(idFromUrl).then((b) => {
+              if (b) setCurrentBundle(b);
+            });
+          }
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [currentBundle.teacher.id, fetchTeacherBundle]);
+
+  const {
+    teacher,
+    expenses,
+    cleanSubjects,
+    scheduleItems,
+    teacherFullName,
+    totalHours,
+  } = currentBundle;
+
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
   // Calculate quick payment total for the badge
@@ -84,6 +238,11 @@ export default function TeacherProfileClient({
     <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 ${
       isSideNavPinned ? "lg:pr-[330px]" : ""
     }`}>
+      {/* Subtle top indicator during first-time cold fetch */}
+      {isSwitching && (
+        <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500 animate-pulse z-[9999]" />
+      )}
+
       {/* 1. TOP BREADCRUMB & QUICK NAV */}
       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
@@ -115,6 +274,9 @@ export default function TeacherProfileClient({
               currentTeacherId={teacher.id}
               teachers={allTeachers}
               onOpenList={() => setIsSideNavOpen(true)}
+              onSelectTeacher={handleSelectTeacher}
+              onPrefetchTeacher={handlePrefetchTeacher}
+              isSwitching={isSwitching}
             />
           )}
 
@@ -354,6 +516,7 @@ export default function TeacherProfileClient({
       {activeTab === "finance" && (
         <div className="w-full">
           <TeacherFinanceHub
+            key={teacher.id}
             teacherId={teacher.id}
             teacherName={teacherFullName}
             salary={teacher.salary}
@@ -369,6 +532,7 @@ export default function TeacherProfileClient({
       {activeTab === "schedule" && (
         <div className="w-full">
           <TeacherSchedule 
+            key={teacher.id}
             items={scheduleItems}
             teacherName={teacherFullName}
           />
@@ -378,6 +542,7 @@ export default function TeacherProfileClient({
       {activeTab === "overview" && (
         <div className="flex flex-col gap-6 w-full">
           <TeacherFinanceHub
+            key={`hub-${teacher.id}`}
             teacherId={teacher.id}
             teacherName={teacherFullName}
             salary={teacher.salary}
@@ -388,6 +553,7 @@ export default function TeacherProfileClient({
             isAdmin={isAdmin}
           />
           <TeacherSchedule 
+            key={`sched-${teacher.id}`}
             items={scheduleItems}
             teacherName={teacherFullName}
           />
@@ -410,6 +576,8 @@ export default function TeacherProfileClient({
         onClose={() => setIsSideNavOpen(false)}
         onToggleOpen={() => setIsSideNavOpen((prev) => !prev)}
         onTogglePin={handleTogglePin}
+        onSelectTeacher={handleSelectTeacher}
+        onPrefetchTeacher={handlePrefetchTeacher}
       />
     </div>
   );

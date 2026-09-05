@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { getSchoolId } from "@/lib/school";
+import { getCachedTenantData } from "@/lib/cache";
 
 const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -298,3 +299,134 @@ export const payTeacherSalary = async (
     return { success: false, error: "Failed to process payment." };
   }
 };
+
+export const getTeacherProfileBundle = async (teacherId: string) => {
+  try {
+    const schoolId = await getSchoolId();
+    const [teacher, teacherExpenses] = await getCachedTenantData(
+      schoolId,
+      "teachers",
+      [teacherId, schoolId, "profile_v2"],
+      async () => {
+        const t = await prisma.teacher.findUnique({
+          where: { id: teacherId, schoolId },
+          include: {
+            subjects: true,
+            classes: true,
+            payments: true,
+            timetable: {
+              where: { isDraft: false },
+              include: {
+                subject: true,
+                class: true,
+                room: true,
+              },
+              orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
+            },
+            lessons: {
+              include: {
+                subject: true,
+                class: true,
+              },
+            },
+            _count: {
+              select: {
+                lessons: true,
+                classes: true,
+                subjects: true,
+              },
+            },
+          },
+        });
+
+        if (!t) return [null, []];
+
+        const pIds = (t.payments || []).map((p: any) => p.id.toString());
+        const exp = await prisma.expense.findMany({
+          where: {
+            schoolId,
+            OR: [
+              ...(pIds.length > 0 ? [{ referenceType: "TeacherSalary", referenceId: { in: pIds } }] : []),
+              { referenceType: "TeacherSalary", referenceId: teacherId },
+              { category: "Advance", title: { contains: t.name } }
+            ]
+          },
+          orderBy: { date: "asc" },
+        });
+
+        return [t, exp];
+      },
+      600
+    );
+
+    if (!teacher) return { success: false, error: "Teacher not found" };
+
+    const uniqueSubjectsMap = new Map<number, string>();
+    teacher.subjects.forEach((s: any) => {
+      const cleanName = s.name.split("|")[0].trim();
+      uniqueSubjectsMap.set(s.id, cleanName);
+    });
+    const cleanSubjects = Array.from(uniqueSubjectsMap.values());
+
+    const scheduleItems = (teacher.timetable && teacher.timetable.length > 0)
+      ? teacher.timetable.map((slot: any) => ({
+          id: slot.id,
+          day: slot.day,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          duration: slot.duration || 120,
+          subjectName: slot.subject?.name ? slot.subject.name.split("|")[0].trim() : "Matière",
+          subjectId: slot.subjectId || 0,
+          className: slot.class?.name || "Classe",
+          classId: slot.classId,
+          roomName: slot.room?.name || undefined,
+        }))
+      : (teacher.lessons || []).map((l: any) => {
+          const start = new Date(l.startTime);
+          const end = new Date(l.endTime);
+          const sh = String(start.getHours()).padStart(2, "0");
+          const sm = String(start.getMinutes()).padStart(2, "0");
+          const eh = String(end.getHours()).padStart(2, "0");
+          const em = String(end.getMinutes()).padStart(2, "0");
+          return {
+            id: l.id,
+            day: l.day,
+            startTime: `${sh}:${sm}`,
+            endTime: `${eh}:${em}`,
+            duration: Math.round((end.getTime() - start.getTime()) / (1000 * 60)) || 60,
+            subjectName: l.subject?.name ? l.subject.name.split("|")[0].trim() : (l.name || "Matière"),
+            subjectId: l.subjectId || 0,
+            className: l.class?.name || "Classe",
+            classId: l.classId,
+            roomName: undefined,
+          };
+        });
+
+    const teacherFullName = `${teacher.name} ${teacher.surname}`;
+
+    const totalWeeklyMinutes = scheduleItems.reduce((acc: number, curr: any) => {
+      if (curr.duration) return acc + curr.duration;
+      const [sh, sm] = curr.startTime.split(":").map(Number);
+      const [eh, em] = curr.endTime.split(":").map(Number);
+      const diff = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+      return acc + (diff > 0 ? diff : 120);
+    }, 0);
+
+    const totalHours = Math.round(totalWeeklyMinutes / 60);
+
+    return {
+      success: true,
+      data: {
+        teacher,
+        expenses: teacherExpenses,
+        cleanSubjects,
+        scheduleItems,
+        teacherFullName,
+        totalHours,
+      },
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+

@@ -26,7 +26,7 @@ export interface QuickTeacherItem {
   subjects?: { id: number; name: string }[];
 }
 
-interface TeacherQuickNavProps {
+interface TeacherSideDrawerProps {
   currentTeacherId: string;
   teachers: QuickTeacherItem[];
   isOpen: boolean;
@@ -34,16 +34,24 @@ interface TeacherQuickNavProps {
   onToggleOpen: () => void;
   onClose: () => void;
   onTogglePin: () => void;
+  onSelectTeacher?: (id: string) => void;
+  onPrefetchTeacher?: (id: string) => void;
 }
 
 export function TeacherBreadcrumbNav({
   currentTeacherId,
   teachers,
   onOpenList,
+  onSelectTeacher,
+  onPrefetchTeacher,
+  isSwitching = false,
 }: {
   currentTeacherId: string;
   teachers: QuickTeacherItem[];
   onOpenList: () => void;
+  onSelectTeacher?: (id: string) => void;
+  onPrefetchTeacher?: (id: string) => void;
+  isSwitching?: boolean;
 }) {
   const currentIndex = teachers.findIndex((t) => t.id === currentTeacherId);
   const total = teachers.length;
@@ -55,11 +63,22 @@ export function TeacherBreadcrumbNav({
     <div className="flex items-center gap-1.5 sm:gap-2">
       {/* Index and Prev/Next buttons */}
       <div className="flex items-center bg-white border border-slate-200/80 rounded-xl p-0.5 shadow-2xs text-xs font-semibold text-slate-700">
-        <Link
+        <a
           href={prevTeacher ? `/list/teachers/${prevTeacher.id}` : "#"}
+          data-no-loader="true"
+          onClick={(e) => {
+            if (!prevTeacher) return;
+            if (onSelectTeacher) {
+              e.preventDefault();
+              onSelectTeacher(prevTeacher.id);
+            }
+          }}
+          onMouseEnter={() => {
+            if (prevTeacher && onPrefetchTeacher) onPrefetchTeacher(prevTeacher.id);
+          }}
           className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
             prevTeacher 
-              ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900" 
+              ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400"
           }`}
           title={prevTeacher ? `Précédent : ${prevTeacher.name} ${prevTeacher.surname}` : "Premier enseignant"}
@@ -67,7 +86,7 @@ export function TeacherBreadcrumbNav({
           tabIndex={prevTeacher ? 0 : -1}
         >
           <ChevronLeft size={16} />
-        </Link>
+        </a>
 
         <button
           type="button"
@@ -80,11 +99,22 @@ export function TeacherBreadcrumbNav({
           <span>{total}</span>
         </button>
 
-        <Link
+        <a
           href={nextTeacher ? `/list/teachers/${nextTeacher.id}` : "#"}
+          data-no-loader="true"
+          onClick={(e) => {
+            if (!nextTeacher) return;
+            if (onSelectTeacher) {
+              e.preventDefault();
+              onSelectTeacher(nextTeacher.id);
+            }
+          }}
+          onMouseEnter={() => {
+            if (nextTeacher && onPrefetchTeacher) onPrefetchTeacher(nextTeacher.id);
+          }}
           className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
             nextTeacher 
-              ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900" 
+              ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400"
           }`}
           title={nextTeacher ? `Suivant : ${nextTeacher.name} ${nextTeacher.surname}` : "Dernier enseignant"}
@@ -92,7 +122,7 @@ export function TeacherBreadcrumbNav({
           tabIndex={nextTeacher ? 0 : -1}
         >
           <ChevronRight size={16} />
-        </Link>
+        </a>
       </div>
 
       {/* Quick Switcher Trigger */}
@@ -116,7 +146,9 @@ export function TeacherSideDrawer({
   isPinned,
   onClose,
   onTogglePin,
-}: TeacherQuickNavProps) {
+  onSelectTeacher,
+  onPrefetchTeacher,
+}: TeacherSideDrawerProps) {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -253,13 +285,21 @@ export function TeacherSideDrawer({
               const remainingSubjectsCount = (t.subjects?.length || 0) - 1;
 
               return (
-                <Link
+                <a
                   key={t.id}
                   href={`/list/teachers/${t.id}`}
-                  onClick={() => {
-                    if (!isPinned) onClose();
+                  data-no-loader="true"
+                  onClick={(e) => {
+                    if (onSelectTeacher) {
+                      e.preventDefault();
+                      onSelectTeacher(t.id);
+                      if (!isPinned) onClose();
+                    }
                   }}
-                  className={`group flex items-center gap-3 p-2.5 rounded-xl transition-all ${
+                  onMouseEnter={() => {
+                    if (onPrefetchTeacher) onPrefetchTeacher(t.id);
+                  }}
+                  className={`group flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
                     isCurrent
                       ? "bg-indigo-50/80 border border-indigo-200/80 shadow-2xs"
                       : "hover:bg-slate-50 border border-transparent"
@@ -309,7 +349,7 @@ export function TeacherSideDrawer({
                   {!isCurrent && (
                     <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
                   )}
-                </Link>
+                </a>
               );
             })
           )}

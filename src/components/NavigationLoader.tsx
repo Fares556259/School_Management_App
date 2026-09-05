@@ -33,7 +33,8 @@ export default function NavigationLoader() {
         anchor &&
         anchor.href &&
         !anchor.hasAttribute("download") &&
-        anchor.target !== "_blank"
+        anchor.target !== "_blank" &&
+        anchor.getAttribute("data-no-loader") !== "true"
       ) {
         const rawHref = anchor.getAttribute("href") || "";
 
