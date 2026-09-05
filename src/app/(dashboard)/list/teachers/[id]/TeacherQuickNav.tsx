@@ -35,6 +35,7 @@ interface TeacherSideDrawerProps {
   onClose: () => void;
   onTogglePin: () => void;
   onSelectTeacher?: (id: string) => void;
+  activeTab?: string;
 }
 
 export function TeacherBreadcrumbNav({
@@ -42,44 +43,50 @@ export function TeacherBreadcrumbNav({
   teachers,
   onOpenList,
   onSelectTeacher,
+  activeTab,
 }: {
   currentTeacherId: string;
   teachers: QuickTeacherItem[];
   onOpenList: () => void;
   onSelectTeacher?: (id: string) => void;
+  activeTab?: string;
 }) {
   const currentIndex = teachers.findIndex((t) => t.id === currentTeacherId);
   const total = teachers.length;
 
   const prevTeacher = currentIndex > 0 ? teachers[currentIndex - 1] : null;
   const nextTeacher = currentIndex >= 0 && currentIndex < total - 1 ? teachers[currentIndex + 1] : null;
+  const tabSuffix = activeTab && activeTab !== "finance" ? `?tab=${activeTab}` : "";
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
       {/* Index and Prev/Next buttons */}
       <div className="flex items-center bg-white border border-slate-200/80 rounded-xl p-0.5 shadow-2xs text-xs font-semibold text-slate-700">
-        <button
-          type="button"
-          onClick={() => {
-            if (prevTeacher && onSelectTeacher) {
+        <a
+          href={prevTeacher ? `/list/teachers/${prevTeacher.id}${tabSuffix}` : "#"}
+          data-no-loader="true"
+          onClick={(e) => {
+            if (!prevTeacher) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            if (onSelectTeacher) {
               onSelectTeacher(prevTeacher.id);
             }
           }}
-          disabled={!prevTeacher}
           className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
             prevTeacher 
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
-              : "opacity-30 cursor-not-allowed text-slate-400"
+              : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
           title={prevTeacher ? `Précédent : ${prevTeacher.name} ${prevTeacher.surname}` : "Premier enseignant"}
         >
           <ChevronLeft size={16} />
-        </button>
+        </a>
 
         <button
           type="button"
           onClick={onOpenList}
-          className="px-2 py-1 hover:bg-slate-100 rounded-md transition-colors text-[11px] font-bold text-slate-600 flex items-center gap-1"
+          className="px-2 py-1 hover:bg-slate-100 rounded-md transition-colors text-[11px] font-bold text-slate-600 flex items-center gap-1 cursor-pointer"
           title="Ouvrir la liste complète des enseignants"
         >
           <span>{currentIndex >= 0 ? currentIndex + 1 : "?"}</span>
@@ -87,23 +94,26 @@ export function TeacherBreadcrumbNav({
           <span>{total}</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (nextTeacher && onSelectTeacher) {
+        <a
+          href={nextTeacher ? `/list/teachers/${nextTeacher.id}${tabSuffix}` : "#"}
+          data-no-loader="true"
+          onClick={(e) => {
+            if (!nextTeacher) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
+            if (onSelectTeacher) {
               onSelectTeacher(nextTeacher.id);
             }
           }}
-          disabled={!nextTeacher}
           className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
             nextTeacher 
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
-              : "opacity-30 cursor-not-allowed text-slate-400"
+              : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
           title={nextTeacher ? `Suivant : ${nextTeacher.name} ${nextTeacher.surname}` : "Dernier enseignant"}
         >
           <ChevronRight size={16} />
-        </button>
+        </a>
       </div>
 
       {/* Quick Switcher Trigger */}
@@ -128,6 +138,7 @@ export function TeacherSideDrawer({
   onClose,
   onTogglePin,
   onSelectTeacher,
+  activeTab,
 }: TeacherSideDrawerProps) {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -263,12 +274,16 @@ export function TeacherSideDrawer({
                 ? t.subjects[0].name.split("|")[0].trim()
                 : null;
               const remainingSubjectsCount = (t.subjects?.length || 0) - 1;
+              const tabSuffix = activeTab && activeTab !== "finance" ? `?tab=${activeTab}` : "";
 
               return (
-                <button
+                <a
                   key={t.id}
-                  type="button"
-                  onClick={() => {
+                  href={`/list/teachers/${t.id}${tabSuffix}`}
+                  data-no-loader="true"
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                    e.preventDefault();
                     if (onSelectTeacher) {
                       onSelectTeacher(t.id);
                       if (!isPinned) onClose();
@@ -324,7 +339,7 @@ export function TeacherSideDrawer({
                   {!isCurrent && (
                     <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
                   )}
-                </button>
+                </a>
               );
             })
           )}

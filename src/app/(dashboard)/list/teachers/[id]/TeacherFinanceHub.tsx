@@ -797,11 +797,12 @@ export default function TeacherFinanceHub({
                 return (
                   <button
                     key={`${m.month}-${m.year}`}
+                    type="button"
                     onClick={() => {
                       setSelectedMonth(m.month);
                       setSelectedYear(m.year);
                     }}
-                    className={`py-2 px-1 rounded-xl text-center transition-all flex flex-col items-center justify-center gap-1 relative ${
+                    className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer select-none flex flex-col items-center justify-center gap-1 relative ${
                       isSelected ? "ring-2 ring-indigo-500 ring-offset-2 scale-105 z-10" : ""
                     } ${bgClass}`}
                     title={`${m.fullLabel}: ${
@@ -860,8 +861,9 @@ export default function TeacherFinanceHub({
             }`}>
               {/* ← Prev */}
               <button
+                type="button"
                 onClick={handlePrevMonth}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs shrink-0 cursor-pointer"
                 title="Mois précédent"
               >
                 <ChevronLeft size={18} />
@@ -903,8 +905,9 @@ export default function TeacherFinanceHub({
 
               {/* → Next */}
               <button
+                type="button"
                 onClick={handleNextMonth}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 transition-colors border border-transparent hover:border-slate-200 shadow-2xs shrink-0 cursor-pointer"
                 title="Mois suivant"
               >
                 <ChevronRight size={18} />

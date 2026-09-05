@@ -66,7 +66,20 @@ export default function TeacherProfileClient({
   isAdmin,
   allTeachers = [],
 }: TeacherProfileClientProps) {
-  const [activeTab, setActiveTab] = useState<"finance" | "schedule" | "overview">("finance");
+  // Sync activeTab with URL ?tab= query parameter on mount if present
+  const [activeTab, setActiveTab] = useState<"finance" | "schedule" | "overview">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get("tab");
+        if (tabParam === "schedule" || tabParam === "overview" || tabParam === "finance") {
+          return tabParam;
+        }
+      } catch {}
+    }
+    return "finance";
+  });
+
   const [isSideNavOpen, setIsSideNavOpen] = useState(false);
   const [isSideNavPinned, setIsSideNavPinned] = useState(false);
 
@@ -91,6 +104,20 @@ export default function TeacherProfileClient({
       },
     };
   });
+
+  // Smooth tab change with URL synchronization
+  const handleTabChange = useCallback((tab: "finance" | "schedule" | "overview") => {
+    setActiveTab(tab);
+    try {
+      const url = new URL(window.location.href);
+      if (tab === "finance") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", tab);
+      }
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch {}
+  }, []);
 
   // Sync if initial props change
   useEffect(() => {
@@ -124,13 +151,15 @@ export default function TeacherProfileClient({
     });
   };
 
-  // Instant synchronous teacher switch (0ms)
+  // Instant synchronous teacher switch (0ms) preserving current tab
   const handleSelectTeacher = useCallback((id: string) => {
     if (id === activeTeacherId) return;
 
+    const tabSuffix = activeTab !== "finance" ? `?tab=${activeTab}` : "";
+
     if (bundlesMap[id]) {
       setActiveTeacherId(id);
-      window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
+      window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}${tabSuffix}`);
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       return;
     }
@@ -140,11 +169,11 @@ export default function TeacherProfileClient({
       if (res.success && res.data) {
         setBundlesMap((prev) => ({ ...prev, [id]: res.data as TeacherBundle }));
         setActiveTeacherId(id);
-        window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}`);
+        window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}${tabSuffix}`);
         window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       }
     });
-  }, [activeTeacherId, bundlesMap]);
+  }, [activeTeacherId, bundlesMap, activeTab]);
 
   // Handle browser Back / Forward (popstate)
   useEffect(() => {
@@ -156,6 +185,15 @@ export default function TeacherProfileClient({
           setActiveTeacherId(idFromUrl);
         }
       }
+      try {
+        const url = new URL(window.location.href);
+        const tabParam = url.searchParams.get("tab");
+        if (tabParam === "schedule" || tabParam === "overview" || tabParam === "finance") {
+          setActiveTab(tabParam);
+        } else {
+          setActiveTab("finance");
+        }
+      } catch {}
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -220,6 +258,7 @@ export default function TeacherProfileClient({
               teachers={allTeachers}
               onOpenList={() => setIsSideNavOpen(true)}
               onSelectTeacher={handleSelectTeacher}
+              activeTab={activeTab}
             />
           )}
 
@@ -403,11 +442,14 @@ export default function TeacherProfileClient({
 
       {/* 3. WORKSPACE TABS */}
       <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" role="tablist" aria-label="Espaces de travail">
           {/* FINANCE TAB */}
           <button
-            onClick={() => setActiveTab("finance")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "finance"}
+            onClick={() => handleTabChange("finance")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
               activeTab === "finance"
                 ? "bg-emerald-600 text-white shadow-sm shadow-emerald-200"
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60"
@@ -424,8 +466,11 @@ export default function TeacherProfileClient({
 
           {/* SCHEDULE TAB */}
           <button
-            onClick={() => setActiveTab("schedule")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "schedule"}
+            onClick={() => handleTabChange("schedule")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
               activeTab === "schedule"
                 ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60"
@@ -442,8 +487,11 @@ export default function TeacherProfileClient({
 
           {/* OVERVIEW TAB */}
           <button
-            onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "overview"}
+            onClick={() => handleTabChange("overview")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
               activeTab === "overview"
                 ? "bg-slate-800 text-white shadow-sm"
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/60"
@@ -455,9 +503,10 @@ export default function TeacherProfileClient({
         </div>
       </div>
 
-      {/* 4. TAB PANELS */}
-      {activeTab === "finance" && (
-        <div className="w-full">
+      {/* 4. TAB PANELS (Persistent Mounting with 0ms instantaneous CSS toggle) */}
+      <div className="w-full flex flex-col gap-6">
+        {/* Finance Hub */}
+        <div className={activeTab === "finance" || activeTab === "overview" ? "w-full" : "hidden"}>
           <TeacherFinanceHub
             key={teacher.id}
             teacherId={teacher.id}
@@ -470,38 +519,16 @@ export default function TeacherProfileClient({
             isAdmin={isAdmin}
           />
         </div>
-      )}
 
-      {activeTab === "schedule" && (
-        <div className="w-full">
+        {/* Schedule */}
+        <div className={activeTab === "schedule" || activeTab === "overview" ? "w-full" : "hidden"}>
           <TeacherSchedule 
             key={teacher.id}
             items={scheduleItems}
             teacherName={teacherFullName}
           />
         </div>
-      )}
-
-      {activeTab === "overview" && (
-        <div className="flex flex-col gap-6 w-full">
-          <TeacherFinanceHub
-            key={`hub-${teacher.id}`}
-            teacherId={teacher.id}
-            teacherName={teacherFullName}
-            salary={teacher.salary}
-            hourlyRate={teacher.hourlyRate}
-            hoursPerMonth={teacher.hoursPerMonth}
-            payments={teacher.payments}
-            expenses={expenses}
-            isAdmin={isAdmin}
-          />
-          <TeacherSchedule 
-            key={`sched-${teacher.id}`}
-            items={scheduleItems}
-            teacherName={teacherFullName}
-          />
-        </div>
-      )}
+      </div>
 
       {/* Floating Edge Trigger (when closed & not pinned) */}
       <FloatingTeacherNavTrigger
@@ -520,6 +547,7 @@ export default function TeacherProfileClient({
         onToggleOpen={() => setIsSideNavOpen((prev) => !prev)}
         onTogglePin={handleTogglePin}
         onSelectTeacher={handleSelectTeacher}
+        activeTab={activeTab}
       />
     </div>
   );

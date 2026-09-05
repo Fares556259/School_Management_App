@@ -26,9 +26,9 @@ const formatTeacherBundle = (t: any, allExpenses: any[]): TeacherBundle => {
   const scheduleItems: ScheduleItem[] = (t.timetable && t.timetable.length > 0)
     ? t.timetable.map((slot: any) => ({
         id: slot.id,
-        day: slot.day,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
+        day: (slot.day || "MONDAY").toUpperCase(),
+        startTime: typeof slot.startTime === "string" && slot.startTime.trim() ? slot.startTime.trim() : "08:00",
+        endTime: typeof slot.endTime === "string" && slot.endTime.trim() ? slot.endTime.trim() : "10:00",
         duration: slot.duration || 120,
         subjectName: slot.subject?.name ? slot.subject.name.split("|")[0].trim() : "Matière",
         subjectId: slot.subjectId || 0,
@@ -37,18 +37,38 @@ const formatTeacherBundle = (t: any, allExpenses: any[]): TeacherBundle => {
         roomName: slot.room?.name || undefined,
       }))
     : (t.lessons || []).map((l: any) => {
-        const start = new Date(l.startTime);
-        const end = new Date(l.endTime);
-        const sh = String(start.getHours()).padStart(2, "0");
-        const sm = String(start.getMinutes()).padStart(2, "0");
-        const eh = String(end.getHours()).padStart(2, "0");
-        const em = String(end.getMinutes()).padStart(2, "0");
+        let sh = "08";
+        let sm = "00";
+        let eh = "09";
+        let em = "00";
+        let dur = 60;
+        try {
+          if (l.startTime) {
+            const start = new Date(l.startTime);
+            if (!isNaN(start.getTime())) {
+              sh = String(start.getHours()).padStart(2, "0");
+              sm = String(start.getMinutes()).padStart(2, "0");
+            }
+          }
+          if (l.endTime) {
+            const end = new Date(l.endTime);
+            if (!isNaN(end.getTime())) {
+              eh = String(end.getHours()).padStart(2, "0");
+              em = String(end.getMinutes()).padStart(2, "0");
+              if (l.startTime) {
+                const start = new Date(l.startTime);
+                const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+                if (diff > 0) dur = diff;
+              }
+            }
+          }
+        } catch {}
         return {
           id: l.id,
-          day: l.day,
+          day: (l.day || "MONDAY").toUpperCase(),
           startTime: `${sh}:${sm}`,
           endTime: `${eh}:${em}`,
-          duration: Math.round((end.getTime() - start.getTime()) / (1000 * 60)) || 60,
+          duration: dur,
           subjectName: l.subject?.name ? l.subject.name.split("|")[0].trim() : (l.name || "Matière"),
           subjectId: l.subjectId || 0,
           className: l.class?.name || "Classe",

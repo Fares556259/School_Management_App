@@ -60,8 +60,11 @@ const PASTEL_THEMES = [
 ];
 
 // Helper to determine which standard period a slot belongs to
-function getPeriodForSlot(startTime: string): number {
-  const [h] = startTime.split(":").map(Number);
+function getPeriodForSlot(startTime?: string): number {
+  if (!startTime || typeof startTime !== "string") return 1;
+  const parts = startTime.split(":");
+  const h = Number(parts[0]);
+  if (isNaN(h)) return 1;
   if (h < 10) return 1;
   if (h < 13) return 2;
   if (h < 16) return 3;
@@ -78,6 +81,23 @@ export default function TeacherSchedule({
   const [viewMode, setViewMode] = useState<"grid" | "agenda">("grid");
   const [selectedDay, setSelectedDay] = useState<string>("ALL");
 
+  // Normalize items defensively
+  const safeItems: ScheduleItem[] = (items || []).filter(Boolean).map((item) => {
+    const rawDay = (item.day || "MONDAY").toUpperCase();
+    const validDay = (["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"].includes(rawDay)
+      ? rawDay
+      : "MONDAY") as ScheduleItem["day"];
+    return {
+      ...item,
+      id: item.id || Math.random(),
+      day: validDay,
+      startTime: typeof item.startTime === "string" && item.startTime.trim() ? item.startTime.trim() : "08:00",
+      endTime: typeof item.endTime === "string" && item.endTime.trim() ? item.endTime.trim() : "10:00",
+      subjectName: item.subjectName || "Matière",
+      className: item.className || "Classe",
+    };
+  });
+
   // Group items by day
   const groupedByDay: Record<string, ScheduleItem[]> = {
     MONDAY: [],
@@ -88,7 +108,7 @@ export default function TeacherSchedule({
     SATURDAY: [],
   };
 
-  items.forEach((item) => {
+  safeItems.forEach((item) => {
     if (groupedByDay[item.day]) {
       groupedByDay[item.day].push(item);
     }
@@ -96,15 +116,21 @@ export default function TeacherSchedule({
 
   // Sort each day chronologically
   Object.keys(groupedByDay).forEach((dayKey) => {
-    groupedByDay[dayKey].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    groupedByDay[dayKey].sort((a, b) => {
+      const aTime = a?.startTime || "00:00";
+      const bTime = b?.startTime || "00:00";
+      return aTime.localeCompare(bTime);
+    });
   });
 
   // Calculate total weekly hours
-  const totalWeeklyMinutes = items.reduce((acc, curr) => {
-    if (curr.duration) return acc + curr.duration;
-    const [sh, sm] = curr.startTime.split(":").map(Number);
-    const [eh, em] = curr.endTime.split(":").map(Number);
-    const diff = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+  const totalWeeklyMinutes = safeItems.reduce((acc, curr) => {
+    if (curr.duration && !isNaN(curr.duration)) return acc + curr.duration;
+    const [sh, sm] = (curr.startTime || "08:00").split(":").map(Number);
+    const [eh, em] = (curr.endTime || "10:00").split(":").map(Number);
+    const startMin = (isNaN(sh) ? 8 : sh) * 60 + (isNaN(sm) ? 0 : sm);
+    const endMin = (isNaN(eh) ? 10 : eh) * 60 + (isNaN(em) ? 0 : em);
+    const diff = endMin - startMin;
     return acc + (diff > 0 ? diff : 120);
   }, 0);
 
@@ -158,8 +184,9 @@ export default function TeacherSchedule({
           {/* View switcher */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
             <button
+              type="button"
               onClick={() => setViewMode("grid")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 viewMode === "grid" 
                   ? "bg-white text-slate-800 shadow-sm" 
                   : "text-slate-500 hover:text-slate-700"
@@ -169,8 +196,9 @@ export default function TeacherSchedule({
               <span>Grille</span>
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("agenda")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 viewMode === "agenda" 
                   ? "bg-white text-slate-800 shadow-sm" 
                   : "text-slate-500 hover:text-slate-700"
@@ -183,8 +211,9 @@ export default function TeacherSchedule({
 
           {/* Print button */}
           <button
+            type="button"
             onClick={handlePrint}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors cursor-pointer"
             title="Imprimer l'emploi du temps"
           >
             <Printer size={16} />
@@ -320,20 +349,22 @@ export default function TeacherSchedule({
           {/* Day tabs filter */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
             <button
+              type="button"
               onClick={() => setSelectedDay("ALL")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                 selectedDay === "ALL" 
                   ? "bg-slate-800 text-white shadow-sm" 
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
-              Tous les jours ({items.length})
+              Tous les jours ({safeItems.length})
             </button>
             {DAYS_CONFIG.map((d) => (
               <button
                 key={d.key}
+                type="button"
                 onClick={() => setSelectedDay(d.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer ${
                   selectedDay === d.key 
                     ? "bg-indigo-600 text-white shadow-sm" 
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
