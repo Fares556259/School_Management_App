@@ -119,12 +119,14 @@ export default function TeacherProfileClient({
     } catch {}
   }, []);
 
-  // Sync if initial props change
+  // Track previous initial teacher ID so we ONLY sync if the server prop actually changes
+  const prevInitialTeacherIdRef = useRef(initialTeacherId);
   useEffect(() => {
-    if (initialTeacherId && initialTeacherId !== activeTeacherId) {
+    if (initialTeacherId && initialTeacherId !== prevInitialTeacherIdRef.current) {
+      prevInitialTeacherIdRef.current = initialTeacherId;
       setActiveTeacherId(initialTeacherId);
     }
-  }, [initialTeacherId, activeTeacherId]);
+  }, [initialTeacherId]);
 
   useEffect(() => {
     if (initialBundlesMap) {
@@ -153,7 +155,7 @@ export default function TeacherProfileClient({
 
   // Instant synchronous teacher switch (0ms) preserving current tab
   const handleSelectTeacher = useCallback((id: string) => {
-    if (id === activeTeacherId) return;
+    if (!id || id === activeTeacherId) return;
 
     const tabSuffix = activeTab !== "finance" ? `?tab=${activeTab}` : "";
 
@@ -165,14 +167,20 @@ export default function TeacherProfileClient({
     }
 
     // Dynamic fallback if teacher not in initial preloaded bundles
-    getTeacherProfileBundle(id).then((res) => {
-      if (res.success && res.data) {
-        setBundlesMap((prev) => ({ ...prev, [id]: res.data as TeacherBundle }));
-        setActiveTeacherId(id);
-        window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}${tabSuffix}`);
-        window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-      }
-    });
+    getTeacherProfileBundle(id)
+      .then((res) => {
+        if (res.success && res.data) {
+          setBundlesMap((prev) => ({ ...prev, [id]: res.data as TeacherBundle }));
+          setActiveTeacherId(id);
+          window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}${tabSuffix}`);
+          window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+        } else {
+          window.location.href = `/list/teachers/${id}${tabSuffix}`;
+        }
+      })
+      .catch(() => {
+        window.location.href = `/list/teachers/${id}${tabSuffix}`;
+      });
   }, [activeTeacherId, bundlesMap, activeTab]);
 
   // Handle browser Back / Forward (popstate)
