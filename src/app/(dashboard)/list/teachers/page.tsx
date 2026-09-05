@@ -7,7 +7,6 @@ import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import TeacherListClient from "./TeacherListClient";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
-import { ITEM_PER_PAGE } from "@/lib/settings";
 
 const columns = [
   { header: "Info", accessor: "info" },
@@ -73,8 +72,6 @@ const TeacherListPage = async ({
           timetable: { include: { subject: true, class: true } },
           payments: { select: { month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true } },
         },
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
         orderBy: [{ name: "asc" }, { surname: "asc" }]
       }),
       prisma.teacher.count({ where: query }),

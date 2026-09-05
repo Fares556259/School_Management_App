@@ -109,15 +109,15 @@ const SingleTeacherPage = async ({
   const role = await getRole();
   const schoolId = await getSchoolId();
 
-  // 1. Fetch only the current teacher and their expenses
-  const [teacher, allExpenses] = await getCachedTenantData(
+  // Load all teachers with full details in ONE cached tenant query for instant 0ms switching
+  const [allTeachersData, allExpenses] = await getCachedTenantData(
     schoolId,
     "teachers",
-    [schoolId, "teacher_profile_bundle", id],
+    [schoolId, "all_teachers_bundles_v4"],
     async () => {
-      const [t, expenses] = await Promise.all([
-        prisma.teacher.findUnique({
-          where: { id },
+      const [teachers, expenses] = await Promise.all([
+        prisma.teacher.findMany({
+          where: { schoolId },
           include: {
             subjects: true,
             classes: true,
@@ -145,6 +145,10 @@ const SingleTeacherPage = async ({
               },
             },
           },
+          orderBy: [
+            { name: "asc" },
+            { surname: "asc" },
+          ],
         }),
         prisma.expense.findMany({
           where: {
@@ -158,52 +162,36 @@ const SingleTeacherPage = async ({
           orderBy: { date: "asc" },
         }),
       ]);
-      return [t, expenses];
+
+      return [teachers, expenses];
     },
     600
   );
 
-  if (!teacher) {
+  const bundlesMap: Record<string, TeacherBundle> = {};
+  allTeachersData.forEach((t: any) => {
+    bundlesMap[t.id] = formatTeacherBundle(t, allExpenses);
+  });
+
+  const currentBundle = bundlesMap[id];
+  if (!currentBundle) {
     return notFound();
   }
 
-  // 2. Fetch lightweight list of all teachers for the quick navigation drawer
-  const allTeachersData = await getCachedTenantData(
-    schoolId,
-    "teachers",
-    [schoolId, "all_teachers_lightweight_list"],
-    async () => {
-      return prisma.teacher.findMany({
-        where: { schoolId },
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          img: true,
-          sex: true,
-          activated: true,
-          subjects: { select: { id: true, name: true } }
-        },
-        orderBy: [
-          { name: "asc" },
-          { surname: "asc" },
-        ],
-      });
-    },
-    600
-  );
-
-  const currentBundle = formatTeacherBundle(teacher, allExpenses);
-
-  // We only preload the current bundle, reducing HTML payload drastically
-  const initialBundlesMap: Record<string, TeacherBundle> = {
-    [id]: currentBundle
-  };
+  const allTeachersList = allTeachersData.map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    surname: t.surname,
+    img: t.img,
+    sex: t.sex,
+    activated: t.activated,
+    subjects: (t.subjects || []).map((s: any) => ({ id: s.id, name: s.name })),
+  }));
 
   return (
     <TeacherProfileClient
       initialTeacherId={id}
-      initialBundlesMap={initialBundlesMap}
+      initialBundlesMap={bundlesMap}
       teacher={currentBundle.teacher}
       expenses={currentBundle.expenses}
       cleanSubjects={currentBundle.cleanSubjects}
@@ -211,7 +199,7 @@ const SingleTeacherPage = async ({
       teacherFullName={currentBundle.teacherFullName}
       totalHours={currentBundle.totalHours}
       isAdmin={role === "admin"}
-      allTeachers={allTeachersData}
+      allTeachers={allTeachersList}
     />
   );
 };

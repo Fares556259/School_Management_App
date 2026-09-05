@@ -84,8 +84,7 @@ export default function TeacherProfileClient({
   const [isSideNavPinned, setIsSideNavPinned] = useState(false);
 
   // Active teacher ID
-  const [isSwitching, setIsSwitching] = useState(false);
-  const [activeTeacherId, setActiveTeacherId] = useState<string>(
+    const [activeTeacherId, setActiveTeacherId] = useState<string>(
     initialTeacherId || initialTeacher.id
   );
 
@@ -164,9 +163,9 @@ export default function TeacherProfileClient({
     }).catch(() => {});
   }, [bundlesMap, activeTeacherId]);
 
-  // Instant synchronous teacher switch (0ms) preserving current tab
+    // Instant synchronous teacher switch (0ms) preserving current tab
   const handleSelectTeacher = useCallback((id: string) => {
-    if (!id || id === activeTeacherId || isSwitching) return;
+    if (!id || id === activeTeacherId) return;
 
     const tabSuffix = activeTab !== "finance" ? `?tab=${activeTab}` : "";
 
@@ -177,23 +176,9 @@ export default function TeacherProfileClient({
       return;
     }
 
-    setIsSwitching(true);
-    getTeacherProfileBundle(id)
-      .then((res) => {
-        setIsSwitching(false);
-        if (res.success && res.data) {
-          setBundlesMap((prev) => ({ ...prev, [id]: res.data as TeacherBundle }));
-          setActiveTeacherId(id);
-          window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}${tabSuffix}`);
-          window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-        } else {
-          window.location.href = `/list/teachers/${id}${tabSuffix}`;
-        }
-      })
-      .catch(() => {
-        window.location.href = `/list/teachers/${id}${tabSuffix}`;
-      });
-  }, [activeTeacherId, bundlesMap, activeTab, isSwitching]);
+    // Dynamic fallback if not found in bundlesMap
+    window.location.href = `/list/teachers/${id}${tabSuffix}`;
+  }, [activeTeacherId, bundlesMap, activeTab]);
 
   // Handle browser Back / Forward (popstate)
   useEffect(() => {
@@ -246,16 +231,6 @@ export default function TeacherProfileClient({
     <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 ${
       isSideNavPinned ? "lg:pr-[330px]" : ""
     }`}>
-      {/* LOADING OVERLAY */}
-      {isSwitching && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
-          <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="text-sm font-bold text-slate-700">Chargement du profil...</p>
-          </div>
-        </div>
-      )}
-      
       {/* 1. TOP BREADCRUMB & QUICK NAV */}
       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
