@@ -3,9 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSchoolId } from "@/lib/school";
-export { receiveStudentPayment, receiveMultipleStudentPayments } from "@/app/(dashboard)/list/students/actions";
-
-export interface StudentProfileBundle {
+interface StudentProfileBundle {
   student: any;
   payments: any[];
   attendances: any[];

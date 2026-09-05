@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   TrendingUp
 } from "lucide-react";
-import { receiveStudentPayment } from "../actions";
+import { receiveStudentPayment } from "@/app/(dashboard)/list/students/actions";
 import { MONTHS } from "@/lib/dateUtils";
 
 interface PaymentRecord {
