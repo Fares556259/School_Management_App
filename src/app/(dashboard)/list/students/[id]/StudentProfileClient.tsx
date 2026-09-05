@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import FormModal from "@/components/FormModal";
 import { getUserAvatar } from "@/lib/avatar";
-import { getStudentProfileBundle } from "./actions";
+import { getStudentProfileBundle, getClassStudentsBundles } from "./actions";
 import { 
   StudentBreadcrumbNav, 
   StudentSideDrawer, 
@@ -38,7 +39,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   TrendingUp,
-  UserCheck
+  UserCheck,
+  Loader2
 } from "lucide-react";
 
 export interface StudentBundle {
@@ -111,6 +113,9 @@ export default function StudentProfileClient({
   const [activeStudentId, setActiveStudentId] = useState<string>(
     initialStudentId || initialStudent.id
   );
+
+  const router = useRouter();
+  const [loadingStudentId, setLoadingStudentId] = useState<string | null>(null);
 
   // In-memory preloaded bundles map for instant 0ms switching
   const [bundlesMap, setBundlesMap] = useState<Record<string, StudentBundle>>(() => {
@@ -187,30 +192,59 @@ export default function StudentProfileClient({
     }).catch(() => {});
   }, [bundlesMap, activeStudentId]);
 
-  // Instant synchronous student switch (0ms) preserving current tab
-  const handleSelectStudent = useCallback((id: string) => {
+  const prefetchedClassesRef = useRef<Set<number>>(new Set());
+  const handlePrefetchClass = useCallback((classId: number) => {
+    if (!classId || prefetchedClassesRef.current.has(classId)) return;
+    prefetchedClassesRef.current.add(classId);
+    getClassStudentsBundles(classId).then((res) => {
+      if (res.success && res.data) {
+        setBundlesMap((prev) => ({ ...prev, ...(res.data as Record<string, StudentBundle>) }));
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Instant synchronous student switch (0ms) or fast async in-memory fetch (NO hard reload)
+  const handleSelectStudent = useCallback(async (id: string) => {
     if (!id || id === activeStudentId) return;
 
     const tabSuffix = activeTab !== "tuition" ? `?tab=${activeTab}` : "";
 
+    // 1. Instant 0ms switch if already preloaded in memory
+    if (bundlesMap && bundlesMap[id]) {
+      setActiveStudentId(id);
+      try {
+        window.history.pushState({ studentId: id }, "", `/list/students/${id}${tabSuffix}`);
+      } catch {}
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {}
+      return;
+    }
+
+    // 2. Dynamic in-memory fetch without full document reload
+    setLoadingStudentId(id);
     try {
-      if (bundlesMap && bundlesMap[id]) {
+      const res = await getStudentProfileBundle(id);
+      if (res.success && res.data) {
+        setBundlesMap((prev) => ({ ...prev, [id]: res.data as StudentBundle }));
         setActiveStudentId(id);
         try {
           window.history.pushState({ studentId: id }, "", `/list/students/${id}${tabSuffix}`);
         } catch {}
         try {
-          window.scrollTo(0, 0);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         } catch {}
-        return;
+      } else {
+        // Fallback to Next.js soft client-side router transition
+        router.push(`/list/students/${id}${tabSuffix}`);
       }
     } catch (err) {
-      console.error("Sync student switch error:", err);
+      console.error("Async student switch error:", err);
+      router.push(`/list/students/${id}${tabSuffix}`);
+    } finally {
+      setLoadingStudentId(null);
     }
-
-    // Dynamic fallback if not found in bundlesMap
-    window.location.href = `/list/students/${id}${tabSuffix}`;
-  }, [activeStudentId, bundlesMap, activeTab]);
+  }, [activeStudentId, bundlesMap, activeTab, router]);
 
   // Handle browser Back / Forward (popstate)
   useEffect(() => {
@@ -264,8 +298,10 @@ export default function StudentProfileClient({
 
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
-  // Tuition metrics
-  const monthlyRate = student.customTuition ?? levelTuitionFee;
+  // Tuition & Grade Level metrics dynamically derived from active student
+  const currentLevelTuitionFee = student.class?.level?.tuitionFee ?? levelTuitionFee;
+  const currentGradeLevel = student.class?.level?.level ?? gradeLevel;
+  const monthlyRate = student.customTuition ?? currentLevelTuitionFee;
   const totalPaid = payments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
 
   // Attendance metrics
@@ -283,6 +319,16 @@ export default function StudentProfileClient({
     return (sum / grades.length).toFixed(2);
   }, [grades]);
 
+  // Derive current student's classmates dynamically based on active student's class
+  const activeClassId = student.classId;
+  const currentClassmates = useMemo(() => {
+    if (activeClassId && allStudents && allStudents.length > 0) {
+      const filtered = allStudents.filter((s) => s.classId === activeClassId);
+      if (filtered.length > 0) return filtered;
+    }
+    return classmates;
+  }, [activeClassId, allStudents, classmates]);
+
   // Clean WhatsApp phone number
   const parentPhone = student.parent?.phone || student.phone || "";
   const cleanWhatsAppPhone = useMemo(() => {
@@ -295,9 +341,14 @@ export default function StudentProfileClient({
   }, [parentPhone]);
 
   return (
-    <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 ${
+    <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 relative ${
       isSideNavPinned ? "lg:pr-[330px]" : ""
     }`}>
+      {/* Top progress indicator during async student fetch */}
+      {loadingStudentId && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-500 animate-pulse transition-all shadow-sm" />
+      )}
+
       {/* 1. TOP BREADCRUMB & QUICK NAV */}
       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
@@ -331,13 +382,14 @@ export default function StudentProfileClient({
 
         <div className="flex items-center gap-2">
           {/* Quick Stepper & Switcher */}
-          {classmates.length > 0 && (
+          {currentClassmates.length > 0 && (
             <StudentBreadcrumbNav
               currentStudentId={student.id}
-              students={classmates}
+              students={currentClassmates}
               onOpenList={() => setIsSideNavOpen(true)}
               onSelectStudent={handleSelectStudent}
               onPrefetchStudent={handlePrefetchStudent}
+              loadingStudentId={loadingStudentId}
               activeTab={activeTab}
             />
           )}
@@ -668,9 +720,9 @@ export default function StudentProfileClient({
             key={student.id}
             studentId={student.id}
             studentName={studentFullName}
-            gradeLevel={gradeLevel}
+            gradeLevel={currentGradeLevel}
             customTuition={student.customTuition}
-            levelTuitionFee={levelTuitionFee}
+            levelTuitionFee={currentLevelTuitionFee}
             payments={payments}
             isAdmin={isAdmin}
           />
@@ -684,7 +736,7 @@ export default function StudentProfileClient({
             studentName={studentFullName}
             classId={student.classId}
             className={student.class?.name}
-            gradeLevel={gradeLevel}
+            gradeLevel={currentGradeLevel}
             grades={grades}
             isAdmin={isAdmin}
           />
@@ -731,6 +783,8 @@ export default function StudentProfileClient({
         onTogglePin={handleTogglePin}
         onSelectStudent={handleSelectStudent}
         onPrefetchStudent={handlePrefetchStudent}
+        onPrefetchClass={handlePrefetchClass}
+        loadingStudentId={loadingStudentId}
         activeTab={activeTab}
       />
     </div>

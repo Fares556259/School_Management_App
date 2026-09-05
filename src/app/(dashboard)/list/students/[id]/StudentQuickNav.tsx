@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Sparkles,
   Layers,
-  Filter
+  Filter,
+  Loader2
 } from "lucide-react";
 
 export interface QuickStudentItem {
@@ -42,6 +43,8 @@ interface StudentSideDrawerProps {
   onTogglePin: () => void;
   onSelectStudent?: (id: string) => void;
   onPrefetchStudent?: (id: string) => void;
+  onPrefetchClass?: (classId: number) => void;
+  loadingStudentId?: string | null;
   activeTab?: string;
 }
 
@@ -51,6 +54,7 @@ export function StudentBreadcrumbNav({
   onOpenList,
   onSelectStudent,
   onPrefetchStudent,
+  loadingStudentId,
   activeTab,
 }: {
   currentStudentId: string;
@@ -58,6 +62,7 @@ export function StudentBreadcrumbNav({
   onOpenList: () => void;
   onSelectStudent?: (id: string) => void;
   onPrefetchStudent?: (id: string) => void;
+  loadingStudentId?: string | null;
   activeTab?: string;
 }) {
   const currentIndex = students.findIndex((s) => s.id === currentStudentId);
@@ -67,6 +72,9 @@ export function StudentBreadcrumbNav({
   const nextStudent = currentIndex >= 0 && currentIndex < total - 1 ? students[currentIndex + 1] : null;
   const tabSuffix = activeTab && activeTab !== "tuition" ? `?tab=${activeTab}` : "";
 
+  const isPrevLoading = Boolean(prevStudent && loadingStudentId === prevStudent.id);
+  const isNextLoading = Boolean(nextStudent && loadingStudentId === nextStudent.id);
+
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
       {/* Index and Prev/Next buttons */}
@@ -75,10 +83,12 @@ export function StudentBreadcrumbNav({
           href={prevStudent ? `/list/students/${prevStudent.id}${tabSuffix}` : "#"}
           data-no-loader="true"
           onMouseEnter={() => prevStudent && onPrefetchStudent?.(prevStudent.id)}
+          onTouchStart={() => prevStudent && onPrefetchStudent?.(prevStudent.id)}
           onClick={(e) => {
             if (!prevStudent) return;
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
             e.preventDefault();
+            if (isPrevLoading) return;
             if (onSelectStudent) {
               onSelectStudent(prevStudent.id);
             }
@@ -90,7 +100,11 @@ export function StudentBreadcrumbNav({
           }`}
           title={prevStudent ? `Précédent : ${prevStudent.name} ${prevStudent.surname}` : "Premier élève"}
         >
-          <ChevronLeft size={16} />
+          {isPrevLoading ? (
+            <Loader2 size={13} className="animate-spin text-blue-600" />
+          ) : (
+            <ChevronLeft size={16} />
+          )}
         </a>
 
         <button
@@ -108,10 +122,12 @@ export function StudentBreadcrumbNav({
           href={nextStudent ? `/list/students/${nextStudent.id}${tabSuffix}` : "#"}
           data-no-loader="true"
           onMouseEnter={() => nextStudent && onPrefetchStudent?.(nextStudent.id)}
+          onTouchStart={() => nextStudent && onPrefetchStudent?.(nextStudent.id)}
           onClick={(e) => {
             if (!nextStudent) return;
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
             e.preventDefault();
+            if (isNextLoading) return;
             if (onSelectStudent) {
               onSelectStudent(nextStudent.id);
             }
@@ -123,7 +139,11 @@ export function StudentBreadcrumbNav({
           }`}
           title={nextStudent ? `Suivant : ${nextStudent.name} ${nextStudent.surname}` : "Dernier élève"}
         >
-          <ChevronRight size={16} />
+          {isNextLoading ? (
+            <Loader2 size={13} className="animate-spin text-blue-600" />
+          ) : (
+            <ChevronRight size={16} />
+          )}
         </a>
       </div>
 
@@ -151,6 +171,8 @@ export function StudentSideDrawer({
   onTogglePin,
   onSelectStudent,
   onPrefetchStudent,
+  onPrefetchClass,
+  loadingStudentId,
   activeTab,
 }: StudentSideDrawerProps) {
   const [search, setSearch] = useState("");
@@ -472,6 +494,7 @@ export function StudentSideDrawer({
                     key={s.id}
                     student={s}
                     isCurrent={s.id === currentStudentId}
+                    isLoading={loadingStudentId === s.id}
                     activeTab={activeTab}
                     isPinned={isPinned}
                     onClose={onClose}
@@ -497,10 +520,25 @@ export function StudentSideDrawer({
                         : "bg-white border-slate-200/70"
                     }`}
                   >
-                    {/* Class Accordion Header */}
+                    {/* Class Accordion Header with background prefetching */}
                     <button
                       type="button"
-                      onClick={() => toggleClassAccordion(group.className)}
+                      onMouseEnter={() => {
+                        if (group.students.length > 0 && group.students[0].classId) {
+                          onPrefetchClass?.(group.students[0].classId);
+                        }
+                      }}
+                      onTouchStart={() => {
+                        if (group.students.length > 0 && group.students[0].classId) {
+                          onPrefetchClass?.(group.students[0].classId);
+                        }
+                      }}
+                      onClick={() => {
+                        toggleClassAccordion(group.className);
+                        if (!isExpanded && group.students.length > 0 && group.students[0].classId) {
+                          onPrefetchClass?.(group.students[0].classId);
+                        }
+                      }}
                       className={`w-full p-3 flex items-center justify-between text-left transition-colors cursor-pointer ${
                         isCurrentClass
                           ? "bg-blue-50/60 hover:bg-blue-100/50"
@@ -555,6 +593,7 @@ export function StudentSideDrawer({
                             key={s.id}
                             student={s}
                             isCurrent={s.id === currentStudentId}
+                            isLoading={loadingStudentId === s.id}
                             activeTab={activeTab}
                             isPinned={isPinned}
                             onClose={onClose}
@@ -593,6 +632,7 @@ export function StudentSideDrawer({
 function StudentRowItem({
   student: s,
   isCurrent,
+  isLoading,
   activeTab,
   isPinned,
   onClose,
@@ -601,6 +641,7 @@ function StudentRowItem({
 }: {
   student: QuickStudentItem;
   isCurrent: boolean;
+  isLoading?: boolean;
   activeTab?: string;
   isPinned: boolean;
   onClose?: () => void;
@@ -614,16 +655,20 @@ function StudentRowItem({
       href={`/list/students/${s.id}${tabSuffix}`}
       data-no-loader="true"
       onMouseEnter={() => onPrefetchStudent?.(s.id)}
+      onTouchStart={() => onPrefetchStudent?.(s.id)}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
+        if (isLoading) return;
         if (!isPinned && onClose) onClose();
         if (onSelectStudent) {
           onSelectStudent(s.id);
         }
       }}
       className={`w-full text-left group flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
-        isCurrent
+        isLoading
+          ? "bg-blue-50/90 border border-blue-300 ring-2 ring-blue-400/40 animate-pulse shadow-sm"
+          : isCurrent
           ? "bg-blue-50/90 border border-blue-200/90 shadow-2xs"
           : "hover:bg-slate-50/90 border border-transparent"
       }`}
@@ -642,13 +687,22 @@ function StudentRowItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1">
           <span className={`text-xs font-bold truncate ${
-            isCurrent ? "text-blue-950" : "text-slate-800 group-hover:text-blue-600"
+            isLoading
+              ? "text-blue-700 font-extrabold"
+              : isCurrent
+              ? "text-blue-950"
+              : "text-slate-800 group-hover:text-blue-600"
           }`}>
             {s.name} {s.surname}
           </span>
-          {isCurrent && (
+          {isCurrent && !isLoading && (
             <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-blue-600 text-white shrink-0">
               Actuel
+            </span>
+          )}
+          {isLoading && (
+            <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1 shrink-0">
+              Chargement...
             </span>
           )}
         </div>
@@ -661,10 +715,12 @@ function StudentRowItem({
         </div>
       </div>
 
-      {/* Right chevron indicator */}
-      {!isCurrent && (
+      {/* Right indicator */}
+      {isLoading ? (
+        <Loader2 size={15} className="animate-spin text-blue-600 shrink-0" />
+      ) : !isCurrent ? (
         <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
-      )}
+      ) : null}
     </a>
   );
 }
