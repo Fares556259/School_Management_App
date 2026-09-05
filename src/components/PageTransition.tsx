@@ -6,9 +6,13 @@ import { usePathname } from "next/navigation";
 export default function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Normalize dynamic sub-routes like /list/teachers/[id] so in-memory navigation
+  // Normalize dynamic sub-routes like /list/teachers/[id] and /list/students/[id] so in-memory navigation
   // within the same detail view does not trigger an AnimatePresence unmount/remount
-  const routeKey = pathname ? pathname.replace(/\/list\/teachers\/[^/]+/, "/list/teachers/[id]") : pathname;
+  const routeKey = pathname
+    ? pathname
+        .replace(/\/list\/teachers\/[^/]+/, "/list/teachers/[id]")
+        .replace(/\/list\/students\/[^/]+/, "/list/students/[id]")
+    : pathname;
 
   return (
     <AnimatePresence mode="wait">

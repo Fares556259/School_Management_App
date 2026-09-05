@@ -1,40 +1,23 @@
-import { getRole } from "@/lib/role";
-
-import BigCalendarContainer from "@/components/BigCalendarContainer";
-import dynamic from "next/dynamic";
-import { Suspense } from "react";
-const Performance = dynamic(() => import("@/components/Performance"), {
-  ssr: false,
-  loading: () => <div className="h-full bg-slate-100 animate-pulse rounded-md"></div>
-});
-import Image from "next/image";
-import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { Class, Grade, Student } from "@prisma/client";
 import { notFound } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
-import StudentPaymentTracker from "./StudentPaymentTracker";
-import { getCachedTenantData } from "@/lib/cache";
+import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
-import { getUserAvatar } from "@/lib/avatar";
+import { getCachedTenantData } from "@/lib/cache";
+import StudentProfileClient, { StudentBundle } from "./StudentProfileClient";
+import { QuickStudentItem } from "./StudentQuickNav";
+import { StudentScheduleItem } from "./tabs/StudentScheduleTab";
 
-const SingleStudentPage = async ({
+export default async function SingleStudentPage({
   params: { id },
 }: {
   params: { id: string };
-}) => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
-  const role = await getRole();
+}) {
   const schoolId = await getSchoolId();
-  const student:
-    | (Student & {
-        class: (Class & { _count: { lessons: number } }) | null;
-        payments: any[];
-        level: { tuitionFee: number };
-      })
-    | null = await getCachedTenantData(
+  const role = await getRole();
+  const isAdmin = role === "admin";
+
+  // 1. Fetch current student with all relevant data
+  const student = await getCachedTenantData(
     schoolId,
     "students",
     [id, schoolId],
@@ -44,214 +27,272 @@ const SingleStudentPage = async ({
         include: {
           class: {
             include: {
+              level: true,
               _count: {
-                select: {
-                  lessons: true,
-                },
+                select: { lessons: true },
               },
             },
           },
           parent: true,
-          payments: true,
-          level: true,
-
+          payments: {
+            orderBy: [
+              { year: "desc" },
+              { month: "desc" },
+            ],
+          },
+          attendance: {
+            where: { schoolId },
+            include: {
+              lesson: {
+                include: {
+                  subject: true,
+                  teacher: true,
+                },
+              },
+            },
+            orderBy: { date: "desc" },
+          },
+          grades: {
+            where: { schoolId },
+            include: {
+              subject: true,
+            },
+            orderBy: [
+              { term: "asc" },
+              { subject: { name: "asc" } },
+            ],
+          },
         },
       }),
-    600
+    300
   );
 
   if (!student) {
     return notFound();
   }
 
+  // 2. Fetch class timetable slots (shared by all students in this class)
+  let scheduleItems: StudentScheduleItem[] = [];
+  if (student.classId) {
+    const classId = student.classId;
+    const slots = await getCachedTenantData(
+      schoolId,
+      "classes",
+      ["timetable", String(classId), schoolId],
+      () =>
+        prisma.timetableSlot.findMany({
+          where: {
+            classId,
+            isDraft: false,
+            schoolId,
+          },
+          include: {
+            subject: true,
+            teacher: true,
+            room: true,
+          },
+          orderBy: [{ day: "asc" }, { startTime: "asc" }],
+        }),
+      600
+    );
 
+    if (slots && slots.length > 0) {
+      scheduleItems = slots.map((slot: any) => ({
+        id: slot.id,
+        day: (slot.day || "MONDAY").toUpperCase(),
+        startTime: typeof slot.startTime === "string" && slot.startTime.trim() ? slot.startTime.trim() : "08:00",
+        endTime: typeof slot.endTime === "string" && slot.endTime.trim() ? slot.endTime.trim() : "10:00",
+        duration: slot.duration || 120,
+        subjectName: slot.subject?.name ? slot.subject.name.split("|")[0].trim() : "Matière",
+        subjectId: slot.subjectId || 0,
+        className: student.class?.name || "Classe",
+        classId: slot.classId,
+        roomName: slot.room?.name || undefined,
+        teacherName: slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : undefined,
+      }));
+    } else {
+      const lessons = await getCachedTenantData(
+        schoolId,
+        "classes",
+        ["lessons", String(classId), schoolId],
+        () =>
+          prisma.lesson.findMany({
+            where: {
+              classId,
+              schoolId,
+            },
+            include: {
+              subject: true,
+              teacher: true,
+            },
+            orderBy: [{ day: "asc" }, { startTime: "asc" }],
+          }),
+        600
+      );
+
+      scheduleItems = (lessons || []).map((l: any) => {
+        let sh = "08"; let sm = "00"; let eh = "09"; let em = "00"; let dur = 60;
+        try {
+          if (l.startTime) {
+            const start = new Date(l.startTime);
+            if (!isNaN(start.getTime())) {
+              sh = String(start.getHours()).padStart(2, "0");
+              sm = String(start.getMinutes()).padStart(2, "0");
+            }
+          }
+          if (l.endTime) {
+            const end = new Date(l.endTime);
+            if (!isNaN(end.getTime())) {
+              eh = String(end.getHours()).padStart(2, "0");
+              em = String(end.getMinutes()).padStart(2, "0");
+              if (l.startTime) {
+                const start = new Date(l.startTime);
+                const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+                if (diff > 0) dur = diff;
+              }
+            }
+          }
+        } catch {}
+        return {
+          id: l.id,
+          day: (l.day || "MONDAY").toUpperCase(),
+          startTime: `${sh}:${sm}`,
+          endTime: `${eh}:${em}`,
+          duration: dur,
+          subjectName: l.subject?.name ? l.subject.name.split("|")[0].trim() : (l.name || "Matière"),
+          subjectId: l.subjectId || 0,
+          className: student.class?.name || "Classe",
+          classId: l.classId,
+          roomName: undefined,
+          teacherName: l.teacher ? `${l.teacher.name} ${l.teacher.surname}` : undefined,
+        };
+      });
+    }
+  }
+
+  const totalWeeklyMinutes = scheduleItems.reduce((acc: number, curr: any) => {
+    if (curr.duration) return acc + curr.duration;
+    const [sh, sm] = curr.startTime.split(":").map(Number);
+    const [eh, em] = curr.endTime.split(":").map(Number);
+    const diff = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+    return acc + (diff > 0 ? diff : 120);
+  }, 0);
+
+  const totalWeeklyHours = Math.round(totalWeeklyMinutes / 60);
+
+  // 3. Preload all classmates in the same class for 0ms in-memory switching
+  let allClassmates: any[] = [];
+  if (student.classId) {
+    const classId = student.classId;
+    allClassmates = await getCachedTenantData(
+      schoolId,
+      "students",
+      ["class_bundles", String(classId), schoolId],
+      () =>
+        prisma.student.findMany({
+          where: {
+            classId,
+            schoolId,
+          },
+          include: {
+            class: {
+              include: {
+                level: true,
+                _count: {
+                  select: { lessons: true },
+                },
+              },
+            },
+            parent: true,
+            payments: {
+              orderBy: [
+                { year: "desc" },
+                { month: "desc" },
+              ],
+            },
+            attendance: {
+              where: { schoolId },
+              include: {
+                lesson: {
+                  include: {
+                    subject: true,
+                    teacher: true,
+                  },
+                },
+              },
+              orderBy: { date: "desc" },
+            },
+            grades: {
+              where: { schoolId },
+              include: {
+                subject: true,
+              },
+              orderBy: [
+                { term: "asc" },
+                { subject: { name: "asc" } },
+              ],
+            },
+          },
+          orderBy: [
+            { surname: "asc" },
+            { name: "asc" },
+          ],
+        }),
+      300
+    );
+  }
+
+  // Ensure current student is in the list
+  if (allClassmates.length === 0) {
+    allClassmates = [student];
+  } else if (!allClassmates.some((s) => s.id === student.id)) {
+    allClassmates.unshift(student);
+  }
+
+  // Build QuickStudentItem list for the drawer and stepper
+  const classmatesList: QuickStudentItem[] = allClassmates.map((s) => ({
+    id: s.id,
+    name: s.name,
+    surname: s.surname,
+    img: s.img,
+    sex: s.sex,
+    className: s.class?.name,
+    classId: s.classId,
+    phone: s.phone || s.parent?.phone,
+  }));
+
+  // Build Bundles Map
+  const bundlesMap: Record<string, StudentBundle> = {};
+  allClassmates.forEach((s) => {
+    bundlesMap[s.id] = {
+      student: s,
+      payments: s.payments || [],
+      attendances: s.attendance || [],
+      grades: s.grades || [],
+      scheduleItems,
+      studentFullName: `${s.name} ${s.surname}`,
+      totalWeeklyHours,
+    };
+  });
+
+  const levelTuitionFee = student.class?.level?.tuitionFee || 0;
+  const gradeLevel = student.class?.level?.level || 1;
 
   return (
-    <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
-      {/* LEFT */}
-      <div className="w-full xl:w-2/3">
-        {/* TOP */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* USER INFO CARD */}
-          <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
-            <div className="w-1/3">
-              <Image
-                src={getUserAvatar(student.img, "student", student.sex)}
-                alt=""
-                width={144}
-                height={144}
-                className="w-36 h-36 rounded-full object-cover"
-              />
-            </div>
-            <div className="w-2/3 flex flex-col justify-between gap-4">
-              <h1 className="text-xl font-semibold">
-                {student.name + " " + student.surname}
-              </h1>
-              <p className="text-sm text-gray-500">
-                Student at our school in class {student.class?.name || "Unassigned"}.
-              </p>
-              <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
-                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/blood.png" alt="" width={14} height={14} />
-                  <span>{student.bloodType}</span>
-                </div>
-                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/date.png" alt="" width={14} height={14} />
-                  <span>
-                    {new Intl.DateTimeFormat("en-GB").format(new Date(student.birthday))}
-                  </span>
-                </div>
-                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/phone.png" alt="" width={14} height={14} />
-                  <span>{student.phone || "-"}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* SMALL CARDS */}
-          <div className="flex-1 flex gap-4 justify-between flex-wrap">
-            {/* CARD */}
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image
-                src="/singleAttendance.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
-                <h1 className="text-xl font-semibold">90%</h1>
-                <span className="text-sm text-gray-400">Attendance</span>
-              </div>
-            </div>
-            {/* CARD */}
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image
-                src="/singleBranch.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
-                <h1 className="text-xl font-semibold">{student.levelId}</h1>
-                <span className="text-sm text-gray-400">Grade</span>
-              </div>
-            </div>
-            {/* CARD */}
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image
-                src="/singleLesson.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
-                <h1 className="text-xl font-semibold">
-                  {student.class?._count?.lessons || 0}
-                </h1>
-                <span className="text-sm text-gray-400">Lessons</span>
-              </div>
-            </div>
-            {/* CARD */}
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image src="/singleClass.png" alt="" width={24} height={24} className="w-6 h-6" />
-              <div>
-                <h1 className="text-xl font-semibold">{student.payments.length}</h1>
-                <span className="text-sm text-gray-400">Payments Made</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* TUITION TRACKER */}
-        <StudentPaymentTracker
-          studentId={student.id}
-          studentName={`${student.name} ${student.surname}`}
-          gradeLevel={student.levelId}
-          payments={student.payments}
-          customTuition={student.customTuition}
-          levelTuitionFee={student.level?.tuitionFee || 450}
-          isAdmin={role === "admin"}
-        />
-
-        {/* BOTTOM */}
-        <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
-          <h1>Student&apos;s Schedule</h1>
-          <BigCalendarContainer type="classId" id={student.classId || 0} />
-        </div>
-      </div>
-      {/* RIGHT */}
-      <div className="w-full xl:w-1/3 flex flex-col gap-4">
-        <div className="bg-white p-4 rounded-md">
-          <h1 className="text-xl font-semibold">Shortcuts</h1>
-          <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-500">
-
-            <Link
-              className="p-3 rounded-md bg-lamaPurpleLight"
-              href={`/list/teachers?classId=${student.classId}`}
-            >
-              Student&apos;s Teachers
-            </Link>
-            <Link
-              className="p-3 rounded-md bg-pink-50"
-              href={`/list/exams?classId=${student.classId}`}
-            >
-              Student&apos;s Exams
-            </Link>
-            <Link
-              className="p-3 rounded-md bg-lamaSkyLight"
-              href={`/list/assignments?classId=${student.classId}`}
-            >
-              Student&apos;s Assignments
-            </Link>
-            <Link
-              className="p-3 rounded-md bg-lamaYellowLight"
-              href={`/list/results?studentId=${student.id}`}
-            >
-              Student&apos;s Results
-            </Link>
-          </div>
-        </div>
-        
-        <StudentPaymentTracker 
-          studentId={student.id}
-          studentName={student.name + " " + student.surname}
-          gradeLevel={student.levelId}
-          payments={student.payments}
-          customTuition={student.customTuition}
-          levelTuitionFee={student.level?.tuitionFee || 450}
-          isAdmin={role === "admin"}
-        />
-
-        {/* PARENT INFO */}
-        {(student as any).parent && (
-          <div className="bg-white p-4 rounded-md">
-            <h1 className="text-xl font-semibold">Parent Info</h1>
-            <div className="flex items-center gap-4 mt-4">
-              <Image
-                src={getUserAvatar((student as any).parent.img, "parent", (student as any).parent.sex)}
-                alt=""
-                width={70}
-                height={70}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold">
-                  {(student as any).parent.name + " " + (student as any).parent.surname}
-                </span>
-                <span className="text-xs text-gray-500">{(student as any).parent.phone}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Performance />
-
-      </div>
-    </div>
+    <StudentProfileClient
+      initialStudentId={student.id}
+      initialBundlesMap={bundlesMap}
+      student={student}
+      payments={student.payments || []}
+      attendances={student.attendance || []}
+      grades={student.grades || []}
+      scheduleItems={scheduleItems}
+      studentFullName={`${student.name} ${student.surname}`}
+      totalWeeklyHours={totalWeeklyHours}
+      levelTuitionFee={levelTuitionFee}
+      gradeLevel={gradeLevel}
+      isAdmin={isAdmin}
+      classmates={classmatesList}
+    />
   );
-};
-
-export default SingleStudentPage;
+}
