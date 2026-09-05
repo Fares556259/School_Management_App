@@ -291,9 +291,9 @@ export function TeacherSideDrawer({
                   onClick={(e) => {
                     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                     e.preventDefault();
+                    if (!isPinned && onClose) onClose();
                     if (onSelectTeacher) {
                       onSelectTeacher(t.id);
-                      if (!isPinned) onClose();
                     }
                   }}
                   className={`w-full text-left group flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
