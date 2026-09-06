@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Receipt, TrendingUp, UserCheck, Activity } from 'lucide-react';
+import { Wallet, Receipt, TrendingUp, Percent, Activity } from 'lucide-react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 
 interface KpiCardProps {
@@ -67,6 +67,7 @@ export interface FinancialKpiSectionProps {
   studentCount?: number;
   collectedTuition?: number;
   totalTuitionDue?: number;
+  uncollectedTuition?: number;
   revenueGap?: number;
   isCustomRange?: boolean;
 }
@@ -75,9 +76,9 @@ export default function FinancialKpiSection({
   currentIncome,
   currentExpense,
   currentBalance,
-  studentCount = 0,
   collectedTuition,
   totalTuitionDue,
+  uncollectedTuition,
   revenueGap = 0,
 }: FinancialKpiSectionProps) {
   const { t } = useLanguage();
@@ -100,17 +101,23 @@ export default function FinancialKpiSection({
     })}`;
   };
 
-  // Card 4: Revenue per student
-  const revenuePerStudent = studentCount > 0 ? Math.round(currentIncome / studentCount) : 0;
+  // Card 4: Profit Margin (Marge bénéficiaire)
+  const currentMargin = currentIncome === 0 ? 0 : (currentBalance / currentIncome) * 100;
+  const isMarginNegative = currentMargin < 0;
+  const formattedMargin = Math.abs(currentMargin) % 1 === 0 
+    ? Math.abs(currentMargin).toFixed(0) 
+    : Math.abs(currentMargin).toFixed(1);
 
   // Card 5: Collection / Recovery Rate
   const displayCollected = (collectedTuition !== undefined && collectedTuition > 0)
     ? collectedTuition 
     : currentIncome;
 
-  const displayTotalDue = (totalTuitionDue !== undefined && totalTuitionDue > 0)
-    ? Math.max(totalTuitionDue, displayCollected)
-    : (revenueGap > 0 ? displayCollected + revenueGap : displayCollected);
+  const displayTotalDue = (uncollectedTuition !== undefined && uncollectedTuition > 0)
+    ? displayCollected + uncollectedTuition
+    : (totalTuitionDue !== undefined && totalTuitionDue > 0
+        ? Math.max(totalTuitionDue, displayCollected)
+        : (revenueGap > 0 ? displayCollected + revenueGap : displayCollected));
 
   const recoveryRate = displayTotalDue > 0
     ? Math.min(100, Math.round((displayCollected / displayTotalDue) * 100))
@@ -146,13 +153,14 @@ export default function FinancialKpiSection({
         isNegative={currentBalance < 0}
       />
 
-      {/* 4. Revenus par élèves */}
+      {/* 4. Marge bénéficiaire */}
       <KpiCard 
-        icon={<UserCheck className="w-4 h-4 text-amber-500 stroke-[2.2]" />}
+        icon={<Percent className="w-4 h-4 text-amber-500 stroke-[2.2]" />}
         iconBg="bg-amber-50 text-amber-500"
-        title={t.adminWidgets.revenuePerStudent || "Revenus par élèves"}
-        value={formatMoney(revenuePerStudent)}
-        suffix={`${currency}/${t.adminWidgets.perStudent || "élève"}`}
+        title={t.adminWidgets.profitMargin || "Marge bénéficiaire"}
+        value={`${isMarginNegative ? '-' : ''}${formattedMargin}`}
+        suffix="%"
+        isNegative={isMarginNegative}
       />
 
       {/* 5. Taux de recouvrement */}
