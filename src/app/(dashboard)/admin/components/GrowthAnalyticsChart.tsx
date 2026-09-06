@@ -3,15 +3,14 @@
 import { useState } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ComposedChart,
-  Line,
 } from "recharts";
 
 interface GrowthData {
@@ -20,19 +19,19 @@ interface GrowthData {
   expense: number;
 }
 
-const SummaryItem = ({ label, value, colorHex }: { label: string, value: number, colorHex: string }) => (
-  <div>
-    <p className="text-[12px] font-medium text-[#5a5a5a] mb-1 flex items-center gap-1.5">
-      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colorHex }} />
-      {label}
-    </p>
-    <p className="text-[24px] font-semibold text-[#080808] tracking-[-0.5px]">
-      {`\u202A${value < 0 ? '-' : ''}${Math.abs(Math.round(value)).toLocaleString()} DT\u202C`}
-    </p>
-  </div>
-);
+interface GrowthAnalyticsChartProps {
+  data: GrowthData[];
+  currentIncome?: number;
+  currentExpense?: number;
+  is12Months?: boolean;
+}
 
-const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: GrowthData[], currentIncome?: number, currentExpense?: number }) => {
+const GrowthAnalyticsChart = ({
+  data,
+  currentIncome,
+  currentExpense,
+  is12Months = true,
+}: GrowthAnalyticsChartProps) => {
   const [view, setView] = useState<"all" | "income" | "expense" | "profit">("all");
   const { t } = useLanguage();
 
@@ -43,10 +42,8 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
   const isHealthy = netProfit >= 0;
   const trend = isHealthy ? t.analyticsChart.healthyGrowth : t.analyticsChart.expensesGrowing;
 
-  // Base data
-  const forecastData: any[] = data.map((d) => ({
+  const chartData = data.map((d) => ({
     ...d,
-    profit: d.income - d.expense,
     historicalIncome: d.income,
     historicalExpense: d.expense,
     historicalProfit: d.income - d.expense,
@@ -54,31 +51,44 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const income = payload.find((p: any) => p.dataKey === "historicalIncome")?.value || 0;
-      const expense = payload.find((p: any) => p.dataKey === "historicalExpense")?.value || 0;
+      const match = data.find((d) => d.month === label);
+      const income = payload.find((p: any) => p.dataKey === "historicalIncome")?.value ?? match?.income ?? 0;
+      const expense = payload.find((p: any) => p.dataKey === "historicalExpense")?.value ?? match?.expense ?? 0;
       const profit = income - expense;
 
       return (
-        <div className="bg-white/95 p-4 rounded-2xl shadow-2xl border border-slate-100 backdrop-blur-xl">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between gap-4">
-            <span>{label}</span>
+        <div className="bg-white/95 p-4 rounded-xl shadow-xl border border-slate-100 backdrop-blur-md min-w-[210px]">
+          <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5 pb-1.5 border-b border-slate-100">
+            {label}
           </p>
           <div className="flex flex-col gap-2">
-            {[
-              { label: t.analyticsChart.revenue, value: income, color: "#10B981" },
-              { label: t.analyticsChart.expenses, value: expense, color: "#F43F5E" },
-              { label: t.analyticsChart.netProfit, value: profit, color: "#6366F1", isBold: true }
-            ].map((entry, idx) => (
-              <div key={idx} className={`flex items-center justify-between gap-8 ${entry.isBold ? 'mt-2 pt-2 border-t border-slate-100' : ''}`}>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                  <span className="text-xs font-bold text-slate-500">{entry.label}</span>
-                </div>
-                <span className={`text-sm font-black tracking-tight ${entry.isBold ? 'text-indigo-600' : 'text-slate-800'}`}>
-                  {`\u202A${entry.value < 0 ? '-' : ''}${Math.abs(Math.round(entry.value)).toLocaleString()} DT\u202C`}
-                </span>
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-sm bg-[#38bdf8]" />
+                <span className="text-xs font-semibold text-slate-600">{t.analyticsChart.revenue}</span>
               </div>
-            ))}
+              <span className="text-xs font-bold text-slate-900">
+                {`${Math.round(income).toLocaleString()} DT`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-sm bg-[#c084fc]" />
+                <span className="text-xs font-semibold text-slate-600">{t.analyticsChart.expenses}</span>
+              </div>
+              <span className="text-xs font-bold text-slate-900">
+                {`${Math.round(expense).toLocaleString()} DT`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-6 pt-1.5 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
+                <span className="text-xs font-bold text-slate-700">{t.analyticsChart.netProfit}</span>
+              </div>
+              <span className={`text-xs font-extrabold ${profit >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                {`\u202A${profit < 0 ? "-" : ""}${Math.abs(Math.round(profit)).toLocaleString()} DT\u202C`}
+              </span>
+            </div>
           </div>
         </div>
       );
@@ -87,107 +97,176 @@ const GrowthAnalyticsChart = ({ data, currentIncome, currentExpense }: { data: G
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex gap-8">
-          <SummaryItem label={t.analyticsChart.revenue} value={lastIncome} colorHex="#10b981" />
-          <SummaryItem label={t.analyticsChart.expenses} value={lastExpense} colorHex="#f43f5e" />
-          <SummaryItem label={t.analyticsChart.netProfit} value={netProfit} colorHex="#6366f1" />
+    <div className="w-full flex flex-col">
+      {/* Top Header matching reference design */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2">
+        {/* Left: Title + Status Pulse */}
+        <div className="flex items-center flex-wrap gap-3">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
+            {is12Months ? (t.analyticsChart.title12Months || "Revenue VS Dépenses – 12 derniers mois") : (t.analyticsChart.titleGeneral || "Revenue VS Dépenses")}
+          </h2>
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              isHealthy
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                : "bg-rose-50 text-rose-700 border border-rose-200/60"
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isHealthy ? "bg-emerald-500" : "bg-rose-500"} animate-pulse`} />
+            {trend}
+          </span>
         </div>
-        
-        <div className="flex flex-col items-end gap-3">
-           <div className="px-3 py-1.5 bg-[#f9f9f9] rounded-[4px] border border-[#d8d8d8]">
-              <span className="text-[11px] font-medium text-[#5a5a5a] uppercase tracking-wider flex items-center gap-2">
-                <span className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'bg-indigo-500' : 'bg-rose-500'} animate-pulse`} />
-                {trend}
+
+        {/* Right: Legend & Interactive Controls */}
+        <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+          {/* Custom Legend directly inspired by Image 1 */}
+          <div className="flex items-center gap-4 text-xs sm:text-sm font-semibold text-slate-600">
+            <button
+              type="button"
+              onClick={() => setView(view === "income" ? "all" : "income")}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <span className="w-5 h-2 rounded-full bg-[#38bdf8]" />
+              <span className={view === "expense" || view === "profit" ? "opacity-30" : "opacity-100"}>
+                {t.analyticsChart.revenue}
               </span>
-           </div>
-           
-           <div className="bg-[#f9f9f9] p-1 rounded-[6px] flex gap-1 border border-[#d8d8d8]">
-              {["all", "income", "expense", "profit"].map((v) => {
-                const labelMap: Record<string, string> = {
-                  "all": t.analyticsChart.filterAll,
-                  "income": t.analyticsChart.filterIncome,
-                  "expense": t.analyticsChart.filterExpense,
-                  "profit": t.analyticsChart.filterProfit
-                };
-                return (
+            </button>
+            <button
+              type="button"
+              onClick={() => setView(view === "expense" ? "all" : "expense")}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <span className="w-5 h-2 rounded-full bg-[#c084fc]" />
+              <span className={view === "income" || view === "profit" ? "opacity-30" : "opacity-100"}>
+                {t.analyticsChart.expenses}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView(view === "profit" ? "all" : "profit")}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <span className="w-5 h-0.5 bg-[#22c55e] relative flex items-center justify-center">
+                <span className="w-2 h-2 rounded-full bg-[#22c55e] ring-2 ring-white" />
+              </span>
+              <span className={view === "income" || view === "expense" ? "opacity-30" : "opacity-100"}>
+                {t.analyticsChart.netProfit}
+              </span>
+            </button>
+          </div>
+
+          {/* View Filter segmented buttons */}
+          <div className="bg-slate-100/90 p-0.5 rounded-lg flex items-center gap-0.5 border border-slate-200/70">
+            {(["all", "income", "expense", "profit"] as const).map((v) => {
+              const labelMap: Record<string, string> = {
+                all: t.analyticsChart.filterAll,
+                income: t.analyticsChart.filterIncome,
+                expense: t.analyticsChart.filterExpense,
+                profit: t.analyticsChart.filterProfit,
+              };
+              return (
                 <button
                   key={v}
-                  onClick={() => setView(v as any)}
-                  className={`px-3 py-1.5 text-[12px] font-medium transition-all rounded-[4px] ${
-                    view === v 
-                      ? "bg-[#ffffff] text-[#080808] shadow-sm border border-[#d8d8d8]" 
-                      : "text-[#5a5a5a] hover:text-[#080808] border border-transparent"
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`px-2.5 py-1 text-[11px] font-bold transition-all rounded-md ${
+                    view === v
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
                   {labelMap[v]}
                 </button>
-              )})}
-           </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="w-full h-[320px]">
-        {data.length > 0 ? (
+      {/* Main Chart Container */}
+      <div className="w-full h-[360px] sm:h-[400px] mt-4">
+        {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={forecastData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" strokeOpacity={0.5} />
-              <XAxis 
-                dataKey="month" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
-                dy={10}
+            <ComposedChart
+              data={chartData}
+              margin={{ top: 15, right: 15, left: -15, bottom: 5 }}
+              barGap={4}
+              barCategoryGap="22%"
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#E2E8F0"
+                strokeOpacity={0.7}
               />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
-                tickFormatter={(v) => `\u202A${v < 0 ? '-' : ''}${Math.abs(v / 1000).toFixed(0)}k DT\u202C`}
+              <XAxis
+                dataKey="month"
+                axisLine={{ stroke: "#E2E8F0", strokeWidth: 1 }}
+                tickLine={false}
+                tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }}
+                dy={8}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                dx={-4}
               />
 
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366F1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: "rgba(241, 245, 249, 0.45)" }}
+              />
 
-              {(view === "all" || view === "income") && (
-                <Area type="monotone" dataKey="historicalIncome" fill="url(#colorIncome)" stroke="none" isAnimationActive={false} />
-              )}
+              {/* Dépenses: Soft purple grouped bar on the left */}
               {(view === "all" || view === "expense") && (
-                <Area type="monotone" dataKey="historicalExpense" fill="url(#colorExpense)" stroke="none" isAnimationActive={false} />
-              )}
-              {(view === "profit") && (
-                <Area type="monotone" dataKey="historicalProfit" fill="url(#colorProfit)" stroke="none" isAnimationActive={false} />
+                <Bar
+                  dataKey="historicalExpense"
+                  name={t.analyticsChart.expenses}
+                  fill="#c084fc"
+                  fillOpacity={0.7}
+                  stroke="#a855f7"
+                  strokeWidth={1.5}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={32}
+                  isAnimationActive={false}
+                />
               )}
 
+              {/* Revenus: Sky blue grouped bar on the right */}
               {(view === "all" || view === "income") && (
-                <Line type="monotone" dataKey="historicalIncome" stroke="#10B981" strokeWidth={3} dot={data.length === 1} isAnimationActive={false} />
+                <Bar
+                  dataKey="historicalIncome"
+                  name={t.analyticsChart.revenue}
+                  fill="#38bdf8"
+                  fillOpacity={0.7}
+                  stroke="#0284c7"
+                  strokeWidth={1.5}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={32}
+                  isAnimationActive={false}
+                />
               )}
-              {(view === "all" || view === "expense") && (
-                <Line type="monotone" dataKey="historicalExpense" stroke="#F43F5E" strokeWidth={2} dot={data.length === 1} isAnimationActive={false} />
-              )}
+
+              {/* Bénéfices net: Vibrant emerald green line with circular markers overlaid */}
               {(view === "all" || view === "profit") && (
-                <Line type="monotone" dataKey="historicalProfit" stroke="#6366F1" strokeWidth={2} dot={data.length === 1} isAnimationActive={false} />
+                <Line
+                  type="monotone"
+                  dataKey="historicalProfit"
+                  name={t.analyticsChart.netProfit}
+                  stroke="#22c55e"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 1.5 }}
+                  activeDot={{ r: 6, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 2 }}
+                  isAnimationActive={false}
+                />
               )}
             </ComposedChart>
           </ResponsiveContainer>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-400 font-medium text-sm">
-            {/* Fallback when data is empty */}
+            Aucune donnée disponible
           </div>
         )}
       </div>

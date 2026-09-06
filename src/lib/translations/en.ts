@@ -200,6 +200,8 @@ export const en = {
     allocatedToJune: "Allocated to this month"
   },
   analyticsChart: {
+    title12Months: "Revenue VS Expenses – Last 12 months",
+    titleGeneral: "Revenue VS Expenses",
     revenue: "Revenue",
     expenses: "Expenses",
     netProfit: "Net Profit",

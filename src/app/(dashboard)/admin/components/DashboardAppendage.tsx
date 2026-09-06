@@ -51,8 +51,12 @@ export default async function DashboardAppendage({
   // 1. MEGA-CONSOLIDATED TRENDS & BREAKDOWNS
   const getSecondaryStats = async () => {
     const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const useDays = durationDays <= 60;
+    const isAllTime = durationDays > 365 || startDate.getFullYear() <= 2024;
+    const useDays = durationDays <= 60 && !isAllTime;
     const formatStr = useDays ? 'YYYY-MM-DD' : 'YYYY-MM';
+
+    const trendStartDate = isAllTime ? new Date(now.getFullYear(), 0, 1) : startDate;
+    const trendEndDate = isAllTime ? new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999) : endDate;
 
     const [incCats, expCats, rawIncomes, rawExpenses] = await Promise.all([
       prisma.income.groupBy({
@@ -68,13 +72,13 @@ export default async function DashboardAppendage({
       prisma.$queryRaw`
         SELECT to_char(date, ${Prisma.raw(`'${formatStr}'`)}) as "monthKey", SUM(amount) as total
         FROM "Income"
-        WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate}
+        WHERE "schoolId" = ${schoolId} AND date >= ${trendStartDate} AND date <= ${trendEndDate}
         GROUP BY 1
       `,
       prisma.$queryRaw`
         SELECT to_char(date, ${Prisma.raw(`'${formatStr}'`)}) as "monthKey", SUM(amount) as total
         FROM "Expense"
-        WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate}
+        WHERE "schoolId" = ${schoolId} AND date >= ${trendStartDate} AND date <= ${trendEndDate}
         GROUP BY 1
       `
     ]);
@@ -214,16 +218,34 @@ export default async function DashboardAppendage({
   // Calculate trends
   const trendData = [];
   const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-  const useDays = durationDays <= 60;
+  const isAllTime = durationDays > 365 || startDate.getFullYear() <= 2024;
+  const useDays = durationDays <= 60 && !isAllTime;
 
-  if (useDays) {
+  const shortMonths = locale === 'fr' 
+    ? ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"]
+    : locale === 'en'
+    ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    : ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+  if (isAllTime) {
+    const currentYear = now.getFullYear();
+    for (let m = 0; m < 12; m++) {
+      const monthNum = m + 1;
+      const monthKey = `${currentYear}-${String(monthNum).padStart(2, '0')}`;
+      const label = `${shortMonths[m]} ${currentYear}`;
+      
+      const inc = (secondaryStats.income_trend || []).find((x: any) => x.monthKey === monthKey)?.total || 0;
+      const exp = (secondaryStats.expense_trend || []).find((x: any) => x.monthKey === monthKey)?.total || 0;
+      trendData.push({ month: label, income: inc, expense: exp });
+    }
+  } else if (useDays) {
     // Generate daily points
     for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
       const year = d.getFullYear();
       const month = d.getMonth() + 1;
       const date = d.getDate();
       const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-      const label = `${date} ${t.months[d.getMonth()].slice(0, 3)}`;
+      const label = `${date} ${shortMonths[d.getMonth()]}`;
       
       const inc = (secondaryStats.income_trend || []).find((x: any) => x.monthKey === dateKey)?.total || 0;
       const exp = (secondaryStats.expense_trend || []).find((x: any) => x.monthKey === dateKey)?.total || 0;
@@ -241,7 +263,7 @@ export default async function DashboardAppendage({
       const year = current.getFullYear();
       const month = current.getMonth() + 1;
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      const label = `${t.months[current.getMonth()].slice(0, 3)} ${year}`;
+      const label = `${shortMonths[current.getMonth()]} ${year}`;
       
       const inc = (secondaryStats.income_trend || []).find((x: any) => x.monthKey === monthKey)?.total || 0;
       const exp = (secondaryStats.expense_trend || []).find((x: any) => x.monthKey === monthKey)?.total || 0;
@@ -266,16 +288,13 @@ export default async function DashboardAppendage({
   return (
     <>
       <section className="mt-8">
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm h-[480px] flex flex-col overflow-hidden">
-           <div className="flex items-center justify-between mb-8 flex-shrink-0">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight leading-none">{t.adminDashboard.growthAnalytics}</h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{t.adminDashboard.growthAnalyticsDesc}</p>
-              </div>
-           </div>
-           <div className="flex-1 min-h-0 relative">
-             <GrowthAnalyticsChart data={trendData} currentIncome={currentIncome} currentExpense={currentExpense} />
-           </div>
+        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+          <GrowthAnalyticsChart 
+            data={trendData} 
+            currentIncome={currentIncome} 
+            currentExpense={currentExpense} 
+            is12Months={isAllTime}
+          />
         </div>
       </section>
 

@@ -200,9 +200,11 @@ export const ar = {
     allocatedToJune: "مخصص لهذا الشهر"
   },
   analyticsChart: {
+    title12Months: "الإيرادات مقابل المصاريف - آخر 12 شهرًا",
+    titleGeneral: "الإيرادات مقابل المصاريف",
     revenue: "الإيرادات",
     expenses: "المصاريف",
-    netProfit: "صافي الربح",
+    netProfit: "صافي الأرباح",
     healthyGrowth: "نمو صحي",
     expensesGrowing: "المصاريف تنمو بشكل أسرع",
     filterAll: "الكل",

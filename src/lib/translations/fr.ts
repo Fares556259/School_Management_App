@@ -200,9 +200,11 @@ export const fr = {
     allocatedToJune: "Alloué à ce mois"
   },
   analyticsChart: {
+    title12Months: "Revenue VS Dépenses – 12 derniers mois",
+    titleGeneral: "Revenue VS Dépenses",
     revenue: "Revenus",
     expenses: "Dépenses",
-    netProfit: "Bénéfice Net",
+    netProfit: "Bénéfices net",
     healthyGrowth: "Croissance saine",
     expensesGrowing: "Les dépenses augmentent plus vite",
     filterAll: "TOUT",
