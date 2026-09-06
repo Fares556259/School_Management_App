@@ -224,7 +224,8 @@ export const ar = {
     detailed: "مفصل",
     revenueDistribution: "توزيع الإيرادات",
     expenseDistribution: "توزيع المصاريف",
-    totalAmount: "المبلغ الإجمالي"
+    totalAmount: "المبلغ الإجمالي",
+    other: "أخرى"
   },
   smartInsights: {
     title: "رؤى ذكية",

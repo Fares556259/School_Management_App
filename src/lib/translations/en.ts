@@ -224,7 +224,8 @@ export const en = {
     detailed: "Detailed",
     revenueDistribution: "Revenue Distribution",
     expenseDistribution: "Expense Distribution",
-    totalAmount: "Total amount"
+    totalAmount: "Total amount",
+    other: "Other"
   },
   smartInsights: {
     title: "Smart Insights",

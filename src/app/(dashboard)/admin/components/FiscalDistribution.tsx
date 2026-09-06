@@ -24,18 +24,26 @@ interface FiscalDistributionProps {
 }
 
 const PALETTE = [
-  '#38bdf8', // Sky blue
-  '#a855f7', // Purple
-  '#10b981', // Emerald green
-  '#f59e0b', // Amber / Gold
-  '#f97316', // Orange
-  '#ef4444', // Red / Rose
-  '#64748b', // Slate
-  '#06b6d4', // Cyan
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#14b8a6', // Teal
-  '#eab308', // Yellow
+  '#0284c7', // 1. Sky / Ocean Blue
+  '#8b5cf6', // 2. Vivid Purple
+  '#10b981', // 3. Emerald Green
+  '#f59e0b', // 4. Amber / Gold
+  '#ec4899', // 5. Pink / Rose
+  '#06b6d4', // 6. Cyan / Turquoise
+  '#f97316', // 7. Orange
+  '#6366f1', // 8. Indigo
+  '#84cc16', // 9. Lime Green
+  '#e11d48', // 10. Crimson Red
+  '#14b8a6', // 11. Teal
+  '#d946ef', // 12. Fuchsia
+  '#ca8a04', // 13. Deep Gold
+  '#3b82f6', // 14. Royal Blue
+  '#059669', // 15. Forest Green
+  '#7c3aed', // 16. Deep Violet
+  '#be123c', // 17. Wine Red
+  '#0891b2', // 18. Deep Cyan
+  '#475569', // 19. Slate
+  '#dc2626', // 20. Strong Red
 ];
 
 interface DonutCardProps {
@@ -45,28 +53,74 @@ interface DonutCardProps {
 }
 
 const DonutCard: React.FC<DonutCardProps> = ({ title, items, totalLabel }) => {
+  const { t } = useLanguage();
+
   const totalAmount = useMemo(() => {
     return items.reduce((acc, curr) => acc + (curr.value || 0), 0);
   }, [items]);
 
   const chartData = useMemo(() => {
-    const validItems = items.filter((i) => i.value > 0);
-    if (validItems.length === 0) {
+    const validItems = items.filter((i) => (i.value || 0) > 0);
+    if (validItems.length === 0 || totalAmount <= 0) {
       return [];
     }
 
-    return validItems
-      .sort((a, b) => b.value - a.value)
-      .map((item, index) => {
-        const percentage = totalAmount > 0 ? Math.round((item.value / totalAmount) * 100) : 0;
-        const color = PALETTE[index % PALETTE.length];
-        return {
-          ...item,
-          percentage,
-          color,
-        };
+    // Sort descending by value
+    const sorted = [...validItems].sort((a, b) => b.value - a.value);
+
+    // Calculate raw percentages
+    const withPercentages = sorted.map((item) => {
+      const rawPct = (item.value / totalAmount) * 100;
+      const percentage = Math.round(rawPct);
+      return {
+        ...item,
+        rawPct,
+        percentage,
+      };
+    });
+
+    // Significant items (>= 1%) vs tiny items (< 1%)
+    const significant = withPercentages.filter((item) => item.rawPct >= 1);
+    const tiny = withPercentages.filter((item) => item.rawPct < 1);
+
+    const result: { name: string; value: number; percentage: number; color: string }[] = [];
+
+    // Assign guaranteed unique colors to significant items
+    significant.forEach((item, index) => {
+      result.push({
+        name: item.name,
+        value: item.value,
+        percentage: Math.max(1, item.percentage),
+        color: PALETTE[index % PALETTE.length],
       });
-  }, [items, totalAmount]);
+    });
+
+    // If there are tiny items, combine them into "Autres" if they sum to >= 1%
+    if (tiny.length > 0) {
+      const tinyTotal = tiny.reduce((acc, curr) => acc + curr.value, 0);
+      const tinyPct = Math.round((tinyTotal / totalAmount) * 100);
+      if (tinyPct >= 1) {
+        result.push({
+          name: t.fiscalDistribution.other || "Autres",
+          value: tinyTotal,
+          percentage: tinyPct,
+          color: '#94a3b8',
+        });
+      } else if (significant.length === 0) {
+        // Fallback if all items are tiny
+        tiny.slice(0, 6).forEach((item, index) => {
+          result.push({
+            name: item.name,
+            value: item.value,
+            percentage: 1,
+            color: PALETTE[index % PALETTE.length],
+          });
+        });
+      }
+    }
+
+    return result;
+  }, [items, totalAmount, t]);
 
   const CustomDonutTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

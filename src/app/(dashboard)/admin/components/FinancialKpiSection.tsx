@@ -52,10 +52,12 @@ const KpiCard: React.FC<KpiCardProps> = ({
         <span className="text-[13px] font-medium text-[#5a5a5a]">
           {title}
         </span>
-        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[11px] font-medium ${statusColor}`}>
-          <span>{isPositive ? '↑' : '↓'}</span>
-          <span>{Math.abs(Math.round(diff))}%</span>
-        </div>
+        {prevValue !== 0 && Math.abs(Math.round(diff)) > 0 && (
+          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[11px] font-medium ${statusColor}`}>
+            <span>{isPositive ? '↑' : '↓'}</span>
+            <span>{Math.abs(Math.round(diff))}%</span>
+          </div>
+        )}
       </div>
       
       <div className="flex items-center justify-between gap-4 mt-1">

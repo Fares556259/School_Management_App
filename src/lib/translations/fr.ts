@@ -224,7 +224,8 @@ export const fr = {
     detailed: "Détaillé",
     revenueDistribution: "Répartition des revenus",
     expenseDistribution: "Répartition des dépenses",
-    totalAmount: "Montant total"
+    totalAmount: "Montant total",
+    other: "Autres"
   },
   smartInsights: {
     title: "Aperçus Intelligents",
