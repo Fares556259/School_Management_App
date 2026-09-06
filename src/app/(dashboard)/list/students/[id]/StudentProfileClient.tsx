@@ -498,7 +498,7 @@ export default function StudentProfileClient({
 
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1">
                   <GraduationCap size={11} className="text-blue-500" />
-                  {gradeLevel === 0 ? "Préscolaire" : `Niveau ${gradeLevel}`}
+                  {currentGradeLevel === 0 ? "Préscolaire" : `Niveau ${currentGradeLevel}`}
                 </span>
 
                 {student.sex && (

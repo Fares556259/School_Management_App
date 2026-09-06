@@ -161,6 +161,14 @@ export function StudentBreadcrumbNav({
   );
 }
 
+function formatClassLabel(className?: string | null): string {
+  if (!className || className === "Sans classe" || className === "Non assignée") {
+    return className || "Non assignée";
+  }
+  if (className.toLowerCase().startsWith("classe")) return className;
+  return `Classe ${className}`;
+}
+
 export function StudentSideDrawer({
   currentStudentId,
   currentClassName,
@@ -396,7 +404,7 @@ export function StudentSideDrawer({
                 }`}
               >
                 <Sparkles size={11} className={selectedClassFilter === currentClassName ? "text-white" : "text-blue-500"} />
-                <span>Sa classe ({currentClassCount})</span>
+                <span>{currentClassName} ({currentClassCount})</span>
               </button>
             )}
 
@@ -527,13 +535,8 @@ export function StudentSideDrawer({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-extrabold text-slate-800 truncate">
-                            Classe {group.className}
+                            {formatClassLabel(group.className)}
                           </span>
-                          {isCurrentClass && (
-                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-blue-600 text-white uppercase tracking-wider shrink-0">
-                              Sa classe
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -705,7 +708,7 @@ function StudentRowItem({
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1">
             <GraduationCap size={10} className="text-slate-400 shrink-0" />
-            <span>Classe {s.className || "Non assignée"}</span>
+            <span>{formatClassLabel(s.className || "Non assignée")}</span>
           </span>
         </div>
       </div>

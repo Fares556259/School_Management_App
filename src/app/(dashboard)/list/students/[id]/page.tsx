@@ -71,20 +71,17 @@ export default async function SingleStudentPage({
     return notFound();
   }
 
-  // 2. Fetch class timetable slots (shared by all students in this class)
-  let scheduleItems: StudentScheduleItem[] = [];
-  if (student.classId) {
-    const classId = student.classId;
-    const slots = await getCachedTenantData(
+  // 2. Fetch all school timetable slots and lessons (cached)
+  const [allSlots, allLessons] = await Promise.all([
+    getCachedTenantData(
       schoolId,
       "classes",
-      ["timetable", String(classId), schoolId],
+      ["all_slots_school", schoolId],
       () =>
         prisma.timetableSlot.findMany({
           where: {
-            classId,
-            isDraft: false,
             schoolId,
+            isDraft: false,
           },
           include: {
             subject: true,
@@ -94,10 +91,53 @@ export default async function SingleStudentPage({
           orderBy: [{ day: "asc" }, { startTime: "asc" }],
         }),
       600
-    );
+    ),
+    getCachedTenantData(
+      schoolId,
+      "classes",
+      ["all_lessons_school", schoolId],
+      () =>
+        prisma.lesson.findMany({
+          where: {
+            schoolId,
+          },
+          include: {
+            subject: true,
+            teacher: true,
+          },
+          orderBy: [{ day: "asc" }, { startTime: "asc" }],
+        }),
+      600
+    ),
+  ]);
 
-    if (slots && slots.length > 0) {
-      scheduleItems = slots.map((slot: any) => ({
+  // Group slots and lessons by classId
+  const slotsByClass = new Map<number, any[]>();
+  (allSlots || []).forEach((slot: any) => {
+    if (slot.classId) {
+      if (!slotsByClass.has(slot.classId)) slotsByClass.set(slot.classId, []);
+      slotsByClass.get(slot.classId)!.push(slot);
+    }
+  });
+
+  const lessonsByClass = new Map<number, any[]>();
+  (allLessons || []).forEach((l: any) => {
+    if (l.classId) {
+      if (!lessonsByClass.has(l.classId)) lessonsByClass.set(l.classId, []);
+      lessonsByClass.get(l.classId)!.push(l);
+    }
+  });
+
+  const scheduleCache = new Map<number, { items: StudentScheduleItem[]; weeklyHours: number }>();
+  const getScheduleForClass = (classId?: number | null, className?: string | null): { items: StudentScheduleItem[]; weeklyHours: number } => {
+    if (!classId) return { items: [], weeklyHours: 0 };
+    if (scheduleCache.has(classId)) return scheduleCache.get(classId)!;
+
+    const classSlots = slotsByClass.get(classId);
+    let items: StudentScheduleItem[] = [];
+
+    if (classSlots && classSlots.length > 0) {
+      items = classSlots.map((slot: any) => ({
         id: slot.id,
         day: (slot.day || "MONDAY").toUpperCase(),
         startTime: typeof slot.startTime === "string" && slot.startTime.trim() ? slot.startTime.trim() : "08:00",
@@ -105,202 +145,112 @@ export default async function SingleStudentPage({
         duration: slot.duration || 120,
         subjectName: slot.subject?.name ? slot.subject.name.split("|")[0].trim() : "Matière",
         subjectId: slot.subjectId || 0,
-        className: student.class?.name || "Classe",
+        className: className || "Classe",
         classId: slot.classId,
         roomName: slot.room?.name || undefined,
         teacherName: slot.teacher ? `${slot.teacher.name} ${slot.teacher.surname}` : undefined,
       }));
     } else {
-      const lessons = await getCachedTenantData(
-        schoolId,
-        "classes",
-        ["lessons", String(classId), schoolId],
-        () =>
-          prisma.lesson.findMany({
-            where: {
-              classId,
-              schoolId,
-            },
-            include: {
-              subject: true,
-              teacher: true,
-            },
-            orderBy: [{ day: "asc" }, { startTime: "asc" }],
-          }),
-        600
-      );
-
-      scheduleItems = (lessons || []).map((l: any) => {
-        let sh = "08"; let sm = "00"; let eh = "09"; let em = "00"; let dur = 60;
-        try {
-          if (l.startTime) {
-            const start = new Date(l.startTime);
-            if (!isNaN(start.getTime())) {
-              sh = String(start.getHours()).padStart(2, "0");
-              sm = String(start.getMinutes()).padStart(2, "0");
-            }
-          }
-          if (l.endTime) {
-            const end = new Date(l.endTime);
-            if (!isNaN(end.getTime())) {
-              eh = String(end.getHours()).padStart(2, "0");
-              em = String(end.getMinutes()).padStart(2, "0");
-              if (l.startTime) {
-                const start = new Date(l.startTime);
-                const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-                if (diff > 0) dur = diff;
+      const classLessons = lessonsByClass.get(classId);
+      if (classLessons && classLessons.length > 0) {
+        items = classLessons.map((l: any) => {
+          let sh = "08"; let sm = "00"; let eh = "09"; let em = "00"; let dur = 60;
+          try {
+            if (l.startTime) {
+              const start = new Date(l.startTime);
+              if (!isNaN(start.getTime())) {
+                sh = String(start.getHours()).padStart(2, "0");
+                sm = String(start.getMinutes()).padStart(2, "0");
               }
             }
-          }
-        } catch {}
-        return {
-          id: l.id,
-          day: (l.day || "MONDAY").toUpperCase(),
-          startTime: `${sh}:${sm}`,
-          endTime: `${eh}:${em}`,
-          duration: dur,
-          subjectName: l.subject?.name ? l.subject.name.split("|")[0].trim() : (l.name || "Matière"),
-          subjectId: l.subjectId || 0,
-          className: student.class?.name || "Classe",
-          classId: l.classId,
-          roomName: undefined,
-          teacherName: l.teacher ? `${l.teacher.name} ${l.teacher.surname}` : undefined,
-        };
-      });
+            if (l.endTime) {
+              const end = new Date(l.endTime);
+              if (!isNaN(end.getTime())) {
+                eh = String(end.getHours()).padStart(2, "0");
+                em = String(end.getMinutes()).padStart(2, "0");
+                if (l.startTime) {
+                  const start = new Date(l.startTime);
+                  const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+                  if (diff > 0) dur = diff;
+                }
+              }
+            }
+          } catch {}
+          return {
+            id: l.id,
+            day: (l.day || "MONDAY").toUpperCase(),
+            startTime: `${sh}:${sm}`,
+            endTime: `${eh}:${em}`,
+            duration: dur,
+            subjectName: l.subject?.name ? l.subject.name.split("|")[0].trim() : (l.name || "Matière"),
+            subjectId: l.subjectId || 0,
+            className: className || "Classe",
+            classId: l.classId,
+            roomName: undefined,
+            teacherName: l.teacher ? `${l.teacher.name} ${l.teacher.surname}` : undefined,
+          };
+        });
+      }
     }
-  }
 
-  const totalWeeklyMinutes = scheduleItems.reduce((acc: number, curr: any) => {
-    if (curr.duration) return acc + curr.duration;
-    const [sh, sm] = curr.startTime.split(":").map(Number);
-    const [eh, em] = curr.endTime.split(":").map(Number);
-    const diff = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
-    return acc + (diff > 0 ? diff : 120);
-  }, 0);
+    const totalMinutes = items.reduce((acc: number, curr: any) => {
+      if (curr.duration) return acc + curr.duration;
+      const [sh, sm] = curr.startTime.split(":").map(Number);
+      const [eh, em] = curr.endTime.split(":").map(Number);
+      const diff = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0));
+      return acc + (diff > 0 ? diff : 120);
+    }, 0);
 
-  const totalWeeklyHours = Math.round(totalWeeklyMinutes / 60);
+    const result = { items, weeklyHours: Math.round(totalMinutes / 60) };
+    scheduleCache.set(classId, result);
+    return result;
+  };
 
-  // 3. Preload all classmates in the same class for 0ms in-memory switching
-  let allClassmates: any[] = [];
-  if (student.classId) {
-    const classId = student.classId;
-    allClassmates = await getCachedTenantData(
-      schoolId,
-      "students",
-      ["class_bundles", String(classId), schoolId],
-      () =>
-        prisma.student.findMany({
-          where: {
-            classId,
-            schoolId,
-          },
-          include: {
-            class: {
-              include: {
-                level: true,
-                _count: {
-                  select: { lessons: true },
-                },
-              },
-            },
-            parent: true,
-            payments: {
-              orderBy: [
-                { year: "desc" },
-                { month: "desc" },
-              ],
-            },
-            attendance: {
-              where: { schoolId },
-              include: {
-                lesson: {
-                  include: {
-                    subject: true,
-                    teacher: true,
-                  },
-                },
-              },
-              orderBy: { date: "desc" },
-            },
-            grades: {
-              where: { schoolId },
-              include: {
-                subject: true,
-              },
-              orderBy: [
-                { term: "asc" },
-                { subject: { name: "asc" } },
-              ],
-            },
-          },
-          orderBy: [
-            { surname: "asc" },
-            { name: "asc" },
-          ],
-        }),
-      300
-    );
-  }
-
-  // Ensure current student is in the list
-  if (allClassmates.length === 0) {
-    allClassmates = [student];
-  } else if (!allClassmates.some((s) => s.id === student.id)) {
-    allClassmates.unshift(student);
-  }
-
-  // Build QuickStudentItem list for the drawer and stepper
-  const classmatesList: QuickStudentItem[] = allClassmates.map((s) => ({
-    id: s.id,
-    name: s.name,
-    surname: s.surname,
-    img: s.img,
-    sex: s.sex,
-    className: s.class?.name,
-    classId: s.classId,
-    phone: s.phone || s.parent?.phone,
-  }));
-
-  // Build Bundles Map
-  const bundlesMap: Record<string, StudentBundle> = {};
-  allClassmates.forEach((s) => {
-    bundlesMap[s.id] = {
-      student: s,
-      payments: s.payments || [],
-      attendances: s.attendance || [],
-      grades: s.grades || [],
-      scheduleItems,
-      studentFullName: `${s.name} ${s.surname}`,
-      totalWeeklyHours,
-    };
-  });
-
-  // 4. Fetch lightweight list of ALL students in the school for the quick nav drawer
-  const allSchoolStudents = await getCachedTenantData(
+  // 3. Preload all school students with their full bundle for 0ms in-memory instant switching
+  const allSchoolStudentsWithData = await getCachedTenantData(
     schoolId,
     "students",
-    ["all_students_nav", schoolId],
+    ["all_school_bundles", schoolId],
     () =>
       prisma.student.findMany({
         where: { schoolId },
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          img: true,
-          sex: true,
-          classId: true,
+        include: {
           class: {
-            select: {
-              id: true,
-              name: true,
+            include: {
+              level: true,
+              _count: {
+                select: { lessons: true },
+              },
             },
           },
-          phone: true,
-          parent: {
-            select: {
-              phone: true,
+          parent: true,
+          payments: {
+            orderBy: [
+              { year: "desc" },
+              { month: "desc" },
+            ],
+          },
+          attendance: {
+            where: { schoolId },
+            include: {
+              lesson: {
+                include: {
+                  subject: true,
+                  teacher: true,
+                },
+              },
             },
+            orderBy: { date: "desc" },
+          },
+          grades: {
+            where: { schoolId },
+            include: {
+              subject: true,
+            },
+            orderBy: [
+              { term: "asc" },
+              { subject: { name: "asc" } },
+            ],
           },
         },
         orderBy: [
@@ -312,7 +262,31 @@ export default async function SingleStudentPage({
     300
   );
 
-  const allStudentsList: QuickStudentItem[] = (allSchoolStudents || []).map((s) => ({
+  const studentListToUse: any[] = (allSchoolStudentsWithData && allSchoolStudentsWithData.length > 0)
+    ? [...allSchoolStudentsWithData]
+    : [student];
+
+  if (!studentListToUse.some((s: any) => s.id === student.id)) {
+    studentListToUse.unshift(student);
+  }
+
+  // Build full Bundles Map for all students in school
+  const bundlesMap: Record<string, StudentBundle> = {};
+  studentListToUse.forEach((s: any) => {
+    const { items: sSchedule, weeklyHours: sHours } = getScheduleForClass(s.classId, s.class?.name);
+    bundlesMap[s.id] = {
+      student: s,
+      payments: s.payments || [],
+      attendances: s.attendance || [],
+      grades: s.grades || [],
+      scheduleItems: sSchedule,
+      studentFullName: `${s.name} ${s.surname}`,
+      totalWeeklyHours: sHours,
+    };
+  });
+
+  // Build QuickStudentItem list for drawer and switcher
+  const allStudentsList: QuickStudentItem[] = studentListToUse.map((s: any) => ({
     id: s.id,
     name: s.name,
     surname: s.surname,
@@ -323,6 +297,11 @@ export default async function SingleStudentPage({
     phone: s.phone || s.parent?.phone || null,
   }));
 
+  const classmatesList = student.classId
+    ? allStudentsList.filter((s) => s.classId === student.classId)
+    : [student];
+
+  const currentSchedule = getScheduleForClass(student.classId, student.class?.name);
   const levelTuitionFee = student.class?.level?.tuitionFee || 0;
   const gradeLevel = student.class?.level?.level ?? 1;
 
@@ -334,9 +313,9 @@ export default async function SingleStudentPage({
       payments={student.payments || []}
       attendances={student.attendance || []}
       grades={student.grades || []}
-      scheduleItems={scheduleItems}
+      scheduleItems={currentSchedule.items}
       studentFullName={`${student.name} ${student.surname}`}
-      totalWeeklyHours={totalWeeklyHours}
+      totalWeeklyHours={currentSchedule.weeklyHours}
       levelTuitionFee={levelTuitionFee}
       gradeLevel={gradeLevel}
       isAdmin={isAdmin}
