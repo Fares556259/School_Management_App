@@ -11,6 +11,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 
 interface GrowthData {
@@ -46,7 +47,7 @@ const GrowthAnalyticsChart = ({
     ...d,
     historicalIncome: d.income,
     historicalExpense: d.expense,
-    historicalProfit: Math.max(0, d.income - d.expense),
+    historicalProfit: d.income - d.expense,
     actualProfit: d.income - d.expense,
   }));
 
@@ -149,7 +150,7 @@ const GrowthAnalyticsChart = ({
                 dy={8}
               />
               <YAxis
-                domain={[0, 'auto']}
+                domain={[(dataMin: number) => (dataMin < 0 ? Math.floor(dataMin / 5000) * 5000 : 0), 'auto']}
                 allowDataOverflow={false}
                 axisLine={false}
                 tickLine={false}
@@ -157,6 +158,7 @@ const GrowthAnalyticsChart = ({
                 tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                 dx={-4}
               />
+              <ReferenceLine y={0} stroke="#94A3B8" strokeWidth={1.5} />
 
               <Tooltip
                 content={<CustomTooltip />}
@@ -196,7 +198,22 @@ const GrowthAnalyticsChart = ({
                 name={t.analyticsChart.netProfit}
                 stroke="#22c55e"
                 strokeWidth={2}
-                dot={{ r: 4, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 1.5 }}
+                dot={(props: any) => {
+                  const { cx, cy, payload, key } = props;
+                  if (cx === undefined || cy === undefined) return <g key={key} />;
+                  const isNeg = (payload?.historicalProfit ?? 0) < 0;
+                  return (
+                    <circle
+                      key={key}
+                      cx={cx}
+                      cy={cy}
+                      r={4}
+                      fill={isNeg ? "#f43f5e" : "#22c55e"}
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
+                    />
+                  );
+                }}
                 activeDot={{ r: 6, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 2 }}
                 isAnimationActive={false}
               />
