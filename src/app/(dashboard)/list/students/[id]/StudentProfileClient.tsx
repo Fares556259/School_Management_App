@@ -40,7 +40,9 @@ import {
   ShieldAlert,
   TrendingUp,
   UserCheck,
-  Loader2
+  Loader2,
+  Copy,
+  Check
 } from "lucide-react";
 
 export interface StudentBundle {
@@ -329,8 +331,9 @@ export default function StudentProfileClient({
     return classmates;
   }, [activeClassId, allStudents, classmates]);
 
-  // Clean WhatsApp phone number
+  // Clean WhatsApp phone number & parent contact
   const parentPhone = student.parent?.phone || student.phone || "";
+  const isStudentDirectPhone = !student.parent?.phone && Boolean(student.phone);
   const cleanWhatsAppPhone = useMemo(() => {
     if (!parentPhone) return "";
     let p = parentPhone.replace(/\D/g, "");
@@ -338,6 +341,18 @@ export default function StudentProfileClient({
       p = "216" + p; // Default Tunisia country code for local 8-digit numbers
     }
     return p;
+  }, [parentPhone]);
+
+  const [copiedPhone, setCopiedPhone] = useState(false);
+  const handleCopyPhone = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!parentPhone) return;
+    try {
+      navigator.clipboard.writeText(parentPhone);
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 2000);
+    } catch {}
   }, [parentPhone]);
 
   return (
@@ -481,17 +496,46 @@ export default function StudentProfileClient({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
           {/* Parent Name & Direct Contact Actions */}
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50/80 border border-slate-100">
-            <div className="truncate">
+            <div className="min-w-0 flex-1 truncate">
               <span className="text-[10px] text-slate-400 block font-semibold uppercase">Parent / Tuteur</span>
-              <span className="font-bold text-slate-800 block truncate">
+              <span className="font-bold text-slate-800 block truncate text-xs">
                 {student.parent ? `${student.parent.name} ${student.parent.surname}` : "Non renseigné"}
               </span>
+              {parentPhone ? (
+                <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <a
+                    href={`tel:${parentPhone}`}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 truncate transition-colors"
+                    title={`Appeler : ${parentPhone}`}
+                  >
+                    <Phone size={10} className="text-blue-500 shrink-0" />
+                    <span className="truncate">{parentPhone}</span>
+                  </a>
+                  {isStudentDirectPhone && (
+                    <span className="text-[9px] font-medium text-slate-400 shrink-0">
+                      (Élève)
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[10px] text-slate-400 italic block truncate mt-0.5">
+                  Aucun numéro
+                </span>
+              )}
             </div>
             {parentPhone && (
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyPhone}
+                  className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                  title={copiedPhone ? "Numéro copié !" : `Copier : ${parentPhone}`}
+                >
+                  {copiedPhone ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                </button>
                 <a
                   href={`tel:${parentPhone}`}
-                  className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors"
+                  className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                   title={`Appeler : ${parentPhone}`}
                 >
                   <Phone size={13} />
@@ -501,7 +545,7 @@ export default function StudentProfileClient({
                     href={`https://wa.me/${cleanWhatsAppPhone}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-colors"
+                    className="w-7 h-7 rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                     title="Envoyer un message WhatsApp"
                   >
                     <MessageCircle size={13} />
