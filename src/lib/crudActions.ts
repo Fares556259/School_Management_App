@@ -635,6 +635,10 @@ export const createClass = async (data: {
       },
     });
     revalidatePath("/list/classes");
+    revalidatePath("/list/students");
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes', 'students');
+    }
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to create class." };
@@ -684,6 +688,10 @@ export const updateClass = async (
 
     await prisma.class.update({ where: { id }, data: updateData });
     revalidatePath("/list/classes");
+    revalidatePath("/list/students");
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes', 'students');
+    }
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to update class." };
@@ -692,8 +700,13 @@ export const updateClass = async (
 
 export const deleteClass = async (id: number) => {
   try {
+    const schoolId = await getSchoolId();
     await prisma.class.delete({ where: { id } });
     revalidatePath("/list/classes");
+    revalidatePath("/list/students");
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes', 'students');
+    }
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || "Failed to delete class." };

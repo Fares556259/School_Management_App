@@ -197,6 +197,10 @@ const ClassListPage = async ({
             },
           },
         },
+        orderBy: [
+          { level: { level: 'asc' } },
+          { name: 'asc' }
+        ],
         take: ITEM_PER_PAGE,
         skip: ITEM_PER_PAGE * (p - 1),
       }),
@@ -212,7 +216,8 @@ const ClassListPage = async ({
               name: true
             }
           }
-        } 
+        },
+        orderBy: { level: 'asc' }
       }),
       prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
     ]),
@@ -223,7 +228,8 @@ const ClassListPage = async ({
   const ARABIC_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض", "ظ", "غ"];
   levels.forEach((l) => {
     const existingNames = l.classes.map(c => c.name);
-    for (let i = 0; i < l.variations; i++) {
+    const count = (l.level === 0 && l.variations === 0 && existingNames.length === 0) ? 1 : l.variations;
+    for (let i = 0; i < count; i++) {
       const name = l.level === 0
         ? `تحضيري ${ARABIC_LETTERS[i] || String.fromCharCode(65 + i)}`
         : `${l.level}${String.fromCharCode(65 + i)}`;

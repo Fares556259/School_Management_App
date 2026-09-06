@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSchoolId } from "@/lib/school";
+import { invalidateTenantTags } from "@/lib/cache";
 
 export async function getSchoolConfig(tenantId?: string) {
   try {
@@ -285,21 +286,6 @@ export async function syncLevelVariations(levelId: number, count: number) {
         : `${updatedLevel.level}${String.fromCharCode(65 + i)}`
     );
 
-    // Auto-create missing target classes up to count
-    for (const name of targetNames) {
-      const exists = classes.some(c => c.name === name);
-      if (!exists) {
-        await prisma.class.create({
-          data: {
-            name,
-            levelId,
-            capacity: 30,
-            schoolId,
-          }
-        });
-      }
-    }
-
     // Clean up empty classes that exceed the new variations limit
     for (const cls of classes) {
       if (!targetNames.includes(cls.name)) {
@@ -311,8 +297,13 @@ export async function syncLevelVariations(levelId: number, count: number) {
       }
     }
 
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes', 'students');
+    }
     revalidatePath("/settings");
     revalidatePath("/admin");
+    revalidatePath("/list/classes");
+    revalidatePath("/list/students");
     return { success: true, errors: errors.length > 0 ? errors : null };
   } catch (error: any) {
     console.error("Error syncing variations:", error);
@@ -322,11 +313,17 @@ export async function syncLevelVariations(levelId: number, count: number) {
 
 export async function deleteClass(id: number) {
   try {
+    const schoolId = await getSchoolId();
     await prisma.class.delete({
       where: { id }
     });
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes', 'students');
+    }
     revalidatePath("/settings");
     revalidatePath("/admin");
+    revalidatePath("/list/classes");
+    revalidatePath("/list/students");
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting class:", error);
@@ -345,8 +342,13 @@ export async function addSettingsClass(data: { name: string, levelId: number }) 
         schoolId,
       }
     });
+    if (schoolId) {
+      invalidateTenantTags(schoolId, 'classes', 'students');
+    }
     revalidatePath("/settings");
     revalidatePath("/admin");
+    revalidatePath("/list/classes");
+    revalidatePath("/list/students");
     return { success: true, data: newClass };
   } catch (error: any) {
     console.error("Error creating class from settings:", error);
