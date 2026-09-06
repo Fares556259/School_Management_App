@@ -8,16 +8,20 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 const Pagination = ({
   page = 1,
   count = 0,
+  onPageChange,
 }: {
   page?: number;
   count?: number;
+  onPageChange?: (newPage: number) => void;
 }) => {
   const router = useRouter();
   const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [pendingPage, setPendingPage] = useState<number | null>(null);
 
-  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const totalPages = Math.ceil(count / ITEM_PER_PAGE);
+  const rawPage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const safePage = Math.max(1, Math.min(rawPage, Math.max(1, totalPages)));
   const hasPrev = ITEM_PER_PAGE * (safePage - 1) > 0;
   const hasNext = ITEM_PER_PAGE * (safePage - 1) + ITEM_PER_PAGE < count;
 
@@ -29,21 +33,24 @@ const Pagination = ({
   };
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const totalPages = Math.ceil(count / ITEM_PER_PAGE);
+    if (typeof window === "undefined" || onPageChange) return;
     const range = 2;
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= safePage - range && i <= safePage + range)) {
         router.prefetch(getUrl(i));
       }
     }
-  }, [page, count, router]);
+  }, [page, count, router, onPageChange, totalPages, safePage]);
 
   const changePage = (newPage: number) => {
-    setPendingPage(newPage);
-    startTransition(() => {
-      router.push(getUrl(newPage));
-    });
+    if (onPageChange) {
+      onPageChange(newPage);
+    } else {
+      setPendingPage(newPage);
+      startTransition(() => {
+        router.push(getUrl(newPage));
+      });
+    }
   };
 
   return (

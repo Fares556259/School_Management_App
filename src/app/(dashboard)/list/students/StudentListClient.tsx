@@ -58,6 +58,39 @@ export default function StudentListClient({
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
   const [clientStatus, setClientStatus] = useState(searchParams.get("status") || "");
   const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    const p = Number(searchParams.get("page") || page);
+    return !isNaN(p) && p > 0 ? p : 1;
+  });
+
+  useEffect(() => {
+    const p = Number(searchParams.get("page") || page);
+    if (!isNaN(p) && p > 0) {
+      setCurrentPage(p);
+    }
+  }, [page, searchParams]);
+
+  const updateUrl = (updates: Record<string, string | undefined>) => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    Object.entries(updates).forEach(([key, val]) => {
+      if (val === undefined || val === "") {
+        url.searchParams.delete(key);
+      } else {
+        url.searchParams.set(key, val);
+      }
+    });
+    window.history.replaceState({}, "", url.toString());
+  };
+
+  const handleFilterResetPage = () => {
+    setCurrentPage(1);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("page");
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
 
   useEffect(() => {
     setOptimisticData(initialData);
@@ -85,12 +118,13 @@ export default function StudentListClient({
       return false;
     }
     if (clientStatus) {
-      const [mName, yStr] = clientMonthKey.split(" ");
-      const monthIdx = MONTHS.indexOf(mName) + 1;
-      const yearVal = parseInt(yStr);
-      const currentPayment = item.payments.find((p: any) => p.month === monthIdx && p.year === yearVal);
-      const isPaid = currentPayment?.status === "PAID";
-      const isPartial = currentPayment?.status === "PARTIAL";
+      const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
+      const monthIdx = MONTHS.indexOf(mName) !== -1 ? MONTHS.indexOf(mName) + 1 : (new Date().getMonth() + 1);
+      const yearVal = parseInt(yStr) || new Date().getFullYear();
+      const currentPayment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
+      const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
+      const isPaid = statusUpper === "PAID";
+      const isPartial = statusUpper === "PARTIAL";
 
       if (clientStatus === "PAID" && !isPaid) return false;
       if (clientStatus === "PARTIAL" && !isPartial) return false;
@@ -100,17 +134,36 @@ export default function StudentListClient({
   });
 
   const displayedData = filteredData;
-  const displayTotalThisMonth = displayedData.length;
-  const displayPaidThisMonth = displayedData.filter(item => {
-    const [mName, yStr] = clientMonthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName) + 1;
-    const yearVal = parseInt(yStr);
-    return item.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID");
+
+  // Month payment summary is based on the class/search filter, NOT restricted by the status filter itself
+  const summaryBaseData = optimisticData.filter(item => {
+    if (clientSearch) {
+      const match = item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
+                    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase());
+      if (!match) return false;
+    }
+    if (clientClassId && String(item.classId) !== clientClassId) {
+      return false;
+    }
+    return true;
+  });
+
+  const [sumMName, sumYStr] = (clientMonthKey || "").trim().split(/\s+/);
+  const sumMonthIdx = MONTHS.indexOf(sumMName) !== -1 ? MONTHS.indexOf(sumMName) + 1 : (new Date().getMonth() + 1);
+  const sumYearVal = parseInt(sumYStr) || new Date().getFullYear();
+
+  const displayTotalThisMonth = summaryBaseData.length;
+  const displayPaidThisMonth = summaryBaseData.filter(item => {
+    return item.payments?.some((p: any) => {
+      const st = p.status ? String(p.status).toUpperCase() : "";
+      return p.month === sumMonthIdx && p.year === sumYearVal && st === "PAID";
+    });
   }).length;
 
-
   const ITEM_PER_PAGE = 10;
-  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const totalPages = Math.max(1, Math.ceil(displayedData.length / ITEM_PER_PAGE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
   const paginatedData = displayedData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
   const displayCount = displayedData.length;
 
@@ -131,16 +184,17 @@ export default function StudentListClient({
   const renderRow = (
     item: Student & { class: Class | null; level: Level; payments: Payment[]; parent?: any }
   ) => {
-    const [mName, yStr] = clientMonthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName) + 1;
-    const yearVal = parseInt(yStr);
+    const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
+    const monthIdx = MONTHS.indexOf(mName) !== -1 ? MONTHS.indexOf(mName) + 1 : (new Date().getMonth() + 1);
+    const yearVal = parseInt(yStr) || new Date().getFullYear();
 
-    const currentPayment = item.payments.find(
+    const currentPayment = item.payments?.find(
       (p) => p.month === monthIdx && p.year === yearVal
     );
 
-    const isPaidThisMonth = currentPayment?.status === "PAID";
-    const isPartialThisMonth = currentPayment?.status === "PARTIAL";
+    const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
+    const isPaidThisMonth = statusUpper === "PAID";
+    const isPartialThisMonth = statusUpper === "PARTIAL";
 
     return (
       <tr
@@ -276,12 +330,18 @@ export default function StudentListClient({
         <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
           {/* SEARCH AND FILTER */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            <TableSearch clientSideOnly={true} onChangeImmediate={setClientSearch} />
+            <TableSearch clientSideOnly={true} onChangeImmediate={(val) => {
+              setClientSearch(val);
+              handleFilterResetPage();
+            }} />
             <select
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={clientClassId}
               onChange={(e) => {
-                setClientClassId(e.target.value);
+                const val = e.target.value;
+                setClientClassId(val);
+                handleFilterResetPage();
+                updateUrl({ classId: val || undefined });
               }}
             >
               <option value="">{locale === 'ar' ? 'جميع الأقسام' : locale === 'fr' ? 'Toutes les classes' : 'All Classes'}</option>
@@ -295,7 +355,9 @@ export default function StudentListClient({
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={clientMonthKey}
               onChange={(e) => {
-                setClientMonthKey(e.target.value);
+                const val = e.target.value;
+                setClientMonthKey(val);
+                handleFilterResetPage();
               }}
             >
               {schoolYearMonths.map(m => {
@@ -313,7 +375,10 @@ export default function StudentListClient({
               className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
               value={clientStatus}
               onChange={(e) => {
-                setClientStatus(e.target.value);
+                const val = e.target.value;
+                setClientStatus(val);
+                handleFilterResetPage();
+                updateUrl({ status: val || undefined });
               }}
             >
               <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
@@ -342,9 +407,36 @@ export default function StudentListClient({
 
       {/* 3. TABLE & PAGINATION */}
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
-        <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
+        {displayedData.length === 0 ? (
+          <div className="py-16 text-center text-slate-500 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 mt-6">
+            <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+            <p className="text-[14px] font-medium text-slate-700">
+              {locale === "ar" ? "لم يتم العثور على أي طالب" : locale === "fr" ? "Aucun élève trouvé" : "No students found"}
+            </p>
+            <p className="text-[12px] text-slate-400 mt-1">
+              {locale === "ar" ? "جرّب تغيير معايير البحث أو الفلترة" : locale === "fr" ? "Essayez de modifier vos critères de recherche ou de filtre" : "Try changing your search or filter criteria"}
+            </p>
+          </div>
+        ) : (
+          <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
+        )}
       </div>
-      <Pagination page={page} count={displayCount} />
+      <Pagination 
+        page={safePage} 
+        count={displayCount} 
+        onPageChange={(newPage) => {
+          setCurrentPage(newPage);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (newPage === 1) {
+              url.searchParams.delete("page");
+            } else {
+              url.searchParams.set("page", String(newPage));
+            }
+            window.history.replaceState({}, "", url.toString());
+          }
+        }} 
+      />
 
       {/* MODALS */}
       {isBulkOpen && (

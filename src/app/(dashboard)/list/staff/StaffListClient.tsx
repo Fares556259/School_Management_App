@@ -73,7 +73,8 @@ export default function StaffListClient({
   });
 
   const ITEM_PER_PAGE = 10;
-  const safePage = (page && !isNaN(page) && page > 0) ? page : 1;
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / ITEM_PER_PAGE));
+  const safePage = Math.min((page && !isNaN(page) && page > 0) ? page : 1, totalPages);
   const paginatedData = filteredData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
 
   const displayCount = filteredData.length;

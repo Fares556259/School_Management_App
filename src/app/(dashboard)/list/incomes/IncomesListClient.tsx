@@ -249,7 +249,8 @@ export default function IncomesListClient({
   });
 
   const ITEM_PER_PAGE = 10;
-  const safePage = (p && !isNaN(p) && p > 0) ? p : 1;
+  const totalPages = Math.max(1, Math.ceil(tableData.length / ITEM_PER_PAGE));
+  const safePage = Math.min((p && !isNaN(p) && p > 0) ? p : 1, totalPages);
   const paginatedData = tableData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
   const displayCount = tableData.length;
 
