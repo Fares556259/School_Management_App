@@ -37,10 +37,10 @@ interface StudentSideDrawerProps {
   currentClassName?: string | null;
   students: QuickStudentItem[];
   isOpen: boolean;
-  isPinned: boolean;
-  onToggleOpen: () => void;
+  isPinned?: boolean;
+  onToggleOpen?: () => void;
   onClose: () => void;
-  onTogglePin: () => void;
+  onTogglePin?: () => void;
   onSelectStudent?: (id: string) => void;
   onPrefetchStudent?: (id: string) => void;
   onPrefetchClass?: (classId: number) => void;
@@ -274,13 +274,13 @@ export function StudentSideDrawer({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !isPinned) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isPinned, onClose]);
+  }, [isOpen, onClose]);
 
   // Global search across all students in school
   const isSearching = Boolean(search.trim());
@@ -303,328 +303,323 @@ export function StudentSideDrawer({
     return classGroups.filter((g) => g.className === selectedClassFilter);
   }, [classGroups, selectedClassFilter]);
 
-  if (!isOpen && !isPinned) return null;
+  if (!isOpen) return null;
+
+  const renderDrawerBody = (isMobile = false) => (
+    <div className="flex flex-col h-full bg-white">
+      {/* 1. Drawer Header */}
+      <div className="p-3.5 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+            <GraduationCap size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-800 truncate">
+                Annuaire des Élèves
+              </h2>
+              <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-blue-100/80 text-blue-700 shrink-0">
+                {students.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 truncate">
+              {classGroups.length} classes enregistrées
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Close Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition-colors cursor-pointer"
+            title="Masquer l'annuaire"
+            aria-label="Masquer l'annuaire"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Global Search Bar */}
+      <div className="p-3 border-b border-slate-100 bg-white shrink-0">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            ref={isMobile ? undefined : searchInputRef}
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Recherche globale (nom, prénom, classe)..."
+            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+              title="Effacer la recherche"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Class Filter Quick Bar (When not searching) */}
+      {!isSearching && (
+        <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 max-w-full">
+            {/* All Classes Chip */}
+            <button
+              type="button"
+              onClick={() => setSelectedClassFilter("ALL")}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                selectedClassFilter === "ALL"
+                  ? "bg-slate-900 text-white shadow-2xs"
+                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70"
+              }`}
+            >
+              Toutes ({students.length})
+            </button>
+
+            {/* Current Class Quick Chip */}
+            {currentClassName && (
+              <button
+                type="button"
+                onClick={() => setSelectedClassFilter(currentClassName)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedClassFilter === currentClassName
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/70"
+                }`}
+              >
+                <Sparkles size={11} className={selectedClassFilter === currentClassName ? "text-white" : "text-blue-500"} />
+                <span>Sa classe ({currentClassCount})</span>
+              </button>
+            )}
+
+            {/* Other Class Chips */}
+            {allClassesList.filter((c) => c !== currentClassName).map((cName) => {
+              const group = classGroups.find((g) => g.className === cName);
+              const count = group ? group.students.length : 0;
+              return (
+                <button
+                  key={cName}
+                  type="button"
+                  onClick={() => setSelectedClassFilter(cName)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    selectedClassFilter === cName
+                      ? "bg-purple-600 text-white shadow-2xs"
+                      : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70"
+                  }`}
+                >
+                  {cName} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Expand / Collapse All Toggle (only when viewing all classes) */}
+          {selectedClassFilter === "ALL" && (
+            <button
+              type="button"
+              onClick={() => {
+                const anyClosed = allClassesList.some((c) => !expandedClasses[c]);
+                if (anyClosed) {
+                  handleExpandAll();
+                } else {
+                  handleCollapseAll();
+                }
+              }}
+              className="text-[10px] font-bold text-slate-500 hover:text-slate-800 whitespace-nowrap px-1.5 py-0.5 rounded hover:bg-slate-200/60 transition-colors shrink-0 cursor-pointer"
+              title="Tout déplier ou tout replier"
+            >
+              {allClassesList.some((c) => !expandedClasses[c]) ? "Tout ouvrir" : "Replier"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 4. Main Scrollable List Area */}
+      <div className="flex-1 overflow-y-auto p-2 custom-scrollbar min-h-0">
+        {/* SEARCH MODE: Flat result list across all classes */}
+        {isSearching ? (
+          searchResults.length === 0 ? (
+            <div className="py-12 px-4 text-center">
+              <Users size={28} className="mx-auto text-slate-300 mb-2" />
+              <p className="text-xs font-semibold text-slate-600">Aucun élève trouvé</p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Aucun résultat pour &ldquo;{search}&rdquo;
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <div className="px-2.5 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Résultats de recherche ({searchResults.length})
+              </div>
+              {searchResults.map((s) => (
+                <StudentRowItem
+                  key={s.id}
+                  student={s}
+                  isCurrent={s.id === currentStudentId}
+                  isLoading={loadingStudentId === s.id}
+                  activeTab={activeTab}
+                  isMobile={isMobile}
+                  onClose={onClose}
+                  onSelectStudent={onSelectStudent}
+                  onPrefetchStudent={onPrefetchStudent}
+                />
+              ))}
+            </div>
+          )
+        ) : (
+          /* CLASS ACCORDION MODE */
+          <div className="flex flex-col gap-2">
+            {displayedGroups.map((group) => {
+              const isExpanded = Boolean(expandedClasses[group.className]);
+              const isCurrentClass = group.isCurrentClass;
+
+              return (
+                <div
+                  key={group.className}
+                  className={`rounded-xl border overflow-hidden transition-all duration-200 ${
+                    isCurrentClass
+                      ? "bg-blue-50/30 border-blue-200/80 shadow-2xs"
+                      : "bg-white border-slate-200/70"
+                  }`}
+                >
+                  {/* Class Accordion Header with background prefetching */}
+                  <button
+                    type="button"
+                    onMouseEnter={() => {
+                      if (group.students.length > 0 && group.students[0].classId) {
+                        onPrefetchClass?.(group.students[0].classId);
+                      }
+                    }}
+                    onTouchStart={() => {
+                      if (group.students.length > 0 && group.students[0].classId) {
+                        onPrefetchClass?.(group.students[0].classId);
+                      }
+                    }}
+                    onClick={() => {
+                      toggleClassAccordion(group.className);
+                      if (!isExpanded && group.students.length > 0 && group.students[0].classId) {
+                        onPrefetchClass?.(group.students[0].classId);
+                      }
+                    }}
+                    className={`w-full p-3 flex items-center justify-between text-left transition-colors cursor-pointer ${
+                      isCurrentClass
+                        ? "bg-blue-50/60 hover:bg-blue-100/50"
+                        : "bg-slate-50/70 hover:bg-slate-100/70"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
+                        isCurrentClass
+                          ? "bg-blue-600 text-white shadow-2xs"
+                          : "bg-purple-100 text-purple-700"
+                      }`}>
+                        {isCurrentClass ? <Sparkles size={13} /> : <Users size={13} />}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-slate-800 truncate">
+                            Classe {group.className}
+                          </span>
+                          {isCurrentClass && (
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-blue-600 text-white uppercase tracking-wider shrink-0">
+                              Sa classe
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
+                        isCurrentClass
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-slate-200/70 text-slate-600"
+                      }`}>
+                        {group.students.length}
+                      </span>
+                      <ChevronDown
+                        size={15}
+                        className={`text-slate-400 transition-transform duration-200 ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Class Students List (Collapsible Body) */}
+                  {isExpanded && (
+                    <div className="p-1.5 flex flex-col gap-1 divide-y divide-slate-100/60">
+                      {group.students.map((s) => (
+                        <StudentRowItem
+                          key={s.id}
+                          student={s}
+                          isCurrent={s.id === currentStudentId}
+                          isLoading={loadingStudentId === s.id}
+                          activeTab={activeTab}
+                          isMobile={isMobile}
+                          onClose={onClose}
+                          onSelectStudent={onSelectStudent}
+                          onPrefetchStudent={onPrefetchStudent}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 5. Drawer Footer */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/80 shrink-0 flex items-center justify-between text-xs">
+        <Link
+          href="/list/students"
+          className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1.5 transition-colors"
+        >
+          <span>Tableau complet des élèves</span>
+          <ExternalLink size={12} />
+        </Link>
+
+        <span className="text-[11px] text-slate-400 font-medium">
+          {isSearching ? searchResults.length : students.length} élève{students.length > 1 ? "s" : ""}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {/* Backdrop for overlay drawer (when NOT pinned) */}
-      {isOpen && !isPinned && (
-        <div 
-          className="fixed inset-0 bg-slate-900/30 backdrop-blur-[2px] z-40 transition-opacity animate-in fade-in duration-200"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Side Panel / Drawer container */}
-      <aside
-        className={`fixed top-0 right-0 h-full w-[330px] sm:w-[380px] bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col transition-transform duration-300 ease-out ${
-          isOpen || isPinned ? "translate-x-0" : "translate-x-full"
-        }`}
+      {/* 1. Desktop Docked Sidebar (lg and above): Integrated directly in the page flow */}
+      <aside 
+        className="hidden lg:flex flex-col w-[340px] xl:w-[370px] shrink-0 sticky top-4 h-[calc(100vh-100px)] bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden z-20"
         aria-label="Annuaire des élèves par classe"
       >
-        {/* 1. Drawer Header */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-              <GraduationCap size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-slate-800">
-                  Annuaire des Élèves
-                </h2>
-                <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-blue-100/80 text-blue-700">
-                  {students.length}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                {classGroups.length} classes enregistrées
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {/* Pin Toggle Button (Desktop only) */}
-            <button
-              type="button"
-              onClick={onTogglePin}
-              className={`hidden lg:flex w-8 h-8 rounded-lg items-center justify-center transition-colors ${
-                isPinned 
-                  ? "bg-blue-50 text-blue-600 border border-blue-200" 
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              }`}
-              title={isPinned ? "Désépingler le volet" : "Épingler le volet sur le côté"}
-            >
-              {isPinned ? <PinOff size={15} /> : <Pin size={15} />}
-            </button>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
-              title="Fermer"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* 2. Global Search Bar */}
-        <div className="p-3 border-b border-slate-100 bg-white shrink-0">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Recherche globale (nom, prénom, classe)..."
-              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                title="Effacer la recherche"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Class Filter Quick Bar (When not searching) */}
-        {!isSearching && (
-          <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5">
-              {/* All Classes Chip */}
-              <button
-                type="button"
-                onClick={() => setSelectedClassFilter("ALL")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedClassFilter === "ALL"
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70"
-                }`}
-              >
-                Toutes ({students.length})
-              </button>
-
-              {/* Current Class Quick Chip */}
-              {currentClassName && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedClassFilter(currentClassName)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${
-                    selectedClassFilter === currentClassName
-                      ? "bg-blue-600 text-white shadow-2xs"
-                      : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/70"
-                  }`}
-                >
-                  <Sparkles size={11} className={selectedClassFilter === currentClassName ? "text-white" : "text-blue-500"} />
-                  <span>Sa classe ({currentClassCount})</span>
-                </button>
-              )}
-
-              {/* Other Class Chips */}
-              {allClassesList.filter((c) => c !== currentClassName).map((cName) => {
-                const group = classGroups.find((g) => g.className === cName);
-                const count = group ? group.students.length : 0;
-                return (
-                  <button
-                    key={cName}
-                    type="button"
-                    onClick={() => setSelectedClassFilter(cName)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-                      selectedClassFilter === cName
-                        ? "bg-purple-600 text-white shadow-2xs"
-                        : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70"
-                    }`}
-                  >
-                    {cName} ({count})
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Expand / Collapse All Toggle (only when viewing all classes) */}
-            {selectedClassFilter === "ALL" && (
-              <button
-                type="button"
-                onClick={() => {
-                  const anyClosed = allClassesList.some((c) => !expandedClasses[c]);
-                  if (anyClosed) {
-                    handleExpandAll();
-                  } else {
-                    handleCollapseAll();
-                  }
-                }}
-                className="text-[10px] font-bold text-slate-500 hover:text-slate-800 whitespace-nowrap px-1.5 py-0.5 rounded hover:bg-slate-200/60 transition-colors shrink-0 cursor-pointer"
-                title="Tout déplier ou tout replier"
-              >
-                {allClassesList.some((c) => !expandedClasses[c]) ? "Tout ouvrir" : "Replier"}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 4. Main Scrollable List Area */}
-        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-          {/* SEARCH MODE: Flat result list across all classes */}
-          {isSearching ? (
-            searchResults.length === 0 ? (
-              <div className="py-12 px-4 text-center">
-                <Users size={28} className="mx-auto text-slate-300 mb-2" />
-                <p className="text-xs font-semibold text-slate-600">Aucun élève trouvé</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Aucun résultat pour « {search} » parmi les {students.length} élèves
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                  <span>Résultats ({searchResults.length})</span>
-                  <span className="text-[10px] font-normal text-slate-400">Toutes classes</span>
-                </div>
-
-                {searchResults.map((s) => (
-                  <StudentRowItem
-                    key={s.id}
-                    student={s}
-                    isCurrent={s.id === currentStudentId}
-                    isLoading={loadingStudentId === s.id}
-                    activeTab={activeTab}
-                    isPinned={isPinned}
-                    onClose={onClose}
-                    onSelectStudent={onSelectStudent}
-                    onPrefetchStudent={onPrefetchStudent}
-                  />
-                ))}
-              </div>
-            )
-          ) : (
-            /* GROUPED BY CLASS MODE */
-            <div className="flex flex-col gap-3">
-              {displayedGroups.map((group) => {
-                const isCurrentClass = group.isCurrentClass;
-                const isExpanded = expandedClasses[group.className] ?? isCurrentClass;
-
-                return (
-                  <div
-                    key={group.className}
-                    className={`rounded-2xl border transition-all overflow-hidden ${
-                      isCurrentClass
-                        ? "bg-blue-50/20 border-blue-200/80 shadow-2xs"
-                        : "bg-white border-slate-200/70"
-                    }`}
-                  >
-                    {/* Class Accordion Header with background prefetching */}
-                    <button
-                      type="button"
-                      onMouseEnter={() => {
-                        if (group.students.length > 0 && group.students[0].classId) {
-                          onPrefetchClass?.(group.students[0].classId);
-                        }
-                      }}
-                      onTouchStart={() => {
-                        if (group.students.length > 0 && group.students[0].classId) {
-                          onPrefetchClass?.(group.students[0].classId);
-                        }
-                      }}
-                      onClick={() => {
-                        toggleClassAccordion(group.className);
-                        if (!isExpanded && group.students.length > 0 && group.students[0].classId) {
-                          onPrefetchClass?.(group.students[0].classId);
-                        }
-                      }}
-                      className={`w-full p-3 flex items-center justify-between text-left transition-colors cursor-pointer ${
-                        isCurrentClass
-                          ? "bg-blue-50/60 hover:bg-blue-100/50"
-                          : "bg-slate-50/70 hover:bg-slate-100/70"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
-                          isCurrentClass
-                            ? "bg-blue-600 text-white shadow-2xs"
-                            : "bg-purple-100 text-purple-700"
-                        }`}>
-                          {isCurrentClass ? <Sparkles size={13} /> : <Users size={13} />}
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-extrabold text-slate-800 truncate">
-                              Classe {group.className}
-                            </span>
-                            {isCurrentClass && (
-                              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-blue-600 text-white uppercase tracking-wider shrink-0">
-                                Sa classe
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
-                          isCurrentClass
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-slate-200/70 text-slate-600"
-                        }`}>
-                          {group.students.length}
-                        </span>
-                        <ChevronDown
-                          size={15}
-                          className={`text-slate-400 transition-transform duration-200 ${
-                            isExpanded ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
-                    </button>
-
-                    {/* Class Students List (Collapsible Body) */}
-                    {isExpanded && (
-                      <div className="p-1.5 flex flex-col gap-1 divide-y divide-slate-100/60">
-                        {group.students.map((s) => (
-                          <StudentRowItem
-                            key={s.id}
-                            student={s}
-                            isCurrent={s.id === currentStudentId}
-                            isLoading={loadingStudentId === s.id}
-                            activeTab={activeTab}
-                            isPinned={isPinned}
-                            onClose={onClose}
-                            onSelectStudent={onSelectStudent}
-                            onPrefetchStudent={onPrefetchStudent}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 5. Drawer Footer */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/80 shrink-0 flex items-center justify-between text-xs">
-          <Link
-            href="/list/students"
-            className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1.5 transition-colors"
-          >
-            <span>Tableau complet des élèves</span>
-            <ExternalLink size={12} />
-          </Link>
-
-          <span className="text-[11px] text-slate-400 font-medium">
-            {isSearching ? searchResults.length : students.length} élève{students.length > 1 ? "s" : ""}
-          </span>
-        </div>
+        {renderDrawerBody(false)}
       </aside>
+
+      {/* 2. Mobile Overlay Drawer (< lg) */}
+      <div className="lg:hidden">
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-50 transition-opacity animate-in fade-in duration-200"
+          onClick={onClose}
+        />
+        <aside 
+          className="fixed top-0 right-0 h-full w-[320px] sm:w-[360px] bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
+          aria-label="Annuaire des élèves par classe"
+        >
+          {renderDrawerBody(true)}
+        </aside>
+      </div>
     </>
   );
 }
@@ -634,7 +629,7 @@ function StudentRowItem({
   isCurrent,
   isLoading,
   activeTab,
-  isPinned,
+  isMobile,
   onClose,
   onSelectStudent,
   onPrefetchStudent,
@@ -643,7 +638,7 @@ function StudentRowItem({
   isCurrent: boolean;
   isLoading?: boolean;
   activeTab?: string;
-  isPinned: boolean;
+  isMobile?: boolean;
   onClose?: () => void;
   onSelectStudent?: (id: string) => void;
   onPrefetchStudent?: (id: string) => void;
@@ -660,7 +655,7 @@ function StudentRowItem({
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
         if (isLoading) return;
-        if (!isPinned && onClose) onClose();
+        if (isMobile && onClose) onClose();
         if (onSelectStudent) {
           onSelectStudent(s.id);
         }
@@ -728,21 +723,18 @@ function StudentRowItem({
 export function FloatingStudentNavTrigger({
   onOpen,
   totalStudents,
-  isPinned,
 }: {
   onOpen: () => void;
   totalStudents: number;
-  isPinned: boolean;
+  isPinned?: boolean;
 }) {
-  if (isPinned) return null;
-
   return (
     <button
       type="button"
       onClick={onOpen}
       className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-blue-400/30 cursor-pointer"
-      title="Ouvrir l'annuaire des élèves"
-      aria-label="Ouvrir l'annuaire des élèves"
+      title="Afficher l'annuaire des élèves"
+      aria-label="Afficher l'annuaire des élèves"
     >
       <GraduationCap size={16} className="group-hover:scale-110 transition-transform" />
       <span className="text-[10px] font-black leading-none bg-white text-blue-700 px-1.5 py-0.5 rounded-full shadow-2xs">

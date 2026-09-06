@@ -108,8 +108,7 @@ export default function StudentProfileClient({
     return "tuition";
   });
 
-  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
-  const [isSideNavPinned, setIsSideNavPinned] = useState(false);
+  const [isSideNavOpen, setIsSideNavOpen] = useState(true);
 
   // Active student ID
   const [activeStudentId, setActiveStudentId] = useState<string>(
@@ -166,24 +165,47 @@ export default function StudentProfileClient({
     }
   }, [initialBundlesMap]);
 
+  // Sync open preference with localStorage (open by default on desktop, closed by default on mobile)
   useEffect(() => {
     try {
-      const savedPin = localStorage.getItem("student_nav_pinned");
-      if (savedPin === "true") {
-        setIsSideNavPinned(true);
+      if (typeof window !== "undefined") {
+        if (window.innerWidth < 1024) {
+          setIsSideNavOpen(false);
+          return;
+        }
+        const saved = localStorage.getItem("student_nav_open");
+        if (saved === "false") {
+          setIsSideNavOpen(false);
+        } else {
+          setIsSideNavOpen(true);
+        }
       }
     } catch {}
   }, []);
 
-  const handleTogglePin = () => {
-    setIsSideNavPinned((prev) => {
+  const handleToggleSideNav = useCallback(() => {
+    setIsSideNavOpen((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem("student_nav_pinned", String(next));
+        localStorage.setItem("student_nav_open", String(next));
       } catch {}
       return next;
     });
-  };
+  }, []);
+
+  const handleCloseSideNav = useCallback(() => {
+    setIsSideNavOpen(false);
+    try {
+      localStorage.setItem("student_nav_open", "false");
+    } catch {}
+  }, []);
+
+  const handleOpenSideNav = useCallback(() => {
+    setIsSideNavOpen(true);
+    try {
+      localStorage.setItem("student_nav_open", "true");
+    } catch {}
+  }, []);
 
   const handlePrefetchStudent = useCallback((id: string) => {
     if (!id || bundlesMap[id] || id === activeStudentId) return;
@@ -356,9 +378,7 @@ export default function StudentProfileClient({
   }, [parentPhone]);
 
   return (
-    <div className={`flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full transition-all duration-300 relative ${
-      isSideNavPinned ? "lg:pr-[330px]" : ""
-    }`}>
+    <div className="flex-1 p-4 lg:p-6 flex flex-col gap-6 max-w-[1700px] mx-auto w-full transition-all duration-300 relative">
       {/* Top progress indicator during async student fetch */}
       {loadingStudentId && (
         <div className="fixed top-0 left-0 right-0 z-[9999] h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-500 animate-pulse transition-all shadow-sm" />
@@ -401,13 +421,28 @@ export default function StudentProfileClient({
             <StudentBreadcrumbNav
               currentStudentId={student.id}
               students={currentClassmates}
-              onOpenList={() => setIsSideNavOpen(true)}
+              onOpenList={handleOpenSideNav}
               onSelectStudent={handleSelectStudent}
               onPrefetchStudent={handlePrefetchStudent}
               loadingStudentId={loadingStudentId}
               activeTab={activeTab}
             />
           )}
+
+          {/* Toggle Directory Button */}
+          <button
+            type="button"
+            onClick={handleToggleSideNav}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer ${
+              isSideNavOpen
+                ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+            title={isSideNavOpen ? "Masquer le volet des élèves" : "Afficher l'annuaire des élèves"}
+          >
+            <GraduationCap size={15} className={isSideNavOpen ? "text-blue-600" : "text-slate-500"} />
+            <span>{isSideNavOpen ? "Masquer l'annuaire" : `Annuaire (${(allStudents.length > 0 ? allStudents : classmates).length})`}</span>
+          </button>
 
           {isAdmin && (
             <div className="flex items-center gap-2">
@@ -417,7 +452,11 @@ export default function StudentProfileClient({
         </div>
       </div>
 
-      {/* 2. UNIFIED STUDENT IDENTITY & METRIC HEADER */}
+      {/* Main Workspace: Left Column (Profile & Content) + Right Column (Docked Directory) */}
+      <div className="flex items-start gap-6 w-full">
+        {/* Left Column */}
+        <div className="flex-1 min-w-0 flex flex-col gap-6">
+          {/* 2. UNIFIED STUDENT IDENTITY & METRIC HEADER */}
       <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm relative overflow-hidden flex flex-col gap-5">
         {/* Subtle accent line */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500" />
@@ -807,30 +846,33 @@ export default function StudentProfileClient({
           />
         </div>
       </div>
+    </div>
 
-      {/* Floating Edge Trigger (when closed & not pinned) */}
-      <FloatingStudentNavTrigger
-        onOpen={() => setIsSideNavOpen(true)}
-        totalStudents={allStudents.length > 0 ? allStudents.length : classmates.length}
-        isPinned={isSideNavPinned}
-      />
-
-      {/* Side Drawer / Panel */}
+    {/* Right Column: Docked Directory Sidebar (Desktop) & Overlay Drawer (Mobile) */}
+    {isSideNavOpen && (
       <StudentSideDrawer
         currentStudentId={student.id}
         currentClassName={student.class?.name}
         students={allStudents.length > 0 ? allStudents : classmates}
         isOpen={isSideNavOpen}
-        isPinned={isSideNavPinned}
-        onClose={() => setIsSideNavOpen(false)}
-        onToggleOpen={() => setIsSideNavOpen((prev) => !prev)}
-        onTogglePin={handleTogglePin}
+        onClose={handleCloseSideNav}
+        onToggleOpen={handleToggleSideNav}
         onSelectStudent={handleSelectStudent}
         onPrefetchStudent={handlePrefetchStudent}
         onPrefetchClass={handlePrefetchClass}
         loadingStudentId={loadingStudentId}
         activeTab={activeTab}
       />
-    </div>
-  );
+    )}
+  </div>
+
+  {/* Floating Edge Trigger (when closed) */}
+  {!isSideNavOpen && (
+    <FloatingStudentNavTrigger
+      onOpen={handleOpenSideNav}
+      totalStudents={allStudents.length > 0 ? allStudents.length : classmates.length}
+    />
+  )}
+</div>
+);
 }
