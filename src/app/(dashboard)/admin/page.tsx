@@ -64,6 +64,10 @@ const AdminPage = async ({
 
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
+  // Target month & year for monthly metrics (Option A: Current month or filtered month)
+  const targetMonth = (queryStart && queryEnd) ? startDate.getMonth() + 1 : now.getMonth() + 1;
+  const targetYear = (queryStart && queryEnd) ? startDate.getFullYear() : now.getFullYear();
+
   // 1. DATA FETCHING (CONSOLIDATED MEGA-QUERY FOR 90% LATENCY REDUCTION)
   const getMegaStats = async () => {
     try {
@@ -77,9 +81,35 @@ const AdminPage = async ({
           (SELECT COALESCE(SUM(amount), 0) FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate})::float as current_expense_general,
           (SELECT COALESCE(SUM(amount), 0) FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate})::float as prev_income_general,
           (SELECT COALESCE(SUM(amount), 0) FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate})::float as prev_expense_general,
-          (SELECT COALESCE(SUM(amount), 0) FROM "Payment" WHERE "schoolId" = ${schoolId} AND LOWER("userType") = 'student' AND (status = 'PAID' OR status = 'PARTIAL'))::float as collected_tuition,
-          (SELECT COALESCE(SUM(amount + COALESCE("deferredAmount", 0)), 0) FROM "Payment" WHERE "schoolId" = ${schoolId} AND LOWER("userType") = 'student')::float as billed_tuition,
-          (SELECT COALESCE(SUM(COALESCE(s."customTuition", l."tuitionFee", 0)), 0) FROM "Student" s LEFT JOIN "Level" l ON s."levelId" = l.id WHERE s."schoolId" = ${schoolId})::float as expected_monthly_tuition,
+          (
+            SELECT COALESCE(SUM(amount), 0) 
+            FROM "Payment" 
+            WHERE "schoolId" = ${schoolId} 
+              AND LOWER("userType") = 'student' 
+              AND (status = 'PAID' OR status = 'PARTIAL')
+              AND month = ${targetMonth}
+              AND year = ${targetYear}
+          )::float as monthly_collected_tuition,
+          (
+            SELECT COALESCE(SUM(amount), 0)
+            FROM "Income"
+            WHERE "schoolId" = ${schoolId}
+              AND EXTRACT(MONTH FROM date) = ${targetMonth}
+              AND EXTRACT(YEAR FROM date) = ${targetYear}
+              AND (
+                LOWER(category) LIKE '%tuition%' 
+                OR LOWER(category) LIKE '%scolarit%' 
+                OR LOWER(category) LIKE '%inscri%' 
+                OR LOWER(title) LIKE '%tuition%' 
+                OR LOWER(title) LIKE '%scolarit%'
+              )
+          )::float as monthly_income_tuition,
+          (
+            SELECT COALESCE(SUM(COALESCE(s."customTuition", l."tuitionFee", 450)), 0) 
+            FROM "Student" s 
+            LEFT JOIN "Level" l ON s."levelId" = l.id 
+            WHERE s."schoolId" = ${schoolId}
+          )::float as monthly_expected_tuition,
           (
             SELECT COALESCE(SUM(
               CASE 
@@ -91,14 +121,22 @@ const AdminPage = async ({
             FROM "Student" s
             LEFT JOIN "Level" l ON s."levelId" = l.id
             LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
-              AND pay.month = ${now.getMonth() + 1}
-              AND pay.year = ${now.getFullYear()}
+              AND pay.month = ${targetMonth}
+              AND pay.year = ${targetYear}
             WHERE s."schoolId" = ${schoolId}
               AND (pay.status IS NULL OR pay.status != 'PAID')
           )::float as uncollected_tuition
       `;
 
       const data = (rawRes as any)[0];
+      const monthlyCollected = (data.monthly_collected_tuition > 0)
+        ? data.monthly_collected_tuition
+        : (data.monthly_income_tuition > 0 ? data.monthly_income_tuition : 0);
+
+      const monthlyExpected = (data.monthly_expected_tuition > 0)
+        ? Math.max(data.monthly_expected_tuition, monthlyCollected)
+        : (monthlyCollected + (data.uncollected_tuition || 0));
+
       return {
         student_count: data.student_count || 0,
         teacher_count: data.teacher_count || 0,
@@ -108,10 +146,8 @@ const AdminPage = async ({
         current_expense_general: data.current_expense_general || 0,
         prev_income_general: data.prev_income_general || 0,
         prev_expense_general: data.prev_expense_general || 0,
-        collected_tuition: data.collected_tuition || 0,
-        billed_tuition: data.billed_tuition || 0,
-        expected_monthly_tuition: data.expected_monthly_tuition || 0,
-        uncollected_tuition: data.uncollected_tuition || 0,
+        monthly_collected: monthlyCollected,
+        monthly_expected: monthlyExpected,
       };
     } catch (error) {
       console.error("❌ [DASHBOARD_FETCH_ERROR]:", error);
@@ -122,7 +158,7 @@ const AdminPage = async ({
   const stats = await getCachedTenantData(
     schoolId,
     'dashboard',
-    [startDate.toISOString(), endDate.toISOString(), 'v2'],
+    [startDate.toISOString(), endDate.toISOString(), `monthly-${targetMonth}-${targetYear}`],
     () => getMegaStats(),
     120
   );
@@ -174,9 +210,8 @@ const AdminPage = async ({
           prevExpense={prevExpense}
           currentBalance={currentBalance}
           prevBalance={prevBalance}
-          collectedTuition={stats.collected_tuition}
-          totalTuitionDue={stats.billed_tuition > 0 ? stats.billed_tuition : stats.expected_monthly_tuition}
-          uncollectedTuition={stats.uncollected_tuition}
+          collectedTuition={stats.monthly_collected}
+          totalTuitionDue={stats.monthly_expected}
           revenueGap={0}
           isCustomRange={!!(queryStart && queryEnd)}
         />
