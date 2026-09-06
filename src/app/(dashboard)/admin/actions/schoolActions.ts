@@ -169,8 +169,8 @@ export async function getLevelTuitionFees() {
     });
     const existingLevelNumbers = existingLevels.map(l => l.level);
 
-    // 2. Identify missing standard levels (1-6)
-    const standardLevels = [1, 2, 3, 4, 5, 6];
+    // 2. Identify missing standard levels (0 = Préscolaire, 1-6 = Primaire)
+    const standardLevels = [0, 1, 2, 3, 4, 5, 6];
     const missingLevels = standardLevels.filter(lvl => !existingLevelNumbers.includes(lvl));
 
     // 3. Create missing levels in bulk if any
@@ -228,7 +228,8 @@ export async function getLevels() {
     const schoolId = await getSchoolId();
     const levels = await prisma.level.findMany({
       where: { schoolId },
-      select: { id: true, level: true }
+      select: { id: true, level: true },
+      orderBy: { level: 'asc' }
     });
     return { success: true, data: levels };
   } catch (error: any) {
@@ -274,11 +275,32 @@ export async function syncLevelVariations(levelId: number, count: number) {
       }
     });
 
+    const schoolId = await getSchoolId();
+    const ARABIC_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض", "ظ", "غ"];
     let errors: string[] = [];
+
     const targetNames = Array.from({ length: count }, (_, i) => 
-      `${updatedLevel.level}${String.fromCharCode(65 + i)}`
+      updatedLevel.level === 0
+        ? `تحضيري ${ARABIC_LETTERS[i] || String.fromCharCode(65 + i)}`
+        : `${updatedLevel.level}${String.fromCharCode(65 + i)}`
     );
 
+    // Auto-create missing target classes up to count
+    for (const name of targetNames) {
+      const exists = classes.some(c => c.name === name);
+      if (!exists) {
+        await prisma.class.create({
+          data: {
+            name,
+            levelId,
+            capacity: 30,
+            schoolId,
+          }
+        });
+      }
+    }
+
+    // Clean up empty classes that exceed the new variations limit
     for (const cls of classes) {
       if (!targetNames.includes(cls.name)) {
         if (cls._count.students > 0 || cls._count.lessons > 0 || cls._count.timetable > 0) {

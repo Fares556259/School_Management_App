@@ -257,7 +257,9 @@ export default function ClassStudentsTable({
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">{t.classStudents.gradeLevel}</span>
-              <span className="text-[18px] font-normal text-[#181d26]">{t.classStudents.classLevel} {activeClass.level?.level || "-"}</span>
+              <span className="text-[18px] font-normal text-[#181d26]">
+                {activeClass.level?.level !== undefined ? (activeClass.level.level === 0 ? "Préscolaire" : `${t.classStudents.classLevel} ${activeClass.level.level}`) : "-"}
+              </span>
             </div>
           </div>
           <div className="bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-sm flex items-center gap-4 group">

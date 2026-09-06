@@ -134,7 +134,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       classId: targetClass?.id || (allSchoolClasses[0]?.id ?? 0),
       className: targetClass?.name || allSchoolClasses[0]?.name || "Classe",
-      levelName: targetClass?.level ? `Niveau ${targetClass.level.level}` : "",
+      levelName: targetClass?.level ? (targetClass.level.level === 0 ? "Préscolaire (تحضيري)" : `Niveau ${targetClass.level.level}`) : "",
       schoolName: cleanSchoolName,
       schoolLogo: cleanSchoolLogo,
       schoolId: targetSchool.id,

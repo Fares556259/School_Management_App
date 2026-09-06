@@ -569,37 +569,44 @@ const SettingsPage = () => {
 
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {levelFees.map((lvl: any) => (
-                <div 
-                  key={lvl.id}
-                  className="flex flex-col gap-4 p-5 bg-white border border-[#dddddd] rounded-[12px] group hover:border-[#9297a0] transition-all shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.systemSettings?.primary || "Primary"}</span>
-                      <span className="text-sm font-black text-slate-700">{t.systemSettings?.level || "Level"} {lvl.level}</span>
+              {levelFees.map((lvl: any) => {
+                const isPreschool = lvl.level === 0;
+                return (
+                  <div 
+                    key={lvl.id}
+                    className="flex flex-col gap-4 p-5 bg-white border border-[#dddddd] rounded-[12px] group hover:border-[#9297a0] transition-all shadow-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                          {isPreschool ? (t.systemSettings?.preschoolGrade || "Année Préscolaire") : (t.systemSettings?.primary || "Primary")}
+                        </span>
+                        <span className="text-sm font-black text-slate-700">
+                          {isPreschool ? (t.systemSettings?.preschoolWithArabic || "Préscolaire (تحضيري)") : `${t.systemSettings?.level || "Level"} ${lvl.level}`}
+                        </span>
+                      </div>
+                      <div className="relative max-w-[100px]">
+                        <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">DT</span>
+                        <input 
+                          type="number"
+                          className="w-full bg-white border border-[#dddddd] rounded-[6px] ps-8 pe-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-end"
+                          value={lvl.tuitionFee}
+                          onChange={(e) => handleUpdateLevelFee(lvl.id, e.target.value)}
+                        />
+                      </div>
                     </div>
-                    <div className="relative max-w-[100px]">
-                      <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-400">DT</span>
-                      <input 
-                        type="number"
-                        className="w-full bg-white border border-[#dddddd] rounded-[6px] ps-8 pe-2 py-1.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-end"
-                        value={lvl.tuitionFee}
-                        onChange={(e) => handleUpdateLevelFee(lvl.id, e.target.value)}
-                      />
+                    
+                    {/* CLASS VARIATIONS (A, B, C...) */}
+                    <div className="flex flex-wrap gap-2 mt-auto">
+                       {lvl.classes?.map((cls: any) => (
+                          <div key={cls.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-500 shadow-sm transition-all">
+                             <span>{cls.name}</span>
+                          </div>
+                       ))}
                     </div>
                   </div>
-                  
-                  {/* CLASS VARIATIONS (A, B, C...) */}
-                  <div className="flex flex-wrap gap-2 mt-auto">
-                     {lvl.classes?.map((cls: any) => (
-                        <div key={cls.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-500 shadow-sm transition-all">
-                           <span>{cls.name}</span>
-                        </div>
-                     ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               
               {levelFees.length === 0 && !isAddingLevel && (
                 <div className="col-span-full py-12 flex flex-col items-center justify-center border border-dashed border-[#dddddd] rounded-[12px] gap-3 bg-[#f8fafc]">
@@ -620,28 +627,37 @@ const SettingsPage = () => {
             </div>
 
             <div className="flex flex-col gap-4">
-              {levelFees.map((lvl: any) => (
-                <div key={lvl.id} className="flex items-center justify-between p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-[#9297a0] transition-all shadow-sm">
-                   <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.systemSettings?.primaryGrade || "Primary Grade"}</span>
-                      <span className="text-sm font-black text-slate-700">{t.systemSettings?.level || "Level"} {lvl.level}</span>
-                   </div>
-                   
-                   <div className="flex items-center gap-4">
-                      <div className="flex flex-col gap-1 items-end">
-                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{t.systemSettings?.variations || "Variations (A-Z)"}</label>
-                        <input 
-                          type="number"
-                          min={0}
-                          max={26}
-                          className="w-20 bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-center"
-                          value={variationCounts[lvl.id] !== undefined ? variationCounts[lvl.id] : 0}
-                          onChange={e => setVariationCounts({...variationCounts, [lvl.id]: parseInt(e.target.value) || 0})}
-                        />
-                      </div>
-                   </div>
-                </div>
-              ))}
+              {levelFees.map((lvl: any) => {
+                const isPreschool = lvl.level === 0;
+                return (
+                  <div key={lvl.id} className="flex items-center justify-between p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-[#9297a0] transition-all shadow-sm">
+                     <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                          {isPreschool ? (t.systemSettings?.preschoolGrade || "Année Préscolaire") : (t.systemSettings?.primaryGrade || "Primary Grade")}
+                        </span>
+                        <span className="text-sm font-black text-slate-700">
+                          {isPreschool ? (t.systemSettings?.preschoolWithArabic || "Préscolaire (تحضيري)") : `${t.systemSettings?.level || "Level"} ${lvl.level}`}
+                        </span>
+                     </div>
+                     
+                     <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-1 items-end">
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
+                            {isPreschool ? (locale === 'ar' ? 'تفريعات (أ - ي)' : 'Variations (A-Z / أ-ي)') : (t.systemSettings?.variations || "Variations (A-Z)")}
+                          </label>
+                          <input 
+                            type="number"
+                            min={0}
+                            max={26}
+                            className="w-20 bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#9297a0] transition-all text-center"
+                            value={variationCounts[lvl.id] !== undefined ? variationCounts[lvl.id] : 0}
+                            onChange={e => setVariationCounts({...variationCounts, [lvl.id]: parseInt(e.target.value) || 0})}
+                          />
+                        </div>
+                     </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

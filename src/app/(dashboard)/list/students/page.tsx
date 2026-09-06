@@ -158,7 +158,7 @@ const StudentListPage = async ({
       { value: "null", label: "Non affecté(e)" },
       ...classes.map((c) => ({ value: String(c.id), label: c.name }))
     ],
-    levelId: levels.map((l) => ({ value: String(l.id), label: `Level ${l.level}` })),
+    levelId: levels.map((l) => ({ value: String(l.id), label: l.level === 0 ? "Préscolaire (تحضيري)" : `Level ${l.level}` })),
     schoolName: school?.name || "SnapSchool",
     schoolSubdomain: school?.subdomain || "snapschool-academy",
     adminName: admin ? `${admin.name} ${admin.surname}` : "Administration",

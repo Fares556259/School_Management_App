@@ -222,7 +222,7 @@ export default function StudentListClient({
           </Link>
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">
-          {item.classId ? `Level ${item.level.level}` : "-"}
+          {item.classId ? (item.level.level === 0 ? (locale === 'ar' ? 'تحضيري' : 'Préscolaire') : `${t.systemSettings?.level || "Level"} ${item.level.level}`) : "-"}
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
           {item.parent ? (

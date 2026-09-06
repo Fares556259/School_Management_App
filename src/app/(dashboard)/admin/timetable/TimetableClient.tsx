@@ -168,7 +168,7 @@ const TimetablePage = ({
                     >
                       {classes.map(cls => (
                         <option key={cls.id} value={cls.id} className="bg-white text-[#181d26]">
-                          {t.timetable.grade} {cls.level.level} - {cls.name}
+                          {cls.level.level === 0 ? cls.name : `${t.timetable.grade} ${cls.level.level} - ${cls.name}`}
                         </option>
                       ))}
                     </select>

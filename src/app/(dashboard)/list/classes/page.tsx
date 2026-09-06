@@ -99,7 +99,9 @@ const ClassListPage = async ({
         <span className="font-medium text-[#181d26]">{item.name}</span>
       </td>
       <td className="hidden md:table-cell py-4 px-6">{item.capacity}</td>
-      <td className="hidden md:table-cell py-4 px-6">{item.level?.level}</td>
+      <td className="hidden md:table-cell py-4 px-6">
+        {item.level?.level === 0 ? (lang === 'ar' ? 'تحضيري' : 'Préscolaire (تحضيري)') : item.level?.level}
+      </td>
       <td className="hidden md:table-cell py-4 px-6">
         <div className="flex flex-wrap gap-1">
           {Array.from(new Map(item.lessons.filter(l => l.teacher).map(l => [l.teacher.id, l.teacher])).values()).map((teacher) => (
@@ -218,10 +220,13 @@ const ClassListPage = async ({
   );
 
   const availableClassNames: { value: string; label: string }[] = [];
+  const ARABIC_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض", "ظ", "غ"];
   levels.forEach((l) => {
     const existingNames = l.classes.map(c => c.name);
     for (let i = 0; i < l.variations; i++) {
-      const name = `${l.level}${String.fromCharCode(65 + i)}`;
+      const name = l.level === 0
+        ? `تحضيري ${ARABIC_LETTERS[i] || String.fromCharCode(65 + i)}`
+        : `${l.level}${String.fromCharCode(65 + i)}`;
       if (!existingNames.includes(name)) {
         availableClassNames.push({ value: name, label: name });
       }

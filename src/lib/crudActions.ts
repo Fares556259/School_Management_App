@@ -603,10 +603,16 @@ export const createClass = async (data: {
   try {
     const schoolId = await getSchoolId();
     
-    // Auto-infer levelId from name (e.g., "1A" -> Level 1)
-    const levelNumStr = data.name.match(/^\d+/)?.[0];
-    if (!levelNumStr) throw new Error("Invalid class name format. Must start with a grade number (e.g. 1A, 2B).");
-    const levelNumber = parseInt(levelNumStr, 10);
+    // Auto-infer levelId from name (e.g., "1A" -> Level 1, "تحضيري أ" -> Level 0)
+    let levelNumber: number;
+    const trimmedName = data.name.trim();
+    if (/^(تحضيري|préscolaire|prescolaire|ps[\s\-_]|0)/i.test(trimmedName)) {
+      levelNumber = 0;
+    } else {
+      const levelNumStr = trimmedName.match(/^\d+/)?.[0];
+      if (!levelNumStr) throw new Error("Invalid class name format. Must start with a grade number (e.g. 1A, 2B) or Préscolaire/تحضيري.");
+      levelNumber = parseInt(levelNumStr, 10);
+    }
 
     const targetLevel = await prisma.level.findUnique({
       where: {
@@ -617,7 +623,7 @@ export const createClass = async (data: {
       }
     });
 
-    if (!targetLevel) throw new Error(`Level ${levelNumber} is not configured in settings.`);
+    if (!targetLevel) throw new Error(`Level ${levelNumber === 0 ? "Préscolaire (تحضيري)" : levelNumber} is not configured in settings.`);
 
     await prisma.class.create({
       data: {
@@ -653,9 +659,15 @@ export const updateClass = async (
     }
 
     if (data.name) {
-      const levelNumStr = data.name.match(/^\d+/)?.[0];
-      if (!levelNumStr) throw new Error("Invalid class name format. Must start with a grade number (e.g. 1A, 2B).");
-      const levelNumber = parseInt(levelNumStr, 10);
+      let levelNumber: number;
+      const trimmedName = data.name.trim();
+      if (/^(تحضيري|préscolaire|prescolaire|ps[\s\-_]|0)/i.test(trimmedName)) {
+        levelNumber = 0;
+      } else {
+        const levelNumStr = trimmedName.match(/^\d+/)?.[0];
+        if (!levelNumStr) throw new Error("Invalid class name format. Must start with a grade number (e.g. 1A, 2B) or Préscolaire/تحضيري.");
+        levelNumber = parseInt(levelNumStr, 10);
+      }
 
       const targetLevel = await prisma.level.findUnique({
         where: {
@@ -666,7 +678,7 @@ export const updateClass = async (
         }
       });
 
-      if (!targetLevel) throw new Error(`Level ${levelNumber} is not configured in settings.`);
+      if (!targetLevel) throw new Error(`Level ${levelNumber === 0 ? "Préscolaire (تحضيري)" : levelNumber} is not configured in settings.`);
       updateData.levelId = targetLevel.id;
     }
 

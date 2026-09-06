@@ -324,7 +324,7 @@ export default async function SingleStudentPage({
   }));
 
   const levelTuitionFee = student.class?.level?.tuitionFee || 0;
-  const gradeLevel = student.class?.level?.level || 1;
+  const gradeLevel = student.class?.level?.level ?? 1;
 
   return (
     <StudentProfileClient

@@ -81,7 +81,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         </div>
         <div>
           <p className="font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{item.student?.name} {item.student?.surname}</p>
-          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{item.student?.class.name} • {(t as any).recovery?.table?.level || "Level"} {item.student?.level.level}</p>
+          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{item.student?.class.name} • {item.student?.level.level === 0 ? "Préscolaire" : `${(t as any).recovery?.table?.level || "Level"} ${item.student?.level.level}`}</p>
         </div>
       </td>
       <td className="p-4 hidden md:table-cell">
