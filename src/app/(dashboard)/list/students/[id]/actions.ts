@@ -63,7 +63,6 @@ export const getStudentProfileBundle = async (
               },
               orderBy: [
                 { term: "asc" },
-                { subject: { name: "asc" } },
               ],
             },
           },
@@ -247,7 +246,6 @@ export const getClassStudentsBundles = async (
                 },
                 orderBy: [
                   { term: "asc" },
-                  { subject: { name: "asc" } },
                 ],
               },
             },

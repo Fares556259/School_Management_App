@@ -227,7 +227,23 @@ export default function StudentProfileClient({
     }).catch(() => {});
   }, []);
 
-  // Instant synchronous student switch (0ms) or fast async in-memory fetch (NO hard reload)
+  // Proactively preload all other classes in the background on mount so every student in every class is 0ms in-memory instant
+  useEffect(() => {
+    if (!allStudents || allStudents.length === 0) return;
+    const uniqueClassIds = Array.from(new Set(allStudents.map((s) => s.classId).filter(Boolean))) as number[];
+    uniqueClassIds.forEach((cId) => {
+      if (!prefetchedClassesRef.current.has(cId)) {
+        prefetchedClassesRef.current.add(cId);
+        getClassStudentsBundles(cId).then((res) => {
+          if (res.success && res.data) {
+            setBundlesMap((prev) => ({ ...prev, ...(res.data as Record<string, StudentBundle>) }));
+          }
+        }).catch(() => {});
+      }
+    });
+  }, [allStudents]);
+
+  // Instant synchronous student switch (0ms) or fast async in-memory fetch (NO hard reload or skeleton)
   const handleSelectStudent = useCallback(async (id: string) => {
     if (!id || id === activeStudentId) return;
 
@@ -245,7 +261,7 @@ export default function StudentProfileClient({
       return;
     }
 
-    // 2. Dynamic in-memory fetch without full document reload
+    // 2. Dynamic in-memory fetch without full document reload or skeleton
     setLoadingStudentId(id);
     try {
       const res = await getStudentProfileBundle(id);
@@ -258,17 +274,13 @@ export default function StudentProfileClient({
         try {
           window.scrollTo({ top: 0, behavior: "smooth" });
         } catch {}
-      } else {
-        // Fallback to Next.js soft client-side router transition
-        router.push(`/list/students/${id}${tabSuffix}`);
       }
     } catch (err) {
       console.error("Async student switch error:", err);
-      router.push(`/list/students/${id}${tabSuffix}`);
     } finally {
       setLoadingStudentId(null);
     }
-  }, [activeStudentId, bundlesMap, activeTab, router]);
+  }, [activeStudentId, bundlesMap, activeTab]);
 
   // Handle browser Back / Forward (popstate)
   useEffect(() => {

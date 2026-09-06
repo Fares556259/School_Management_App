@@ -59,7 +59,6 @@ export default async function SingleStudentPage({
             },
             orderBy: [
               { term: "asc" },
-              { subject: { name: "asc" } },
             ],
           },
         },
@@ -249,12 +248,10 @@ export default async function SingleStudentPage({
             },
             orderBy: [
               { term: "asc" },
-              { subject: { name: "asc" } },
             ],
           },
         },
         orderBy: [
-          { class: { name: "asc" } },
           { surname: "asc" },
           { name: "asc" },
         ],
