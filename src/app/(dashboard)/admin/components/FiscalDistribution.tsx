@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useMemo } from 'react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
-import FiscalBarChart from './FiscalBarChart';
-import FinancialBreakdown from './FinancialBreakdown';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+
+interface FinanceDataPoint {
+  name: string;
+  value: number;
+  type: 'income' | 'expense';
+}
 
 interface BreakdownItem {
   name: string;
@@ -13,88 +17,186 @@ interface BreakdownItem {
 }
 
 interface FiscalDistributionProps {
-  incomeData: { name: string, value: number, type: 'income' | 'expense' }[];
-  expenseData: { name: string, value: number, type: 'income' | 'expense' }[];
-  fullBreakdown: BreakdownItem[];
-  timeFilter: string;
+  incomeData: FinanceDataPoint[];
+  expenseData: FinanceDataPoint[];
+  fullBreakdown?: BreakdownItem[];
+  timeFilter?: string;
 }
+
+const PALETTE = [
+  '#38bdf8', // Sky blue
+  '#a855f7', // Purple
+  '#10b981', // Emerald green
+  '#f59e0b', // Amber / Gold
+  '#f97316', // Orange
+  '#ef4444', // Red / Rose
+  '#64748b', // Slate
+  '#06b6d4', // Cyan
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#14b8a6', // Teal
+  '#eab308', // Yellow
+];
+
+interface DonutCardProps {
+  title: string;
+  items: { name: string; value: number }[];
+  totalLabel: string;
+}
+
+const DonutCard: React.FC<DonutCardProps> = ({ title, items, totalLabel }) => {
+  const totalAmount = useMemo(() => {
+    return items.reduce((acc, curr) => acc + (curr.value || 0), 0);
+  }, [items]);
+
+  const chartData = useMemo(() => {
+    const validItems = items.filter((i) => i.value > 0);
+    if (validItems.length === 0) {
+      return [];
+    }
+
+    return validItems
+      .sort((a, b) => b.value - a.value)
+      .map((item, index) => {
+        const percentage = totalAmount > 0 ? Math.round((item.value / totalAmount) * 100) : 0;
+        const color = PALETTE[index % PALETTE.length];
+        return {
+          ...item,
+          percentage,
+          color,
+        };
+      });
+  }, [items, totalAmount]);
+
+  const CustomDonutTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white/95 p-3 rounded-xl shadow-xl border border-slate-100 backdrop-blur-md min-w-[160px]">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color }} />
+            <p className="text-xs font-bold text-slate-800 tracking-tight">{data.name}</p>
+          </div>
+          <p className="text-sm font-black text-slate-900">
+            {Math.round(data.value).toLocaleString()} TND
+          </p>
+          <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+            {data.percentage}% du total
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col justify-between min-h-[360px]">
+      {/* Card Title */}
+      <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight mb-2">
+        {title}
+      </h3>
+
+      {/* Donut Chart + Category List */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 my-auto">
+        {/* Donut on Left */}
+        <div className="w-[160px] h-[160px] relative flex-shrink-0 flex items-center justify-center">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={74}
+                  paddingAngle={2}
+                  dataKey="value"
+                  isAnimationActive={false}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={1.5} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomDonutTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-[140px] h-[140px] rounded-full border-8 border-dashed border-slate-100 flex items-center justify-center text-xs text-slate-400">
+              0 TND
+            </div>
+          )}
+        </div>
+
+        {/* Legend List on Right */}
+        <div className="flex-1 w-full flex flex-col gap-2 max-h-[190px] overflow-y-auto pr-1 custom-scrollbar">
+          {chartData.length > 0 ? (
+            chartData.map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                  <span className="font-medium text-slate-600 truncate max-w-[130px] sm:max-w-[160px]">{item.name}</span>
+                </div>
+                <span
+                  className="font-bold text-[11px] px-2 py-0.5 rounded flex-shrink-0"
+                  style={{
+                    color: item.color,
+                    backgroundColor: `${item.color}15`,
+                  }}
+                >
+                  {item.percentage}%
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-xs text-slate-400 italic py-4">Aucune donnée enregistrée</p>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Segmented Bar & Total */}
+      <div className="mt-4 pt-3 border-t border-slate-50">
+        <div className="w-full h-2 rounded-full overflow-hidden flex bg-slate-100 gap-[2px]">
+          {chartData.map((item, idx) => (
+            <div
+              key={idx}
+              className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-300"
+              style={{
+                width: `${item.percentage}%`,
+                backgroundColor: item.color,
+              }}
+              title={`${item.name}: ${item.percentage}%`}
+            />
+          ))}
+        </div>
+        <div className="flex items-center justify-between text-xs mt-2 text-slate-400">
+          <span className="text-[11px] font-medium">{totalLabel}</span>
+          <span className="font-bold text-slate-700 tracking-tight">
+            {Math.round(totalAmount).toLocaleString()} TND
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const FiscalDistribution: React.FC<FiscalDistributionProps> = ({
   incomeData,
   expenseData,
-  fullBreakdown,
-  timeFilter
 }) => {
-  const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
   const { t } = useLanguage();
 
   return (
-    <div className="bg-[#ffffff] rounded-[8px] border border-[#d8d8d8] shadow-sm flex flex-col overflow-hidden h-[480px]">
-      {/* Header with Integrated Toggle */}
-      <div className="p-6 border-b border-[#d8d8d8] flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-[16px] font-semibold text-[#080808] tracking-[-0.2px]">{t.fiscalDistribution.title}</h2>
-          <p className="text-[11px] text-[#5a5a5a] font-medium uppercase tracking-widest mt-1">{t.fiscalDistribution.subtitle}</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Segmented View Toggle */}
-          <div className="flex p-1 bg-[#f9f9f9] rounded-[6px] border border-[#d8d8d8]">
-            <button
-              onClick={() => setViewMode('chart')}
-              className={`px-4 py-1.5 rounded-[4px] text-[12px] font-medium transition-all ${
-                viewMode === 'chart' 
-                ? 'bg-[#ffffff] text-[#080808] shadow-sm border border-[#d8d8d8]' 
-                : 'text-[#5a5a5a] hover:text-[#080808] border border-transparent'
-              }`}
-            >
-              {t.fiscalDistribution.visual}
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-1.5 rounded-[4px] text-[12px] font-medium transition-all ${
-                viewMode === 'list' 
-                ? 'bg-[#ffffff] text-[#080808] shadow-sm border border-[#d8d8d8]' 
-                : 'text-[#5a5a5a] hover:text-[#080808] border border-transparent'
-              }`}
-            >
-              {t.fiscalDistribution.detailed}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Dynamic Content Area - Fixed Height with Internal Scroll */}
-      <div className="flex-1 min-h-0 relative">
-        <AnimatePresence mode="wait">
-          {viewMode === 'chart' ? (
-            <motion.div
-              key="chart"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-              className="p-8 h-full w-full"
-            >
-              <FiscalBarChart 
-                  incomeData={incomeData}
-                  expenseData={expenseData}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="list"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
-              className="px-8 pb-8 h-full overflow-y-auto custom-scrollbar"
-            >
-              <FinancialBreakdown data={fullBreakdown} hideCard />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+      <DonutCard
+        title={t.fiscalDistribution.revenueDistribution || "Répartition des revenus"}
+        items={incomeData}
+        totalLabel={t.fiscalDistribution.totalAmount || "Montant total"}
+      />
+      <DonutCard
+        title={t.fiscalDistribution.expenseDistribution || "Répartition des dépenses"}
+        items={expenseData}
+        totalLabel={t.fiscalDistribution.totalAmount || "Montant total"}
+      />
     </div>
   );
 };

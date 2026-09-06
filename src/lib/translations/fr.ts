@@ -221,7 +221,10 @@ export const fr = {
     title: "Intelligence Fiscale",
     subtitle: "Revenus Unifiés & Dépenses Opérationnelles",
     visual: "Visuel",
-    detailed: "Détaillé"
+    detailed: "Détaillé",
+    revenueDistribution: "Répartition des revenus",
+    expenseDistribution: "Répartition des dépenses",
+    totalAmount: "Montant total"
   },
   smartInsights: {
     title: "Aperçus Intelligents",

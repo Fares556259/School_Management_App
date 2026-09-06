@@ -288,6 +288,15 @@ export default async function DashboardAppendage({
   return (
     <>
       <section className="mt-8">
+        <FiscalDistribution 
+          incomeData={incomeBreakdown}
+          expenseData={expenseBreakdown}
+          fullBreakdown={fullBreakdown}
+          timeFilter="thisMonth" 
+        />
+      </section>
+
+      <section className="mt-8">
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
           <GrowthAnalyticsChart 
             data={trendData} 
@@ -296,15 +305,6 @@ export default async function DashboardAppendage({
             is12Months={isAllTime}
           />
         </div>
-      </section>
-
-      <section className="mt-8">
-        <FiscalDistribution 
-          incomeData={incomeBreakdown}
-          expenseData={expenseBreakdown}
-          fullBreakdown={fullBreakdown}
-          timeFilter="thisMonth" 
-        />
       </section>
 
       <section className="mt-8">

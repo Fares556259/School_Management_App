@@ -221,7 +221,10 @@ export const en = {
     title: "Fiscal Intelligence",
     subtitle: "Unified Income & Operational Expenses",
     visual: "Visual",
-    detailed: "Detailed"
+    detailed: "Detailed",
+    revenueDistribution: "Revenue Distribution",
+    expenseDistribution: "Expense Distribution",
+    totalAmount: "Total amount"
   },
   smartInsights: {
     title: "Smart Insights",

@@ -46,7 +46,8 @@ const GrowthAnalyticsChart = ({
     ...d,
     historicalIncome: d.income,
     historicalExpense: d.expense,
-    historicalProfit: d.income - d.expense,
+    historicalProfit: Math.max(0, d.income - d.expense),
+    actualProfit: d.income - d.expense,
   }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -98,87 +99,28 @@ const GrowthAnalyticsChart = ({
 
   return (
     <div className="w-full flex flex-col">
-      {/* Top Header matching reference design */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2">
-        {/* Left: Title + Status Pulse */}
-        <div className="flex items-center flex-wrap gap-3">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
-            {is12Months ? (t.analyticsChart.title12Months || "Revenue VS Dépenses – 12 derniers mois") : (t.analyticsChart.titleGeneral || "Revenue VS Dépenses")}
-          </h2>
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-              isHealthy
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                : "bg-rose-50 text-rose-700 border border-rose-200/60"
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isHealthy ? "bg-emerald-500" : "bg-rose-500"} animate-pulse`} />
-            {trend}
-          </span>
-        </div>
+      {/* Top Header matching reference design exactly */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        {/* Left: Title */}
+        <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
+          {is12Months ? (t.analyticsChart.title12Months || "Revenue VS Dépenses – 12 derniers mois") : (t.analyticsChart.titleGeneral || "Revenue VS Dépenses")}
+        </h2>
 
-        {/* Right: Legend & Interactive Controls */}
-        <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-          {/* Custom Legend directly inspired by Image 1 */}
-          <div className="flex items-center gap-4 text-xs sm:text-sm font-semibold text-slate-600">
-            <button
-              type="button"
-              onClick={() => setView(view === "income" ? "all" : "income")}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <span className="w-5 h-2 rounded-full bg-[#38bdf8]" />
-              <span className={view === "expense" || view === "profit" ? "opacity-30" : "opacity-100"}>
-                {t.analyticsChart.revenue}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setView(view === "expense" ? "all" : "expense")}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <span className="w-5 h-2 rounded-full bg-[#c084fc]" />
-              <span className={view === "income" || view === "profit" ? "opacity-30" : "opacity-100"}>
-                {t.analyticsChart.expenses}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setView(view === "profit" ? "all" : "profit")}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <span className="w-5 h-0.5 bg-[#22c55e] relative flex items-center justify-center">
-                <span className="w-2 h-2 rounded-full bg-[#22c55e] ring-2 ring-white" />
-              </span>
-              <span className={view === "income" || view === "expense" ? "opacity-30" : "opacity-100"}>
-                {t.analyticsChart.netProfit}
-              </span>
-            </button>
+        {/* Right: Legend matching Image 1 */}
+        <div className="flex items-center gap-5 text-xs sm:text-sm font-semibold text-slate-600">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-2 rounded-full bg-[#38bdf8]" />
+            <span>{t.analyticsChart.revenue}</span>
           </div>
-
-          {/* View Filter segmented buttons */}
-          <div className="bg-slate-100/90 p-0.5 rounded-lg flex items-center gap-0.5 border border-slate-200/70">
-            {(["all", "income", "expense", "profit"] as const).map((v) => {
-              const labelMap: Record<string, string> = {
-                all: t.analyticsChart.filterAll,
-                income: t.analyticsChart.filterIncome,
-                expense: t.analyticsChart.filterExpense,
-                profit: t.analyticsChart.filterProfit,
-              };
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  className={`px-2.5 py-1 text-[11px] font-bold transition-all rounded-md ${
-                    view === v
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {labelMap[v]}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-2 rounded-full bg-[#c084fc]" />
+            <span>{t.analyticsChart.expenses}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-0.5 bg-[#22c55e] relative flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-[#22c55e] ring-2 ring-white" />
+            </span>
+            <span>{t.analyticsChart.netProfit}</span>
           </div>
         </div>
       </div>
@@ -207,6 +149,8 @@ const GrowthAnalyticsChart = ({
                 dy={8}
               />
               <YAxis
+                domain={[0, 'auto']}
+                allowDataOverflow={false}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }}
@@ -220,48 +164,42 @@ const GrowthAnalyticsChart = ({
               />
 
               {/* Dépenses: Soft purple grouped bar on the left */}
-              {(view === "all" || view === "expense") && (
-                <Bar
-                  dataKey="historicalExpense"
-                  name={t.analyticsChart.expenses}
-                  fill="#c084fc"
-                  fillOpacity={0.7}
-                  stroke="#a855f7"
-                  strokeWidth={1.5}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={32}
-                  isAnimationActive={false}
-                />
-              )}
+              <Bar
+                dataKey="historicalExpense"
+                name={t.analyticsChart.expenses}
+                fill="#c084fc"
+                fillOpacity={0.65}
+                stroke="#a855f7"
+                strokeWidth={1.5}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={30}
+                isAnimationActive={false}
+              />
 
               {/* Revenus: Sky blue grouped bar on the right */}
-              {(view === "all" || view === "income") && (
-                <Bar
-                  dataKey="historicalIncome"
-                  name={t.analyticsChart.revenue}
-                  fill="#38bdf8"
-                  fillOpacity={0.7}
-                  stroke="#0284c7"
-                  strokeWidth={1.5}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={32}
-                  isAnimationActive={false}
-                />
-              )}
+              <Bar
+                dataKey="historicalIncome"
+                name={t.analyticsChart.revenue}
+                fill="#38bdf8"
+                fillOpacity={0.65}
+                stroke="#0284c7"
+                strokeWidth={1.5}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={30}
+                isAnimationActive={false}
+              />
 
               {/* Bénéfices net: Vibrant emerald green line with circular markers overlaid */}
-              {(view === "all" || view === "profit") && (
-                <Line
-                  type="monotone"
-                  dataKey="historicalProfit"
-                  name={t.analyticsChart.netProfit}
-                  stroke="#22c55e"
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 1.5 }}
-                  activeDot={{ r: 6, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 2 }}
-                  isAnimationActive={false}
-                />
-              )}
+              <Line
+                type="linear"
+                dataKey="historicalProfit"
+                name={t.analyticsChart.netProfit}
+                stroke="#22c55e"
+                strokeWidth={2}
+                dot={{ r: 4, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 1.5 }}
+                activeDot={{ r: 6, fill: "#22c55e", stroke: "#ffffff", strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         ) : (

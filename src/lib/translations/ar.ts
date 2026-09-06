@@ -221,7 +221,10 @@ export const ar = {
     title: "الذكاء المالي",
     subtitle: "المداخيل الموحدة والمصاريف التشغيلية",
     visual: "مرئي",
-    detailed: "مفصل"
+    detailed: "مفصل",
+    revenueDistribution: "توزيع الإيرادات",
+    expenseDistribution: "توزيع المصاريف",
+    totalAmount: "المبلغ الإجمالي"
   },
   smartInsights: {
     title: "رؤى ذكية",
