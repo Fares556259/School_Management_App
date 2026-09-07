@@ -213,11 +213,69 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
     }
   }, [pathname, pendingHref, role, isSuper]);
 
+  // Proactive background prefetching for high-frequency routes on idle
+  useEffect(() => {
+    if (!router || !role) return;
+
+    const timer = setTimeout(() => {
+      const highPriorityRoutes = role === "admin"
+        ? [
+            "/list/teachers",
+            "/list/students",
+            "/list/classes",
+            "/admin/finance",
+            "/list/expenses",
+            "/admin/grades",
+            "/admin/timetable",
+            "/list/attendance",
+          ]
+        : role === "teacher"
+        ? [
+            "/list/classes",
+            "/list/students",
+            "/list/assignments",
+            "/list/exams",
+            "/admin/timetable",
+          ]
+        : [];
+
+      highPriorityRoutes.forEach((route) => {
+        try {
+          router.prefetch(route);
+        } catch {
+          // ignore
+        }
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [router, role]);
+
   const toggleSection = (title: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [title]: !prev[title]
-    }));
+    setExpandedSections(prev => {
+      const willExpand = !prev[title];
+      if (willExpand) {
+        const targetSection = menuItems.find(s => s.title === title);
+        if (targetSection) {
+          targetSection.items
+            .filter(item => item.visible.some(v => activeRoles.includes(v)))
+            .forEach(item => {
+              const href = item.href === "/" ? (isSuper ? "/superadmin" : `/${role}`) : item.href;
+              if (href !== "/logout") {
+                try {
+                  router.prefetch(href);
+                } catch {
+                  // ignore
+                }
+              }
+            });
+        }
+      }
+      return {
+        ...prev,
+        [title]: willExpand
+      };
+    });
   };
 
   const isRTL = locale === "ar";

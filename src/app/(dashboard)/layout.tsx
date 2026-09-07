@@ -84,7 +84,11 @@ export default async function DashboardLayout({
       {/* LEFT SIDEBAR */}
       <aside className="w-16 md:w-20 lg:w-[260px] xl:w-[275px] shrink-0 p-3.5 lg:p-4 print:hidden z-30 sticky top-0 h-screen flex flex-col bg-white text-slate-800 border-r border-slate-200/80 shadow-xs transition-all duration-300">
         <div className="flex items-center justify-center lg:justify-between mb-6 px-1 shrink-0">
-          <Link href="/" className="flex items-center gap-2.5 min-w-0">
+          <Link 
+            href={role === "superadmin" || role === "superuser" ? "/superadmin" : (role ? `/${role}` : "/")} 
+            prefetch={true} 
+            className="flex items-center gap-2.5 min-w-0"
+          >
             <Image 
               src={schoolConfig?.schoolLogo || "/logo.png"} 
               alt="logo" 
