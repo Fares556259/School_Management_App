@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
 import { getSchoolId } from "@/lib/school";
+import { invalidateTenantTags } from "@/lib/cache";
 
 export const getAdminProfile = cache(async () => {
   const user = await getAuthenticatedUser();
@@ -107,6 +108,7 @@ export async function updateAdminProfile(data: {
       }
     });
 
+    invalidateTenantTags(schoolId, 'staff');
     revalidatePath("/profile");
     return { success: true, data: updated };
   } catch (error: any) {

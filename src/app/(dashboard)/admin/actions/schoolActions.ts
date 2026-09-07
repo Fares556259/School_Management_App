@@ -147,6 +147,7 @@ export async function updateSchoolConfig(data: any) {
       }
     });
 
+    invalidateTenantTags(data.schoolId || schoolId, 'institution');
     revalidatePath("/settings");
     revalidatePath("/list/exams");
     revalidatePath("/admin/timetable");

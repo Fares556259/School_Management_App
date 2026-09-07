@@ -8,25 +8,32 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import PageTransition from "@/components/PageTransition";
 import prisma from "@/lib/prisma";
-import { cache } from "react";
 import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
+import { getCachedTenantData } from "@/lib/cache";
 
-// Request-level caching for school configuration
-const getSchoolConfig = cache(async () => {
-  const schoolId = await getSchoolId();
-  const school = await prisma.school.findUnique({
-    where: { id: schoolId },
-    include: { Institution: true }
-  });
-  return {
-    schoolName: school?.Institution?.schoolName || school?.name,
-    schoolSubdomain: school?.subdomain,
-    schoolLogo: school?.Institution?.schoolLogo,
-    status: school?.status,
-    academicYear: school?.Institution?.academicYear,
-    currentSemester: school?.Institution?.currentSemester,
-  };
-});
+// Multi-tenant caching for school configuration (1 hour TTL)
+const getSchoolConfig = async (schoolId: string) => {
+  return getCachedTenantData(
+    schoolId,
+    'institution',
+    ['schoolConfig'],
+    async () => {
+      const school = await prisma.school.findUnique({
+        where: { id: schoolId },
+        include: { Institution: true },
+      });
+      return {
+        schoolName: school?.Institution?.schoolName || school?.name,
+        schoolSubdomain: school?.subdomain,
+        schoolLogo: school?.Institution?.schoolLogo,
+        status: school?.status,
+        academicYear: school?.Institution?.academicYear,
+        currentSemester: school?.Institution?.currentSemester,
+      };
+    },
+    3600
+  );
+};
 
 export default async function DashboardLayout({
   children,
@@ -40,30 +47,37 @@ export default async function DashboardLayout({
     return redirect("/sign-in");
   }
 
-  // Fetch all parallelizable dashboard data
-  const [role, schoolConfigResult] = await Promise.all([
+  // Resolve role and schoolId in parallel (from session/metadata fast path)
+  const [role, schoolId] = await Promise.all([
     getRole(),
-    getSchoolConfig().catch((error) => {
+    getSchoolId(),
+  ]);
+
+  // Fetch schoolConfig and adminProfile in parallel with tenant cache (0ms on subsequent clicks)
+  const [schoolConfigResult, adminProfileResult] = await Promise.all([
+    getSchoolConfig(schoolId).catch((error) => {
       console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", error.message);
       return null;
-    })
+    }),
+    role === "admin" && userId
+      ? getCachedTenantData(
+          schoolId,
+          'staff',
+          ['adminProfile', userId],
+          async () => {
+            const res = await getAdminProfile();
+            return res.data;
+          },
+          3600
+        ).catch((error) => {
+          console.warn("⚠️ [LAYOUT] Failed to fetch admin profile:", error.message);
+          return null;
+        })
+      : Promise.resolve(null),
   ]);
-  const schoolConfig = schoolConfigResult;
 
-  if (schoolConfig?.status === "SUSPENDED" && role !== "superadmin") {
-    return redirect("/suspended");
-  }
-  
-  // Fetch admin profile so the Menu and Navbar can display the custom photo and name
-  let adminProfile = null;
-  if (role === "admin") {
-    try {
-      const res = await getAdminProfile();
-      if (res.data) adminProfile = res.data;
-    } catch (error) {
-      console.warn("⚠️ [LAYOUT] Failed to fetch admin profile:", (error as any).message);
-    }
-  }
+  const schoolConfig = schoolConfigResult;
+  const adminProfile = adminProfileResult;
 
   return (
     <div className="h-screen flex text-slate-900 print:h-auto print:block bg-[#F5F6F8]">
