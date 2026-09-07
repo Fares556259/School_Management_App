@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { compressImage } from "@/lib/imageCompression";
 import { 
   Building2, 
   LayoutDashboard, 
@@ -341,15 +342,21 @@ const SettingsPage = () => {
 
     try {
       setSaving(true);
+      const optimizedFile = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.85,
+      });
+
       const { createClient } = await import('@/utils/supabase/client');
       const supabase = createClient();
       
-      const fileName = `brand-${field}-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+      const fileName = `brand-${field}-${Date.now()}-${optimizedFile.name.replace(/\s+/g, '_')}`;
       const filePath = `branding/${fileName}`;
 
       const { data, error: uploadError } = await supabase.storage
         .from('uploads')
-        .upload(filePath, file);
+        .upload(filePath, optimizedFile);
 
       if (uploadError) throw uploadError;
 

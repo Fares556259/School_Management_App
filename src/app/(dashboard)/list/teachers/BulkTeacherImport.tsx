@@ -5,6 +5,7 @@ import { parseTeachersFromText, parseTeachersFromImage } from "../../admin/actio
 import { bulkCreateTeachers } from "@/lib/crudActions";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud } from "lucide-react";
 import Image from "next/image";
+import { compressImage } from "@/lib/imageCompression";
 
 export default function BulkTeacherImport({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
@@ -150,14 +151,20 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                             if (!file) return;
                             
                             try {
+                              const optimizedFile = await compressImage(file, {
+                                maxWidth: 1600,
+                                maxHeight: 1600,
+                                quality: 0.8,
+                              });
+
                               const supabase = (await import('@/utils/supabase/client')).createClient();
-                              const ext = file.name.split('.').pop()?.toLowerCase() || 'jpeg';
+                              const ext = optimizedFile.name.split('.').pop()?.toLowerCase() || 'jpeg';
                               const fileName = `bulk-teacher-import-${Date.now()}.${ext}`;
                               const filePath = `imports/${fileName}`;
 
                               const { data, error: uploadError } = await supabase.storage
                                 .from('uploads')
-                                .upload(filePath, file);
+                                .upload(filePath, optimizedFile);
 
                               if (uploadError) throw uploadError;
 

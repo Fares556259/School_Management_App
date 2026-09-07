@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Mail, Phone, Camera, Check, AlertCircle, UploadCloud } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getUserAvatar } from "@/lib/avatar";
+import { compressImage } from "@/lib/imageCompression";
 
 const ProfileClient = () => {
   const router = useRouter();
@@ -90,13 +91,19 @@ const ProfileClient = () => {
     setError("");
     
     try {
+      const optimizedFile = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.8,
+      });
+
       const supabase = (await import('@/utils/supabase/client')).createClient();
       const fileName = `profile-${serverData?.id || 'admin'}-${Date.now()}`;
       const filePath = `profiles/${fileName}`;
 
       const { data, error: uploadError } = await supabase.storage
         .from('uploads')
-        .upload(filePath, file);
+        .upload(filePath, optimizedFile);
 
       if (uploadError) throw uploadError;
 

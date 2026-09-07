@@ -8,6 +8,7 @@ import InputField from "../InputField";
 import Image from "next/image";
 import { createTeacher, updateTeacher } from "@/lib/crudActions";
 import { useState } from "react";
+import { compressImage } from "@/lib/imageCompression";
 
 const schema = z.object({
 
@@ -180,13 +181,18 @@ const TeacherForm = ({
               if (!file) return;
               
               try {
+                const optimizedFile = await compressImage(file, {
+                  maxWidth: 800,
+                  maxHeight: 800,
+                  quality: 0.8,
+                });
                 const supabase = (await import('@/utils/supabase/client')).createClient();
                 const fileName = `teacher-${Date.now()}`;
                 const filePath = `teachers/${fileName}`;
 
                 const { data, error: uploadError } = await supabase.storage
                   .from('uploads')
-                  .upload(filePath, file);
+                  .upload(filePath, optimizedFile);
 
                 if (uploadError) throw uploadError;
 

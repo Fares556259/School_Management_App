@@ -9,6 +9,7 @@ import Image from "next/image";
 import { createNotice, updateNotice } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Upload, X, FileText, Image as ImageIcon, Trash2, FileCode, FileSpreadsheet, Archive } from "lucide-react";
+import { compressImageFiles } from "@/lib/imageCompression";
 
 const createSchema = (t: any) => z.object({
   title: z.string().min(1, { message: t.announcementForm?.titleRequired || "Title is required!" }),
@@ -103,12 +104,16 @@ export default function AnnouncementForm({
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetType: 'image' | 'doc') => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const rawFiles = e.target.files ? Array.from(e.target.files) : [];
+    if (rawFiles.length === 0) return;
 
     try {
       setUploadingTarget(targetType);
       setUploadProgress(0);
+
+      const files = targetType === 'image'
+        ? await compressImageFiles(rawFiles, { maxWidth: 1600, maxHeight: 1600, quality: 0.8 })
+        : rawFiles;
 
       const supabase = (await import('@/utils/supabase/client')).createClient();
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";

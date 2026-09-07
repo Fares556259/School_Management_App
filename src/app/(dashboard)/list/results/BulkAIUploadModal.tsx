@@ -7,6 +7,7 @@ import { processBulkGrades } from "../../admin/actions/aiBulkGradeActions";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { compressImageFiles } from "@/lib/imageCompression";
 
 interface Props {
   isOpen: boolean;
@@ -53,6 +54,13 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
     
     try {
       setStatus("uploading");
+
+      const optimizedFiles = await compressImageFiles(files, {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.85,
+      });
+
       const { createClient } = await import('@/utils/supabase/client');
       const supabase = createClient();
       
@@ -60,8 +68,8 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
       let currentProgress = 0;
       
       // Upload sequentially to track progress better
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (let i = 0; i < optimizedFiles.length; i++) {
+        const file = optimizedFiles[i];
         const fileName = `bulk_ai/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
         const { data, error } = await supabase.storage.from('uploads').upload(fileName, file);
         
@@ -70,7 +78,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
         const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
         
-        currentProgress = Math.round(((i + 1) / files.length) * 50); // 50% for uploading
+        currentProgress = Math.round(((i + 1) / optimizedFiles.length) * 50); // 50% for uploading
         setProgress(currentProgress);
       }
       

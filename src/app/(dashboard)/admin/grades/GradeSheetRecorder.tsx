@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createGradeSheet, GradeEntry, getGradeSheet } from "./actions";
 import { extractGradesFromImage } from "./aiActions";
 import { isAIQuotaReached } from "../actions/aiActions";
+import { compressImageFiles } from "@/lib/imageCompression";
 
 
 const parseArabicName = (name: string): string => {
@@ -450,7 +451,13 @@ export default function GradeSheetRecorder({
 
         // Upload any new files
         if (proofFiles.length > 0) {
-          for (const file of proofFiles) {
+          const optimizedProofFiles = await compressImageFiles(proofFiles, {
+            maxWidth: 1600,
+            maxHeight: 1600,
+            quality: 0.8,
+          });
+
+          for (const file of optimizedProofFiles) {
             const fileName = `${Date.now()}-${file.name}`;
             const filePath = `grades/${fileName}`;
 

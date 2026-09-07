@@ -7,6 +7,7 @@ import { useTransition, useState, useEffect } from "react";
 import InputField from "../InputField";
 import { createAssignment, updateAssignment } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { compressImageFiles } from "@/lib/imageCompression";
 
 function getTranslatedSubject(subjectStr: string, locale: string): string {
   if (!subjectStr) return "";
@@ -99,11 +100,17 @@ const AssignmentForm = ({
   }, [selectedClassId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const rawFiles = e.target.files ? Array.from(e.target.files) : [];
+    if (rawFiles.length === 0) return;
 
     setIsUploading(true);
     try {
+      const files = await compressImageFiles(rawFiles, {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.8,
+      });
+
       const supabase = (await import('@/utils/supabase/client')).createClient();
       const newUrls: string[] = [];
 

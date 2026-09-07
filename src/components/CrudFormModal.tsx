@@ -21,6 +21,7 @@ import {
 import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2, Eye, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { ProofViewerModal } from "./ProofViewerModal";
+import { compressImageFiles } from "@/lib/imageCompression";
 
 const parseImgs = (val: any): string[] => {
   if (!val) return [];
@@ -607,13 +608,22 @@ export default function CrudFormModal({
                                       setUploadProgress(0);
                                       setError("");
 
+                                      // 800px for avatar photos, 1600px for financial receipts / documents
+                                      const isAvatar = entity === "student" || entity === "teacher" || entity === "staff" || entity === "parent";
+                                      const maxDim = isAvatar ? 800 : 1600;
+                                      const optimizedFiles = await compressImageFiles(selected, {
+                                        maxWidth: maxDim,
+                                        maxHeight: maxDim,
+                                        quality: 0.8,
+                                      });
+
                                       const supabase = createClient();
                                       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
                                       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
 
                                       const uploadedUrls: string[] = [];
-                                      for (let i = 0; i < selected.length; i++) {
-                                        const file = selected[i];
+                                      for (let i = 0; i < optimizedFiles.length; i++) {
+                                        const file = optimizedFiles[i];
                                         const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
                                         const fileName = `${entity}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName}`;
 

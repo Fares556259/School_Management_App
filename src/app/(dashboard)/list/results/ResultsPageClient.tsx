@@ -13,6 +13,7 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 
 import GradeDetailsModal from "@/components/GradeDetailsModal";
 import SubjectProofsGrid from "@/components/SubjectProofsGrid";
+import { compressImage } from "@/lib/imageCompression";
 
 /** Parse first segment of pipe-separated trilingual name to get localized string.
  * e.g. "الرياضيات | Mathématiques | Mathematics"
@@ -113,15 +114,21 @@ export default function ResultsPageClient({
     setUploadingCardId(cardId);
 
     try {
+      const optimizedFile = await compressImage(file, {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.8,
+      });
+
       // 1. Upload to Supabase Storage bucket 'uploads'
       const { createClient } = await import('@/utils/supabase/client');
       const supabase = createClient();
-      const fileName = `${Date.now()}-${file.name}`;
+      const fileName = `${Date.now()}-${optimizedFile.name}`;
       const filePath = `grades/${fileName}`;
 
       const { data, error: uploadError } = await supabase.storage
         .from('uploads')
-        .upload(filePath, file, {
+        .upload(filePath, optimizedFile, {
           cacheControl: '3600',
           upsert: false
         });
