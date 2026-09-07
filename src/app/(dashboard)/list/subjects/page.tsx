@@ -9,8 +9,6 @@ import { seedDefaultSubjects } from "@/lib/crudActions";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 
-export const dynamic = "force-dynamic";
-
 const DOMAIN_EMOJIS: Record<string, string> = {
   "Languages":          "🔤",
   "Sciences":           "🔬",

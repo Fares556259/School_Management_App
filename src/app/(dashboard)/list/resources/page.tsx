@@ -15,8 +15,6 @@ import { translations, Locale } from "@/lib/translations";
 import { Pencil, Trash2 } from "lucide-react";
 import ResourceDetailsModal from "@/components/ResourceDetailsModal";
 
-export const dynamic = "force-dynamic";
-
 type ResourceList = Resource & {
   lesson: Lesson & {
     subject: Subject;
