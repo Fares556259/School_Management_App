@@ -17,54 +17,62 @@ export default async function SingleStudentPage({
   const isAdmin = role === "admin";
 
   // 1. Fetch current student with all relevant data
-  const student = await getCachedTenantData(
-    schoolId,
-    "students",
-    [id, schoolId],
-    () =>
-      prisma.student.findUnique({
-        where: { id },
-        include: {
-          class: {
-            include: {
-              level: true,
-              _count: {
-                select: { lessons: true },
-              },
+  const fetchStudent = () =>
+    prisma.student.findUnique({
+      where: { id },
+      include: {
+        class: {
+          include: {
+            level: true,
+            _count: {
+              select: { lessons: true },
             },
-          },
-          parent: true,
-          payments: {
-            orderBy: [
-              { year: "desc" },
-              { month: "desc" },
-            ],
-          },
-          attendance: {
-            where: { schoolId },
-            include: {
-              lesson: {
-                include: {
-                  subject: true,
-                  teacher: true,
-                },
-              },
-            },
-            orderBy: { date: "desc" },
-          },
-          grades: {
-            where: { schoolId },
-            include: {
-              subject: true,
-            },
-            orderBy: [
-              { term: "asc" },
-            ],
           },
         },
-      }),
-    300
-  );
+        parent: true,
+        payments: {
+          orderBy: [
+            { year: "desc" },
+            { month: "desc" },
+          ],
+        },
+        attendance: {
+          where: { schoolId },
+          include: {
+            lesson: {
+              include: {
+                subject: true,
+                teacher: true,
+              },
+            },
+          },
+          orderBy: { date: "desc" },
+        },
+        grades: {
+          where: { schoolId },
+          include: {
+            subject: true,
+          },
+          orderBy: [
+            { term: "asc" },
+          ],
+        },
+      },
+    });
+
+  let student: any = null;
+  try {
+    student = await getCachedTenantData(
+      schoolId,
+      "students",
+      ["student_profile_v4", id, schoolId],
+      fetchStudent,
+      300
+    );
+  } catch (err) {
+    console.error("[SingleStudentPage] Cache failed for student, fetching raw:", err);
+    student = await fetchStudent();
+  }
 
   if (!student) {
     return notFound();
@@ -206,58 +214,75 @@ export default async function SingleStudentPage({
   };
 
   // 3. Preload all school students with their full bundle for 0ms in-memory instant switching
-  const allSchoolStudentsWithData = await getCachedTenantData(
-    schoolId,
-    "students",
-    ["all_school_bundles", schoolId],
-    () =>
-      prisma.student.findMany({
-        where: { schoolId },
-        include: {
-          class: {
-            include: {
-              level: true,
-              _count: {
-                select: { lessons: true },
-              },
+  const fetchAllStudents = () =>
+    prisma.student.findMany({
+      where: { schoolId },
+      include: {
+        class: {
+          include: {
+            level: true,
+            _count: {
+              select: { lessons: true },
             },
-          },
-          parent: true,
-          payments: {
-            orderBy: [
-              { year: "desc" },
-              { month: "desc" },
-            ],
-          },
-          attendance: {
-            where: { schoolId },
-            include: {
-              lesson: {
-                include: {
-                  subject: true,
-                  teacher: true,
-                },
-              },
-            },
-            orderBy: { date: "desc" },
-          },
-          grades: {
-            where: { schoolId },
-            include: {
-              subject: true,
-            },
-            orderBy: [
-              { term: "asc" },
-            ],
           },
         },
-        orderBy: [
-          { surname: "asc" },
-          { name: "asc" },
-        ],
-      }),
-    300
-  );
+        parent: true,
+        payments: {
+          orderBy: [
+            { year: "desc" },
+            { month: "desc" },
+          ],
+        },
+        attendance: {
+          where: { schoolId },
+          include: {
+            lesson: {
+              include: {
+                subject: true,
+                teacher: true,
+              },
+            },
+          },
+          orderBy: { date: "desc" },
+        },
+        grades: {
+          where: { schoolId },
+          include: {
+            subject: true,
+          },
+          orderBy: [
+            { term: "asc" },
+          ],
+        },
+      },
+      orderBy: [
+        { surname: "asc" },
+        { name: "asc" },
+      ],
+    });
+
+  let allSchoolStudentsWithData: any[] = [];
+  try {
+    allSchoolStudentsWithData = await getCachedTenantData(
+      schoolId,
+      "students",
+      ["all_school_bundles_v4", schoolId],
+      fetchAllStudents,
+      300
+    );
+  } catch (err) {
+    console.error("[SingleStudentPage] Cache failed for all school students, fetching raw:", err);
+    try {
+      allSchoolStudentsWithData = await fetchAllStudents();
+    } catch (dbErr) {
+      allSchoolStudentsWithData = [];
+    }
+  }
+
+  // Pre-calculate current student schedule and tuition metrics before mapping
+  const currentSchedule = getScheduleForClass(student.classId, student.class?.name);
+  const levelTuitionFee = student.class?.level?.tuitionFee ?? 450;
+  const gradeLevel = student.class?.level?.level ?? 1;
 
   const studentListToUse: any[] = (allSchoolStudentsWithData && allSchoolStudentsWithData.length > 0)
     ? [...allSchoolStudentsWithData]
@@ -299,11 +324,7 @@ export default async function SingleStudentPage({
 
   const classmatesList = student.classId
     ? allStudentsList.filter((s) => s.classId === student.classId)
-    : [student];
-
-  const currentSchedule = getScheduleForClass(student.classId, student.class?.name);
-  const levelTuitionFee = student.class?.level?.tuitionFee || 0;
-  const gradeLevel = student.class?.level?.level ?? 1;
+    : allStudentsList.filter((s) => s.id === student.id);
 
   return (
     <StudentProfileClient
