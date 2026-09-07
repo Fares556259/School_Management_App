@@ -81,32 +81,56 @@ const ParentListPage = async ({
     }
   }
 
-  const [data, count, classes, school] = await getCachedTenantData(
-    schoolId,
-    "parents",
-    [p, JSON.stringify(queryParams), schoolId],
-    () => Promise.all([
-      prisma.parent.findMany({
-        where: query,
-        include: {
-          students: true,
-        },
-        
-        
-        orderBy: { name: "asc" }
-      }),
-      prisma.parent.count({ where: query }),
+  // 1. Static reference data for parent modals (classes & school, TTL: 1 hour / 3600s)
+  const fetchStaticReferences = () =>
+    Promise.all([
       prisma.class.findMany({
         where: { schoolId },
         select: { id: true, name: true },
+        orderBy: { name: "asc" },
       }),
       prisma.school.findUnique({
         where: { id: schoolId },
         select: { name: true, subdomain: true },
       }),
-    ]),
+    ]);
+
+  // 2. Dynamic paginated parent data (TTL: 5 min / 300s)
+  const fetchDynamicData = () =>
+    Promise.all([
+      prisma.parent.findMany({
+        where: query,
+        include: {
+          students: true,
+        },
+        orderBy: { name: "asc" },
+      }),
+      prisma.parent.count({ where: query }),
+    ]);
+
+  const staticRefPromise = getCachedTenantData(
+    schoolId,
+    "classes",
+    ["parent_modal_references"],
+    fetchStaticReferences,
+    3600
+  );
+
+  const dynamicDataPromise = getCachedTenantData(
+    schoolId,
+    "parents",
+    ["parents_paged_v2", p, JSON.stringify(queryParams)],
+    fetchDynamicData,
     300
   );
+
+  const [
+    [classes, school],
+    [data, count],
+  ] = await Promise.all([
+    staticRefPromise.catch(async () => fetchStaticReferences()),
+    dynamicDataPromise.catch(async () => fetchDynamicData()),
+  ]);
 
   const relatedData = {
     classId: [

@@ -112,71 +112,103 @@ const StudentListPage = async ({
   let summaryTotal = 0;
   let summaryPaid = 0;
 
-  const fetchRawData = () => Promise.all([
-    prisma.student.findMany({
-      where: query,
-      include: {
-        class: true,
-        level: true,
-        parent: true,
-        payments: { 
-          select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true } 
+  // 1. Static reference data for modals & forms (TTL: 1 hour / 3600s)
+  const fetchStaticReferences = () =>
+    Promise.all([
+      prisma.parent.findMany({
+        where: { schoolId },
+        select: { id: true, name: true, surname: true, phone: true },
+      }),
+      prisma.class.findMany({
+        where: { schoolId },
+        select: { id: true, name: true, level: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.level.findMany({
+        where: { schoolId },
+        select: { id: true, level: true },
+        orderBy: { level: "asc" },
+      }),
+      role === "admin" && userId
+        ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } })
+        : Promise.resolve(null),
+      prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
+    ]);
+
+  // 2. Dynamic paginated student data & month payment summaries (TTL: 5 min / 300s)
+  const fetchDynamicData = () =>
+    Promise.all([
+      prisma.student.findMany({
+        where: query,
+        include: {
+          class: true,
+          level: true,
+          parent: true,
+          payments: {
+            select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true },
+          },
         },
-      },
-    }),
-    prisma.student.count({ where: query }),
-    prisma.parent.findMany({ 
-      where: { schoolId },
-      select: { id: true, name: true, surname: true, phone: true } 
-    }),
-    prisma.class.findMany({ 
-      where: { schoolId }, 
-      select: { id: true, name: true, level: true },
-      orderBy: { name: 'asc' }
-    }),
-    prisma.level.findMany({ 
-      where: { schoolId },
-      select: { id: true, level: true },
-      orderBy: { level: 'asc' }
-    }),
-    role === "admin" && userId ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } }) : Promise.resolve(null),
-    prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
-    prisma.student.count({ where: summaryQuery }),
-    prisma.student.count({
-      where: {
-        ...summaryQuery,
-        payments: {
-          some: {
-            month: monthIdx,
-            year: yearVal,
-            status: "PAID"
-          }
-        }
-      }
-    })
-  ]);
+      }),
+      prisma.student.count({ where: query }),
+      prisma.student.count({ where: summaryQuery }),
+      prisma.student.count({
+        where: {
+          ...summaryQuery,
+          payments: {
+            some: {
+              month: monthIdx,
+              year: yearVal,
+              status: "PAID",
+            },
+          },
+        },
+      }),
+    ]);
 
   try {
-    const cachedResult = await getCachedTenantData(
+    const staticRefPromise = getCachedTenantData(
       schoolId,
-      'students',
-      ['students_list_page_v4', p, JSON.stringify(queryParams), monthIdx, yearVal],
-      fetchRawData,
+      "classes",
+      ["student_modal_references", userId || "guest"],
+      fetchStaticReferences,
+      3600
+    );
+
+    const dynamicDataPromise = getCachedTenantData(
+      schoolId,
+      "students",
+      ["students_paged_v5", p, JSON.stringify(queryParams), monthIdx, yearVal],
+      fetchDynamicData,
       300
     );
 
-    if (Array.isArray(cachedResult) && cachedResult.length >= 9) {
-      [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = cachedResult;
+    const [staticRes, dynamicRes] = await Promise.all([
+      staticRefPromise.catch(async () => fetchStaticReferences()),
+      dynamicDataPromise.catch(async () => fetchDynamicData()),
+    ]);
+
+    if (Array.isArray(staticRes) && staticRes.length >= 5) {
+      [parents, classes, levels, admin, school] = staticRes;
     } else {
-      // Fallback to fresh database query if cached format is invalid
-      const freshResults = await fetchRawData();
-      [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = freshResults;
+      const freshStatic = await fetchStaticReferences();
+      [parents, classes, levels, admin, school] = freshStatic;
+    }
+
+    if (Array.isArray(dynamicRes) && dynamicRes.length >= 4) {
+      [data, count, summaryTotal, summaryPaid] = dynamicRes;
+    } else {
+      const freshDynamic = await fetchDynamicData();
+      [data, count, summaryTotal, summaryPaid] = freshDynamic;
     }
   } catch (err) {
-    console.error("[StudentListPage] Data fetch error, trying direct fallback:", err);
+    console.error("[StudentListPage] Data fetch error, running direct fallbacks:", err);
     try {
-      const fallbackResults = await fetchRawData();
-      [data, count, parents, classes, levels, admin, school, summaryTotal, summaryPaid] = fallbackResults;
+      const [fallbackStatic, fallbackDynamic] = await Promise.all([
+        fetchStaticReferences(),
+        fetchDynamicData(),
+      ]);
+      [parents, classes, levels, admin, school] = fallbackStatic;
+      [data, count, summaryTotal, summaryPaid] = fallbackDynamic;
     } catch (dbErr) {
       console.error("[StudentListPage] Direct DB fallback also failed:", dbErr);
     }

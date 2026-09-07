@@ -59,36 +59,71 @@ const TeacherListPage = async ({
   const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
-  const [data, count, subjectsData, classesData, paidThisMonth] = await getCachedTenantData(
-    schoolId,
-    'teachers',
-    [p, JSON.stringify(queryParams), monthIdx, yearVal],
-    () => Promise.all([
+  // 1. Static reference data for teacher modal (subjects & classes, TTL: 1 hour / 3600s)
+  const fetchStaticReferences = () =>
+    Promise.all([
+      prisma.subject.findMany({
+        where: { schoolId, parentId: null },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.class.findMany({
+        where: { schoolId },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+  // 2. Dynamic paginated teacher data & payment status (TTL: 5 min / 300s)
+  const fetchDynamicData = () =>
+    Promise.all([
       prisma.teacher.findMany({
         where: query,
         include: {
           subjects: true,
           classes: true,
           timetable: { include: { subject: true, class: true } },
-          payments: { select: { month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true } },
+          payments: {
+            select: { month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true },
+          },
         },
-        orderBy: [{ name: "asc" }, { surname: "asc" }]
+        orderBy: [{ name: "asc" }, { surname: "asc" }],
       }),
       prisma.teacher.count({ where: query }),
-      prisma.subject.findMany({ where: { schoolId, parentId: null }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-      prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
       prisma.payment.count({
         where: {
           schoolId,
           userType: "TEACHER",
           month: monthIdx,
           year: yearVal,
-          status: "PAID"
-        }
-      })
-    ]),
+          status: "PAID",
+        },
+      }),
+    ]);
+
+  const staticRefPromise = getCachedTenantData(
+    schoolId,
+    "classes",
+    ["teacher_modal_references"],
+    fetchStaticReferences,
+    3600
+  );
+
+  const dynamicDataPromise = getCachedTenantData(
+    schoolId,
+    "teachers",
+    ["teachers_paged_v5", p, JSON.stringify(queryParams), monthIdx, yearVal],
+    fetchDynamicData,
     300
   );
+
+  const [
+    [subjectsData, classesData],
+    [data, count, paidThisMonth],
+  ] = await Promise.all([
+    staticRefPromise.catch(async () => fetchStaticReferences()),
+    dynamicDataPromise.catch(async () => fetchDynamicData()),
+  ]);
 
   const relatedData = {
     subjects: subjectsData.map(s => ({ value: s.id.toString(), label: s.name.split('|')[0].trim() })),

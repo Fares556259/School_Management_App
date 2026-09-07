@@ -170,11 +170,29 @@ const ClassListPage = async ({
     </tr>
   );
 
-  const [data, count, levels, teachers] = await getCachedTenantData(
-    schoolId,
-    'classes',
-    [p, JSON.stringify(queryParams)],
-    () => Promise.all([
+  // 1. Static reference data for class modals (levels & teachers, TTL: 1 hour / 3600s)
+  const fetchStaticReferences = () =>
+    Promise.all([
+      prisma.level.findMany({ 
+        where: { schoolId }, 
+        select: { 
+          id: true, 
+          level: true, 
+          variations: true,
+          classes: {
+            select: {
+              name: true
+            }
+          }
+        },
+        orderBy: { level: 'asc' }
+      }),
+      prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
+    ]);
+
+  // 2. Dynamic paginated class data (TTL: 5 min / 300s)
+  const fetchDynamicData = () =>
+    Promise.all([
       prisma.class.findMany({
         where: query,
         include: {
@@ -205,24 +223,31 @@ const ClassListPage = async ({
         skip: ITEM_PER_PAGE * (p - 1),
       }),
       prisma.class.count({ where: query }),
-      prisma.level.findMany({ 
-        where: { schoolId }, 
-        select: { 
-          id: true, 
-          level: true, 
-          variations: true,
-          classes: {
-            select: {
-              name: true
-            }
-          }
-        },
-        orderBy: { level: 'asc' }
-      }),
-      prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true } }),
-    ]),
+    ]);
+
+  const staticRefPromise = getCachedTenantData(
+    schoolId,
+    'classes',
+    ['class_modal_references'],
+    fetchStaticReferences,
+    3600
+  );
+
+  const dynamicDataPromise = getCachedTenantData(
+    schoolId,
+    'classes',
+    ['classes_paged_v2', p, JSON.stringify(queryParams)],
+    fetchDynamicData,
     300
   );
+
+  const [
+    [levels, teachers],
+    [data, count],
+  ] = await Promise.all([
+    staticRefPromise.catch(async () => fetchStaticReferences()),
+    dynamicDataPromise.catch(async () => fetchDynamicData()),
+  ]);
 
   const availableClassNames: { value: string; label: string }[] = [];
   const ARABIC_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض", "ظ", "غ"];
