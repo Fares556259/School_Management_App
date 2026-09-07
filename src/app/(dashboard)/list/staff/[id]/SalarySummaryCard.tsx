@@ -44,23 +44,40 @@ export default function SalarySummaryCard({
   const now = new Date();
   const { startMonth, startYear } = getSchoolYearStart(now);
 
-  // Build the list of school-year months up to and including current month
+  // Build the complete 12 months of the school year cycle (September -> August)
   const schoolYearMonths: { month: number; year: number; label: string; fullLabel: string }[] = [];
-  let m = startMonth; // 0-based
+  let m = startMonth; // 0-based: 8 (Septembre)
   let y = startYear;
-  while (true) {
-    const isAfterNow = y > now.getFullYear() || (y === now.getFullYear() && m > now.getMonth());
+  for (let i = 0; i < 12; i++) {
     schoolYearMonths.push({
       month: m + 1,
       year: y,
       label: `${MONTH_NAMES[m]} ${y}`,
       fullLabel: `${MONTH_NAMES_FR[m]} ${y}`,
     });
-    if (isAfterNow) break; // include one month ahead so current month shows
     m++;
-    if (m > 11) { m = 0; y++; }
-    if (y > now.getFullYear() + 1) break; // safety
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
   }
+
+  // Also include any extra months from payments that fall outside the standard 12 months
+  payments.forEach((p) => {
+    const exists = schoolYearMonths.some((item) => item.month === p.month && item.year === p.year);
+    if (!exists && p.month >= 1 && p.month <= 12) {
+      const monthIdx = p.month - 1;
+      schoolYearMonths.push({
+        month: p.month,
+        year: p.year,
+        label: `${MONTH_NAMES[monthIdx]} ${p.year}`,
+        fullLabel: `${MONTH_NAMES_FR[monthIdx]} ${p.year}`,
+      });
+    }
+  });
+
+  // Sort chronologically
+  schoolYearMonths.sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month));
 
   // Only months already elapsed (not future) are "owed"
   const elapsedMonths = schoolYearMonths.filter(({ month, year }) => {
@@ -76,9 +93,11 @@ export default function SalarySummaryCard({
   let totalFullyPaid = 0;
   let totalAdvanced = 0;
 
-  elapsedMonths.forEach(({ month, year }) => {
-    const p = paymentMap.get(`${month}-${year}`);
-    if (!p) return;
+  // Calculate all payments matching school year months
+  payments.forEach((p) => {
+    const matchesSchoolYear = schoolYearMonths.some((item) => item.month === p.month && item.year === p.year);
+    if (!matchesSchoolYear) return;
+
     if (p.status === "PAID") {
       totalFullyPaid += p.amount;
     } else if (p.status === "PARTIAL") {
@@ -124,13 +143,13 @@ export default function SalarySummaryCard({
         </div>
         <div className="w-full h-3 bg-slate-200/80 rounded-full overflow-hidden p-0.5">
           <div
-            className="h-full bg-linear-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
         <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2 font-medium">
           <span>{elapsedMonths.length} mois échus</span>
-          <span>Total dû : {fmt(totalOwed)}</span>
+          <span>Total dû (échus) : {fmt(totalOwed)}</span>
         </div>
       </div>
 
@@ -179,7 +198,7 @@ export default function SalarySummaryCard({
         <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-2.5">
           Chronologie des Mois
         </p>
-        <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
           {schoolYearMonths.map(({ month, year, label }) => {
             const p = paymentMap.get(`${month}-${year}`);
             const isFuture = year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth() + 1);

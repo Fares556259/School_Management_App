@@ -266,31 +266,23 @@ export default function StaffProfileClient({
   const currentMonthAdvance = isCurrentMonthPartial ? currentMonthPayment.amount || 0 : 0;
 
   // School year metrics
-  const academicStartMonth = now.getMonth() >= 8 ? 8 : 8; // Sep (0-based: 8)
   const academicStartYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
 
-  let totalPaidAll = 0;
+  // Real total paid across all payments recorded for staff
+  const totalPaidAll = (staff.payments || []).reduce((acc: number, p: any) => {
+    if (p.status === "PAID") return acc + (p.amount || 0);
+    if (p.status === "PARTIAL") return acc + Math.max(0, (p.amount || 0) - (p.deferredAmount || 0));
+    return acc;
+  }, 0);
+
+  // Count elapsed months in current school year cycle (from September of academicStartYear)
   let elapsedMonthsCount = 0;
-
-  let iterM = academicStartMonth;
-  let iterY = academicStartYear;
-
-  const paymentMap = new Map<string, any>();
-  (staff.payments || []).forEach((p: any) => paymentMap.set(`${p.month}-${p.year}`, p));
-
-  while (true) {
-    const isPastOrCurrent = iterY < now.getFullYear() || (iterY === now.getFullYear() && iterM <= now.getMonth());
-    if (isPastOrCurrent) {
+  for (let i = 0; i < 12; i++) {
+    const m = ((8 + i) % 12) + 1;
+    const y = 8 + i >= 12 ? academicStartYear + 1 : academicStartYear;
+    if (y < currentYear || (y === currentYear && m <= currentMonthIdx)) {
       elapsedMonthsCount++;
-      const p = paymentMap.get(`${iterM + 1}-${iterY}`);
-      if (p) {
-        totalPaidAll += p.amount || 0;
-      }
     }
-    if (iterY > now.getFullYear() || (iterY === now.getFullYear() && iterM >= now.getMonth())) break;
-    iterM++;
-    if (iterM > 11) { iterM = 0; iterY++; }
-    if (iterY > now.getFullYear() + 1) break;
   }
 
   const totalOwed = elapsedMonthsCount * (staff.salary || 0);
@@ -360,6 +352,12 @@ export default function StaffProfileClient({
             <Contact size={15} className={isSideNavOpen ? "text-indigo-600" : "text-slate-500"} />
             <span>{isSideNavOpen ? "Masquer l'annuaire" : `Annuaire (${liveStaffList.length})`}</span>
           </button>
+
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <CrudFormModal entity="staff" mode="update" data={staff} id={staff.id} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -368,96 +366,138 @@ export default function StaffProfileClient({
         {/* LEFT / CENTER: Main Profile Details */}
         <div className="flex-1 min-w-0 flex flex-col gap-6">
           
-          {/* 2. HERO PROFILE CARD */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-            {/* Top decorative gradient banner */}
-            <div className="h-20 bg-linear-to-r from-indigo-600 via-indigo-700 to-slate-800 relative px-6 flex items-center justify-end">
-              <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <div className="scale-90 origin-right">
-                    <CrudFormModal entity="staff" mode="update" data={staff} />
+          {/* 2. UNIFIED STAFF IDENTITY CARD */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs relative overflow-hidden flex flex-col gap-5">
+            {/* Subtle top accent line */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
+
+            {/* Identity & Main Info */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden relative border-2 border-slate-100 shadow-sm bg-slate-50 shrink-0">
+                  <Image
+                    src={getUserAvatar(staff.img, "staff", (staff as any).sex)}
+                    alt={staffFullName}
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-cover"
+                  />
+                  <span
+                    className={`absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-2xs ${
+                      isCurrentMonthPaid
+                        ? "bg-emerald-500"
+                        : isCurrentMonthPartial
+                        ? "bg-purple-500"
+                        : "bg-rose-500"
+                    }`}
+                    title={isCurrentMonthPaid ? "Soldé" : isCurrentMonthPartial ? "Acompte" : "À régler"}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap mb-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                      {staffFullName}
+                    </h1>
                   </div>
-                )}
+                  <p className="text-xs text-slate-400 font-medium">
+                    Personnel scolaire · Identifiant : <span className="font-mono text-slate-700 font-semibold">{staff.username}</span>
+                  </p>
+
+                  {/* Role & Status pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center gap-1.5">
+                      <User size={12} className="text-indigo-500" />
+                      {staff.role || "Personnel"}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1.5">
+                      <CheckCircle2 size={12} className="text-emerald-500" />
+                      Contrat actif
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Base Salary Badge */}
+              <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl px-4 py-2.5 flex items-center gap-3 self-start md:self-auto">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Banknote size={20} />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-emerald-600 block tracking-wider leading-none">
+                    Salaire Mensuel
+                  </span>
+                  <span className="text-xl font-black text-emerald-800 block mt-0.5">
+                    {fmt(staff.salary || 0)}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Profile info section */}
-            <div className="px-6 pb-6 pt-0 relative">
-              <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 -mt-10 mb-5">
-                {/* Avatar and Main Info */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                  <div className="relative">
-                    <Image
-                      src={getUserAvatar(staff.img, "staff", (staff as any).sex)}
-                      alt={staffFullName}
-                      width={96}
-                      height={96}
-                      className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-slate-100"
-                    />
-                    <span
-                      className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white shadow-2xs ${
-                        isCurrentMonthPaid
-                          ? "bg-emerald-500"
-                          : isCurrentMonthPartial
-                          ? "bg-purple-500"
-                          : "bg-rose-500"
-                      }`}
-                      title={isCurrentMonthPaid ? "Soldé" : isCurrentMonthPartial ? "Acompte" : "À régler"}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2.5 flex-wrap mb-1">
-                      <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                        {staffFullName}
-                      </h1>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                        {staff.role || "Personnel"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                      <span>Identifiant :</span>
-                      <span className="font-semibold text-slate-700">{staff.username}</span>
-                      <span className="text-slate-300">•</span>
-                      <span>Inscrit le {new Date(staff.createdAt).toLocaleDateString("fr-FR")}</span>
-                    </p>
-                  </div>
+            {/* Metadata Strip (Always Visible) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
+                  <Phone size={13} />
                 </div>
-
-                {/* Direct quick action badges */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {staff.phone && (
-                    <a
-                      href={`tel:${staff.phone}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50/50 text-slate-700 hover:text-indigo-700 text-xs font-semibold shadow-2xs transition-colors"
-                    >
-                      <Phone size={13} className="text-indigo-600" />
-                      <span>{staff.phone}</span>
+                <div className="truncate">
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Téléphone</span>
+                  {staff.phone ? (
+                    <a href={`tel:${staff.phone}`} className="font-semibold text-slate-700 hover:text-indigo-600 truncate block">
+                      {staff.phone}
                     </a>
-                  )}
-                  {staff.bloodType && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium">
-                      <Droplet size={13} className="text-rose-500" />
-                      <span>{staff.bloodType}</span>
-                    </span>
+                  ) : (
+                    <span className="text-slate-400 italic">Non renseigné</span>
                   )}
                 </div>
               </div>
 
-              {/* Badges / Address row */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 border-t border-slate-100 pt-4 font-medium">
-                {staff.address && (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={14} className="text-slate-400" />
-                    <span>{staff.address}</span>
-                  </div>
-                )}
-                {staff.birthday && (
-                  <div className="flex items-center gap-1.5">
-                    <CalendarIcon size={14} className="text-slate-400" />
-                    <span>Né(e) le {new Date(staff.birthday).toLocaleDateString("fr-FR")}</span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
+                  <CalendarIcon size={13} />
+                </div>
+                <div className="truncate">
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Naissance</span>
+                  <span className="font-semibold text-slate-700 block">
+                    {staff.birthday ? new Intl.DateTimeFormat("fr-FR").format(new Date(staff.birthday)) : "Non renseignée"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-rose-500 border border-slate-100 shrink-0">
+                  <Droplet size={13} />
+                </div>
+                <div className="truncate">
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Groupe Sanguin</span>
+                  <span className="font-semibold text-slate-700 block">
+                    {staff.bloodType || "Inconnu"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-indigo-600 border border-slate-100 shrink-0">
+                  <MapPin size={13} />
+                </div>
+                <div className="truncate">
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Adresse</span>
+                  <span className="font-semibold text-slate-700 block truncate" title={staff.address || "Non renseignée"}>
+                    {staff.address || "Non renseignée"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
+                  <ShieldCheck size={13} />
+                </div>
+                <div className="truncate">
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Date d&apos;embauche</span>
+                  <span className="font-semibold text-slate-700 block">
+                    {staff.createdAt ? new Intl.DateTimeFormat("fr-FR").format(new Date(staff.createdAt)) : "Non renseignée"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

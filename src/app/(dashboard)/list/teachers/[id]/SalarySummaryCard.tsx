@@ -30,18 +30,34 @@ export default function SalarySummaryCard({ salary, payments }: SalarySummaryCar
   const now = new Date();
   const { startMonth, startYear } = getSchoolYearStart(now);
 
-  // Build the list of school-year months up to and including current month
+  // Build the complete 12 months of the school year cycle (September -> August)
   const schoolYearMonths: { month: number; year: number; label: string }[] = [];
-  let m = startMonth; // 0-based
+  let m = startMonth; // 0-based: 8 (Sept)
   let y = startYear;
-  while (true) {
-    const isAfterNow = y > now.getFullYear() || (y === now.getFullYear() && m > now.getMonth());
+  for (let i = 0; i < 12; i++) {
     schoolYearMonths.push({ month: m + 1, year: y, label: `${MONTH_NAMES[m]} ${y}` });
-    if (isAfterNow) break; // include one month ahead so current month shows
     m++;
-    if (m > 11) { m = 0; y++; }
-    if (y > now.getFullYear() + 1) break; // safety
+    if (m > 11) {
+      m = 0;
+      y++;
+    }
   }
+
+  // Also include any extra months from payments that fall outside the standard 12 months
+  payments.forEach((p) => {
+    const exists = schoolYearMonths.some((item) => item.month === p.month && item.year === p.year);
+    if (!exists && p.month >= 1 && p.month <= 12) {
+      const monthIdx = p.month - 1;
+      schoolYearMonths.push({
+        month: p.month,
+        year: p.year,
+        label: `${MONTH_NAMES[monthIdx]} ${p.year}`,
+      });
+    }
+  });
+
+  // Sort chronologically
+  schoolYearMonths.sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month));
 
   // Only months already elapsed (not future) are "owed"
   const elapsedMonths = schoolYearMonths.filter(({ month, year }) => {
@@ -57,9 +73,10 @@ export default function SalarySummaryCard({ salary, payments }: SalarySummaryCar
   let totalFullyPaid = 0;
   let totalAdvanced = 0;
 
-  elapsedMonths.forEach(({ month, year }) => {
-    const p = paymentMap.get(`${month}-${year}`);
-    if (!p) return;
+  payments.forEach((p) => {
+    const matchesSchoolYear = schoolYearMonths.some((item) => item.month === p.month && item.year === p.year);
+    if (!matchesSchoolYear) return;
+
     if (p.status === "PAID") {
       totalFullyPaid += p.amount;
     } else if (p.status === "PARTIAL") {
