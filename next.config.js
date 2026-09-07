@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 // Force reload: 2026-04-15T19:37
 const nextConfig = {
+  compress: true,
   images: {
     remotePatterns: [
       {
@@ -23,6 +24,7 @@ const nextConfig = {
     unoptimized: true, // 🐘 V3 Stabilization: Disable optimization to resolve 'fetch failed' timeouts for remote assets
   },
   experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
     serverActions: {
       bodySizeLimit: "10mb",
     },
