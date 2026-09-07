@@ -71,47 +71,36 @@ export const createTeacher = async (data: {
 export const bulkCreateTeachers = async (teachers: any[]) => {
   try {
     const schoolId = await getSchoolId();
-    const auditLogsToCreate: { id: string; name: string; surname: string; username: string }[] = [];
+    if (!teachers || teachers.length === 0) return { success: true };
 
-    await prisma.$transaction(async (tx) => {
-      for (const t of teachers) {
-        const id = crypto.randomUUID();
-        await tx.teacher.create({
-          data: {
-            schoolId,
-            id,
-            username: t.username,
-            name: t.name,
-            surname: t.surname,
-            phone: t.phone || null,
-            address: t.address || "Unknown",
-            bloodType: t.bloodType || "O+",
-            birthday: new Date(t.birthday || "1980-01-01"),
-            sex: t.sex as UserSex || UserSex.MALE,
-            salary: t.salary ?? 3000,
-            img: t.img || null,
-          },
-        });
+    const teachersToCreate = teachers.map((t) => ({
+      schoolId,
+      id: crypto.randomUUID(),
+      username: t.username,
+      name: t.name,
+      surname: t.surname,
+      phone: t.phone || null,
+      address: t.address || "Unknown",
+      bloodType: t.bloodType || "O+",
+      birthday: new Date(t.birthday || "1980-01-01"),
+      sex: (t.sex as UserSex) || UserSex.MALE,
+      salary: t.salary ?? 3000,
+      img: t.img || null,
+    }));
 
-        auditLogsToCreate.push({
-          id,
-          name: t.name,
-          surname: t.surname,
-          username: t.username
-        });
-      }
+    await prisma.teacher.createMany({
+      data: teachersToCreate,
+      skipDuplicates: true,
     });
 
-    for (const log of auditLogsToCreate) {
-      await createAuditLog({
-        action: "BULK_CREATE_TEACHER",
-        entityType: "Teacher",
-        entityId: log.id,
-        description: `Bulk enrolled teacher: ${log.name} ${log.surname} (${log.username})`,
-      });
-    }
+    await createAuditLog({
+      action: "BULK_CREATE_TEACHER",
+      entityType: "Teacher",
+      entityId: null,
+      description: `Bulk enrolled ${teachersToCreate.length} teacher(s)`,
+    });
 
-    invalidateTenantTags(schoolId, 'teachers', 'dashboard');
+    invalidateTenantTags(schoolId, 'teachers', 'dashboard', 'classes');
     revalidatePath("/list/teachers");
     return { success: true };
   } catch (err: any) {
@@ -277,82 +266,110 @@ export const createStudent = async (data: {
 export const bulkCreateStudents = async (students: any[]) => {
   try {
     const schoolId = await getSchoolId();
-    const auditLogsToCreate: { id: string; name: string; surname: string; username: string }[] = [];
+    if (!students || students.length === 0) return { success: true };
 
-    await prisma.$transaction(async (tx) => {
-      for (const s of students) {
-        const studentId = crypto.randomUUID();
+    // 1. Collect unique parent phone numbers needing lookup
+    const phoneToParentIdMap = new Map<string, string>();
+    const phonesToLookup = Array.from(
+      new Set(
+        students
+          .filter((s) => !s.parentId && s.parentPhone)
+          .map((s) => String(s.parentPhone).trim().replace(/\s+/g, ""))
+          .filter(Boolean)
+      )
+    );
 
-        // 1. Find or Create Parent
-        let parentId = s.parentId;
-
-        if (!parentId && s.parentPhone) {
-          const existingParent = await tx.parent.findUnique({
-            where: { phone: s.parentPhone },
-          });
-
-          if (existingParent) {
-            parentId = existingParent.id;
-          } else {
-            // Create new parent
-            parentId = crypto.randomUUID();
-            await tx.parent.create({
-              data: {
-                schoolId,
-                id: parentId,
-                username: s.parentName?.toLowerCase() + Math.floor(Math.random() * 1000),
-                name: s.parentName || "Parent",
-                surname: s.parentSurname || s.surname || "Unknown",
-                phone: s.parentPhone,
-                address: s.address || "Unknown",
-              },
-            });
-          }
-        }
-
-        // 2. Validate parent exists
-        if (!parentId) {
-          throw new Error(`Cannot create student "${s.name} ${s.surname}" — no parent found. Provide a parentId or parentPhone.`);
-        }
-
-        // 3. Create Student
-        await tx.student.create({
-          data: {
-            schoolId,
-            id: studentId,
-            username: s.username,
-            name: s.name,
-            surname: s.surname,
-            phone: s.phone || null,
-            address: s.address || "Unknown",
-            bloodType: s.bloodType || "O+",
-            birthday: new Date(s.birthday || "2015-01-01"),
-            sex: s.sex as UserSex || UserSex.MALE,
-            parentId: parentId,
-            classId: s.classId || 1,
-            levelId: s.levelId || 1,
-          },
-        });
-
-        auditLogsToCreate.push({
-          id: studentId,
-          name: s.name,
-          surname: s.surname,
-          username: s.username
-        });
-      }
-    });
-
-    for (const log of auditLogsToCreate) {
-      await createAuditLog({
-        action: "BULK_CREATE_STUDENT",
-        entityType: "Student",
-        entityId: log.id,
-        description: `Bulk enrolled student: ${log.name} ${log.surname} (${log.username})`,
+    // 2. Batch lookup existing parents by phone
+    if (phonesToLookup.length > 0) {
+      const existingParents = await prisma.parent.findMany({
+        where: { phone: { in: phonesToLookup } },
+        select: { id: true, phone: true },
       });
+      for (const p of existingParents) {
+        phoneToParentIdMap.set(p.phone, p.id);
+      }
     }
 
-    invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
+    // 3. Prepare any missing parents to create in batch
+    const parentsToCreate: any[] = [];
+    for (const s of students) {
+      if (!s.parentId && s.parentPhone) {
+        const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
+        if (cleanPhone && !phoneToParentIdMap.has(cleanPhone)) {
+          const newParentId = crypto.randomUUID();
+          const baseUser = (s.parentName || "parent").toLowerCase().replace(/[^a-z0-9]/g, "") || "parent";
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+          const uniqueUsername = `${baseUser}${randomSuffix}_${Date.now().toString(36).slice(-4)}`;
+          
+          parentsToCreate.push({
+            schoolId,
+            id: newParentId,
+            username: uniqueUsername,
+            name: s.parentName || "Parent",
+            surname: s.parentSurname || s.surname || "Unknown",
+            phone: cleanPhone,
+            address: s.address || "Unknown",
+          });
+          phoneToParentIdMap.set(cleanPhone, newParentId);
+        }
+      }
+    }
+
+    // 4. Validate and construct student records
+    const studentsToCreate = students.map((s) => {
+      let parentId = s.parentId;
+      if (!parentId && s.parentPhone) {
+        const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
+        parentId = phoneToParentIdMap.get(cleanPhone);
+      }
+
+      if (!parentId) {
+        throw new Error(
+          `Cannot create student "${s.name} ${s.surname}" — no parent found. Provide a parentId or parentPhone.`
+        );
+      }
+
+      return {
+        schoolId,
+        id: crypto.randomUUID(),
+        username: s.username,
+        name: s.name,
+        surname: s.surname,
+        phone: s.phone || null,
+        address: s.address || "Unknown",
+        bloodType: s.bloodType || "O+",
+        birthday: new Date(s.birthday || "2015-01-01"),
+        sex: (s.sex as UserSex) || UserSex.MALE,
+        parentId,
+        classId: s.classId ? Number(s.classId) : 1,
+        levelId: s.levelId ? Number(s.levelId) : 1,
+      };
+    });
+
+    // 5. Execute creation atomically in transaction
+    await prisma.$transaction(async (tx) => {
+      if (parentsToCreate.length > 0) {
+        await tx.parent.createMany({
+          data: parentsToCreate,
+          skipDuplicates: true,
+        });
+      }
+
+      await tx.student.createMany({
+        data: studentsToCreate,
+        skipDuplicates: true,
+      });
+    });
+
+    // 6. Single consolidated audit log
+    await createAuditLog({
+      action: "BULK_CREATE_STUDENT",
+      entityType: "Student",
+      entityId: null,
+      description: `Bulk enrolled ${studentsToCreate.length} student(s)`,
+    });
+
+    invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard', 'parents');
     revalidatePath("/list/students");
     return { success: true };
   } catch (err: any) {

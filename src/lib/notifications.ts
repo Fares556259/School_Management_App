@@ -72,6 +72,49 @@ async function sendPushBatch(parentIds: string[], title: string, body: string, d
 }
 
 /**
+ * Sends individualized push notifications to multiple parents in batch.
+ */
+async function sendPushIndividualBatch(
+  items: { parentId: string; title: string; body: string; data?: any }[]
+) {
+  if (items.length === 0) return;
+  try {
+    const parentIds = Array.from(new Set(items.map((i) => i.parentId)));
+    const parents = await prisma.parent.findMany({
+      where: { id: { in: parentIds } },
+      select: { id: true, expoPushToken: true },
+    });
+
+    const tokenMap = new Map(parents.map((p) => [p.id, p.expoPushToken]));
+
+    const messages = items
+      .filter((item) => {
+        const token = tokenMap.get(item.parentId);
+        return token && Expo.isExpoPushToken(token);
+      })
+      .map((item) => ({
+        to: tokenMap.get(item.parentId)!,
+        sound: item.data?.channelId === "emergency" ? ("alert.m4a" as const) : ("notification.m4a" as const),
+        title: item.title,
+        body: item.body,
+        data: item.data,
+        channelId: item.data?.channelId || "default",
+        priority: "high" as const,
+      }));
+
+    if (messages.length === 0) return;
+
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      await expo.sendPushNotificationsAsync(chunk);
+    }
+    console.log(`[PUSH-BATCH] Sent ${messages.length} individualized notifications`);
+  } catch (error) {
+    console.error("[PUSH-INDIVIDUAL-BATCH-ERROR]", error);
+  }
+}
+
+/**
  * Creates notifications for parents when a new notice is published.
  */
 export async function createAnnouncementNotifications(noticeId: number) {
@@ -287,6 +330,107 @@ export async function createAttendanceNotification(studentId: string, status: st
     console.log(`[NOTIFICATIONS] Created attendance alert for ${studentId} (${status})`);
   } catch (error) {
     console.error("[NOTIFICATIONS] Error creating attendance notification:", error);
+  }
+}
+
+/**
+ * Creates attendance notifications in bulk for absent/late students and dispatches push in batch.
+ */
+export async function createAttendanceNotificationsBatch(
+  records: { studentId: string; status: string }[],
+  date: Date,
+  lessonId?: number | null
+) {
+  try {
+    const nonPresent = records.filter((r) => r.status !== "PRESENT");
+    if (nonPresent.length === 0) return;
+
+    const studentIds = Array.from(new Set(nonPresent.map((r) => r.studentId)));
+    const students = await prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, name: true, parentId: true, schoolId: true },
+    });
+
+    if (students.length === 0) return;
+
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    let lessonInfo = "";
+    if (lessonId) {
+      const lesson = await prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { subject: true, teacher: true },
+      });
+      if (lesson && lesson.subject && lesson.teacher) {
+        const timeStr = lesson.startTime.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        });
+        lessonInfo = ` في حصة ${lesson.subject.name} على الساعة ${timeStr}`;
+      }
+    }
+
+    const dateStr = date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+
+    const notificationsData: {
+      schoolId: string;
+      parentId: string;
+      studentId: string;
+      type: "ATTENDANCE";
+      title: string;
+      message: string;
+    }[] = [];
+
+    const pushItems: {
+      parentId: string;
+      title: string;
+      body: string;
+      data: any;
+    }[] = [];
+
+    for (const r of nonPresent) {
+      const student = studentMap.get(r.studentId);
+      if (!student) continue;
+
+      const statusLabel = r.status === "ABSENT" ? "غائب" : "متأخر";
+      notificationsData.push({
+        schoolId: student.schoolId,
+        parentId: student.parentId,
+        studentId: student.id,
+        type: "ATTENDANCE",
+        title: `تنبيه الحضور: ${r.status === "ABSENT" ? "غياب" : "تأخير"}`,
+        message: `تم تسجيل ${student.name} كـ ${statusLabel} يوم ${dateStr}${lessonInfo}.`,
+      });
+
+      pushItems.push({
+        parentId: student.parentId,
+        title: `📍 الحضور: ${r.status === "ABSENT" ? "غياب" : "تأخير"}`,
+        body: `${student.name} ${statusLabel}${lessonInfo ? lessonInfo : ` اليوم (${dateStr})`}.`,
+        data: { type: "ATTENDANCE", studentId: student.id, channelId: "emergency" },
+      });
+    }
+
+    // 1 single batch write for all DB notifications
+    if (notificationsData.length > 0) {
+      await prisma.notification.createMany({
+        data: notificationsData,
+      });
+    }
+
+    // Dispatch Expo push notifications in background without blocking response
+    sendPushIndividualBatch(pushItems).catch((err) =>
+      console.error("[NOTIFICATIONS] Error sending batch push:", err)
+    );
+
+    console.log(
+      `[NOTIFICATIONS] Created batch attendance alerts for ${notificationsData.length} records`
+    );
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error creating batch attendance notifications:", error);
   }
 }
 

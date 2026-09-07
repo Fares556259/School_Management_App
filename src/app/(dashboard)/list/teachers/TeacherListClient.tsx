@@ -198,8 +198,8 @@ export default function TeacherListClient({
               {t.teachers.paid}
             </span>
           ) : paymentStatusThisMonth === "PARTIAL" ? (
-            <span className="px-2.5 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium whitespace-nowrap">
-              {t.teachers.partial}
+            <span className="px-2.5 py-1 rounded-[4px] bg-purple-50 border border-purple-200 text-purple-700 text-[12px] font-medium whitespace-nowrap">
+              {(t.teachers as any).partial || "Avance"}
             </span>
           ) : (
             <span className="px-2.5 py-1 rounded-[4px] bg-rose-50 border border-rose-200 text-rose-700 text-[12px] font-medium whitespace-nowrap">
@@ -251,6 +251,24 @@ export default function TeacherListClient({
                       payments[existingIdx] = { ...payments[existingIdx], status: newStatus, amount: (payments[existingIdx].amount || 0) + amountPaidNow };
                     } else {
                       payments.push({ month: monthIdx, year: yearVal, status: newStatus, amount: amountPaidNow });
+                    }
+                    return { ...t, payments };
+                  }
+                  return t;
+                }));
+              }}
+              onRollback={(targetMonth, prevPayment) => {
+                setOptimisticData((prev: any[]) => prev.map((t: any) => {
+                  if (t.id === item.id) {
+                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
+                    const yearVal = parseInt(targetMonth.split(" ")[1]);
+                    const payments = [...(t.payments || [])];
+                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
+                    if (prevPayment) {
+                      if (existingIdx >= 0) payments[existingIdx] = prevPayment;
+                      else payments.push(prevPayment);
+                    } else {
+                      if (existingIdx >= 0) payments.splice(existingIdx, 1);
                     }
                     return { ...t, payments };
                   }

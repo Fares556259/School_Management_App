@@ -28,7 +28,7 @@ export async function createGradeSheet(data: {
     create: { classId, subjectId, term, proofUrl, teacherId: teacherId || null, notes, schoolId },
   });
 
-  // Bulk upsert individual grades (strictly capped between 0 and 20)
+  // Filter valid grades (strictly capped between 0 and 20)
   const validGrades = grades
     .filter((g) => g.score !== null && g.score !== undefined && !isNaN(g.score))
     .map((g) => ({
@@ -36,15 +36,76 @@ export async function createGradeSheet(data: {
       score: Math.min(20, Math.max(0, g.score!))
     }));
 
-  await Promise.all(
-    validGrades.map((g) =>
-      prisma.grade.upsert({
-        where: { studentId_subjectId_term: { studentId: g.studentId, subjectId, term } },
-        update: { score: g.score, sheetId: sheet.id, schoolId },
-        create: { studentId: g.studentId, subjectId, term, score: g.score, sheetId: sheet.id, schoolId },
-      })
-    )
-  );
+  if (validGrades.length > 0) {
+    const studentIds = validGrades.map((g) => g.studentId);
+
+    // Batch lookup all existing grades for these students in this subject/term in 1 query
+    const existingGrades = await prisma.grade.findMany({
+      where: {
+        subjectId,
+        term,
+        studentId: { in: studentIds },
+      },
+      select: { id: true, studentId: true, score: true, sheetId: true },
+    });
+
+    const existingMap = new Map(existingGrades.map((eg) => [eg.studentId, eg]));
+
+    const toCreate: {
+      studentId: string;
+      subjectId: number;
+      term: number;
+      score: number;
+      sheetId: number;
+      schoolId: string;
+    }[] = [];
+
+    const toUpdate: {
+      id: number;
+      score: number;
+      sheetId: number;
+    }[] = [];
+
+    for (const g of validGrades) {
+      const existing = existingMap.get(g.studentId);
+      if (!existing) {
+        toCreate.push({
+          studentId: g.studentId,
+          subjectId,
+          term,
+          score: g.score,
+          sheetId: sheet.id,
+          schoolId,
+        });
+      } else if (existing.score !== g.score || existing.sheetId !== sheet.id) {
+        toUpdate.push({
+          id: existing.id,
+          score: g.score,
+          sheetId: sheet.id,
+        });
+      }
+    }
+
+    // 1 single batch insert for all new grades
+    if (toCreate.length > 0) {
+      await prisma.grade.createMany({
+        data: toCreate,
+        skipDuplicates: true,
+      });
+    }
+
+    // Single batched transaction for only the grades that actually changed
+    if (toUpdate.length > 0) {
+      await prisma.$transaction(
+        toUpdate.map((u) =>
+          prisma.grade.update({
+            where: { id: u.id },
+            data: { score: u.score, sheetId: u.sheetId },
+          })
+        )
+      );
+    }
+  }
 
   invalidateTenantTags(schoolId, 'exams');
   revalidatePath("/admin/grades");

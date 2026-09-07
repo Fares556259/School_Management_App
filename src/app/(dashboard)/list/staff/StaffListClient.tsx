@@ -142,7 +142,7 @@ export default function StaffListClient({
               {t.staff.paid}
             </span>
           ) : paymentStatusThisMonth === "PARTIAL" ? (
-            <span className="px-2.5 py-1 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-700 text-[12px] font-medium whitespace-nowrap">
+            <span className="px-2.5 py-1 rounded-[4px] bg-purple-50 border border-purple-200 text-purple-700 text-[12px] font-medium whitespace-nowrap">
               {(t.staff as any).partial || "Advance"}
             </span>
           ) : (
@@ -175,6 +175,24 @@ export default function StaffListClient({
                       payments[existingIdx] = { ...payments[existingIdx], status: newStatus, amount: (payments[existingIdx].amount || 0) + amountPaidNow };
                     } else {
                       payments.push({ month: monthIdx, year: yearVal, status: newStatus, amount: amountPaidNow });
+                    }
+                    return { ...s, payments };
+                  }
+                  return s;
+                }));
+              }}
+              onRollback={(targetMonth, prevPayment) => {
+                setOptimisticData((prev: any[]) => prev.map((s: any) => {
+                  if (s.id === item.id) {
+                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
+                    const yearVal = parseInt(targetMonth.split(" ")[1]);
+                    const payments = [...(s.payments || [])];
+                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
+                    if (prevPayment) {
+                      if (existingIdx >= 0) payments[existingIdx] = prevPayment;
+                      else payments.push(prevPayment);
+                    } else {
+                      if (existingIdx >= 0) payments.splice(existingIdx, 1);
                     }
                     return { ...s, payments };
                   }

@@ -632,7 +632,7 @@ export const fr = {
     unpaid: "Non payé",
     paidPlural: "Payés",
     unpaidPlural: "Non payés",
-    partial: "Partiel",
+    partial: "Avance",
     noClass: "Aucune classe",
     notProvided: "Non renseigné",
     outOfStudents: "sur {count} étudiants",

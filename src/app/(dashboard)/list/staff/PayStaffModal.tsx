@@ -5,6 +5,7 @@ import { payStaffSalary } from "./actions";
 import { getSchoolYearMonths, isMonthBefore } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Banknote } from "lucide-react";
+import { toast } from "react-toastify";
 
 const dict = {
   en: {
@@ -61,6 +62,7 @@ export default function PayStaffModal({
   paidMonths = [],
   payments = [],
   onSuccess,
+  onRollback,
 }: {
   staffId: string;
   staffName: string;
@@ -71,6 +73,7 @@ export default function PayStaffModal({
   paidMonths?: string[];
   payments?: any[];
   onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string, amountPaidNow: number) => void;
+  onRollback?: (targetMonth: string, prevPayment: any) => void;
 }) {
   const { locale } = useLanguage();
   const t = dict[locale as keyof typeof dict] || dict.en;
@@ -116,19 +119,33 @@ export default function PayStaffModal({
     let amt = Number(isAdvanceMode ? advanceInput : finalAmount);
     if (!isAdmin || !selectedMonth || isSkipping || !amt || amt <= 0) return;
 
+    // Snapshot current payment before optimistic update
+    const [mName, yStr] = selectedMonth.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+    const prevPayment = payments?.find(p => p.month === monthIdx && p.year === yearVal) || null;
+
     setIsOpen(false);
     if (onSuccess) onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth, amt);
 
     startTransition(async () => {
-      const result = await payStaffSalary(
-        staffId,
-        staffName,
-        amt,
-        selectedMonth,
-        isAdvanceMode
-      );
-      if (!result.success) {
-        alert(result.error);
+      try {
+        const result = await payStaffSalary(
+          staffId,
+          staffName,
+          amt,
+          selectedMonth,
+          isAdvanceMode
+        );
+        if (!result.success) {
+          if (onRollback) onRollback(selectedMonth, prevPayment);
+          toast.error(result.error || "Erreur lors du versement du salaire.");
+        } else {
+          toast.success(isAdvanceMode ? `Avance enregistrée pour ${staffName}` : `Salaire validé pour ${staffName}`);
+        }
+      } catch (err) {
+        if (onRollback) onRollback(selectedMonth, prevPayment);
+        toast.error("Erreur de connexion lors du versement.");
       }
     });
   };

@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
-import { createAttendanceNotification } from "@/lib/notifications";
+import { createAttendanceNotification, createAttendanceNotificationsBatch } from "@/lib/notifications";
 import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
 
 export const dynamic = "force-dynamic";
@@ -419,12 +419,11 @@ export async function POST(request: NextRequest) {
       creates.length > 0 ? prisma.attendance.createMany({ data: creates }) : Promise.resolve(),
     ]);
 
-    // Await notifications to ensure serverless environments (like Vercel) don't kill the process
-    await Promise.all(records.map(async (r) => {
-      if (r.status !== "PRESENT") {
-        await createAttendanceNotification(r.studentId, r.status, dayStart).catch(console.error);
-      }
-    }));
+    // Batch notifications and dispatch Expo pushes asynchronously
+    const nonPresent = records.filter((r) => r.status !== "PRESENT");
+    if (nonPresent.length > 0) {
+      await createAttendanceNotificationsBatch(nonPresent, dayStart, targetLessonId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

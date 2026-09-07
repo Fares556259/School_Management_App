@@ -5,6 +5,7 @@ import { payTeacherSalary, updateMissedHours } from "./actions";
 import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 const dict = {
   en: {
@@ -90,6 +91,7 @@ export default function PaySalaryModal({
   paidMonths = [],
   payments = [],
   onSuccess,
+  onRollback,
   onMissedHoursUpdate,
 }: {
   teacherId: string;
@@ -103,6 +105,7 @@ export default function PaySalaryModal({
   paidMonths?: string[];
   payments?: any[];
   onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string, amount: number) => void;
+  onRollback?: (targetMonth: string, prevPayment: any) => void;
   onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
 }) {
   const { locale } = useLanguage();
@@ -208,41 +211,55 @@ export default function PaySalaryModal({
     const amountToPay = isAdvanceMode ? Number(advanceInput) : finalAmount;
     if (isAdvanceMode && (amountToPay <= 0 || amountToPay > finalAmount)) return;
 
+    // Snapshot current payment before optimistic change
+    const [mName, yStr] = selectedMonth.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+    const prevPayment = payments?.find(p => p.month === monthIdx && p.year === yearVal) || null;
+
     setIsOpen(false);
     if (onSuccess) {
       onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth, amountToPay);
     }
 
     startTransition(async () => {
-      let expenseTitle = isAdvanceMode 
-        ? `${t.expenseAdvancePrefix}: ${teacherName} (${selectedMonth})`
-        : `${t.expensePrefix}: ${teacherName} (${selectedMonth})`;
-        
-      if (!isAdvanceMode && deduction > 0) {
-        expenseTitle += ` - ${missedHours}h ${t.missedSuffix}`;
-      }
+      try {
+        let expenseTitle = isAdvanceMode 
+          ? `${t.expenseAdvancePrefix}: ${teacherName} (${selectedMonth})`
+          : `${t.expensePrefix}: ${teacherName} (${selectedMonth})`;
+          
+        if (!isAdvanceMode && deduction > 0) {
+          expenseTitle += ` - ${missedHours}h ${t.missedSuffix}`;
+        }
 
-      let auditDesc = isAdvanceMode
-        ? t.auditAdvance.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth)
-        : t.auditSalary.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth);
-        
-      if (!isAdvanceMode && deduction > 0) {
-        auditDesc += ` (${missedHours}h ${t.missedSuffix}, -${deduction} DT ${t.deductionSuffix})`;
-      }
+        let auditDesc = isAdvanceMode
+          ? t.auditAdvance.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth)
+          : t.auditSalary.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth);
+          
+        if (!isAdvanceMode && deduction > 0) {
+          auditDesc += ` (${missedHours}h ${t.missedSuffix}, -${deduction} DT ${t.deductionSuffix})`;
+        }
 
-      const result = await payTeacherSalary(
-        teacherId,
-        teacherName,
-        amountToPay,
-        selectedMonth,
-        isAdvanceMode ? undefined : missedHours,
-        isAdvanceMode ? undefined : deduction,
-        isAdvanceMode,
-        expenseTitle,
-        auditDesc
-      );
-      if (!result.success) {
-        console.error("Failed to process payment");
+        const result = await payTeacherSalary(
+          teacherId,
+          teacherName,
+          amountToPay,
+          selectedMonth,
+          isAdvanceMode ? undefined : missedHours,
+          isAdvanceMode ? undefined : deduction,
+          isAdvanceMode,
+          expenseTitle,
+          auditDesc
+        );
+        if (!result.success) {
+          if (onRollback) onRollback(selectedMonth, prevPayment);
+          toast.error(result.error || "Erreur lors du versement du salaire.");
+        } else {
+          toast.success(isAdvanceMode ? `Avance enregistrée pour ${teacherName}` : `Salaire validé pour ${teacherName}`);
+        }
+      } catch (err: any) {
+        if (onRollback) onRollback(selectedMonth, prevPayment);
+        toast.error("Erreur de connexion lors du versement.");
       }
     });
   };
