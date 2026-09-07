@@ -53,7 +53,7 @@ export default function StudentListClient({
   const [isSearchPending, setIsSearchPending] = useState(false);
   const isPending = isFilterPending || isSearchPending;
   const currentClassId = searchParams.get("classId") || "";
-  const [optimisticData, setOptimisticData] = useState(initialData);
+  const [optimisticData, setOptimisticData] = useState<any[]>(initialData || []);
   const [clientSearch, setClientSearch] = useState("");
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
   const [clientStatus, setClientStatus] = useState(searchParams.get("status") || "");
@@ -93,7 +93,7 @@ export default function StudentListClient({
   };
 
   useEffect(() => {
-    setOptimisticData(initialData);
+    setOptimisticData(initialData || []);
   }, [initialData]);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -222,7 +222,7 @@ export default function StudentListClient({
           </Link>
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">
-          {item.classId ? (item.level.level === 0 ? (locale === 'ar' ? 'تحضيري' : 'Préscolaire') : `${t.systemSettings?.level || "Level"} ${item.level.level}`) : "-"}
+          {item.classId ? (item.level?.level === 0 ? (locale === 'ar' ? 'تحضيري' : 'Préscolaire') : `${t.systemSettings?.level || "Level"} ${item.level?.level ?? 0}`) : "-"}
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
           {item.parent ? (
@@ -259,8 +259,8 @@ export default function StudentListClient({
             <StudentDetailsModal 
               student={item} 
               className={item.class?.name ?? "No class"} 
-              schoolName={relatedData.schoolName}
-              adminName={relatedData.adminName}
+              schoolName={relatedData?.schoolName || "SnapSchool"}
+              adminName={relatedData?.adminName || "Administration"}
             />
             <Link
               href={`/list/students/${item.id}`}
@@ -272,15 +272,15 @@ export default function StudentListClient({
             <PayStudentModal
               studentId={item.id}
               studentName={item.name + " " + item.surname}
-              gradeLevel={item.level.level}
-              tuitionFee={item.customTuition ?? item.level.tuitionFee}
+              gradeLevel={item.level?.level ?? 0}
+              tuitionFee={item.customTuition ?? item.level?.tuitionFee ?? 450}
               isPaid={isPaidThisMonth}
               isPartial={isPartialThisMonth}
               initialPaidAmount={currentPayment?.amount || 0}
               isAdmin={role === "admin"}
               monthName={clientMonthKey}
-              payments={item.payments}
-              paidMonths={item.payments
+              payments={item.payments || []}
+              paidMonths={(item.payments || [])
                 .filter(p => p.status === "PAID" || p.status === "PARTIAL")
                 .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
               onSuccess={(newAmount, newStatus, targetMonth) => {
@@ -446,8 +446,8 @@ export default function StudentListClient({
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         classes={classList}
-        schoolName={relatedData.schoolName}
-        schoolSubdomain={relatedData.schoolSubdomain}
+        schoolName={relatedData?.schoolName || "SnapSchool"}
+        schoolSubdomain={relatedData?.schoolSubdomain || "snapschool-academy"}
         onApproved={() => router.refresh()}
       />
     </>

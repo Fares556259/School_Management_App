@@ -5,22 +5,24 @@
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export default function MonthPaymentSummary({
-  total,
-  paidCount,
+  total = 0,
+  paidCount = 0,
   monthLabel,
   entityName,
 }: {
-  total: number;
-  paidCount: number;
+  total?: number;
+  paidCount?: number;
   monthLabel: string;
   entityName: string;
 }) {
-  const unpaidCount = total - paidCount;
+  const safeTotal = typeof total === "number" && !isNaN(total) ? total : 0;
+  const safePaidCount = typeof paidCount === "number" && !isNaN(paidCount) ? paidCount : 0;
+  const unpaidCount = Math.max(0, safeTotal - safePaidCount);
   const { t } = useLanguage();
 
   const entityDict = (t[entityName as keyof typeof t] as any) || t.students;
   const paidText =
-    paidCount > 1
+    safePaidCount > 1
       ? entityDict?.paidPlural || entityDict?.paid || t.students?.paid || "paid"
       : entityDict?.paid || t.students?.paid || "paid";
   const unpaidText =
@@ -39,7 +41,7 @@ export default function MonthPaymentSummary({
       <div className="flex items-center gap-2">
         <div className="w-3 h-3 rounded-full bg-emerald-400" />
         <span className="text-sm font-medium text-slate-600">
-          {paidCount} {paidText}
+          {safePaidCount} {paidText}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -49,7 +51,7 @@ export default function MonthPaymentSummary({
         </span>
       </div>
       <span className="text-xs text-slate-400">
-        {outOfTemplate.replace("{count}", total.toString())}
+        {outOfTemplate.replace("{count}", safeTotal.toString())}
       </span>
     </div>
   );
