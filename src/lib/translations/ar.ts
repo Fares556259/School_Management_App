@@ -40,12 +40,25 @@ export const ar = {
       "settled": "مسدد بالكامل"
     },
     "modal": {
-      "title": "استرداد الرسوم",
-      "recordingFor": "تسجيل الدفع لـ",
+      "title": "استرداد الرصيد المتبقي",
+      "subtitle": "تسجيل دفعة على رصيد الرسوم المتبقية",
+      "recordingFor": "دفع لـ",
+      "tuitionTotal": "إجمالي الرسوم",
+      "alreadyPaid": "المدفوع مسبقاً",
       "currentPending": "المستحق الحالي",
-      "recoveryAmount": "مبلغ الاسترداد",
-      "confirm": "تأكيد الاسترداد",
-      "processing": "جاري المعالجة..."
+      "recoveryAmount": "المبلغ المراد تحصيله",
+      "amountPlaceholder": "أدخل المبلغ بالدينار",
+      "settleAll": "سداد كامل",
+      "settleHalf": "سداد 50%",
+      "fullSettlementNotice": "هذه الدفعة ستسدد كامل الرصيد المتبقي (0 د.ت متبقي).",
+      "partialSettlementNotice": "الرصيد المتبقي بعد التحصيل: {remaining} د.ت",
+      "amountExceedsNotice": "المبلغ يتجاوز الرصيد المتبقي ({max} د.ت)",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد التحصيل",
+      "processing": "جاري المعالجة...",
+      "monthOf": "الشهر المعني",
+      "class": "القسم",
+      "paidProgress": "{percent}% مسدد"
     },
     "details": {
       "performedBy": "تم بواسطة",

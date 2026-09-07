@@ -16,6 +16,10 @@ import {
   Clock,
   Filter,
   CheckCircle2,
+  Receipt,
+  Check,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { receiveStudentPayment } from "../students/actions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -560,70 +564,301 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
       </div>
 
       {/* RECOVERY MODAL */}
-      {selectedRecovery && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl max-w-sm w-full p-6 relative animate-in zoom-in-95 duration-200">
-            <button
-              onClick={() => setSelectedRecovery(null)}
-              className="absolute right-6 top-6 text-slate-400 hover:text-slate-600"
+      {selectedRecovery && (() => {
+        const currentPending = selectedRecovery.deferredAmount || 0;
+        const alreadyPaid = selectedRecovery.amount || 0;
+        const totalTuition = alreadyPaid + currentPending;
+        const isFullSettlement = recoveryAmount === currentPending;
+        const isExceeded = recoveryAmount > currentPending;
+        const newRemaining = Math.max(0, currentPending - recoveryAmount);
+        const paidPercent = totalTuition > 0 ? Math.round((alreadyPaid / totalTuition) * 100) : 0;
+        const newPaidTotal = alreadyPaid + (isExceeded ? 0 : Math.max(0, recoveryAmount));
+        const newPaidPercent = totalTuition > 0
+          ? Math.min(100, Math.round((newPaidTotal / totalTuition) * 100))
+          : 0;
+        const isRtl = locale === "ar";
+
+        return (
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+            onClick={() => !isPending && setSelectedRecovery(null)}
+            dir={isRtl ? "rtl" : "ltr"}
+          >
+            <div
+              className="bg-white rounded-[24px] shadow-2xl border border-slate-100 max-w-lg w-full relative overflow-hidden animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X size={20} />
-            </button>
+              {/* Header */}
+              <div className="bg-gradient-to-b from-slate-50 to-white px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                      {t.recovery?.modal?.title || "Recouvrement de Reliquat"}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      {t.recovery?.modal?.subtitle || "Enregistrement d'un versement sur reliquat de scolarité"}
+                    </p>
+                  </div>
+                </div>
 
-            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">
-              {t.recovery?.modal?.title || "Recouvrement de Reliquat"}
-            </h2>
-            <p className="text-sm text-slate-500 mb-6 font-medium">
-              {t.recovery?.modal?.recordingFor || "Paiement pour"}{" "}
-              <span className="font-bold text-slate-700">
-                {selectedRecovery.student?.name} {selectedRecovery.student?.surname}
-              </span>
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">
-                  {t.recovery?.modal?.currentPending || "Reste Dû Actuel"}
-                </span>
-                <span className="text-xs font-black text-rose-500">
-                  {selectedRecovery.deferredAmount} DT
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRecovery(null)}
+                  disabled={isPending}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40 shrink-0 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-rose-500 h-full w-full" />
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-5">
+                {/* Student info & Context */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm shrink-0 shadow-xs">
+                      {selectedRecovery.student?.name?.charAt(0) || "E"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 text-sm truncate">
+                        {selectedRecovery.student?.name} {selectedRecovery.student?.surname}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        {selectedRecovery.student?.class?.name && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[11px] font-semibold text-slate-700">
+                            {selectedRecovery.student.class.name}
+                          </span>
+                        )}
+                        {selectedRecovery.student?.level?.level !== undefined && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[11px] font-medium text-slate-500">
+                            {selectedRecovery.student.level.level === 0
+                              ? "Préscolaire"
+                              : `${(t as any).recovery?.table?.level || "Niveau"} ${selectedRecovery.student.level.level}`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold">
+                      <Calendar size={12} className="opacity-70" />
+                      {MONTHS[selectedRecovery.month - 1]} {selectedRecovery.year}
+                    </span>
+                    {selectedRecovery.deferredUntil && (
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {new Date(selectedRecovery.deferredUntil).toLocaleDateString(
+                          locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US",
+                          { day: "numeric", month: "short", year: "numeric" }
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Financial Snapshot & Progress */}
+                <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4">
+                  <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-200/80 rtl:divide-x-reverse">
+                    <div className="px-2">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                        {t.recovery?.modal?.tuitionTotal || "Total scolarité"}
+                      </span>
+                      <span className="text-sm sm:text-base font-bold text-slate-800">
+                        {totalTuition.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">DT</span>
+                      </span>
+                    </div>
+
+                    <div className="px-2">
+                      <span className="block text-[10px] font-bold text-emerald-600/90 uppercase tracking-wider mb-0.5">
+                        {t.recovery?.modal?.alreadyPaid || "Déjà réglé"}
+                      </span>
+                      <span className="text-sm sm:text-base font-bold text-emerald-600">
+                        {alreadyPaid.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">DT</span>
+                      </span>
+                    </div>
+
+                    <div className="px-2">
+                      <span className="block text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-0.5">
+                        {t.recovery?.modal?.currentPending || "Reste dû actuel"}
+                      </span>
+                      <span className="text-sm sm:text-base font-black text-rose-600">
+                        {currentPending.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">DT</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Visual Progress Bar */}
+                  <div className="mt-4 pt-3 border-t border-slate-200/70">
+                    <div className="flex justify-between items-center text-[11px] mb-1.5">
+                      <span className="font-semibold text-slate-500">
+                        {(t.recovery?.modal?.paidProgress || "{percent}% réglé").replace("{percent}", String(paidPercent))}
+                      </span>
+                      {recoveryAmount > 0 && !isExceeded && (
+                        <span className="font-bold text-emerald-600 flex items-center gap-1">
+                          <span>→ {newPaidPercent}%</span>
+                          {isFullSettlement && (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-bold">
+                              100%
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden flex">
+                      <div
+                        className="bg-emerald-500 h-full transition-all duration-300"
+                        style={{ width: `${paidPercent}%` }}
+                      />
+                      {recoveryAmount > 0 && !isExceeded && totalTuition > 0 && (
+                        <div
+                          className="bg-emerald-300 h-full transition-all duration-300"
+                          style={{ width: `${Math.min(100 - paidPercent, (recoveryAmount / totalTuition) * 100)}%` }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amount Input & Quick Chips */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      {t.recovery?.modal?.recoveryAmount || "Montant à encaisser"}
+                    </label>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Max: {currentPending} DT
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={1}
+                      max={currentPending}
+                      value={recoveryAmount === 0 ? "" : recoveryAmount}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? 0 : Number(e.target.value);
+                        setRecoveryAmount(val);
+                      }}
+                      placeholder={t.recovery?.modal?.amountPlaceholder || "Entrez le montant en DT"}
+                      className={`w-full ${
+                        isRtl ? "pr-4 pl-14 text-right" : "pl-4 pr-14 text-left"
+                      } py-3 bg-white border ${
+                        isExceeded
+                          ? "border-rose-300 focus:border-rose-500 focus:ring-rose-200"
+                          : "border-slate-200 focus:border-slate-800 focus:ring-slate-100"
+                      } rounded-xl text-lg font-bold text-slate-900 outline-none focus:ring-4 transition-all shadow-xs`}
+                    />
+                    <div
+                      className={`absolute ${
+                        isRtl ? "left-4" : "right-4"
+                      } top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 uppercase tracking-wider pointer-events-none`}
+                    >
+                      DT
+                    </div>
+                  </div>
+
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryAmount(currentPending)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                        isFullSettlement
+                          ? "bg-[#181d26] text-white border-[#181d26] shadow-xs"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                    >
+                      ⚡ {t.recovery?.modal?.settleAll || "Tout solder"} ({currentPending} DT)
+                    </button>
+
+                    {currentPending >= 20 && (
+                      <button
+                        type="button"
+                        onClick={() => setRecoveryAmount(Math.round(currentPending / 2))}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                          recoveryAmount === Math.round(currentPending / 2) && !isFullSettlement
+                            ? "bg-[#181d26] text-white border-[#181d26] shadow-xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                        }`}
+                      >
+                        {t.recovery?.modal?.settleHalf || "Régler 50%"} ({Math.round(currentPending / 2)} DT)
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dynamic Feedback Banner */}
+                {isExceeded ? (
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-700 text-xs font-medium animate-in fade-in duration-150">
+                    <AlertCircle size={16} className="shrink-0 text-rose-500" />
+                    <span>
+                      {(t.recovery?.modal?.amountExceedsNotice || "Le montant dépasse le reliquat restant ({max} DT)").replace(
+                        "{max}",
+                        String(currentPending)
+                      )}
+                    </span>
+                  </div>
+                ) : isFullSettlement && recoveryAmount > 0 ? (
+                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-medium animate-in fade-in duration-150">
+                    <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                    <span>
+                      {t.recovery?.modal?.fullSettlementNotice ||
+                        "Ce versement soldera l'intégralité du reliquat (0 DT restant)."}
+                    </span>
+                  </div>
+                ) : recoveryAmount > 0 ? (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 text-xs animate-in fade-in duration-150">
+                    <span className="font-medium">
+                      {(
+                        t.recovery?.modal?.partialSettlementNotice ||
+                        "Nouveau solde restant après encaissement : {remaining} DT"
+                      ).replace("{remaining}", String(newRemaining))}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                      {newRemaining} DT
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRecovery(null)}
+                  disabled={isPending}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {t.recovery?.modal?.cancel || "Annuler"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleProcessRecovery}
+                  disabled={isPending || recoveryAmount <= 0 || isExceeded}
+                  className="px-5 py-2.5 rounded-xl bg-[#181d26] hover:bg-[#2a313e] text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>{t.recovery?.modal?.processing || "Enregistrement..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      <span>{t.recovery?.modal?.confirm || "Confirmer l'encaissement"}</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-
-            <div className="mb-6">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                {t.recovery?.modal?.recoveryAmount || "Montant à Encaisser Maintenant (DT)"}
-              </label>
-              <input
-                type="number"
-                value={recoveryAmount}
-                onChange={(e) => setRecoveryAmount(Number(e.target.value))}
-                max={selectedRecovery.deferredAmount || 0}
-                className="w-full border border-slate-200 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-lg"
-              />
-            </div>
-
-            <button
-              onClick={handleProcessRecovery}
-              disabled={isPending || recoveryAmount <= 0}
-              className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-            >
-              {isPending ? (
-                t.recovery?.modal?.processing || "Enregistrement..."
-              ) : (
-                <>
-                  <span>{t.recovery?.modal?.confirm || "Valider le Recouvrement"}</span>
-                  <ArrowUpRight size={18} />
-                </>
-              )}
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

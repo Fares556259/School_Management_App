@@ -40,12 +40,25 @@ export const fr = {
       "settled": "Soldé"
     },
     "modal": {
-      "title": "Recouvrer les Frais",
-      "recordingFor": "Enregistrement du paiement pour",
-      "currentPending": "Reste Actuel",
-      "recoveryAmount": "Montant à Recouvrer",
-      "confirm": "Confirmer le Recouvrement",
-      "processing": "Traitement..."
+      "title": "Recouvrement de Reliquat",
+      "subtitle": "Enregistrement d'un versement sur reliquat de scolarité",
+      "recordingFor": "Paiement pour",
+      "tuitionTotal": "Total scolarité",
+      "alreadyPaid": "Déjà réglé",
+      "currentPending": "Reste dû actuel",
+      "recoveryAmount": "Montant à encaisser",
+      "amountPlaceholder": "Entrez le montant en DT",
+      "settleAll": "Tout solder",
+      "settleHalf": "Régler 50%",
+      "fullSettlementNotice": "Ce versement soldera l'intégralité du reliquat (0 DT restant).",
+      "partialSettlementNotice": "Nouveau solde restant après encaissement : {remaining} DT",
+      "amountExceedsNotice": "Le montant dépasse le reliquat restant ({max} DT)",
+      "cancel": "Annuler",
+      "confirm": "Confirmer l'encaissement",
+      "processing": "Enregistrement...",
+      "monthOf": "Mois concerné",
+      "class": "Classe",
+      "paidProgress": "{percent}% réglé"
     },
     "details": {
       "performedBy": "Effectué par",

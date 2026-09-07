@@ -40,12 +40,25 @@ export const en = {
       "settled": "Settled"
     },
     "modal": {
-      "title": "Recover Fee",
-      "recordingFor": "Recording payment for",
-      "currentPending": "Current Pending",
-      "recoveryAmount": "Recovery Amount",
-      "confirm": "Confirm Recovery",
-      "processing": "Processing..."
+      "title": "Tuition Balance Recovery",
+      "subtitle": "Record a payment against outstanding tuition balance",
+      "recordingFor": "Payment for",
+      "tuitionTotal": "Total Tuition",
+      "alreadyPaid": "Already Paid",
+      "currentPending": "Current Remaining",
+      "recoveryAmount": "Amount to Collect",
+      "amountPlaceholder": "Enter amount in DT",
+      "settleAll": "Settle in full",
+      "settleHalf": "Pay 50%",
+      "fullSettlementNotice": "This payment will fully settle the balance (0 DT remaining).",
+      "partialSettlementNotice": "Remaining balance after payment: {remaining} DT",
+      "amountExceedsNotice": "Amount exceeds the remaining balance ({max} DT)",
+      "cancel": "Cancel",
+      "confirm": "Confirm Payment",
+      "processing": "Processing...",
+      "monthOf": "Concerned Month",
+      "class": "Class",
+      "paidProgress": "{percent}% paid"
     },
     "details": {
       "performedBy": "Performed by",
