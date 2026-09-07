@@ -5,22 +5,26 @@ import { Download } from "lucide-react";
 
 export default function FinanceExportButton({ 
   data, 
-  filename 
+  filename,
+  customMapper 
 }: { 
-  data: any[], 
-  filename: string 
+  data: any[]; 
+  filename: string;
+  customMapper?: (item: any) => any;
 }) {
   const handleExport = () => {
     if (data.length === 0) return;
     
     // Format data for export
-    const exportData = data.map(item => ({
-      Description: item.title,
-      Amount: item.amount,
-      Category: item.category,
-      Date: new Date(item.date).toLocaleDateString(),
-      "Related/From": item.receivedFrom || item.relatedTo || "General"
-    }));
+    const exportData = customMapper 
+      ? data.map(customMapper) 
+      : data.map(item => ({
+          Description: item.title,
+          Amount: item.amount,
+          Category: item.category,
+          Date: new Date(item.date).toLocaleDateString(),
+          "Related/From": item.receivedFrom || item.relatedTo || "General"
+        }));
 
     downloadCSV(exportData, `${filename}-${new Date().toISOString().split('T')[0]}.csv`);
   };
