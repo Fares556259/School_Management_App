@@ -207,3 +207,123 @@
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   Toastify Custom Styling (Modern, Premium & RTL-Optimized)
+   ========================================================================== */
+
+.Toastify__toast-container {
+  z-index: 99999 !important;
+  width: auto !important;
+  max-width: 440px !important;
+  min-width: 300px !important;
+  padding: 12px !important;
+}
+
+.Toastify__toast {
+  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 13.5px !important;
+  line-height: 1.6 !important;
+  font-weight: 500 !important;
+  min-height: 52px !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  overflow: visible !important;
+}
+
+/* RTL Specific adjustments */
+.Toastify__toast--rtl {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: var(--font-jakarta), 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif !important;
+}
+
+.Toastify__toast-body {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  line-height: 1.6 !important;
+  word-break: break-word !important;
+  color: #1e293b !important;
+}
+
+.Toastify__toast-body > div:last-child {
+  overflow: visible !important;
+  line-height: 1.6 !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+.Toastify__toast-icon {
+  width: 22px !important;
+  height: 22px !important;
+  flex-shrink: 0 !important;
+  margin-inline-end: 12px !important;
+  margin-inline-start: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.Toastify__close-button {
+  color: #94a3b8 !important;
+  opacity: 0.6 !important;
+  align-self: center !important;
+  padding: 4px !important;
+  border-radius: 6px !important;
+  margin-inline-start: 10px !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.Toastify__close-button:hover {
+  color: #0f172a !important;
+  opacity: 1 !important;
+  background-color: #f1f5f9 !important;
+}
+
+.Toastify__progress-bar {
+  height: 3px !important;
+  bottom: 0 !important;
+}
+
+.Toastify__toast--success {
+  border-color: #bbf7d0 !important;
+}
+
+.Toastify__progress-bar--success {
+  background: #16a34a !important;
+}
+
+.Toastify__toast--error {
+  border-color: #fecaca !important;
+}
+
+.Toastify__progress-bar--error {
+  background: #dc2626 !important;
+}
+
+.Toastify__toast--warning {
+  border-color: #fde68a !important;
+}
+
+.Toastify__progress-bar--warning {
+  background: #d97706 !important;
+}
+
+.Toastify__toast--info {
+  border-color: #bfdbfe !important;
+}
+
+.Toastify__progress-bar--info {
+  background: #2563eb !important;
+}
