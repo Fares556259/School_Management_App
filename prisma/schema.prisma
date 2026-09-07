@@ -44,6 +44,9 @@ model Staff {
   schoolId  String    @default("default_school")
   payments  Payment[]
   School    School    @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
+  @@index([schoolId, createdAt])
 }
 
 model Student {
@@ -225,6 +228,7 @@ model GradeSheet {
   @@unique([classId, subjectId, term])
   @@index([schoolId])
   @@index([teacherId])
+  @@index([schoolId, classId])
 }
 
 model Lesson {
@@ -250,6 +254,7 @@ model Lesson {
   @@index([classId])
   @@index([teacherId])
   @@index([subjectId])
+  @@index([classId, day])
 }
 
 model Exam {
@@ -424,8 +429,11 @@ model Payment {
   @@unique([staffId, month, year])
   @@index([schoolId])
   @@index([studentId])
+  @@index([teacherId])
+  @@index([staffId])
   @@index([schoolId, status, paidAt])
   @@index([schoolId, userType, status])
+  @@index([schoolId, status, deferredUntil])
 }
 
 model AuditLog {
@@ -536,6 +544,8 @@ model Attendance {
   @@unique([studentId, date, lessonId])
   @@index([schoolId])
   @@index([schoolId, date])
+  @@index([studentId])
+  @@index([lessonId])
 }
 
 model Notification {
