@@ -795,6 +795,13 @@ export const ar = {
     "mobileStatus": "حالة الجوال",
     "actions": "إجراءات",
     "notProvided": "غير متوفر",
+    "filterAll": "الكل",
+    "filterActive": "نشط",
+    "filterInactive": "غير نشط",
+    "parentRegistrationsAndRequests": "تسجيلات وطلبات الأولياء",
+    "activeBadge": "مفعل",
+    "pendingBadge": "في الانتظار",
+    "noParentsFound": "لم يتم العثور على أي ولي أمر",
     "form": {
       "firstName": "الاسم",
       "lastName": "اللقب",

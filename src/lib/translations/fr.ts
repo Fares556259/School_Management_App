@@ -795,6 +795,13 @@ export const fr = {
     "mobileStatus": "Statut Mobile",
     "actions": "Actions",
     "notProvided": "Non renseigné",
+    "filterAll": "Tous",
+    "filterActive": "Actifs",
+    "filterInactive": "Non actifs",
+    "parentRegistrationsAndRequests": "Inscriptions & Demandes Parents",
+    "activeBadge": "Activé",
+    "pendingBadge": "En attente",
+    "noParentsFound": "Aucun parent trouvé",
     "form": {
       "firstName": "Prénom",
       "lastName": "Nom de famille",
