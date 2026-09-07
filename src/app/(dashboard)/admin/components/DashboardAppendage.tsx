@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { MONTHS } from "@/lib/dateUtils";
 import dynamic from 'next/dynamic';
-import SmartFinancialInsights from "./SmartFinancialInsights";
 import ActionCenter from "./ActionCenter";
 import { translations, Locale } from "@/lib/translations";
 import { getCachedTenantData } from "@/lib/cache";
@@ -321,18 +320,6 @@ export default async function DashboardAppendage({
             is12Months={isAllTime}
           />
         </div>
-      </section>
-
-      <section className="mt-8">
-        <SmartFinancialInsights 
-          income={currentIncome}
-          expense={currentExpense}
-          breakdown={fullBreakdown}
-          prevIncome={prevIncome}
-          month={t.months[now.getMonth()]}
-          dailyData={[]}
-          unpaidCount={unpaidFees.length}
-        />
       </section>
 
       <section className="border-t border-slate-100 pt-8 mt-8">
