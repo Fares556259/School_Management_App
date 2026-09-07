@@ -18,10 +18,9 @@ export const payStaffSalary = async (
   const yearVal = parseInt(yStr);
 
   try {
-    const schoolId = await getSchoolId();
-
-    const payment = await prisma.$transaction(async (tx) => {
-      const existing = await tx.payment.findUnique({
+    const [schoolId, existing] = await Promise.all([
+      getSchoolId(),
+      prisma.payment.findUnique({
         where: {
           staffId_month_year: {
             staffId,
@@ -29,11 +28,17 @@ export const payStaffSalary = async (
             year: yearVal
           }
         }
-      });
+      })
+    ]);
 
-      const newTotalAmount = (existing?.amount || 0) + amount;
-      const newStatus = isAdvance ? "PARTIAL" : "PAID";
+    if (existing?.status === "PAID") {
+      throw new Error("Ce mois est déjà entièrement payé et clôturé.");
+    }
 
+    const newTotalAmount = (existing?.amount || 0) + amount;
+    const newStatus = isAdvance ? "PARTIAL" : "PAID";
+
+    const payment = await prisma.$transaction(async (tx) => {
       const p = await tx.payment.upsert({
         where: {
           staffId_month_year: {
@@ -78,11 +83,11 @@ export const payStaffSalary = async (
 
       return p;
     }, {
-      timeout: 60000
+      timeout: 15000
     });
 
     const effectiveDate = new Date(yearVal, monthIdx - 1, 1);
-    await createAuditLog({
+    createAuditLog({
       action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
       entityType: "Staff",
       entityId: staffId,
@@ -90,7 +95,7 @@ export const payStaffSalary = async (
       amount,
       type: 'expense',
       effectiveDate,
-    });
+    }).catch(err => console.error("Non-blocking audit log error:", err));
 
     const { invalidateTenantTags } = await import("@/lib/cache");
     invalidateTenantTags(schoolId, "dashboard", "finance", "staff", "expenses");

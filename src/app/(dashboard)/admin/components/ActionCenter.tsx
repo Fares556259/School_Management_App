@@ -229,9 +229,17 @@ export default function ActionCenter({
     return Array.from(classes).sort();
   }, [fees]);
 
-  // Handler de règlement optimiste
+  // Handler de règlement optimiste (0ms)
   const handleItemSettled = (id: string) => {
     setSettledIds((prev) => new Set(prev).add(id));
+  };
+
+  const handleItemRollback = (id: string) => {
+    setSettledIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   // Listes actives (non réglées pendant la session)
@@ -526,7 +534,8 @@ export default function ActionCenter({
                         amount={item.amount}
                         type={item.type}
                         monthYear={englishMonthYear}
-                        onSuccess={() => handleItemSettled(item.id)}
+                        onOptimisticPay={() => handleItemSettled(item.id)}
+                        onRollback={() => handleItemRollback(item.id)}
                       />
                     </div>
                   </div>
@@ -733,7 +742,8 @@ export default function ActionCenter({
                           amount={item.amount}
                           type={item.type}
                           monthYear={englishMonthYear}
-                          onSuccess={() => handleItemSettled(item.id)}
+                          onOptimisticPay={() => handleItemSettled(item.id)}
+                          onRollback={() => handleItemRollback(item.id)}
                         />
                       </div>
                     </div>

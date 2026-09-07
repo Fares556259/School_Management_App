@@ -195,12 +195,9 @@ export const payTeacherSalary = async (
   const yearVal = parseInt(yStr);
 
   try {
-    const schoolId = await getSchoolId();
-    const imgData = meta ? JSON.stringify(meta) : undefined;
-
-    const payment = await prisma.$transaction(async (tx) => {
-      // Find existing to add to total
-      const existing = await tx.payment.findUnique({
+    const [schoolId, existing] = await Promise.all([
+      getSchoolId(),
+      prisma.payment.findUnique({
         where: {
           teacherId_month_year: {
             teacherId,
@@ -208,15 +205,18 @@ export const payTeacherSalary = async (
             year: yearVal
           }
         }
-      });
+      })
+    ]);
 
-      if (existing?.status === "PAID") {
-        throw new Error("Ce mois est déjà entièrement payé et clôturé.");
-      }
+    if (existing?.status === "PAID") {
+      throw new Error("Ce mois est déjà entièrement payé et clôturé.");
+    }
 
-      const newTotalAmount = (existing?.amount || 0) + amountPaidNow;
-      const newStatus = isAdvance ? "PARTIAL" : "PAID";
+    const newTotalAmount = (existing?.amount || 0) + amountPaidNow;
+    const newStatus = isAdvance ? "PARTIAL" : "PAID";
+    const imgData = meta ? JSON.stringify(meta) : undefined;
 
+    const payment = await prisma.$transaction(async (tx) => {
       const p = await tx.payment.upsert({
         where: {
           teacherId_month_year: {
@@ -270,11 +270,11 @@ export const payTeacherSalary = async (
 
       return p;
     }, {
-      timeout: 60000
+      timeout: 15000
     });
 
     const effectiveDate = new Date(yearVal, monthIdx - 1, 1);
-    await createAuditLog({
+    createAuditLog({
       action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
       entityType: "Teacher",
       entityId: teacherId,
@@ -284,7 +284,7 @@ export const payTeacherSalary = async (
       amount: amountPaidNow,
       type: 'expense',
       effectiveDate,
-    });
+    }).catch(err => console.error("Non-blocking audit log error:", err));
 
     const { invalidateTenantTags } = await import("@/lib/cache");
     invalidateTenantTags(schoolId, "dashboard", "finance", "teachers", "expenses");

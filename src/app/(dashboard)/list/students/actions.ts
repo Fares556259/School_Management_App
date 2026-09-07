@@ -33,20 +33,19 @@ export const receiveStudentPayment = async (
 
   try {
     const { getSchoolId } = await import("@/lib/school");
-    const adminSchoolId = await getSchoolId();
-
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      select: { schoolId: true }
-    });
+    const [adminSchoolId, student, existing] = await Promise.all([
+      getSchoolId(),
+      prisma.student.findUnique({
+        where: { id: studentId },
+        select: { schoolId: true }
+      }),
+      prisma.payment.findUnique({
+        where: {
+          studentId_month_year: { studentId, month: monthIdx, year: yearVal }
+        }
+      })
+    ]);
     const schoolId = student?.schoolId || adminSchoolId;
-
-    // 0. Check for existing payment
-    const existing = await prisma.payment.findUnique({
-      where: {
-        studentId_month_year: { studentId, month: monthIdx, year: yearVal }
-      }
-    });
 
     const previousAmount = existing?.amount || 0;
     const newMoneyCollected = actualPaid - previousAmount;
@@ -91,7 +90,7 @@ export const receiveStudentPayment = async (
         const isRecoverySingle = !!existing;
         const incomeCategory = isRecoverySingle ? "Recovery" : isPartial ? "Partial" : "Tuition";
         await tx.income.create({
-        data: {
+          data: {
             title: `Tuition: ${studentName} (${monthYear}) ${existing ? "- Recovery" : ""}`,
             amount: newMoneyCollected,
             date: new Date(),
@@ -116,32 +115,31 @@ export const receiveStudentPayment = async (
         console.log(`✅ [PAYMENT_STEP] Deferred gap expense removed`);
       }
 
-      // 4. Log the action
-      await tx.auditLog.create({
-        data: {
-          action: existing ? "UPDATE" : "CREATE",
-          entityType: "Payment",
-          entityId: p.id.toString(),
-          performedBy: "system", // Fallback for action safety inside transaction
-          description: existing 
-            ? `Recovered ${newMoneyCollected} DT for ${studentName} (${monthYear}). Status: ${finalStatus}.`
-            : `Recorded ${actualPaid} DT payment for ${studentName} (${monthYear}). Status: ${finalStatus}.`,
-          amount: newMoneyCollected,
-          type: "income",
-          timestamp: new Date(),
-          oldValues: existing || undefined,
-          newValues: p as any,
-          schoolId
-        }
-      });
-      console.log(`✅ [PAYMENT_STEP] Audit log recorded`);
-
       return p;
     }, {
-      timeout: 60000
+      timeout: 15000
     });
 
     console.log(`🚀 [PAYMENT_SUCCESS] Transaction committed for ${studentName}`);
+
+    // 4. Log the action outside the lock
+    prisma.auditLog.create({
+      data: {
+        action: existing ? "UPDATE" : "CREATE",
+        entityType: "Payment",
+        entityId: result.id.toString(),
+        performedBy: "system",
+        description: existing 
+          ? `Recovered ${newMoneyCollected} DT for ${studentName} (${monthYear}). Status: ${finalStatus}.`
+          : `Recorded ${actualPaid} DT payment for ${studentName} (${monthYear}). Status: ${finalStatus}.`,
+        amount: newMoneyCollected,
+        type: "income",
+        timestamp: new Date(),
+        oldValues: existing || undefined,
+        newValues: result as any,
+        schoolId
+      }
+    }).catch(err => console.error("Non-blocking audit log error:", err));
 
     const { invalidateTenantTags } = await import("@/lib/cache");
     invalidateTenantTags(schoolId, "dashboard", "finance", "students", "incomes");
