@@ -1,7 +1,14 @@
 import { getSimulatorBaseline } from "../../actions/financeActions";
 import { getScenarios } from "../../actions/profitabilityActions";
-import SimulatorInterface from "./SimulatorInterface";
+import dynamic from "next/dynamic";
 import { getRole } from "@/lib/role";
+
+const SimulatorInterface = dynamic(() => import("./SimulatorInterface"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[500px] bg-slate-100/70 animate-pulse rounded-2xl" />
+  ),
+});
 import { redirect } from "next/navigation";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";

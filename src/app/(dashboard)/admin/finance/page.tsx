@@ -4,8 +4,17 @@ import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import FinanceChart from "./FinanceChart";
+import dynamic from "next/dynamic";
 import AddFinanceEntryModal from "./AddFinanceEntryModal";
+
+const FinanceChart = dynamic(() => import("./FinanceChart"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[400px] flex items-center justify-center">
+      <div className="w-full h-[320px] bg-slate-100/70 animate-pulse rounded-xl" />
+    </div>
+  ),
+});
 import ExportButton from "@/components/ExportButton";
 import { MONTHS } from "@/lib/dateUtils";
 import FinancePeriodFilter from "./FinancePeriodFilter";

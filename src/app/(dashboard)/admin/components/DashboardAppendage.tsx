@@ -4,12 +4,28 @@ import React from 'react';
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { MONTHS } from "@/lib/dateUtils";
-import FiscalDistribution from "./FiscalDistribution";
+import dynamic from 'next/dynamic';
 import SmartFinancialInsights from "./SmartFinancialInsights";
-import GrowthAnalyticsChart from "./GrowthAnalyticsChart";
 import ActionCenter from "./ActionCenter";
 import { translations, Locale } from "@/lib/translations";
 import { getCachedTenantData } from "@/lib/cache";
+
+const FiscalDistribution = dynamic(() => import("./FiscalDistribution"), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[380px] animate-pulse" />
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[380px] animate-pulse" />
+    </div>
+  ),
+});
+
+const GrowthAnalyticsChart = dynamic(() => import("./GrowthAnalyticsChart"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[400px] animate-pulse" />
+  ),
+});
 
 interface DashboardAppendageProps {
   startDate: Date;

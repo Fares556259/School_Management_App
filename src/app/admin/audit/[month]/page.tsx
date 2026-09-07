@@ -2,9 +2,16 @@ import React from 'react';
 import { getFinancialReportData, getAIFinancialReport } from '../../../(dashboard)/admin/actions';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import AuditView from './AuditView';
+import nextDynamic from 'next/dynamic';
 
-export const dynamic = "force-dynamic";
+const AuditView = nextDynamic(() => import('./AuditView'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-[#F8FAFC] min-h-screen p-8 flex items-center justify-center">
+      <div className="w-full max-w-5xl h-[600px] bg-slate-100/70 animate-pulse rounded-2xl" />
+    </div>
+  ),
+});
 
 const AuditPage = async ({ params }: { params: { month: string } }) => {
     const supabase = createClient();
