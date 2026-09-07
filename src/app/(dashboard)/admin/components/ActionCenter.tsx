@@ -436,7 +436,7 @@ export default function ActionCenter({
                 onClick={() => setRoleFilter("ALL")}
                 className={`px-2.5 py-1 text-[12px] font-medium rounded-[6px] transition-colors ${
                   roleFilter === "ALL"
-                    ? "bg-[#181d26] text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-100"
                 }`}
               >
@@ -447,7 +447,7 @@ export default function ActionCenter({
                 onClick={() => setRoleFilter("TEACHER")}
                 className={`px-2.5 py-1 text-[12px] font-medium rounded-[6px] transition-colors ${
                   roleFilter === "TEACHER"
-                    ? "bg-[#181d26] text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-100"
                 }`}
               >
@@ -458,7 +458,7 @@ export default function ActionCenter({
                 onClick={() => setRoleFilter("STAFF")}
                 className={`px-2.5 py-1 text-[12px] font-medium rounded-[6px] transition-colors ${
                   roleFilter === "STAFF"
-                    ? "bg-[#181d26] text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-100"
                 }`}
               >
@@ -560,7 +560,7 @@ export default function ActionCenter({
           <div className="p-4 bg-[#f8fafc] border-t border-[#dddddd] mt-auto space-y-3">
             <Link
               href="/list/teachers"
-              className="w-full py-2.5 bg-[#181d26] hover:bg-[#333840] border border-[#181d26] rounded-[6px] text-[13px] font-medium text-white transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 border border-blue-600 rounded-[6px] text-[13px] font-medium text-white transition-all flex items-center justify-center gap-2 shadow-sm shadow-blue-100"
             >
               <HandCoins size={14} />
               <span>{t.actionCenter.processSalaries}</span>

@@ -369,17 +369,22 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
       {/* 3 KPI CARDS FOR RECOVERY */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total to recover */}
-        <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Total Reliquats à Recouvrer
-          </span>
+        <div className="bg-blue-50/70 border border-blue-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-blue-900">
+              Total Reliquats à Recouvrer
+            </span>
+            <span className="text-[10px] font-black bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded-full">
+              Global
+            </span>
+          </div>
           <div className="mt-2">
-            <span className="text-3xl font-black">
+            <span className="text-3xl font-black text-blue-700">
               {metrics.totalPending.toLocaleString("en-US").replace(/,/g, " ")}
             </span>
-            <span className="text-sm font-semibold text-slate-400 ml-1">DT</span>
+            <span className="text-sm font-semibold text-blue-500 ml-1">DT</span>
           </div>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs font-semibold text-blue-700 mt-2">
             {metrics.totalCount} dossiers partiels en attente
           </p>
         </div>
@@ -435,7 +440,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             onClick={() => setSelectedStatus("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               selectedStatus === "all"
-                ? "bg-slate-900 text-white shadow-sm"
+                ? "bg-blue-600 text-white shadow-sm"
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             }`}
           >
