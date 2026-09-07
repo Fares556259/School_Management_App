@@ -68,9 +68,21 @@ const ScheduleSlot = ({
   compactMode = false,
   classNameStr = ""
 }: SlotProps) => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isRtl = locale === "ar";
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const formatSubjectName = (rawName?: string) => {
+    if (!rawName) return "";
+    if (!rawName.includes("|")) return rawName;
+    const parts = rawName.split("|").map((p: string) => p.trim());
+    if (isRtl) {
+      const arPart = parts.find((p: string) => /[\u0600-\u06FF]/.test(p));
+      return arPart || parts[1] || parts[0];
+    }
+    return parts[0];
+  };
   
   // Form State
   const slotsArray = Array.isArray(slot) ? slot : (slot ? [slot] : []);
@@ -241,7 +253,7 @@ const ScheduleSlot = ({
             <div className="w-8 h-8 rounded-full bg-[#ffffff] border border-[#dddddd] flex items-center justify-center transition-colors hover:shadow-sm">
                <BookOpen size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>
-            {!compactMode && <span className="text-[12px] font-medium mt-3 capitalize text-[#41454d]">Add {type === 'exam' ? 'Exam' : 'Session'}</span>}
+            {!compactMode && <span className="text-[12px] font-medium mt-3 capitalize text-[#41454d]">{type === 'exam' ? t.timetable.addExam : t.timetable.addSession}</span>}
           </button>
         )
       ) : (
@@ -254,7 +266,7 @@ const ScheduleSlot = ({
           {isEditMode && (
             <button
               onClick={() => setIsEditing(true)}
-              className="absolute top-1 right-1 z-20 p-1 bg-white/90 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden"
+              className="absolute top-1 end-1 z-20 p-1 bg-white/90 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden"
             >
               <Edit2 size={12} />
             </button>
@@ -265,20 +277,20 @@ const ScheduleSlot = ({
             (() => {
               const s = slotsArray[0];
               const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-              const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+              const subjectName = formatSubjectName(rawSubjectName);
               const teacherName = type === "timetable"
-                ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "No Teacher Assigned")
-                : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "No Teacher Assigned");
+                ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : t.timetable.noTeacherAssigned)
+                : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : t.timetable.noTeacherAssigned);
               const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
               return (
                 <div className={`w-full h-full border border-slate-200/50 ${getSlotColor(colorSubject || 0)} p-1.5 px-2 rounded-[8px] flex flex-col justify-between overflow-hidden relative`}>
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
-                  <h3 title={rawSubjectName} className={`text-[11px] font-bold leading-snug line-clamp-2 relative z-10 pr-6 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
-                    {colorSubject ? (subjectName || "Unscheduled") : "☕ Libre"}
+                  <h3 title={rawSubjectName} className={`text-[11px] font-bold leading-snug line-clamp-2 relative z-10 pe-6 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
+                    {colorSubject ? (subjectName || t.timetable.unscheduled) : `☕ ${t.timetable.freeTime}`}
                   </h3>
                   {colorSubject && (
                     <p className="text-[9px] font-medium text-[#41454d] opacity-80 truncate relative z-10 mt-1">
-                      {teacherName} • {s.room?.name || "TBA"}
+                      {teacherName} • {s.room?.name || t.timetable.tba}
                     </p>
                   )}
                 </div>
@@ -289,17 +301,17 @@ const ScheduleSlot = ({
             <div className="w-full h-full flex border border-slate-200/60 rounded-[8px] overflow-hidden relative">
               {slotsArray.map((s, idx) => {
                 const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-                const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+                const subjectName = formatSubjectName(rawSubjectName);
                 const teacherName = type === "timetable"
                   ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "")
                   : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "");
                 const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
                 return (
-                  <div key={s.id || idx} className={`flex-1 ${getSlotColor(colorSubject || 0)} flex flex-col justify-between p-1.5 overflow-hidden relative ${idx === 0 ? 'border-r-2 border-slate-200' : ''}`}>
+                  <div key={s.id || idx} className={`flex-1 ${getSlotColor(colorSubject || 0)} flex flex-col justify-between p-1.5 overflow-hidden relative ${idx === 0 ? 'border-e-2 border-slate-200' : ''}`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
                     <span className="text-[8px] font-bold uppercase tracking-wide opacity-40 relative z-10">G{idx + 1}</span>
                     <h3 title={rawSubjectName} className={`text-[10px] font-bold leading-snug line-clamp-2 relative z-10 ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
-                      {colorSubject ? (subjectName || "—") : "☕ Libre"}
+                      {colorSubject ? (subjectName || "—") : `☕ ${t.timetable.freeTime}`}
                     </h3>
                     {colorSubject && (
                       <p className="text-[8px] font-medium text-[#41454d] opacity-70 truncate relative z-10 mt-0.5">
@@ -316,13 +328,13 @@ const ScheduleSlot = ({
               <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
               {slotsArray.map((s, idx) => {
                 const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-                const subjectName = rawSubjectName ? rawSubjectName.split("|")[0].trim() : "";
+                const subjectName = formatSubjectName(rawSubjectName);
                 const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
                 return (
                   <div key={s.id || idx} className="flex items-center gap-1 relative z-10">
                     <span className="text-[7px] font-bold bg-white/60 rounded px-0.5 text-slate-500 flex-shrink-0">G{idx + 1}</span>
                     <span className={`text-[9px] font-semibold truncate ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
-                      {colorSubject ? (subjectName || "—") : "Libre"}
+                      {colorSubject ? (subjectName || "—") : t.timetable.freeTime}
                     </span>
                   </div>
                 );
@@ -334,7 +346,7 @@ const ScheduleSlot = ({
 
       {/* Modern Fixed Popover Modal overlay */}
       {isEditing && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[99999] bg-[#181d26]/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] bg-[#181d26]/40 backdrop-blur-sm flex items-center justify-center p-4" dir={isRtl ? "rtl" : "ltr"}>
           <div className="bg-white w-full max-w-md rounded-xl shadow-2xl border border-[#dddddd] overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-[#dddddd]">
@@ -388,40 +400,40 @@ const ScheduleSlot = ({
                   {sessions.length > 1 && (
                     <button 
                       onClick={() => removeSession(index)}
-                      className="absolute top-2 right-2 p-1 text-slate-400 hover:text-rose-500 bg-white rounded-md border border-slate-200 shadow-sm"
+                      className="absolute top-2 end-2 p-1 text-slate-400 hover:text-rose-500 bg-white rounded-md border border-slate-200 shadow-sm"
                     >
                       <Trash2 size={14} />
                     </button>
                   )}
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Groupe {index + 1}</div>
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.timetable.group} {index + 1}</div>
               
               {/* Subject Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ml-1">Matière</label>
+                <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.subject}</label>
                 <div className="relative">
                   <select 
-                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
+                    className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                     value={sess.subjectId}
                     onChange={(e) => updateSession(index, "subjectId", e.target.value)}
                   >
-                    <option value="">Sélectionner une matière</option>
-                    <option value="FREE" className="font-semibold text-amber-700 bg-amber-50">☕ Pause / Temps Libre (راحة)</option>
+                    <option value="">{t.timetable.selectSubject}</option>
+                    <option value="FREE" className="font-semibold text-amber-700 bg-amber-50">{t.timetable.freeBreak}</option>
                     {classSubjects.length > 0 && (
-                      <optgroup label={classNameStr ? `Matières de la classe ${classNameStr}` : "Matières de la classe"}>
+                      <optgroup label={classNameStr ? `${t.timetable.classSubjects} (${classNameStr})` : t.timetable.classSubjects}>
                         {classSubjects.map(s => (
-                          <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
+                          <option key={s.id} value={s.id}>{formatSubjectName(s.name)}</option>
                         ))}
                       </optgroup>
                     )}
                     {otherSubjects.length > 0 && (
-                      <optgroup label={classSubjects.length > 0 ? "Autres Matières" : "Toutes les Matières"}>
+                      <optgroup label={classSubjects.length > 0 ? t.timetable.otherSubjects : t.timetable.allSubjects}>
                         {otherSubjects.map(s => (
-                          <option key={s.id} value={s.id}>{s.name ? s.name.split("|")[0].trim() : ""}</option>
+                          <option key={s.id} value={s.id}>{formatSubjectName(s.name)}</option>
                         ))}
                       </optgroup>
                     )}
                   </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                  <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                     <BookOpen size={16} />
                   </div>
                 </div>
@@ -430,31 +442,31 @@ const ScheduleSlot = ({
               {/* Teacher Input */}
               {sess.subjectId !== "FREE" && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[#181d26] ml-1">Enseignant</label>
+                  <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.teacher}</label>
                   <div className="relative">
                     <select 
-                      className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer disabled:opacity-50"
+                      className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer disabled:opacity-50"
                       value={sess.teacherId}
                       onChange={(e) => updateSession(index, "teacherId", e.target.value)}
                       disabled={type === 'exam'}
                     >
-                      <option value="">Sélectionner un enseignant</option>
+                      <option value="">{t.timetable.selectTeacher}</option>
                       {classTeachers.length > 0 && (
-                        <optgroup label={classNameStr ? `Enseignants de la classe ${classNameStr}` : "Enseignants de la classe"}>
+                        <optgroup label={classNameStr ? `${t.timetable.classTeachers} (${classNameStr})` : t.timetable.classTeachers}>
                           {classTeachers.map(t => (
                             <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
                           ))}
                         </optgroup>
                       )}
                       {otherTeachers.length > 0 && (
-                        <optgroup label={classTeachers.length > 0 ? "Autres Enseignants" : "Tous les Enseignants"}>
+                        <optgroup label={classTeachers.length > 0 ? t.timetable.otherTeachers : t.timetable.allTeachers}>
                           {otherTeachers.map(t => (
                             <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
                           ))}
                         </optgroup>
                       )}
                     </select>
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                       <User size={16} />
                     </div>
                   </div>
@@ -464,30 +476,30 @@ const ScheduleSlot = ({
               {/* Room Input */}
               {sess.subjectId !== "FREE" && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[#181d26] ml-1">Salle</label>
+                  <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.room}</label>
                   <div className="relative">
                     <select 
-                      className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
+                      className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                       value={sess.roomId}
                       onChange={(e) => updateSession(index, "roomId", e.target.value)}
                     >
-                    <option value="">Sélectionner une salle</option>
+                    <option value="">{t.timetable.selectRoom}</option>
                     {availableRooms.length > 0 && (
-                      <optgroup label="Salles Disponibles">
+                      <optgroup label={t.timetable.availableRooms}>
                         {availableRooms.map(r => (
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
                       </optgroup>
                     )}
                     {occupiedRooms.length > 0 && (
-                      <optgroup label="Salles Occupées (Conflit possible)">
+                      <optgroup label={t.timetable.occupiedRooms}>
                         {occupiedRooms.map(r => (
-                          <option key={r.id} value={r.id} className="text-red-500 bg-red-50 font-medium">⚠️ {r.name} (Déjà occupée)</option>
+                          <option key={r.id} value={r.id} className="text-red-500 bg-red-50 font-medium">⚠️ {r.name} ({t.timetable.occupiedRooms})</option>
                         ))}
                       </optgroup>
                     )}
                     </select>
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                       <MapPin size={16} />
                     </div>
                   </div>
@@ -501,15 +513,15 @@ const ScheduleSlot = ({
                 className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-medium hover:bg-slate-50 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 text-sm mt-2"
               >
                 <Plus size={16} />
-                Ajouter un groupe (Sous-session)
+                {t.timetable.addGroup}
               </button>
 
             {/* Duration Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ml-1">{t.timetable.duration}</label>
+                <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.duration}</label>
                 <div className="relative">
                   <select 
-                    className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
+                    className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}
                   >
@@ -517,7 +529,7 @@ const ScheduleSlot = ({
                     <option value={90}>{t.timetable.oneHourThirty}</option>
                     <option value={120}>{t.timetable.twoHours}</option>
                   </select>
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                  <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                     <Clock size={16} />
                   </div>
                 </div>

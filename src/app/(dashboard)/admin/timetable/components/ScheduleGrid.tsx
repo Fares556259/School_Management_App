@@ -58,7 +58,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const [isLoading, setIsLoading] = useState(!propSlots && !!fetchDataAction);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
   const isInitialMount = React.useRef(true);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isRtl = locale === "ar";
 
   const displaySlots = localSlots.length > 0 ? localSlots : (propSlots || []);
 
@@ -115,6 +116,21 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     const hours = durationMins / 60;
     const pct = (hours / totalHours) * 100;
     return `${Math.min(100, pct)}%`;
+  };
+
+  const getSlotPosition = (timeStr: string, durationMins?: number) => {
+    const offset = calcLeft(timeStr);
+    const width = durationMins ? calcWidth(durationMins) : undefined;
+    if (isRtl) {
+      return {
+        right: offset,
+        ...(width ? { width } : {})
+      };
+    }
+    return {
+      left: offset,
+      ...(width ? { width } : {})
+    };
   };
 
   const handleOptimisticUpdate = async (data: any) => {
@@ -226,7 +242,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
           {/* HEADER ROW */}
           <div className="flex h-14 border-b border-slate-200 bg-[#f8fafc] shadow-sm relative z-10">
             <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest">
-              Jour
+              {t.timetable.day || "Jour"}
             </div>
             <div className="flex-1 relative">
               {timeMarkers.map(hour => {
@@ -236,12 +252,12 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   <div 
                     key={hour} 
                     className="absolute top-0 bottom-0"
-                    style={{ left: `${pct}%` }}
+                    style={isRtl ? { right: `${pct}%` } : { left: `${pct}%` }}
                   >
                     {/* Tick mark */}
-                    <div className="absolute bottom-0 w-[2px] h-3 bg-slate-300 -translate-x-1/2 rounded-t-[1px]" />
+                    <div className={`absolute bottom-0 w-[2px] h-3 bg-slate-300 rounded-t-[1px] ${isRtl ? "translate-x-1/2" : "-translate-x-1/2"}`} />
                     {/* Time Label */}
-                    <span className="absolute bottom-4 -translate-x-1/2 text-[13px] font-semibold text-slate-600">
+                    <span className={`absolute bottom-4 text-[13px] font-semibold text-slate-600 ${isRtl ? "translate-x-1/2" : "-translate-x-1/2"}`}>
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -300,13 +316,13 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                     return (
                       <React.Fragment key={`line-group-${hour}`}>
                         <div 
-                          className="absolute top-0 bottom-0 border-l border-slate-200 pointer-events-none z-0"
-                          style={{ left: `${pct}%` }}
+                          className="absolute top-0 bottom-0 border-s border-slate-200 pointer-events-none z-0"
+                          style={isRtl ? { right: `${pct}%` } : { left: `${pct}%` }}
                         />
                         {halfPct <= 100 && (
                           <div 
-                            className="absolute top-0 bottom-0 border-l border-dashed border-slate-100 pointer-events-none z-0"
-                            style={{ left: `${halfPct}%` }}
+                            className="absolute top-0 bottom-0 border-s border-dashed border-slate-100 pointer-events-none z-0"
+                            style={isRtl ? { right: `${halfPct}%` } : { left: `${halfPct}%` }}
                           />
                         )}
                       </React.Fragment>
@@ -319,8 +335,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                       key={slot.id}
                       className="absolute top-1 bottom-1 p-0.5 transition-all"
                       style={{ 
-                        left: calcLeft(slot.startTime), 
-                        width: calcWidth(slot.duration || 120),
+                        ...getSlotPosition(slot.startTime, slot.duration || 120),
                         zIndex: draggedOver === `slot-${slot.id}` ? 10 : 1
                       }}
                       onDragOver={(e) => handleDragOver(e, `slot-${slot.id}`)}
@@ -358,7 +373,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                     <div
                       className="absolute top-1 bottom-1 p-0.5 transition-all"
                       style={{ 
-                        left: calcLeft(lastSlotEndTime), 
+                        ...(isRtl ? { right: calcLeft(lastSlotEndTime) } : { left: calcLeft(lastSlotEndTime) }), 
                         width: "80px",
                         zIndex: 1
                       }}

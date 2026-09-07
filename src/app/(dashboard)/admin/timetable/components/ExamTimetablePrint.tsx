@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import Image from "next/image";
 import { Day } from "@prisma/client";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface ExamTimetablePrintProps {
   slots: any[];
@@ -34,13 +35,16 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
   teachers,
   sessions
 }, ref) => {
+  const { t, locale } = useLanguage();
+  const isRtl = locale === "ar";
+
   const dayLabels: { [key in Day]: string } = {
-    [Day.MONDAY]: "Lundi",
-    [Day.TUESDAY]: "Mardi",
-    [Day.WEDNESDAY]: "Mercredi",
-    [Day.THURSDAY]: "Jeudi",
-    [Day.FRIDAY]: "Vendredi",
-    [Day.SATURDAY]: "Samedi",
+    [Day.MONDAY]: t.timetable.monday,
+    [Day.TUESDAY]: t.timetable.tuesday,
+    [Day.WEDNESDAY]: t.timetable.wednesday,
+    [Day.THURSDAY]: t.timetable.thursday,
+    [Day.FRIDAY]: t.timetable.friday,
+    [Day.SATURDAY]: t.timetable.saturday,
   };
 
   const getDisplayDays = () => {
@@ -84,7 +88,7 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
   };
 
   return (
-    <div ref={ref} className="bg-white p-8 text-slate-900 hidden print:block" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+    <div ref={ref} dir={isRtl ? "rtl" : "ltr"} className="bg-white p-8 text-slate-900 hidden print:block" style={{ fontFamily: isRtl ? 'inherit' : '"Times New Roman", Times, serif' }}>
       <style type="text/css" media="print">{"\
         @page { size: landscape; margin: 0; }\
         body { -webkit-print-color-adjust: exact; font-family: 'Times New Roman', Times, serif; margin: 10mm; }\
@@ -93,7 +97,7 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
       {/* TITLE SECTION */}
       <div className="flex flex-col items-center mb-8 text-center text-black">
         <h1 className="text-[20px] font-bold leading-tight">
-          {classInfo.level}{classInfo.level === 1 ? 'ère' : 'ème'} Année - {classInfo.name}
+          {isRtl ? `السنة ${classInfo.level} - ${classInfo.name}` : `${classInfo.level}${classInfo.level === 1 ? 'ère' : 'ème'} Année - ${classInfo.name}`}
         </h1>
       </div>
 
@@ -101,10 +105,10 @@ const ExamTimetablePrint = forwardRef<HTMLDivElement, ExamTimetablePrintProps>((
       <table className="w-full border-collapse border-2 border-black text-[12px]">
         <thead>
           <tr>
-            <th className="border border-black p-2 font-bold w-[120px]">Horaire</th>
+            <th className="border border-black p-2 font-bold w-[120px]">{t.timetable.time || "Horaire"}</th>
             {displayDays.map((item, idx) => (
               <th key={idx} className="border border-black p-2 font-bold">
-                {dayLabels[item.day]} {item.date?.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
+                {dayLabels[item.day]} {item.date?.toLocaleDateString(isRtl ? 'ar-TN' : 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
               </th>
             ))}
           </tr>
