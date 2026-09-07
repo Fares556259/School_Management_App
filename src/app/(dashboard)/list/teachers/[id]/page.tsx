@@ -109,64 +109,82 @@ const SingleTeacherPage = async ({
   const role = await getRole();
   const schoolId = await getSchoolId();
 
-  // Load all teachers with full details in ONE cached tenant query for instant 0ms switching
-  const [allTeachersData, allExpenses] = await getCachedTenantData(
-    schoolId,
-    "teachers",
-    [schoolId, "all_teachers_bundles_v4"],
-    async () => {
-      const [teachers, expenses] = await Promise.all([
-        prisma.teacher.findMany({
-          where: { schoolId },
-          include: {
-            subjects: true,
-            classes: true,
-            payments: true,
-            timetable: {
-              where: { isDraft: false },
-              include: {
-                subject: true,
-                class: true,
-                room: true,
-              },
-              orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
+  const fetchTeachersAndExpenses = () =>
+    Promise.all([
+      prisma.teacher.findMany({
+        where: { schoolId },
+        include: {
+          subjects: true,
+          classes: true,
+          payments: true,
+          timetable: {
+            where: { isDraft: false },
+            include: {
+              subject: true,
+              class: true,
+              room: true,
             },
-            lessons: {
-              include: {
-                subject: true,
-                class: true,
-              },
-            },
-            _count: {
-              select: {
-                lessons: true,
-                classes: true,
-                subjects: true,
-              },
+            orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
+          },
+          lessons: {
+            include: {
+              subject: true,
+              class: true,
             },
           },
-          orderBy: [
-            { name: "asc" },
-            { surname: "asc" },
+          _count: {
+            select: {
+              lessons: true,
+              classes: true,
+              subjects: true,
+            },
+          },
+        },
+        orderBy: [
+          { name: "asc" },
+          { surname: "asc" },
+        ],
+      }),
+      prisma.expense.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { referenceType: "TeacherSalary" },
+            { category: "Advance" },
+            { category: "Salary" },
           ],
-        }),
-        prisma.expense.findMany({
-          where: {
-            schoolId,
-            OR: [
-              { referenceType: "TeacherSalary" },
-              { category: "Advance" },
-              { category: "Salary" },
-            ],
-          },
-          orderBy: { date: "asc" },
-        }),
-      ]);
+        },
+        orderBy: { date: "asc" },
+      }),
+    ]);
 
-      return [teachers, expenses];
-    },
-    600
-  );
+  let allTeachersData: any[] = [];
+  let allExpenses: any[] = [];
+
+  try {
+    const cached = await getCachedTenantData(
+      schoolId,
+      "teachers",
+      [schoolId, "all_teachers_bundles_v5"],
+      fetchTeachersAndExpenses,
+      600
+    );
+    if (Array.isArray(cached) && cached.length >= 2) {
+      [allTeachersData, allExpenses] = cached;
+    } else {
+      [allTeachersData, allExpenses] = await fetchTeachersAndExpenses();
+    }
+  } catch (err) {
+    console.error("[SingleTeacherPage] Cache failed, using direct query:", err);
+    try {
+      [allTeachersData, allExpenses] = await fetchTeachersAndExpenses();
+    } catch (dbErr) {
+      console.error("[SingleTeacherPage] Direct DB query failed:", dbErr);
+    }
+  }
+
+  allTeachersData = Array.isArray(allTeachersData) ? allTeachersData : [];
+  allExpenses = Array.isArray(allExpenses) ? allExpenses : [];
 
   const bundlesMap: Record<string, TeacherBundle> = {};
   allTeachersData.forEach((t: any) => {
