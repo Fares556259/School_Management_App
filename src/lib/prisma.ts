@@ -12,13 +12,27 @@ const globalForPrisma = globalThis as unknown as {
   prisma: any | undefined;
 };
 
+function getOptimizedDatabaseUrl(): string | undefined {
+  const url = process.env.DATABASE_URL;
+  if (!url) return undefined;
+
+  // Ensure PgBouncer pool has a healthy connection limit (10) for true concurrent Promise.all execution
+  if (url.includes("connection_limit=1&") || url.endsWith("connection_limit=1")) {
+    return url.replace("connection_limit=1", "connection_limit=10");
+  } else if (!url.includes("connection_limit=") && url.includes("pgbouncer=true")) {
+    return url + (url.includes("?") ? "&" : "?") + "connection_limit=10";
+  }
+
+  return url;
+}
+
 const basePrisma =
   globalForPrisma.prismaBase ??
   new PrismaClient({
     log: isDev ? ["error", "warn"] : ["error"],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: getOptimizedDatabaseUrl(),
       },
     },
   });
