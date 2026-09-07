@@ -820,6 +820,18 @@ export default function StudentProfileClient({
             levelTuitionFee={currentLevelTuitionFee}
             payments={payments}
             isAdmin={isAdmin}
+            onPaymentsChange={(updatedPayments) => {
+              setBundlesMap((prev) => {
+                if (!prev[student.id]) return prev;
+                return {
+                  ...prev,
+                  [student.id]: {
+                    ...prev[student.id],
+                    payments: updatedPayments,
+                  },
+                };
+              });
+            }}
           />
         </div>
 
@@ -866,6 +878,7 @@ export default function StudentProfileClient({
         currentStudentId={student.id}
         currentClassName={student.class?.name}
         students={allStudents.length > 0 ? allStudents : classmates}
+        bundlesMap={bundlesMap}
         isOpen={isSideNavOpen}
         onClose={handleCloseSideNav}
         onToggleOpen={handleToggleSideNav}
@@ -874,6 +887,7 @@ export default function StudentProfileClient({
         onPrefetchClass={handlePrefetchClass}
         loadingStudentId={loadingStudentId}
         activeTab={activeTab}
+        onTabChange={handleTabChange}
       />
     )}
   </div>

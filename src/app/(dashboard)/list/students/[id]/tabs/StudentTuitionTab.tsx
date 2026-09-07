@@ -41,6 +41,7 @@ interface StudentTuitionTabProps {
   levelTuitionFee: number;
   payments: PaymentRecord[];
   isAdmin: boolean;
+  onPaymentsChange?: (payments: PaymentRecord[]) => void;
 }
 
 const ACADEMIC_MONTHS = [
@@ -64,6 +65,7 @@ export default function StudentTuitionTab({
   levelTuitionFee,
   payments: initialPayments,
   isAdmin,
+  onPaymentsChange,
 }: StudentTuitionTabProps) {
   const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
   const [isPending, startTransition] = useTransition();
@@ -194,12 +196,12 @@ export default function StudentTuitionTab({
           deferredAmount: willBeComplete ? 0 : monthlyRate - newCumulative,
         };
 
-        setPayments((prev) => {
-          const filtered = prev.filter(
-            (p) => !(p.month === selectedMonth && p.year === selectedYear)
-          );
-          return [newRecord, ...filtered];
-        });
+        const filtered = payments.filter(
+          (p) => !(p.month === selectedMonth && p.year === selectedYear)
+        );
+        const updated = [newRecord, ...filtered];
+        setPayments(updated);
+        onPaymentsChange?.(updated);
 
         setSingleAmountInput("");
         setSinglePaymentType("FULL");
@@ -299,7 +301,7 @@ export default function StudentTuitionTab({
       );
 
       if (res.success) {
-        // Optimistically update local payments state
+        let finalUpdated: PaymentRecord[] = [];
         setPayments((prev) => {
           const updated = [...prev];
           multiMonthPreview.allocations.forEach((a) => {
@@ -321,8 +323,13 @@ export default function StudentTuitionTab({
               updated.unshift(newRecord);
             }
           });
+          finalUpdated = updated;
           return updated;
         });
+
+        if (finalUpdated.length > 0) {
+          onPaymentsChange?.(finalUpdated);
+        }
 
         setIsMultiMonthModalOpen(false);
       } else {

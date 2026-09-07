@@ -292,6 +292,9 @@ export default async function SingleStudentPage({
     className: s.class?.name || null,
     classId: s.classId,
     phone: s.phone || s.parent?.phone || null,
+    customTuition: s.customTuition,
+    levelTuitionFee: s.class?.level?.tuitionFee ?? levelTuitionFee ?? 450,
+    payments: s.payments || [],
   }));
 
   const classmatesList = student.classId
