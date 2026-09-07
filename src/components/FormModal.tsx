@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { deleteNotice, deleteAssignment, deleteResource } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "react-toastify";
 
 // USE LAZY LOADING
 
@@ -94,9 +95,11 @@ const FormModal = ({
       
       if (res?.success) {
         setOpen(false);
+        const entityLabel = t.crud.entities[table as keyof typeof t.crud.entities] || table;
+        toast.success(t.toasts?.deletedSuccess?.replace("{entity}", entityLabel) || "Deleted successfully!");
         window.location.reload();
       } else {
-        alert(res?.error || "Failed to delete item.");
+        toast.error(res?.error || t.toasts?.deleteFailed || "Failed to delete item.");
       }
     });
   };

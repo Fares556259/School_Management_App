@@ -11,6 +11,7 @@ import {
   BarChart3, RefreshCw, Crosshair,
 } from "lucide-react";
 import HiringAdvisor from "./HiringAdvisor";
+import { toast } from "react-toastify";
 
 /* ─── types ── */
 interface SimulatorBaseline {
@@ -717,7 +718,7 @@ export default function SimulatorInterface({ baseline, autofill, initialScenario
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Reset", icon: <RefreshCw size={14} />, onClick: () => { setResult(null); setWhatIfLoss(0); } },
-              { label: "Save scenario", icon: <Save size={14} />, onClick: () => alert("Connect to DB to persist scenarios") },
+              { label: "Save scenario", icon: <Save size={14} />, onClick: () => toast.info("Connect to DB to persist scenarios") },
               { label: isExporting ? "Exporting…" : "PDF report", icon: <FileText size={14} />, onClick: exportToPdf },
             ].map(({ label, icon, onClick }) => (
               <button key={label} onClick={onClick}

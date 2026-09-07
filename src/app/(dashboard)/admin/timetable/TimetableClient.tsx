@@ -7,6 +7,7 @@ import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye, CalendarDays, Chevr
 import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "./components/ScheduleGrid";
 import AiScheduleModal from "./components/AiScheduleModal";
+import { toast } from "react-toastify";
 import { isAIQuotaReached } from "../actions/aiActions";
 import { 
   getTimetableByClass, 
@@ -92,7 +93,7 @@ const TimetablePage = ({
 
   const handlePublishDraft = async () => {
     if (!selectedClass?.id) return;
-    if (window.confirm("Are you sure you want to approve and publish this draft suggestion? It will replace the current active schedule and become visible to teachers and parents.")) {
+    if (window.confirm(t.confirmations.publishScheduleMessage)) {
       const res = await publishDraftTimetable(selectedClass.id);
       if (res.success) {
         setIsDraftView(false);
@@ -100,22 +101,24 @@ const TimetablePage = ({
         setRefreshKey(prev => prev + 1);
         router.push(`/admin/timetable?classId=${selectedClass.id}`);
         router.refresh();
+        toast.success(t.toasts.draftPublished);
       } else {
-        alert(res.error || "Failed to publish draft.");
+        toast.error(res.error || t.toasts.failedToPublishDraft);
       }
     }
   };
 
   const handleDiscardDraft = async () => {
     if (!selectedClass?.id) return;
-    if (window.confirm("Are you sure you want to discard this suggested draft? All changes in this draft will be permanently deleted.")) {
+    if (window.confirm(t.confirmations.discardDraftMessage)) {
       const res = await discardDraftTimetable(selectedClass.id);
       if (res.success) {
         setIsDraftView(forceDraft);
         setHasDraft(false);
         setRefreshKey(prev => prev + 1);
+        toast.success(t.toasts.draftDiscarded);
       } else {
-        alert(res.error || "Failed to discard draft.");
+        toast.error(res.error || t.toasts.failedToDiscardDraft);
       }
     }
   };

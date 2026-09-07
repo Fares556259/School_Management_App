@@ -168,11 +168,12 @@ export default function ClassStudentsTable({
           const failed = results.filter((r) => !r.success);
           if (failed.length === 0) {
             setSelectedIds([]);
-            toast.success(`${count} student(s) removed successfully.`);
+            toast.success(t.toasts?.studentsRemoved?.replace("{count}", String(count)) || `${count} student(s) removed successfully.`);
             router.refresh();
           } else {
-            toast.error(`Failed to remove ${failed.length} student(s).`);
-            setError(`Failed to remove ${failed.length} student(s). Please try again.`);
+            const errMsg = t.toasts?.failedToRemoveStudents?.replace("{count}", String(failed.length)) || `Failed to remove ${failed.length} student(s).`;
+            toast.error(errMsg);
+            setError(errMsg);
             router.refresh();
           }
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -199,11 +200,12 @@ export default function ClassStudentsTable({
           const result = await removeStudentFromClass(studentId);
           if (result.success) {
             setSelectedIds((prev) => prev.filter((id) => id !== studentId));
-            toast.success(`${studentName} removed successfully.`);
+            toast.success(t.toasts?.studentRemoved?.replace("{name}", studentName) || `${studentName} removed successfully.`);
             router.refresh();
           } else {
-            toast.error(result.error || "Failed to remove student.");
-            setError(result.error || "Failed to remove student.");
+            const errMsg = result.error || t.toasts?.deleteFailed || "Failed to remove student.";
+            toast.error(errMsg);
+            setError(errMsg);
           }
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         });

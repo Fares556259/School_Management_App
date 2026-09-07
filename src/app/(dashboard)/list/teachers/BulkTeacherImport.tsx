@@ -6,8 +6,10 @@ import { bulkCreateTeachers } from "@/lib/crudActions";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud } from "lucide-react";
 import Image from "next/image";
 import { compressImage } from "@/lib/imageCompression";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export default function BulkTeacherImport({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
   const [importMode, setImportMode] = useState<"text" | "image">("text");
   const [rawText, setRawText] = useState("");
@@ -60,8 +62,8 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-[17px] font-bold text-[#181d26]">AI Bulk Enroll</h2>
-              <p className="text-[13px] text-indigo-600/80 font-medium">Extract teachers from text or documents instantly</p>
+              <h2 className="text-[17px] font-bold text-[#181d26]">{t.bulkImport.teacherTitle}</h2>
+              <p className="text-[13px] text-indigo-600/80 font-medium">{t.bulkImport.teacherSubtitle}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2.5 hover:bg-indigo-100/50 rounded-[8px] text-indigo-900/40 hover:text-indigo-600 transition-colors">
@@ -82,7 +84,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                   }`}
                 >
                   <Type size={16} />
-                  Paste Text
+                  {t.bulkImport.pasteText}
                 </button>
                 <button
                   onClick={() => setImportMode("image")}
@@ -91,7 +93,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                   }`}
                 >
                   <UploadCloud size={16} />
-                  Upload Document
+                  {t.bulkImport.uploadDocument}
                 </button>
               </div>
 
@@ -99,24 +101,24 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                  <AlertCircle size={18} className="text-indigo-500 mt-0.5 shrink-0" />
                  <p className="text-[13px] text-indigo-900/80 leading-relaxed font-medium">
                    {importMode === "text" 
-                      ? "Paste your unstructured list of teachers below. The AI will intelligently extract and format the data into the correct fields."
-                      : "Upload a clear photo, screenshot, or PDF scan of your teacher list. The AI will read and extract all details automatically."}
+                      ? t.bulkImport.teacherTextInfo
+                      : t.bulkImport.teacherImageInfo}
                  </p>
               </div>
               
               {importMode === "text" ? (
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">Raw Text Data</label>
+                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">{t.bulkImport.rawTextLabel}</label>
                   <textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder="Example: John Doe, j.doe@school.com, Math..."
+                    placeholder={t.bulkImport.teacherRawTextPlaceholder}
                     className="w-full h-[240px] p-5 rounded-[12px] border border-slate-200 bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-[14px] text-slate-700 resize-none shadow-sm placeholder:text-slate-400"
                   />
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">Document Upload</label>
+                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">{t.bulkImport.documentUpload}</label>
                   <div className="w-full h-[240px] rounded-[12px] border-2 border-dashed border-indigo-200/70 bg-indigo-50/30 flex flex-col items-center justify-center gap-4 group hover:border-indigo-400 hover:bg-indigo-50 transition-all overflow-hidden relative cursor-pointer shadow-sm"
                        onClick={() => !imageUrl && document.getElementById('bulk-teacher-upload')?.click()}>
                     {imageUrl ? (
@@ -126,7 +128,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                             <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500">
                                <FileText size={32} />
                             </div>
-                            <p className="font-semibold text-rose-700 text-[14px]">PDF Document Ready</p>
+                            <p className="font-semibold text-rose-700 text-[14px]">{t.bulkImport.pdfReady}</p>
                           </div>
                         ) : (
                           <Image src={imageUrl} alt="Document" fill className="object-contain p-2" />
@@ -134,7 +136,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                         <button 
                            onClick={(e) => { e.stopPropagation(); setImageUrl(null); }}
                            className="absolute top-4 right-4 p-2 bg-slate-900/50 text-white rounded-[8px] hover:bg-rose-500 transition-all shadow-xl z-10 backdrop-blur-md"
-                           title="Remove file"
+                           title={t.bulkImport.removeFile}
                         >
                           <X size={16} />
                         </button>
@@ -175,7 +177,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                               setImageUrl(publicUrl);
                             } catch (err: any) {
                               console.error("Bulk teacher upload failed:", err);
-                              setError(err.message || "Failed to upload file.");
+                              setError(err.message || t.bulkImport.uploadError);
                             }
                           }}
                         />
@@ -183,8 +185,8 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                           <UploadCloud size={24} />
                         </div>
                         <div className="text-center">
-                          <p className="text-[14.5px] font-bold text-indigo-900">Click to select a file</p>
-                          <p className="text-[12.5px] text-indigo-400 font-medium mt-1">Supports PDF, PNG, or JPG</p>
+                          <p className="text-[14.5px] font-bold text-indigo-900">{t.bulkImport.dropzoneText}</p>
+                          <p className="text-[12.5px] text-indigo-400 font-medium mt-1">{t.bulkImport.supportedFormats}</p>
                         </div>
                       </div>
                     )}
@@ -206,7 +208,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                   className="px-7 py-3 bg-indigo-600 text-white text-[14.5px] font-semibold rounded-[10px] hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-50 transition-all flex items-center gap-2"
                 >
                   <Sparkles size={18} />
-                  Start Extraction
+                  {t.bulkImport.analyzeWithAi}
                 </button>
               </div>
             </div>
@@ -221,8 +223,8 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                 </div>
               </div>
               <div className="text-center">
-                <h3 className="text-[18px] font-bold text-[#181d26]">Analyzing Document...</h3>
-                <p className="text-[14px] text-indigo-600/80 font-medium mt-1.5">The AI is currently extracting and structuring the teacher data.</p>
+                <h3 className="text-[18px] font-bold text-[#181d26]">{t.bulkImport.analyzingAi}</h3>
+                <p className="text-[14px] text-indigo-600/80 font-medium mt-1.5">{t.bulkImport.analyzingAiTeacherSubtitle}</p>
               </div>
             </div>
           )}
@@ -231,11 +233,11 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
             <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-[17px] font-bold text-[#181d26]">Review Extracted Data</h3>
-                  <p className="text-[13.5px] text-indigo-600/80 font-medium">Please verify the parsed information before enrolling.</p>
+                  <h3 className="text-[17px] font-bold text-[#181d26]">{t.bulkImport.reviewTitle}</h3>
+                  <p className="text-[13.5px] text-indigo-600/80 font-medium">{t.bulkImport.reviewSubtitle}</p>
                 </div>
                 <div className="px-4 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-full text-[13px] font-bold shadow-sm">
-                  {parsedData.length} Teachers
+                  {t.bulkImport.teacherCount.replace("{count}", String(parsedData.length))}
                 </div>
               </div>
 
@@ -244,19 +246,19 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
                       <tr>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">Teacher</th>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">Contact</th>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">Username</th>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500 text-right">Salary</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.teacherName}</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.contact}</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.username}</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500 text-right">{t.bulkImport.salary}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {parsedData.map((t, i) => (
+                      {parsedData.map((tItem, i) => (
                         <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26]">{t.name} {t.surname || ""}</td>
-                          <td className="px-5 py-4 text-[13px] font-medium text-slate-600">{t.email || t.phone || "N/A"}</td>
-                          <td className="px-5 py-4 text-[13px] font-mono text-indigo-600">{t.username}</td>
-                          <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26] text-right">{t.salary.toLocaleString("en-US").replace(/,/g, " ")} DT</td>
+                          <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26]">{tItem.name} {tItem.surname || ""}</td>
+                          <td className="px-5 py-4 text-[13px] font-medium text-slate-600">{tItem.email || tItem.phone || t.bulkImport.notAvailable}</td>
+                          <td className="px-5 py-4 text-[13px] font-mono text-indigo-600">{tItem.username}</td>
+                          <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26] text-right">{tItem.salary.toLocaleString("en-US").replace(/,/g, " ")} DT</td>
                         </tr>
                       ))}
                     </tbody>
@@ -269,7 +271,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                   onClick={() => setStep("input")}
                   className="px-6 py-2.5 bg-white text-slate-600 border border-slate-300 text-[14px] font-semibold rounded-[8px] hover:bg-slate-50 transition-colors"
                 >
-                  Back
+                  {t.bulkImport.back}
                 </button>
                 <button
                   onClick={handleSave}
@@ -277,7 +279,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                   className="px-8 py-2.5 bg-indigo-600 text-white text-[14px] font-semibold rounded-[8px] hover:bg-indigo-700 disabled:opacity-50 transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
                 >
                   {isPending ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
-                  Enroll Teachers
+                  {t.bulkImport.enrollTeachers}
                 </button>
               </div>
             </div>
@@ -289,8 +291,8 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                 <Check size={40} />
               </div>
               <div className="text-center">
-                <h3 className="text-[20px] font-bold text-[#181d26]">Successfully Enrolled!</h3>
-                <p className="text-[14px] text-emerald-600 font-medium mt-1">All {parsedData.length} teachers have been added to the system.</p>
+                <h3 className="text-[20px] font-bold text-[#181d26]">{t.bulkImport.successTitle}</h3>
+                <p className="text-[14px] text-emerald-600 font-medium mt-1">{t.bulkImport.successTeacherDetail.replace("{count}", String(parsedData.length))}</p>
               </div>
             </div>
           )}

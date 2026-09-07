@@ -159,7 +159,7 @@ const ExamTimetableClient = ({
       });
       setRefreshKey(prev => prev + 1);
     } else {
-      alert("Failed to save dates: " + res.error);
+      toast.error(t.toasts.failedToSaveDates + (res.error ? `: ${res.error}` : ""));
     }
   };
 
@@ -185,7 +185,7 @@ const ExamTimetableClient = ({
 
   const handlePublishDraft = async () => {
     if (!selectedClass?.id) return;
-    if (window.confirm("Are you sure you want to approve and publish this exam draft suggestion? It will replace the current active exams schedule and become visible to students and parents.")) {
+    if (window.confirm(t.confirmations.publishExamMessage)) {
       const res = await publishDraftExams(selectedClass.id, selectedPeriod);
       if (res.success) {
         setIsDraftView(false);
@@ -193,22 +193,24 @@ const ExamTimetableClient = ({
         setRefreshKey(prev => prev + 1);
         router.push(`/list/exams?classId=${selectedClass.id}`);
         router.refresh();
+        toast.success(t.toasts.draftPublished);
       } else {
-        alert(res.error || "Failed to publish exam draft.");
+        toast.error(res.error || t.toasts.failedToPublishDraft);
       }
     }
   };
 
   const handleDiscardDraft = async () => {
     if (!selectedClass?.id) return;
-    if (window.confirm("Are you sure you want to discard this suggested exam draft? All changes in this draft will be permanently deleted.")) {
+    if (window.confirm(t.confirmations.discardExamDraftMessage)) {
       const res = await discardDraftExams(selectedClass.id, selectedPeriod);
       if (res.success) {
         setIsDraftView(forceDraft);
         setHasDraft(false);
         setRefreshKey(prev => prev + 1);
+        toast.success(t.toasts.draftDiscarded);
       } else {
-        alert(res.error || "Failed to discard draft.");
+        toast.error(res.error || t.toasts.failedToDiscardDraft);
       }
     }
   };
@@ -217,10 +219,10 @@ const ExamTimetableClient = ({
     if (!selectedClass?.id) return;
     if (!printRef.current) return;
 
-    if (!window.confirm("Are you sure you want to generate the PDF and publish it to all students in this class? They will receive a notification immediately.")) return;
+    if (!window.confirm(t.confirmations.publishPdfNoticeMessage)) return;
 
     setIsPublishing(true);
-    const toastId = toast.loading("Generating PDF...");
+    const toastId = toast.loading(t.toasts.generatingPdf);
     
     try {
       // 1. Generate PDF (temporarily make print block visible for html2canvas if needed, but react-to-print uses iframe. For html2canvas we need it in DOM. Since it has `hidden print:block`, we need to temporarily unhide it)
@@ -245,7 +247,7 @@ const ExamTimetableClient = ({
       const pdfBlob = pdf.output('blob');
 
       // 2. Upload to Supabase
-      toast.update(toastId, { render: "Uploading PDF...", type: "info", isLoading: true });
+      toast.update(toastId, { render: t.toasts.uploadingPdf, type: "info", isLoading: true });
       const supabase = createClient();
       const fileName = `exam_timetable_${selectedClass.id}_period_${selectedPeriod}_${Date.now()}.pdf`;
       
@@ -255,15 +257,15 @@ const ExamTimetableClient = ({
       const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(fileName);
 
       // 3. Update database and send notifications
-      toast.update(toastId, { render: "Notifying students...", type: "info", isLoading: true });
+      toast.update(toastId, { render: t.toasts.notifyingStudents, type: "info", isLoading: true });
       const res = await publishExamScheduleToStudents(selectedClass.id, selectedPeriod, publicUrl);
       
       if (!res.success) throw new Error(res.error || "Failed to notify students");
 
-      toast.update(toastId, { render: "Successfully published to students!", type: "success", isLoading: false, autoClose: 3000 });
+      toast.update(toastId, { render: t.toasts.pdfPublishedSuccess, type: "success", isLoading: false, autoClose: 3000 });
     } catch (err: any) {
       console.error(err);
-      toast.update(toastId, { render: err.message || "An error occurred", type: "error", isLoading: false, autoClose: 4000 });
+      toast.update(toastId, { render: err.message || t.toasts.operationFailed, type: "error", isLoading: false, autoClose: 4000 });
     } finally {
       setIsPublishing(false);
     }

@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { compressImageFiles } from "@/lib/imageCompression";
+import { toast } from "react-toastify";
 
 interface Props {
   isOpen: boolean;
@@ -32,11 +33,11 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
     );
     
     if (droppedFiles.length === 0) {
-      alert("Please upload valid images (JPG/PNG).");
+      toast.error(t.toasts.validImagesRequired);
       return;
     }
     setFiles(prev => [...prev, ...droppedFiles]);
-  }, [status]);
+  }, [status, t]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -95,13 +96,13 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
       if (res.success) {
         setResults(res.results || []);
       } else {
-        alert("Bulk processing failed: " + res.error);
+        toast.error(t.toasts.bulkProcessingFailed + (res.error ? `: ${res.error}` : ""));
         setStatus("idle"); // reset so they can try again or close
       }
       
     } catch (err: any) {
       console.error(err);
-      alert("Error uploading or processing files: " + err.message);
+      toast.error(err.message || t.toasts.bulkProcessingFailed);
       setStatus("idle");
     }
   };
@@ -208,8 +209,8 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                 <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-[6px] flex items-center gap-4">
                   <CheckCircle2 size={24} className="text-emerald-500" />
                   <div>
-                    <h3 className="text-[14px] font-medium text-emerald-800">Processing Complete</h3>
-                    <p className="text-[12px] text-emerald-600 mt-0.5">Review the AI extraction results below.</p>
+                    <h3 className="text-[14px] font-medium text-emerald-800">{t.resultsPage.modal.processingComplete}</h3>
+                    <p className="text-[12px] text-emerald-600 mt-0.5">{t.resultsPage.modal.reviewResults}</p>
                   </div>
                 </div>
 
@@ -229,18 +230,20 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                                   <span className="text-[#9297a0]">|</span>
                                   <span>{res.subjectMatch || '?'}</span>
                                   <span className="text-[#9297a0]">|</span>
-                                  <span>Term {res.termMatch || '?'}</span>
+                                  <span>{t.resultsPage.term} {res.termMatch || '?'}</span>
                                   {res.teacherMatch && (
                                     <>
                                       <span className="text-[#9297a0]">|</span>
-                                      <span className="text-[#41454d]">Prof. {res.teacherMatch}</span>
+                                      <span className="text-[#41454d]">{t.resultsPage.teacher} {res.teacherMatch}</span>
                                     </>
                                   )}
                                 </>
-                              ) : "Extraction Failed"}
+                              ) : t.resultsPage.modal.extractionFailed}
                             </h4>
                             <p className={`text-[12px] font-medium mt-1 ${res.success ? 'text-[#1b61c9]' : 'text-red-500'}`}>
-                              {res.success ? `${res.gradesImported} Grades Synced` : "0 Grades Synced"}
+                              {res.success
+                                ? t.resultsPage.modal.gradesSynced.replace("{count}", String(res.gradesImported))
+                                : t.resultsPage.modal.gradesSynced.replace("{count}", "0")}
                             </p>
                           </div>
                         </div>
@@ -250,7 +253,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                         <div className="mt-4 p-4 bg-amber-50 rounded-[6px] border border-amber-100 flex flex-col gap-2">
                           <div className="flex items-center gap-2 text-amber-700">
                             <AlertCircle size={16} />
-                            <span className="text-[13px] font-medium">Warnings / Unmatched</span>
+                            <span className="text-[13px] font-medium">{t.resultsPage.modal.warningsUnmatched}</span>
                           </div>
                           <ul className="list-disc pl-5 text-[12px] text-amber-800 space-y-1">
                             {res.errors.map((err: string, j: number) => (
@@ -293,7 +296,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                   onClick={handleReset}
                   className="px-4 py-2.5 text-[#41454d] font-medium text-[13px] hover:bg-[#f8fafc] border border-transparent rounded-[6px] transition-colors"
                 >
-                  Upload More
+                  {t.resultsPage.modal.uploadMore}
                 </button>
                 <button 
                   onClick={() => {
@@ -302,7 +305,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                   }}
                   className="px-4 py-2.5 bg-[#181d26] hover:bg-[#0d1218] text-white font-medium text-[13px] rounded-[6px] transition-all"
                 >
-                  Return to Grade Sheets
+                  {t.resultsPage.modal.returnToSheets}
                 </button>
               </>
             )}

@@ -94,14 +94,16 @@ const SendSmsButton = ({
         localStorage.setItem(storageKey, Date.now().toString());
         setCooldown(4 * 60 * 60 * 1000);
         toast.success(
-          `✓ ${data.count || 0} rappel(s) envoyés aux parents via l'application.`
+          data.count
+            ? `${data.count} ${t.toasts.remindersSent}`
+            : t.toasts.remindersSent
         );
       } else {
-        toast.error("Échec de l'envoi des rappels.");
+        toast.error(t.toasts.remindersFailed);
       }
     } catch (error) {
       console.error("Failed to send reminders:", error);
-      toast.error("Erreur de connexion. Veuillez réessayer.");
+      toast.error(t.toasts.connectionError);
     } finally {
       setIsSending(false);
     }

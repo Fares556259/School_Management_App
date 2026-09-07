@@ -15,6 +15,7 @@ import {
 import { approveAdmin, rejectAdmin, deleteSetupRequest, updateSetupRequestStatus } from "./actions";
 import SyncClerkBtn from "./SyncClerkBtn";
 import type { UnifiedApplication, ApplicationDisplayType } from "./actions";
+import { toast } from "react-toastify";
 
 // ─── Status pills ─────────────────────────────────────────────────────────────
 const DISPLAY_TYPE_STYLES: Record<ApplicationDisplayType, { label: string; className: string; icon: React.ReactNode }> = {
@@ -77,19 +78,21 @@ function ApproveRejectButtons({ adminId }: { adminId: string }) {
           const res = await approveAdmin(adminId);
           if (res.success) {
             setDone("approved");
+            toast.success("School approved successfully");
           } else {
-            alert(`Approval failed: ${res.error}`);
+            toast.error(`Approval failed: ${res.error}`);
           }
         } else {
           const res = await rejectAdmin(adminId);
           if (res.success) {
             setDone("rejected");
+            toast.info("User rejected");
           } else {
-            alert(`Rejection failed: ${res.error}`);
+            toast.error(`Rejection failed: ${res.error}`);
           }
         }
       } catch (e: any) {
-        alert(`An error occurred: ${e.message}`);
+        toast.error(`An error occurred: ${e.message}`);
       }
     });
   };

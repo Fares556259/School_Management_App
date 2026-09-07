@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { payTeacherSalary } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 export default function TeacherSalaryTracker({
   teacherId,
@@ -17,6 +19,7 @@ export default function TeacherSalaryTracker({
   payments: any[];
   isAdmin: boolean;
 }) {
+  const { t, locale } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPending, startTransition] = useTransition();
 
@@ -48,7 +51,7 @@ export default function TeacherSalaryTracker({
     });
   };
 
-  const monthStr = currentDate.toLocaleString("en-US", {
+  const monthStr = currentDate.toLocaleString(locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US", {
     month: "long",
     year: "numeric",
   });
@@ -64,8 +67,9 @@ export default function TeacherSalaryTracker({
       const result = await payTeacherSalary(teacherId, teacherName, salary, monthStr);
       if (result.success) {
         setPaidMonths((prev) => new Map(prev).set(monthStr, "PAID"));
+        toast.success(t.toasts.salaryValidated.replace("{name}", teacherName).replace("{amount}", String(salary)));
       } else {
-        alert(result.error);
+        toast.error(result.error || t.teacherFinance.saveError);
       }
     });
   };
@@ -77,11 +81,15 @@ export default function TeacherSalaryTracker({
     ? "bg-purple-100 text-purple-700"
     : "bg-rose-100 text-rose-700";
 
-  const badgeLabel = isPaid ? "PAID" : isPartial ? "ADVANCE" : "UNPAID";
+  const badgeLabel = isPaid 
+    ? t.teacherFinance.statusPaid 
+    : isPartial 
+    ? t.teacherFinance.statusAdvance 
+    : t.teacherFinance.statusUnpaid;
 
   return (
     <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-      <h1 className="text-base font-bold text-slate-800 mb-4">Salary Tracker</h1>
+      <h1 className="text-base font-bold text-slate-800 mb-4">{t.teacherFinance.salaryTracker}</h1>
 
       {/* Month navigator */}
       <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg mb-4 border border-slate-100">
@@ -102,7 +110,7 @@ export default function TeacherSalaryTracker({
 
       <div className="flex flex-col items-center gap-3">
         <div className="flex w-full items-center justify-between px-2">
-          <span className="text-sm font-medium text-slate-500">Monthly Salary:</span>
+          <span className="text-sm font-medium text-slate-500">{t.teacherFinance.baseSalary}:</span>
           <span className="text-sm font-bold text-slate-700">
             {salary.toLocaleString("en-US").replace(/,/g, " ") + " DT"}
           </span>
@@ -110,7 +118,7 @@ export default function TeacherSalaryTracker({
 
         {/* FIX Bug 2: proper template literal with $ sign for className */}
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
-          <span className="text-sm font-medium text-slate-500">Status:</span>
+          <span className="text-sm font-medium text-slate-500">{(t.crud.fields as any)?.Status || t.staff.paidStatus}:</span>
           <span className={`px-3 py-1 text-xs font-bold rounded-full ${badgeClass}`}>
             {badgeLabel}
           </span>
@@ -125,10 +133,10 @@ export default function TeacherSalaryTracker({
           >
             {/* FIX Bug 3: proper template literal with $ sign */}
             {isPending
-              ? "Processing..."
+              ? t.studentTuition.processing
               : isPartial
-              ? `Complete salary for ${monthStr}`
-              : `Pay ${salary.toLocaleString("en-US").replace(/,/g, " ")} DT for ${monthStr}`}
+              ? t.teacherFinance.completeSalaryForMonth.replace("{month}", monthStr)
+              : t.teacherFinance.paySalaryForMonth.replace("{amount}", salary.toLocaleString("en-US").replace(/,/g, " ")).replace("{month}", monthStr)}
           </button>
         )}
       </div>
@@ -136,7 +144,7 @@ export default function TeacherSalaryTracker({
       {/* Payment History */}
       {payments.length > 0 && (
         <div className="mt-5 border-t border-slate-100 pt-4">
-          <h2 className="text-sm font-bold text-slate-600 mb-3">Payment History</h2>
+          <h2 className="text-sm font-bold text-slate-600 mb-3">{t.teacherFinance.tabHistory}</h2>
           <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
             {[...payments]
               .sort((a, b) => b.year - a.year || b.month - a.month)

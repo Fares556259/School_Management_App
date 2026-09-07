@@ -108,12 +108,13 @@ export default function AssignStudentsModal({
     startTransition(async () => {
       const result = await assignStudentsToClass(classId, selectedIds);
       if (result.success) {
-        toast.success("Student assignments updated successfully!");
+        toast.success(t.toasts?.assignmentsUpdated || "Student assignments updated successfully!");
         setOpen(false);
         router.refresh();
       } else {
-        toast.error(result.error || "Failed to update assignments.");
-        setError(result.error || "Failed to update assignments.");
+        const errMsg = result.error || t.toasts?.assignmentsUpdateFailed || "Failed to update assignments.";
+        toast.error(errMsg);
+        setError(errMsg);
       }
     });
   };

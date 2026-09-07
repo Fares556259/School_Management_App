@@ -20,6 +20,7 @@ import {
 import { receiveStudentPayment } from "../students/actions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { downloadCSV } from "@/lib/csvExport";
+import { toast } from "react-toastify";
 
 export type DueStatus = "all" | "overdue" | "this_month" | "future" | "unscheduled";
 
@@ -188,28 +189,28 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
   };
 
   const columns = [
-    { header: (t as any).recovery?.table?.student || "Élève", accessor: "student" },
+    { header: t.recovery?.table?.student || "Élève", accessor: "student" },
     {
-      header: (t as any).recovery?.table?.feeMonth || "Mois concerné",
+      header: t.recovery?.table?.feeMonth || "Mois concerné",
       accessor: "month",
       className: "hidden md:table-cell",
     },
     {
-      header: (t as any).recovery?.table?.paid || "Déjà payé",
+      header: t.recovery?.table?.paid || "Déjà payé",
       accessor: "amount",
       className: "text-right",
     },
     {
-      header: "Reste dû (Reliquat)",
+      header: t.recovery?.table?.gapPending || "Reste dû (Reliquat)",
       accessor: "deferredAmount",
       className: "text-right",
     },
     {
-      header: "Échéance & Statut",
+      header: t.recovery?.table?.recoverySchedule || "Échéance & Statut",
       accessor: "deferredUntil",
     },
     {
-      header: (t as any).recovery?.table?.actions || "Actions",
+      header: t.recovery?.table?.actions || "Actions",
       accessor: "action",
     },
   ];
@@ -248,9 +249,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             )
           );
         }
+        toast.success(t.toasts?.paymentRecorded || "Paiement enregistré avec succès !");
         setSelectedRecovery(null);
       } else {
-        alert("Failed to update payment");
+        toast.error(result.error || t.toasts?.paymentFailed || "Failed to update payment");
       }
     });
   };
@@ -320,7 +322,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
                       locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US",
                       { year: "numeric", month: "short", day: "numeric" }
                     )
-                  : "Non planifiée"}
+                  : (t.recovery?.status?.unplanned || "Non planifiée")}
               </span>
             </div>
 
@@ -328,20 +330,20 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               {dueStatus === "overdue" ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">
                   <AlertTriangle size={10} />
-                  En retard (Échu)
+                  {t.recovery?.status?.overdue || "En retard"}
                 </span>
               ) : dueStatus === "this_month" ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">
                   <Clock size={10} />
-                  Échéance ce mois
+                  {t.recovery?.status?.thisMonth || "Ce mois"}
                 </span>
               ) : dueStatus === "future" ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
-                  À venir
+                  {t.recovery?.status?.future || "À venir"}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wider">
-                  Non planifié
+                  {t.recovery?.status?.unplanned || "Non planifié"}
                 </span>
               )}
             </div>
@@ -356,7 +358,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
           >
             <Wallet size={14} />
             <span className="text-xs font-bold uppercase tracking-wider">
-              {(t as any).recovery?.table?.recover || "Recouvrer"}
+              {t.recovery?.table?.recover || "Recouvrer"}
             </span>
           </button>
         </td>
@@ -372,10 +374,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         <div className="bg-blue-50/70 border border-blue-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-wider text-blue-900">
-              Total Reliquats à Recouvrer
+              {t.recovery?.totalToRecover || "Total Reliquats à Recouvrer"}
             </span>
             <span className="text-[10px] font-black bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded-full">
-              Global
+              {t.recovery?.globalBadge || "Global"}
             </span>
           </div>
           <div className="mt-2">
@@ -385,7 +387,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             <span className="text-sm font-semibold text-blue-500 ml-1">DT</span>
           </div>
           <p className="text-xs font-semibold text-blue-700 mt-2">
-            {metrics.totalCount} dossiers partiels en attente
+            {(t.recovery?.pendingDossiersCount || "{count} dossiers partiels en attente").replace("{count}", String(metrics.totalCount))}
           </p>
         </div>
 
@@ -393,10 +395,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         <div className="bg-rose-50 border border-rose-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-wider text-rose-800">
-              ⚠ Reliquats Échus (En retard)
+              ⚠ {t.recovery?.overdueDue || "Reliquats Échus (En retard)"}
             </span>
             <span className="text-[10px] font-black bg-rose-200/80 text-rose-800 px-2 py-0.5 rounded-full">
-              Priorité haute
+              {t.recovery?.highPriorityBadge || "Priorité haute"}
             </span>
           </div>
           <div className="mt-2">
@@ -406,7 +408,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             <span className="text-sm font-semibold text-rose-400 ml-1">DT</span>
           </div>
           <p className="text-xs font-semibold text-rose-700 mt-2">
-            {metrics.overdueCount} élève(s) dont l&apos;échéance est dépassée
+            {(t.recovery?.overdueDossiersCount || "{count} élève(s) dont l'échéance est dépassée").replace("{count}", String(metrics.overdueCount))}
           </p>
         </div>
 
@@ -414,10 +416,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
         <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
-              📅 Échéances du Mois
+              📅 {t.recovery?.dueThisMonth || "Échéances du Mois"}
             </span>
             <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
-              Ce mois-ci
+              {t.recovery?.thisMonthBadge || "Ce mois-ci"}
             </span>
           </div>
           <div className="mt-2">
@@ -427,7 +429,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             <span className="text-sm font-semibold text-amber-500 ml-1">DT</span>
           </div>
           <p className="text-xs font-semibold text-amber-800 mt-2">
-            {metrics.thisMonthCount} reliquat(s) attendu(s) avant la fin du mois
+            {(t.recovery?.thisMonthDossiersCount || "{count} reliquat(s) attendu(s) avant la fin du mois").replace("{count}", String(metrics.thisMonthCount))}
           </p>
         </div>
       </div>
@@ -444,7 +446,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             }`}
           >
-            Tous ({data.length})
+            {t.recovery?.filterAll || "Tous"} ({data.length})
           </button>
           <button
             onClick={() => setSelectedStatus("overdue")}
@@ -455,7 +457,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             }`}
           >
             <AlertTriangle size={12} />
-            En retard ({metrics.overdueCount})
+            {t.recovery?.filterOverdue || "En retard"} ({metrics.overdueCount})
           </button>
           <button
             onClick={() => setSelectedStatus("this_month")}
@@ -466,7 +468,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             }`}
           >
             <Clock size={12} />
-            Ce mois ({metrics.thisMonthCount})
+            {t.recovery?.filterThisMonth || "Ce mois"} ({metrics.thisMonthCount})
           </button>
           <button
             onClick={() => setSelectedStatus("future")}
@@ -476,7 +478,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
                 : "bg-white text-blue-700 hover:bg-blue-50 border border-blue-200"
             }`}
           >
-            Futures ({metrics.futureCount})
+            {t.recovery?.filterFuture || "Futures"} ({metrics.futureCount})
           </button>
         </div>
 
@@ -489,7 +491,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               onChange={(e) => setSelectedClass(e.target.value)}
               className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200"
             >
-              <option value="">Toutes les classes</option>
+              <option value="">{t.recovery?.allClasses || "Toutes les classes"}</option>
               {uniqueClasses.map((cls) => (
                 <option key={cls} value={cls}>
                   {cls}
@@ -505,7 +507,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200"
             >
-              <option value="">Tous les mois</option>
+              <option value="">{t.recovery?.allMonths || "Tous les mois"}</option>
               {uniqueMonths.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -519,7 +521,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input
               type="text"
-              placeholder="Rechercher élève..."
+              placeholder={t.recovery?.searchPlaceholder || "Rechercher un élève..."}
               className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium outline-none focus:ring-2 focus:ring-slate-200 w-40"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -531,10 +533,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             onClick={handleExportCSV}
             disabled={filteredData.length === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-            title="Exporter la liste de recouvrement en CSV"
+            title={t.recovery?.exportButton || "Export Recouvrement"}
           >
             <Download size={14} />
-            <span>Export Recouvrement</span>
+            <span>{t.recovery?.exportButton || "Export Recouvrement"}</span>
           </button>
         </div>
       </div>
@@ -548,10 +550,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               <CheckCircle className="text-emerald-500" size={32} />
             </div>
             <h3 className="text-lg font-bold text-slate-700">
-              {(t as any).recovery?.empty?.title || "Aucun reliquat dans cette sélection !"}
+              {t.recovery?.emptyTitle || "Tous les reliquats sont recouvrés !"}
             </h3>
             <p className="text-sm text-slate-500">
-              Tous les paiements correspondant à ces critères ont été soldés.
+              {t.recovery?.emptySubtitle || "Aucun paiement partiel en attente d'encaissement."}
             </p>
           </div>
         )}
@@ -569,10 +571,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
             </button>
 
             <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">
-              {(t as any).recovery?.modal?.title || "Encaisser le Reliquat"}
+              {t.recovery?.modal?.title || "Recouvrement de Reliquat"}
             </h2>
             <p className="text-sm text-slate-500 mb-6 font-medium">
-              {(t as any).recovery?.modal?.recordingFor || "Paiement pour"}{" "}
+              {t.recovery?.modal?.recordingFor || "Paiement pour"}{" "}
               <span className="font-bold text-slate-700">
                 {selectedRecovery.student?.name} {selectedRecovery.student?.surname}
               </span>
@@ -580,7 +582,9 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
 
             <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Reste Dû Actuel</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                  {t.recovery?.modal?.currentPending || "Reste Dû Actuel"}
+                </span>
                 <span className="text-xs font-black text-rose-500">
                   {selectedRecovery.deferredAmount} DT
                 </span>
@@ -592,7 +596,7 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
 
             <div className="mb-6">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                Montant à Encaisser Maintenant (DT)
+                {t.recovery?.modal?.recoveryAmount || "Montant à Encaisser Maintenant (DT)"}
               </label>
               <input
                 type="number"
@@ -609,10 +613,10 @@ export default function PartialPaymentsClient({ initialData }: { initialData: Ex
               className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
             >
               {isPending ? (
-                (t as any).recovery?.modal?.processing || "Enregistrement..."
+                t.recovery?.modal?.processing || "Enregistrement..."
               ) : (
                 <>
-                  <span>{(t as any).recovery?.modal?.confirm || "Valider l'Encaissement"}</span>
+                  <span>{t.recovery?.modal?.confirm || "Valider le Recouvrement"}</span>
                   <ArrowUpRight size={18} />
                 </>
               )}

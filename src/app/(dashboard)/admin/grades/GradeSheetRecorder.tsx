@@ -9,6 +9,8 @@ import { createGradeSheet, GradeEntry, getGradeSheet } from "./actions";
 import { extractGradesFromImage } from "./aiActions";
 import { isAIQuotaReached } from "../actions/aiActions";
 import { compressImageFiles } from "@/lib/imageCompression";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 
 const parseArabicName = (name: string): string => {
@@ -59,6 +61,7 @@ export default function GradeSheetRecorder({
   onCloseRedirect,
 }: Props & { existingSheet?: any }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [classId, setClassId] = useState<number>(initialClassId ?? existingSheet?.classId ?? classes[0]?.id ?? 0);
   const [students, setStudents] = useState<Student[]>(initialStudents);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
@@ -326,7 +329,7 @@ export default function GradeSheetRecorder({
     const cleaned = value.replace(",", ".");
     const num = parseFloat(cleaned);
     if (cleaned !== "" && (isNaN(num) || num < 0 || num > 20)) {
-      alert("Grades must be between 0 and 20.");
+      toast.error(t.toasts.gradesRangeError);
       return;
     }
     const all: Record<string, string> = {};
@@ -338,7 +341,7 @@ export default function GradeSheetRecorder({
   const handleAiScan = async () => {
     if (isAiLocked) return;
     if (proofFiles.length === 0 && proofPreviewUrls.length === 0) {
-      alert("Please upload an image first.");
+      toast.error(t.toasts.pleaseUploadImageFirst);
       return;
     }
     
@@ -433,7 +436,7 @@ export default function GradeSheetRecorder({
       if (val !== undefined && val !== "") {
         const num = parseFloat(val);
         if (isNaN(num) || num < 0 || num > 20) {
-          alert(`Grade for ${s.name} ${s.surname} must be between 0 and 20.`);
+          toast.error(t.toasts.gradeRangeStudentError.replace("{name}", `${s.name} ${s.surname}`));
           return;
         }
       }

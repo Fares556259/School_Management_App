@@ -9,6 +9,8 @@ import Image from "next/image";
 import { createTeacher, updateTeacher } from "@/lib/crudActions";
 import { useState } from "react";
 import { compressImage } from "@/lib/imageCompression";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 const schema = z.object({
 
@@ -34,6 +36,7 @@ const TeacherForm = ({
   data?: any;
   relatedData?: any;
 }) => {
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [img, setImg] = useState<string | null>(data?.img || null);
   const {
@@ -76,7 +79,9 @@ const TeacherForm = ({
       const res = type === "create"
         ? await createTeacher(payload)
         : await updateTeacher(data?.id, payload);
-      if (!res.success) alert(res.error);
+      if (!res.success) {
+        toast.error(res.error || t.toasts.operationFailed);
+      }
     });
   });
 
@@ -203,7 +208,7 @@ const TeacherForm = ({
                 setImg(publicUrl);
               } catch (err: any) {
                 console.error("Teacher upload failed:", err);
-                alert(err.message || "Failed to upload teacher photo.");
+                toast.error(err.message || t.toasts.uploadFailed);
               }
             }}
           />

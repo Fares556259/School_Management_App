@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { receiveStudentPayment, receiveMultipleStudentPayments } from "@/app/(dashboard)/list/students/actions";
 import { MONTHS } from "@/lib/dateUtils";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 interface PaymentRecord {
   id: number;
@@ -67,6 +69,7 @@ export default function StudentTuitionTab({
   isAdmin,
   onPaymentsChange,
 }: StudentTuitionTabProps) {
+  const { t } = useLanguage();
   const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
   const [isPending, startTransition] = useTransition();
 
@@ -163,13 +166,13 @@ export default function StudentTuitionTab({
     );
 
     if (amount <= 0) {
-      alert("Veuillez saisir un montant supérieur à 0 DT.");
+      toast.error(t.studentTuition.amountMustBeGreaterThanZero);
       return;
     }
 
     const newCumulative = currentAmountPaid + amount;
     if (newCumulative > monthlyRate) {
-      alert(`Le montant cumulé (${newCumulative} DT) dépasse le tarif mensuel (${monthlyRate} DT).`);
+      toast.error(t.studentTuition.amountExceedsMonthlyRate.replace("{cumulative}", String(newCumulative)).replace("{rate}", String(monthlyRate)));
       return;
     }
 
@@ -205,8 +208,9 @@ export default function StudentTuitionTab({
 
         setSingleAmountInput("");
         setSinglePaymentType("FULL");
+        toast.success(t.studentTuition.paymentRecorded);
       } else {
-        alert(res.error || "Une erreur est survenue lors de l'enregistrement du paiement.");
+        toast.error(res.error || t.toasts.paymentFailed);
       }
     });
   };
@@ -281,7 +285,7 @@ export default function StudentTuitionTab({
   const handleConfirmMultiMonth = () => {
     if (!isAdmin || isPending) return;
     if (multiMonthPreview.allocations.length === 0) {
-      alert("Aucun mois éligible n'a pu être imputé avec ce montant.");
+      toast.error(t.studentTuition.noEligibleMonthForAmount);
       return;
     }
 
@@ -332,8 +336,9 @@ export default function StudentTuitionTab({
         }
 
         setIsMultiMonthModalOpen(false);
+        toast.success(t.studentTuition.paymentRecorded);
       } else {
-        alert((res as any)?.error || "Une erreur est survenue lors de l'enregistrement multi-mois.");
+        toast.error((res as any)?.error || t.toasts.operationFailed);
       }
     });
   };

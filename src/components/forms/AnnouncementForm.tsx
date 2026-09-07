@@ -10,6 +10,7 @@ import { createNotice, updateNotice } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Upload, X, FileText, Image as ImageIcon, Trash2, FileCode, FileSpreadsheet, Archive } from "lucide-react";
 import { compressImageFiles } from "@/lib/imageCompression";
+import { toast } from "react-toastify";
 
 const createSchema = (t: any) => z.object({
   title: z.string().min(1, { message: t.announcementForm?.titleRequired || "Title is required!" }),
@@ -96,9 +97,9 @@ export default function AnnouncementForm({
         : await updateNotice(data?.id, payload);
         
       if (!res.success) {
-          alert(res.error);
+        toast.error(res.error || t.toasts.operationFailed);
       } else {
-          window.location.reload();
+        window.location.reload();
       }
     });
   });
@@ -177,7 +178,7 @@ export default function AnnouncementForm({
 
     } catch (err: any) {
       console.error(`${targetType} upload failed:`, err);
-      alert(err.message || `Failed to upload files.`);
+      toast.error(err.message || t.toasts.uploadFailed);
       setUploadingTarget(null);
       setUploadProgress(0);
     }

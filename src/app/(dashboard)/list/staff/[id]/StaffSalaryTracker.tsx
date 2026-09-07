@@ -3,6 +3,8 @@
 import { useState, useTransition, useMemo } from "react";
 import { payStaffSalary } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -36,11 +38,6 @@ interface StaffSalaryTrackerProps {
   onPaymentsChange?: (updatedPayments: PaymentRecord[]) => void;
 }
 
-const MONTH_NAMES_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-];
-
 export default function StaffSalaryTracker({
   staffId,
   staffName,
@@ -51,6 +48,7 @@ export default function StaffSalaryTracker({
   onSelectMonth,
   onPaymentsChange,
 }: StaffSalaryTrackerProps) {
+  const { t, locale } = useLanguage();
   const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
 
   // Sync if initialPayments prop changes
@@ -103,7 +101,11 @@ export default function StaffSalaryTracker({
   const existingAdvance = isPartial ? currentPayment?.amount || 0 : 0;
   const balanceToPay = isPaid ? 0 : Math.max(0, salary - existingAdvance);
 
-  const monthLabelFr = `${MONTH_NAMES_FR[currentMonth.month - 1]} ${currentMonth.year}`;
+  const monthDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
+  const monthLabel = monthDate.toLocaleString(locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US", {
+    month: "long",
+    year: "numeric",
+  });
   const monthKeyServer = `${MONTHS[currentMonth.month - 1]} ${currentMonth.year}`;
 
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
@@ -137,8 +139,11 @@ export default function StaffSalaryTracker({
         setPayments(updated);
         if (onPaymentsChange) onPaymentsChange(updated);
         setIsAdvanceInputOpen(false);
+        toast.success(t.toasts.salaryValidated.replace("{name}", staffName).replace("{amount}", String(salary)));
       } else {
-        setActionError(result.error || "Erreur lors du paiement");
+        const errMsg = result.error || t.teacherFinance.saveError;
+        setActionError(errMsg);
+        toast.error(errMsg);
       }
     });
   };
@@ -181,8 +186,11 @@ export default function StaffSalaryTracker({
         if (onPaymentsChange) onPaymentsChange(updated);
         setAdvanceAmount("");
         setIsAdvanceInputOpen(false);
+        toast.success(t.toasts.advanceRecorded.replace("{name}", staffName).replace("{amount}", String(amt)));
       } else {
-        setActionError(result.error || "Erreur lors du versement de l'acompte");
+        const errMsg = result.error || t.teacherFinance.advanceError;
+        setActionError(errMsg);
+        toast.error(errMsg);
       }
     });
   };
@@ -193,10 +201,10 @@ export default function StaffSalaryTracker({
         <div>
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             <CreditCard size={18} className="text-indigo-600" />
-            <span>Gestion des Rémunérations & Acomptes</span>
+            <span>{t.teacherFinance.staffSalaryTracker}</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Suivez et réglez les salaires et acomptes mois par mois
+            {t.teacherFinance.staffSalarySubtitle}
           </p>
         </div>
 
@@ -206,18 +214,18 @@ export default function StaffSalaryTracker({
             type="button"
             onClick={() => changeMonth(-1)}
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-            title="Mois précédent"
+            title="<"
           >
             <ChevronLeft size={16} />
           </button>
           <span className="px-3 py-1 font-bold text-slate-800 text-xs min-w-[130px] text-center">
-            {monthLabelFr}
+            {monthLabel}
           </span>
           <button
             type="button"
             onClick={() => changeMonth(1)}
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-            title="Mois suivant"
+            title=">"
           >
             <ChevronRight size={16} />
           </button>
@@ -239,8 +247,8 @@ export default function StaffSalaryTracker({
               <Banknote size={20} />
             </div>
             <div>
-              <p className="text-xs text-slate-500 font-medium">Mois évalué</p>
-              <h3 className="text-sm font-bold text-slate-800">{monthLabelFr}</h3>
+              <p className="text-xs text-slate-500 font-medium">{t.teacherFinance.monthSelector}</p>
+              <h3 className="text-sm font-bold text-slate-800">{monthLabel}</h3>
             </div>
           </div>
 
@@ -248,17 +256,17 @@ export default function StaffSalaryTracker({
             {isPaid ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                 <CheckCircle2 size={14} className="text-emerald-600" />
-                <span>Mois Soldé ✓</span>
+                <span>{t.teacherFinance.statusPaid} ✓</span>
               </span>
             ) : isPartial ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
                 <TrendingUp size={14} className="text-purple-600" />
-                <span>Acompte en cours</span>
+                <span>{t.teacherFinance.statusAdvance}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
                 <AlertCircle size={14} className="text-rose-600" />
-                <span>Non payé</span>
+                <span>{t.teacherFinance.statusUnpaid}</span>
               </span>
             )}
           </div>
@@ -267,12 +275,12 @@ export default function StaffSalaryTracker({
         {/* 3 Detail columns */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
           <div className="bg-white p-3 rounded-xl border border-slate-200/70">
-            <span className="text-[11px] font-semibold text-slate-400 block mb-1">Salaire contractuel</span>
+            <span className="text-[11px] font-semibold text-slate-400 block mb-1">{t.teacherFinance.baseSalary}</span>
             <span className="text-base font-black text-slate-800">{fmt(salary)}</span>
           </div>
 
           <div className="bg-white p-3 rounded-xl border border-slate-200/70">
-            <span className="text-[11px] font-semibold text-purple-600 block mb-1">Acomptes déjà versés</span>
+            <span className="text-[11px] font-semibold text-purple-600 block mb-1">{t.teacherFinance.advanceAmount}</span>
             <span className="text-base font-black text-purple-700">
               {isPaid ? fmt(existingAdvance) : isPartial ? fmt(existingAdvance) : "0 DT"}
             </span>
@@ -280,7 +288,7 @@ export default function StaffSalaryTracker({
 
           <div className="bg-white p-3 rounded-xl border border-slate-200/70">
             <span className={`text-[11px] font-semibold block mb-1 ${balanceToPay > 0 ? "text-rose-600" : "text-emerald-600"}`}>
-              Reste à régler
+              {t.teacherFinance.remainingToPay}
             </span>
             <span className={`text-base font-black ${balanceToPay > 0 ? "text-rose-700" : "text-emerald-700"}`}>
               {fmt(balanceToPay)}
@@ -297,12 +305,12 @@ export default function StaffSalaryTracker({
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={16} className="text-emerald-600" />
                 <span className="font-semibold">
-                  Le salaire de {monthLabelFr} a été entièrement versé.
+                  ✓ {t.teacherFinance.salaryValidatedFor.replace("{name}", staffName)}
                 </span>
               </div>
               {currentPayment?.paidAt && (
                 <span className="text-emerald-600 text-[11px]">
-                  Régle le {new Date(currentPayment.paidAt).toLocaleDateString("fr-FR")}
+                  {new Date(currentPayment.paidAt).toLocaleDateString(locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US")}
                 </span>
               )}
             </div>
@@ -319,10 +327,10 @@ export default function StaffSalaryTracker({
                   <Banknote size={16} />
                   <span>
                     {isPending
-                      ? "Traitement..."
+                      ? t.studentTuition.processing
                       : isPartial
-                      ? `Solder le reste (${fmt(balanceToPay)})`
-                      : `Régler le salaire complet (${fmt(salary)})`}
+                      ? `${t.teacherFinance.settleBalance} (${fmt(balanceToPay)})`
+                      : `${t.teacherFinance.settleBalance} (${fmt(salary)})`}
                   </span>
                 </button>
 
@@ -333,7 +341,7 @@ export default function StaffSalaryTracker({
                   className="py-2.5 px-4 rounded-xl border border-slate-300 hover:border-indigo-300 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-xs shadow-2xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <TrendingUp size={15} className="text-purple-600" />
-                  <span>{isAdvanceInputOpen ? "Masquer l'avance" : "Verser un acompte..."}</span>
+                  <span>{t.teacherFinance.giveAdvance}</span>
                 </button>
               </div>
 
@@ -342,7 +350,7 @@ export default function StaffSalaryTracker({
                 <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 transition-all animate-in fade-in duration-200">
                   <div className="flex-1 min-w-[200px] w-full sm:w-auto">
                     <label className="block text-[11px] font-bold text-purple-900 mb-1">
-                      Montant de l&apos;acompte (Max : {fmt(balanceToPay)})
+                      {t.teacherFinance.advanceAmount} (Max : {fmt(balanceToPay)})
                     </label>
                     <div className="relative">
                       <input
@@ -366,7 +374,7 @@ export default function StaffSalaryTracker({
                       disabled={isPending || !advanceAmount || parseFloat(advanceAmount) <= 0}
                       className="py-2 px-4 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      {isPending ? "Traitement..." : "Confirmer l'acompte"}
+                      {isPending ? t.studentTuition.processing : t.teacherFinance.giveAdvance}
                     </button>
                     <button
                       type="button"
@@ -376,7 +384,7 @@ export default function StaffSalaryTracker({
                       }}
                       className="py-2 px-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold cursor-pointer"
                     >
-                      Annuler
+                      {t.crud.cancel}
                     </button>
                   </div>
                 </div>

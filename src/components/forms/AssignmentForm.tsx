@@ -8,6 +8,7 @@ import InputField from "../InputField";
 import { createAssignment, updateAssignment } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { compressImageFiles } from "@/lib/imageCompression";
+import { toast } from "react-toastify";
 
 function getTranslatedSubject(subjectStr: string, locale: string): string {
   if (!subjectStr) return "";
@@ -135,7 +136,7 @@ const AssignmentForm = ({
       setImgs(prev => [...prev, ...newUrls]);
     } catch (err: any) {
       console.error("Task upload failed:", err);
-      alert(err.message || "Failed to upload files.");
+      toast.error(err.message || t.toasts.uploadFailed);
     } finally {
       setIsUploading(false);
     }
@@ -166,7 +167,7 @@ const AssignmentForm = ({
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error || "Failed to save assignment.");
+        toast.error(res.error || t.toasts.operationFailed);
       }
     });
   });

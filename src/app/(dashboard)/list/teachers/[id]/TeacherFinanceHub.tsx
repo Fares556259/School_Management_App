@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { payTeacherSalary, updateMissedHours, carryOverMissedHours } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 interface PaymentRecord {
   id: number;
@@ -119,6 +121,7 @@ export default function TeacherFinanceHub({
   expenses: initialExpenses = [],
   isAdmin,
 }: TeacherFinanceHubProps) {
+  const { t, locale } = useLanguage();
   const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
   const [expensesList, setExpensesList] = useState<ExpenseRecord[]>(initialExpenses);
   const [isPending, startTransition] = useTransition();
@@ -366,8 +369,9 @@ export default function TeacherFinanceHub({
           const filtered = prev.filter((p) => !(p.month === selectedMonth && p.year === selectedYear));
           return [newRecord, ...filtered];
         });
+        toast.success(t.teacherFinance.saveSuccess);
       } else {
-        alert(result.error || "Une erreur est survenue lors de l'enregistrement du paiement.");
+        toast.error(result.error || t.teacherFinance.saveError);
       }
     });
   };
@@ -408,8 +412,9 @@ export default function TeacherFinanceHub({
           const filtered = prev.filter((p) => !(p.month === selectedMonth && p.year === selectedYear));
           return [newRecord, ...filtered];
         });
+        toast.success(t.teacherFinance.balanceSettled);
       } else {
-        alert(result.error || "Une erreur est survenue lors du règlement du solde.");
+        toast.error(result.error || t.teacherFinance.saveError);
       }
     });
   };
@@ -418,7 +423,7 @@ export default function TeacherFinanceHub({
     const advAmount = Number(advanceAmountInput);
     if (!isAdmin || isPending || isSelectedPaid || advAmount <= 0) return;
     if (advAmount > selectedRemainingToPay) {
-      alert(`Le montant de l'avance ne peut pas dépasser le reste à payer (${fmt(selectedRemainingToPay)}).`);
+      toast.error(t.teacherFinance.advanceExceedsRemaining.replace("{max}", fmt(selectedRemainingToPay)));
       return;
     }
 
@@ -465,8 +470,9 @@ export default function TeacherFinanceHub({
         ]);
         setIsAdvanceModalOpen(false);
         setAdvanceAmountInput("");
+        toast.success(t.teacherFinance.advanceRecorded);
       } else {
-        alert(result.error || "Une erreur est survenue lors du versement de l'avance.");
+        toast.error(result.error || t.teacherFinance.advanceError);
       }
     });
   };
@@ -514,8 +520,9 @@ export default function TeacherFinanceHub({
           }
         });
         setIsAbsenceModalOpen(false);
+        toast.success(t.toasts.hoursCounterSaved);
       } else {
-        alert(result.error || "Une erreur est survenue lors de l'enregistrement du compteur.");
+        toast.error(result.error || t.toasts.operationFailed);
       }
     });
   };
@@ -539,8 +546,9 @@ export default function TeacherFinanceHub({
           );
         });
         setIsAbsenceModalOpen(false);
+        toast.success(t.toasts.hoursCounterReset);
       } else {
-        alert(result.error || "Une erreur est survenue lors de la réinitialisation du compteur.");
+        toast.error(result.error || t.toasts.operationFailed);
       }
     });
   };
@@ -567,7 +575,7 @@ export default function TeacherFinanceHub({
                 trackedHours: 0,
                 deductedHours: 0,
                 deductionStatus: "EXCUSED",
-                notes: `Reporté (${hours}h) sur ${targetMonthLabel}`,
+                notes: t.teacherFinance.carryOverNotes.replace("{hours}", String(hours)).replace("{target}", targetMonthLabel),
               };
               return { ...p, missedHours: 0, img: JSON.stringify(meta) };
             }
@@ -578,7 +586,7 @@ export default function TeacherFinanceHub({
                 trackedHours: targetMeta.trackedHours + hours,
                 deductedHours: targetMeta.deductedHours,
                 deductionStatus: "PENDING",
-                notes: `Inclus report de ${hours}h depuis ${selectedFullLabel}`,
+                notes: t.teacherFinance.includedCarryOverNotes.replace("{hours}", String(hours)).replace("{source}", selectedFullLabel),
               };
               return {
                 ...p,
@@ -594,7 +602,7 @@ export default function TeacherFinanceHub({
               trackedHours: hours,
               deductedHours: 0,
               deductionStatus: "PENDING",
-              notes: `Inclus report de ${hours}h depuis ${selectedFullLabel}`,
+              notes: t.teacherFinance.includedCarryOverNotes.replace("{hours}", String(hours)).replace("{source}", selectedFullLabel),
             };
             const newRecord: PaymentRecord = {
               id: Date.now(),
@@ -612,8 +620,9 @@ export default function TeacherFinanceHub({
           return updated;
         });
         setIsAbsenceModalOpen(false);
+        toast.success(t.toasts.hoursCarriedOver);
       } else {
-        alert(result.error || "Une erreur est survenue lors du report des heures.");
+        toast.error(result.error || t.toasts.operationFailed);
       }
     });
   };
@@ -624,7 +633,7 @@ export default function TeacherFinanceHub({
       trackedHours: selectedTrackedHours,
       deductedHours: 0,
       deductionStatus: "EXCUSED",
-      notes: "Absence justifiée",
+      notes: t.teacherFinance.absenceJustified,
     };
     startTransition(async () => {
       const result = await updateMissedHours(teacherId, selectedFullLabel, selectedTrackedHours, meta);
@@ -637,21 +646,31 @@ export default function TeacherFinanceHub({
           )
         );
         setIsAbsenceModalOpen(false);
+        toast.success(t.toasts.absenceExcused);
       } else {
-        alert(result.error || "Une erreur est survenue lors de l'enregistrement.");
+        toast.error(result.error || t.toasts.operationFailed);
       }
     });
   };
 
-  const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
+const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
   const formatDate = (dateStr?: Date | string | null) => {
-    if (!dateStr) return "Date non renseignée";
+    if (!dateStr) return t.teacherFinance.dateNotSpecified;
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return "Date non renseignée";
-    return new Intl.DateTimeFormat("fr-FR", {
+    if (isNaN(d.getTime())) return t.teacherFinance.dateNotSpecified;
+    return new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US", {
       day: "2-digit",
       month: "2-digit",
+      year: "numeric",
+    }).format(d);
+  };
+
+  const formatCarryOverMonth = (key: string) => {
+    const [m, y] = key.split("-");
+    const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+    return new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US", {
+      month: "short",
       year: "numeric",
     }).format(d);
   };

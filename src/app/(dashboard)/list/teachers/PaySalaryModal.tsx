@@ -108,7 +108,7 @@ export default function PaySalaryModal({
   onRollback?: (targetMonth: string, prevPayment: any) => void;
   onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
 }) {
-  const { locale } = useLanguage();
+  const { locale, t: globalT } = useLanguage();
   const t = dict[locale as keyof typeof dict] || dict.en;
 
   const allMonths = getSchoolYearMonths();
@@ -253,13 +253,21 @@ export default function PaySalaryModal({
         );
         if (!result.success) {
           if (onRollback) onRollback(selectedMonth, prevPayment);
-          toast.error(result.error || "Erreur lors du versement du salaire.");
+          toast.error(result.error || globalT.toasts.paymentFailed);
         } else {
-          toast.success(isAdvanceMode ? `Avance enregistrée pour ${teacherName}` : `Salaire validé pour ${teacherName}`);
+          toast.success(
+            isAdvanceMode
+              ? globalT.toasts.advanceRecorded
+                  .replace("{amount}", amountToPay.toString())
+                  .replace("{name}", teacherName)
+              : globalT.toasts.salaryValidated
+                  .replace("{amount}", amountToPay.toString())
+                  .replace("{name}", teacherName)
+          );
         }
       } catch (err: any) {
         if (onRollback) onRollback(selectedMonth, prevPayment);
-        toast.error("Erreur de connexion lors du versement.");
+        toast.error(globalT.toasts.connectionError);
       }
     });
   };

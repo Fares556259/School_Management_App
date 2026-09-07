@@ -4,6 +4,8 @@ import React, { useState, useTransition, useEffect } from "react";
 import { receiveMultipleStudentPayments } from "./actions";
 import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 export default function PayStudentModal({
   studentId,
@@ -32,6 +34,7 @@ export default function PayStudentModal({
   payments?: any[];
   onSuccess?: (amount: number, status: "PAID" | "PARTIAL", targetMonth: string) => void;
 }) {
+  const { t } = useLanguage();
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
 
@@ -163,7 +166,9 @@ export default function PayStudentModal({
         paymentsToProcess
       );
       if (!result.success && 'error' in result) {
-        alert(result.error);
+        toast.error((result as any).error || t.toasts.paymentFailed || "Payment failed");
+      } else {
+        toast.success(t.toasts.paymentRecorded || "Payment recorded successfully!");
       }
     });
   };
@@ -177,7 +182,7 @@ export default function PayStudentModal({
         onClick={() => setIsOpen(true)}
         disabled={!isAdmin}
         className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d] disabled:opacity-50"
-        title="Receive Tuition Fee"
+        title={t.studentTuition.receiveTuition}
       >
         <Banknote size={16} strokeWidth={2} />
       </button>
@@ -194,19 +199,17 @@ export default function PayStudentModal({
             {/* Header */}
             <div className="p-6 border-b border-[#f1f5f9] flex flex-col gap-1">
               <h2 className="text-[18px] font-semibold text-[#181d26] tracking-tight">
-                {isPartial ? "Complete Tuition Fee" : "Receive Tuition Fee"}
+                {isPartial ? t.studentTuition.completeTuition : t.studentTuition.receiveTuition}
               </h2>
               <p className="text-[13px] text-[#5a5a5a]">
-                For <span className="font-medium text-[#181d26]">{studentName}</span>
+                {t.studentTuition.forStudent} <span className="font-medium text-[#181d26]">{studentName}</span>
               </p>
             </div>
 
             <div className="p-6">
-
-
               <div className="mb-5">
                 <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">
-                  Target Month
+                  {t.studentTuition.targetMonth}
                 </label>
                 <select
                   value={selectedMonth}
@@ -214,7 +217,7 @@ export default function PayStudentModal({
                   disabled={isPartial}
                   className="w-full border border-[#dddddd] bg-white rounded-[8px] px-3 py-2.5 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[14px] text-[#181d26] disabled:opacity-60 disabled:bg-[#f8fafc]"
                 >
-                  <option value="" disabled>Select Month</option>
+                  <option value="" disabled>{t.studentTuition.selectMonth}</option>
                   {monthsList.map((m) => (
                     <option key={m} value={m}>{m}</option>
                   ))}
@@ -225,10 +228,10 @@ export default function PayStudentModal({
               <div className="mb-6">
                 <div className="flex justify-between items-end mb-1.5">
                   <label className="block text-[13px] font-medium text-[#41454d]">
-                    {isPartial ? "Additional Amount" : "Amount Received"}
+                    {isPartial ? t.studentTuition.additionalAmount : t.studentTuition.amountReceived}
                   </label>
                   <span className="text-[12px] text-[#64748b]">
-                    Balance: <strong className="text-[#181d26] font-medium">{displayBalance} DT</strong>
+                    {t.studentTuition.balance}: <strong className="text-[#181d26] font-medium">{displayBalance} DT</strong>
                   </span>
                 </div>
                 <div className="relative">
@@ -248,14 +251,14 @@ export default function PayStudentModal({
                 <div className="mb-6 p-4 bg-orange-50 rounded-[8px] border border-orange-100 animate-in slide-in-from-top-2 duration-300">
                   <label className="flex items-center gap-2 text-[12px] font-semibold text-orange-700 uppercase tracking-wider mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                    Schedule Next Recovery
+                    {t.studentTuition.scheduleNextRecovery}
                   </label>
                   <select
                     value={recoveryMonth}
                     onChange={(e) => setRecoveryMonth(e.target.value)}
                     className="w-full border border-orange-200 bg-white rounded-[6px] px-3 py-2 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 text-[13px] text-orange-800"
                   >
-                    <option value="" disabled>Select Month</option>
+                    <option value="" disabled>{t.studentTuition.selectMonth}</option>
                     {allMonths.map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
@@ -267,7 +270,7 @@ export default function PayStudentModal({
                 <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-[8px] flex items-start gap-2.5">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                   <p className="text-[12px] text-amber-800 leading-relaxed">
-                    Please pay for <strong className="font-semibold">{earliestUnpaid}</strong> first to maintain chronological bookkeeping.
+                    {t.studentTuition.chronologicalWarning.replace("{month}", earliestUnpaid)}
                   </p>
                 </div>
               )}
@@ -279,15 +282,15 @@ export default function PayStudentModal({
                   className="flex-1 px-4 py-2.5 text-[13px] font-medium text-[#41454d] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[8px] transition-all"
                   disabled={isPending}
                 >
-                  Cancel
+                  {t.studentTuition.cancel}
                 </button>
                 <button
                   type="button"
                   onClick={handlePay}
                   disabled={isPending || !selectedMonth || (isSkipping && !isPartial) || additionalAmount < 0}
-                  className="flex-1 px-4 py-2.5 text-[13px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-50 shadow-sm"
+                  className="flex-1 px-4 py-2.5 text-[13px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-[8px] transition-all disabled:opacity-50 shadow-sm"
                 >
-                  {isPending ? "Confirming..." : "Confirm Payment"}
+                  {isPending ? t.studentTuition.processing : t.studentTuition.confirmPayment}
                 </button>
               </div>
             </div>

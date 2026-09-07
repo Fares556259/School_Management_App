@@ -3,6 +3,7 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 import ScheduleSlot from "./ScheduleSlot";
 import { Day } from "@prisma/client";
 import { Plus } from "lucide-react";
+import { toast } from "react-toastify";
 
 const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
 
@@ -162,13 +163,13 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       const res = await onMoveAction(slotId, targetDay, targetSlotNumber, examPeriod);
       if (!res.success) {
         setLocalSlots(currentSlots);
-        alert(res.error || "Impossible de déplacer le créneau.");
+        toast.error(res.error || t.toasts.timeSlotMoveFailed);
       } else {
         onRefresh(); // Trigger refresh to get recalculated cascading times
       }
     } catch (err) {
       setLocalSlots(currentSlots);
-      alert("Erreur lors du déplacement du créneau.");
+      toast.error(t.toasts.timeSlotMoveFailed);
     }
   };
 

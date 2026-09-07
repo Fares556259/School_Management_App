@@ -8,6 +8,8 @@ import InputField from "../InputField";
 import { createResource } from "@/lib/crudActions";
 import { getSubjectName } from "@/lib/utils";
 import { compressImageFiles } from "@/lib/imageCompression";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 const schema = z.object({
   title: z.string().min(1, { message: "Resource title is required!" }),
@@ -25,6 +27,7 @@ const ResourceForm = ({
   data?: any;
   relatedData?: any;
 }) => {
+  const { t } = useLanguage();
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>(data?.classId ? data.classId.toString() : "");
   const [isPending, startTransition] = useTransition();
@@ -129,7 +132,7 @@ const ResourceForm = ({
       setFileUrls(prev => [...prev, ...newUrls]);
     } catch (err: any) {
       console.error("Resource upload failed:", err);
-      alert(err.message || "Failed to upload files.");
+      toast.error(err.message || t.toasts.uploadFailed);
     } finally {
       setIsUploading(false);
     }
@@ -141,7 +144,7 @@ const ResourceForm = ({
 
   const onSubmit = handleSubmit((formData) => {
     if (fileUrls.length === 0) {
-      alert("Please upload at least one file!");
+      toast.error(t.toasts.uploadAtLeastOneFile);
       return;
     }
 
@@ -155,7 +158,7 @@ const ResourceForm = ({
       if (res.success) {
         window.location.reload();
       } else {
-        alert(res.error || "Failed to save resource.");
+        toast.error(res.error || t.toasts.operationFailed);
       }
     });
   });

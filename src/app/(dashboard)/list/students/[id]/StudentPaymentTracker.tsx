@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { receiveStudentPayment } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 export default function StudentPaymentTracker({
   studentId,
@@ -21,6 +23,7 @@ export default function StudentPaymentTracker({
   payments: any[];
   isAdmin: boolean;
 }) {
+  const { t, locale } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPending, startTransition] = useTransition();
   // Local set of months paid — initialised from DB data, updated on success
@@ -48,30 +51,35 @@ export default function StudentPaymentTracker({
     });
   };
 
-  const monthStr = currentDate.toLocaleString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthStr = currentDate.toLocaleString(
+    locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR",
+    {
+      month: "long",
+      year: "numeric",
+    }
+  );
 
-  const isPaid = paidMonths.has(monthStr);
+  const internalMonthStr = `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  const isPaid = paidMonths.has(internalMonthStr);
   const tuitionAmount = customTuition ?? levelTuitionFee;
 
   const handlePay = () => {
     if (!isAdmin || isPending || isPaid) return;
     startTransition(async () => {
-      const result = await receiveStudentPayment(studentId, studentName, tuitionAmount, monthStr);
+      const result = await receiveStudentPayment(studentId, studentName, tuitionAmount, internalMonthStr);
       if (result.success) {
         // Update local state so the badge flips immediately without reload
-        setPaidMonths((prev) => new Set(prev).add(monthStr));
+        setPaidMonths((prev) => new Set(prev).add(internalMonthStr));
+        toast.success(t.studentTuition.paymentRecorded);
       } else {
-        alert(result.error);
+        toast.error(result.error || t.toasts.paymentFailed);
       }
     });
   };
 
   return (
     <div className="bg-white p-4 rounded-md mt-4 shadow-sm border border-slate-100">
-      <h1 className="text-xl font-semibold mb-4 text-slate-800">Tuition Tracker</h1>
+      <h1 className="text-xl font-semibold mb-4 text-slate-800">{t.studentTuition.tuitionTracker}</h1>
 
       <div className="flex items-center justify-between bg-slate-50 p-3 rounded-md mb-4 border border-slate-100">
         <button
@@ -91,24 +99,27 @@ export default function StudentPaymentTracker({
 
       <div className="flex flex-col items-center gap-3">
         <div className="flex w-full items-center justify-between px-2">
-          <span className="text-sm font-medium text-slate-500 cursor-help" title={`Grade ${gradeLevel} base rate`}>
-            Monthly Fee:
+          <span
+            className="text-sm font-medium text-slate-500 cursor-help"
+            title={t.studentTuition.baseRateGrade.replace("{grade}", String(gradeLevel))}
+          >
+            {t.studentTuition.monthlyRate}:
           </span>
           <span className="text-sm font-bold text-slate-700">{tuitionAmount} DT</span>
         </div>
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
-          <span className="text-sm font-medium text-slate-500">Status:</span>
+          <span className="text-sm font-medium text-slate-500">{t.students.paidStatus}:</span>
           <div className="flex items-center gap-2">
             {isPaid && (
               <>
-                {payments.find(p => `${MONTHS[p.month-1]} ${p.year}` === monthStr)?.img && (
-                  <a 
-                    href={payments.find(p => `${MONTHS[p.month-1]} ${p.year}` === monthStr).img} 
-                    target="_blank" 
+                {payments.find((p) => `${MONTHS[p.month - 1]} ${p.year}` === internalMonthStr)?.img && (
+                  <a
+                    href={payments.find((p) => `${MONTHS[p.month - 1]} ${p.year}` === internalMonthStr).img}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] font-bold text-indigo-500 hover:underline flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 shadow-sm"
                   >
-                    View Receipt
+                    {t.studentTuition.viewReceipt}
                   </a>
                 )}
               </>
@@ -120,7 +131,7 @@ export default function StudentPaymentTracker({
                   : "bg-rose-100 text-rose-700"
               }`}
             >
-              {isPaid ? "PAID" : "UNPAID"}
+              {isPaid ? t.studentTuition.statusPaid : t.studentTuition.statusUnpaid}
             </span>
           </div>
         </div>
@@ -131,7 +142,11 @@ export default function StudentPaymentTracker({
             disabled={isPending}
             className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-md transition-all disabled:opacity-50 shadow-sm hover:shadow-md"
           >
-            {isPending ? "Processing..." : `Receive ${tuitionAmount} DT for ${monthStr}`}
+            {isPending
+              ? t.studentTuition.processing
+              : t.studentTuition.receiveForMonth
+                  .replace("{amount}", String(tuitionAmount))
+                  .replace("{month}", monthStr)}
           </button>
         )}
       </div>

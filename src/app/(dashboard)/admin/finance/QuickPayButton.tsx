@@ -61,7 +61,7 @@ export default function QuickPayButton({
         if (onRollback) {
           onRollback(id, amount);
         }
-        toast.error(result?.error || "Erreur lors du traitement");
+        toast.error(result?.error || t.toasts.operationFailed);
       }
     } catch (e: any) {
       console.error(e);
@@ -69,7 +69,7 @@ export default function QuickPayButton({
       if (onRollback) {
         onRollback(id, amount);
       }
-      toast.error("Erreur de connexion. L'opération a été annulée.");
+      toast.error(t.toasts.connectionError);
     } finally {
       setLoading(false);
     }

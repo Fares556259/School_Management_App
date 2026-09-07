@@ -10,6 +10,7 @@ import { initializeClassSheets } from "../../admin/grades/initializeAction";
 import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 import GradeDetailsModal from "@/components/GradeDetailsModal";
 import SubjectProofsGrid from "@/components/SubjectProofsGrid";
@@ -106,7 +107,7 @@ export default function ResultsPageClient({
     // Supported formats check: PDF or Images
     const isSupported = file.type === "application/pdf" || file.type.startsWith("image/");
     if (!isSupported) {
-      alert("Unsupported file format. Please upload a PDF or an Image.");
+      toast.error(t.toasts.unsupportedFileFormat);
       return;
     }
 
@@ -160,9 +161,10 @@ export default function ResultsPageClient({
 
       // 4. Reload page to display changes
       router.refresh();
+      toast.success(t.toasts.publishedSuccess);
     } catch (err) {
       console.error("Direct card upload failed:", err);
-      alert("Direct upload failed. Please try using the 'Edit Recording' editor panel.");
+      toast.error(t.toasts.directUploadFailed);
     } finally {
       setUploadingCardId(null);
     }
@@ -212,7 +214,7 @@ export default function ResultsPageClient({
     if (!selectedClassId) return;
     const activeTerm = selectedTerm === "all" ? 1 : Number(selectedTerm);
     
-    if (!confirm(`Are you sure you want to initialize ALL subjects for this class with a score of 0? This will create persistent records in the database.`)) {
+    if (!confirm(t.confirmations.initializeGradesMessage)) {
       return;
     }
 
@@ -220,13 +222,14 @@ export default function ResultsPageClient({
     try {
       const res = await initializeClassSheets(Number(selectedClassId), activeTerm);
       if (res.success) {
+        toast.success(t.toasts.initSheetsSuccess);
         router.refresh();
       } else {
-        alert("Error: " + res.error);
+        toast.error(res.error || t.toasts.initSheetsFailed);
       }
     } catch (err) {
       console.error("Initialization failed:", err);
-      alert("Failed to initialize sheets.");
+      toast.error(t.toasts.initSheetsFailed);
     } finally {
       setIsInitializing(false);
     }

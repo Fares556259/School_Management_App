@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, X, Loader2 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -21,11 +22,14 @@ export default function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   isPending = false,
   variant = "danger",
 }: ConfirmModalProps) {
+  const { t } = useLanguage();
+  const effectiveConfirmText = confirmText || t.crud?.confirm || "Confirm";
+  const effectiveCancelText = cancelText || t.crud?.cancel || "Cancel";
   
   const variantStyles = {
     danger: {
@@ -100,7 +104,7 @@ export default function ConfirmModal({
                   disabled={isPending}
                   className="px-5 py-2.5 rounded-[8px] border border-[#dddddd] bg-white text-[#181d26] text-[14px] font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
                 >
-                  {cancelText}
+                  {effectiveCancelText}
                 </button>
                 <button
                   onClick={onConfirm}
@@ -108,7 +112,7 @@ export default function ConfirmModal({
                   className={`px-5 py-2.5 rounded-[8px] text-[14px] font-semibold flex items-center gap-2 transition-all disabled:opacity-70 ${style.button}`}
                 >
                   {isPending && <Loader2 size={16} className="animate-spin" />}
-                  {confirmText}
+                  {effectiveConfirmText}
                 </button>
               </div>
             </motion.div>

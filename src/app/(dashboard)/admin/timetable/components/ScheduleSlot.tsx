@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Day } from "@prisma/client";
 import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock, Plus } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
+import { toast } from "react-toastify";
 
 const dayLabels: { [key in Day]: string } = {
   [Day.MONDAY]: "Lundi",
@@ -66,6 +68,7 @@ const ScheduleSlot = ({
   compactMode = false,
   classNameStr = ""
 }: SlotProps) => {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -160,7 +163,7 @@ const ScheduleSlot = ({
         });
         if (!res.success) {
           console.error("Save failed:", res.error);
-          alert("Save failed: " + (res.error || "Unknown error"));
+          toast.error(t.toasts.timeSlotSaveFailed + (res.error ? `: ${res.error}` : ""));
           allSuccess = false;
         }
       }
@@ -170,6 +173,7 @@ const ScheduleSlot = ({
       }
     } catch (err) {
         console.error("Update error:", err);
+        toast.error(t.toasts.timeSlotSaveFailed);
     } finally {
         setLoading(false);
     }
@@ -177,7 +181,7 @@ const ScheduleSlot = ({
 
   const handleDelete = async () => {
     if (!onDeleteAction) return;
-    if (window.confirm("Voulez-vous vraiment supprimer ce créneau et tous ses groupes ?")) {
+    if (window.confirm(t.confirmations.deleteTimeSlotMessage)) {
       setLoading(true);
       try {
         let allSuccess = true;
@@ -186,15 +190,18 @@ const ScheduleSlot = ({
           const res = await onDeleteAction(s.id);
           if (!res.success) {
             console.error("Delete failed:", res.error);
+            toast.error(res.error || t.toasts.timeSlotDeleteFailed);
             allSuccess = false;
           }
         }
         if (allSuccess) {
           setIsEditing(false);
           onRefresh();
+          toast.success(t.toasts.timeSlotDeleted);
         }
       } catch (err) {
         console.error("Delete error:", err);
+        toast.error(t.toasts.timeSlotDeleteFailed);
       } finally {
         setLoading(false);
       }
@@ -337,10 +344,10 @@ const ScheduleSlot = ({
                 </div>
                 <div>
                   <h3 className="text-[20px] font-medium text-[#181d26]">
-                    {slot?.id ? "Modifier Session" : "Ajouter Session"}
+                    {slot?.id ? t.crud.edit : t.crud.add}
                   </h3>
                   <p className="text-sm text-[#41454d] mt-1">
-                    {dayLabels[day] || String(day)} · {startTime ? `${startTime} - ${endTime}` : `Créneau ${period}`}
+                    {(t.timetable as any)[day.toLowerCase()] || dayLabels[day] || String(day)} · {startTime ? `${startTime} - ${endTime}` : `${t.timetable.time} ${period}`}
                   </p>
                 </div>
               </div>
@@ -499,16 +506,16 @@ const ScheduleSlot = ({
 
             {/* Duration Input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ml-1">Durée (Duration)</label>
+                <label className="text-sm font-medium text-[#181d26] ml-1">{t.timetable.duration}</label>
                 <div className="relative">
                   <select 
                     className="text-sm h-11 pl-10 pr-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}
                   >
-                    <option value={60}>1 Heure</option>
-                    <option value={90}>1 Heure 30</option>
-                    <option value={120}>2 Heures</option>
+                    <option value={60}>{t.timetable.oneHour}</option>
+                    <option value={90}>{t.timetable.oneHourThirty}</option>
+                    <option value={120}>{t.timetable.twoHours}</option>
                   </select>
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
                     <Clock size={16} />
@@ -524,7 +531,7 @@ const ScheduleSlot = ({
                   disabled={loading}
                   onClick={handleDelete}
                   className="px-4 h-11 bg-white text-[#aa2d00] hover:bg-rose-50 active:scale-95 transition-all border border-[#dddddd] rounded-md flex items-center justify-center shrink-0"
-                  title="Supprimer la session"
+                  title={t.crud.delete}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -533,7 +540,7 @@ const ScheduleSlot = ({
                 onClick={() => setIsEditing(false)}
                 className="flex-1 h-11 bg-white hover:bg-[#f8fafc] active:scale-95 transition-all text-[#181d26] rounded-md text-sm font-medium border border-[#dddddd] text-center flex items-center justify-center"
               >
-                Cancel
+                {t.crud.cancel}
               </button>
               <button 
                 disabled={loading}
@@ -545,7 +552,7 @@ const ScheduleSlot = ({
                 ) : (
                   <>
                     <Check size={16} />
-                    Save Session
+                    {t.crud.saveChanges}
                   </>
                 )}
               </button>

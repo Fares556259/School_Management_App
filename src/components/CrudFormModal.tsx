@@ -396,10 +396,15 @@ export default function CrudFormModal({
       });
     });
 
+    const entityLabel = t.crud.entities[entity] || (entity.charAt(0).toUpperCase() + entity.slice(1));
     toast.promise(promise, {
-      pending: mode === "create" ? `Creating ${entity}...` : `Updating ${entity}...`,
-      success: mode === "create" ? `${entity} created successfully!` : `${entity} updated successfully!`,
-      error: "Operation failed."
+      pending: mode === "create" 
+        ? t.toasts.creating.replace("{entity}", entityLabel) 
+        : t.toasts.updating.replace("{entity}", entityLabel),
+      success: mode === "create" 
+        ? t.toasts.createdSuccess.replace("{entity}", entityLabel) 
+        : t.toasts.updatedSuccess.replace("{entity}", entityLabel),
+      error: t.toasts.saveFailed || "Operation failed."
     });
   };
 
@@ -420,20 +425,21 @@ export default function CrudFormModal({
             resolve("Success");
             setOpen(false); // Close instantly
           } else {
-            setError(result?.error || "Failed to delete.");
-            reject(result?.error || "Failed to delete.");
+            setError(result?.error || t.toasts.deleteFailed);
+            reject(result?.error || t.toasts.deleteFailed);
           }
         } catch (err: any) {
-          setError(err.message || "Failed to delete.");
+          setError(err.message || t.toasts.deleteFailed);
           reject(err.message);
         }
       });
     });
 
+    const entityLabel = t.crud.entities[entity] || (entity.charAt(0).toUpperCase() + entity.slice(1));
     toast.promise(promise, {
-      pending: `Deleting ${entity}...`,
-      success: `${entity} deleted successfully!`,
-      error: "Failed to delete."
+      pending: t.toasts.deleting.replace("{entity}", entityLabel),
+      success: t.toasts.deletedSuccess.replace("{entity}", entityLabel),
+      error: t.toasts.deleteFailed || "Failed to delete."
     });
   };
 
@@ -453,13 +459,13 @@ export default function CrudFormModal({
     }
     if (mode === "update") {
       return (
-        <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="Edit">
+        <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title={t.crud.edit}>
           <Pencil size={14} strokeWidth={2} />
         </button>
       );
     }
     return (
-      <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title="Delete">
+      <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title={t.crud.delete}>
         <Trash2 size={16} strokeWidth={2} className="group-hover:text-rose-600" />
       </button>
     );
