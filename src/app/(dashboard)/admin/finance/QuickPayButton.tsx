@@ -5,10 +5,28 @@ import { payTeacherSalary } from "@/app/(dashboard)/list/teachers/actions";
 import { payStaffSalary } from "@/app/(dashboard)/list/staff/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
-export default function QuickPayButton({ id, name, amount, monthYear, type }: { id: string, name: string, amount: number, monthYear: string, type: "student"|"teacher"|"staff" }) {
+interface QuickPayButtonProps {
+  id: string;
+  name: string;
+  amount: number;
+  monthYear: string;
+  type: "student" | "teacher" | "staff";
+  onSuccess?: (id: string, amount: number) => void;
+}
+
+export default function QuickPayButton({
+  id,
+  name,
+  amount,
+  monthYear,
+  type,
+  onSuccess,
+}: QuickPayButtonProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { t } = useLanguage();
 
   const handlePay = async () => {
     setLoading(true);
@@ -23,13 +41,19 @@ export default function QuickPayButton({ id, name, amount, monthYear, type }: { 
       }
 
       if (result?.success) {
-        toast.success(`Succès: ${type === "student" ? "Frais collectés" : "Salaire payé"} pour ${name}`);
-        // FORCE UI REFRESH
+        toast.success(
+          type === "student"
+            ? `✓ ${t.actionCenter.collect}: ${name}`
+            : `✓ ${t.actionCenter.pay}: ${name}`
+        );
+        if (onSuccess) {
+          onSuccess(id, amount);
+        }
         router.refresh();
       } else {
         toast.error(result?.error || "Erreur lors du traitement");
       }
-    } catch(e: any) { 
+    } catch (e: any) {
       console.error(e);
       toast.error("Erreur de connexion. Veuillez réessayer.");
     } finally {
@@ -37,19 +61,27 @@ export default function QuickPayButton({ id, name, amount, monthYear, type }: { 
     }
   };
 
+  const isStudent = type === "student";
+
   return (
-    <button 
-      disabled={loading} 
+    <button
+      disabled={loading}
       onClick={(e) => {
         e.stopPropagation();
         handlePay();
-      }} 
-      className="px-3 py-1.5 bg-[#181d26] hover:bg-[#333840] text-white text-[12px] font-medium rounded-[6px] shadow-sm transition-all disabled:opacity-50 min-w-[70px] flex items-center justify-center"
+      }}
+      className={`px-3 py-1.5 text-[12px] font-medium rounded-[6px] shadow-sm transition-all disabled:opacity-50 min-w-[70px] flex items-center justify-center ${
+        isStudent
+          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+          : "bg-[#181d26] hover:bg-[#333840] text-white"
+      }`}
     >
       {loading ? (
         <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      ) : isStudent ? (
+        t.actionCenter?.collect || "Collecter"
       ) : (
-        type === "student" ? "COLLECT" : "PAY"
+        t.actionCenter?.pay || "Payer"
       )}
     </button>
   );

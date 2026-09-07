@@ -120,10 +120,11 @@ export default async function DashboardAppendage({
     const [unpaidStudents, unpaidTeachers, unpaidStaff] = await Promise.all([
       prisma.$queryRaw`
         SELECT 
-          s.id, s.name, s.surname, p.phone as "parentPhone", l."tuitionFee",
+          s.id, s.name, s.surname, p.phone as "parentPhone", l."tuitionFee", c.name as "className",
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
         FROM "Student" s
         JOIN "Level" l ON s."levelId" = l.id
+        LEFT JOIN "Class" c ON s."classId" = c.id
         JOIN "Parent" p ON s."parentId" = p.id
         LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
           AND pay.month = ${currentMonth} 
@@ -146,7 +147,7 @@ export default async function DashboardAppendage({
       `,
       prisma.$queryRaw`
         SELECT 
-          s.id, s.name, s.surname, s.phone, s.salary,
+          s.id, s.name, s.surname, s.phone, s.salary, s.role,
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
         FROM "Staff" s
         LEFT JOIN "Payment" pay ON s.id = pay."staffId" 
@@ -192,7 +193,9 @@ export default async function DashboardAppendage({
       name: `${s.name} ${s.surname}`,
       amount: dueAmount,
       type: 'student' as const,
-      phone: s.parentPhone
+      phone: s.parentPhone,
+      className: s.className || undefined,
+      paymentStatus: s.paymentStatus || null,
     };
   });
 
@@ -208,7 +211,9 @@ export default async function DashboardAppendage({
       name: `${t.name} ${t.surname}`,
       amount: dueAmount,
       type: 'teacher' as const,
-      phone: t.phone
+      phone: t.phone,
+      role: "Teacher",
+      paymentStatus: t.paymentStatus || null,
     };
   });
 
@@ -224,7 +229,9 @@ export default async function DashboardAppendage({
       name: `${s.name} ${s.surname}`,
       amount: dueAmount,
       type: 'staff' as const,
-      phone: s.phone
+      phone: s.phone,
+      role: s.role || "Staff",
+      paymentStatus: s.paymentStatus || null,
     };
   });
 
