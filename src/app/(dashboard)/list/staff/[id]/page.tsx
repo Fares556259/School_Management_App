@@ -1,16 +1,29 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
 import { redirect, notFound } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import StaffSalaryTracker from "./StaffSalaryTracker";
-import SalarySummaryCard from "./SalarySummaryCard";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
-import { getUserAvatar } from "@/lib/avatar";
+import StaffProfileClient, { StaffBundle } from "./StaffProfileClient";
+import { QuickStaffItem } from "./StaffQuickNav";
+
+const formatStaffBundle = (staff: any, allExpenses: any[]): StaffBundle => {
+  const pIds = (staff.payments || []).map((p: any) => p.id.toString());
+  const filteredExpenses = allExpenses.filter((exp: any) => {
+    if (exp.referenceType === "StaffSalary" && pIds.includes(exp.referenceId)) return true;
+    if (exp.referenceType === "StaffSalary" && exp.referenceId === staff.id) return true;
+    if (exp.title?.toLowerCase().includes(staff.name.toLowerCase())) return true;
+    return false;
+  });
+
+  return {
+    staff,
+    expenses: filteredExpenses,
+    staffFullName: `${staff.name} ${staff.surname}`.trim(),
+  };
+};
 
 const SingleStaffPage = async ({
-  params,
+  params: { id },
 }: {
   params: { id: string };
 }) => {
@@ -19,159 +32,110 @@ const SingleStaffPage = async ({
 
   const schoolId = await getSchoolId();
 
-  const staff = await getCachedTenantData(
-    schoolId,
-    "staff",
-    [params.id, schoolId],
-    () =>
-      prisma.staff.findUnique({
-        where: { id: params.id },
+  const fetchStaffAndExpenses = () =>
+    Promise.all([
+      prisma.staff.findMany({
+        where: { schoolId },
         include: {
-          payments: true,
+          payments: {
+            orderBy: [{ year: "desc" }, { month: "desc" }],
+          },
         },
+        orderBy: [
+          { name: "asc" },
+          { surname: "asc" },
+        ],
       }),
-    600
-  );
+      prisma.expense.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { referenceType: "StaffSalary" },
+            { category: "Advance" },
+            { category: "Salary" },
+          ],
+        },
+        orderBy: { date: "asc" },
+      }),
+    ]);
 
-  if (!staff) return notFound();
+  let allStaffData: any[] = [];
+  let allExpenses: any[] = [];
 
-  const isAdmin = role === "admin";
+  try {
+    const cached = await getCachedTenantData(
+      schoolId,
+      "staff",
+      [schoolId, "all_staff_bundles_v1"],
+      fetchStaffAndExpenses,
+      600
+    );
+    if (Array.isArray(cached) && cached.length >= 2) {
+      [allStaffData, allExpenses] = cached;
+    } else {
+      [allStaffData, allExpenses] = await fetchStaffAndExpenses();
+    }
+  } catch (err) {
+    console.error("[SingleStaffPage] Cache failed, using direct query:", err);
+    try {
+      [allStaffData, allExpenses] = await fetchStaffAndExpenses();
+    } catch (dbErr) {
+      console.error("[SingleStaffPage] Direct DB query failed:", dbErr);
+    }
+  }
+
+  allStaffData = Array.isArray(allStaffData) ? allStaffData : [];
+  allExpenses = Array.isArray(allExpenses) ? allExpenses : [];
+
+  const bundlesMap: Record<string, StaffBundle> = {};
+  allStaffData.forEach((s: any) => {
+    bundlesMap[s.id] = formatStaffBundle(s, allExpenses);
+  });
+
+  const currentBundle = bundlesMap[id];
+  if (!currentBundle) {
+    // If not found in bundles, attempt direct lookup as last resort
+    const directStaff = await prisma.staff.findUnique({
+      where: { id },
+      include: { payments: true },
+    });
+    if (!directStaff || directStaff.schoolId !== schoolId) {
+      return notFound();
+    }
+    bundlesMap[id] = formatStaffBundle(directStaff, allExpenses);
+  }
+
+  const allStaffList: QuickStaffItem[] = allStaffData.map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    surname: s.surname,
+    role: s.role || "Personnel",
+    salary: s.salary || 0,
+    img: s.img,
+    sex: s.sex,
+    phone: s.phone,
+    payments: (s.payments || []).map((p: any) => ({
+      id: p.id,
+      month: p.month,
+      year: p.year,
+      status: p.status,
+      amount: p.amount,
+      deferredAmount: p.deferredAmount,
+    })),
+  }));
+
+  const activeBundle = bundlesMap[id];
 
   return (
-    <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
-      {/* LEFT */}
-      <div className="w-full xl:w-2/3">
-        {/* TOP */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* USER INFO CARD */}
-          <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
-            <div className="w-1/3">
-              <Image
-                src={getUserAvatar(staff.img, "staff", (staff as any).sex)}
-                alt=""
-                width={144}
-                height={144}
-                className="w-36 h-36 rounded-full object-cover"
-              />
-            </div>
-            <div className="w-2/3 flex flex-col justify-between gap-4">
-              <h1 className="text-xl font-semibold">{staff.name} {staff.surname}</h1>
-              <p className="text-sm text-gray-500">{staff.role}</p>
-              <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-medium">
-                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/blood.png" alt="" width={14} height={14} />
-                  <span>{staff.bloodType}</span>
-                </div>
-                <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                  <Image src="/date.png" alt="" width={14} height={14} />
-                  <span>{new Intl.DateTimeFormat("en-GB").format(new Date(staff.birthday))}</span>
-                </div>
-
-                {staff.phone && (
-                  <div className="w-full md:w-1/3 lg:w-full 2xl:w-1/3 flex items-center gap-2">
-                    <Image src="/phone.png" alt="" width={14} height={14} />
-                    <span>{staff.phone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          {/* SMALL CARDS */}
-          <div className="flex-1 flex gap-4 justify-between flex-wrap">
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
-              <div>
-                <h1 className="text-xl font-semibold">{staff.role}</h1>
-                <span className="text-sm text-gray-400">Role</span>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
-              <div>
-                <h1 className="text-xl font-semibold">{staff.salary.toLocaleString("en-US").replace(/,/g, " ")} DT</h1>
-                <span className="text-sm text-gray-400">Monthly Salary</span>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
-              <div>
-                <h1 className="text-xl font-semibold">{staff.payments.length}</h1>
-                <span className="text-sm text-gray-400">Payments Made</span>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image src="/singleBranch.png" alt="" width={24} height={24} className="w-6 h-6" />
-              <div>
-                <h1 className="text-xl font-semibold">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${staff.payments.some((p: any) => p.month === new Date().getMonth() && p.year === new Date().getFullYear() && p.status === "PAID") ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-                    {staff.payments.some((p: any) => p.month === new Date().getMonth() && p.year === new Date().getFullYear() && p.status === "PAID") ? "Paid" : "Unpaid"}
-                  </span>
-                </h1>
-                <span className="text-sm text-gray-400">Current Status</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* SALARY SUMMARY */}
-        <SalarySummaryCard
-          salary={staff.salary}
-          payments={staff.payments}
-        />
-
-        {/* SALARY TRACKER */}
-        <StaffSalaryTracker
-          staffId={staff.id}
-          staffName={`${staff.name} ${staff.surname}`}
-          salary={staff.salary}
-          payments={staff.payments}
-          isAdmin={isAdmin}
-        />
-      </div>
-
-      {/* RIGHT */}
-      <div className="w-full xl:w-1/3 flex flex-col gap-4">
-        <div className="bg-white p-4 rounded-md">
-          <h1 className="text-xl font-semibold mb-4">Payment History</h1>
-          <div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
-            {staff.payments.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-4">No payments yet.</p>
-            ) : (
-              [...staff.payments].reverse().map((p: any) => (
-                <div key={p.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
-                  <div>
-                    <h3 className="text-sm font-semibold">{p.month}/{p.year} Salary</h3>
-                    <p className="text-xs text-gray-500">Paid on {p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "-"}</p>
-                  </div>
-                  <span className={`font-bold text-sm ${p.status === "PAID" ? "text-emerald-600" : "text-amber-500"}`}>
-                    {p.amount.toLocaleString("en-US").replace(/,/g, " ")} DT
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-md">
-          <h1 className="text-xl font-semibold mb-4">Details</h1>
-          <div className="flex flex-col gap-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Address:</span>
-              <span className="font-medium">{staff.address}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-slate-500">Blood Type:</span>
-              <span className="font-medium">{staff.bloodType}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Joined:</span>
-              <span className="font-medium">{new Date(staff.createdAt).toLocaleDateString("en-GB")}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <StaffProfileClient
+      initialStaffId={id}
+      initialBundlesMap={bundlesMap}
+      staff={activeBundle.staff}
+      expenses={activeBundle.expenses}
+      staffFullName={activeBundle.staffFullName}
+      isAdmin={role === "admin"}
+      allStaff={allStaffList}
+    />
   );
 };
 

@@ -105,3 +105,50 @@ export const payStaffSalary = async (
     return { success: false, error: "Failed to process payment." };
   }
 };
+
+export const getStaffProfileBundle = async (staffId: string) => {
+  try {
+    const schoolId = await getSchoolId();
+    const [staff, allExpenses] = await Promise.all([
+      prisma.staff.findUnique({
+        where: { id: staffId },
+        include: { payments: true },
+      }),
+      prisma.expense.findMany({
+        where: {
+          schoolId,
+          OR: [
+            { referenceType: "StaffSalary" },
+            { category: "Advance" },
+            { category: "Salary" },
+          ],
+        },
+        orderBy: { date: "asc" },
+      }),
+    ]);
+
+    if (!staff || staff.schoolId !== schoolId) {
+      return { success: false, error: "Staff not found" };
+    }
+
+    const pIds = (staff.payments || []).map((p: any) => p.id.toString());
+    const filteredExpenses = allExpenses.filter((exp: any) => {
+      if (exp.referenceType === "StaffSalary" && pIds.includes(exp.referenceId)) return true;
+      if (exp.referenceType === "StaffSalary" && exp.referenceId === staff.id) return true;
+      if (exp.title?.toLowerCase().includes(staff.name.toLowerCase())) return true;
+      return false;
+    });
+
+    return {
+      success: true,
+      data: {
+        staff,
+        expenses: filteredExpenses,
+        staffFullName: `${staff.name} ${staff.surname}`.trim(),
+      },
+    };
+  } catch (err) {
+    console.error("Failed to fetch staff profile bundle:", err);
+    return { success: false, error: "Database error" };
+  }
+};
