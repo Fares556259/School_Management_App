@@ -207,16 +207,16 @@ export default function SalarySummaryCard({
             let dotColor = "bg-slate-200 border-slate-300 text-slate-600";
             let statusText = "En attente";
 
-            if (isFuture) {
-              dotColor = "bg-slate-100 border-slate-200 text-slate-400";
-              statusText = "Futur";
-            } else if (p?.status === "PAID") {
+            if (p?.status === "PAID") {
               dotColor = "bg-emerald-500 border-emerald-600 text-white";
-              statusText = "Soldé";
+              statusText = "Soldé ✓";
             } else if (p?.status === "PARTIAL") {
               dotColor = "bg-purple-500 border-purple-600 text-white";
               statusText = `Avance (${p.amount} DT)`;
-            } else if (p?.status === "OVERDUE" || (!isFuture && !p)) {
+            } else if (isFuture) {
+              dotColor = "bg-slate-100 border-slate-200 text-slate-400";
+              statusText = "Futur";
+            } else {
               dotColor = "bg-rose-100 border-rose-300 text-rose-700";
               statusText = "À régler";
             }

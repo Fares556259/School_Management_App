@@ -159,10 +159,19 @@ export default function SalarySummaryCard({ salary, payments }: SalarySummaryCar
             const isFuture = year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth() + 1);
             let dotClass = "bg-slate-200";
             let title = `${label}: Pending`;
-            if (isFuture) { dotClass = "bg-slate-100"; title = `${label}: Future`; }
-            else if (p?.status === "PAID") { dotClass = "bg-emerald-500"; title = `${label}: Paid`; }
-            else if (p?.status === "PARTIAL") { dotClass = "bg-purple-400"; title = `${label}: Advance`; }
-            else if (p?.status === "OVERDUE") { dotClass = "bg-rose-500"; title = `${label}: Overdue`; }
+            if (p?.status === "PAID") {
+              dotClass = "bg-emerald-500";
+              title = `${label}: Paid`;
+            } else if (p?.status === "PARTIAL") {
+              dotClass = "bg-purple-400";
+              title = `${label}: Advance`;
+            } else if (isFuture) {
+              dotClass = "bg-slate-100";
+              title = `${label}: Future`;
+            } else {
+              dotClass = "bg-rose-500";
+              title = `${label}: Overdue`;
+            }
 
             return (
               <div key={`${month}-${year}`} className="flex flex-col items-center gap-0.5" title={title}>
