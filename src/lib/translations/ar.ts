@@ -275,8 +275,12 @@ export const ar = {
     exportList: "تصدير CSV",
     partialAdvance: "سلفة",
     partialRemaining: "المتبقي",
+    advanceBadge: "تسبقة",
+    absenceBadge: "س غياب",
+    alreadyPaid: "مدفوع",
     settled: "تمت التسوية",
-    whatsappMessage: "مرحباً، نود تذكيركم بأن مصاريف دراسة التلميذ(ة) {student} لشهر {month} في انتظار التسوية."
+    whatsappMessage: "مرحباً، نود تذكيركم بأن مصاريف دراسة التلميذ(ة) {student} لشهر {month} في انتظار التسوية.",
+    whatsappPartialMessage: "مرحباً، نود تذكيركم بأن المبلغ المتبقي لمعاليم تدريس {student} ({amount}) لشهر {month} ما زال قيد الانتظار."
   },
   zbiba: {
     welcome: "أهلاً! أنا **زبيبة**. لدي الآن خاصية **AI-Vision**: يمكنك تحميل الإيصالات أو وصولات الدفع وسأقوم بمعالجتها تلقائيًا من أجلك. كيف يمكنني مساعدتك اليوم؟",

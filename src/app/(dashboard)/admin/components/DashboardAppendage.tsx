@@ -120,7 +120,9 @@ export default async function DashboardAppendage({
     const [unpaidStudents, unpaidTeachers, unpaidStaff] = await Promise.all([
       prisma.$queryRaw`
         SELECT 
-          s.id, s.name, s.surname, p.phone as "parentPhone", l."tuitionFee", c.name as "className",
+          s.id, s.name, s.surname, p.phone as "parentPhone",
+          COALESCE(s."customTuition", l."tuitionFee") as "tuitionFee",
+          c.name as "className",
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
         FROM "Student" s
         JOIN "Level" l ON s."levelId" = l.id
@@ -131,30 +133,39 @@ export default async function DashboardAppendage({
           AND pay.year = ${currentYear}
         WHERE s."schoolId" = ${schoolId}
           AND (pay.status IS NULL OR pay.status != 'PAID')
+        ORDER BY 
+          CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN pay.status = 'PENDING' THEN 2 ELSE 3 END,
+          s.surname ASC
         LIMIT 100
       `,
       prisma.$queryRaw`
         SELECT 
-          t.id, t.name, t.surname, t.phone, t.salary,
-          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+          t.id, t.name, t.surname, t.phone, t.salary, t."hourlyRate", t."hoursPerMonth",
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
           AND pay.month = ${currentMonth} 
           AND pay.year = ${currentYear}
         WHERE t."schoolId" = ${schoolId} 
           AND (pay.status IS NULL OR pay.status != 'PAID')
+        ORDER BY 
+          CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
+          t.surname ASC
         LIMIT 100
       `,
       prisma.$queryRaw`
         SELECT 
           s.id, s.name, s.surname, s.phone, s.salary, s.role,
-          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours"
         FROM "Staff" s
         LEFT JOIN "Payment" pay ON s.id = pay."staffId" 
           AND pay.month = ${currentMonth} 
           AND pay.year = ${currentYear}
         WHERE s."schoolId" = ${schoolId} 
           AND (pay.status IS NULL OR pay.status != 'PAID')
+        ORDER BY 
+          CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
+          s.surname ASC
         LIMIT 100
       `
     ]) as [any[], any[], any[]];
@@ -174,18 +185,23 @@ export default async function DashboardAppendage({
     ),
     getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', startDate.toISOString(), endDate.toISOString()], () => 
       safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
-      600
+      180
     ),
   ]);
 
   // --- DATA PROCESSING ---
 
-  const unpaidFees = uncollectedData.unpaidStudents.map(s => {
-    let dueAmount = s.tuitionFee || 450;
-    if (s.paymentStatus === "PARTIAL") {
-      dueAmount = s.deferredAmount || (dueAmount - s.paymentAmount);
+  const unpaidFees = uncollectedData.unpaidStudents.map((s: any) => {
+    const totalFee = Number(s.tuitionFee) || 450;
+    const isPartial = s.paymentStatus === "PARTIAL";
+    const paidAmount = Number(s.paymentAmount) || 0;
+
+    let dueAmount = totalFee;
+    if (isPartial) {
+      const deferred = Number(s.deferredAmount);
+      dueAmount = deferred > 0 ? deferred : Math.max(0, totalFee - paidAmount);
     } else if (s.paymentStatus === "PENDING") {
-      dueAmount = s.paymentAmount || dueAmount;
+      dueAmount = Number(s.paymentAmount) || totalFee;
     }
 
     return {
@@ -196,16 +212,27 @@ export default async function DashboardAppendage({
       phone: s.parentPhone,
       className: s.className || undefined,
       paymentStatus: s.paymentStatus || null,
+      paidAmount: isPartial && paidAmount > 0 ? paidAmount : undefined,
+      totalFee,
     };
   });
 
-  const unpaidTeachersMapped = uncollectedData.unpaidTeachers.map(t => {
-    let dueAmount = t.salary || 3000;
-    if (t.paymentStatus === "PARTIAL") {
-      dueAmount = t.deferredAmount || (dueAmount - t.paymentAmount);
-    } else if (t.paymentStatus === "PENDING") {
-      dueAmount = t.paymentAmount || dueAmount;
+  const unpaidTeachersMapped = uncollectedData.unpaidTeachers.map((t: any) => {
+    const rate = Number(t.hourlyRate) || 0;
+    const monthlyHours = Number(t.hoursPerMonth) || 0;
+    const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (Number(t.salary) || 3000);
+    const missedHours = Number(t.missedHours) || 0;
+    const deduction = missedHours * rate;
+    const isAdvance = t.paymentStatus === "PARTIAL";
+    const advanceAmount = isAdvance ? (Number(t.paymentAmount) || 0) : 0;
+
+    let dueAmount = Math.max(0, baseSalary - deduction - advanceAmount);
+    if (t.deferredAmount && Number(t.deferredAmount) > 0) {
+      dueAmount = Number(t.deferredAmount);
+    } else if (t.paymentStatus === "PENDING" && t.paymentAmount && Number(t.paymentAmount) > 0) {
+      dueAmount = Number(t.paymentAmount);
     }
+
     return {
       id: t.id,
       name: `${t.name} ${t.surname}`,
@@ -214,16 +241,26 @@ export default async function DashboardAppendage({
       phone: t.phone,
       role: "Teacher",
       paymentStatus: t.paymentStatus || null,
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
+      missedHours: missedHours > 0 ? missedHours : undefined,
+      deduction: deduction > 0 ? deduction : undefined,
+      baseSalary,
     };
   });
 
-  const unpaidStaffMapped = uncollectedData.unpaidStaff.map(s => {
-    let dueAmount = s.salary || 1500;
-    if (s.paymentStatus === "PARTIAL") {
-      dueAmount = s.deferredAmount || (dueAmount - s.paymentAmount);
-    } else if (s.paymentStatus === "PENDING") {
-      dueAmount = s.paymentAmount || dueAmount;
+  const unpaidStaffMapped = uncollectedData.unpaidStaff.map((s: any) => {
+    const baseSalary = Number(s.salary) || 1500;
+    const missedHours = Number(s.missedHours) || 0;
+    const isAdvance = s.paymentStatus === "PARTIAL";
+    const advanceAmount = isAdvance ? (Number(s.paymentAmount) || 0) : 0;
+
+    let dueAmount = Math.max(0, baseSalary - advanceAmount);
+    if (s.deferredAmount && Number(s.deferredAmount) > 0) {
+      dueAmount = Number(s.deferredAmount);
+    } else if (s.paymentStatus === "PENDING" && s.paymentAmount && Number(s.paymentAmount) > 0) {
+      dueAmount = Number(s.paymentAmount);
     }
+
     return {
       id: s.id,
       name: `${s.name} ${s.surname}`,
@@ -232,6 +269,9 @@ export default async function DashboardAppendage({
       phone: s.phone,
       role: s.role || "Staff",
       paymentStatus: s.paymentStatus || null,
+      advanceAmount: advanceAmount > 0 ? advanceAmount : undefined,
+      missedHours: missedHours > 0 ? missedHours : undefined,
+      baseSalary,
     };
   });
 

@@ -31,6 +31,12 @@ export interface ActionItem {
   className?: string;
   role?: string;
   paymentStatus?: string | null;
+  advanceAmount?: number;
+  missedHours?: number;
+  deduction?: number;
+  paidAmount?: number;
+  totalFee?: number;
+  baseSalary?: number;
 }
 
 interface ActionCenterProps {
@@ -164,15 +170,21 @@ function getWhatsAppUrl(
   phone: string | undefined,
   studentName: string,
   monthLabel: string,
-  template: string
+  amount: number,
+  isPartial: boolean,
+  defaultTemplate: string,
+  partialTemplate?: string
 ): string {
   if (!phone) return "";
   const digits = phone.replace(/\D/g, "");
   if (!digits) return "";
   const fullNumber = digits.length === 8 ? `216${digits}` : digits;
-  const message = template
+  const chosenTemplate =
+    isPartial && partialTemplate ? partialTemplate : defaultTemplate;
+  const message = chosenTemplate
     .replace("{student}", studentName)
-    .replace("{month}", monthLabel);
+    .replace("{month}", monthLabel)
+    .replace("{amount}", `${amount.toLocaleString()} DT`);
   return `https://wa.me/${fullNumber}?text=${encodeURIComponent(message)}`;
 }
 
@@ -280,7 +292,11 @@ export default function ActionCenter({
       Nom: e.name,
       Type: e.type.toUpperCase(),
       Fonction: e.role || (e.type === "teacher" ? "Enseignant" : "Personnel"),
-      "Montant Dû (DT)": e.amount,
+      "Salaire Base (DT)": e.baseSalary || e.amount,
+      "Avance (DT)": e.advanceAmount || 0,
+      "Heures Absence": e.missedHours || 0,
+      "Retenue Absence (DT)": e.deduction || 0,
+      "Net Dû (DT)": e.amount,
       Contact: e.phone || "Sans contact",
     }));
     downloadCSV(
@@ -294,7 +310,9 @@ export default function ActionCenter({
     const data = filteredFees.map((f) => ({
       Élève: f.name,
       Classe: f.className || "Non assignée",
-      "Montant Dû (DT)": f.amount,
+      "Frais Scolarité (DT)": f.totalFee || f.amount,
+      "Déjà Payé (DT)": f.paidAmount || 0,
+      "Reste Dû (DT)": f.amount,
       Statut:
         f.paymentStatus === "PARTIAL"
           ? "Reliquat"
@@ -464,11 +482,29 @@ export default function ActionCenter({
                               ? t.actionCenter.teachersOnly || "Enseignant"
                               : item.role || "Personnel"}
                           </span>
-                          {item.paymentStatus === "PARTIAL" && (
+                          {item.advanceAmount && item.advanceAmount > 0 ? (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center gap-1">
+                              <span>
+                                {t.actionCenter.advanceBadge || "Avance"}: {item.advanceAmount.toLocaleString()} DT
+                              </span>
+                            </span>
+                          ) : item.paymentStatus === "PARTIAL" ? (
                             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] bg-purple-50 text-purple-700 border border-purple-200">
                               {t.actionCenter.partialAdvance || "Avance"}
                             </span>
-                          )}
+                          ) : null}
+
+                          {item.missedHours && item.missedHours > 0 ? (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] bg-rose-50 text-rose-700 border border-rose-200/80 flex items-center gap-1">
+                              <span>
+                                {item.missedHours}
+                                {t.actionCenter.absenceBadge || "h abs."}
+                                {item.deduction
+                                  ? ` (-${item.deduction.toLocaleString()} DT)`
+                                  : ""}
+                              </span>
+                            </span>
+                          ) : null}
                         </div>
                         <span className="text-[12px] text-[#5a5a5a] truncate">
                           {item.phone || (
@@ -604,8 +640,12 @@ export default function ActionCenter({
                     item.phone,
                     item.name,
                     monthLabel,
+                    item.amount,
+                    item.paymentStatus === "PARTIAL",
                     t.actionCenter.whatsappMessage ||
-                      "Bonjour, nous vous rappelons que les frais de scolarité de {student} pour le mois de {month} sont en attente."
+                      "Bonjour, nous vous rappelons que les frais de scolarité de {student} pour le mois de {month} sont en attente.",
+                    t.actionCenter.whatsappPartialMessage ||
+                      "Bonjour, nous vous rappelons que le reliquat des frais de scolarité de {student} ({amount}) pour le mois de {month} est en attente de règlement."
                   );
 
                   return (
@@ -628,8 +668,16 @@ export default function ActionCenter({
                               </span>
                             )}
                             {item.paymentStatus === "PARTIAL" && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] bg-purple-50 text-purple-700 border border-purple-200">
-                                {t.actionCenter.partialRemaining || "Reliquat"}
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] bg-purple-50 text-purple-700 border border-purple-200/80 flex items-center gap-1">
+                                <span>
+                                  {t.actionCenter.partialRemaining || "Reliquat"}
+                                </span>
+                                {item.paidAmount ? (
+                                  <span className="font-normal opacity-85">
+                                    ({t.actionCenter.alreadyPaid || "Payé"}:{" "}
+                                    {item.paidAmount.toLocaleString()} DT)
+                                  </span>
+                                ) : null}
                               </span>
                             )}
                           </div>

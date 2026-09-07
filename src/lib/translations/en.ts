@@ -275,8 +275,12 @@ export const en = {
     exportList: "Export CSV",
     partialAdvance: "Advance",
     partialRemaining: "Remaining",
+    advanceBadge: "Advance",
+    absenceBadge: "h abs.",
+    alreadyPaid: "Paid",
     settled: "Settled",
-    whatsappMessage: "Hello, this is a reminder that tuition fees for {student} for {month} are pending payment."
+    whatsappMessage: "Hello, this is a reminder that tuition fees for {student} for {month} are pending payment.",
+    whatsappPartialMessage: "Hello, this is a reminder that the tuition balance for {student} ({amount}) for {month} is still pending."
   },
   zbiba: {
     welcome: "Hi! I'm **zbiba**. I now have **AI-Vision**: you can upload receipts or tuition slips and I will automatically process them for you. How can I help today?",

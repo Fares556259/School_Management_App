@@ -275,8 +275,12 @@ export const fr = {
     exportList: "Exporter CSV",
     partialAdvance: "Acompte",
     partialRemaining: "Reliquat",
+    advanceBadge: "Avance",
+    absenceBadge: "h abs.",
+    alreadyPaid: "Déjà versé",
     settled: "Réglé",
-    whatsappMessage: "Bonjour, nous vous rappelons que les frais de scolarité de {student} pour le mois de {month} sont en attente de règlement."
+    whatsappMessage: "Bonjour, nous vous rappelons que les frais de scolarité de {student} pour le mois de {month} sont en attente de règlement.",
+    whatsappPartialMessage: "Bonjour, nous vous rappelons que le reliquat des frais de scolarité de {student} ({amount}) pour le mois de {month} est en attente de règlement."
   },
   zbiba: {
     welcome: "Salut! Je suis **zbiba**. J'ai maintenant **AI-Vision**: vous pouvez télécharger des reçus ou des bordereaux de scolarité et je les traiterai automatiquement pour vous. Comment puis-je vous aider aujourd'hui?",
