@@ -1,7 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -10,20 +10,27 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  BarChart3,
+  Users,
+  Bell,
   ShieldCheck,
   Building2,
-  Headphones,
   Check,
-  ArrowLeft,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 export default function SignInPage() {
+  const router = useRouter();
+
   const [mode, setMode] = useState<"signin" | "forgot" | "forgot_sent">("signin");
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [forgotEmail, setForgotEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const inputClass =
+    "w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-sm font-medium";
+  const labelClass = "text-xs font-semibold text-gray-600 mb-1.5 block";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +62,7 @@ export default function SignInPage() {
         window.location.href = "/waiting-approval";
       }
     } catch (err: any) {
-      setError(err.message || "Une erreur est survenue lors de la connexion.");
+      setError(err.message || "Une erreur est survenue. Veuillez réanalyser vos identifiants.");
       setLoading(false);
     }
   };
@@ -72,281 +79,259 @@ export default function SignInPage() {
       if (error) throw error;
       setMode("forgot_sent");
     } catch (err: any) {
-      setError(err.message || "Impossible d'envoyer l'email de réinitialisation.");
+      setError(err.message || "Impossible d'envoyer l'email de réinitialisation. Vérifiez votre adresse.");
     } finally {
       setLoading(false);
     }
   };
 
+  const features = [
+    { icon: BarChart3, text: "Gestion financière & suivi des paiements" },
+    { icon: Users, text: "Gestion des élèves, enseignants & classes" },
+    { icon: Bell, text: "Notifications instantanées aux parents" },
+    { icon: ShieldCheck, text: "Historique complet & sécurité des données" },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
-      {/* ── LEFT PANEL (Branding & Trust) ──────────────────────────────────── */}
-      <div className="lg:w-[45%] xl:w-[40%] bg-slate-950 text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative border-b lg:border-b-0 lg:border-r border-slate-800">
-        {/* Brand Header */}
-        <div>
-          <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
-              S
-            </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight text-white">SnapSchool</span>
-              <span className="text-[10px] block font-semibold text-blue-400 uppercase tracking-wider -mt-1">
-                Espace Direction
-              </span>
-            </div>
-          </Link>
-        </div>
+    <div className="min-h-screen flex bg-white text-gray-900 font-sans">
+      {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-blue-900 via-blue-950 to-slate-900 flex-col justify-between p-12 relative overflow-hidden text-white">
+        {/* Decorative elements */}
+        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-80px] left-[-80px] w-[300px] h-[300px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
+        />
 
-        {/* Core Value Context */}
-        <div className="my-10 lg:my-0 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
-            <Building2 className="w-3.5 h-3.5" /> Accès Sécurisé Établissement
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-snug">
-            Le portail de gestion de votre école privée.
-          </h1>
-
-          <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-            Connectez-vous pour piloter vos notes trimestrielles, imprimer les bulletins officiels,
-            suivre les règlements en Dinars et gérer votre établissement sans friction.
-          </p>
-
-          <div className="pt-2 space-y-3">
-            <div className="flex items-center gap-3 text-xs font-medium text-slate-300">
-              <div className="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>Conforme aux normes du Ministère de l&apos;Éducation</span>
+        {/* Logo */}
+        <div className="relative z-10">
+          <a href="/" className="inline-flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/30">
+              <span className="text-white font-bold text-xl">S</span>
             </div>
-            <div className="flex items-center gap-3 text-xs font-medium text-slate-300">
-              <div className="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>Chiffrement des données scolaires et sauvegardes quotidiennes</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-medium text-slate-300">
-              <div className="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>Support WhatsApp direct pour les directeurs & secrétariat</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Direct Contact / Assistance for schools */}
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-400 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Headphones className="w-5 h-5 text-blue-400 shrink-0" />
-            <div>
-              <p className="text-white font-semibold">Un problème d&apos;accès ?</p>
-              <p className="text-[11px] text-slate-400">Assistance rapide par WhatsApp</p>
-            </div>
-          </div>
-          <a
-            href="https://wa.me/21623889444?text=Bonjour,%20j%27ai%20besoin%20d%27aide%20pour%20acc%C3%A9der%20%C3%A0%20mon%20compte%20SnapSchool"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-colors"
-          >
-            Contacter
+            <span className="text-white font-bold text-xl tracking-tight">SnapSchool</span>
           </a>
+        </div>
+
+        {/* Center content */}
+        <div className="relative z-10 space-y-8 my-auto py-12">
+          <div>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold mb-4">
+              <Building2 className="w-3.5 h-3.5" /> Espace de gestion
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight mb-4">
+              Bienvenue sur votre <br />
+              <span className="text-blue-400">tableau de bord.</span>
+            </h2>
+            <p className="text-blue-100/80 text-sm sm:text-base leading-relaxed">
+              Toutes les fonctionnalités pour gérer votre établissement privé en un seul endroit.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {features.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 * i }}
+                className="flex items-center gap-3"
+              >
+                <div className="w-8 h-8 bg-blue-500/20 border border-blue-400/20 rounded-lg flex items-center justify-center shrink-0">
+                  <f.icon className="w-4 h-4 text-blue-300" />
+                </div>
+                <p className="text-blue-100 text-sm font-medium">{f.text}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Testimonial */}
+          <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-5">
+            <p className="text-blue-50 text-sm leading-relaxed italic mb-3">
+              &ldquo;SnapSchool a simplifié notre gestion quotidienne. La génération des bulletins et le suivi des paiements se font désormais sans effort.&rdquo;
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">AS</div>
+              <div>
+                <p className="text-white text-xs font-bold">M. Ahmed S.</p>
+                <p className="text-blue-200 text-[11px]">Directeur, Académie Excellence</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div className="relative z-10">
+          <p className="text-blue-300/60 text-xs">© {new Date().getFullYear()} SnapSchool. Tous droits réservés.</p>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL (Auth Form) ────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-16">
-        <div className="w-full max-w-md">
-          {/* Back link */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-8"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Retour à l&apos;accueil
-          </Link>
-
-          <div className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl shadow-slate-100">
-            {/* Title / Description */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2">
-                {mode === "signin"
-                  ? "Connexion Établissement"
-                  : mode === "forgot"
-                  ? "Récupérer mon mot de passe"
-                  : "Email envoyé"}
-              </h2>
-              <p className="text-sm text-slate-500">
-                {mode === "signin"
-                  ? "Entrez les identifiants de votre école pour continuer."
-                  : mode === "forgot"
-                  ? "Nous vous enverrons un lien sécurisé pour créer un nouveau mot de passe."
-                  : "Consultez votre boîte de réception pour réinitialiser vos accès."}
-              </p>
+      {/* ── RIGHT PANEL ────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12 lg:p-16">
+        {/* Mobile logo */}
+        <div className="lg:hidden flex items-center gap-3 mb-8">
+          <a href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">S</span>
             </div>
+            <span className="font-bold text-gray-900 text-lg tracking-tight">SnapSchool</span>
+          </a>
+        </div>
 
-            {/* Error banner */}
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-start gap-3 text-xs font-semibold">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-xl bg-white p-8 sm:p-12 rounded-3xl border border-gray-100 shadow-xl"
+        >
+          {/* Heading */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
+              {mode === "signin" ? "Connexion à votre compte" : mode === "forgot" ? "Réinitialiser le mot de passe" : "Vérifiez vos emails"}
+            </h1>
+            <p className="text-base text-gray-500 font-normal">
+              {mode === "signin"
+                ? "Entrez vos identifiants pour accéder à votre espace d'administration."
+                : mode === "forgot"
+                ? "Saisissez votre adresse email pour recevoir un lien de réinitialisation."
+                : "Un lien de réinitialisation vous a été envoyé par email."}
+            </p>
+          </div>
+
+          {/* ── Sign In ── */}
+          {mode === "signin" && (
+            <motion.form key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleSignIn} className="space-y-6">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-start gap-3 text-sm font-medium">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-2 block uppercase tracking-wider">Adresse Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    required
+                    type="email"
+                    placeholder="directeur@ecole.tn"
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
               </div>
-            )}
 
-            {/* ── Mode 1: Sign In Form ── */}
-            {mode === "signin" && (
-              <form onSubmit={handleSignIn} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                    Adresse Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="directeur@ecole.tn"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 font-medium outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                      Mot de passe
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode("forgot");
-                        setError("");
-                      }}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      Mot de passe oublié ?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 font-medium outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      Se connecter <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                <div className="pt-4 text-center border-t border-slate-100">
-                  <p className="text-xs text-slate-500">
-                    Votre établissement n&apos;utilise pas encore SnapSchool ?{" "}
-                    <a
-                      href="https://wa.me/21623889444?text=Bonjour,%20je%20souhaite%20activer%20SnapSchool%20pour%20notre%20%C3%A9cole"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 font-bold hover:underline"
-                    >
-                      Demander une activation
-                    </a>
-                  </p>
-                </div>
-              </form>
-            )}
-
-            {/* ── Mode 2: Forgot Password Form ── */}
-            {mode === "forgot" && (
-              <form onSubmit={handleForgotPassword} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                    Email de l&apos;école
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      placeholder="directeur@ecole.tn"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 rounded-xl pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 font-medium outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      Envoyer le lien de réinitialisation <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                <div className="pt-2 text-center">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Mot de passe</label>
                   <button
                     type="button"
-                    onClick={() => {
-                      setMode("signin");
-                      setError("");
-                    }}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                    onClick={() => { setMode("forgot"); setError(""); }}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                   >
-                    ← Retour à la connexion
+                    Mot de passe oublié ?
                   </button>
                 </div>
-              </form>
-            )}
-
-            {/* ── Mode 3: Forgot Email Sent Confirmation ── */}
-            {mode === "forgot_sent" && (
-              <div className="text-center space-y-5 py-4">
-                <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6" />
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    required
+                    type="password"
+                    placeholder="••••••••"
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-base font-medium"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Email envoyé</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Un lien sécurisé a été transmis à{" "}
-                    <span className="font-semibold text-slate-900">{forgotEmail}</span>.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("signin");
-                    setError("");
-                  }}
-                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
-                >
-                  Revenir à la connexion
-                </button>
               </div>
-            )}
-          </div>
-        </div>
+
+              <button
+                disabled={loading}
+                type="submit"
+                className="w-full py-4 bg-blue-600 text-white font-semibold text-base rounded-2xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-blue-600/25"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>Se connecter <ArrowRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /></>
+                )}
+              </button>
+
+              <div className="pt-2 text-center text-sm text-gray-500">
+                Vous n&apos;avez pas encore de compte ?{" "}
+                <a href="/sign-up" className="text-blue-600 font-semibold hover:underline">
+                  Créer un compte
+                </a>
+              </div>
+            </motion.form>
+          )}
+
+          {/* ── Forgot Password ── */}
+          {mode === "forgot" && (
+            <motion.form key="forgot" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} onSubmit={handleForgotPassword} className="space-y-4">
+              {error && (
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-sm font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  {error}
+                </div>
+              )}
+              <div>
+                <label className={labelClass}>Votre Adresse Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    required
+                    type="email"
+                    placeholder="directeur@ecole.tn"
+                    className={`${inputClass} pl-10`}
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button
+                disabled={loading}
+                type="submit"
+                className="w-full py-3.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-md shadow-blue-600/20"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Envoyer le lien <ArrowRight className="w-4 h-4" /></>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(""); }}
+                className="block w-full text-center text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors pt-2"
+              >
+                ← Retour à la connexion
+              </button>
+            </motion.form>
+          )}
+
+          {/* ── Sent Confirmation ── */}
+          {mode === "forgot_sent" && (
+            <motion.div key="sent" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-5 py-4">
+              <div className="w-14 h-14 bg-green-50 border border-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Email envoyé !</h2>
+                <p className="text-sm text-gray-500 font-normal">
+                  Un lien de réinitialisation a été envoyé à <span className="font-semibold text-gray-800">{forgotEmail}</span>.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(""); }}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-200 transition-all"
+              >
+                Retour à la connexion
+              </button>
+            </motion.div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
