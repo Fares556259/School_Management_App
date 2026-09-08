@@ -31,6 +31,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface TeacherProfileClientProps {
   initialTeacherId?: string;
@@ -66,6 +67,7 @@ export default function TeacherProfileClient({
   isAdmin,
   allTeachers = [],
 }: TeacherProfileClientProps) {
+  const { t, locale } = useLanguage();
   // Sync activeTab with URL ?tab= query parameter on mount if present
   const [activeTab, setActiveTab] = useState<"finance" | "schedule" | "overview">(() => {
     if (typeof window !== "undefined") {
@@ -167,35 +169,42 @@ export default function TeacherProfileClient({
     }
   }, [initialBundlesMap]);
 
-
-
-
-  const handlePrefetchTeacher = useCallback((id: string) => {
-    if (!id || bundlesMap[id] || id === activeTeacherId) return;
-    getTeacherProfileBundle(id).then((res) => {
-      if (res.success && res.data) {
-        setBundlesMap((prev) => ({ ...prev, [id]: res.data as TeacherBundle }));
+  // Prefetch a teacher bundle in memory when hovering
+  const handlePrefetchTeacher = useCallback(async (id: string) => {
+    if (bundlesMap[id]) return;
+    try {
+      const res: any = await getTeacherProfileBundle(id);
+      if (res?.success && res.data) {
+        setBundlesMap((prev) => ({ ...prev, [id]: res.data }));
       }
-    }).catch(() => {});
-  }, [bundlesMap, activeTeacherId]);
+    } catch (err) {
+      console.error("Failed to prefetch teacher bundle:", err);
+    }
+  }, [bundlesMap]);
 
-    // Instant synchronous teacher switch (0ms) preserving current tab
+  // Handle instant 0ms client-side switch
   const handleSelectTeacher = useCallback((id: string) => {
-    if (!id || id === activeTeacherId) return;
+    if (id === activeTeacherId) return;
 
-    const tabSuffix = activeTab !== "finance" ? `?tab=${activeTab}` : "";
+    const tabSuffix = activeTab && activeTab !== "finance" ? `?tab=${activeTab}` : "";
+
+    if (bundlesMap[id]) {
+      setActiveTeacherId(id);
+      window.history.pushState(null, "", `/list/teachers/${id}${tabSuffix}`);
+      return;
+    }
 
     try {
-      if (bundlesMap && bundlesMap[id]) {
-        setActiveTeacherId(id);
-        try {
-          window.history.pushState({ teacherId: id }, "", `/list/teachers/${id}${tabSuffix}`);
-        } catch {}
-        try {
-          window.scrollTo(0, 0);
-        } catch {}
-        return;
-      }
+      getTeacherProfileBundle(id).then((res: any) => {
+        if (res?.success && res.data) {
+          setBundlesMap((prev) => ({ ...prev, [id]: res.data }));
+          setActiveTeacherId(id);
+          window.history.pushState(null, "", `/list/teachers/${id}${tabSuffix}`);
+        } else {
+          window.location.href = `/list/teachers/${id}${tabSuffix}`;
+        }
+      });
+      return;
     } catch (err) {
       console.error("Sync teacher switch error:", err);
     }
@@ -246,7 +255,7 @@ export default function TeacherProfileClient({
     totalHours,
   } = currentBundle;
 
-  const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
+  const fmt = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} ${locale === "ar" ? "د.ت" : "DT"}`;
 
   // Calculate quick payment total for the badge
   const totalPaid = (teacher.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
@@ -260,8 +269,8 @@ export default function TeacherProfileClient({
             href="/list/teachers" 
             className="flex items-center gap-1.5 hover:text-blue-600 transition-colors font-medium text-slate-600 shrink-0"
           >
-            <ArrowLeft size={16} />
-            <span>Enseignants</span>
+            <ArrowLeft size={16} className={locale === "ar" ? "rotate-180" : ""} />
+            <span>{t.teacherProfile.directory.teachersTitle}</span>
           </Link>
           <span className="text-slate-300 shrink-0">/</span>
           <span className="font-semibold text-slate-800 truncate max-w-[150px] sm:max-w-none">
@@ -273,7 +282,7 @@ export default function TeacherProfileClient({
               : "bg-amber-50 text-amber-700 border border-amber-200"
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${teacher.activated ? "bg-emerald-500" : "bg-amber-500"}`} />
-            {teacher.activated ? "Actif" : "En attente"}
+            {teacher.activated ? t.teacherProfile.identity.activeStatus : t.teacherProfile.identity.pendingStatus}
           </span>
         </div>
 
@@ -299,10 +308,10 @@ export default function TeacherProfileClient({
                 ? "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
                 : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
-            title={isSideNavOpen ? "Masquer l'annuaire des enseignants" : "Afficher l'annuaire des enseignants"}
+            title={isSideNavOpen ? t.teacherProfile.directory.hideDirectoryTooltip : t.teacherProfile.directory.showDirectoryTooltip}
           >
             <Users size={15} className={isSideNavOpen ? "text-indigo-600" : "text-slate-500"} />
-            <span>{isSideNavOpen ? "Masquer l'annuaire" : `Annuaire (${allTeachers.length})`}</span>
+            <span>{isSideNavOpen ? t.teacherProfile.directory.hideDirectory : `${t.teacherProfile.directory.teachersTitle} (${allTeachers.length})`}</span>
           </button>
 
           {isAdmin && (
@@ -340,7 +349,7 @@ export default function TeacherProfileClient({
                 </h1>
               </div>
               <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Enseignant / Corps professoral · ID: <span className="font-mono text-slate-500">{teacher.id.substring(0, 8)}...</span>
+                {t.teacherProfile.identity.teacherRole} · {t.teacherProfile.identity.idPrefix.replace("{id}", teacher.id.substring(0, 8))}...
               </p>
 
               {/* Subject & Class pills */}
@@ -356,7 +365,7 @@ export default function TeacherProfileClient({
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400 italic">Aucune matière assignée</span>
+                  <span className="text-xs text-slate-400 italic">{t.teacherProfile.identity.noSubjectAssigned}</span>
                 )}
 
                 {teacher.classes.length > 0 && teacher.classes.map((cls: any) => (
@@ -365,7 +374,7 @@ export default function TeacherProfileClient({
                     className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-100 flex items-center gap-1"
                   >
                     <Users size={11} className="text-purple-500" />
-                    Classe {cls.name}
+                    {t.teacherProfile.identity.classPrefix.replace("{name}", cls.name)}
                   </span>
                 ))}
               </div>
@@ -379,7 +388,7 @@ export default function TeacherProfileClient({
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-emerald-600 block tracking-wider leading-none">
-                Salaire Mensuel
+                {t.teacherProfile.identity.monthlySalary}
               </span>
               <span className="text-xl font-black text-emerald-800 block mt-0.5">
                 {fmt(teacher.salary)}
@@ -395,13 +404,13 @@ export default function TeacherProfileClient({
               <Phone size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Téléphone</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.teacherProfile.identity.phone}</span>
               {teacher.phone ? (
                 <a href={`tel:${teacher.phone}`} className="font-semibold text-slate-700 hover:text-blue-600 truncate block">
                   {teacher.phone}
                 </a>
               ) : (
-                <span className="text-slate-400 italic">Non renseigné</span>
+                <span className="text-slate-400 italic">{t.teacherProfile.identity.noPhone}</span>
               )}
             </div>
           </div>
@@ -411,9 +420,9 @@ export default function TeacherProfileClient({
               <CalendarIcon size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Naissance</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.teacherProfile.identity.birthday}</span>
               <span className="font-semibold text-slate-700 block">
-                {new Intl.DateTimeFormat("fr-FR").format(new Date(teacher.birthday))}
+                {new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR").format(new Date(teacher.birthday))}
               </span>
             </div>
           </div>
@@ -423,9 +432,9 @@ export default function TeacherProfileClient({
               <Droplet size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Groupe Sanguin</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.teacherProfile.identity.bloodType}</span>
               <span className="font-semibold text-slate-700 block">
-                {teacher.bloodType || "Inconnu"}
+                {teacher.bloodType || t.teacherProfile.identity.unknown}
               </span>
             </div>
           </div>
@@ -435,9 +444,9 @@ export default function TeacherProfileClient({
               <Clock size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Volume Horaire</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.teacherProfile.identity.weeklyHours}</span>
               <span className="font-semibold text-indigo-700 block">
-                {totalHours}h / semaine
+                {t.teacherProfile.identity.hoursPerWeek.replace("{hours}", String(totalHours))}
               </span>
             </div>
           </div>
@@ -450,8 +459,8 @@ export default function TeacherProfileClient({
               {teacher._count.classes}
             </div>
             <div className="leading-tight">
-              <span className="text-xs font-bold text-slate-800 block">Classes</span>
-              <span className="text-[10px] text-slate-400 font-medium">assignées</span>
+              <span className="text-xs font-bold text-slate-800 block">{t.teacherProfile.kpis.classes}</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t.teacherProfile.kpis.assigned}</span>
             </div>
           </div>
 
@@ -460,8 +469,8 @@ export default function TeacherProfileClient({
               {cleanSubjects.length}
             </div>
             <div className="leading-tight">
-              <span className="text-xs font-bold text-slate-800 block">Matières</span>
-              <span className="text-[10px] text-slate-400 font-medium">enseignées</span>
+              <span className="text-xs font-bold text-slate-800 block">{t.teacherProfile.kpis.subjects}</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t.teacherProfile.kpis.taught}</span>
             </div>
           </div>
 
@@ -470,8 +479,8 @@ export default function TeacherProfileClient({
               {scheduleItems.length}
             </div>
             <div className="leading-tight">
-              <span className="text-xs font-bold text-slate-800 block">Séances / sem.</span>
-              <span className="text-[10px] text-slate-400 font-medium">{totalHours}h de cours</span>
+              <span className="text-xs font-bold text-slate-800 block">{t.teacherProfile.kpis.sessionsPerWeek}</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t.teacherProfile.kpis.hoursOfLessons.replace("{hours}", String(totalHours))}</span>
             </div>
           </div>
 
@@ -480,7 +489,7 @@ export default function TeacherProfileClient({
               {teacher.payments.length}
             </div>
             <div className="leading-tight">
-              <span className="text-xs font-bold text-slate-800 block">Versements</span>
+              <span className="text-xs font-bold text-slate-800 block">{t.teacherProfile.kpis.payments}</span>
               <span className="text-[10px] text-slate-400 font-medium">{fmt(totalPaid)}</span>
             </div>
           </div>
@@ -503,7 +512,7 @@ export default function TeacherProfileClient({
             }`}
           >
             <Wallet size={15} />
-            <span>Rémunération & Finances</span>
+            <span>{t.teacherProfile.tabs.finance}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
               activeTab === "finance" ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-700"
             }`}>
@@ -524,11 +533,11 @@ export default function TeacherProfileClient({
             }`}
           >
             <Calendar size={15} />
-            <span>Emploi du temps</span>
+            <span>{t.teacherProfile.tabs.schedule}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
               activeTab === "schedule" ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-700"
             }`}>
-              {totalHours}h / sem
+              {t.teacherProfile.identity.hoursPerWeek.replace("{hours}", String(totalHours))}
             </span>
           </button>
 
@@ -545,7 +554,7 @@ export default function TeacherProfileClient({
             }`}
           >
             <LayoutGrid size={15} />
-            <span className="hidden sm:inline">Vue complète</span>
+            <span className="hidden sm:inline">{t.teacherProfile.tabs.overview}</span>
           </button>
         </div>
       </div>

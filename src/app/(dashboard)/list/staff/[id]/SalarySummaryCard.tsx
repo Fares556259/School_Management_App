@@ -1,16 +1,7 @@
 "use client";
 
-import { TrendingUp, Wallet, AlertCircle, CheckCircle2, Calendar } from "lucide-react";
-
-const MONTH_NAMES = [
-  "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-  "Juil", "Août", "Sep", "Oct", "Nov", "Déc",
-];
-
-const MONTH_NAMES_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
-];
+import { TrendingUp, Wallet, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 /** Returns the school-year start month index (0-based). Sept = 8. */
 function getSchoolYearStart(now: Date): { startMonth: number; startYear: number } {
@@ -41,8 +32,20 @@ export default function SalarySummaryCard({
   selectedMonth,
   onSelectMonth,
 }: SalarySummaryCardProps) {
+  const { t, locale } = useLanguage();
   const now = new Date();
   const { startMonth, startYear } = getSchoolYearStart(now);
+
+  const getMonthShortName = (mIndex: number) => {
+    if (locale === "ar") {
+      return t.months[mIndex] || "";
+    }
+    return new Date(2025, mIndex).toLocaleDateString(locale === "en" ? "en-US" : "fr-FR", { month: "short" });
+  };
+
+  const getMonthFullName = (mIndex: number) => {
+    return t.months[mIndex] || new Date(2025, mIndex).toLocaleDateString(locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR", { month: "long" });
+  };
 
   // Build the complete 12 months of the school year cycle (September -> August)
   const schoolYearMonths: { month: number; year: number; label: string; fullLabel: string }[] = [];
@@ -52,8 +55,8 @@ export default function SalarySummaryCard({
     schoolYearMonths.push({
       month: m + 1,
       year: y,
-      label: `${MONTH_NAMES[m]} ${y}`,
-      fullLabel: `${MONTH_NAMES_FR[m]} ${y}`,
+      label: `${getMonthShortName(m)} ${y}`,
+      fullLabel: `${getMonthFullName(m)} ${y}`,
     });
     m++;
     if (m > 11) {
@@ -70,8 +73,8 @@ export default function SalarySummaryCard({
       schoolYearMonths.push({
         month: p.month,
         year: p.year,
-        label: `${MONTH_NAMES[monthIdx]} ${p.year}`,
-        fullLabel: `${MONTH_NAMES_FR[monthIdx]} ${p.year}`,
+        label: `${getMonthShortName(monthIdx)} ${p.year}`,
+        fullLabel: `${getMonthFullName(monthIdx)} ${p.year}`,
       });
     }
   });
@@ -111,7 +114,7 @@ export default function SalarySummaryCard({
   const outstanding = Math.max(0, totalOwed - totalPaidAll);
   const progressPct = totalOwed > 0 ? Math.min(100, Math.round((totalPaidAll / totalOwed) * 100)) : 0;
 
-  const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
+  const fmt = (n: number) => `${n.toLocaleString("en-US").replace(/,/g, " ")} ${locale === "ar" ? "د.ت" : "DT"}`;
 
   return (
     <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs">
@@ -121,12 +124,18 @@ export default function SalarySummaryCard({
             <Wallet className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-800">Synthèse des Rémunérations</h2>
-            <p className="text-xs text-slate-400">Année scolaire {startYear} - {startYear + 1}</p>
+            <h2 className="text-base font-bold text-slate-800">
+              {t.staffProfile.salarySummary.summaryTitle}
+            </h2>
+            <p className="text-xs text-slate-400">
+              {t.staffProfile.salarySummary.schoolYear
+                .replace("{start}", String(startYear))
+                .replace("{end}", String(startYear + 1))}
+            </p>
           </div>
         </div>
         <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-          Base : {fmt(salary)} / mois
+          {t.staffProfile.salarySummary.baseSalaryPerMonth.replace("{salary}", fmt(salary))}
         </span>
       </div>
 
@@ -134,22 +143,22 @@ export default function SalarySummaryCard({
       <div className="mb-6 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
         <div className="flex justify-between items-center text-xs text-slate-600 mb-2 font-medium">
           <span className="flex items-center gap-1.5 font-bold text-slate-800">
-            <span>Payé cumulé :</span>
+            <span>{t.staffProfile.salarySummary.totalPaidCumulative}</span>
             <span className="text-emerald-600 font-black">{fmt(totalPaidAll)}</span>
           </span>
           <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black">
-            {progressPct}% réglé
+            {t.staffProfile.salarySummary.settledPercent.replace("{pct}", String(progressPct))}
           </span>
         </div>
         <div className="w-full h-3 bg-slate-200/80 rounded-full overflow-hidden p-0.5">
           <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+            className={`h-full ${locale === "ar" ? "bg-gradient-to-l" : "bg-gradient-to-r"} from-emerald-500 to-teal-500 rounded-full transition-all duration-500`}
             style={{ width: `${progressPct}%` }}
           />
         </div>
         <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2 font-medium">
-          <span>{elapsedMonths.length} mois échus</span>
-          <span>Total dû (échus) : {fmt(totalOwed)}</span>
+          <span>{t.staffProfile.salarySummary.elapsedMonths.replace("{count}", String(elapsedMonths.length))}</span>
+          <span>{t.staffProfile.salarySummary.totalOwedElapsed.replace("{total}", fmt(totalOwed))}</span>
         </div>
       </div>
 
@@ -159,36 +168,40 @@ export default function SalarySummaryCard({
           <div className="flex items-center gap-1.5 mb-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
-              Salaires Soldés
+              {t.staffProfile.salarySummary.fullyPaidSalaries}
             </span>
           </div>
           <p className="text-xl font-black text-emerald-900">{fmt(totalFullyPaid)}</p>
-          <span className="text-[10px] text-emerald-700 font-medium">Mois entièrement payés</span>
+          <span className="text-[10px] text-emerald-700 font-medium">
+            {t.staffProfile.salarySummary.fullyPaidMonthsDesc}
+          </span>
         </div>
 
         <div className="bg-purple-50/80 border border-purple-100 rounded-xl p-3.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <TrendingUp className="w-4 h-4 text-purple-600 shrink-0" />
             <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wide">
-              Acomptes Versés
+              {t.staffProfile.salarySummary.advancesPaid}
             </span>
           </div>
           <p className="text-xl font-black text-purple-900">{fmt(totalAdvanced)}</p>
-          <span className="text-[10px] text-purple-700 font-medium">Avances sur salaire</span>
+          <span className="text-[10px] text-purple-700 font-medium">
+            {t.staffProfile.salarySummary.advancesDesc}
+          </span>
         </div>
 
         <div className={`rounded-xl p-3.5 border ${outstanding > 0 ? "bg-rose-50/80 border-rose-100" : "bg-slate-50 border-slate-200/70"}`}>
           <div className="flex items-center gap-1.5 mb-1.5">
             <AlertCircle className={`w-4 h-4 shrink-0 ${outstanding > 0 ? "text-rose-600" : "text-slate-500"}`} />
             <span className={`text-[11px] font-bold uppercase tracking-wide ${outstanding > 0 ? "text-rose-800" : "text-slate-600"}`}>
-              Reste à Payer
+              {t.staffProfile.salarySummary.remainingToPay}
             </span>
           </div>
           <p className={`text-xl font-black ${outstanding > 0 ? "text-rose-900" : "text-slate-700"}`}>
-            {outstanding > 0 ? fmt(outstanding) : "Tout est réglé ✓"}
+            {outstanding > 0 ? fmt(outstanding) : t.staffProfile.salarySummary.allSettled}
           </p>
           <span className={`text-[10px] font-medium ${outstanding > 0 ? "text-rose-700" : "text-slate-500"}`}>
-            {outstanding > 0 ? "Arriérés et mois courant" : "Aucun impayé"}
+            {outstanding > 0 ? t.staffProfile.salarySummary.arrearsDesc : t.staffProfile.salarySummary.noOverdueDesc}
           </span>
         </div>
       </div>
@@ -196,7 +209,7 @@ export default function SalarySummaryCard({
       {/* Month-by-month status dots */}
       <div className="border-t border-slate-100 pt-4">
         <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mb-2.5">
-          Chronologie des Mois
+          {t.staffProfile.salarySummary.timelineTitle}
         </p>
         <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
           {schoolYearMonths.map(({ month, year, label }) => {
@@ -205,20 +218,20 @@ export default function SalarySummaryCard({
             const isSelected = selectedMonth?.month === month && selectedMonth?.year === year;
 
             let dotColor = "bg-slate-200 border-slate-300 text-slate-600";
-            let statusText = "En attente";
+            let statusText = t.staffProfile.salarySummary.statusWaiting;
 
             if (p?.status === "PAID") {
               dotColor = "bg-emerald-500 border-emerald-600 text-white";
-              statusText = "Soldé ✓";
+              statusText = `${t.staffProfile.salarySummary.legendSettled} ✓`;
             } else if (p?.status === "PARTIAL") {
               dotColor = "bg-purple-500 border-purple-600 text-white";
-              statusText = `Avance (${p.amount} DT)`;
+              statusText = t.staffProfile.kpis.advance.replace("{amount}", fmt(p.amount));
             } else if (isFuture) {
               dotColor = "bg-slate-100 border-slate-200 text-slate-400";
-              statusText = "Futur";
+              statusText = t.staffProfile.salarySummary.statusFuture;
             } else {
               dotColor = "bg-rose-100 border-rose-300 text-rose-700";
-              statusText = "À régler";
+              statusText = t.staffProfile.salarySummary.legendToSettle;
             }
 
             return (
@@ -238,7 +251,9 @@ export default function SalarySummaryCard({
                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold border ${dotColor}`}>
                   {p?.status === "PAID" ? "✓" : p?.status === "PARTIAL" ? "½" : "•"}
                 </div>
-                <span className="text-[10px] font-bold text-slate-600">{MONTH_NAMES[month - 1]}</span>
+                <span className="text-[10px] font-bold text-slate-600">
+                  {getMonthShortName(month - 1)}
+                </span>
               </button>
             );
           })}
@@ -248,19 +263,19 @@ export default function SalarySummaryCard({
         <div className="flex flex-wrap items-center gap-4 mt-3.5 pt-3 border-t border-slate-100 text-[11px] text-slate-500 font-medium">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span>Soldé</span>
+            <span>{t.staffProfile.salarySummary.legendSettled}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-            <span>Avance versée</span>
+            <span>{t.staffProfile.salarySummary.legendAdvance}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-            <span>À régler</span>
+            <span>{t.staffProfile.salarySummary.legendToSettle}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-            <span>Futur</span>
+            <span>{t.staffProfile.salarySummary.legendFuture}</span>
           </div>
         </div>
       </div>

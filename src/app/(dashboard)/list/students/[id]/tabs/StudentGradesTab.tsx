@@ -16,6 +16,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface GradeItem {
   id: number;
@@ -57,6 +58,7 @@ export default function StudentGradesTab({
   grades = [],
   isAdmin,
 }: StudentGradesTabProps) {
+  const { t, locale } = useLanguage();
   const [selectedTerm, setSelectedTerm] = useState<number>(1);
 
   // Filter grades for the selected term
@@ -200,11 +202,11 @@ export default function StudentGradesTab({
 
   function getMention(avg: number | null): { text: string; color: string; badge: string } | null {
     if (avg === null) return null;
-    if (avg >= 17) return { text: "Félicitations du Conseil", color: "text-emerald-700", badge: "bg-emerald-50 border-emerald-200 text-emerald-700" };
-    if (avg >= 15) return { text: "Tableau d'Honneur", color: "text-blue-700", badge: "bg-blue-50 border-blue-200 text-blue-700" };
-    if (avg >= 13) return { text: "Encouragements", color: "text-indigo-700", badge: "bg-indigo-50 border-indigo-200 text-indigo-700" };
-    if (avg >= 10) return { text: "Moyenne Atteinte", color: "text-slate-700", badge: "bg-slate-50 border-slate-200 text-slate-700" };
-    return { text: "Soutien Pédagogique Recommandé", color: "text-rose-700", badge: "bg-rose-50 border-rose-200 text-rose-700" };
+    if (avg >= 17) return { text: t.studentProfile.grades.mentions.honors, color: "text-emerald-700", badge: "bg-emerald-50 border-emerald-200 text-emerald-700" };
+    if (avg >= 15) return { text: t.studentProfile.grades.mentions.honorRoll, color: "text-blue-700", badge: "bg-blue-50 border-blue-200 text-blue-700" };
+    if (avg >= 13) return { text: t.studentProfile.grades.mentions.encouragement, color: "text-indigo-700", badge: "bg-indigo-50 border-indigo-200 text-indigo-700" };
+    if (avg >= 10) return { text: t.studentProfile.grades.mentions.passed, color: "text-slate-700", badge: "bg-slate-50 border-slate-200 text-slate-700" };
+    return { text: t.studentProfile.grades.mentions.warning, color: "text-rose-700", badge: "bg-rose-50 border-rose-200 text-rose-700" };
   }
 
   return (
@@ -217,36 +219,36 @@ export default function StudentGradesTab({
               <Award size={18} />
             </div>
             <h2 className="text-base font-bold text-slate-800">
-              Résultats Scolaires & Évaluations
+              {t.studentProfile.grades.headerTitle}
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Relevé des notes trimestrielles par domaine de compétences et calcul des moyennes.
+            {t.studentProfile.grades.headerSubtitle}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Term Switcher */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60" role="tablist">
-            {[1, 2, 3].map((t) => {
-              const count = grades.filter((g) => g.term === t).length;
+            {[1, 2, 3].map((tNum) => {
+              const count = grades.filter((g) => g.term === tNum).length;
               return (
                 <button
-                  key={t}
+                  key={tNum}
                   type="button"
                   role="tab"
-                  aria-selected={selectedTerm === t}
-                  onClick={() => setSelectedTerm(t)}
+                  aria-selected={selectedTerm === tNum}
+                  onClick={() => setSelectedTerm(tNum)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedTerm === t
+                    selectedTerm === tNum
                       ? "bg-white text-purple-700 shadow-2xs"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  <span>Trimestre {t}</span>
+                  <span>{t.studentProfile.grades.termTab.replace("{num}", String(tNum))}</span>
                   {count > 0 && (
                     <span className={`w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold ${
-                      selectedTerm === t ? "bg-purple-100 text-purple-700" : "bg-slate-200 text-slate-600"
+                      selectedTerm === tNum ? "bg-purple-100 text-purple-700" : "bg-slate-200 text-slate-600"
                     }`}>
                       {count}
                     </span>
@@ -261,10 +263,10 @@ export default function StudentGradesTab({
             href={`/admin/grades/${studentId}/report-card?term=${selectedTerm}`}
             target="_blank"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-colors"
-            title="Consulter et imprimer le bulletin officiel"
+            title={t.studentProfile.grades.reportCardTooltip}
           >
             <Printer size={14} />
-            <span>Bulletin Officiel</span>
+            <span>{t.studentProfile.grades.officialReportCard}</span>
             <ExternalLink size={12} className="opacity-70" />
           </Link>
         </div>
@@ -276,7 +278,7 @@ export default function StudentGradesTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Moyenne T{selectedTerm}
+              {t.studentProfile.grades.termAverage.replace("{num}", String(selectedTerm))}
             </span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
               <TrendingUp size={16} />
@@ -289,10 +291,10 @@ export default function StudentGradesTab({
                   ? academicSummary.overallAverage.toFixed(2)
                   : "--"}
               </span>
-              <span className="text-sm font-semibold text-slate-400">/ 20</span>
+              <span className="text-sm font-semibold text-slate-400">{t.studentProfile.grades.outOf20}</span>
             </div>
             <p className="text-[11px] text-slate-500 font-medium mt-1">
-              Moyenne pondérée du trimestre
+              {t.studentProfile.grades.weightedTermAverage}
             </p>
           </div>
         </div>
@@ -301,7 +303,7 @@ export default function StudentGradesTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Appréciation
+              {t.studentProfile.grades.appreciation}
             </span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Sparkles size={16} />
@@ -313,10 +315,10 @@ export default function StudentGradesTab({
                 {academicSummary.mention.text}
               </span>
             ) : (
-              <span className="text-sm font-semibold text-slate-400">En cours de notation</span>
+              <span className="text-sm font-semibold text-slate-400">{t.studentProfile.grades.gradingInProgress}</span>
             )}
             <p className="text-[11px] text-slate-500 font-medium mt-1">
-              Conseil des maîtres
+              {t.studentProfile.grades.teachersCouncil}
             </p>
           </div>
         </div>
@@ -325,7 +327,7 @@ export default function StudentGradesTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Évaluations
+              {t.studentProfile.grades.evaluations}
             </span>
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <BookOpen size={16} />
@@ -336,10 +338,12 @@ export default function StudentGradesTab({
               <span className="text-3xl font-black text-slate-800">
                 {academicSummary.totalGradedSubjects}
               </span>
-              <span className="text-sm font-semibold text-slate-400">matières</span>
+              <span className="text-sm font-semibold text-slate-400">
+                {t.studentProfile.grades.subjectsCount.replace("{count}", "").trim()}
+              </span>
             </div>
             <p className="text-[11px] text-slate-500 font-medium mt-1">
-              Notes enregistrées en base
+              {t.studentProfile.grades.gradesRecordedInDb}
             </p>
           </div>
         </div>
@@ -348,7 +352,7 @@ export default function StudentGradesTab({
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50/60 p-5 rounded-2xl border border-purple-100/80 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">
-              Action Bulletin
+              {t.studentProfile.grades.reportCardAction}
             </span>
             <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
               <FileText size={16} />
@@ -361,7 +365,7 @@ export default function StudentGradesTab({
               className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
             >
               <Printer size={14} />
-              <span>Imprimer le Bulletin T{selectedTerm}</span>
+              <span>{t.studentProfile.grades.printTermReportCard.replace("{num}", String(selectedTerm))}</span>
             </Link>
           </div>
         </div>
@@ -373,10 +377,10 @@ export default function StudentGradesTab({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
               <Layers size={16} className="text-slate-500" />
-              <span>Détail par domaine de compétences</span>
+              <span>{t.studentProfile.grades.domainBreakdownTitle}</span>
             </h3>
             <span className="text-xs text-slate-400 font-medium">
-              Barème standard sur 20 points
+              {t.studentProfile.grades.standardScale}
             </span>
           </div>
 
@@ -396,18 +400,18 @@ export default function StudentGradesTab({
                       <div>
                         <h4 className="font-bold text-slate-800 text-sm">{domain.name}</h4>
                         <span className="text-[11px] text-slate-400 font-medium">
-                          Coefficient : {domain.coefficient}
+                          {t.studentProfile.grades.coeffLabel.replace("{coeff}", String(domain.coefficient))}
                         </span>
                       </div>
                     </div>
 
                     <div className="text-right">
                       <span className="text-[10px] uppercase font-bold text-slate-400 block leading-none">
-                        Moyenne domaine
+                        {t.studentProfile.grades.domainAverage}
                       </span>
                       <span className="text-lg font-black text-slate-800 mt-0.5 inline-block">
                         {domain.average > 0 ? domain.average.toFixed(2) : "--"}
-                        <span className="text-xs font-semibold text-slate-400 ml-1">/ 20</span>
+                        <span className="text-xs font-semibold text-slate-400 ml-1">{t.studentProfile.grades.outOf20}</span>
                       </span>
                     </div>
                   </div>
@@ -439,9 +443,9 @@ export default function StudentGradesTab({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <span className="text-xs font-semibold text-slate-800 truncate">
-                                {sub.name}
+                                {locale === "ar" && sub.arName ? sub.arName : sub.name}
                               </span>
-                              {sub.arName && sub.arName !== sub.name && (
+                              {sub.arName && sub.arName !== sub.name && locale !== "ar" && (
                                 <span className="text-[11px] font-medium text-slate-400 font-arabic truncate">
                                   {sub.arName}
                                 </span>
@@ -481,10 +485,10 @@ export default function StudentGradesTab({
             <Award size={28} />
           </div>
           <h3 className="text-base font-bold text-slate-800">
-            Aucune note saisie pour le Trimestre {selectedTerm}
+            {t.studentProfile.grades.emptyGradesTitle.replace("{num}", String(selectedTerm))}
           </h3>
           <p className="text-xs text-slate-500 max-w-md mt-1 mb-5">
-            Les notes pour ce trimestre ne sont pas encore enregistrées pour cet élève. L&apos;administration ou l&apos;enseignant peut saisir les notes directement via la section Bulletins.
+            {t.studentProfile.grades.emptyGradesDesc.replace("{num}", String(selectedTerm))}
           </p>
 
           {isAdmin && classId && (
@@ -492,8 +496,8 @@ export default function StudentGradesTab({
               href={`/admin/grades?classId=${classId}&term=${selectedTerm}`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
             >
-              <span>Accéder à la saisie des notes</span>
-              <ChevronRight size={14} />
+              <span>{t.studentProfile.grades.accessGradeEntry}</span>
+              <ChevronRight size={14} className={locale === "ar" ? "rotate-180" : ""} />
             </Link>
           )}
         </div>

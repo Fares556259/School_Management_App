@@ -12,6 +12,7 @@ import {
   BookOpen,
   GraduationCap
 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export interface StudentScheduleItem {
   id: number | string;
@@ -39,13 +40,6 @@ const DAYS_CONFIG: {
   { key: "THURSDAY", labelFr: "Jeudi", labelAr: "الخميس", shortFr: "Jeu" },
   { key: "FRIDAY", labelFr: "Vendredi", labelAr: "الجمعة", shortFr: "Ven" },
   { key: "SATURDAY", labelFr: "Samedi", labelAr: "السبت", shortFr: "Sam" },
-];
-
-const STANDARD_PERIODS = [
-  { id: 1, label: "08:00 - 10:00", startHour: 8, endHour: 10, title: "Matinée 1" },
-  { id: 2, label: "10:00 - 12:00", startHour: 10, endHour: 12, title: "Matinée 2" },
-  { id: 3, label: "14:00 - 16:00", startHour: 14, endHour: 16, title: "Après-midi 1" },
-  { id: 4, label: "16:00 - 18:00", startHour: 16, endHour: 18, title: "Après-midi 2" },
 ];
 
 const PASTEL_THEMES = [
@@ -77,8 +71,16 @@ export default function StudentScheduleTab({
   studentName?: string;
   className?: string;
 }) {
+  const { t, locale } = useLanguage();
   const [viewMode, setViewMode] = useState<"grid" | "agenda">("grid");
   const [selectedDay, setSelectedDay] = useState<string>("ALL");
+
+  const STANDARD_PERIODS = [
+    { id: 1, label: "08:00 - 10:00", startHour: 8, endHour: 10, title: t.studentProfile.schedule.periods.morning1 },
+    { id: 2, label: "10:00 - 12:00", startHour: 10, endHour: 12, title: t.studentProfile.schedule.periods.morning2 },
+    { id: 3, label: "14:00 - 16:00", startHour: 14, endHour: 16, title: t.studentProfile.schedule.periods.afternoon1 },
+    { id: 4, label: "16:00 - 18:00", startHour: 16, endHour: 18, title: t.studentProfile.schedule.periods.afternoon2 },
+  ];
 
   const safeItems: StudentScheduleItem[] = (items || []).filter(Boolean).map((item) => {
     const rawDay = (item.day || "MONDAY").toUpperCase();
@@ -143,11 +145,11 @@ export default function StudentScheduleTab({
               <CalendarIcon size={18} />
             </div>
             <h2 className="text-base font-bold text-slate-800">
-              Emploi du Temps Hebdomadaire
+              {t.studentProfile.schedule.headerTitle}
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Planning officiel des cours de la classe {className || ""}.
+            {t.studentProfile.schedule.headerSubtitle.replace("{className}", className || "")}
           </p>
         </div>
 
@@ -166,7 +168,7 @@ export default function StudentScheduleTab({
               }`}
             >
               <LayoutGrid size={13} />
-              <span>Grille</span>
+              <span>{t.studentProfile.schedule.viewGrid}</span>
             </button>
             <button
               type="button"
@@ -180,7 +182,7 @@ export default function StudentScheduleTab({
               }`}
             >
               <ListOrdered size={13} />
-              <span>Agenda</span>
+              <span>{t.studentProfile.schedule.viewAgenda}</span>
             </button>
           </div>
 
@@ -191,7 +193,7 @@ export default function StudentScheduleTab({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-2xs cursor-pointer"
           >
             <Printer size={14} />
-            <span>Imprimer</span>
+            <span>{t.studentProfile.schedule.btnPrint}</span>
           </button>
         </div>
       </div>
@@ -204,7 +206,7 @@ export default function StudentScheduleTab({
           </div>
           <div>
             <span className="text-xl font-black text-slate-800">{totalWeeklyHours}h</span>
-            <span className="text-[11px] text-slate-400 block font-medium">Volume hebdomadaire</span>
+            <span className="text-[11px] text-slate-400 block font-medium">{t.studentProfile.schedule.weeklyHoursStat}</span>
           </div>
         </div>
 
@@ -214,7 +216,7 @@ export default function StudentScheduleTab({
           </div>
           <div>
             <span className="text-xl font-black text-slate-800">{safeItems.length}</span>
-            <span className="text-[11px] text-slate-400 block font-medium">Séances par semaine</span>
+            <span className="text-[11px] text-slate-400 block font-medium">{t.studentProfile.schedule.sessionsPerWeekStat}</span>
           </div>
         </div>
 
@@ -224,7 +226,7 @@ export default function StudentScheduleTab({
           </div>
           <div>
             <span className="text-xl font-black text-slate-800">{className || "Classe"}</span>
-            <span className="text-[11px] text-slate-400 block font-medium">Classe assignée</span>
+            <span className="text-[11px] text-slate-400 block font-medium">{t.studentProfile.schedule.assignedClassStat}</span>
           </div>
         </div>
       </div>
@@ -239,12 +241,16 @@ export default function StudentScheduleTab({
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200/80">
                     <th className="p-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-32">
-                      Créneau
+                      {t.studentProfile.schedule.colPeriod}
                     </th>
                     {DAYS_CONFIG.map((day) => (
                       <th key={day.key} className="p-3 text-center border-l border-slate-200/50">
-                        <span className="text-xs font-bold text-slate-800 block">{day.labelFr}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">{day.labelAr}</span>
+                        <span className="text-xs font-bold text-slate-800 block">
+                          {t.studentProfile.schedule.days[day.key] || day.labelFr}
+                        </span>
+                        {locale !== "ar" && (
+                          <span className="text-[10px] text-slate-400 font-medium font-arabic">{day.labelAr}</span>
+                        )}
                       </th>
                     ))}
                   </tr>
@@ -292,7 +298,7 @@ export default function StudentScheduleTab({
                                           </span>
                                         )}
                                         {slot.roomName && (
-                                          <span className="truncate flex items-center gap-0.5 text-slate-400 ml-auto">
+                                          <span className={`truncate flex items-center gap-0.5 text-slate-400 ${locale === "ar" ? "mr-auto" : "ml-auto"}`}>
                                             <MapPin size={10} className="shrink-0" />
                                             {slot.roomName}
                                           </span>
@@ -328,7 +334,7 @@ export default function StudentScheduleTab({
                   selectedDay === "ALL" ? "bg-slate-900 text-white" : "bg-white text-slate-600 border border-slate-200/60"
                 }`}
               >
-                Tous les jours
+                {t.studentProfile.schedule.allDays}
               </button>
               {DAYS_CONFIG.map((d) => (
                 <button
@@ -339,7 +345,7 @@ export default function StudentScheduleTab({
                     selectedDay === d.key ? "bg-indigo-600 text-white" : "bg-white text-slate-600 border border-slate-200/60"
                   }`}
                 >
-                  {d.labelFr} ({(groupedByDay[d.key] || []).length})
+                  {t.studentProfile.schedule.days[d.key] || d.labelFr} ({(groupedByDay[d.key] || []).length})
                 </button>
               ))}
             </div>
@@ -352,11 +358,15 @@ export default function StudentScheduleTab({
                   <div key={day.key} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-xs flex flex-col gap-3">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800 text-sm">{day.labelFr}</span>
-                        <span className="text-xs text-slate-400 font-arabic">{day.labelAr}</span>
+                        <span className="font-bold text-slate-800 text-sm">
+                          {t.studentProfile.schedule.days[day.key] || day.labelFr}
+                        </span>
+                        {locale !== "ar" && (
+                          <span className="text-xs text-slate-400 font-arabic">{day.labelAr}</span>
+                        )}
                       </div>
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {daySlots.length} cours
+                        {t.studentProfile.schedule.coursesCount.replace("{count}", String(daySlots.length))}
                       </span>
                     </div>
 
@@ -385,7 +395,7 @@ export default function StudentScheduleTab({
                                     {slot.teacherName}
                                   </span>
                                 ) : (
-                                  <span className="italic text-slate-400">Enseignant non spécifié</span>
+                                  <span className="italic text-slate-400">{t.studentProfile.schedule.unspecifiedTeacher}</span>
                                 )}
                                 {slot.roomName && (
                                   <span className="flex items-center gap-1 text-slate-500 font-medium">
@@ -400,7 +410,7 @@ export default function StudentScheduleTab({
                       </div>
                     ) : (
                       <div className="py-6 text-center text-slate-300 text-xs italic">
-                        Aucun cours prévu ce jour
+                        {t.studentProfile.schedule.noClassToday}
                       </div>
                     )}
                   </div>
@@ -416,10 +426,10 @@ export default function StudentScheduleTab({
             <CalendarIcon size={24} />
           </div>
           <h3 className="text-sm font-bold text-slate-800">
-            Aucun emploi du temps configuré
+            {t.studentProfile.schedule.emptyScheduleTitle}
           </h3>
           <p className="text-xs text-slate-400 mt-1 max-w-sm">
-            Aucun créneau d&apos;emploi du temps n&apos;a encore été créé pour la classe de cet élève.
+            {t.studentProfile.schedule.emptyScheduleDesc}
           </p>
         </div>
       )}

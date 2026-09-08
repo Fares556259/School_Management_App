@@ -47,16 +47,16 @@ interface StudentTuitionTabProps {
 }
 
 const ACADEMIC_MONTHS = [
-  { month: 9, labelFr: "Sep", fullFr: "Septembre", offsetYear: 0 },
-  { month: 10, labelFr: "Oct", fullFr: "Octobre", offsetYear: 0 },
-  { month: 11, labelFr: "Nov", fullFr: "Novembre", offsetYear: 0 },
-  { month: 12, labelFr: "Déc", fullFr: "Décembre", offsetYear: 0 },
-  { month: 1, labelFr: "Jan", fullFr: "Janvier", offsetYear: 1 },
-  { month: 2, labelFr: "Fév", fullFr: "Février", offsetYear: 1 },
-  { month: 3, labelFr: "Mar", fullFr: "Mars", offsetYear: 1 },
-  { month: 4, labelFr: "Avr", fullFr: "Avril", offsetYear: 1 },
-  { month: 5, labelFr: "Mai", fullFr: "Mai", offsetYear: 1 },
-  { month: 6, labelFr: "Juin", fullFr: "Juin", offsetYear: 1 },
+  { month: 9, labelFr: "Sep", fullFr: "Septembre", labelEn: "Sep", fullEn: "September", labelAr: "سبتمبر", fullAr: "سبتمبر", offsetYear: 0 },
+  { month: 10, labelFr: "Oct", fullFr: "Octobre", labelEn: "Oct", fullEn: "October", labelAr: "أكتوبر", fullAr: "أكتوبر", offsetYear: 0 },
+  { month: 11, labelFr: "Nov", fullFr: "Novembre", labelEn: "Nov", fullEn: "November", labelAr: "نوفمبر", fullAr: "نوفمبر", offsetYear: 0 },
+  { month: 12, labelFr: "Déc", fullFr: "Décembre", labelEn: "Dec", fullEn: "December", labelAr: "ديسمبر", fullAr: "ديسمبر", offsetYear: 0 },
+  { month: 1, labelFr: "Jan", fullFr: "Janvier", labelEn: "Jan", fullEn: "January", labelAr: "جانفي", fullAr: "جانفي", offsetYear: 1 },
+  { month: 2, labelFr: "Fév", fullFr: "Février", labelEn: "Feb", fullEn: "February", labelAr: "فيفري", fullAr: "فيفري", offsetYear: 1 },
+  { month: 3, labelFr: "Mar", fullFr: "Mars", labelEn: "Mar", fullEn: "March", labelAr: "مارس", fullAr: "مارس", offsetYear: 1 },
+  { month: 4, labelFr: "Avr", fullFr: "Avril", labelEn: "Apr", fullEn: "April", labelAr: "أفريل", fullAr: "أفريل", offsetYear: 1 },
+  { month: 5, labelFr: "Mai", fullFr: "Mai", labelEn: "May", fullEn: "May", labelAr: "ماي", fullAr: "ماي", offsetYear: 1 },
+  { month: 6, labelFr: "Juin", fullFr: "Juin", labelEn: "Jun", fullEn: "June", labelAr: "جوان", fullAr: "جوان", offsetYear: 1 },
 ];
 
 export default function StudentTuitionTab({
@@ -69,7 +69,7 @@ export default function StudentTuitionTab({
   isAdmin,
   onPaymentsChange,
 }: StudentTuitionTabProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
   const [isPending, startTransition] = useTransition();
 
@@ -88,13 +88,17 @@ export default function StudentTuitionTab({
   const selectedMonthCfg = ACADEMIC_MONTHS[selectedIdx];
   const selectedMonth = selectedMonthCfg.month;
   const selectedYear = academicStartYear + selectedMonthCfg.offsetYear;
-  const frMonthName = selectedMonthCfg.fullFr;
+  const monthDate = new Date(selectedYear, selectedMonth - 1);
+  const frMonthName = monthDate.toLocaleDateString(
+    locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR",
+    { month: "long" }
+  );
 
-  const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
+  const fmt = (n: number) => n.toLocaleString(locale === "ar" ? "ar-TN" : "fr-FR").replace(/,/g, " ") + (locale === "ar" ? " د.ت" : " DT");
   const formatDate = (d?: Date | string | null) => {
     if (!d) return "-";
     try {
-      return new Date(d).toLocaleDateString("fr-FR", {
+      return new Date(d).toLocaleDateString(locale === "ar" ? "ar-TN" : "fr-FR", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -351,7 +355,7 @@ export default function StudentTuitionTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-              Tarif Mensuel
+              {t.studentProfile.identity.monthlyRate}
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-2xl font-black text-slate-800">
@@ -359,7 +363,7 @@ export default function StudentTuitionTab({
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
-              {customTuition ? "Tarif personnalisé (Bourse)" : "Tarif standard niveau"}
+              {customTuition ? t.studentProfile.identity.customRate : t.studentProfile.identity.standardRate}
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
@@ -371,7 +375,7 @@ export default function StudentTuitionTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-              Total Versé
+              {t.studentProfile.tuition.totalPaid}
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-2xl font-black text-emerald-600">
@@ -379,7 +383,7 @@ export default function StudentTuitionTab({
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
-              {paidMonthsCount}/10 mois réglés
+              {t.studentProfile.tuition.monthsSettled.replace("{paid}", String(paidMonthsCount)).replace("{total}", "10")}
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
@@ -391,7 +395,7 @@ export default function StudentTuitionTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-              Reste de l&apos;Année
+              {t.studentProfile.tuition.yearRemaining}
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className={`text-2xl font-black ${remainingTuition > 0 ? "text-slate-800" : "text-emerald-600"}`}>
@@ -399,7 +403,7 @@ export default function StudentTuitionTab({
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
-              Sur {fmt(fullYearTuition)} total annuel
+              {t.studentProfile.tuition.outOfTotalAnnual.replace("{total}", fmt(fullYearTuition))}
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 shrink-0">
@@ -411,13 +415,13 @@ export default function StudentTuitionTab({
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-              Statut du Mois
+              {t.studentProfile.tuition.monthStatus}
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className={`text-lg font-black ${
                 isPaid ? "text-emerald-600" : isPartial ? "text-amber-600" : isOverdue ? "text-rose-600" : "text-slate-700"
               }`}>
-                {isPaid ? "À jour" : isPartial ? "Partiel" : isOverdue ? "En retard" : "À venir"}
+                {isPaid ? t.studentProfile.tuition.statusUpToDate : isPartial ? t.studentProfile.tuition.statusPartial : isOverdue ? t.studentProfile.tuition.statusOverdue : t.studentProfile.tuition.statusUpcoming}
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-medium block mt-0.5">
@@ -447,10 +451,10 @@ export default function StudentTuitionTab({
               <div>
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <Calendar size={18} className="text-blue-600" />
-                  <span>Suivi Annuel de Scolarité</span>
+                  <span>{t.studentProfile.tuition.annualFollowUp}</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Année académique {academicStartYear}/{academicEndYear} · {paidMonthsCount}/10 mois réglés
+                  {t.studentProfile.tuition.academicYear} {academicStartYear}/{academicEndYear} · {t.studentProfile.tuition.monthsSettled.replace("{paid}", String(paidMonthsCount)).replace("{total}", "10")}
                 </p>
               </div>
 
@@ -466,7 +470,7 @@ export default function StudentTuitionTab({
                   title="Encaisser un montant libre ventilé sur plusieurs mois"
                 >
                   <Coins size={15} />
-                  <span>Versement Libre / Multi-Mois</span>
+                  <span>{t.studentProfile.tuition.lumpSumButton}</span>
                 </button>
               )}
             </div>
@@ -495,9 +499,12 @@ export default function StudentTuitionTab({
                   pillColor = "bg-rose-50 border-rose-200 text-rose-600 font-bold";
                 }
 
+                const mDate = new Date(mYear, m.month - 1);
+                const shortName = mDate.toLocaleDateString(locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR", { month: "short" });
+
                 return (
                   <button
-                    key={m.labelFr}
+                    key={`${m.month}-${mYear}`}
                     type="button"
                     onClick={() => {
                       setSelectedIdx(idx);
@@ -509,7 +516,7 @@ export default function StudentTuitionTab({
                     }`}
                   >
                     <span className="text-[11px] uppercase tracking-wider font-extrabold leading-none">
-                      {m.labelFr}
+                      {shortName}
                     </span>
                     <span className="text-[9px] mt-1 opacity-90 leading-none">
                       {isPRecPaid ? "✓" : isPRecPartial ? `${pRec.amount} DT` : "·"}
@@ -523,19 +530,19 @@ export default function StudentTuitionTab({
             <div className="flex items-center gap-4 text-[11px] text-slate-500 font-medium pt-2 border-t border-slate-100 flex-wrap">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span>Payé (Soldé)</span>
+                <span>{t.studentProfile.tuition.statusPaid}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span>Partiel (Avance)</span>
+                <span>{t.studentProfile.tuition.statusPartial}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                <span>En retard</span>
+                <span>{t.studentProfile.tuition.statusOverdue}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-                <span>À venir</span>
+                <span>{t.studentProfile.tuition.statusUpcoming}</span>
               </span>
             </div>
           </div>
@@ -554,7 +561,7 @@ export default function StudentTuitionTab({
                 disabled={selectedIdx === 0}
                 className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={16} className={locale === "ar" ? "rotate-180" : ""} />
               </button>
 
               <div className="text-center">
@@ -569,11 +576,11 @@ export default function StudentTuitionTab({
                       ? "bg-rose-100 text-rose-800"
                       : "bg-slate-100 text-slate-600"
                   }`}>
-                    {isPaid ? "RÉGLÉ" : isPartial ? "PARTIEL" : isOverdue ? "EN RETARD" : "À VENIR"}
+                    {isPaid ? t.studentProfile.tuition.statusPaid : isPartial ? t.studentProfile.tuition.statusPartial : isOverdue ? t.studentProfile.tuition.statusOverdue : t.studentProfile.tuition.statusUpcoming}
                   </span>
                 </h4>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Frais de scolarité : {fmt(monthlyRate)}
+                  {t.studentProfile.tuition.tuitionFee} : {fmt(monthlyRate)}
                 </p>
               </div>
 
@@ -587,7 +594,7 @@ export default function StudentTuitionTab({
                 disabled={selectedIdx === ACADEMIC_MONTHS.length - 1}
                 className="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
-                <ChevronRight size={16} />
+                <ChevronRight size={16} className={locale === "ar" ? "rotate-180" : ""} />
               </button>
             </div>
 
@@ -600,11 +607,11 @@ export default function StudentTuitionTab({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-emerald-950 block">
-                      Frais de scolarité intégralement réglés pour {frMonthName}
+                      {t.studentProfile.tuition.paidCardMessage.replace("{month}", frMonthName)}
                     </span>
                     <span className="text-[11px] text-emerald-700 block mt-0.5">
-                      Montant total perçu : {fmt(currentPayment?.amount || monthlyRate)}
-                      {currentPayment?.paidAt ? ` le ${formatDate(currentPayment.paidAt)}` : ""}
+                      {t.studentProfile.tuition.totalReceived.replace("{amount}", fmt(currentPayment?.amount || monthlyRate))}
+                      {currentPayment?.paidAt ? ` ${t.studentProfile.tuition.onDate.replace("{date}", formatDate(currentPayment.paidAt))}` : ""}
                     </span>
                   </div>
                 </div>
@@ -614,7 +621,7 @@ export default function StudentTuitionTab({
                     {fmt(currentPayment?.amount || monthlyRate)}
                   </span>
                   <span className="block text-[10px] font-bold text-emerald-600 mt-1">
-                    Soldé
+                    {t.studentProfile.tuition.settledBadge}
                   </span>
                 </div>
               </div>
@@ -629,16 +636,18 @@ export default function StudentTuitionTab({
                       </div>
                       <div>
                         <span className="text-xs font-bold text-amber-950 block">
-                          Paiement partiel enregistré pour {frMonthName}
+                          {t.studentProfile.tuition.partialCardMessage.replace("{month}", frMonthName)}
                         </span>
                         <span className="text-[11px] text-amber-800 block mt-0.5">
-                          Déjà réglé : <strong>{fmt(currentAmountPaid)}</strong> sur <strong>{fmt(monthlyRate)}</strong>
+                          {t.studentProfile.tuition.alreadyPaidOf
+                            .replace("{paid}", fmt(currentAmountPaid))
+                            .replace("{total}", fmt(monthlyRate))}
                         </span>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-xs font-bold text-amber-900 block">Reste dû</span>
+                      <span className="text-xs font-bold text-amber-900 block">{t.studentProfile.tuition.remainingDueLabel}</span>
                       <span className="text-sm font-black text-amber-700 block">
                         {fmt(currentRemainingDue)}
                       </span>
@@ -658,7 +667,7 @@ export default function StudentTuitionTab({
                 {isAdmin && (
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-3">
                     <span className="text-xs font-bold text-slate-700 block">
-                      Régulariser ou compléter le solde de ce mois
+                      {t.studentProfile.tuition.settleOrCompleteMonth}
                     </span>
 
                     <div className="flex items-center gap-2 flex-wrap">
@@ -667,13 +676,13 @@ export default function StudentTuitionTab({
                           type="number"
                           value={singleAmountInput !== "" ? singleAmountInput : String(currentRemainingDue)}
                           onChange={(e) => setSingleAmountInput(e.target.value)}
-                          placeholder={`Montant (max ${currentRemainingDue})`}
+                          placeholder={t.studentProfile.tuition.amountPlaceholder.replace("{max}", String(currentRemainingDue))}
                           max={currentRemainingDue}
                           min={1}
                           className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                          DT
+                        <span className={`absolute ${locale === "ar" ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none`}>
+                          {locale === "ar" ? "د.ت" : "DT"}
                         </span>
                       </div>
 
@@ -689,10 +698,10 @@ export default function StudentTuitionTab({
                         <Banknote size={14} />
                         <span>
                           {isPending
-                            ? "En cours..."
+                            ? t.studentProfile.tuition.inProgress
                             : singleAmountInput !== "" && parseFloat(singleAmountInput) < currentRemainingDue
-                            ? `Verser ${parseFloat(singleAmountInput) || 0} DT (Complément)`
-                            : `Régulariser & Solder (${fmt(currentRemainingDue)})`}
+                            ? t.studentProfile.tuition.payPartialComplement.replace("{amount}", fmt(parseFloat(singleAmountInput) || 0))
+                            : t.studentProfile.tuition.regularizeAndSettle.replace("{amount}", fmt(currentRemainingDue))}
                         </span>
                       </button>
                     </div>
@@ -717,10 +726,10 @@ export default function StudentTuitionTab({
                     </div>
                     <div>
                       <span className="text-xs font-bold block">
-                        Paiement en attente pour {frMonthName}
+                        {t.studentProfile.tuition.unpaidCardMessage.replace("{month}", frMonthName)}
                       </span>
                       <span className="text-[11px] text-slate-500 block mt-0.5">
-                        Tarif complet du mois : {fmt(monthlyRate)}
+                        {t.studentProfile.tuition.fullMonthRate.replace("{amount}", fmt(monthlyRate))}
                       </span>
                     </div>
                   </div>
@@ -746,7 +755,7 @@ export default function StudentTuitionTab({
                             : "bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-100"
                         }`}
                       >
-                        Mois complet ({fmt(monthlyRate)})
+                        {t.studentProfile.tuition.fullMonthOption.replace("{amount}", fmt(monthlyRate))}
                       </button>
 
                       <button
@@ -761,7 +770,7 @@ export default function StudentTuitionTab({
                             : "bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-100"
                         }`}
                       >
-                        Paiement Partiel (Avance)
+                        {t.studentProfile.tuition.partialAdvanceOption}
                       </button>
                     </div>
 
@@ -770,27 +779,27 @@ export default function StudentTuitionTab({
                       <div className="flex flex-col gap-3 pt-1">
                         <div>
                           <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                            Montant versé par le parent (ex: 40 DT sur les {monthlyRate} DT) :
+                            {t.studentProfile.tuition.parentPaidAmountHint.replace("{rate}", String(monthlyRate))}
                           </label>
                           <div className="relative">
                             <input
                               type="number"
                               value={singleAmountInput}
                               onChange={(e) => setSingleAmountInput(e.target.value)}
-                              placeholder="Montant en DT (ex: 40)"
+                              placeholder={`Montant (${locale === "ar" ? "د.ت" : "DT"})`}
                               max={monthlyRate - 1}
                               min={1}
                               className="w-full bg-white border border-slate-300 rounded-xl pl-3 pr-10 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                              DT
+                            <span className={`absolute ${locale === "ar" ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none`}>
+                              {locale === "ar" ? "د.ت" : "DT"}
                             </span>
                           </div>
                         </div>
 
                         {/* Quick preset chips */}
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] text-slate-400 font-semibold">Suggestions :</span>
+                          <span className="text-[10px] text-slate-400 font-semibold">{t.studentProfile.tuition.suggestions}</span>
                           {[40, 50, 100, 200].map((preset) => (
                             <button
                               key={preset}
@@ -798,7 +807,7 @@ export default function StudentTuitionTab({
                               onClick={() => setSingleAmountInput(String(preset))}
                               className="px-2 py-0.5 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 transition-colors cursor-pointer"
                             >
-                              {preset} DT
+                              {fmt(preset)}
                             </button>
                           ))}
                         </div>
@@ -807,11 +816,11 @@ export default function StudentTuitionTab({
                         {parseFloat(singleAmountInput) > 0 && (
                           <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
                             <span>
-                              Versé : <strong>{parseFloat(singleAmountInput)} DT</strong> · Reste dû :{" "}
-                              <strong>{Math.max(0, monthlyRate - parseFloat(singleAmountInput))} DT</strong>
+                              {t.studentProfile.tuition.paidAmountLabel} : <strong>{fmt(parseFloat(singleAmountInput))}</strong> · {t.studentProfile.tuition.remainingDueLabel} :{" "}
+                              <strong>{fmt(Math.max(0, monthlyRate - parseFloat(singleAmountInput)))}</strong>
                             </span>
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-200 text-amber-800">
-                              Partiel
+                              {t.studentProfile.tuition.statusPartialBadge}
                             </span>
                           </div>
                         )}
@@ -825,8 +834,8 @@ export default function StudentTuitionTab({
                           <Coins size={15} />
                           <span>
                             {isPending
-                              ? "Enregistrement..."
-                              : `Encaisser ${parseFloat(singleAmountInput) || 0} DT (Paiement Partiel)`}
+                              ? t.studentProfile.tuition.recording
+                              : t.studentProfile.tuition.collectPartial.replace("{amount}", fmt(parseFloat(singleAmountInput) || 0))}
                           </span>
                         </button>
                       </div>
@@ -841,8 +850,8 @@ export default function StudentTuitionTab({
                         <Banknote size={16} />
                         <span>
                           {isPending
-                            ? "Traitement en cours..."
-                            : `Encaisser la scolarité complète (${fmt(monthlyRate)})`}
+                            ? t.studentProfile.tuition.processing
+                            : t.studentProfile.tuition.collectFull.replace("{amount}", fmt(monthlyRate))}
                         </span>
                       </button>
                     )}
@@ -860,27 +869,30 @@ export default function StudentTuitionTab({
               <div className="flex items-center gap-2">
                 <CreditCard size={18} className="text-slate-600" />
                 <h3 className="text-base font-bold text-slate-800">
-                  Historique des Règlements
+                  {t.studentProfile.tuition.paymentHistory}
                 </h3>
               </div>
               <span className="text-xs font-semibold text-slate-400">
-                {payments.length} versement{payments.length > 1 ? "s" : ""}
+                {payments.length <= 1
+                  ? t.studentProfile.tuition.singlePaymentCount.replace("1", String(payments.length))
+                  : t.studentProfile.tuition.paymentsCount.replace("{count}", String(payments.length))}
               </span>
             </div>
 
             <div className="flex flex-col gap-2.5 max-h-[440px] overflow-y-auto pr-1 custom-scrollbar">
               {payments.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-xs italic">
-                  Aucun règlement enregistré pour cette année scolaire.
+                  {t.studentProfile.tuition.noPaymentsRecorded}
                 </div>
               ) : (
                 [...payments]
                   .sort((a, b) => b.year - a.year || b.month - a.month)
                   .map((p) => {
                     const monthCfg = ACADEMIC_MONTHS.find((c) => c.month === p.month);
-                    const pMonthLabel = monthCfg
-                      ? `${monthCfg.fullFr} ${p.year}`
-                      : `${MONTHS[p.month - 1] || `Mois ${p.month}`} ${p.year}`;
+                    const monthName = monthCfg
+                      ? (locale === "ar" ? monthCfg.fullAr : locale === "en" ? monthCfg.fullEn : monthCfg.fullFr)
+                      : (MONTHS[p.month - 1] || `Mois ${p.month}`);
+                    const pMonthLabel = `${monthName} ${p.year}`;
 
                     const isPPart = p.status === "PARTIAL";
 
@@ -896,12 +908,12 @@ export default function StudentTuitionTab({
                             </span>
                             {isPPart && (
                               <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
-                                Partiel ({p.amount}/{monthlyRate} DT)
+                                {t.studentProfile.tuition.statusPartialBadge} ({fmt(p.amount)}/{fmt(monthlyRate)})
                               </span>
                             )}
                           </div>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
-                            Reçu le {formatDate(p.paidAt)}
+                            {t.studentProfile.tuition.receivedOn.replace("{date}", formatDate(p.paidAt))}
                           </span>
                         </div>
 
@@ -914,7 +926,7 @@ export default function StudentTuitionTab({
                               ? "bg-emerald-100 text-emerald-800"
                               : "bg-amber-100 text-amber-800"
                           }`}>
-                            {p.status === "PAID" ? "PAYÉ" : "PARTIEL"}
+                            {p.status === "PAID" ? t.studentProfile.tuition.statusPaidBadge : t.studentProfile.tuition.statusPartialBadge}
                           </span>
                         </div>
                       </div>
@@ -938,10 +950,10 @@ export default function StudentTuitionTab({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-800">
-                    Versement Libre & Répartition Multi-Mois
+                    {t.studentProfile.tuition.lumpSumModalTitle}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Ventilation automatique sur les mois impayés de l&apos;année
+                    {t.studentProfile.tuition.lumpSumModalSubtitle}
                   </p>
                 </div>
               </div>
@@ -960,7 +972,7 @@ export default function StudentTuitionTab({
               {/* Input Amount */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700">
-                  Montant total versé par le parent :
+                  {t.studentProfile.tuition.lumpSumAmountLabel}
                 </label>
                 <div className="relative">
                   <input
@@ -971,14 +983,14 @@ export default function StudentTuitionTab({
                     min={1}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-4 pr-12 py-3 text-lg font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400 pointer-events-none">
-                    DT
+                  <span className={`absolute ${locale === "ar" ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 text-sm font-black text-slate-400 pointer-events-none`}>
+                    {locale === "ar" ? "د.ت" : "DT"}
                   </span>
                 </div>
 
                 {/* Quick amount suggestions */}
                 <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                  <span className="text-[11px] text-slate-400 font-semibold">Montants rapides :</span>
+                  <span className="text-[11px] text-slate-400 font-semibold">{t.studentProfile.tuition.quickAmounts}</span>
                   {[
                     monthlyRate,
                     monthlyRate * 2,
@@ -996,7 +1008,7 @@ export default function StudentTuitionTab({
                           : "bg-slate-100 hover:bg-slate-200 text-slate-700"
                       }`}
                     >
-                      {amt === remainingTuition ? `Solder l'année (${fmt(amt)})` : fmt(amt)}
+                      {amt === remainingTuition ? t.studentProfile.tuition.settleYear.replace("{amount}", fmt(amt)) : fmt(amt)}
                     </button>
                   ))}
                 </div>
@@ -1005,7 +1017,7 @@ export default function StudentTuitionTab({
               {/* Starting Month Selector */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700">
-                  Commencer l&apos;imputation à partir du mois :
+                  {t.studentProfile.tuition.startMonthAllocation}
                 </label>
                 <select
                   value={multiMonthStartIdx}
@@ -1015,10 +1027,15 @@ export default function StudentTuitionTab({
                   {ACADEMIC_MONTHS.map((m, idx) => {
                     const y = academicStartYear + m.offsetYear;
                     const p = payments.find((rec) => rec.month === m.month && rec.year === y);
-                    const statusText = p?.status === "PAID" ? " (Déjà payé)" : p?.status === "PARTIAL" ? ` (Partiel ${p.amount} DT)` : "";
+                    const mName = locale === "ar" ? m.fullAr : locale === "en" ? m.fullEn : m.fullFr;
+                    const statusText = p?.status === "PAID" 
+                      ? ` (${t.studentProfile.tuition.alreadyPaidPill})` 
+                      : p?.status === "PARTIAL" 
+                      ? ` (${t.studentProfile.tuition.partialPill.replace("{amount}", fmt(p.amount))})` 
+                      : "";
                     return (
                       <option key={m.labelFr} value={idx}>
-                        {m.fullFr} {y}{statusText}
+                        {mName} {y}{statusText}
                       </option>
                     );
                   })}
@@ -1030,16 +1047,16 @@ export default function StudentTuitionTab({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <Sparkles size={14} className="text-emerald-600" />
-                    <span>Répartition automatique calculée :</span>
+                    <span>{t.studentProfile.tuition.autoAllocationTitle}</span>
                   </span>
                   <span className="text-[11px] font-bold text-emerald-700">
-                    Total alloué : {fmt(multiMonthPreview.totalAllocated)}
+                    {t.studentProfile.tuition.totalAllocated.replace("{amount}", fmt(multiMonthPreview.totalAllocated))}
                   </span>
                 </div>
 
                 {multiMonthPreview.allocations.length === 0 ? (
                   <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-400">
-                    Saisissez un montant pour voir la répartition sur les mois
+                    {t.studentProfile.tuition.enterAmountToPreview}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2 divide-y divide-slate-100 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-3">
@@ -1059,7 +1076,7 @@ export default function StudentTuitionTab({
                             </span>
                             {alloc.previousPaid > 0 && (
                               <span className="text-[10px] text-slate-400 block">
-                                (Déjà versé : {alloc.previousPaid} DT + {alloc.allocatedAmount} DT)
+                                ({t.studentProfile.tuition.previouslyPaidPlus.replace("{prev}", fmt(alloc.previousPaid)).replace("{allocated}", fmt(alloc.allocatedAmount))})
                               </span>
                             )}
                           </div>
@@ -1075,12 +1092,12 @@ export default function StudentTuitionTab({
                                 ? "bg-emerald-100 text-emerald-800"
                                 : "bg-amber-100 text-amber-800"
                             }`}>
-                              {alloc.newStatus === "PAID" ? "SOLDÉ" : "PARTIEL"}
+                              {alloc.newStatus === "PAID" ? t.studentProfile.tuition.settledBadge.toUpperCase() : t.studentProfile.tuition.statusPartialBadge}
                             </span>
                           </div>
                           {alloc.newStatus === "PARTIAL" && (
                             <span className="text-[10px] text-amber-700 font-bold block mt-0.5">
-                              Reste dû : {fmt(alloc.gap)}
+                              {t.studentProfile.tuition.remainingDueLabel} : {fmt(alloc.gap)}
                             </span>
                           )}
                         </div>
@@ -1090,7 +1107,7 @@ export default function StudentTuitionTab({
                     {/* Unallocated Surplus */}
                     {multiMonthPreview.unallocated > 0 && (
                       <div className="pt-2 text-xs text-blue-700 bg-blue-50/50 p-2 rounded-xl flex items-center justify-between mt-1">
-                        <span>Surplus non alloué (année complète soldée) :</span>
+                        <span>{t.studentProfile.tuition.unallocatedSurplus}</span>
                         <span className="font-black">{fmt(multiMonthPreview.unallocated)}</span>
                       </div>
                     )}
@@ -1106,7 +1123,7 @@ export default function StudentTuitionTab({
                 onClick={() => setIsMultiMonthModalOpen(false)}
                 className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                Annuler
+                {t.studentProfile.tuition.cancel}
               </button>
 
               <button
@@ -1118,8 +1135,8 @@ export default function StudentTuitionTab({
                 <CheckCircle2 size={16} />
                 <span>
                   {isPending
-                    ? "Enregistrement..."
-                    : `Valider l'encaissement (${fmt(multiMonthPreview.totalAllocated)})`}
+                    ? t.studentProfile.tuition.recording
+                    : t.studentProfile.tuition.validateCollection.replace("{amount}", fmt(multiMonthPreview.totalAllocated))}
                 </span>
               </button>
             </div>

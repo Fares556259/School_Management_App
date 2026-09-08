@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FormModal from "@/components/FormModal";
 import { getUserAvatar } from "@/lib/avatar";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getStudentProfileBundle, getClassStudentsBundles } from "./actions";
 import { 
   StudentBreadcrumbNav, 
@@ -88,6 +89,7 @@ export default function StudentProfileClient({
   classmates = [],
   allStudents = [],
 }: StudentProfileClientProps) {
+  const { t, locale } = useLanguage();
   // Sync activeTab with URL ?tab= query parameter on mount if present
   const [activeTab, setActiveTab] = useState<"tuition" | "grades" | "attendance" | "schedule" | "overview">(() => {
     if (typeof window !== "undefined") {
@@ -332,7 +334,7 @@ export default function StudentProfileClient({
     totalWeeklyHours,
   } = currentBundle;
 
-  const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
+  const fmt = (n: number) => n.toLocaleString(locale === "ar" ? "ar-TN" : "fr-FR").replace(/,/g, " ") + (locale === "ar" ? " د.ت" : " DT");
 
   // Tuition & Grade Level metrics dynamically derived from active student
   const currentLevelTuitionFee = student.class?.level?.tuitionFee ?? levelTuitionFee;
@@ -403,8 +405,8 @@ export default function StudentProfileClient({
             href="/list/students" 
             className="flex items-center gap-1.5 hover:text-blue-600 transition-colors font-medium text-slate-600 shrink-0"
           >
-            <ArrowLeft size={16} />
-            <span>Élèves</span>
+            <ArrowLeft size={16} className={locale === "ar" ? "rotate-180" : ""} />
+            <span>{t.studentProfile.directory.students}</span>
           </Link>
           <span className="text-slate-300 shrink-0">/</span>
           {student.class?.name && (
@@ -413,7 +415,7 @@ export default function StudentProfileClient({
                 href={`/list/classes/${student.classId}`}
                 className="hover:text-blue-600 transition-colors font-medium text-slate-600 truncate"
               >
-                Classe {student.class.name}
+                {t.studentProfile.directory.class} {student.class.name}
               </Link>
               <span className="text-slate-300 shrink-0">/</span>
             </>
@@ -423,7 +425,7 @@ export default function StudentProfileClient({
           </span>
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Inscrit
+            {t.studentProfile.directory.enrolled}
           </span>
         </div>
 
@@ -450,10 +452,10 @@ export default function StudentProfileClient({
                 ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                 : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
-            title={isSideNavOpen ? "Masquer le volet des élèves" : "Afficher l'annuaire des élèves"}
+            title={isSideNavOpen ? t.studentProfile.directory.hideDirectory : t.studentProfile.directory.showDirectory}
           >
             <GraduationCap size={15} className={isSideNavOpen ? "text-blue-600" : "text-slate-500"} />
-            <span>{isSideNavOpen ? "Masquer l'annuaire" : `Annuaire (${(allStudents.length > 0 ? allStudents : classmates).length})`}</span>
+            <span>{isSideNavOpen ? t.studentProfile.directory.hideDirectory : t.studentProfile.directory.directoryCount.replace("{count}", String((allStudents.length > 0 ? allStudents : classmates).length))}</span>
           </button>
 
           {isAdmin && (
@@ -491,7 +493,7 @@ export default function StudentProfileClient({
                 </h1>
               </div>
               <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Élève · Matricule : <span className="font-mono text-slate-600 font-bold">{student.id}</span>
+                {t.studentProfile.identity.student} · {t.studentProfile.identity.matricule} : <span className="font-mono text-slate-600 font-bold">{student.id}</span>
               </p>
 
               {/* Class & Level pills */}
@@ -502,20 +504,20 @@ export default function StudentProfileClient({
                     className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-100 flex items-center gap-1 hover:bg-purple-100 transition-colors"
                   >
                     <Users size={11} className="text-purple-500" />
-                    Classe {student.class.name}
+                    {t.studentProfile.directory.class} {student.class.name}
                   </Link>
                 ) : (
-                  <span className="text-xs text-slate-400 italic">Non assigné à une classe</span>
+                  <span className="text-xs text-slate-400 italic">{t.studentProfile.identity.unassignedClass}</span>
                 )}
 
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1">
                   <GraduationCap size={11} className="text-blue-500" />
-                  {currentGradeLevel === 0 ? "Préscolaire" : `Niveau ${currentGradeLevel}`}
+                  {currentGradeLevel === 0 ? t.studentProfile.identity.preschool : `${t.studentProfile.directory.level} ${currentGradeLevel}`}
                 </span>
 
                 {student.sex && (
                   <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200 flex items-center gap-1">
-                    {student.sex === "MALE" ? "Garçon" : "Fille"}
+                    {student.sex === "MALE" ? t.studentProfile.identity.boy : t.studentProfile.identity.girl}
                   </span>
                 )}
               </div>
@@ -529,14 +531,14 @@ export default function StudentProfileClient({
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-emerald-600 block tracking-wider leading-none">
-                Tarif Mensuel
+                {t.studentProfile.identity.monthlyRate}
               </span>
               <span className="text-xl font-black text-emerald-800 block mt-0.5">
                 {fmt(monthlyRate)}
               </span>
               {student.customTuition !== null && student.customTuition !== undefined && (
                 <span className="text-[10px] text-emerald-600 font-bold block">
-                  (Tarif personnalisé)
+                  ({t.studentProfile.identity.customRate})
                 </span>
               )}
             </div>
@@ -548,29 +550,29 @@ export default function StudentProfileClient({
           {/* Parent Name & Direct Contact Actions */}
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50/80 border border-slate-100">
             <div className="min-w-0 flex-1 truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Parent / Tuteur</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.studentProfile.identity.parentGuardian}</span>
               <span className="font-bold text-slate-800 block truncate text-xs">
-                {student.parent ? `${student.parent.name} ${student.parent.surname}` : "Non renseigné"}
+                {student.parent ? `${student.parent.name} ${student.parent.surname}` : t.studentProfile.identity.unknown}
               </span>
               {parentPhone ? (
                 <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                   <a
                     href={`tel:${parentPhone}`}
                     className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 truncate transition-colors"
-                    title={`Appeler : ${parentPhone}`}
+                    title={`${t.studentProfile.identity.call} : ${parentPhone}`}
                   >
                     <Phone size={10} className="text-blue-500 shrink-0" />
                     <span className="truncate">{parentPhone}</span>
                   </a>
                   {isStudentDirectPhone && (
                     <span className="text-[9px] font-medium text-slate-400 shrink-0">
-                      (Élève)
+                      ({t.studentProfile.identity.studentPhone})
                     </span>
                   )}
                 </div>
               ) : (
                 <span className="text-[10px] text-slate-400 italic block truncate mt-0.5">
-                  Aucun numéro
+                  {t.studentProfile.identity.noPhone}
                 </span>
               )}
             </div>
@@ -580,14 +582,14 @@ export default function StudentProfileClient({
                   type="button"
                   onClick={handleCopyPhone}
                   className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
-                  title={copiedPhone ? "Numéro copié !" : `Copier : ${parentPhone}`}
+                  title={copiedPhone ? t.studentProfile.identity.phoneCopied : `${t.studentProfile.identity.copyPhone} : ${parentPhone}`}
                 >
                   {copiedPhone ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
                 </button>
                 <a
                   href={`tel:${parentPhone}`}
                   className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
-                  title={`Appeler : ${parentPhone}`}
+                  title={`${t.studentProfile.identity.call} : ${parentPhone}`}
                 >
                   <Phone size={13} />
                 </a>
@@ -597,7 +599,7 @@ export default function StudentProfileClient({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-7 h-7 rounded-lg bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
-                    title="Envoyer un message WhatsApp"
+                    title={t.studentProfile.identity.whatsapp}
                   >
                     <MessageCircle size={13} />
                   </a>
@@ -612,9 +614,9 @@ export default function StudentProfileClient({
               <CalendarIcon size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Date de Naissance</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.studentProfile.identity.birthday}</span>
               <span className="font-semibold text-slate-700 block">
-                {student.birthday ? new Intl.DateTimeFormat("fr-FR").format(new Date(student.birthday)) : "-"}
+                {student.birthday ? new Intl.DateTimeFormat(locale === "ar" ? "ar-TN" : "fr-FR").format(new Date(student.birthday)) : "-"}
               </span>
             </div>
           </div>
@@ -625,9 +627,9 @@ export default function StudentProfileClient({
               <Droplet size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Groupe Sanguin</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.studentProfile.identity.bloodType}</span>
               <span className="font-semibold text-slate-700 block">
-                {student.bloodType || "Inconnu"}
+                {student.bloodType || t.studentProfile.identity.unknown}
               </span>
             </div>
           </div>
@@ -638,9 +640,9 @@ export default function StudentProfileClient({
               <Clock size={13} />
             </div>
             <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Volume Horaire</span>
+              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.studentProfile.identity.weeklyHours}</span>
               <span className="font-semibold text-indigo-700 block">
-                {totalWeeklyHours}h / semaine
+                {t.studentProfile.identity.hoursPerWeek.replace("{hours}", String(totalWeeklyHours))}
               </span>
             </div>
           </div>
@@ -655,7 +657,7 @@ export default function StudentProfileClient({
             </div>
             <div className="leading-tight">
               <span className="text-xs font-bold text-slate-800 block">{fmt(totalPaid)}</span>
-              <span className="text-[10px] text-slate-400 font-medium">scolarité réglée</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t.studentProfile.kpis.tuitionSettled}</span>
             </div>
           </div>
 
@@ -666,9 +668,9 @@ export default function StudentProfileClient({
             </div>
             <div className="leading-tight">
               <span className="text-xs font-bold text-slate-800 block">
-                {averageGrade ? `${averageGrade} / 20` : "Non noté"}
+                {averageGrade ? `${averageGrade} / 20` : t.studentProfile.kpis.notGraded}
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">moyenne générale</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t.studentProfile.kpis.overallAverage}</span>
             </div>
           </div>
 
@@ -682,7 +684,7 @@ export default function StudentProfileClient({
             <div className="leading-tight">
               <span className="text-xs font-bold text-slate-800 block">{attendanceRate}%</span>
               <span className="text-[10px] text-slate-400 font-medium">
-                {unexcusedAbsences > 0 ? `${unexcusedAbsences} abs. injustifiée(s)` : "présence régulière"}
+                {unexcusedAbsences > 0 ? `${unexcusedAbsences} ${t.studentProfile.kpis.unexcusedAbsences}` : (locale === "ar" ? "حضور منتظم" : locale === "en" ? "regular attendance" : "présence régulière")}
               </span>
             </div>
           </div>
@@ -693,8 +695,8 @@ export default function StudentProfileClient({
               <Calendar size={15} />
             </div>
             <div className="leading-tight">
-              <span className="text-xs font-bold text-slate-800 block">{scheduleItems.length} séances</span>
-              <span className="text-[10px] text-slate-400 font-medium">{totalWeeklyHours}h par semaine</span>
+              <span className="text-xs font-bold text-slate-800 block">{scheduleItems.length} {t.studentProfile.attendance.sessions}</span>
+              <span className="text-[10px] text-slate-400 font-medium">{t.studentProfile.identity.hoursPerWeek.replace("{hours}", String(totalWeeklyHours))}</span>
             </div>
           </div>
         </div>
@@ -716,7 +718,7 @@ export default function StudentProfileClient({
             }`}
           >
             <Wallet size={15} />
-            <span>Scolarité & Finances</span>
+            <span>{t.studentProfile.tabs.tuition}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
               activeTab === "tuition" ? "bg-white/20 text-white" : "bg-emerald-50 text-emerald-700"
             }`}>
@@ -737,7 +739,7 @@ export default function StudentProfileClient({
             }`}
           >
             <Award size={15} />
-            <span>Notes & Bulletins</span>
+            <span>{t.studentProfile.tabs.grades}</span>
             {averageGrade && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                 activeTab === "grades" ? "bg-white/20 text-white" : "bg-purple-50 text-purple-700"
@@ -760,7 +762,7 @@ export default function StudentProfileClient({
             }`}
           >
             <Clock size={15} />
-            <span>Assiduité & Discipline</span>
+            <span>{t.studentProfile.tabs.attendance}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
               activeTab === "attendance" ? "bg-white/20 text-white" : "bg-amber-50 text-amber-700"
             }`}>
@@ -781,7 +783,7 @@ export default function StudentProfileClient({
             }`}
           >
             <Calendar size={15} />
-            <span>Emploi du temps</span>
+            <span>{t.studentProfile.tabs.schedule}</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
               activeTab === "schedule" ? "bg-white/20 text-white" : "bg-indigo-50 text-indigo-700"
             }`}>
@@ -802,7 +804,7 @@ export default function StudentProfileClient({
             }`}
           >
             <LayoutGrid size={15} />
-            <span className="hidden sm:inline">Vue complète</span>
+            <span className="hidden sm:inline">{t.studentProfile.tabs.overview}</span>
           </button>
         </div>
       </div>

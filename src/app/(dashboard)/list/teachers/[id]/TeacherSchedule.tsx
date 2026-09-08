@@ -14,6 +14,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export interface ScheduleItem {
   id: number | string;
@@ -40,14 +41,6 @@ const DAYS_CONFIG: {
   { key: "THURSDAY", labelFr: "Jeudi", labelAr: "الخميس", shortFr: "Jeu" },
   { key: "FRIDAY", labelFr: "Vendredi", labelAr: "الجمعة", shortFr: "Ven" },
   { key: "SATURDAY", labelFr: "Samedi", labelAr: "السبت", shortFr: "Sam" },
-];
-
-// Standard 4 periods used in educational timetables
-const STANDARD_PERIODS = [
-  { id: 1, label: "08:00 - 10:00", startHour: 8, endHour: 10, title: "Matinée 1" },
-  { id: 2, label: "10:00 - 12:00", startHour: 10, endHour: 12, title: "Matinée 2" },
-  { id: 3, label: "14:00 - 16:00", startHour: 14, endHour: 16, title: "Après-midi 1" },
-  { id: 4, label: "16:00 - 18:00", startHour: 16, endHour: 18, title: "Après-midi 2" },
 ];
 
 const PASTEL_THEMES = [
@@ -78,8 +71,16 @@ export default function TeacherSchedule({
   items: ScheduleItem[];
   teacherName?: string;
 }) {
+  const { t, locale } = useLanguage();
   const [viewMode, setViewMode] = useState<"grid" | "agenda">("grid");
   const [selectedDay, setSelectedDay] = useState<string>("ALL");
+
+  const STANDARD_PERIODS = [
+    { id: 1, label: "08:00 - 10:00", startHour: 8, endHour: 10, title: t.studentProfile.schedule.periods.morning1 },
+    { id: 2, label: "10:00 - 12:00", startHour: 10, endHour: 12, title: t.studentProfile.schedule.periods.morning2 },
+    { id: 3, label: "14:00 - 16:00", startHour: 14, endHour: 16, title: t.studentProfile.schedule.periods.afternoon1 },
+    { id: 4, label: "16:00 - 18:00", startHour: 16, endHour: 18, title: t.studentProfile.schedule.periods.afternoon2 },
+  ];
 
   // Normalize items defensively
   const safeItems: ScheduleItem[] = (items || []).filter(Boolean).map((item) => {
@@ -152,18 +153,20 @@ export default function TeacherSchedule({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-800">
-                  Emploi du temps hebdomadaire
+                  {t.teacherProfile.schedule.headerTitle}
                 </h2>
                 <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
                   items.length > 0 
                     ? "bg-indigo-50 text-indigo-700 border-indigo-100"
                     : "bg-slate-50 text-slate-500 border-slate-200"
                 }`}>
-                  {totalHours > 0 ? `${totalHours}h / semaine` : `${items.length} séances`}
+                  {totalHours > 0 
+                    ? t.teacherProfile.identity.hoursPerWeek.replace("{hours}", String(totalHours)) 
+                    : t.teacherProfile.schedule.coursesCount.replace("{count}", String(items.length))}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Planning officiel des cours dispensés du Lundi au Samedi
+                {t.teacherProfile.schedule.headerSubtitle.replace("{teacherName}", teacherName || "")}
               </p>
             </div>
           </div>
@@ -175,7 +178,7 @@ export default function TeacherSchedule({
           <Link
             href="/admin/timetable"
             className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold transition-colors border border-indigo-100"
-            title="Gérer les créneaux dans le planificateur d'emploi du temps"
+            title="Gérer les créneaux"
           >
             <CalendarPlus size={14} />
             <span>Planificateur</span>
@@ -193,7 +196,7 @@ export default function TeacherSchedule({
               }`}
             >
               <LayoutGrid size={14} />
-              <span>Grille</span>
+              <span>{t.teacherProfile.schedule.viewGrid}</span>
             </button>
             <button
               type="button"
@@ -205,7 +208,7 @@ export default function TeacherSchedule({
               }`}
             >
               <ListOrdered size={14} />
-              <span>Agenda</span>
+              <span>{t.teacherProfile.schedule.viewAgenda}</span>
             </button>
           </div>
 
@@ -214,7 +217,7 @@ export default function TeacherSchedule({
             type="button"
             onClick={handlePrint}
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition-colors cursor-pointer"
-            title="Imprimer l'emploi du temps"
+            title={t.teacherProfile.schedule.btnPrint}
           >
             <Printer size={16} />
           </button>
@@ -245,14 +248,14 @@ export default function TeacherSchedule({
                       : "bg-white text-slate-700 border-slate-100 font-semibold"
                   }`}>
                     <span className="text-xs font-bold uppercase tracking-wider block">
-                      {dayConfig.labelFr}
+                      {t.studentProfile.schedule.days[dayConfig.key] || dayConfig.labelFr}
                     </span>
                     <span className={`text-[10px] font-medium block mt-0.5 ${
                       isToday ? "text-indigo-100" : "text-slate-400"
                     }`}>
                       {daySlots.length > 0 
-                        ? `${daySlots.length} ${daySlots.length > 1 ? "séances" : "séance"}`
-                        : "Libre"}
+                        ? t.teacherProfile.schedule.coursesCount.replace("{count}", String(daySlots.length))
+                        : (locale === "ar" ? "شاغر" : locale === "en" ? "Free" : "Libre")}
                     </span>
                   </div>
 
@@ -294,10 +297,10 @@ export default function TeacherSchedule({
                                 key={slot.id || index}
                                 className={`rounded-xl border p-2.5 flex flex-col justify-between min-h-[82px] transition-all group hover:shadow-md relative overflow-hidden ${theme.bg} ${theme.border}`}
                               >
-                                {/* Left accent strip */}
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${theme.accent}`} />
+                                {/* Left/Right accent strip */}
+                                <div className={`absolute ${locale === "ar" ? "right-0" : "left-0"} top-0 bottom-0 w-1 ${theme.accent}`} />
 
-                                <div className="pl-1">
+                                <div className={locale === "ar" ? "pr-1" : "pl-1"}>
                                   {/* Time badge */}
                                   <div className="flex items-center justify-between gap-1 mb-1">
                                     <span className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
@@ -318,10 +321,10 @@ export default function TeacherSchedule({
                                 </div>
 
                                 {/* Class & Room pills */}
-                                <div className="flex items-center gap-1.5 flex-wrap pl-1 pt-1.5 border-t border-slate-200/50">
+                                <div className={`flex items-center gap-1.5 flex-wrap ${locale === "ar" ? "pr-1" : "pl-1"} pt-1.5 border-t border-slate-200/50`}>
                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${theme.badge}`}>
                                     <Users size={10} />
-                                    {slot.className}
+                                    {t.teacherProfile.identity.classPrefix.replace("{name}", slot.className)}
                                   </span>
 
                                   {slot.roomName && (
@@ -357,7 +360,7 @@ export default function TeacherSchedule({
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
-              Tous les jours ({safeItems.length})
+              {t.teacherProfile.schedule.allDays} ({safeItems.length})
             </button>
             {DAYS_CONFIG.map((d) => (
               <button
@@ -370,7 +373,7 @@ export default function TeacherSchedule({
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
-                <span>{d.labelFr}</span>
+                <span>{t.studentProfile.schedule.days[d.key] || d.labelFr}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                   selectedDay === d.key ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
                 }`}>
@@ -391,17 +394,17 @@ export default function TeacherSchedule({
                   <div key={d.key} className="rounded-2xl border border-slate-100 overflow-hidden bg-white">
                     <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        {d.labelFr}
+                        {t.studentProfile.schedule.days[d.key] || d.labelFr}
                       </span>
                       <span className="text-xs text-slate-400 font-medium">
-                        {daySlots.length} séance{daySlots.length > 1 ? "s" : ""}
+                        {t.teacherProfile.schedule.coursesCount.replace("{count}", String(daySlots.length))}
                       </span>
                     </div>
 
                     <div className="p-3 divide-y divide-slate-100">
                       {daySlots.length === 0 ? (
                         <div className="py-4 text-center text-slate-400 text-xs italic">
-                          Aucun cours dispensé le {d.labelFr}.
+                          {t.teacherProfile.schedule.noClassToday}
                         </div>
                       ) : (
                         daySlots.map((slot, idx) => {
@@ -423,7 +426,7 @@ export default function TeacherSchedule({
                                   </h4>
                                   <div className="flex items-center gap-2 mt-1">
                                     <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                                      Classe {slot.className}
+                                      {t.teacherProfile.identity.classPrefix.replace("{name}", slot.className)}
                                     </span>
                                     {slot.roomName && (
                                       <span className="text-xs text-slate-400 flex items-center gap-1">
@@ -435,7 +438,7 @@ export default function TeacherSchedule({
                                 </div>
                               </div>
                               <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${theme.bg} ${theme.border} ${theme.text}`}>
-                                {slot.duration ? `${slot.duration} min` : "Séance"}
+                                {slot.duration ? `${slot.duration} min` : (locale === "ar" ? "حصة" : locale === "en" ? "Session" : "Séance")}
                               </span>
                             </div>
                           );

@@ -18,6 +18,7 @@ import {
   Clock,
   Sparkles
 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export interface QuickStaffItem {
   id: string;
@@ -64,6 +65,7 @@ export function StaffBreadcrumbNav({
   onPrefetchStaff?: (id: string) => void;
   activeTab?: string;
 }) {
+  const { t, locale } = useLanguage();
   const currentIndex = staffList.findIndex((s) => s.id === currentStaffId);
   const total = staffList.length;
 
@@ -92,16 +94,16 @@ export function StaffBreadcrumbNav({
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
-          title={prevStaff ? `Précédent : ${prevStaff.name} ${prevStaff.surname}` : "Premier membre"}
+          title={prevStaff ? t.staffProfile.directory.prevStaff.replace("{name}", `${prevStaff.name} ${prevStaff.surname}`) : t.staffProfile.directory.firstStaff}
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={16} className={locale === "ar" ? "rotate-180" : ""} />
         </a>
 
         <button
           type="button"
           onClick={onOpenList}
           className="px-2 py-1 hover:bg-slate-100 rounded-md transition-colors text-[11px] font-bold text-slate-600 flex items-center gap-1 cursor-pointer"
-          title="Ouvrir l'annuaire du personnel"
+          title={t.staffProfile.directory.allStaffTooltip}
         >
           <span>{currentIndex >= 0 ? currentIndex + 1 : "?"}</span>
           <span className="text-slate-300">/</span>
@@ -125,9 +127,9 @@ export function StaffBreadcrumbNav({
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
-          title={nextStaff ? `Suivant : ${nextStaff.name} ${nextStaff.surname}` : "Dernier membre"}
+          title={nextStaff ? t.staffProfile.directory.nextStaff.replace("{name}", `${nextStaff.name} ${nextStaff.surname}`) : t.staffProfile.directory.lastStaff}
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={16} className={locale === "ar" ? "rotate-180" : ""} />
         </a>
       </div>
 
@@ -136,10 +138,10 @@ export function StaffBreadcrumbNav({
         type="button"
         onClick={onOpenList}
         className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
-        title="Parcourir le personnel"
+        title={t.staffProfile.directory.allStaffTooltip}
       >
         <Contact size={14} className="text-indigo-600" />
-        <span>Changer</span>
+        <span>{t.staffProfile.directory.switchStaff}</span>
       </button>
     </div>
   );
@@ -154,6 +156,7 @@ export function StaffSideDrawer({
   onPrefetchStaff,
   activeTab,
 }: StaffSideDrawerProps) {
+  const { t, locale } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "UNPAID" | "PAID">("ALL");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -168,11 +171,15 @@ export function StaffSideDrawer({
     const p = (s.payments || []).find(
       (pay) => pay.month === currentMonthIdx && pay.year === currentYear
     );
-    if (!p) return { status: "UNPAID", label: "Non payé", advance: 0 };
-    if (p.status === "PAID") return { status: "PAID", label: "Soldé", advance: 0 };
-    if (p.status === "PARTIAL") return { status: "PARTIAL", label: "Avance", advance: p.amount || 0 };
-    return { status: "UNPAID", label: "Non payé", advance: 0 };
-  }, [currentMonthIdx, currentYear]);
+    if (!p) return { status: "UNPAID", label: t.staffProfile.directory.statusUnpaid, advance: 0 };
+    if (p.status === "PAID") return { status: "PAID", label: t.staffProfile.directory.statusPaid, advance: 0 };
+    if (p.status === "PARTIAL") return { 
+      status: "PARTIAL", 
+      label: t.staffProfile.directory.statusAdvance.replace("{amount}", `${p.amount || 0} ${locale === "ar" ? "د.ت" : "DT"}`), 
+      advance: p.amount || 0 
+    };
+    return { status: "UNPAID", label: t.staffProfile.directory.statusUnpaid, advance: 0 };
+  }, [currentMonthIdx, currentYear, t, locale]);
 
   // Counts
   const counts = useMemo(() => {
@@ -229,13 +236,13 @@ export function StaffSideDrawer({
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <span>Annuaire du Personnel</span>
+              <span>{t.staffProfile.directory.title}</span>
               <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
                 {staffList.length}
               </span>
             </h2>
             <p className="text-[11px] text-slate-400">
-              {now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+              {now.toLocaleDateString(locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR", { month: "long", year: "numeric" })}
             </p>
           </div>
         </div>
@@ -244,8 +251,8 @@ export function StaffSideDrawer({
           type="button"
           onClick={onClose}
           className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-          title="Fermer l'annuaire"
-          aria-label="Fermer l'annuaire"
+          title={t.staffProfile.directory.hideDirectory}
+          aria-label={t.staffProfile.directory.hideDirectory}
         >
           <X size={18} />
         </button>
@@ -254,19 +261,20 @@ export function StaffSideDrawer({
       {/* Search Bar */}
       <div className="p-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={14} className={`absolute ${locale === "ar" ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`} />
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Rechercher par nom, rôle..."
+            placeholder={t.staffProfile.directory.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-slate-200/90 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+            className={`w-full ${locale === "ar" ? "pr-8 pl-7" : "pl-8 pr-7"} py-1.5 text-xs bg-white border border-slate-200/90 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all`}
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              className={`absolute ${locale === "ar" ? "left-2.5" : "right-2.5"} top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer`}
+              title="Effacer"
             >
               <X size={12} />
             </button>
@@ -284,7 +292,7 @@ export function StaffSideDrawer({
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Tous ({counts.all})
+            {t.staffProfile.directory.filterAll.replace("{count}", String(counts.all))}
           </button>
           <button
             type="button"
@@ -296,7 +304,7 @@ export function StaffSideDrawer({
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            <span>À régler ({counts.unpaid})</span>
+            <span>{t.staffProfile.directory.filterUnpaid.replace("{count}", String(counts.unpaid))}</span>
           </button>
           <button
             type="button"
@@ -308,7 +316,7 @@ export function StaffSideDrawer({
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Soldés ({counts.paid})</span>
+            <span>{t.staffProfile.directory.filterPaid.replace("{count}", String(counts.paid))}</span>
           </button>
         </div>
       </div>
@@ -318,13 +326,13 @@ export function StaffSideDrawer({
         {filteredStaff.length === 0 ? (
           <div className="py-12 text-center text-slate-400 flex flex-col items-center gap-2">
             <Contact size={28} className="text-slate-300 stroke-[1.5]" />
-            <p className="text-xs font-medium">Aucun membre trouvé</p>
+            <p className="text-xs font-medium">{t.staffProfile.directory.noStaffFound}</p>
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
                 className="text-xs text-indigo-600 hover:underline font-semibold"
               >
-                Réinitialiser la recherche
+                {t.staffProfile.directory.resetSearch}
               </button>
             )}
           </div>
@@ -336,7 +344,7 @@ export function StaffSideDrawer({
             let statusDotColor = "bg-rose-500";
             let statusBadge = (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200/60">
-                Non payé
+                {t.staffProfile.directory.statusUnpaid}
               </span>
             );
 
@@ -344,14 +352,14 @@ export function StaffSideDrawer({
               statusDotColor = "bg-emerald-500";
               statusBadge = (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-0.5">
-                  Soldé ✓
+                  {t.staffProfile.directory.statusPaid}
                 </span>
               );
             } else if (statusInfo.status === "PARTIAL") {
               statusDotColor = "bg-purple-500";
               statusBadge = (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/60">
-                  Avance {statusInfo.advance} DT
+                  {t.staffProfile.directory.statusAdvance.replace("{amount}", `${statusInfo.advance} ${locale === "ar" ? "د.ت" : "DT"}`)}
                 </span>
               );
             }
@@ -388,7 +396,7 @@ export function StaffSideDrawer({
                     className="w-10 h-10 rounded-full object-cover border border-slate-200"
                   />
                   <span
-                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${statusDotColor}`}
+                    className={`absolute bottom-0 ${locale === "ar" ? "left-0" : "right-0"} w-3 h-3 rounded-full border-2 border-white ${statusDotColor}`}
                     title={statusInfo.label}
                   />
                 </div>
@@ -400,20 +408,20 @@ export function StaffSideDrawer({
                       {s.name} {s.surname}
                     </p>
                     <span className="text-[11px] font-black text-slate-700 shrink-0">
-                      {s.salary.toLocaleString("en-US").replace(/,/g, " ")} DT
+                      {s.salary.toLocaleString("en-US").replace(/,/g, " ")} {locale === "ar" ? "د.ت" : "DT"}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between gap-1.5">
                     <span className="text-[10px] font-medium text-slate-500 truncate bg-slate-100 px-1.5 py-0.5 rounded-md max-w-[120px]">
-                      {s.role || "Personnel"}
+                      {s.role || t.staffProfile.identity.staffMember}
                     </span>
                     {statusBadge}
                   </div>
                 </div>
 
                 {!isCurrent && (
-                  <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0" />
+                  <ChevronRight size={14} className={`text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0 ${locale === "ar" ? "rotate-180" : ""}`} />
                 )}
               </a>
             );
@@ -427,11 +435,13 @@ export function StaffSideDrawer({
           href="/list/staff"
           className="text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1.5 transition-colors"
         >
-          <span>Tableau complet</span>
-          <ExternalLink size={12} />
+          <span>{t.staffProfile.directory.fullTable}</span>
+          <ExternalLink size={12} className={locale === "ar" ? "rotate-180" : ""} />
         </Link>
         <span className="text-[11px] text-slate-400">
-          {filteredStaff.length} affiché{filteredStaff.length > 1 ? "s" : ""}
+          {t.staffProfile.directory.displayedCount
+            .replace("{count}", String(filteredStaff.length))
+            .replace("{plural}", filteredStaff.length > 1 ? (locale === "fr" ? "s" : "s") : "")}
         </span>
       </div>
     </div>
@@ -442,7 +452,7 @@ export function StaffSideDrawer({
       {/* 1. Desktop Docked Sidebar (lg and above): Integrated directly in the page flow */}
       <aside
         className="hidden lg:flex flex-col w-[320px] xl:w-[350px] shrink-0 sticky top-4 h-[calc(100vh-100px)] bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden z-20"
-        aria-label="Annuaire du personnel"
+        aria-label={t.staffProfile.directory.title}
       >
         {renderDrawerBody(false)}
       </aside>
@@ -454,8 +464,8 @@ export function StaffSideDrawer({
           onClick={onClose}
         />
         <aside
-          className="fixed top-0 right-0 h-full w-[320px] sm:w-[360px] bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
-          aria-label="Annuaire du personnel"
+          className={`fixed top-0 ${locale === "ar" ? "left-0 border-r" : "right-0 border-l"} h-full w-[320px] sm:w-[360px] bg-white z-50 shadow-2xl border-slate-200 flex flex-col`}
+          aria-label={t.staffProfile.directory.title}
         >
           {renderDrawerBody(true)}
         </aside>
@@ -471,20 +481,21 @@ export function FloatingStaffNavTrigger({
   onOpen: () => void;
   totalStaff: number;
 }) {
+  const { t, locale } = useLanguage();
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-indigo-400/30 cursor-pointer"
-      title="Afficher l'annuaire du personnel"
-      aria-label="Afficher l'annuaire du personnel"
+      className={`fixed ${locale === "ar" ? "left-0 rounded-r-2xl border-r border-t border-b hover:translate-x-1" : "right-0 rounded-l-2xl border-l border-t border-b hover:-translate-x-1"} top-1/2 -translate-y-1/2 z-30 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-3 px-2 flex flex-col items-center gap-1.5 transition-transform duration-200 group border-indigo-400/30 cursor-pointer`}
+      title={t.staffProfile.directory.showDirectoryTooltip}
+      aria-label={t.staffProfile.directory.showDirectoryTooltip}
     >
       <Contact size={16} className="group-hover:scale-110 transition-transform" />
       <span className="text-[10px] font-black leading-none bg-white text-indigo-700 px-1.5 py-0.5 rounded-full shadow-2xs">
         {totalStaff}
       </span>
       <span className="text-[9px] font-semibold tracking-wider uppercase [writing-mode:vertical-rl] rotate-180 text-indigo-100">
-        Personnel
+        {t.staffProfile.directory.floatingLabel}
       </span>
     </button>
   );

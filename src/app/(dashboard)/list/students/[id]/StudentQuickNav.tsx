@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getUserAvatar } from "@/lib/avatar";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 import { 
   GraduationCap, 
   ChevronLeft, 
@@ -223,6 +224,7 @@ export function StudentBreadcrumbNav({
   loadingStudentId?: string | null;
   activeTab?: string;
 }) {
+  const { t, locale } = useLanguage();
   const currentIndex = students.findIndex((s) => s.id === currentStudentId);
   const total = students.length;
 
@@ -232,6 +234,14 @@ export function StudentBreadcrumbNav({
 
   const isPrevLoading = Boolean(prevStudent && loadingStudentId === prevStudent.id);
   const isNextLoading = Boolean(nextStudent && loadingStudentId === nextStudent.id);
+
+  const prevTitle = prevStudent 
+    ? (locale === "ar" ? `السابق: ${prevStudent.name} ${prevStudent.surname}` : locale === "en" ? `Previous: ${prevStudent.name} ${prevStudent.surname}` : `Précédent : ${prevStudent.name} ${prevStudent.surname}`)
+    : (locale === "ar" ? "التلميذ الأول" : locale === "en" ? "First student" : "Premier élève");
+
+  const nextTitle = nextStudent 
+    ? (locale === "ar" ? `التالي: ${nextStudent.name} ${nextStudent.surname}` : locale === "en" ? `Next: ${nextStudent.name} ${nextStudent.surname}` : `Suivant : ${nextStudent.name} ${nextStudent.surname}`)
+    : (locale === "ar" ? "التلميذ الأخير" : locale === "en" ? "Last student" : "Dernier élève");
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
@@ -256,12 +266,12 @@ export function StudentBreadcrumbNav({
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
-          title={prevStudent ? `Précédent : ${prevStudent.name} ${prevStudent.surname}` : "Premier élève"}
+          title={prevTitle}
         >
           {isPrevLoading ? (
             <Loader2 size={13} className="animate-spin text-blue-600" />
           ) : (
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} className={locale === "ar" ? "rotate-180" : ""} />
           )}
         </a>
 
@@ -269,7 +279,7 @@ export function StudentBreadcrumbNav({
           type="button"
           onClick={onOpenList}
           className="px-2 py-1 hover:bg-slate-100 rounded-md transition-colors text-[11px] font-bold text-slate-600 flex items-center gap-1 cursor-pointer"
-          title="Ouvrir la liste de tous les élèves"
+          title={locale === "ar" ? "فتح قائمة جميع التلاميذ" : locale === "en" ? "Open list of all students" : "Ouvrir la liste de tous les élèves"}
         >
           <span>{currentIndex >= 0 ? currentIndex + 1 : "?"}</span>
           <span className="text-slate-300">/</span>
@@ -295,12 +305,12 @@ export function StudentBreadcrumbNav({
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
-          title={nextStudent ? `Suivant : ${nextStudent.name} ${nextStudent.surname}` : "Dernier élève"}
+          title={nextTitle}
         >
           {isNextLoading ? (
             <Loader2 size={13} className="animate-spin text-blue-600" />
           ) : (
-            <ChevronRight size={16} />
+            <ChevronRight size={16} className={locale === "ar" ? "rotate-180" : ""} />
           )}
         </a>
       </div>
@@ -310,21 +320,24 @@ export function StudentBreadcrumbNav({
         type="button"
         onClick={onOpenList}
         className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
-        title="Parcourir tous les élèves par classe"
+        title={locale === "ar" ? "تصفح جميع التلاميذ حسب الفصل" : locale === "en" ? "Browse all students by class" : "Parcourir tous les élèves par classe"}
       >
         <Users size={14} className="text-blue-600" />
-        <span>Changer d&apos;élève</span>
+        <span>{t.studentProfile.directory.switchStudent}</span>
       </button>
     </div>
   );
 }
 
-function formatClassLabel(className?: string | null): string {
+function formatClassLabel(className?: string | null, classPrefix = "Classe", unassignedLabel = "Non assignée"): string {
   if (!className || className === "Sans classe" || className === "Non assignée") {
-    return className || "Non assignée";
+    return unassignedLabel;
   }
-  if (className.toLowerCase().startsWith("classe")) return className;
-  return `Classe ${className}`;
+  const lower = className.toLowerCase();
+  if (lower.startsWith("classe") || lower.startsWith("class") || lower.startsWith("فصل") || lower.startsWith("قسم")) {
+    return className;
+  }
+  return `${classPrefix} ${className}`;
 }
 
 const fmtCurrency = (n: number) => n.toLocaleString("fr-FR").replace(/,/g, " ") + " DT";
@@ -345,6 +358,7 @@ export function StudentSideDrawer({
   activeTab,
   onTabChange,
 }: StudentSideDrawerProps) {
+  const { t, locale } = useLanguage();
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "UNPAID" | "PAID">("ALL");
@@ -357,7 +371,11 @@ export function StudentSideDrawer({
   const currentAcademicStartYear = currentCalMonth >= 9 ? currentCalYear : currentCalYear - 1;
 
   const currentMonthCfg = DRAWER_ACADEMIC_MONTHS.find((m) => m.month === currentCalMonth) || DRAWER_ACADEMIC_MONTHS[0];
-  const currentMonthLabel = `${currentMonthCfg.fullFr} ${currentAcademicStartYear + currentMonthCfg.offsetYear}`;
+  const currentMonthDate = new Date(currentAcademicStartYear + currentMonthCfg.offsetYear, currentMonthCfg.month - 1);
+  const currentMonthLabel = currentMonthDate.toLocaleDateString(
+    locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR",
+    { month: "long", year: "numeric" }
+  );
 
   // 1. Precalculate payment info for each student in the list
   const paymentInfoMap = useMemo(() => {
@@ -584,14 +602,14 @@ export function StudentSideDrawer({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-slate-800 truncate">
-                Annuaire des Élèves
+                {t.studentProfile.directory.title}
               </h2>
               <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-blue-100/80 text-blue-700 shrink-0">
                 {students.length}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 truncate">
-              {classGroups.length} classes enregistrées
+              {t.studentProfile.directory.registeredClasses.replace("{count}", String(classGroups.length))}
             </p>
           </div>
         </div>
@@ -602,8 +620,8 @@ export function StudentSideDrawer({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition-colors cursor-pointer"
-            title="Masquer l'annuaire"
-            aria-label="Masquer l'annuaire"
+            title={t.studentProfile.directory.hideDirectory}
+            aria-label={t.studentProfile.directory.hideDirectory}
           >
             <X size={18} />
           </button>
@@ -613,21 +631,21 @@ export function StudentSideDrawer({
       {/* 2. Global Search Bar */}
       <div className="p-2.5 border-b border-slate-100 bg-white shrink-0">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none rtl:left-auto rtl:right-3" />
           <input
             ref={isMobile ? undefined : searchInputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Recherche (nom, prénom, classe)..."
-            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+            placeholder={t.studentProfile.directory.searchPlaceholder}
+            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all rtl:pl-8 rtl:pr-9"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              title="Effacer la recherche"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer rtl:right-auto rtl:left-2.5"
+              title={t.studentProfile.directory.clearSearch}
             >
               <X size={14} />
             </button>
@@ -641,29 +659,33 @@ export function StudentSideDrawer({
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1 text-slate-600 min-w-0">
             <Calendar size={12} className="text-blue-600 shrink-0" />
-            <span className="text-[10px] font-bold text-slate-500 shrink-0">Période :</span>
+            <span className="text-[10px] font-bold text-slate-500 shrink-0">{t.studentProfile.directory.period} :</span>
           </div>
 
           <div className="relative min-w-0">
             <select
               value={periodFilter}
               onChange={(e) => setPeriodFilter(e.target.value)}
-              className="text-[11px] font-extrabold text-blue-900 bg-white hover:bg-blue-50/70 border border-blue-200/90 rounded-lg pl-2 pr-5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs appearance-none transition-colors truncate max-w-[210px]"
+              className="text-[11px] font-extrabold text-blue-900 bg-white hover:bg-blue-50/70 border border-blue-200/90 rounded-lg pl-2 pr-5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs appearance-none transition-colors truncate max-w-[210px] rtl:pl-5 rtl:pr-2"
             >
-              <option value="CURRENT">Mois en cours ({currentMonthLabel})</option>
-              <option value="YEAR_DEBT">⚠️ Tout retard cumulé (Année)</option>
-              <optgroup label="Mois de l'année scolaire">
+              <option value="CURRENT">{t.studentProfile.directory.currentMonth} ({currentMonthLabel})</option>
+              <option value="YEAR_DEBT">⚠️ {t.studentProfile.directory.wholeYearDebt}</option>
+              <optgroup label={t.studentProfile.tuition.academicYear}>
                 {DRAWER_ACADEMIC_MONTHS.map((m) => {
                   const y = currentAcademicStartYear + m.offsetYear;
+                  const monthName = new Date(y, m.month - 1).toLocaleDateString(
+                    locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR",
+                    { month: "long", year: "numeric" }
+                  );
                   return (
                     <option key={`${m.month}-${y}`} value={`${m.month}-${y}`}>
-                      {m.fullFr} {y}
+                      {monthName}
                     </option>
                   );
                 })}
               </optgroup>
             </select>
-            <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none" />
+            <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none rtl:right-auto rtl:left-1.5" />
           </div>
         </div>
 
@@ -678,9 +700,9 @@ export function StudentSideDrawer({
                 ? "bg-white text-slate-800 shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
-            title="Afficher tous les élèves"
+            title={t.studentProfile.directory.all}
           >
-            <span>Tous</span>
+            <span>{t.studentProfile.directory.all}</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
               statusFilter === "ALL" ? "bg-slate-100 text-slate-800" : "bg-white/70 text-slate-600"
             }`}>
@@ -697,10 +719,10 @@ export function StudentSideDrawer({
                 ? "bg-rose-600 text-white shadow-2xs"
                 : "text-rose-700 hover:bg-rose-100/60"
             }`}
-            title="Filtrer uniquement les élèves non payés ou partiels"
+            title={t.studentProfile.directory.unpaid}
           >
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusFilter === "UNPAID" ? "bg-white animate-pulse" : "bg-rose-500"}`} />
-            <span className="truncate">Non payés</span>
+            <span className="truncate">{t.studentProfile.directory.unpaid}</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
               statusFilter === "UNPAID" ? "bg-white text-rose-700" : "bg-rose-100 text-rose-800"
             }`}>
@@ -717,10 +739,10 @@ export function StudentSideDrawer({
                 ? "bg-emerald-600 text-white shadow-2xs"
                 : "text-emerald-700 hover:bg-emerald-100/60"
             }`}
-            title="Filtrer les élèves ayant réglé leur scolarité"
+            title={t.studentProfile.directory.paidUp}
           >
             <CheckCircle2 size={11} className={`shrink-0 ${statusFilter === "PAID" ? "text-white" : "text-emerald-600"}`} />
-            <span className="truncate">À jour</span>
+            <span className="truncate">{t.studentProfile.directory.paidUp}</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
               statusFilter === "PAID" ? "bg-white text-emerald-700" : "bg-emerald-100 text-emerald-800"
             }`}>
@@ -739,15 +761,15 @@ export function StudentSideDrawer({
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-extrabold text-rose-950 truncate">
-                {visibleUnpaidCount} impayé{visibleUnpaidCount > 1 ? "s" : ""} {selectedClassFilter !== "ALL" ? `en ${selectedClassFilter}` : "au total"}
+                {visibleUnpaidCount} {visibleUnpaidCount > 1 ? t.studentProfile.directory.unpaidPlural : t.studentProfile.directory.unpaidSingular} {selectedClassFilter !== "ALL" ? `${t.studentProfile.directory.class} ${selectedClassFilter}` : ""}
               </p>
               <p className="text-[10px] font-medium text-rose-700 truncate">
-                Total dû : <span className="font-black text-rose-900">{fmtCurrency(visibleDueSum)}</span>
+                {t.studentProfile.tuition.remainingDue} : <span className="font-black text-rose-900">{fmtCurrency(visibleDueSum)}</span>
               </p>
             </div>
           </div>
           <span className="text-[9px] font-extrabold text-rose-600 bg-white border border-rose-200 px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs">
-            1 clic = Régler
+            {locale === "ar" ? "نقرة = تسديد" : locale === "en" ? "1 click = Pay" : "1 clic = Régler"}
           </span>
         </div>
       )}
@@ -766,7 +788,7 @@ export function StudentSideDrawer({
                   : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/70"
               }`}
             >
-              Toutes ({statusFilter === "UNPAID" ? totalUnpaidCount : statusFilter === "PAID" ? totalPaidCount : students.length})
+              {t.studentProfile.directory.all} ({statusFilter === "UNPAID" ? totalUnpaidCount : statusFilter === "PAID" ? totalPaidCount : students.length})
             </button>
 
             {/* Current Class Quick Chip & Other Classes */}
@@ -802,7 +824,7 @@ export function StudentSideDrawer({
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${chipClass}`}
                 >
                   {isCurrent && <Sparkles size={11} className={selectedClassFilter === cName ? "text-white" : "text-blue-500"} />}
-                  <span>{cName}</span>
+                  <span>{formatClassLabel(cName, t.studentProfile.directory.class, t.studentProfile.identity.unassignedClass)}</span>
                   {statusFilter === "UNPAID" && isFullyPaid ? (
                     <span className="text-[10px] font-black text-emerald-600">✓</span>
                   ) : (
@@ -826,9 +848,9 @@ export function StudentSideDrawer({
                 }
               }}
               className="text-[10px] font-bold text-slate-500 hover:text-slate-800 whitespace-nowrap px-1.5 py-0.5 rounded hover:bg-slate-200/60 transition-colors shrink-0 cursor-pointer"
-              title="Tout déplier ou tout replier"
+              title={allClassesList.some((c) => !expandedClasses[c]) ? t.studentProfile.directory.expandAll : t.studentProfile.directory.collapseAll}
             >
-              {allClassesList.some((c) => !expandedClasses[c]) ? "Tout ouvrir" : "Replier"}
+              {allClassesList.some((c) => !expandedClasses[c]) ? t.studentProfile.directory.expandAll : t.studentProfile.directory.collapseAll}
             </button>
           )}
         </div>
@@ -841,18 +863,18 @@ export function StudentSideDrawer({
           searchResults.length === 0 ? (
             <div className="py-12 px-4 text-center">
               <Users size={28} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-xs font-semibold text-slate-600">Aucun élève trouvé</p>
+              <p className="text-xs font-semibold text-slate-600">{t.studentProfile.directory.noStudentsFound}</p>
               <p className="text-[11px] text-slate-400 mt-1">
-                Aucun résultat pour &ldquo;{search}&rdquo; {statusFilter === "UNPAID" ? "dans les élèves non payés" : ""}
+                {t.studentProfile.directory.tryAnotherSearch}
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-1">
               <div className="px-2.5 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                <span>Résultats ({searchResults.length})</span>
+                <span>{locale === "ar" ? `النتائج (${searchResults.length})` : locale === "en" ? `Results (${searchResults.length})` : `Résultats (${searchResults.length})`}</span>
                 {statusFilter === "UNPAID" && (
                   <span className="text-[10px] text-rose-600 font-bold lowercase">
-                    filtre non payé actif
+                    {t.studentProfile.directory.unpaid}
                   </span>
                 )}
               </div>
@@ -934,7 +956,7 @@ export function StudentSideDrawer({
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-extrabold text-slate-800 truncate">
-                            {formatClassLabel(group.className)}
+                            {formatClassLabel(group.className, t.studentProfile.directory.class, t.studentProfile.identity.unassignedClass)}
                           </span>
                         </div>
                       </div>
@@ -945,23 +967,23 @@ export function StudentSideDrawer({
                         hasUnpaid ? (
                           <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                            <span>{group.unpaidCount} non payé{group.unpaidCount > 1 ? "s" : ""}</span>
+                            <span>{group.unpaidCount} {group.unpaidCount > 1 ? t.studentProfile.directory.unpaidPlural : t.studentProfile.directory.unpaidSingular}</span>
                           </span>
                         ) : (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
                             <Check size={11} className="text-emerald-600" />
-                            <span>À jour ✓</span>
+                            <span>{t.studentProfile.directory.paidUp} ✓</span>
                           </span>
                         )
                       ) : statusFilter === "PAID" ? (
                         <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                          {group.students.length} à jour
+                          {group.students.length} {t.studentProfile.directory.paidUp}
                         </span>
                       ) : (
                         <div className="flex items-center gap-1.5">
                           {hasUnpaid && (
                             <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
-                              {group.unpaidCount} impayé{group.unpaidCount > 1 ? "s" : ""}
+                              {group.unpaidCount} {group.unpaidCount > 1 ? t.studentProfile.directory.unpaidPlural : t.studentProfile.directory.unpaidSingular}
                             </span>
                           )}
                           <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
@@ -1007,7 +1029,7 @@ export function StudentSideDrawer({
                         <div className="p-3 text-center bg-emerald-50/60 rounded-xl m-1 border border-emerald-100 flex items-center justify-center gap-2 text-xs text-emerald-800">
                           <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
                           <span className="font-bold">
-                            Tous les élèves de cette classe sont à jour !
+                            {locale === "ar" ? "جميع تلاميذ هذا الفصل خالصون!" : locale === "en" ? "All students in this class are up to date!" : "Tous les élèves de cette classe sont à jour !"}
                           </span>
                         </div>
                       )}
@@ -1026,12 +1048,12 @@ export function StudentSideDrawer({
           href="/list/students"
           className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1.5 transition-colors"
         >
-          <span>Tableau complet des élèves</span>
-          <ExternalLink size={12} />
+          <span>{locale === "ar" ? "جدول التلاميذ الكامل" : locale === "en" ? "Full students table" : "Tableau complet des élèves"}</span>
+          <ExternalLink size={12} className={locale === "ar" ? "rotate-180" : ""} />
         </Link>
 
         <span className="text-[11px] text-slate-400 font-medium">
-          {isSearching ? searchResults.length : studentsByStatus.length} élève{studentsByStatus.length > 1 ? "s" : ""}
+          {isSearching ? searchResults.length : studentsByStatus.length} {t.studentProfile.directory.students}
         </span>
       </div>
     </div>
@@ -1089,6 +1111,7 @@ function StudentRowItem({
   onPrefetchStudent?: (id: string) => void;
   onTabChange?: (tab: "tuition" | "grades" | "attendance" | "schedule" | "overview") => void;
 }) {
+  const { t, locale } = useLanguage();
   // If unpaid filter is on, target tuition tab directly
   const targetTab = statusFilter === "UNPAID" ? "tuition" : (activeTab && activeTab !== "tuition" ? activeTab : "tuition");
   const tabSuffix = targetTab && targetTab !== "tuition" ? `?tab=${targetTab}` : "";
@@ -1161,12 +1184,12 @@ function StudentRowItem({
           </span>
           {isCurrent && !isLoading && (
             <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-md bg-blue-600 text-white shrink-0">
-              Actuel
+              {t.studentProfile.directory.current}
             </span>
           )}
           {isLoading && (
             <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1 shrink-0">
-              Chargement...
+              {locale === "ar" ? "جاري التحميل..." : locale === "en" ? "Loading..." : "Chargement..."}
             </span>
           )}
         </div>
@@ -1174,7 +1197,7 @@ function StudentRowItem({
         <div className="flex items-center justify-between gap-1.5 mt-0.5">
           <span className="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1">
             <GraduationCap size={10} className="text-slate-400 shrink-0" />
-            <span>{formatClassLabel(s.className || "Non assignée")}</span>
+            <span>{formatClassLabel(s.className, t.studentProfile.directory.class, t.studentProfile.identity.unassignedClass)}</span>
           </span>
 
           {/* Payment Status Pill */}
@@ -1182,17 +1205,17 @@ function StudentRowItem({
             paymentInfo.status === "PAID" ? (
               <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-1.5 py-0.2 rounded-md flex items-center gap-1 shrink-0">
                 <Check size={9} />
-                <span>À jour</span>
+                <span>{t.studentProfile.directory.paidUp}</span>
               </span>
             ) : paymentInfo.status === "PARTIAL" ? (
               <span className="text-[9px] font-extrabold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-md flex items-center gap-1 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span>Reste {paymentInfo.remainingDue} DT</span>
+                <span>{locale === "ar" ? `المتبقي ${paymentInfo.remainingDue} د.ت` : locale === "en" ? `Remaining ${paymentInfo.remainingDue} DT` : `Reste ${paymentInfo.remainingDue} DT`}</span>
               </span>
             ) : (
               <span className="text-[9px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded-md flex items-center gap-1 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <span>Non payé ({paymentInfo.remainingDue} DT)</span>
+                <span>{t.studentProfile.directory.unpaid} ({paymentInfo.remainingDue} DT)</span>
               </span>
             )
           )}
@@ -1203,7 +1226,7 @@ function StudentRowItem({
       {isLoading ? (
         <Loader2 size={14} className="animate-spin text-blue-600 shrink-0" />
       ) : !isCurrent ? (
-        <ChevronRight size={13} className="text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
+        <ChevronRight size={13} className={`text-slate-300 group-hover:text-slate-600 transition-colors shrink-0 ${locale === "ar" ? "rotate-180" : ""}`} />
       ) : null}
     </a>
   );
@@ -1217,20 +1240,21 @@ export function FloatingStudentNavTrigger({
   totalStudents: number;
   isPinned?: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-blue-400/30 cursor-pointer"
-      title="Afficher l'annuaire des élèves"
-      aria-label="Afficher l'annuaire des élèves"
+      className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-blue-400/30 cursor-pointer rtl:right-auto rtl:left-0 rtl:rounded-l-none rtl:rounded-r-2xl rtl:border-l-0 rtl:border-r"
+      title={t.studentProfile.directory.showDirectory}
+      aria-label={t.studentProfile.directory.showDirectory}
     >
       <GraduationCap size={16} className="group-hover:scale-110 transition-transform" />
       <span className="text-[10px] font-black leading-none bg-white text-blue-700 px-1.5 py-0.5 rounded-full shadow-2xs">
         {totalStudents}
       </span>
       <span className="text-[9px] font-bold uppercase tracking-wider [writing-mode:vertical-rl] rotate-180 opacity-90 mt-1">
-        Élèves
+        {t.studentProfile.directory.students}
       </span>
     </button>
   );

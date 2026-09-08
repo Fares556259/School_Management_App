@@ -15,6 +15,7 @@ import {
   BookOpen, 
   ExternalLink
 } from "lucide-react";
+import { useLanguage } from "@/lib/translations/LanguageContext";
 
 export interface QuickTeacherItem {
   id: string;
@@ -54,6 +55,7 @@ export function TeacherBreadcrumbNav({
   onPrefetchTeacher?: (id: string) => void;
   activeTab?: string;
 }) {
+  const { t, locale } = useLanguage();
   const currentIndex = teachers.findIndex((t) => t.id === currentTeacherId);
   const total = teachers.length;
 
@@ -82,16 +84,16 @@ export function TeacherBreadcrumbNav({
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
-          title={prevTeacher ? `Précédent : ${prevTeacher.name} ${prevTeacher.surname}` : "Premier enseignant"}
+          title={prevTeacher ? t.teacherProfile.directory.prevTeacher.replace("{name}", `${prevTeacher.name} ${prevTeacher.surname}`) : t.teacherProfile.directory.firstTeacher}
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={16} className={locale === "ar" ? "rotate-180" : ""} />
         </a>
 
         <button
           type="button"
           onClick={onOpenList}
           className="px-2 py-1 hover:bg-slate-100 rounded-md transition-colors text-[11px] font-bold text-slate-600 flex items-center gap-1 cursor-pointer"
-          title="Ouvrir la liste complète des enseignants"
+          title={t.teacherProfile.directory.allTeachersTooltip}
         >
           <span>{currentIndex >= 0 ? currentIndex + 1 : "?"}</span>
           <span className="text-slate-300">/</span>
@@ -115,9 +117,9 @@ export function TeacherBreadcrumbNav({
               ? "hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer" 
               : "opacity-30 cursor-not-allowed text-slate-400 pointer-events-none"
           }`}
-          title={nextTeacher ? `Suivant : ${nextTeacher.name} ${nextTeacher.surname}` : "Dernier enseignant"}
+          title={nextTeacher ? t.teacherProfile.directory.nextTeacher.replace("{name}", `${nextTeacher.name} ${nextTeacher.surname}`) : t.teacherProfile.directory.lastTeacher}
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={16} className={locale === "ar" ? "rotate-180" : ""} />
         </a>
       </div>
 
@@ -126,10 +128,10 @@ export function TeacherBreadcrumbNav({
         type="button"
         onClick={onOpenList}
         className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
-        title="Parcourir tous les enseignants"
+        title={t.teacherProfile.directory.allTeachersTooltip}
       >
         <Users size={14} className="text-indigo-600" />
-        <span>Changer</span>
+        <span>{t.teacherProfile.directory.switchTeacher}</span>
       </button>
     </div>
   );
@@ -146,6 +148,7 @@ export function TeacherSideDrawer({
   onPrefetchTeacher,
   activeTab,
 }: TeacherSideDrawerProps) {
+  const { t, locale } = useLanguage();
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -190,12 +193,12 @@ export function TeacherSideDrawer({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-800 truncate">Enseignants</h2>
+              <h2 className="text-sm font-bold text-slate-800 truncate">{t.teacherProfile.directory.teachersTitle}</h2>
               <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-700 shrink-0">
                 {teachers.length}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 truncate">Navigation rapide</p>
+            <p className="text-[11px] text-slate-400 truncate">{t.teacherProfile.directory.quickNav}</p>
           </div>
         </div>
 
@@ -205,8 +208,8 @@ export function TeacherSideDrawer({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition-colors cursor-pointer"
-            title="Masquer l'annuaire"
-            aria-label="Masquer l'annuaire"
+            title={t.teacherProfile.directory.hideDirectory}
+            aria-label={t.teacherProfile.directory.hideDirectory}
           >
             <X size={18} />
           </button>
@@ -216,21 +219,21 @@ export function TeacherSideDrawer({
       {/* Search Bar */}
       <div className="p-2.5 border-b border-slate-100 bg-white shrink-0">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search size={15} className={`absolute ${locale === "ar" ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`} />
           <input
             ref={isMobile ? undefined : searchInputRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher par nom ou matière..."
-            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+            placeholder={t.teacherProfile.directory.searchPlaceholder}
+            className={`w-full bg-slate-50 border border-slate-200/80 rounded-xl ${locale === "ar" ? "pr-9 pl-8" : "pl-9 pr-8"} py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all`}
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              title="Effacer la recherche"
+              className={`absolute ${locale === "ar" ? "left-2.5" : "right-2.5"} top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer`}
+              title="Effacer"
             >
               <X size={14} />
             </button>
@@ -243,30 +246,30 @@ export function TeacherSideDrawer({
         {filteredTeachers.length === 0 ? (
           <div className="py-12 px-4 text-center">
             <Users size={28} className="mx-auto text-slate-300 mb-2" />
-            <p className="text-xs font-semibold text-slate-600">Aucun enseignant trouvé</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Essayez un autre terme de recherche</p>
+            <p className="text-xs font-semibold text-slate-600">{t.teacherProfile.directory.noTeachersFound}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{t.teacherProfile.directory.tryAnotherSearch}</p>
           </div>
         ) : (
-          filteredTeachers.map((t) => {
-            const isCurrent = t.id === currentTeacherId;
-            const primarySubject = (t.subjects && t.subjects.length > 0)
-              ? t.subjects[0].name.split("|")[0].trim()
+          filteredTeachers.map((tItem) => {
+            const isCurrent = tItem.id === currentTeacherId;
+            const primarySubject = (tItem.subjects && tItem.subjects.length > 0)
+              ? tItem.subjects[0].name.split("|")[0].trim()
               : null;
-            const remainingSubjectsCount = (t.subjects?.length || 0) - 1;
+            const remainingSubjectsCount = (tItem.subjects?.length || 0) - 1;
             const tabSuffix = activeTab && activeTab !== "finance" ? `?tab=${activeTab}` : "";
 
             return (
               <a
-                key={t.id}
-                href={`/list/teachers/${t.id}${tabSuffix}`}
+                key={tItem.id}
+                href={`/list/teachers/${tItem.id}${tabSuffix}`}
                 data-no-loader="true"
-                onMouseEnter={() => { if (onPrefetchTeacher) onPrefetchTeacher(t.id); }}
+                onMouseEnter={() => { if (onPrefetchTeacher) onPrefetchTeacher(tItem.id); }}
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                   e.preventDefault();
                   if (isMobile && onClose) onClose();
                   if (onSelectTeacher) {
-                    onSelectTeacher(t.id);
+                    onSelectTeacher(tItem.id);
                   }
                 }}
                 className={`w-full text-left group flex items-center gap-3 p-2.5 rounded-xl transition-all cursor-pointer ${
@@ -278,8 +281,8 @@ export function TeacherSideDrawer({
                 {/* Avatar */}
                 <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 bg-slate-100 shadow-2xs">
                   <Image
-                    src={getUserAvatar(t.img, "teacher", t.sex)}
-                    alt={`${t.name} ${t.surname}`}
+                    src={getUserAvatar(tItem.img, "teacher", tItem.sex)}
+                    alt={`${tItem.name} ${tItem.surname}`}
                     fill
                     className="object-cover"
                   />
@@ -291,11 +294,11 @@ export function TeacherSideDrawer({
                     <span className={`text-xs font-bold truncate ${
                       isCurrent ? "text-indigo-950" : "text-slate-800 group-hover:text-indigo-600"
                     }`}>
-                      {t.name} {t.surname}
+                      {tItem.name} {tItem.surname}
                     </span>
                     {isCurrent && (
                       <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-indigo-600 text-white shrink-0">
-                        Actuel
+                        {t.teacherProfile.directory.current}
                       </span>
                     )}
                   </div>
@@ -307,7 +310,7 @@ export function TeacherSideDrawer({
                         <span className="truncate">{primarySubject}</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400 italic">Sans matière</span>
+                      <span className="text-[10px] text-slate-400 italic">{t.teacherProfile.directory.withoutSubject}</span>
                     )}
                     {remainingSubjectsCount > 0 && (
                       <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1 py-0.2 rounded-md shrink-0">
@@ -318,7 +321,7 @@ export function TeacherSideDrawer({
                 </div>
 
                 {!isCurrent && (
-                  <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0" />
+                  <ChevronRight size={14} className={`text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0 ${locale === "ar" ? "rotate-180" : ""}`} />
                 )}
               </a>
             );
@@ -332,11 +335,13 @@ export function TeacherSideDrawer({
           href="/list/teachers"
           className="text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1.5 transition-colors"
         >
-          <span>Tableau complet</span>
-          <ExternalLink size={12} />
+          <span>{t.teacherProfile.directory.fullTable}</span>
+          <ExternalLink size={12} className={locale === "ar" ? "rotate-180" : ""} />
         </Link>
         <span className="text-[11px] text-slate-400">
-          {filteredTeachers.length} affiché{filteredTeachers.length > 1 ? "s" : ""}
+          {t.teacherProfile.directory.displayedCount
+            .replace("{count}", String(filteredTeachers.length))
+            .replace("{plural}", filteredTeachers.length > 1 ? (locale === "fr" ? "s" : "s") : "")}
         </span>
       </div>
     </div>
@@ -347,7 +352,7 @@ export function TeacherSideDrawer({
       {/* 1. Desktop Docked Sidebar (lg and above): Integrated directly in the page flow */}
       <aside
         className="hidden lg:flex flex-col w-[320px] xl:w-[350px] shrink-0 sticky top-4 h-[calc(100vh-100px)] bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden z-20"
-        aria-label="Annuaire des enseignants"
+        aria-label={t.teacherProfile.directory.title}
       >
         {renderDrawerBody(false)}
       </aside>
@@ -359,8 +364,8 @@ export function TeacherSideDrawer({
           onClick={onClose}
         />
         <aside
-          className="fixed top-0 right-0 h-full w-[320px] sm:w-[360px] bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
-          aria-label="Annuaire des enseignants"
+          className={`fixed top-0 ${locale === "ar" ? "left-0 border-r" : "right-0 border-l"} h-full w-[320px] sm:w-[360px] bg-white z-50 shadow-2xl border-slate-200 flex flex-col`}
+          aria-label={t.teacherProfile.directory.title}
         >
           {renderDrawerBody(true)}
         </aside>
@@ -377,20 +382,21 @@ export function FloatingTeacherNavTrigger({
   totalTeachers: number;
   isPinned?: boolean;
 }) {
+  const { t, locale } = useLanguage();
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg rounded-l-2xl py-3 px-2 flex flex-col items-center gap-1.5 transition-transform hover:-translate-x-1 duration-200 group border-l border-t border-b border-indigo-400/30 cursor-pointer"
-      title="Afficher l'annuaire des enseignants"
-      aria-label="Afficher l'annuaire des enseignants"
+      className={`fixed ${locale === "ar" ? "left-0 rounded-r-2xl border-r border-t border-b hover:translate-x-1" : "right-0 rounded-l-2xl border-l border-t border-b hover:-translate-x-1"} top-1/2 -translate-y-1/2 z-30 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-3 px-2 flex flex-col items-center gap-1.5 transition-transform duration-200 group border-indigo-400/30 cursor-pointer`}
+      title={t.teacherProfile.directory.showDirectoryTooltip}
+      aria-label={t.teacherProfile.directory.showDirectoryTooltip}
     >
       <Users size={16} className="group-hover:scale-110 transition-transform" />
       <span className="text-[10px] font-black leading-none bg-white text-indigo-700 px-1.5 py-0.5 rounded-full shadow-2xs">
         {totalTeachers}
       </span>
       <span className="text-[9px] font-bold uppercase tracking-wider [writing-mode:vertical-rl] rotate-180 opacity-90 mt-1">
-        Profs
+        {t.teacherProfile.directory.floatingLabel}
       </span>
     </button>
   );
