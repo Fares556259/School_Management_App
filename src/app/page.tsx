@@ -9,19 +9,15 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
   ShieldCheck,
-  Users,
   Calendar,
   Smartphone,
   Bell,
   CheckCircle2,
-  ChevronRight,
   ArrowRight,
-  Building2,
   Lock,
   Zap,
   MessageSquare,
   Award,
-  GraduationCap,
   ClipboardList,
   CreditCard,
   FileText,
@@ -33,7 +29,14 @@ import {
   Plus,
   Layers,
   Globe,
-  ChevronDown,
+  TrendingUp,
+  Wallet,
+  Calculator,
+  UserCheck,
+  Receipt,
+  Sparkles,
+  ChevronRight,
+  Users,
 } from "lucide-react";
 
 /* ─────────── ANIMATION HELPERS ─────────── */
@@ -130,10 +133,11 @@ const Navbar = ({
   }, []);
 
   const links = [
-    { label: "Aperçu", href: "#apercu" },
+    { label: "Aperçu de l'app", href: "#apercu" },
     { label: "Système Tunisien", href: "#tunisie" },
+    { label: "Paiements Flexibles", href: "#finances-flexibles" },
     { label: "Modules", href: "#modules" },
-    { label: "Application Parents", href: "#parents" },
+    { label: "Apps Mobiles", href: "#parents" },
     { label: "Tarifs", href: "#tarifs" },
     { label: "FAQ", href: "#faq" },
   ];
@@ -268,6 +272,9 @@ const Navbar = ({
 export default function Homepage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"command" | "finance" | "timetable" | "analytics">("command");
+  const [activeFinanceTab, setActiveFinanceTab] = useState<"students" | "recovery" | "teachers">("students");
+  const [activeMobileTab, setActiveMobileTab] = useState<"parents" | "teachers" | "school">("parents");
 
   const router = useRouter();
   const supabase = createClient();
@@ -294,24 +301,63 @@ export default function Homepage() {
     else router.push("/sign-in");
   };
 
+  /* ── Screenshots Showcase Data ── */
+  const tabScreens = {
+    command: {
+      title: "Centre de Commandement",
+      badge: "Vue Direction en Direct",
+      desc: "Supervision complète : effectifs en direct (élèves, enseignants, classes), chiffre d'affaires en TND et indicateurs de rentabilité.",
+      src: "/landing/dashboard-command-center.png",
+      alt: "Tableau de bord de gestion scolaire SnapSchool Academy",
+    },
+    finance: {
+      title: "Recouvrement & Rémunérations",
+      badge: "Zéro Impayé Oublié",
+      desc: "Suivi en Dinars des scolarités en souffrance avec bouton d'encaissement direct et gestion des salaires des enseignants.",
+      src: "/landing/finance-recovery.png",
+      alt: "Module de recouvrement des frais scolaires et salaires en dinars tunisiens",
+    },
+    timetable: {
+      title: "Emploi du Temps Académique",
+      badge: "Grille Officielle Bilingue",
+      desc: "Emploi du temps par classe avec matières bilingues en Arabe et Français, affectation des salles et des enseignants sans conflit.",
+      src: "/landing/timetable-grid.png",
+      alt: "Emploi du temps bilingue tunisien SnapSchool",
+    },
+    analytics: {
+      title: "Trésorerie & Analyse 12 Mois",
+      badge: "Clarté Financière",
+      desc: "Comparatif en temps réel des recettes et des dépenses sur l'année scolaire 2026/2027 avec ventilation détaillée par catégorie.",
+      src: "/landing/analytics-cashflow.png",
+      alt: "Analyse de trésorerie sur 12 mois SnapSchool",
+    },
+  };
+
+  const tabs = [
+    { id: "command" as const, label: "Centre de Commandement", icon: LayoutDashboard },
+    { id: "finance" as const, label: "Recouvrement & Salaires", icon: CreditCard },
+    { id: "timetable" as const, label: "Emploi du Temps Bilingue", icon: Calendar },
+    { id: "analytics" as const, label: "Trésorerie 12 Mois", icon: TrendingUp },
+  ];
+
   /* ── Essential Modules ── */
   const features = [
     {
       icon: FileText,
-      title: "Notes et bulletins",
-      description: "Saisie rapide par les enseignants, calcul automatique des moyennes trimestrielles avec coefficients officiels et génération de bulletins PDF prêts à imprimer.",
+      title: "Notes et bulletins officiels",
+      description: "Saisie rapide par les enseignants, calcul automatique des moyennes trimestrielles avec coefficients officiels et édition de bulletins prêts à imprimer.",
       color: "bg-purple-50 text-purple-600",
     },
     {
       icon: ClipboardList,
-      title: "Gestion des absences",
-      description: "Appel numérique en 45 secondes par classe. Les parents reçoivent une alerte immédiate sur leur téléphone en cas d'absence ou de retard.",
+      title: "Gestion des absences & appel",
+      description: "Appel numérique en 45 secondes par classe. Les familles reçoivent une alerte immédiate sur leur smartphone en cas d'absence ou de retard.",
       color: "bg-red-50 text-red-600",
     },
     {
       icon: CreditCard,
-      title: "Paiements et finances",
-      description: "Suivi en Dinars (DT) des écolages par tranche, alertes automatiques d'impayés, reçus numérotés et gestion des salaires et avances des professeurs.",
+      title: "Paiements & finances en DT",
+      description: "Suivi des écolages par tranche, alertes automatiques des impayés, reçus numérotés et gestion des salaires et avances des professeurs.",
       color: "bg-emerald-50 text-emerald-600",
     },
     {
@@ -323,13 +369,13 @@ export default function Homepage() {
     {
       icon: Smartphone,
       title: "Application mobile parents",
-      description: "Application intuitive pour iOS et Android : suivi des notes en direct, notifications des absences, devoirs et annonces importantes de l'école.",
+      description: "Application intuitive pour iOS et Android : suivi des notes en direct, notifications des absences, devoirs et annonces officielles de l'école.",
       color: "bg-blue-50 text-blue-600",
     },
     {
       icon: ShieldCheck,
       title: "Sécurité & Audit horodaté",
-      description: "Chaque modification administrative est enregistrée. Chiffrement complet des données scolaires et sauvegardes cloud quotidiennes automatiques.",
+      description: "Chaque action administrative est tracée. Chiffrement complet des données scolaires et sauvegardes cloud quotidiennes automatiques.",
       color: "bg-gray-100 text-gray-700",
     },
   ];
@@ -342,11 +388,11 @@ export default function Homepage() {
     },
     {
       q: "SnapSchool est-il adapté aux normes éducatives tunisiennes ?",
-      a: "Oui, parfaitement. La plateforme intègre le découpage en 3 trimestres, la distinction devoirs de contrôle (DC) et devoirs de synthèse (DS), la pondération par coefficient officiel et les bulletins conformes au modèle ministériel.",
+      a: "Oui, à 100%. La plateforme intègre le découpage en 3 trimestres, la distinction devoirs de contrôle (DC) et devoirs de synthèse (DS), la pondération par coefficient officiel et les bulletins conformes au modèle ministériel.",
     },
     {
-      q: "Comment les parents accèdent-ils aux informations ?",
-      a: "Les parents disposent d'une application mobile dédiée (iOS et Android) leur permettant de recevoir des alertes instantanées lors d'absences, de consulter les notes et bulletins dès publication, et de suivre les paiements.",
+      q: "Comment fonctionne la gestion flexible des paiements ?",
+      a: "SnapSchool s'adapte à la réalité : paiement partiel d'un parent (ex: 40 DT sur 123 DT), versement libre multi-mois (1 000 DT ventilés automatiquement sans calculatrice), et gestion des acomptes/avances des professeurs avec déduction d'heures d'absence.",
     },
     {
       q: "Quel accompagnement et support proposez-vous ?",
@@ -365,17 +411,17 @@ export default function Homepage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
-            className="max-w-3xl mx-auto text-center mb-14"
+            className="max-w-3xl mx-auto text-center mb-12"
             initial="hidden"
             animate="visible"
             variants={stagger}
           >
             <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-6">
               <Zap className="w-3.5 h-3.5" />
-              Plateforme de gestion scolaire complète
+              Plateforme de gestion scolaire pour écoles privées en Tunisie
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-3xl sm:text-5xl lg:text-[3.5rem] font-bold leading-tight tracking-tight text-gray-900 mb-6">
+            <motion.h1 variants={fadeUp} className="text-3xl sm:text-5xl lg:text-[3.4rem] font-bold leading-tight tracking-tight text-gray-900 mb-6">
               Gérez votre école privée <br className="hidden sm:block" />
               avec{" "}
               <span className="text-blue-600 relative">
@@ -386,14 +432,14 @@ export default function Homepage() {
               </span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto mb-10">
-              Absences, notes, bulletins officiels tunisiens, paiements en DT, emploi du temps et communication avec les parents — le tout centralisé dans un seul espace sécurisé.
+            <motion.p variants={fadeUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto mb-9">
+              Bulletins officiels aux normes tunisiennes, recouvrement des écolages en Dinars (DT), emplois du temps sans conflits et portail parents direct.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => router.push("/sign-up")}
-                className="w-full sm:w-auto px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[15px] rounded-lg transition-all hover:shadow-lg hover:shadow-blue-600/25 flex items-center justify-center gap-2 group cursor-pointer"
+                className="w-full sm:w-auto px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[15px] rounded-xl transition-all hover:shadow-lg hover:shadow-blue-600/25 flex items-center justify-center gap-2 group cursor-pointer"
               >
                 Commencer gratuitement
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -402,7 +448,7 @@ export default function Homepage() {
                 href="https://wa.me/21623889444?text=Bonjour,%20je%20souhaite%20une%20d%C3%A9mo%20de%20SnapSchool"
                 target="_blank"
                 rel="noreferrer"
-                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-[15px] rounded-lg border border-gray-200 transition-all hover:border-gray-300 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-[15px] rounded-xl border border-gray-200 transition-all hover:border-gray-300 flex items-center justify-center gap-2"
               >
                 <MessageSquare className="w-4 h-4 text-green-600" />
                 Demander une démo WhatsApp
@@ -410,208 +456,100 @@ export default function Homepage() {
             </motion.div>
           </motion.div>
 
-          {/* Dashboard Preview (Authentic App Mockup) */}
+          {/* ── REAL APP SCREENSHOTS SHOWCASE (Eliminates AI Slop) ── */}
           <Section id="apercu">
             <div className="max-w-5xl mx-auto">
+              {/* Interactive Tabs */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-5">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isCurrent = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+                        isCurrent
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25 scale-[1.02]"
+                          : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Browser Shell with Real App Screenshot */}
               <motion.div
-                className="rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 shadow-2xl bg-white"
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.3 }}
+                className="rounded-2xl overflow-hidden border border-gray-200/90 shadow-2xl bg-white"
+                whileHover={{ y: -2 }}
+                transition={{ duration: 0.2 }}
               >
+                {/* Browser top chrome */}
                 <div className="h-10 bg-gray-50 border-b border-gray-200 px-4 flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-300" />
-                    <div className="w-3 h-3 rounded-full bg-amber-300" />
-                    <div className="w-3 h-3 rounded-full bg-green-300" />
+                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-3 h-3 rounded-full bg-amber-400" />
+                    <div className="w-3 h-3 rounded-full bg-green-400" />
                   </div>
                   <div className="flex-1 flex justify-center">
-                    <div className="px-4 py-1 rounded-md bg-white border border-gray-200 text-[11px] font-mono text-gray-400 flex items-center gap-1.5">
-                      <Lock className="w-3 h-3 text-green-500" />
-                      app.snapschool.io
+                    <div className="px-4 py-1 rounded-md bg-white border border-gray-200 text-[11px] font-mono text-gray-500 flex items-center gap-1.5">
+                      <Lock className="w-3 h-3 text-green-600" />
+                      app.snapschool.io/{activeTab === "command" ? "admin" : activeTab === "finance" ? "finance/recovery" : activeTab === "timetable" ? "admin/timetable" : "admin/analytics"}
                     </div>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      SnapSchool OS
+                    </span>
                   </div>
                 </div>
 
-                <div className="bg-slate-100 p-2 sm:p-4 text-left text-xs font-sans select-none overflow-hidden">
-                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xl flex flex-col">
-                    {/* Top App Header Bar */}
-                    <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-slate-800 text-base tracking-tight">Admin</span>
+                {/* Screenshot view with smooth transition */}
+                <div className="relative bg-slate-100 overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeTab}
+                      initial={{ opacity: 0, scale: 0.99 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.99 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Image
+                        src={tabScreens[activeTab].src}
+                        alt={tabScreens[activeTab].alt}
+                        width={1440}
+                        height={760}
+                        priority
+                        className="w-full h-auto object-cover select-none"
+                      />
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Caption Bar */}
+                  <div className="border-t border-gray-200 bg-white/95 backdrop-blur-sm p-4 sm:px-6 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          {tabScreens[activeTab].badge}
+                        </span>
+                        <h3 className="font-bold text-sm text-gray-900">
+                          {tabScreens[activeTab].title}
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs">
-                          <Bell className="w-3.5 h-3.5 text-slate-600" />
-                        </div>
-                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium bg-slate-50">
-                          <span>🇫🇷 Français</span>
-                          <ChevronDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-medium">
-                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                            A
-                          </div>
-                          <span className="text-red-500 font-semibold cursor-pointer hidden sm:inline">Déconnexion</span>
-                        </div>
-                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {tabScreens[activeTab].desc}
+                      </p>
                     </div>
-
-                    {/* App Main Body */}
-                    <div className="flex min-h-[440px] sm:min-h-[500px]">
-                      {/* Left Navigation Sidebar */}
-                      <div className="w-48 bg-[#1e293b] text-slate-300 p-3 hidden md:flex flex-col justify-between shrink-0 text-xs">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between bg-slate-800/80 rounded-lg p-2 border border-slate-700/60">
-                            <div className="flex items-center gap-2 overflow-hidden">
-                              <div className="w-6 h-6 rounded bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-[10px] shrink-0">SS</div>
-                              <span className="font-medium text-white truncate text-[11px]">Direction Lycée</span>
-                            </div>
-                            <span className="text-slate-400 text-[10px]">«</span>
-                          </div>
-
-                          {/* MAIN */}
-                          <div>
-                            <div className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">MAIN</div>
-                            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-blue-600 text-white font-semibold">
-                              <LayoutDashboard className="w-4 h-4" />
-                              <span>Accueil</span>
-                            </div>
-                          </div>
-
-                          {/* ACADEMIQUE */}
-                          <div>
-                            <div className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">ACADÉMIQUE</div>
-                            <div className="space-y-0.5 text-slate-400">
-                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
-                                <Calendar className="w-3.5 h-3.5" /> <span>Emploi du temps</span>
-                              </div>
-                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
-                                <FileText className="w-3.5 h-3.5" /> <span>Bulletins & Notes</span>
-                              </div>
-                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
-                                <Building2 className="w-3.5 h-3.5" /> <span>Classes</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* COMMUNAUTÉ */}
-                          <div>
-                            <div className="px-2 py-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">COMMUNAUTÉ</div>
-                            <div className="space-y-0.5 text-slate-400">
-                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
-                                <Users className="w-3.5 h-3.5" /> <span>Élèves</span>
-                              </div>
-                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
-                                <Smartphone className="w-3.5 h-3.5" /> <span>Parents</span>
-                              </div>
-                              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 hover:text-slate-200">
-                                <GraduationCap className="w-3.5 h-3.5" /> <span>Enseignants</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Main Dashboard Content Area */}
-                      <div className="flex-1 p-4 sm:p-6 bg-slate-50/60 space-y-5 overflow-hidden relative">
-                        {/* Title & Action Bar */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div>
-                            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Centre de Commandement</h2>
-                            <p className="text-xs text-slate-500">Supervision financière & académique en temps réel</p>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs font-semibold hover:bg-slate-50 flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-slate-500" /> Exporter PDF
-                            </button>
-                            <button className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 flex items-center gap-1">
-                              + Encaisser Écolage
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* 5 Financial Metric Cards */}
-                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                          {[
-                            { label: "Solde Net", val: "38 450 DT", badge: "↑ +14%", color: "bg-emerald-100 text-emerald-700" },
-                            { label: "Recettes Totales", val: "52 100 DT", badge: "↑ +12%", color: "bg-emerald-100 text-emerald-700" },
-                            { label: "Dépenses & Salaires", val: "13 650 DT", badge: "↑ +3%", color: "bg-rose-100 text-rose-700" },
-                            { label: "Marge de Profit", val: "73.8%", badge: "↑ +5%", color: "bg-emerald-100 text-emerald-700" },
-                            { label: "Reste à Recouvrer", val: "2 400 DT", badge: "↓ -8%", color: "bg-amber-100 text-amber-700" },
-                          ].map((card, i) => (
-                            <div key={i} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-[11px] font-semibold text-slate-500">{card.label}</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${card.color}`}>{card.badge}</span>
-                              </div>
-                              <div className="text-base font-bold text-slate-900">{card.val}</div>
-                              <span className="text-[10px] text-slate-400">vs période précédente</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Operational Snapshot */}
-                        <div>
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">APERÇU OPÉRATIONNEL</div>
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                            {[
-                              { label: "Élèves Inscrits", val: "485", icon: GraduationCap, bg: "bg-blue-50 text-blue-600" },
-                              { label: "Enseignants Actifs", val: "38", icon: Users, bg: "bg-purple-50 text-purple-600" },
-                              { label: "Bulletins Validés", val: "485 / 485", icon: FileText, bg: "bg-emerald-50 text-emerald-600" },
-                              { label: "Classes Actives", val: "14", icon: Building2, bg: "bg-indigo-50 text-indigo-600" },
-                            ].map((op, i) => (
-                              <div key={i} className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${op.bg}`}>
-                                    <op.icon className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                    <div className="text-lg font-bold text-slate-900 leading-none mb-1">{op.val}</div>
-                                    <div className="text-[11px] text-slate-500 font-medium">{op.label}</div>
-                                  </div>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-slate-300" />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Growth Analytics Card */}
-                        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                            <div>
-                              <h3 className="font-bold text-slate-900 text-sm">Analyse de Recouvrement & Trésorerie</h3>
-                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">ANNÉE SCOLAIRE 2026/2027 EN DINARS (DT)</p>
-                            </div>
-                            <div className="flex items-center gap-6 text-xs font-semibold">
-                              <span className="flex items-center gap-1.5 text-slate-700">
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Recettes: 52 100 DT
-                              </span>
-                              <span className="flex items-center gap-1.5 text-slate-700">
-                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Dépenses: 13 650 DT
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="h-20 flex items-end justify-between gap-2 pt-2 border-t border-slate-100">
-                            {[40, 55, 65, 75, 85, 90, 95, 88, 92, 98, 100, 105].map((h, i) => (
-                              <div key={i} className="flex-1 flex items-end gap-0.5 h-full">
-                                <div className="w-full bg-emerald-500 rounded-t-xs" style={{ height: `${h * 0.7}%` }} />
-                                <div className="w-full bg-rose-400/80 rounded-t-xs" style={{ height: `${h * 0.25}%` }} />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Floating Assistant Bot */}
-                        <div className="absolute bottom-4 right-4 bg-white border border-blue-200 rounded-full p-2 shadow-xl flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform">
-                          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                            🤖
-                          </div>
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 border-2 border-white" />
-                        </div>
-                      </div>
-                    </div>
+                    <Link
+                      href="/sign-in"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap self-start sm:self-center"
+                    >
+                      Tester l&apos;interface réelle <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
               </motion.div>
@@ -621,7 +559,7 @@ export default function Homepage() {
       </section>
 
       {/* ═══════════ TRUST BAR (animated counters) ═══════════ */}
-      <section className="py-14 border-y border-gray-100 bg-slate-50/50">
+      <section className="py-14 border-y border-gray-100 bg-slate-50/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8"
@@ -751,6 +689,320 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* ═══════════ PAIEMENTS & SALAIRES ULTRA-FLEXIBLES (Flagship Feature) ═══════════ */}
+      <section id="finances-flexibles" className="py-20 bg-slate-900 text-white relative overflow-hidden">
+        {/* Subtle decorative glow */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-600/20 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <Section>
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold mb-4 border border-blue-500/30">
+                <Wallet className="w-3.5 h-3.5" /> Fini les calculs manuels et les cahiers
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+                Paiements & Salaires : Une flexibilité totale pour votre école
+              </h2>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Dans la réalité d&apos;une école privée en Tunisie, les parents paient en tranches imprévues et les professeurs demandent des avances ou ont des heures à déduire. SnapSchool s&apos;adapte à chaque cas sans risque d&apos;erreur.
+              </p>
+
+              {/* Mode Switcher */}
+              <div className="inline-flex flex-wrap items-center justify-center p-1.5 rounded-2xl bg-white/10 border border-white/10 mt-6 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveFinanceTab("students")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    activeFinanceTab === "students"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4" /> 1. Écolages & Tranches
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFinanceTab("recovery")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    activeFinanceTab === "recovery"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Receipt className="w-4 h-4" /> 2. File de Recouvrement & Impayés
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveFinanceTab("teachers")}
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    activeFinanceTab === "teachers"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" /> 3. Salaires, Avances & Dépenses
+                </button>
+              </div>
+            </div>
+          </Section>
+
+          {/* Tab 1: Côté Élèves */}
+          {activeFinanceTab === "students" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Left Column: Key Superpowers */}
+              <div className="lg:col-span-5 space-y-5 text-left">
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                      1
+                    </div>
+                    <h3 className="text-base font-bold text-white">Versement Libre & Ventilation Multi-Mois</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Un parent arrive avec <strong className="text-white">1 000 DT</strong> ? Tapez le montant : SnapSchool cascade automatiquement la somme sur chaque mois impayé (ex: 8 mois soldés à 123 DT, 9ème mois partiel à 16 DT avec 107 DT restant dû). Zéro calculatrice !
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                      2
+                    </div>
+                    <h3 className="text-base font-bold text-white">Paiement Partiel & Acomptes</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Le parent ne peut verser que 40 DT aujourd&apos;hui ? Enregistrez le paiement partiel : le mois est marqué <span className="text-amber-400 font-semibold">[PARTIEL]</span> et le reliquat exact (83 DT) est suivi jusqu&apos;à son solde complet.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
+                      3
+                    </div>
+                    <h3 className="text-base font-bold text-white">Suivi Annuel des 10 Mois en 1 Coup d&apos;Œil</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Chaque élève dispose d&apos;une barre chronologique claire (Sept à Juin) avec le total versé, le reste annuel et un bouton pour imprimer un reçu officiel horodaté.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Real Screenshots Carousel/Stack */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="rounded-2xl overflow-hidden border border-white/15 bg-slate-950/80 shadow-2xl">
+                  <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300 flex items-center gap-2">
+                      <Receipt className="w-3.5 h-3.5 text-blue-400" /> Modal réelle de versement libre (1 000 DT ventilés automatiquement)
+                    </span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold border border-emerald-500/30">
+                      Calcul automatique
+                    </span>
+                  </div>
+                  <Image
+                    src="/landing/student-multi-month-split.png"
+                    alt="Ventilation automatique multi-mois des frais de scolarité"
+                    width={1000}
+                    height={600}
+                    className="w-full h-auto object-cover select-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
+                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Acompte / Paiement Partiel</p>
+                    <Image
+                      src="/landing/student-partial-payment.png"
+                      alt="Paiement partiel écolage"
+                      width={600}
+                      height={350}
+                      className="w-full h-auto rounded-lg object-cover select-none"
+                    />
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
+                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Suivi Annuel de l&apos;Élève (10 Mois)</p>
+                    <Image
+                      src="/landing/student-tuition-profile.png"
+                      alt="Suivi annuel scolarité élève"
+                      width={600}
+                      height={350}
+                      className="w-full h-auto rounded-lg object-cover select-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: File de Recouvrement & Impayés */}
+          {activeFinanceTab === "recovery" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Left Column: Key Superpowers */}
+              <div className="lg:col-span-5 space-y-5 text-left">
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+                      1
+                    </div>
+                    <h3 className="text-base font-bold text-white">File Active de Recouvrement</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Visualisez en un instant l&apos;ensemble des scolarités en souffrance. Chaque dossier affiche l&apos;élève, le mois concerné, le montant déjà réglé et le <strong className="text-rose-400">reste dû exact en rouge</strong>.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                      2
+                    </div>
+                    <h3 className="text-base font-bold text-white">Encaissement & Relance en 1 Clic</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Un parent se présente ? Cliquez sur <span className="text-emerald-400 font-semibold">[RECOUVRER]</span> pour solder le dossier et générer le reçu. Possibilité d&apos;exporter la liste ou d&apos;envoyer des rappels par notification mobile.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                      3
+                    </div>
+                    <h3 className="text-base font-bold text-white">Grand Livre des Recettes de l&apos;École</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Toutes les entrées sont classées et traçables par catégorie : Frais de scolarité, Paiements partiels, Recouvrement, Transport / Bus, avec preuve de paiement jointe.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Real Screenshots */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="rounded-2xl overflow-hidden border border-white/15 bg-slate-950/80 shadow-2xl">
+                  <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300 flex items-center gap-2">
+                      <Receipt className="w-3.5 h-3.5 text-amber-400" /> File de Recouvrement réelle des frais de scolarité
+                    </span>
+                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold border border-rose-500/30">
+                      Reste dû suivi au dinar près
+                    </span>
+                  </div>
+                  <Image
+                    src="/landing/recovery-queue.png"
+                    alt="File de recouvrement des frais de scolarité partiels SnapSchool"
+                    width={1000}
+                    height={600}
+                    className="w-full h-auto object-cover select-none"
+                  />
+                </div>
+
+                <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
+                  <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Grand Livre des Recettes de l&apos;École (Par Catégorie & Date)</p>
+                  <Image
+                    src="/landing/incomes-ledger.png"
+                    alt="Journal des recettes SnapSchool"
+                    width={1000}
+                    height={450}
+                    className="w-full h-auto rounded-lg object-cover select-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Côté Enseignants & Dépenses */}
+          {activeFinanceTab === "teachers" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Left Column: Key Superpowers */}
+              <div className="lg:col-span-5 space-y-5 text-left">
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+                      1
+                    </div>
+                    <h3 className="text-base font-bold text-white">Avances sur Salaire Instantanées</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Un enseignant demande un acompte en milieu de mois ? Versez l&apos;avance en 1 clic (ex: 100 DT). Le système met immédiatement à jour le solde restant sans risque d&apos;oubli lors de la paie finale.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-rose-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs">
+                      2
+                    </div>
+                    <h3 className="text-base font-bold text-white">Compteur d&apos;Absences & Retenues au Taux Horaire</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    2 heures manquées ? SnapSchool calcule automatiquement la déduction au tarif horaire de l&apos;enseignant (ex: 2h × 15 DT/h = -30 DT). Vous pouvez appliquer la retenue ou la mettre en réserve si le cours est rattrapé.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/40 transition-all">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                      3
+                    </div>
+                    <h3 className="text-base font-bold text-white">Formule Nette Transparente</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    <code className="text-blue-300 bg-white/10 px-2 py-0.5 rounded font-mono text-[11px]">
+                      Base (360 DT) - Retenue (-30 DT) - Avance (-100 DT) = 230 DT Net
+                    </code>. Vos enseignants voient exactement le détail de leur paie, éliminant toute contestation.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Real Teacher Screenshots */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="rounded-2xl overflow-hidden border border-white/15 bg-slate-950/80 shadow-2xl">
+                  <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300 flex items-center gap-2">
+                      <Calculator className="w-3.5 h-3.5 text-rose-400" /> Compteur d&apos;heures d&apos;absence & décision sur la paie
+                    </span>
+                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold border border-rose-500/30">
+                      Déduction en direct
+                    </span>
+                  </div>
+                  <Image
+                    src="/landing/teacher-deduction-modal.png"
+                    alt="Compteur heures absence et retenue sur salaire enseignant"
+                    width={1000}
+                    height={600}
+                    className="w-full h-auto object-cover select-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
+                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Suivi Annuel de Rémunération Enseignant</p>
+                    <Image
+                      src="/landing/teacher-salary-tracker.png"
+                      alt="Suivi salaire enseignant et avances"
+                      width={600}
+                      height={350}
+                      className="w-full h-auto rounded-lg object-cover select-none"
+                    />
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
+                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Modal Versement d&apos;Avance sur Salaire</p>
+                    <Image
+                      src="/landing/teacher-advance-modal.png"
+                      alt="Versement avance enseignant"
+                      width={600}
+                      height={350}
+                      className="w-full h-auto rounded-lg object-cover select-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ═══════════ MODULES ESSENTIELS (6 cards) ═══════════ */}
       <section id="modules" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -793,54 +1045,345 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ APPLICATION MOBILE PARENTS ═══════════ */}
+      {/* ═══════════ APPLICATIONS MOBILES (PARENTS & PROFS) ═══════════ */}
       <section id="parents" className="py-20 bg-slate-50 border-y border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-12 lg:gap-16">
-          <Section className="flex-1 flex justify-center">
-            <div className="relative">
-              <div className="absolute -inset-8 bg-blue-200/50 rounded-[56px] blur-3xl opacity-40 pointer-events-none" />
-              <motion.div whileHover={{ y: -6 }} transition={{ duration: 0.3 }}>
-                <Image
-                  src="/landing/mobile.png"
-                  alt="Application mobile parents SnapSchool"
-                  width={280}
-                  height={580}
-                  className="w-[240px] sm:w-[270px] h-auto rounded-[36px] border-[6px] border-gray-800 shadow-2xl relative z-10"
-                />
-              </motion.div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Section>
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold mb-3">
+                <Smartphone className="w-3.5 h-3.5" /> Applications Mobiles iOS & Android
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+                L&apos;établissement connecté en direct dans la poche
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                Des interfaces mobiles conçues pour le terrain : les parents suivent présences et paiements en direct, tandis que les enseignants font l&apos;appel et déposent leurs cours en 30 secondes.
+              </p>
+
+              {/* Mobile Tab Switcher */}
+              <div className="mt-8 inline-flex p-1 rounded-2xl bg-white border border-gray-200 shadow-sm max-w-full overflow-x-auto">
+                <button
+                  onClick={() => setActiveMobileTab("parents")}
+                  className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                    activeMobileTab === "parents"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4" /> 1. Parents & Élèves (Badges & Reçus)
+                </button>
+                <button
+                  onClick={() => setActiveMobileTab("teachers")}
+                  className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                    activeMobileTab === "teachers"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" /> 2. Enseignants (Appel & Devoirs)
+                </button>
+                <button
+                  onClick={() => setActiveMobileTab("school")}
+                  className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                    activeMobileTab === "school"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  <FileText className="w-4 h-4" /> 3. Vie Scolaire & Documents
+                </button>
+              </div>
             </div>
           </Section>
 
-          <Section className="flex-1" delay={0.15}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold mb-4">
-              <Smartphone className="w-3.5 h-3.5" /> Espace Parents Dédié
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-              Les parents restent connectés à l&apos;école
-            </h2>
-            <p className="text-gray-500 text-base leading-relaxed mb-6">
-              Une application intuitive pour que les familles suivent la scolarité de leurs enfants en temps réel.
-            </p>
+          {/* TAB 1: Parents & Élèves */}
+          {activeMobileTab === "parents" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              <div className="lg:col-span-5 space-y-6">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Espace Famille</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 mb-3">
+                    Transparence totale pour les familles
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Les parents ne sont plus dans le doute. Chaque information clé arrive instantanément sur leur smartphone.
+                  </p>
+                </div>
 
-            <div className="space-y-4">
-              {[
-                { icon: Bell, title: "Alertes d'absence instantanées", desc: "Notification sur smartphone dès qu'une absence ou un retard est constaté en classe." },
-                { icon: Award, title: "Consultation des notes et bulletins", desc: "Accès immédiat aux résultats, coefficients et bulletins trimestriels téléchargeables." },
-                { icon: MessageSquare, title: "Communication directe", desc: "Réception des circulaires, annonces officielles de la direction et réunions parents-profs." },
-                { icon: CreditCard, title: "Suivi des frais de scolarité", desc: "État clair des tranches réglées, dates d'échéances et reçus officiels." },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-3.5 items-start">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
-                    <item.icon className="w-4 h-4 text-blue-600" />
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Badge « PRÉSENT » en direct</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        L&apos;appel validé en cours s&apos;affiche en temps réel sur l&apos;emploi du temps de l&apos;élève avec le badge vert officiel pour rassurer les parents.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
-                    <p className="text-xs text-gray-500">{item.desc}</p>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Receipt className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Quittances & Reçus PDF téléchargeables</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Chaque tranche réglée (ex: 444 TND) est archivée avec détail du mode de versement et bouton de téléchargement direct de la quittance officielle.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Calendar className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Emploi du temps quotidien & Salles</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Horaires, matières, enseignants et numéros de salles consultables en un coup d&apos;œil pour préparer les journées d&apos;étude.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Notes & Bulletins trimestriels</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Accès aux notes d&apos;évaluation au fur et à mesure et téléchargement du bulletin officiel validé par la direction.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* 2 Phones Display */}
+              <div className="lg:col-span-7 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8">
+                {/* Phone 1: Schedule */}
+                <div className="text-center">
+                  <span className="inline-block text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 mb-3">
+                    Badge de présence en direct
+                  </span>
+                  <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
+                    <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
+                    <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
+                      <Image
+                        src="/landing/mobile-student-schedule.jpg"
+                        alt="Emploi du temps avec badge de présence vert sur l'app mobile SnapSchool"
+                        width={472}
+                        height={1024}
+                        className="w-full h-auto object-cover object-top"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone 2: Payment Receipt */}
+                <div className="text-center">
+                  <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3">
+                    Reçu payé 444 TND (Téléchargement PDF)
+                  </span>
+                  <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
+                    <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
+                    <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
+                      <Image
+                        src="/landing/mobile-parent-payments.jpg"
+                        alt="Reçu de scolarité payée sur l'application mobile SnapSchool"
+                        width={472}
+                        height={1024}
+                        className="w-full h-auto object-cover object-top"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </Section>
+          )}
+
+          {/* TAB 2: Enseignants */}
+          {activeMobileTab === "teachers" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              <div className="lg:col-span-6 space-y-6">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Espace Enseignant</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 mb-3">
+                    Toutes les actions du cours en 1 clic
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Une interface mobile conçue pour aller vite en salle de classe : l&apos;enseignant n&apos;a besoin d&apos;aucun ordinateur pour ses tâches quotidiennes.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mb-2">
+                      <ClipboardList className="w-4 h-4" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Faire l&apos;appel</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Présence cochée en 30 secondes chrono par séance. Remonte directement à la vie scolaire.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm mb-2">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Déposer un cours</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Partage de polycopiés et résumés PDF instantanément depuis le téléphone pour la classe.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm mb-2">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Ajouter un devoir</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Assignation d&apos;exercices avec date limite visible immédiatement sur l&apos;app des élèves.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-2">
+                      <Award className="w-4 h-4" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Saisir les notes</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Saisie fluide des notes de contrôle continu directement synchronisées avec les bulletins.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/70 flex items-center gap-3 text-xs text-blue-900">
+                  <Zap className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>
+                    <strong>Protection de la vie privée :</strong> Le professeur communique via SnapSchool sans jamais avoir à donner son numéro de téléphone personnel.
+                  </span>
+                </div>
+              </div>
+
+              {/* Single Phone Display: Teacher Home */}
+              <div className="lg:col-span-6 flex flex-col items-center justify-center">
+                <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3">
+                  Écran d&apos;accueil Enseignant avec 4 actions rapides
+                </span>
+                <div className="w-[230px] sm:w-[260px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
+                  <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
+                  <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
+                    <Image
+                      src="/landing/mobile-teacher-home.jpg"
+                      alt="Accueil mobile de l'application enseignant SnapSchool avec boutons Faire l'appel et Déposer un cours"
+                      width={472}
+                      height={1024}
+                      className="w-full h-auto object-cover object-top"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Vie Scolaire & Documents */}
+          {activeMobileTab === "school" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              <div className="lg:col-span-5 space-y-6">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Vie Scolaire & Campus</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 mb-3">
+                    Circulaires officielles et supports pédagogiques
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Fini les photocopies perdues et les annonces noyées dans les groupes WhatsApp. Toute l&apos;information officielle est archivée au même endroit.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bell className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Circulaires officielles & Événements</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Annonces administratives certifiées avec photos du campus et avis importants consultables en permanence par les familles.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Bibliothèque de cours par matière</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Séries d&apos;exercices, fiches de révision et cours complets téléchargeables sans publicité ni expiration de liens.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-sm flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">Environnement sécurisé et cadré</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                        Chaque utilisateur accède uniquement aux cours et avis de sa classe, avec une traçabilité complète pour l&apos;administration.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2 Phones Display: Announcements & Courses */}
+              <div className="lg:col-span-7 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8">
+                {/* Phone 1: Announcements */}
+                <div className="text-center">
+                  <span className="inline-block text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200 mb-3">
+                    Circulaires officielles & Campus
+                  </span>
+                  <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
+                    <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
+                    <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
+                      <Image
+                        src="/landing/mobile-announcements.jpg"
+                        alt="Circulaires officielles avec photo du campus sur l'app SnapSchool"
+                        width={472}
+                        height={1024}
+                        className="w-full h-auto object-cover object-top"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Phone 2: Courses */}
+                <div className="text-center">
+                  <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3">
+                    Documents & Cours par matière
+                  </span>
+                  <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
+                    <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
+                    <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
+                      <Image
+                        src="/landing/mobile-courses.jpg"
+                        alt="Supports pédagogiques et documents de cours sur l'app mobile SnapSchool"
+                        width={472}
+                        height={1024}
+                        className="w-full h-auto object-cover object-top"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1024,7 +1567,9 @@ export default function Homepage() {
               <ul className="space-y-2">
                 <li><a href="#apercu" className="hover:text-white transition-colors">Aperçu du système</a></li>
                 <li><a href="#tunisie" className="hover:text-white transition-colors">Système Tunisien</a></li>
+                <li><a href="#finances-flexibles" className="hover:text-white transition-colors">Paiements Flexibles</a></li>
                 <li><a href="#modules" className="hover:text-white transition-colors">Modules</a></li>
+                <li><a href="#parents" className="hover:text-white transition-colors">Apps Mobiles</a></li>
                 <li><a href="#tarifs" className="hover:text-white transition-colors">Tarifs</a></li>
               </ul>
             </div>
