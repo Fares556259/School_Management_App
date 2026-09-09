@@ -5,12 +5,12 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { useEffect, useState } from "react";
 import { getAIUsageStats, toggleTestAIQuota } from "@/app/(dashboard)/admin/actions/aiActions";
-import { Sparkles, Lock, Unlock, RefreshCw, Search, Bell } from "lucide-react";
+import { Sparkles, Lock, Unlock, RefreshCw, Search, Bell, Menu as MenuIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 import { getUserAvatar } from "@/lib/avatar";
 
-const Navbar = ({ adminData: initialAdminData, role = "User" }: { adminData?: any, role?: string }) => {
+const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }: { adminData?: any, role?: string, onMobileMenuOpen?: () => void }) => {
   const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(initialAdminData);
   const [aiStats, setAiStats] = useState<{usage: number, quota: number} | null>(null);
@@ -33,10 +33,21 @@ const Navbar = ({ adminData: initialAdminData, role = "User" }: { adminData?: an
   }, [role]);
 
   return (
-    <div className='flex items-center justify-between px-6 py-4 bg-[#F5F6F8]/80 backdrop-blur-md sticky top-0 z-50 border-b border-transparent transition-all'>
-      {/* LEFT: PAGE TITLE */}
-      <div className="hidden md:flex items-center flex-1">
-        <h1 className="text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px]">
+    <div className='flex items-center justify-between px-4 md:px-6 py-3 md:py-4 bg-[#F5F6F8]/80 backdrop-blur-md sticky top-0 z-50 border-b border-transparent transition-all'>
+      {/* LEFT: Hamburger (mobile only) + PAGE TITLE */}
+      <div className="flex items-center gap-3 flex-1">
+        {/* Hamburger — only visible on mobile */}
+        <button
+          type="button"
+          onClick={onMobileMenuOpen}
+          className="flex md:hidden items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 transition-colors shrink-0"
+          aria-label="Ouvrir la navigation"
+        >
+          <MenuIcon size={20} />
+        </button>
+
+        {/* Page title — always visible, smaller on mobile */}
+        <h1 className="text-[18px] md:text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px] truncate">
           {(() => {
             if (pathSegments.length === 0) return "Dashboard";
             const lastSegment = pathSegments[pathSegments.length - 1];
