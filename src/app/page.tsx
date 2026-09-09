@@ -690,33 +690,32 @@ export default function Homepage() {
       </section>
 
       {/* ═══════════ PAIEMENTS & SALAIRES ULTRA-FLEXIBLES (Flagship Feature) ═══════════ */}
-      <section id="finances-flexibles" className="py-20 bg-slate-900 text-white relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-600/20 rounded-full blur-[120px] pointer-events-none" />
+      <section id="finances-flexibles" className="py-20 bg-[#F5F6F8] border-y border-slate-200/80 relative overflow-hidden">
+        {/* Subtle decorative tint */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(59,130,246,0.06),transparent)] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <Section>
             <div className="max-w-3xl mx-auto text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold mb-4 border border-blue-500/30">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-4 border border-blue-200/80">
                 <Wallet className="w-3.5 h-3.5" /> Fini les calculs manuels et les cahiers
               </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
                 Paiements & Salaires : Une flexibilité totale pour votre école
               </h2>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                 Dans la réalité d&apos;une école privée en Tunisie, les parents paient en tranches imprévues et les professeurs demandent des avances ou ont des heures à déduire. SnapSchool s&apos;adapte à chaque cas sans risque d&apos;erreur.
               </p>
 
               {/* Mode Switcher */}
-              <div className="inline-flex flex-wrap items-center justify-center p-1.5 rounded-2xl bg-white/10 border border-white/10 mt-6 gap-2">
+              <div className="inline-flex flex-wrap items-center justify-center p-1.5 rounded-2xl bg-white border border-slate-200 shadow-sm mt-6 gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveFinanceTab("students")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                     activeFinanceTab === "students"
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
                   <Users className="w-4 h-4" /> 1. Écolages & Tranches
@@ -724,10 +723,10 @@ export default function Homepage() {
                 <button
                   type="button"
                   onClick={() => setActiveFinanceTab("recovery")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                     activeFinanceTab === "recovery"
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
                   <Receipt className="w-4 h-4" /> 2. File de Recouvrement & Impayés
@@ -735,10 +734,10 @@ export default function Homepage() {
                 <button
                   type="button"
                   onClick={() => setActiveFinanceTab("teachers")}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-2 ${
                     activeFinanceTab === "teachers"
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
                   <UserCheck className="w-4 h-4" /> 3. Salaires, Avances & Dépenses
@@ -751,39 +750,39 @@ export default function Homepage() {
           {activeFinanceTab === "students" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Key Superpowers */}
-              <div className="lg:col-span-5 space-y-5 text-left">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/40 transition-all">
+              <div className="lg:col-span-5 space-y-4 text-left">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
                       1
                     </div>
-                    <h3 className="text-base font-bold text-white">Versement Libre & Ventilation Multi-Mois</h3>
+                    <h3 className="text-base font-bold text-slate-900">Versement Libre & Ventilation Multi-Mois</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Un parent arrive avec <strong className="text-white">1 000 DT</strong> ? Tapez le montant : SnapSchool cascade automatiquement la somme sur chaque mois impayé (ex: 8 mois soldés à 123 DT, 9ème mois partiel à 16 DT avec 107 DT restant dû). Zéro calculatrice !
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Un parent arrive avec <strong className="text-slate-900 font-semibold">1 000 DT</strong> ? Tapez le montant : SnapSchool cascade automatiquement la somme sur chaque mois impayé (ex: 8 mois soldés à 123 DT, 9ème mois partiel à 16 DT avec 107 DT restant dû). Zéro calculatrice !
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition-all">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
                       2
                     </div>
-                    <h3 className="text-base font-bold text-white">Paiement Partiel & Acomptes</h3>
+                    <h3 className="text-base font-bold text-slate-900">Paiement Partiel & Acomptes</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Le parent ne peut verser que 40 DT aujourd&apos;hui ? Enregistrez le paiement partiel : le mois est marqué <span className="text-amber-400 font-semibold">[PARTIEL]</span> et le reliquat exact (83 DT) est suivi jusqu&apos;à son solde complet.
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Le parent ne peut verser que 40 DT aujourd&apos;hui ? Enregistrez le paiement partiel : le mois est marqué <span className="inline-block px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-semibold">[PARTIEL]</span> et le reliquat exact (83 DT) est suivi jusqu&apos;à son solde complet.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/40 transition-all">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
                       3
                     </div>
-                    <h3 className="text-base font-bold text-white">Suivi Annuel des 10 Mois en 1 Coup d&apos;Œil</h3>
+                    <h3 className="text-base font-bold text-slate-900">Suivi Annuel des 10 Mois en 1 Coup d&apos;Œil</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     Chaque élève dispose d&apos;une barre chronologique claire (Sept à Juin) avec le total versé, le reste annuel et un bouton pour imprimer un reçu officiel horodaté.
                   </p>
                 </div>
@@ -791,12 +790,19 @@ export default function Homepage() {
 
               {/* Right Column: Real Screenshots Carousel/Stack */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="rounded-2xl overflow-hidden border border-white/15 bg-slate-950/80 shadow-2xl">
-                  <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-300 flex items-center gap-2">
-                      <Receipt className="w-3.5 h-3.5 text-blue-400" /> Modal réelle de versement libre (1 000 DT ventilés automatiquement)
-                    </span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold border border-emerald-500/30">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/90 bg-white shadow-xl ring-1 ring-slate-100">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                      </div>
+                      <span className="font-semibold text-slate-700 flex items-center gap-2 ml-1">
+                        <Receipt className="w-3.5 h-3.5 text-blue-600" /> Modal réelle de versement libre (1 000 DT ventilés automatiquement)
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-200">
                       Calcul automatique
                     </span>
                   </div>
@@ -810,24 +816,24 @@ export default function Homepage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
-                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Acompte / Paiement Partiel</p>
+                  <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
+                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Acompte / Paiement Partiel</p>
                     <Image
                       src="/landing/student-partial-payment.png"
                       alt="Paiement partiel écolage"
                       width={600}
                       height={350}
-                      className="w-full h-auto rounded-lg object-cover select-none"
+                      className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
                     />
                   </div>
-                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
-                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Suivi Annuel de l&apos;Élève (10 Mois)</p>
+                  <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
+                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Suivi Annuel de l&apos;Élève (10 Mois)</p>
                     <Image
                       src="/landing/student-tuition-profile.png"
                       alt="Suivi annuel scolarité élève"
                       width={600}
                       height={350}
-                      className="w-full h-auto rounded-lg object-cover select-none"
+                      className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
                     />
                   </div>
                 </div>
@@ -839,39 +845,39 @@ export default function Homepage() {
           {activeFinanceTab === "recovery" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Key Superpowers */}
-              <div className="lg:col-span-5 space-y-5 text-left">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-500/40 transition-all">
+              <div className="lg:col-span-5 space-y-4 text-left">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-amber-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
                       1
                     </div>
-                    <h3 className="text-base font-bold text-white">File Active de Recouvrement</h3>
+                    <h3 className="text-base font-bold text-slate-900">File Active de Recouvrement</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Visualisez en un instant l&apos;ensemble des scolarités en souffrance. Chaque dossier affiche l&apos;élève, le mois concerné, le montant déjà réglé et le <strong className="text-rose-400">reste dû exact en rouge</strong>.
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Visualisez en un instant l&apos;ensemble des scolarités en souffrance. Chaque dossier affiche l&apos;élève, le mois concerné, le montant déjà réglé et le <strong className="text-rose-600 font-semibold">reste dû exact en rouge</strong>.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-500/40 transition-all">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
                       2
                     </div>
-                    <h3 className="text-base font-bold text-white">Encaissement & Relance en 1 Clic</h3>
+                    <h3 className="text-base font-bold text-slate-900">Encaissement & Relance en 1 Clic</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Un parent se présente ? Cliquez sur <span className="text-emerald-400 font-semibold">[RECOUVRER]</span> pour solder le dossier et générer le reçu. Possibilité d&apos;exporter la liste ou d&apos;envoyer des rappels par notification mobile.
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Un parent se présente ? Cliquez sur <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[RECOUVRER]</span> pour solder le dossier et générer le reçu. Possibilité d&apos;exporter la liste ou d&apos;envoyer des rappels par notification mobile.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/40 transition-all">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
                       3
                     </div>
-                    <h3 className="text-base font-bold text-white">Grand Livre des Recettes de l&apos;École</h3>
+                    <h3 className="text-base font-bold text-slate-900">Grand Livre des Recettes de l&apos;École</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     Toutes les entrées sont classées et traçables par catégorie : Frais de scolarité, Paiements partiels, Recouvrement, Transport / Bus, avec preuve de paiement jointe.
                   </p>
                 </div>
@@ -879,12 +885,19 @@ export default function Homepage() {
 
               {/* Right Column: Real Screenshots */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="rounded-2xl overflow-hidden border border-white/15 bg-slate-950/80 shadow-2xl">
-                  <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-300 flex items-center gap-2">
-                      <Receipt className="w-3.5 h-3.5 text-amber-400" /> File de Recouvrement réelle des frais de scolarité
-                    </span>
-                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold border border-rose-500/30">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/90 bg-white shadow-xl ring-1 ring-slate-100">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                      </div>
+                      <span className="font-semibold text-slate-700 flex items-center gap-2 ml-1">
+                        <Receipt className="w-3.5 h-3.5 text-amber-600" /> File de Recouvrement réelle des frais de scolarité
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-bold border border-rose-200">
                       Reste dû suivi au dinar près
                     </span>
                   </div>
@@ -897,14 +910,14 @@ export default function Homepage() {
                   />
                 </div>
 
-                <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
-                  <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Grand Livre des Recettes de l&apos;École (Par Catégorie & Date)</p>
+                <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
+                  <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Grand Livre des Recettes de l&apos;École (Par Catégorie & Date)</p>
                   <Image
                     src="/landing/incomes-ledger.png"
                     alt="Journal des recettes SnapSchool"
                     width={1000}
                     height={450}
-                    className="w-full h-auto rounded-lg object-cover select-none"
+                    className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
                   />
                 </div>
               </div>
@@ -915,54 +928,62 @@ export default function Homepage() {
           {activeFinanceTab === "teachers" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Key Superpowers */}
-              <div className="lg:col-span-5 space-y-5 text-left">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-500/40 transition-all">
+              <div className="lg:col-span-5 space-y-4 text-left">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-amber-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
                       1
                     </div>
-                    <h3 className="text-base font-bold text-white">Avances sur Salaire Instantanées</h3>
+                    <h3 className="text-base font-bold text-slate-900">Avances sur Salaire Instantanées</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     Un enseignant demande un acompte en milieu de mois ? Versez l&apos;avance en 1 clic (ex: 100 DT). Le système met immédiatement à jour le solde restant sans risque d&apos;oubli lors de la paie finale.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-rose-500/40 transition-all">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs">
                       2
                     </div>
-                    <h3 className="text-base font-bold text-white">Compteur d&apos;Absences & Retenues au Taux Horaire</h3>
+                    <h3 className="text-base font-bold text-slate-900">Compteur d&apos;Absences & Retenues au Taux Horaire</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     2 heures manquées ? SnapSchool calcule automatiquement la déduction au tarif horaire de l&apos;enseignant (ex: 2h × 15 DT/h = -30 DT). Vous pouvez appliquer la retenue ou la mettre en réserve si le cours est rattrapé.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/40 transition-all">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
                       3
                     </div>
-                    <h3 className="text-base font-bold text-white">Formule Nette Transparente</h3>
+                    <h3 className="text-base font-bold text-slate-900">Formule Nette Transparente</h3>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    <code className="text-blue-300 bg-white/10 px-2 py-0.5 rounded font-mono text-[11px]">
-                      Base (360 DT) - Retenue (-30 DT) - Avance (-100 DT) = 230 DT Net
-                    </code>. Vos enseignants voient exactement le détail de leur paie, éliminant toute contestation.
+                  <p className="text-xs text-slate-600 leading-relaxed mb-2">
+                    Décomposition claire pour chaque membre du personnel enseignant :
                   </p>
+                  <code className="inline-block text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg font-mono text-[11px] border border-blue-200/70 font-semibold">
+                    Base (360 DT) - Retenue (-30 DT) - Avance (-100 DT) = 230 DT Net
+                  </code>
                 </div>
               </div>
 
               {/* Right Column: Real Teacher Screenshots */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="rounded-2xl overflow-hidden border border-white/15 bg-slate-950/80 shadow-2xl">
-                  <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-300 flex items-center gap-2">
-                      <Calculator className="w-3.5 h-3.5 text-rose-400" /> Compteur d&apos;heures d&apos;absence & décision sur la paie
-                    </span>
-                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold border border-rose-500/30">
+                <div className="rounded-2xl overflow-hidden border border-slate-200/90 bg-white shadow-xl ring-1 ring-slate-100">
+                  <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                      </div>
+                      <span className="font-semibold text-slate-700 flex items-center gap-2 ml-1">
+                        <Calculator className="w-3.5 h-3.5 text-rose-600" /> Compteur d&apos;heures d&apos;absence & décision sur la paie
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-bold border border-rose-200">
                       Déduction en direct
                     </span>
                   </div>
@@ -976,24 +997,24 @@ export default function Homepage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
-                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Suivi Annuel de Rémunération Enseignant</p>
+                  <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
+                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Suivi Annuel de Rémunération Enseignant</p>
                     <Image
                       src="/landing/teacher-salary-tracker.png"
                       alt="Suivi salaire enseignant et avances"
                       width={600}
                       height={350}
-                      className="w-full h-auto rounded-lg object-cover select-none"
+                      className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
                     />
                   </div>
-                  <div className="rounded-xl overflow-hidden border border-white/10 bg-slate-950 p-2">
-                    <p className="text-[11px] font-bold text-slate-400 mb-1.5 px-2">Modal Versement d&apos;Avance sur Salaire</p>
+                  <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
+                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Modal Versement d&apos;Avance sur Salaire</p>
                     <Image
                       src="/landing/teacher-advance-modal.png"
                       alt="Versement avance enseignant"
                       width={600}
                       height={350}
-                      className="w-full h-auto rounded-lg object-cover select-none"
+                      className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
                     />
                   </div>
                 </div>

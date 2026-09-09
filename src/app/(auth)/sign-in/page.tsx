@@ -94,8 +94,8 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen flex bg-white text-gray-900 font-sans">
-      {/* ── LEFT PANEL (Our Original Branding) ──────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-blue-900 via-blue-950 to-slate-900 flex-col justify-between p-12 relative overflow-hidden text-white">
+      {/* ── LEFT PANEL (Branding matching app blue) ──────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 flex-col justify-between p-12 relative overflow-hidden text-white">
         {/* Subtle glow */}
         <div className="absolute top-[-80px] right-[-80px] w-[350px] h-[350px] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-60px] left-[-60px] w-[250px] h-[250px] bg-indigo-600/20 rounded-full blur-[80px] pointer-events-none" />
