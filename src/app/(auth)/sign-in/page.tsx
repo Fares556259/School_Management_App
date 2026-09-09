@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -10,12 +11,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  BarChart3,
-  Users,
-  Bell,
   ShieldCheck,
-  Building2,
   MessageSquare,
+  ArrowLeft,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -29,8 +27,8 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
 
   const inputClass =
-    "w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-sm font-medium";
-  const labelClass = "text-xs font-semibold text-gray-600 mb-1.5 block";
+    "w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-sm font-medium";
+  const labelClass = "text-xs font-semibold text-slate-700 mb-1.5 block";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,125 +83,61 @@ export default function SignInPage() {
     }
   };
 
-  const features = [
-    { icon: BarChart3, text: "Gestion financière & suivi des frais de scolarité" },
-    { icon: Users, text: "Gestion des élèves, enseignants & bulletins" },
-    { icon: Bell, text: "Notifications instantanées aux parents" },
-    { icon: ShieldCheck, text: "Données chiffrées & conformes aux normes" },
-  ];
-
   return (
-    <div className="min-h-screen flex bg-white text-gray-900 font-sans">
-      {/* ── LEFT PANEL (Branding matching app blue) ──────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 flex-col justify-between p-12 relative overflow-hidden text-white">
-        {/* Subtle glow */}
-        <div className="absolute top-[-80px] right-[-80px] w-[350px] h-[350px] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-60px] left-[-60px] w-[250px] h-[250px] bg-indigo-600/20 rounded-full blur-[80px] pointer-events-none" />
+    <div className="min-h-screen flex flex-col justify-between bg-[#F5F6F8] text-slate-900 font-sans relative overflow-hidden">
+      {/* Subtle background radial glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(59,130,246,0.08),transparent)] pointer-events-none" />
 
-        {/* Logo */}
-        <div className="relative z-10">
-          <a href="/" className="inline-flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/30">
-              <span className="text-white font-bold text-xl">S</span>
-            </div>
-            <span className="text-white font-bold text-xl tracking-tight">SnapSchool</span>
-          </a>
-        </div>
-
-        {/* Center content */}
-        <div className="relative z-10 space-y-7 my-auto py-8">
-          <div>
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold mb-4">
-              <Building2 className="w-3.5 h-3.5" /> Espace de gestion
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight mb-3">
-              Bienvenue sur votre <br />
-              <span className="text-blue-400">tableau de bord.</span>
-            </h2>
-            <p className="text-blue-100/80 text-sm leading-relaxed">
-              Toutes les fonctionnalités pour gérer votre établissement privé en un seul endroit.
-            </p>
+      {/* Top minimal header */}
+      <header className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+        <Link href="/" className="inline-flex items-center gap-2.5 group">
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
+            <span className="text-white font-bold text-lg">S</span>
           </div>
-
-          <div className="space-y-3.5">
-            {features.map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-500/20 border border-blue-400/20 rounded-lg flex items-center justify-center shrink-0">
-                  <f.icon className="w-4 h-4 text-blue-300" />
-                </div>
-                <p className="text-blue-100 text-sm font-medium">{f.text}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Direct Support Card */}
-          <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
-                <MessageSquare className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-white text-xs font-bold">Besoin d&apos;assistance immédiate ?</p>
-                <p className="text-blue-200 text-[11px]">Support technique WhatsApp direct</p>
-              </div>
-            </div>
-            <a
-              href="https://wa.me/21623889444?text=Bonjour,%20j%27ai%20besoin%20d%27aide%20pour%20me%20connecter%20%C3%A0%20SnapSchool"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
-            >
-              Contacter
-            </a>
-          </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="relative z-10">
-          <p className="text-blue-300/60 text-xs">© {new Date().getFullYear()} SnapSchool. Conçu pour les écoles privées.</p>
-        </div>
-      </div>
-
-      {/* ── RIGHT PANEL (Auth Form) ────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-12">
-        {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-3 mb-8">
-          <a href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
-            <span className="font-bold text-gray-900 text-lg tracking-tight">SnapSchool</span>
-          </a>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white p-8 sm:p-10 rounded-2xl border border-gray-100 shadow-xl"
+          <span className="text-lg font-bold text-slate-900 tracking-tight">SnapSchool</span>
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          {/* Heading */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-1.5">
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour à l&apos;accueil
+        </Link>
+      </header>
+
+      {/* Main centered container */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-[420px] bg-white rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-200/50 p-7 sm:p-9"
+        >
+          {/* Card Header */}
+          <div className="text-center mb-6">
+            <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3.5 border border-blue-100">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               {mode === "signin"
-                ? "Connexion à votre compte"
+                ? "Espace de gestion"
                 : mode === "forgot"
-                ? "Réinitialiser le mot de passe"
+                ? "Mot de passe oublié"
                 : "Vérifiez vos emails"}
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-xs text-slate-500 mt-1">
               {mode === "signin"
-                ? "Entrez vos identifiants pour accéder à votre espace."
+                ? "Connectez-vous pour accéder à votre établissement"
                 : mode === "forgot"
-                ? "Saisissez votre email pour recevoir un lien de réinitialisation."
-                : "Un lien de réinitialisation vous a été envoyé par email."}
+                ? "Entrez votre email pour recevoir le lien de réinitialisation"
+                : "Un lien de réinitialisation vous a été envoyé"}
             </p>
           </div>
 
-          {/* Sign In Mode */}
+          {/* Form */}
           {mode === "signin" && (
             <form onSubmit={handleSignIn} className="space-y-4">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2.5 text-xs font-medium">
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-start gap-2.5 text-xs font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -212,7 +146,7 @@ export default function SignInPage() {
               <div>
                 <label className={labelClass}>Adresse Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     required
                     type="email"
@@ -226,17 +160,17 @@ export default function SignInPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-gray-600 block">Mot de passe</label>
+                  <label className="text-xs font-semibold text-slate-700 block">Mot de passe</label>
                   <button
                     type="button"
                     onClick={() => { setMode("forgot"); setError(""); }}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
                   >
                     Mot de passe oublié ?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     required
                     type="password"
@@ -251,31 +185,47 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-md shadow-blue-600/20 cursor-pointer"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    Se connecter <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    Se connecter <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
 
-              <div className="pt-3 text-center text-xs text-gray-500 border-t border-gray-100">
+              <div className="pt-4 text-center text-xs text-slate-500 border-t border-slate-100">
                 Votre école n&apos;utilise pas encore SnapSchool ?{" "}
-                <a href="/sign-up" className="text-blue-600 font-semibold hover:underline">
+                <Link href="/sign-up" className="text-blue-600 font-semibold hover:underline">
                   Créer un compte
-                </a>
+                </Link>
               </div>
+
+              {/* Direct WhatsApp Assistance Pill */}
+              <a
+                href="https://wa.me/21623889444?text=Bonjour,%20j%27ai%20besoin%20d%27aide%20pour%20me%20connecter%20%C3%A0%20SnapSchool"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 flex items-center justify-between text-xs text-slate-600 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-medium text-slate-700">Support WhatsApp</span>
+                </div>
+                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  +216 23 889 444
+                </span>
+              </a>
             </form>
           )}
 
-          {/* Forgot Mode */}
+          {/* Forgot Password Mode */}
           {mode === "forgot" && (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-2 text-xs font-medium">
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-start gap-2 text-xs font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
@@ -283,7 +233,7 @@ export default function SignInPage() {
               <div>
                 <label className={labelClass}>Votre Adresse Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     required
                     type="email"
@@ -298,7 +248,7 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 shadow-md shadow-blue-600/20 cursor-pointer"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Envoyer le lien <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -306,36 +256,52 @@ export default function SignInPage() {
               <button
                 type="button"
                 onClick={() => { setMode("signin"); setError(""); }}
-                className="block w-full text-center text-xs text-gray-500 hover:text-gray-700 font-medium transition-colors pt-2 cursor-pointer"
+                className="block w-full text-center text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors pt-2 cursor-pointer"
               >
                 ← Retour à la connexion
               </button>
             </form>
           )}
 
-          {/* Sent Mode */}
+          {/* Forgot Sent Mode */}
           {mode === "forgot_sent" && (
             <div className="text-center space-y-4 py-3">
-              <div className="w-12 h-12 bg-green-50 border border-green-100 text-green-600 rounded-2xl flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Email envoyé !</h3>
-                <p className="text-xs text-gray-500">
-                  Un lien de réinitialisation a été envoyé à <span className="font-semibold text-gray-800">{forgotEmail}</span>.
+                <h3 className="text-base font-bold text-slate-900 mb-1">Email envoyé !</h3>
+                <p className="text-xs text-slate-500">
+                  Un lien de réinitialisation a été envoyé à <span className="font-semibold text-slate-800">{forgotEmail}</span>.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => { setMode("signin"); setError(""); }}
-                className="w-full py-2.5 bg-gray-100 text-gray-700 font-semibold text-xs rounded-xl hover:bg-gray-200 transition-all cursor-pointer"
+                className="w-full py-2.5 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-200 transition-all cursor-pointer"
               >
                 Retour à la connexion
               </button>
             </div>
           )}
         </motion.div>
-      </div>
+
+        {/* Security / System Badges underneath the card */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Chiffrement SSL 256-bit
+          </span>
+          <span className="text-slate-300">•</span>
+          <span>Système Éducatif Tunisien</span>
+          <span className="text-slate-300">•</span>
+          <span>Accès Sécurisé Multi-Rôles</span>
+        </div>
+      </main>
+
+      {/* Minimal Footer */}
+      <footer className="relative z-10 py-4 text-center text-[11px] text-slate-400">
+        © {new Date().getFullYear()} SnapSchool. Tous droits réservés.
+      </footer>
     </div>
   );
 }
