@@ -179,7 +179,8 @@ export const fr = {
     "attendance": "Présence",
     "announcements": "Annonces",
     "mobileApp": "Application Mobile",
-    "helpSupport": "Aide & Support"
+    "helpSupport": "Aide & Support",
+    "help": "Aide & Support"
   },
   "navbar": {
     "search": "Rechercher...",

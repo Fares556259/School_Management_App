@@ -179,7 +179,8 @@ export const ar = {
     "attendance": "الحضور",
     "announcements": "الإعلانات",
     "mobileApp": "تطبيق الجوال",
-    "helpSupport": "المساعدة والدعم"
+    "helpSupport": "المساعدة والدعم",
+    "help": "المساعدة والدعم"
   },
   "navbar": {
     "search": "ابحث عن أي شيء...",

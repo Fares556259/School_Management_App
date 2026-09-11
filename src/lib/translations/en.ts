@@ -179,7 +179,8 @@ export const en = {
     "attendance": "Attendance",
     "announcements": "Announcements",
     "mobileApp": "Mobile App",
-    "helpSupport": "Help & Support"
+    "helpSupport": "Help & Support",
+    "help": "Help & Support"
   },
   "navbar": {
     "search": "Search for anything...",
