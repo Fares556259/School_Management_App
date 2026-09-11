@@ -27,21 +27,23 @@ type ResourceList = Resource & {
 const ResourceListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;
   const userId = user?.id;
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
 
   const cookieStore = cookies();
-  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
-  const t = translations[locale];
+  const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+  const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
+  const t = translations[locale] || translations.en;
 
   const columns = [
     {
@@ -149,10 +151,10 @@ const ResourceListPage = async ({
     </tr>
   );
 
-  const [data, count] = await getCachedTenantData(
+  const cached = await getCachedTenantData(
     schoolId,
     'resources',
-    [p, JSON.stringify(queryParams)],
+    [p, JSON.stringify(queryParams), schoolId],
     () => Promise.all([
       prisma.resource.findMany({
         where: query,
@@ -172,7 +174,26 @@ const ResourceListPage = async ({
       prisma.resource.count({ where: query }),
     ]),
     300
-  );
+  ).catch(() => null);
+
+  const [data, count] = Array.isArray(cached) && cached.length === 2 ? cached : await Promise.all([
+    prisma.resource.findMany({
+      where: query,
+      include: {
+        lesson: {
+          include: {
+            subject: true,
+            class: true,
+            teacher: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.resource.count({ where: query }),
+  ]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

@@ -21,12 +21,13 @@ const columns = [
 const TeacherListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -54,7 +55,7 @@ const TeacherListPage = async ({
     }
   }
 
-  const selectedMonthKey = getMonthKey(searchParams.month);
+  const selectedMonthKey = getMonthKey(safeSearchParams.month);
   const [mName, yStr] = selectedMonthKey.split(" ");
   const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
@@ -101,46 +102,73 @@ const TeacherListPage = async ({
       }),
     ]);
 
-  const staticRefPromise = getCachedTenantData(
-    schoolId,
-    "classes",
-    ["teacher_modal_references"],
-    fetchStaticReferences,
-    3600
-  );
+  let subjectsData: any[] = [];
+  let classesData: any[] = [];
+  let data: any[] = [];
+  let count: number = 0;
+  let paidThisMonth: number = 0;
 
-  const dynamicDataPromise = getCachedTenantData(
-    schoolId,
-    "teachers",
-    ["teachers_paged_v5", p, JSON.stringify(queryParams), monthIdx, yearVal],
-    fetchDynamicData,
-    300
-  );
+  try {
+    const staticRefPromise = getCachedTenantData(
+      schoolId,
+      "classes",
+      ["teacher_modal_references"],
+      fetchStaticReferences,
+      3600
+    );
 
-  const [
-    [subjectsData, classesData],
-    [data, count, paidThisMonth],
-  ] = await Promise.all([
-    staticRefPromise.catch(async () => fetchStaticReferences()),
-    dynamicDataPromise.catch(async () => fetchDynamicData()),
-  ]);
+    const [staticRes, dynamicRes] = await Promise.all([
+      staticRefPromise.catch(() => fetchStaticReferences()),
+      fetchDynamicData(),
+    ]);
+
+    if (Array.isArray(staticRes) && staticRes.length >= 2) {
+      [subjectsData, classesData] = staticRes;
+    } else {
+      [subjectsData, classesData] = await fetchStaticReferences();
+    }
+
+    if (Array.isArray(dynamicRes) && dynamicRes.length >= 3) {
+      [data, count, paidThisMonth] = dynamicRes;
+    } else {
+      [data, count, paidThisMonth] = await fetchDynamicData();
+    }
+  } catch (err) {
+    console.error("[TeacherListPage] Error fetching teachers data, falling back:", err);
+    try {
+      const [staticRes, dynamicRes] = await Promise.all([
+        fetchStaticReferences(),
+        fetchDynamicData(),
+      ]);
+      [subjectsData, classesData] = staticRes;
+      [data, count, paidThisMonth] = dynamicRes;
+    } catch (dbErr) {
+      console.error("[TeacherListPage] Direct DB fallback failed:", dbErr);
+    }
+  }
+
+  const safeSubjects = Array.isArray(subjectsData) ? subjectsData : [];
+  const safeClasses = Array.isArray(classesData) ? classesData : [];
+  const safeData = Array.isArray(data) ? data : [];
+  const safeCount = typeof count === "number" ? count : safeData.length;
+  const safePaidThisMonth = typeof paidThisMonth === "number" ? paidThisMonth : 0;
 
   const relatedData = {
-    subjects: subjectsData.map(s => ({ value: s.id.toString(), label: s.name.split('|')[0].trim() })),
-    classes: classesData.map(c => ({ value: c.id.toString(), label: c.name }))
+    subjects: safeSubjects.map((s: any) => ({ value: (s.id || '').toString(), label: (s.name || '').split('|')[0].trim() })),
+    classes: safeClasses.map((c: any) => ({ value: (c.id || '').toString(), label: c.name || '' }))
   };
 
   return (
     <div className="bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
       <TeacherListClient 
         key={selectedMonthKey}
-        initialData={data} 
+        initialData={safeData} 
         columns={columns} 
-        count={count}
+        count={safeCount}
         page={p}
         role={role}
         selectedMonthKey={selectedMonthKey}
-        paidThisMonth={paidThisMonth}
+        paidThisMonth={safePaidThisMonth}
         relatedData={relatedData}
       />
     </div>

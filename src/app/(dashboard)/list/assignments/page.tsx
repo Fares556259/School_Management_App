@@ -35,21 +35,22 @@ function getTranslatedSubject(subjectStr: string, locale: string): string {
 const AssignmentListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;
   const userId = user?.id;
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
 
   const langCookie = cookies().get("NEXT_LOCALE")?.value || "en";
   const lang = (["en", "fr", "ar"].includes(langCookie) ? langCookie : "en") as Locale;
-  const t = translations[lang];
+  const t = translations[lang] || translations.en;
 
   const columns = [
     { header: t.assignmentsPage.table.subjectName, accessor: "name" },
@@ -135,8 +136,10 @@ const AssignmentListPage = async ({
     </tr>
   );
 
-  const [data, count] = await safeDbQuery(() =>
-    getCachedTenantData(
+  let data: any[] = [];
+  let count = 0;
+  try {
+    const cached = await getCachedTenantData(
       schoolId,
       "assignments",
       [p, JSON.stringify(queryParams), schoolId],
@@ -158,8 +161,37 @@ const AssignmentListPage = async ({
         prisma.assignment.count({ where: query }),
       ]),
       300
-    )
-  );
+    );
+    if (Array.isArray(cached) && cached.length === 2) {
+      [data, count] = cached;
+    }
+  } catch (e) {
+    console.error("[assignments] Cache fetch failed:", e);
+  }
+
+  if (!data || data.length === 0) {
+    const [freshData, freshCount] = await safeDbQuery(() =>
+      Promise.all([
+        prisma.assignment.findMany({
+          where: query,
+          include: {
+            lesson: {
+              include: {
+                subject: true,
+                class: true,
+                teacher: true,
+              },
+            },
+          },
+          take: ITEM_PER_PAGE,
+          skip: ITEM_PER_PAGE * (p - 1),
+        }),
+        prisma.assignment.count({ where: query }),
+      ])
+    ).catch(() => [[], 0] as [any[], number]);
+    data = freshData || [];
+    count = typeof freshCount === "number" ? freshCount : 0;
+  }
 
   return (
     <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">

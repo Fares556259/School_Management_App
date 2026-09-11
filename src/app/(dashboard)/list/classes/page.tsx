@@ -23,10 +23,11 @@ type ClassList = Class & { level: Level } & {
 const ClassListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
-  const lang = cookies().get("NEXT_LOCALE")?.value || "en";
-  const t = translations[lang as Locale];
+  const cookieLang = cookies().get("NEXT_LOCALE")?.value || "en";
+  const lang = (cookieLang.startsWith("ar") ? "ar" : cookieLang.startsWith("fr") ? "fr" : "en") as Locale;
+  const t = translations[lang] || translations.fr || translations.en;
 
   const columns = [
     {
@@ -60,7 +61,8 @@ const ClassListPage = async ({
   const user = session?.user ?? null;
   const userId = user?.id;
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -225,35 +227,60 @@ const ClassListPage = async ({
       prisma.class.count({ where: query }),
     ]);
 
-  const staticRefPromise = getCachedTenantData(
-    schoolId,
-    'classes',
-    ['class_modal_references'],
-    fetchStaticReferences,
-    3600
-  );
+  let levels: any[] = [];
+  let teachers: any[] = [];
+  let data: any[] = [];
+  let count: number = 0;
 
-  const dynamicDataPromise = getCachedTenantData(
-    schoolId,
-    'classes',
-    ['classes_paged_v2', p, JSON.stringify(queryParams)],
-    fetchDynamicData,
-    300
-  );
+  try {
+    const staticRefPromise = getCachedTenantData(
+      schoolId,
+      'classes',
+      ['class_modal_references'],
+      fetchStaticReferences,
+      3600
+    );
 
-  const [
-    [levels, teachers],
-    [data, count],
-  ] = await Promise.all([
-    staticRefPromise.catch(async () => fetchStaticReferences()),
-    dynamicDataPromise.catch(async () => fetchDynamicData()),
-  ]);
+    const [staticRes, dynamicRes] = await Promise.all([
+      staticRefPromise.catch(() => fetchStaticReferences()),
+      fetchDynamicData(),
+    ]);
+
+    if (Array.isArray(staticRes) && staticRes.length >= 2) {
+      [levels, teachers] = staticRes;
+    } else {
+      [levels, teachers] = await fetchStaticReferences();
+    }
+
+    if (Array.isArray(dynamicRes) && dynamicRes.length >= 2) {
+      [data, count] = dynamicRes;
+    } else {
+      [data, count] = await fetchDynamicData();
+    }
+  } catch (err) {
+    console.error("[ClassListPage] Error fetching classes data, falling back:", err);
+    try {
+      const [staticRes, dynamicRes] = await Promise.all([
+        fetchStaticReferences(),
+        fetchDynamicData(),
+      ]);
+      [levels, teachers] = staticRes;
+      [data, count] = dynamicRes;
+    } catch (dbErr) {
+      console.error("[ClassListPage] Direct DB fallback failed:", dbErr);
+    }
+  }
+
+  const safeLevels = Array.isArray(levels) ? levels : [];
+  const safeTeachers = Array.isArray(teachers) ? teachers : [];
+  const safeData = Array.isArray(data) ? data : [];
+  const safeCount = typeof count === "number" ? count : safeData.length;
 
   const availableClassNames: { value: string; label: string }[] = [];
   const ARABIC_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض", "ظ", "غ"];
-  levels.forEach((l) => {
-    const existingNames = l.classes.map(c => c.name);
-    const count = (l.level === 0 && l.variations === 0 && existingNames.length === 0) ? 1 : l.variations;
+  safeLevels.forEach((l) => {
+    const existingNames = Array.isArray(l.classes) ? l.classes.map((c: any) => c.name) : [];
+    const count = (l.level === 0 && l.variations === 0 && existingNames.length === 0) ? 1 : (l.variations || 0);
     for (let i = 0; i < count; i++) {
       const name = l.level === 0
         ? `تحضيري ${ARABIC_LETTERS[i] || String.fromCharCode(65 + i)}`
@@ -265,7 +292,9 @@ const ClassListPage = async ({
   });
 
   const classRelatedData = {
-    name: availableClassNames
+    name: availableClassNames,
+    teachers: safeTeachers.map((t: any) => ({ value: t.id, label: `${t.name} ${t.surname || ''}`.trim() })),
+    levels: safeLevels.map((l: any) => ({ value: l.id.toString(), label: l.level.toString() })),
   };
 
 
@@ -308,9 +337,9 @@ const ClassListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table columns={columns} renderRow={renderRow} data={safeData} />
       {/* PAGINATION */}
-      <Pagination page={p} count={count} />
+      <Pagination page={p} count={safeCount} />
     </div>
   );
 };

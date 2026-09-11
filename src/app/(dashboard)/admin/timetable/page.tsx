@@ -8,36 +8,40 @@ import TimetableClient from "./TimetableClient";
 const TimetablePage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
-
-
   const schoolId = await getSchoolId();
 
-  // Parallelize actions for fast page loads, wrapped in cache
-  const [classesRes, subjectsTeachersRes, configRes, roomsRes, allSlotsRes] = await getCachedTenantData(
-    schoolId,
-    'classes',
-    ['timetable-full', schoolId],
-    () => Promise.all([
+  const fetchTimetableData = () =>
+    Promise.all([
       getAllClasses(schoolId),
       getAllSubjectsAndTeachers(schoolId),
       getSchoolConfig(schoolId),
       getAllRooms(schoolId),
       getAllActiveTimetableSlots(schoolId),
-    ]),
-    300 // Cache for 5 minutes
-  );
+    ]);
 
-  const classes = (classesRes.success ? classesRes.data : []) as any[];
-  const subjects = (subjectsTeachersRes.success ? subjectsTeachersRes.subjects : []) as any[];
-  const teachers = (subjectsTeachersRes.success ? subjectsTeachersRes.teachers : []) as any[];
-  const rooms = (roomsRes.success ? roomsRes.data : []) as any[];
-  const allActiveSlots = (allSlotsRes.success ? allSlotsRes.data : []) as any[];
+  // Parallelize actions for fast page loads, wrapped in cache
+  const cached = await getCachedTenantData(
+    schoolId,
+    'classes',
+    ['timetable-full', schoolId],
+    fetchTimetableData,
+    300 // Cache for 5 minutes
+  ).catch(() => null);
+
+  const [classesRes, subjectsTeachersRes, configRes, roomsRes, allSlotsRes] =
+    Array.isArray(cached) && cached.length === 5 ? cached : await fetchTimetableData();
+
+  const classes = (classesRes?.success ? classesRes.data : []) as any[];
+  const subjects = (subjectsTeachersRes?.success ? subjectsTeachersRes.subjects : []) as any[];
+  const teachers = (subjectsTeachersRes?.success ? subjectsTeachersRes.teachers : []) as any[];
+  const rooms = (roomsRes?.success ? roomsRes.data : []) as any[];
+  const allActiveSlots = (allSlotsRes?.success ? allSlotsRes.data : []) as any[];
   
   // Extract sessions from config
-  const dayStartTime = configRes.success ? (configRes.data as any).dayStartTime || "08:00" : "08:00";
-  const dayEndTime = configRes.success ? (configRes.data as any).dayEndTime || "18:00" : "18:00";
+  const dayStartTime = configRes?.success ? (configRes.data as any).dayStartTime || "08:00" : "08:00";
+  const dayEndTime = configRes?.success ? (configRes.data as any).dayEndTime || "18:00" : "18:00";
 
   return (
     <TimetableClient 

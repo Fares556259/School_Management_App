@@ -78,44 +78,48 @@ export default async function SingleStudentPage({
     return notFound();
   }
 
-  // 2. Fetch all school timetable slots and lessons (cached)
+  // 2. Fetch all school timetable slots and lessons (cached with fallback)
+  const fetchSlots = () =>
+    prisma.timetableSlot.findMany({
+      where: {
+        schoolId,
+        isDraft: false,
+      },
+      include: {
+        subject: true,
+        teacher: true,
+        room: true,
+      },
+      orderBy: [{ day: "asc" }, { startTime: "asc" }],
+    });
+
+  const fetchLessons = () =>
+    prisma.lesson.findMany({
+      where: {
+        schoolId,
+      },
+      include: {
+        subject: true,
+        teacher: true,
+      },
+      orderBy: [{ day: "asc" }, { startTime: "asc" }],
+    });
+
   const [allSlots, allLessons] = await Promise.all([
     getCachedTenantData(
       schoolId,
       "classes",
       ["all_slots_school", schoolId],
-      () =>
-        prisma.timetableSlot.findMany({
-          where: {
-            schoolId,
-            isDraft: false,
-          },
-          include: {
-            subject: true,
-            teacher: true,
-            room: true,
-          },
-          orderBy: [{ day: "asc" }, { startTime: "asc" }],
-        }),
+      fetchSlots,
       600
-    ),
+    ).catch(() => fetchSlots()),
     getCachedTenantData(
       schoolId,
       "classes",
       ["all_lessons_school", schoolId],
-      () =>
-        prisma.lesson.findMany({
-          where: {
-            schoolId,
-          },
-          include: {
-            subject: true,
-            teacher: true,
-          },
-          orderBy: [{ day: "asc" }, { startTime: "asc" }],
-        }),
+      fetchLessons,
       600
-    ),
+    ).catch(() => fetchLessons()),
   ]);
 
   // Group slots and lessons by classId

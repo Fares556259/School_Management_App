@@ -26,8 +26,9 @@ const AdminPage = async ({
   searchParams?: { [key: string]: string | undefined };
 }) => {
   const cookieStore = cookies();
-  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
-  const t = translations[locale];
+  const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+  const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
+  const t = translations[locale] || translations.en;
 
   const { 
     start: queryStart,
@@ -163,13 +164,26 @@ const AdminPage = async ({
     }
   };
 
-  const stats = await getCachedTenantData(
+  const cachedStats = await getCachedTenantData(
     schoolId,
     'dashboard',
     [startDate.toISOString(), endDate.toISOString(), isCustomRange ? `period-${targetMonth}-${targetYear}-v4` : 'all-time-v4'],
     () => getMegaStats(),
     120
-  );
+  ).catch(() => null);
+
+  const stats = cachedStats || (await getMegaStats().catch(() => ({
+    student_count: 0,
+    teacher_count: 0,
+    staff_count: 0,
+    class_count: 0,
+    current_income_general: 0,
+    current_expense_general: 0,
+    prev_income_general: 0,
+    prev_expense_general: 0,
+    collected_tuition: 0,
+    expected_tuition: 0,
+  })));
 
   // CORE CALCULATIONS
   const currentIncome = (stats.current_income_general || 0);

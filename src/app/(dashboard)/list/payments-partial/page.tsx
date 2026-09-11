@@ -20,15 +20,12 @@ export default async function PartialPaymentsPage() {
   const t = translations[locale] || translations.en;
 
   // Fetch all partial payments
-  const payments = await getCachedTenantData(
-    schoolId,
-    "finance",
-    [schoolId],
-    () => prisma.payment.findMany({
+  const fetchPayments = () =>
+    prisma.payment.findMany({
       where: {
         schoolId,
         status: "PARTIAL" as PaymentStatus,
-        userType: "STUDENT"
+        userType: "STUDENT",
       },
       include: {
         student: {
@@ -36,19 +33,27 @@ export default async function PartialPaymentsPage() {
             name: true,
             surname: true,
             level: { select: { level: true } },
-            class: { select: { name: true } }
-          }
-        }
+            class: { select: { name: true } },
+          },
+        },
       },
       orderBy: {
-        deferredUntil: "asc"
-      }
-    }),
+        deferredUntil: "asc",
+      },
+    });
+
+  const cachedPayments = await getCachedTenantData(
+    schoolId,
+    "finance",
+    [schoolId],
+    fetchPayments,
     300
-  );
+  ).catch(() => null);
+
+  const payments = Array.isArray(cachedPayments) ? cachedPayments : await fetchPayments();
 
   // Calculate total pending revenue from these gaps
-  const totalPending = payments.reduce((acc: number, curr: any) => acc + (curr.deferredAmount || 0), 0);
+  const totalPending = (payments || []).reduce((acc: number, curr: any) => acc + (curr.deferredAmount || 0), 0);
 
   return (
     <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden min-h-[calc(100vh-100px)]">

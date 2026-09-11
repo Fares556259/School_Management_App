@@ -8,7 +8,11 @@ import { getSchoolId } from "@/lib/school";
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 
 
-const ResultListPage = async () => {
+const ResultListPage = async ({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | undefined };
+}) => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;
@@ -17,12 +21,8 @@ const ResultListPage = async () => {
 
   const schoolId = await getSchoolId();
 
-  // 🐘 V3 Stabilization: Re-parallelize optimized queries with hardened pool settings
-  const [classesRaw, subjects, teachers, sheets, allStudents, lessons] = await getCachedTenantData(
-    schoolId,
-    "exams",
-    [schoolId],
-    () => Promise.all([
+  const fetchResultsData = () =>
+    Promise.all([
       prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true, level: true }, orderBy: { name: "asc" } }),
       prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
       prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
@@ -37,7 +37,7 @@ const ResultListPage = async () => {
         orderBy: [{ updatedAt: "desc" }],
       }),
       prisma.student.findMany({ 
-        where: { schoolId, classId: { not: undefined } },
+        where: { schoolId, classId: { not: null } },
         select: { id: true, name: true, surname: true, classId: true }, 
         orderBy: { name: "asc" } 
       }),
@@ -49,16 +49,32 @@ const ResultListPage = async () => {
           teacher: { select: { id: true, name: true, surname: true } }
         }
       })
-    ]),
-    300
-  );
+    ]);
 
-  // Derive initial students after parallel fetch completes
-  const firstClassId = classesRaw?.length > 0 ? classesRaw[0].id : null;
-  const initialStudents = allStudents.filter(s => s.classId === firstClassId);
+  const cached = await getCachedTenantData(
+    schoolId,
+    "exams",
+    [schoolId],
+    fetchResultsData,
+    300
+  ).catch(() => null);
+
+  const [classesRaw, subjects, teachers, sheets, allStudents, lessons] =
+    Array.isArray(cached) && cached.length === 6 ? cached : await fetchResultsData();
+
+  const safeClassesRaw = classesRaw || [];
+  const safeSubjects = subjects || [];
+  const safeTeachers = teachers || [];
+  const safeSheets = sheets || [];
+  const safeAllStudents = allStudents || [];
+  const safeLessons = lessons || [];
+
+  // Derive initial students after fetch completes
+  const firstClassId = safeClassesRaw.length > 0 ? safeClassesRaw[0].id : null;
+  const initialStudents = safeAllStudents.filter((s: any) => s.classId === firstClassId);
 
   // Hard-filter any placeholder "all" classes
-  const classes = classesRaw.filter(c => String(c.id).toLowerCase() !== "all" && c.name.toLowerCase() !== "all classes");
+  const classes = safeClassesRaw.filter((c: any) => String(c.id).toLowerCase() !== "all" && c.name?.toLowerCase() !== "all classes");
 
   return (
     <ResultsPageClient

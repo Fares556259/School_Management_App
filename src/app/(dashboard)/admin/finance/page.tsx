@@ -47,12 +47,13 @@ function getLast6Months(): string[] {
 const FinancePage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 
-  const { category, type, q, period, from, to } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { category, type, q, period, from, to } = safeSearchParams;
   const schoolId = await getSchoolId();
   const currentMonth = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
 
@@ -115,7 +116,59 @@ const FinancePage = async ({
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  // Parallel data fetching with tenant cache
+  const executeFinanceQueries = () =>
+    Promise.all([
+      prisma.income.findMany({
+        where: { schoolId, date: { gte: sixMonthsAgo } },
+        orderBy: { date: "desc" },
+      }),
+      prisma.expense.findMany({
+        where: { schoolId, date: { gte: sixMonthsAgo } },
+        orderBy: { date: "desc" },
+      }),
+      type !== "expense"
+        ? prisma.income.findMany({ where: incomeWhere, orderBy: { date: "desc" } })
+        : Promise.resolve([]),
+      type !== "income"
+        ? prisma.expense.findMany({ where: expenseWhere, orderBy: { date: "desc" } })
+        : Promise.resolve([]),
+      prisma.teacher.findMany({
+        where: { schoolId },
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          salary: true,
+          payments: {
+            where: {
+              month: MONTHS.indexOf(MONTHS[new Date().getMonth()]),
+              year: new Date().getFullYear(),
+            },
+          },
+        },
+      }),
+      prisma.student.findMany({
+        where: { schoolId },
+        include: {
+          level: true,
+          payments: {
+            where: {
+              month: MONTHS.indexOf(MONTHS[new Date().getMonth()]),
+              year: new Date().getFullYear(),
+            },
+          },
+        },
+      }),
+    ]);
+
+  const cached = await getCachedTenantData(
+    schoolId,
+    "finance",
+    [category, type, q, activePeriod, from, to, schoolId],
+    executeFinanceQueries,
+    120
+  ).catch(() => null);
+
   const [
     chartIncomes,
     chartExpenses,
@@ -123,54 +176,7 @@ const FinancePage = async ({
     periodExpenses,
     allTeachers,
     allStudents,
-  ] = await getCachedTenantData(
-    schoolId,
-    "finance",
-    [category, type, q, activePeriod, from, to, schoolId],
-    () =>
-      Promise.all([
-        prisma.income.findMany({
-          where: { schoolId, date: { gte: sixMonthsAgo } },
-          orderBy: { date: "desc" },
-        }),
-        prisma.expense.findMany({
-          where: { schoolId, date: { gte: sixMonthsAgo } },
-          orderBy: { date: "desc" },
-        }),
-        type !== "expense"
-          ? prisma.income.findMany({ where: incomeWhere, orderBy: { date: "desc" } })
-          : Promise.resolve([]),
-        type !== "income"
-          ? prisma.expense.findMany({ where: expenseWhere, orderBy: { date: "desc" } })
-          : Promise.resolve([]),
-        prisma.teacher.findMany({
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            salary: true,
-            payments: {
-              where: {
-                month: MONTHS.indexOf(MONTHS[new Date().getMonth()]),
-                year: new Date().getFullYear(),
-              },
-            },
-          },
-        }),
-        prisma.student.findMany({
-          include: {
-            level: true,
-            payments: {
-              where: {
-                month: MONTHS.indexOf(MONTHS[new Date().getMonth()]),
-                year: new Date().getFullYear(),
-              },
-            },
-          },
-        }),
-      ]),
-    120
-  );
+  ] = Array.isArray(cached) && cached.length === 6 ? cached : await executeFinanceQueries();
 
   const unpaidTeachers = allTeachers.filter((t: any) => !t.payments.some((p: any) => p.status === "PAID"));
   const unpaidStudents = allStudents.filter((s: any) => !s.payments.some((p: any) => p.status === "PAID"));

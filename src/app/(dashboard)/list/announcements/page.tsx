@@ -15,15 +15,17 @@ import { translations, Locale } from "@/lib/translations";
 
 type NoticeList = Notice & { class: Class | null };
 
-const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: string]: string | undefined } }) => {
+const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) => {
   const role = await getRole();
-  const { page, search, classId } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, search, classId } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
   const schoolId = await getSchoolId();
 
   const cookieStore = cookies();
-  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
-  const t = translations[locale];
+  const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+  const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
+  const t = translations[locale] || translations.en;
 
   const query: Prisma.NoticeWhereInput = { schoolId };
   if (search) {
@@ -36,7 +38,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
     query.classId = parseInt(classId);
   }
 
-  const [data, count, classes] = await getCachedTenantData(
+  const cached = await getCachedTenantData(
     schoolId,
     "institution",
     [p, search, classId, schoolId],
@@ -52,7 +54,19 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams: { [key: st
       prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
     ]),
     300
-  );
+  ).catch(() => null);
+
+  const [data, count, classes] = Array.isArray(cached) && cached.length === 3 ? cached : await Promise.all([
+    prisma.notice.findMany({
+      where: query,
+      include: { class: true },
+      orderBy: { date: "desc" },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.notice.count({ where: query }),
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+  ]);
 
   return (
     <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">

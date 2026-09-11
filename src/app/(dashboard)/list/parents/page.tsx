@@ -47,14 +47,15 @@ import ParentListClient from "./ParentListClient";
 const ParentListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;
   const userId = user?.id;
   const role = await getRole();
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -108,48 +109,73 @@ const ParentListPage = async ({
       prisma.parent.count({ where: query }),
     ]);
 
-  const staticRefPromise = getCachedTenantData(
-    schoolId,
-    "classes",
-    ["parent_modal_references"],
-    fetchStaticReferences,
-    3600
-  );
+  let classes: any[] = [];
+  let school: any = null;
+  let data: any[] = [];
+  let count: number = 0;
 
-  const dynamicDataPromise = getCachedTenantData(
-    schoolId,
-    "parents",
-    ["parents_paged_v2", p, JSON.stringify(queryParams)],
-    fetchDynamicData,
-    300
-  );
+  try {
+    const staticRefPromise = getCachedTenantData(
+      schoolId,
+      "classes",
+      ["parent_modal_references"],
+      fetchStaticReferences,
+      3600
+    );
 
-  const [
-    [classes, school],
-    [data, count],
-  ] = await Promise.all([
-    staticRefPromise.catch(async () => fetchStaticReferences()),
-    dynamicDataPromise.catch(async () => fetchDynamicData()),
-  ]);
+    const [staticRes, dynamicRes] = await Promise.all([
+      staticRefPromise.catch(() => fetchStaticReferences()),
+      fetchDynamicData(),
+    ]);
+
+    if (Array.isArray(staticRes) && staticRes.length >= 2) {
+      [classes, school] = staticRes;
+    } else {
+      [classes, school] = await fetchStaticReferences();
+    }
+
+    if (Array.isArray(dynamicRes) && dynamicRes.length >= 2) {
+      [data, count] = dynamicRes;
+    } else {
+      [data, count] = await fetchDynamicData();
+    }
+  } catch (err) {
+    console.error("[ParentListPage] Error fetching parents data, falling back:", err);
+    try {
+      const [staticRes, dynamicRes] = await Promise.all([
+        fetchStaticReferences(),
+        fetchDynamicData(),
+      ]);
+      [classes, school] = staticRes;
+      [data, count] = dynamicRes;
+    } catch (dbErr) {
+      console.error("[ParentListPage] Direct DB fallback failed:", dbErr);
+    }
+  }
+
+  const safeClasses = Array.isArray(classes) ? classes : [];
+  const safeData = Array.isArray(data) ? data : [];
+  const safeCount = typeof count === "number" ? count : safeData.length;
 
   const relatedData = {
     classId: [
       { value: "null", label: "Non affecté(e)" },
-      ...classes.map((c) => ({ value: c.id.toString(), label: c.name }))
+      ...safeClasses.map((c: any) => ({ value: (c.id || '').toString(), label: c.name || '' }))
     ],
     schoolName: school?.name || "SnapSchool",
-    schoolSubdomain: school?.subdomain || "snapschool-academy",
   };
 
   return (
-    <ParentListClient
-      data={data}
-      columns={columns}
-      role={role}
-      count={count}
-      page={p}
-      relatedData={relatedData}
-    />
+    <div className="bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
+      <ParentListClient
+        data={safeData}
+        columns={columns}
+        count={safeCount}
+        page={p}
+        role={role}
+        relatedData={relatedData}
+      />
+    </div>
   );
 };
 

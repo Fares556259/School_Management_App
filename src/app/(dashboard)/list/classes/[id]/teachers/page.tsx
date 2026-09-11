@@ -18,55 +18,58 @@ export default async function ClassTeachersPage({
     return notFound();
   }
 
-  // 1. Fetch Class details with supervisor and lessons to extract teachers
-  const activeClass = await getCachedTenantData(
-    schoolId,
-    "classes",
-    [id, schoolId, "teachers"],
-    () =>
-      prisma.class.findFirst({
-        where: { id: classId, schoolId },
-        include: {
-          level: true,
-          supervisor: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              surname: true,
-              phone: true,
-              address: true,
-              img: true,
-              bloodType: true,
-              sex: true,
-              createdAt: true,
-              salary: true,
-            },
+  const fetchActiveClass = () =>
+    prisma.class.findFirst({
+      where: { id: classId, schoolId },
+      include: {
+        level: true,
+        supervisor: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            surname: true,
+            phone: true,
+            address: true,
+            img: true,
+            bloodType: true,
+            sex: true,
+            createdAt: true,
+            salary: true,
           },
-          lessons: {
-            include: {
-              subject: true,
-              teacher: {
-                select: {
-                  id: true,
-                  username: true,
-                  name: true,
-                  surname: true,
-                  phone: true,
-                  address: true,
-                  img: true,
-                  bloodType: true,
-                  sex: true,
-                  createdAt: true,
-                  salary: true,
-                },
+        },
+        lessons: {
+          include: {
+            subject: true,
+            teacher: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                surname: true,
+                phone: true,
+                address: true,
+                img: true,
+                bloodType: true,
+                sex: true,
+                createdAt: true,
+                salary: true,
               },
             },
           },
         },
-      }),
+      },
+    });
+
+  const cached = await getCachedTenantData(
+    schoolId,
+    "classes",
+    [id, schoolId, "teachers"],
+    fetchActiveClass,
     600
-  );
+  ).catch(() => null);
+
+  const activeClass = cached || await fetchActiveClass();
 
   if (!activeClass) {
     return notFound();

@@ -22,7 +22,7 @@ const StudentPage = async () => {
         },
       }),
     300
-  );
+  ).catch(() => null);
 
   return (
     <div className="p-4 flex gap-4 flex-col xl:flex-row">

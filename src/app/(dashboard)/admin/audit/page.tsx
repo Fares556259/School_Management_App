@@ -26,17 +26,18 @@ const getColumns = (t: any) => [
 ];
 
 const AuditPage = async ({
-
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
-  const locale = (cookies().get("NEXT_LOCALE")?.value || "en") as Locale;
-  const t = translations[locale];
+  const rawLocale = cookies().get("NEXT_LOCALE")?.value || "en";
+  const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
+  const t = translations[locale] || translations.en;
   const role = await getRole();
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 
-  const { page, search, user: filterUser, action: actionType, from, to } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, search, user: filterUser, action: actionType, from, to } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   // URL QUERY PARAMS CONDITION
@@ -65,7 +66,7 @@ const AuditPage = async ({
     };
   }
 
-  const [logs, count] = await getCachedTenantData(
+  const cached = await getCachedTenantData(
     schoolId,
     "dashboard",
     [p, search, actionType, filterUser, from, to, schoolId],
@@ -79,7 +80,17 @@ const AuditPage = async ({
       prisma.auditLog.count({ where: query }),
     ]),
     120
-  );
+  ).catch(() => null);
+
+  const [logs, count] = Array.isArray(cached) && cached.length === 2 ? cached : await prisma.$transaction([
+    prisma.auditLog.findMany({
+      where: query,
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+      orderBy: { timestamp: "desc" },
+    }),
+    prisma.auditLog.count({ where: query }),
+  ]);
 
   // Resolve Performer IDs to Human-Readable Names and Roles
   const uniqueIds = Array.from(new Set(logs.map((l) => l.performedBy).filter((id) => id && id !== "unknown")));

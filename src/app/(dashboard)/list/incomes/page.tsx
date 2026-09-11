@@ -9,20 +9,18 @@ import IncomesListClient from "./IncomesListClient";
 const IncomeListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
-  const { page, search, from, to, category } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, search, from, to, category } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
 
   // Fetch all incomes for client-side filtering
-  const [data, uniqueCategoriesData] = await getCachedTenantData(
-    schoolId,
-    'incomes',
-    [],
-    () => Promise.all([
+  const fetchIncomesData = () =>
+    Promise.all([
       prisma.income.findMany({
         where: { schoolId },
         orderBy: { date: "desc" },
@@ -31,13 +29,22 @@ const IncomeListPage = async ({
         where: { schoolId },
         select: { category: true },
         distinct: ["category"],
-      })
-    ]),
+      }),
+    ]);
+
+  const cached = await getCachedTenantData(
+    schoolId,
+    'incomes',
+    [],
+    fetchIncomesData,
     300
-  );
+  ).catch(() => null);
+
+  const [data, uniqueCategoriesData] =
+    Array.isArray(cached) && cached.length === 2 ? cached : await fetchIncomesData();
 
   const relatedData = {
-    category: uniqueCategoriesData.map((c) => ({ value: c.category, label: c.category })),
+    category: (uniqueCategoriesData || []).map((c: any) => ({ value: c.category, label: c.category })),
   };
 
   return (

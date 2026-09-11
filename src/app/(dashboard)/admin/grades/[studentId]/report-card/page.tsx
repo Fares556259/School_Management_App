@@ -5,10 +5,10 @@ export default async function ReportCardPage({
   searchParams,
 }: {
   params: { studentId: string };
-  searchParams: { term?: string };
+  searchParams?: { term?: string };
 }) {
   const { studentId } = params;
-  const term = searchParams.term ? parseInt(searchParams.term) : 1;
+  const term = searchParams?.term ? parseInt(searchParams.term) : 1;
 
   // We fetch high-level student data here if needed, but the Client component
   // will handle the detailed report fetching for interactivity and print prep.

@@ -12,17 +12,17 @@ import { GraduationCap } from "lucide-react";
 export default async function GradesPage({
   searchParams,
 }: {
-  searchParams: { classId?: string; term?: string };
+  searchParams?: { classId?: string; term?: string };
 }) {
   const role = await getRole();
   if (role !== "admin") return <div>Unauthorized</div>;
 
   const schoolId = await getSchoolId();
 
-  const term = searchParams.term ? parseInt(searchParams.term) : 1;
+  const term = searchParams?.term ? parseInt(searchParams.term) : 1;
 
   // Cache base lists (classes, subjects, teachers) — less volatile
-  const [classes, rawSubjects, teachers] = await getCachedTenantData(
+  const cachedBase = await getCachedTenantData(
     schoolId,
     "exams",
     ["grades-base", schoolId],
@@ -32,9 +32,15 @@ export default async function GradesPage({
       prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
     ]),
     300
-  );
+  ).catch(() => null);
 
-  const classId = searchParams.classId
+  const [classes, rawSubjects, teachers] = Array.isArray(cachedBase) && cachedBase.length === 3 ? cachedBase : await Promise.all([
+    prisma.class.findMany({ where: { schoolId }, select: { id: true, name: true, level: true }, orderBy: { name: "asc" } }),
+    prisma.subject.findMany({ where: { schoolId }, orderBy: { domain: "asc" } }),
+    prisma.teacher.findMany({ where: { schoolId }, select: { id: true, name: true, surname: true }, orderBy: { name: "asc" } }),
+  ]);
+
+  const classId = searchParams?.classId
     ? parseInt(searchParams.classId)
     : classes.length > 0 ? classes[0].id : null;
 
@@ -43,7 +49,7 @@ export default async function GradesPage({
   let sheets: any[] = [];
 
   if (classId) {
-    [students, sheets] = await getCachedTenantData(
+    const cachedEntries = await getCachedTenantData(
       schoolId,
       "exams",
       ["grades-entries", classId, term, schoolId],
@@ -56,7 +62,20 @@ export default async function GradesPage({
         getAllGradeSheets(classId, undefined, term),
       ]),
       60 // 1-minute TTL — grade data is actively being entered
-    );
+    ).catch(() => null);
+
+    if (Array.isArray(cachedEntries) && cachedEntries.length === 2) {
+      [students, sheets] = cachedEntries;
+    } else {
+      [students, sheets] = await Promise.all([
+        prisma.student.findMany({
+          where: { classId, schoolId },
+          include: { grades: { where: { term } } },
+          orderBy: { name: "asc" },
+        }),
+        getAllGradeSheets(classId, undefined, term),
+      ]);
+    }
   }
 
   // Determine Level Config for the selected class

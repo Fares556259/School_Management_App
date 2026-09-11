@@ -9,10 +9,11 @@ import ExpensesListClient from "./ExpensesListClient";
 const ExpenseListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
-  const { page, search, from, to, category } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, search, from, to, category } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -41,12 +42,8 @@ const ExpenseListPage = async ({
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-  // Parallelize DB queries for maximum speed with tenant caching
-  const [data, count, uniqueCategoriesData, allData] = await getCachedTenantData(
-    schoolId,
-    'expenses',
-    [p, JSON.stringify(searchParams)],
-    () => Promise.all([
+  const fetchExpensesData = () =>
+    Promise.all([
       prisma.expense.findMany({
         where: query,
         take: ITEM_PER_PAGE,
@@ -63,12 +60,21 @@ const ExpenseListPage = async ({
         where: { ...query, date: { gte: twelveMonthsAgo } },
         orderBy: { date: "desc" },
       }),
-    ]),
+    ]);
+
+  const cached = await getCachedTenantData(
+    schoolId,
+    'expenses',
+    [p, JSON.stringify(safeSearchParams), schoolId],
+    fetchExpensesData,
     300
-  );
+  ).catch(() => null);
+
+  const [data, count, uniqueCategoriesData, allData] =
+    Array.isArray(cached) && cached.length === 4 ? cached : await fetchExpensesData();
 
   const relatedData = {
-    category: uniqueCategoriesData.map((c) => ({ value: c.category, label: c.category })),
+    category: (uniqueCategoriesData || []).map((c: any) => ({ value: c.category, label: c.category })),
   };
 
   return (

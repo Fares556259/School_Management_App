@@ -5,9 +5,9 @@ export default function BulkReportCardPage({
   searchParams,
 }: {
   params: { classId: string };
-  searchParams: { term?: string };
+  searchParams?: { term?: string };
 }) {
-  const term = searchParams.term ? parseInt(searchParams.term) : 1;
+  const term = searchParams?.term ? parseInt(searchParams.term) : 1;
 
   return (
     <div className="bg-[#F7F8FA] min-h-screen pt-8">

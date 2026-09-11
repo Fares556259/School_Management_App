@@ -8,11 +8,12 @@ import { Mail, Send, Trash2, UserPlus, Users } from "lucide-react";
 
 export default async function ReportsManagementPage() {
   const cookieStore = cookies();
-  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
-  const t = translations[locale];
+  const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
+  const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
+  const t = translations[locale] || translations.en;
 
   const schoolId = await getSchoolId();
-  const subscribers = await getCachedTenantData(
+  const cachedSubscribers = await getCachedTenantData(
     schoolId,
     "institution",
     [schoolId],
@@ -20,7 +21,11 @@ export default async function ReportsManagementPage() {
       orderBy: { createdAt: "desc" },
     }),
     120
-  );
+  ).catch(() => null);
+
+  const subscribers = Array.isArray(cachedSubscribers) ? cachedSubscribers : await prisma.reportSubscriber.findMany({
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">

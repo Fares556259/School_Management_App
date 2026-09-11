@@ -41,12 +41,13 @@ const ITEMS_PER_PAGE = 10;
 const StaffListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams?: { [key: string]: string | undefined };
 }) => {
   const role = await getRole();
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 
-  const { page, ...queryParams } = searchParams;
+  const safeSearchParams = searchParams || {};
+  const { page, ...queryParams } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
@@ -64,11 +65,8 @@ const StaffListPage = async ({
     }));
   }
 
-  const [staff, count] = await getCachedTenantData(
-    schoolId,
-    "staff",
-    [p, JSON.stringify(queryParams), schoolId],
-    () => Promise.all([
+  const fetchStaffData = () =>
+    Promise.all([
       prisma.staff.findMany({
         where,
         include: {
@@ -79,26 +77,39 @@ const StaffListPage = async ({
         skip: ITEMS_PER_PAGE * (p - 1),
       }),
       prisma.staff.count({ where }),
-    ]),
-    300
-  );
+    ]);
+
+  let staffData: any[] = [];
+  let staffCount: number = 0;
+
+  try {
+    const res = await fetchStaffData();
+    if (Array.isArray(res) && res.length >= 2) {
+      [staffData, staffCount] = res;
+    }
+  } catch (err) {
+    console.error("[StaffListPage] Error fetching staff:", err);
+  }
+
+  const safeStaff = Array.isArray(staffData) ? staffData : [];
+  const safeStaffCount = typeof staffCount === "number" ? staffCount : safeStaff.length;
 
   // Compute month-based payment stats
-  const selectedMonthKey = getMonthKey(searchParams.month);
+  const selectedMonthKey = getMonthKey(safeSearchParams.month);
   const [mName, yStr] = selectedMonthKey.split(" ");
   const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
-  const paidThisMonth = staff.filter((s) =>
-    s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
+  const paidThisMonth = safeStaff.filter((s) =>
+    Array.isArray(s.payments) && s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
   ).length;
 
   return (
     <div className="bg-white rounded-[12px] flex-1 m-6 mt-0 shadow-sm border border-[#e2e8f0] p-6">
       <StaffListClient
-        initialData={staff}
+        initialData={safeStaff}
         columns={columns}
-        count={count}
+        count={safeStaffCount}
         page={p}
         role={role}
         selectedMonthKey={selectedMonthKey}

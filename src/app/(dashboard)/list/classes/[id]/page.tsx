@@ -18,33 +18,35 @@ export default async function ClassStudentsPage({
     return notFound();
   }
 
-  // Fetch Class details and ALL students in one cached call
-  const activeClass = await getCachedTenantData(
+  const fetchClass = () =>
+    prisma.class.findFirst({
+      where: { id: classId, schoolId },
+      include: {
+        level: true,
+        students: {
+          include: {
+            parent: {
+              select: {
+                name: true,
+                surname: true,
+                phone: true,
+              },
+            },
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        },
+      },
+    });
+
+  const cached = await getCachedTenantData(
     schoolId,
     "classes",
     [id, schoolId, "students"],
-    () =>
-      prisma.class.findFirst({
-          where: { id: classId, schoolId },
-          include: {
-            level: true,
-            
-            students: {
-              include: {
-                parent: {
-                  select: {
-                    name: true,
-                    surname: true,
-                    phone: true,
-                  },
-                },
-              },
-              orderBy: [{ name: "asc" }, { surname: "asc" }],
-            },
-          },
-        }),
+    fetchClass,
     600
-  );
+  ).catch(() => null);
+
+  const activeClass = cached || await fetchClass();
 
   if (!activeClass) return notFound();
 
