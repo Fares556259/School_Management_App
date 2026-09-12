@@ -122,7 +122,7 @@ DIRECTIVES FONDAMENTALES :
   // 6. Initialize Gemini Model with tools
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-flash-latest",
+    model: "gemini-3.5-flash",
     systemInstruction,
     tools: [
       {
@@ -225,13 +225,12 @@ DIRECTIVES FONDAMENTALES :
         },
       });
 
-      // Send function result back to Gemini to get natural language summary
+      // Send tool output to Gemini for natural language synthesis
       response = await chat.sendMessage([
         {
-          functionResponse: {
-            name: toolName,
-            response: { output: toolOutput },
-          },
+          text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
+            toolOutput
+          )}\n\nPrésente ces données à l'administrateur de manière claire, concise, utile et professionnelle en respectant sa langue.`,
         },
       ]);
 
