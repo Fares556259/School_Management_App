@@ -578,7 +578,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
   // ── FINANCE SUITE ─────────────────────────────────────────────────────────
   get_payments: {
     name: "get_payments",
-    description: "Consulter les paiements de scolarité, impayés ou paiements en retard.",
+    description: "Consulter les paiements de scolarité pour un mois/année donné. (NOTE: Pour la file de recouvrement des paiements partiels et reliquats, utiliser impérativement get_partial_payments).",
     requiresConfirmation: false,
     declaration: {
       name: "get_payments",
@@ -598,22 +598,22 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   get_partial_payments: {
     name: "get_partial_payments",
-    description: "Consulter la file des dossiers de paiements partiels et reliquats à recouvrer (KPIs, dossiers échus, échéances ce mois, filtres par classe ou élève).",
+    description: "Consulter la file de recouvrement des paiements partiels (/list/payments-partial) : KPIs globaux (Total à recouvrer), tous les reliquats d'élèves en attente, échéances échues ou futures. À utiliser pour toute demande sur 'paiements partiels', 'reliquats', 'qui doit encore payer'.",
     requiresConfirmation: false,
     declaration: {
       name: "get_partial_payments",
-      description: "Obtenir la liste des dossiers de paiements partiels et les indicateurs clés de recouvrement (KPIs).",
+      description: "Obtenir la liste complète des dossiers de paiements partiels et les indicateurs de recouvrement (KPIs).",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
           status: {
             type: SchemaType.STRING,
-            description: "Filtrer par statut: 'all', 'overdue' (échus/en retard), 'this_month' (échéance ce mois), 'future' (futurs), ou 'unscheduled' (sans date).",
+            description: "Filtrer par statut: 'all' (recommandé pour voir toute la file), 'overdue' (échus), 'this_month' (ce mois), 'future' (futurs), ou 'unscheduled'.",
           },
           className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '8ème B')." },
           studentName: { type: SchemaType.STRING, description: "Nom ou prénom de l'élève." },
-          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12)." },
-          year: { type: SchemaType.NUMBER, description: "Année." },
+          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12, optionnel)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel)." },
         },
       },
     },

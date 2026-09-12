@@ -255,8 +255,21 @@ export async function getPartialPaymentsTool(
   });
 
   let filtered = processed;
+  let statusNote: string | undefined;
+
   if (args.status && args.status !== "all") {
-    filtered = processed.filter((item) => item.dueStatus === args.status);
+    const matched = processed.filter((item) => item.dueStatus === args.status);
+    if (matched.length > 0) {
+      filtered = matched;
+    } else {
+      // In recovery management, admins colloquially say "en retard" for any unpaid tuition balance.
+      // If 0 dossiers have an exceeded promised calendar deadline (e.g. deadlines are unscheduled),
+      // do not hide the recovery queue! Return all active partial dossiers (Total: 547 DT) with an explanatory note.
+      filtered = processed;
+      if (args.status === "overdue") {
+        statusNote = "Aucune date promise n'est dépassée (0 reliquats au calendrier échu), mais voici l'ensemble des dossiers partiels en attente de recouvrement.";
+      }
+    }
   }
 
   return {
@@ -267,7 +280,9 @@ export async function getPartialPaymentsTool(
       thisMonthAmount: `${thisMonthAmount} DT (${thisMonthCount} dossier(s))`,
       futureAmount: `${futureAmount} DT (${futureCount} dossier(s))`,
     },
+    filterApplied: args.status || "all",
     count: filtered.length,
+    statusNote,
     items: filtered.slice(0, 30),
   };
 }

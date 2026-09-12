@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions } from "./nameSearch";
+import { MONTHS } from "@/lib/dateUtils";
 
 export interface ToolContext {
   schoolId: string;
@@ -212,15 +213,23 @@ export async function getPaymentsTool(
   context: ToolContext
 ) {
   const now = new Date();
-  const month = args.month || now.getMonth() + 1;
-  const year = args.year || now.getFullYear();
-
   const where: any = {
     schoolId: context.schoolId,
-    month,
-    year,
     userType: "STUDENT",
   };
+
+  // Only force current month if month is explicitly passed OR if querying general overview without status
+  if (args.month) {
+    where.month = args.month;
+  } else if (!args.status || args.status === "PAID") {
+    where.month = now.getMonth() + 1;
+  }
+
+  if (args.year) {
+    where.year = args.year;
+  } else if (!args.status || args.status === "PAID") {
+    where.year = now.getFullYear();
+  }
 
   if (args.status) {
     where.status = args.status;
@@ -235,12 +244,19 @@ export async function getPaymentsTool(
     };
   }
 
-  const [totalPayments, payments] = await Promise.all([
+  const aggregateWhere: any = {
+    schoolId: context.schoolId,
+    userType: "STUDENT",
+  };
+  if (where.month) aggregateWhere.month = where.month;
+  if (where.year) aggregateWhere.year = where.year;
+
+  const [totalPayments, payments, unpaidAggregate, paidAggregate] = await Promise.all([
     prisma.payment.count({ where }),
     prisma.payment.findMany({
       where,
       take: 40,
-      orderBy: { status: "asc" },
+      orderBy: [{ year: "asc" }, { month: "asc" }, { status: "asc" }],
       select: {
         id: true,
         amount: true,
@@ -261,36 +277,28 @@ export async function getPaymentsTool(
         },
       },
     }),
+    prisma.payment.aggregate({
+      where: {
+        ...aggregateWhere,
+        status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+      },
+      _sum: { amount: true, deferredAmount: true },
+      _count: { id: true },
+    }),
+    prisma.payment.aggregate({
+      where: {
+        ...aggregateWhere,
+        status: "PAID",
+      },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
   ]);
 
-  // Count uncollected across all students for this month
-  const unpaidAggregate = await prisma.payment.aggregate({
-    where: {
-      schoolId: context.schoolId,
-      month,
-      year,
-      userType: "STUDENT",
-      status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
-    },
-    _sum: { amount: true, deferredAmount: true },
-    _count: { id: true },
-  });
-
-  const paidAggregate = await prisma.payment.aggregate({
-    where: {
-      schoolId: context.schoolId,
-      month,
-      year,
-      userType: "STUDENT",
-      status: "PAID",
-    },
-    _sum: { amount: true },
-    _count: { id: true },
-  });
-
   return {
-    month,
-    year,
+    month: where.month || "Tous les mois",
+    year: where.year || "Toutes les années",
+    totalMatching: totalPayments,
     overview: {
       paidCount: paidAggregate._count.id || 0,
       paidAmount: paidAggregate._sum.amount || 0,
@@ -300,8 +308,11 @@ export async function getPaymentsTool(
     records: payments.map((p) => ({
       studentName: p.student ? `${p.student.name} ${p.student.surname}` : "Inconnu",
       class: p.student?.class?.name || "N/A",
+      month: p.month,
+      year: p.year,
+      feePeriod: `${MONTHS[p.month - 1] || p.month} ${p.year}`,
       status: p.status,
-      amount: p.amount,
+      paidAmount: p.amount,
       deferredAmount: p.deferredAmount || 0,
       parentPhone: p.student?.parent?.phone || null,
       paidAt: p.paidAt ? p.paidAt.toISOString().split("T")[0] : null,
