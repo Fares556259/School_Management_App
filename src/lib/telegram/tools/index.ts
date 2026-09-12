@@ -15,9 +15,13 @@ import { formatMonthFrench } from "@/lib/dateUtils";
 import {
   recordPaymentTool,
   addExpenseTool,
-  postAnnouncementTool,
   calculateStudentPaymentAllocation,
 } from "./writeTools";
+import {
+  getAnnouncementsTool,
+  postAnnouncementTool,
+  deleteAnnouncementTool,
+} from "./announcementTools";
 import {
   getStudentProfileTool,
   getParentsTool,
@@ -1039,33 +1043,113 @@ ${lines.join("\n")}`;
     execute: addTimetableSlotTool,
   },
 
-  // ── COMMUNICATION SUITE ───────────────────────────────────────────────────
+  // ── COMMUNICATION SUITE (/list/announcements) ─────────────────────────────
+  get_announcements: {
+    name: "get_announcements",
+    description: "Consulter la liste des annonces et communications officielles de l'école (filtrable par classe, urgence, mot-clé).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_announcements",
+      description: "Consulter les annonces scolaires publiées avec leur portée, niveau d'urgence et pièces jointes.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A', 'Général'). Omettre pour toutes." },
+          scope: { type: SchemaType.STRING, description: "Portée : 'all' (toutes), 'global' (toute l'école), ou 'class' (ciblées)." },
+          importantOnly: { type: SchemaType.BOOLEAN, description: "Si true, retourne uniquement les annonces marquées comme URGENT." },
+          search: { type: SchemaType.STRING, description: "Recherche par mot-clé dans le titre ou le message." },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum d'annonces à retourner (défaut : 10)." },
+        },
+      },
+    },
+    execute: getAnnouncementsTool,
+  },
+
   post_announcement: {
     name: "post_announcement",
-    description: "Publier une annonce officielle pour toute l'école ou une classe spécifique avec niveau d'urgence et image optionnelle.",
+    description: "Publier une annonce officielle pour toute l'école, une classe spécifique ou un élève avec niveau d'urgence, images et documents joints.",
     requiresConfirmation: true,
     declaration: {
       name: "post_announcement",
-      description: "Publier une annonce / avis visible par les familles.",
+      description: "Publier une annonce / avis officiel visible par les familles et parents.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["title", "message"],
+        properties: {
+          title: { type: SchemaType.STRING, description: "Titre de l'annonce (ex: 'Calendrier des examens')." },
+          message: { type: SchemaType.STRING, description: "Contenu détaillé de l'annonce." },
+          className: { type: SchemaType.STRING, description: "Portée : 'Général' (ou vide) pour toute l'école, ou nom de classe ex: '1A'." },
+          important: { type: SchemaType.BOOLEAN, description: "Marquer comme URGENT (alerte push prioritaire avec badge rouge)." },
+          img: { type: SchemaType.STRING, description: "URL(s) de photos ou affiches jointes (séparées par virgule)." },
+          pdfUrl: { type: SchemaType.STRING, description: "URL(s) de documents joints (PDF, Word, etc.)." },
+          studentName: { type: SchemaType.STRING, description: "Nom d'un élève si l'annonce est réservée à un élève spécifique." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const target = args.studentName
+        ? `l'élève <b>${args.studentName}</b>`
+        : args.className && !["general", "général", "all", "toutes"].includes(args.className.toLowerCase().trim())
+        ? `la classe <code>${args.className}</code>`
+        : "<b>toute l'école (Général)</b>";
+      const urgentBadge = args.important ? " 🚨 <code>URGENT</code>" : "";
+      const imgBadge = args.img ? "\n🖼️ <i>Affiche / Image(s) jointe(s)</i>" : "";
+      const docBadge = args.pdfUrl ? "\n📄 <i>Document(s) joint(s)</i>" : "";
+      const preview = args.message.length > 200 ? `${args.message.slice(0, 197)}...` : args.message;
+      return `❓ <b>Confirmation de Publication d'Annonce</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>${args.title}</b>\n🎯 Destinataires : ${target}${urgentBadge}${imgBadge}${docBadge}\n\n📝 <i>"${preview}"</i>\n\nConfirmer la diffusion aux familles et l'envoi des notifications push ?`;
+    },
+    execute: postAnnouncementTool,
+  },
+
+  create_announcement: {
+    name: "create_announcement",
+    description: "Créer et diffuser une nouvelle annonce scolaire (alias de post_announcement).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "create_announcement",
+      description: "Créer une annonce officielle pour l'école ou une classe.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["title", "message"],
         properties: {
           title: { type: SchemaType.STRING, description: "Titre de l'annonce." },
           message: { type: SchemaType.STRING, description: "Contenu détaillé." },
-          className: { type: SchemaType.STRING, description: "Classe ciblée si réservée à une classe." },
-          important: { type: SchemaType.BOOLEAN, description: "Si annonce urgente (alerte push rouge)." },
-          img: { type: SchemaType.STRING, description: "URL de l'image ou de l'affiche jointe." },
+          className: { type: SchemaType.STRING, description: "Classe ciblée ou 'Général'." },
+          important: { type: SchemaType.BOOLEAN, description: "Marquer comme URGENT." },
+          img: { type: SchemaType.STRING, description: "URL de l'image / affiche." },
+          pdfUrl: { type: SchemaType.STRING, description: "URL du document." },
+          studentName: { type: SchemaType.STRING, description: "Nom de l'élève ciblé." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
       const target = args.className ? `la classe <code>${args.className}</code>` : "<b>toute l'école (Général)</b>";
       const urgentBadge = args.important ? " 🚨 <code>URGENT</code>" : "";
-      const imgBadge = args.img ? "\n🖼️ <i>Affiche / Image jointe</i>" : "";
-      return `❓ <b>Confirmation de Publication</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🎯 Destinataires : ${target}${urgentBadge}${imgBadge}\n\n📌 <b>${args.title}</b>\n${args.message}`;
+      return `❓ <b>Création d'Annonce</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>${args.title}</b>\n🎯 Portée : ${target}${urgentBadge}\n\nConfirmer la publication ?`;
     },
     execute: postAnnouncementTool,
+  },
+
+  delete_announcement: {
+    name: "delete_announcement",
+    description: "Supprimer une annonce scolaire par son identifiant ou par son titre.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_announcement",
+      description: "Supprimer une annonce officielle publiée.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          announcementId: { type: SchemaType.NUMBER, description: "ID de l'annonce." },
+          title: { type: SchemaType.STRING, description: "Titre ou mot-clé de l'annonce à supprimer." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const target = args.title ? `"${args.title}"` : `ID #${args.announcementId}`;
+      return `❓ <b>Suppression d'Annonce</b>\n━━━━━━━━━━━━━━━━━━━━━━\nÊtes-vous sûr de vouloir supprimer définitivement l'annonce <b>${target}</b> ?`;
+    },
+    execute: deleteAnnouncementTool,
   },
 
   // ── TASKS & ASSIGNMENTS SUITE (/list/assignments) ─────────────────────────

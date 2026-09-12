@@ -523,7 +523,13 @@ Propose d'enregistrer et justifier l'absence de l'élève.`;
             userPrompt = `${docDescriptor}
 
 L'administrateur a envoyé une affiche / visuel pour une annonce scolaire.
-Propose une annonce officielle attrayante reprenant le contenu de l'affiche et associe cette image (${photoUrl}).`;
+- Titre suggéré : "${analysis.title || "Annonce officielle"}"
+- Message / Contenu : "${analysis.summary}"
+- Image / Affiche jointe : ${photoUrl}
+
+Instructions :
+Propose de publier une annonce officielle attrayante via l'outil 'post_announcement' avec title: "${analysis.title || "Annonce"}", message: "${analysis.summary}", img: "${photoUrl}".
+Précise si la diffusion est pour toute l'école (Général) ou une classe spécifique.`;
           } else if (analysis.documentType === "COURSE_RESOURCE") {
             userPrompt = `${docDescriptor}
 
