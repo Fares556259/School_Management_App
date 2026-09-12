@@ -19,26 +19,37 @@ export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   const audioBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
   const base64Audio = audioBuffer.toString("base64");
 
-  // 2. Call Gemini with audio multimodal input
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.5-flash",
-  });
+  // 2. Call Gemini with audio multimodal input (with multi-model fallback)
+  const CANDIDATE_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+  ];
 
+  const genAI = new GoogleGenerativeAI(apiKey);
   const prompt = `Transcribe this voice audio accurately word-for-word.
 The speaker may speak in Tunisian Arabic (Derja / Tounsi), Modern Standard Arabic, French, English, or code-switch between them.
 Return ONLY the raw transcribed text. Do NOT include any explanations, translations, intros, quotation marks, or meta-comments. Just the exact words spoken.`;
 
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        data: base64Audio,
-        mimeType: "audio/ogg",
-      },
-    },
-    { text: prompt },
-  ]);
+  let lastError: any = null;
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            data: base64Audio,
+            mimeType: "audio/ogg",
+          },
+        },
+        { text: prompt },
+      ]);
+      const transcription = result.response.text().trim();
+      return transcription;
+    } catch (err: any) {
+      console.warn(`[Voice] Transcription failed with model ${modelName}:`, err.message || err);
+      lastError = err;
+    }
+  }
 
-  const transcription = result.response.text().trim();
-  return transcription;
+  throw lastError || new Error("Voice transcription failed across all candidate models");
 }

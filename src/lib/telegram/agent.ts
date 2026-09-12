@@ -148,146 +148,193 @@ RÈGLES D'ACTION ET DE PRÉSENTATION :
 - Réponds toujours dans la langue de l'administrateur (arabe tunisien, français ou anglais).
 - Sois concise, percutante et professionnelle.`;
 
-  // 6. Initialize Gemini Model with tools
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.5-flash",
-    systemInstruction,
-    tools: [
-      {
-        functionDeclarations: getGeminiFunctionDeclarations(),
-      },
-    ],
-  });
+  // Candidate models with primary ultra-fast lite model and fallback
+  const CANDIDATE_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+  ];
+
+  // Helper to format friendly error message without raw API dumps
+  function formatUserErrorMessage(err: any): string {
+    const msg = (err?.message || "").toLowerCase();
+    if (
+      msg.includes("429") ||
+      msg.includes("quota") ||
+      msg.includes("resource_exhausted") ||
+      msg.includes("too many requests")
+    ) {
+      return "⏳ Le service d'intelligence artificielle est actuellement très sollicité. Veuillez patienter un instant avant d'envoyer votre prochaine demande.";
+    }
+    if (msg.includes("api key") || msg.includes("403") || msg.includes("permission_denied")) {
+      return "⚠️ Une erreur d'autorisation est survenue avec le service d'IA. Veuillez vérifier la configuration de votre clé API.";
+    }
+    return "Désolée, une erreur temporaire est survenue lors du traitement de votre demande. Veuillez réessayer dans quelques instants.";
+  }
 
   // Build chat contents
   // Exclude current message from history to prevent duplication
   const historyContents: any[] = [];
   for (const m of recentMessages.slice(0, -1)) {
+    if (!m.content || !m.content.trim()) continue;
     historyContents.push({
       role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
+      parts: [{ text: m.content.trim() }],
     });
+  }
+
+  // Gemini API requires the first content to have role 'user'
+  while (historyContents.length > 0 && historyContents[0].role !== "user") {
+    historyContents.shift();
   }
 
   const currentTurnParts: any[] = [{ text: userMessage }];
 
-  try {
-    const chat = model.startChat({
-      history: historyContents,
-    });
+  const genAI = new GoogleGenerativeAI(apiKey);
+  let succeeded = false;
+  let lastError: any = null;
 
-    let response = await chat.sendMessage(currentTurnParts);
-    let candidate = response.response;
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      console.log(`[Agent] Attempting processing with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+        tools: [
+          {
+            functionDeclarations: getGeminiFunctionDeclarations(),
+          },
+        ],
+      });
 
-    // Handle tool calling loop
-    let functionCalls = candidate.functionCalls();
+      const chat = model.startChat({
+        history: historyContents,
+      });
 
-    while (functionCalls && functionCalls.length > 0) {
-      const call = functionCalls[0];
-      const toolName = call.name;
-      const toolArgs = (call.args || {}) as Record<string, any>;
+      let response = await chat.sendMessage(currentTurnParts);
+      let candidate = response.response;
 
-      const toolDef = TOOLS[toolName];
-      if (!toolDef) {
-        console.warn(`[Agent] Unknown function call: ${toolName}`);
-        break;
-      }
+      // Handle tool calling loop
+      let functionCalls = candidate.functionCalls();
 
-      // Check if tool requires confirmation
-      if (toolDef.requiresConfirmation) {
-        // Create pending tool call record in DB
-        const toolCallRecord = await prisma.aIToolCall.create({
+      while (functionCalls && functionCalls.length > 0) {
+        const call = functionCalls[0];
+        const toolName = call.name;
+        const toolArgs = (call.args || {}) as Record<string, any>;
+
+        const toolDef = TOOLS[toolName];
+        if (!toolDef) {
+          console.warn(`[Agent] Unknown function call: ${toolName}`);
+          break;
+        }
+
+        // Check if tool requires confirmation
+        if (toolDef.requiresConfirmation) {
+          // Create pending tool call record in DB
+          const toolCallRecord = await prisma.aIToolCall.create({
+            data: {
+              conversationId: conversation.id,
+              toolName,
+              arguments: toolArgs,
+              status: "PENDING",
+              requiresConfirm: true,
+            },
+          });
+
+          // Format confirmation prompt
+          const confirmText = toolDef.formatConfirmationMessage
+            ? toolDef.formatConfirmationMessage(toolArgs, context)
+            : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
+
+          // Send confirmation message with inline buttons
+          await sendTelegramMessage(chatId, confirmText, {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: "✅ Confirmer", callback_data: `confirm:${toolCallRecord.id}` },
+                  { text: "❌ Annuler", callback_data: `cancel:${toolCallRecord.id}` },
+                ],
+              ],
+            },
+          });
+
+          // Save assistant note
+          await prisma.aIMessage.create({
+            data: {
+              conversationId: conversation.id,
+              role: "assistant",
+              content: confirmText,
+            },
+          });
+
+          // Stop turn — user must confirm before anything further happens
+          succeeded = true;
+          return;
+        }
+
+        // Read-only tool: execute immediately
+        await sendTelegramChatAction(chatId, "typing");
+        const toolOutput = await toolDef.execute(toolArgs, context);
+
+        // Save tool call record
+        await prisma.aIToolCall.create({
           data: {
             conversationId: conversation.id,
             toolName,
             arguments: toolArgs,
-            status: "PENDING",
-            requiresConfirm: true,
+            result: toolOutput,
+            status: "EXECUTED",
+            executedAt: new Date(),
           },
         });
 
-        // Format confirmation prompt
-        const confirmText = toolDef.formatConfirmationMessage
-          ? toolDef.formatConfirmationMessage(toolArgs, context)
-          : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
-
-        // Send confirmation message with inline buttons
-        await sendTelegramMessage(chatId, confirmText, {
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "✅ Confirmer", callback_data: `confirm:${toolCallRecord.id}` },
-                { text: "❌ Annuler", callback_data: `cancel:${toolCallRecord.id}` },
-              ],
-            ],
+        // Send tool output to Gemini for natural language synthesis
+        response = await chat.sendMessage([
+          {
+            text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
+              toolOutput
+            )}\n\nPrésente ces données à l'administrateur de manière claire, concise, utile et professionnelle en respectant sa langue.`,
           },
-        });
+        ]);
 
-        // Save assistant note
-        await prisma.aIMessage.create({
-          data: {
-            conversationId: conversation.id,
-            role: "assistant",
-            content: confirmText,
-          },
-        });
-
-        // Stop turn — user must confirm before anything further happens
-        return;
+        candidate = response.response;
+        functionCalls = candidate.functionCalls();
       }
 
-      // Read-only tool: execute immediately
-      await sendTelegramChatAction(chatId, "typing");
-      const toolOutput = await toolDef.execute(toolArgs, context);
+      // Final textual response
+      let finalReply = "Je reste à votre disposition pour toute autre question.";
+      try {
+        finalReply = candidate.text() || finalReply;
+      } catch (textErr) {
+        console.warn("[Agent] candidate.text() warning:", textErr);
+      }
 
-      // Save tool call record
-      await prisma.aIToolCall.create({
+      // Save reply to DB
+      await prisma.aIMessage.create({
         data: {
           conversationId: conversation.id,
-          toolName,
-          arguments: toolArgs,
-          result: toolOutput,
-          status: "EXECUTED",
-          executedAt: new Date(),
+          role: "assistant",
+          content: finalReply,
         },
       });
 
-      // Send tool output to Gemini for natural language synthesis
-      response = await chat.sendMessage([
-        {
-          text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
-            toolOutput
-          )}\n\nPrésente ces données à l'administrateur de manière claire, concise, utile et professionnelle en respectant sa langue.`,
-        },
-      ]);
+      // Send message to Telegram
+      await sendTelegramMessage(chatId, finalReply, {
+        parse_mode: "Markdown",
+      });
 
-      candidate = response.response;
-      functionCalls = candidate.functionCalls();
+      succeeded = true;
+      break;
+    } catch (err: any) {
+      console.warn(`[Agent] Model ${modelName} encountered error:`, err.message || err);
+      lastError = err;
+      // Continue to next candidate model
     }
+  }
 
-    // Final textual response
-    const finalReply = candidate.text() || "Je reste à votre disposition pour toute autre question.";
-
-    // Save reply to DB
-    await prisma.aIMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content: finalReply,
-      },
-    });
-
-    // Send message to Telegram
-    await sendTelegramMessage(chatId, finalReply, {
-      parse_mode: "Markdown",
-    });
-  } catch (err: any) {
-    console.error("[Agent] Error running agent:", err);
-    await sendTelegramMessage(
-      chatId,
-      `Désolée, une erreur est survenue lors du traitement : ${err.message || "Erreur interne"}`
-    );
+  if (!succeeded) {
+    console.error("[Agent] All candidate models failed. Last error:", lastError);
+    const friendlyError = formatUserErrorMessage(lastError);
+    await sendTelegramMessage(chatId, friendlyError);
   }
 }
