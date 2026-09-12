@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { Plus, Search, MessageSquare, History, Sparkles, LogOut } from 'lucide-react';
+import { Plus, Search, MessageSquare, History, Sparkles, LogOut, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AssistantSidebarProps {
@@ -131,6 +131,16 @@ const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
             }`}
           />
         </div>
+
+        <a
+          href="https://t.me/HniaSnapSchoolBot"
+          target="_blank"
+          rel="noreferrer"
+          className="w-full mb-3 py-2.5 px-3 bg-[#2AABEE]/10 hover:bg-[#2AABEE]/20 text-[#2AABEE] rounded-2xl text-[11px] font-bold transition-all flex items-center justify-center gap-2 border border-[#2AABEE]/20"
+        >
+          <Send size={13} />
+          <span>Assistant Telegram (Hnia)</span>
+        </a>
 
         <button className="w-full py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group border border-amber-100">
           <Sparkles size={12} className="group-hover:scale-125 transition-transform" />

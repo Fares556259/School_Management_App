@@ -41,6 +41,7 @@ import {
   updateRoom 
 } from "../admin/actions/infrastructureActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import TelegramLinkCard from "@/components/telegram/TelegramLinkCard";
 
 const SettingsPage = () => {
   const router = useRouter();
@@ -423,6 +424,9 @@ const SettingsPage = () => {
             <span className="font-bold text-sm tracking-tight">{message.text}</span>
           </div>
         )}
+
+        {/* TELEGRAM AI ASSISTANT CARD */}
+        <TelegramLinkCard />
 
         <form onSubmit={handleUpdate} className="flex flex-col gap-10 pb-20">
           

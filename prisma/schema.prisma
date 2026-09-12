@@ -23,6 +23,7 @@ model Admin {
   surname           String?
   pendingSchoolName String?
   status            String   @default("pending")
+  telegramAccount   TelegramAccount?
   School            School   @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])
@@ -605,6 +606,7 @@ model School {
   Subject               Subject[]
   Teacher               Teacher[]
   TimetableSlot         TimetableSlot[]
+  TelegramAccount       TelegramAccount[]
 }
 
 model SetupRequest {
@@ -680,4 +682,68 @@ enum AttendanceStatus {
   PRESENT
   ABSENT
   LATE
+}
+
+model TelegramAccount {
+  id               String           @id @default(cuid())
+  telegramId       String           @unique
+  telegramUsername String?
+  adminId          String           @unique
+  schoolId         String
+  linkCode         String?
+  linkCodeExpiry   DateTime?
+  language         String           @default("fr")
+  dailyBriefing    Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  admin            Admin            @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  School           School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  conversations    AIConversation[]
+
+  @@index([schoolId])
+}
+
+model AIConversation {
+  id                String          @id @default(cuid())
+  telegramAccountId String
+  telegramChatId    String
+  title             String          @default("New conversation")
+  status            String          @default("ACTIVE")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  telegramAccount   TelegramAccount @relation(fields: [telegramAccountId], references: [id], onDelete: Cascade)
+  messages          AIMessage[]
+  toolCalls         AIToolCall[]
+
+  @@index([telegramAccountId])
+  @@index([telegramChatId])
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  toolCallId     String?
+  createdAt      DateTime       @default(now())
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model AIToolCall {
+  id              String         @id @default(cuid())
+  conversationId  String
+  toolName        String
+  arguments       Json
+  result          Json?
+  status          String         @default("PENDING")
+  requiresConfirm Boolean        @default(false)
+  confirmedAt     DateTime?
+  executedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  conversation    AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([status])
 }
