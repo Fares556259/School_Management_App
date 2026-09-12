@@ -72,6 +72,13 @@ import {
   addTimetableSlotTool,
 } from "./timetableTools";
 
+// Suite 7: Tasks & Assignments
+import {
+  getAssignmentsTool,
+  createAssignmentTool,
+  getAssignmentDetailsTool,
+} from "./taskTools";
+
 export interface ToolDefinition {
   name: string;
   description: string;
@@ -1057,6 +1064,81 @@ ${lines.join("\n")}`;
       return `❓ <b>Confirmation de Publication</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🎯 Destinataires : ${target}${urgentBadge}${imgBadge}\n\n📌 <b>${args.title}</b>\n${args.message}`;
     },
     execute: postAnnouncementTool,
+  },
+
+  // ── TASKS & ASSIGNMENTS SUITE (/list/assignments) ─────────────────────────
+  get_assignments: {
+    name: "get_assignments",
+    description: "Consulter la liste des tâches scolaires et devoirs à la maison (filtrable par classe, matière, devoirs à venir ou passés).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_assignments",
+      description: "Consulter et filtrer les tâches scolaires et devoirs des élèves.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A', '3B'). Optionnel." },
+          subjectName: { type: SchemaType.STRING, description: "Nom de la matière (ex: 'Mathématiques', 'Anglais'). Optionnel." },
+          filter: {
+            type: SchemaType.STRING,
+            description: "Filtre par statut temporel : 'upcoming' (à venir / non échus), 'past' (passés / échus), ou 'all' (tous). Par défaut 'all'.",
+          },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum de tâches à retourner (par défaut 20)." },
+        },
+      },
+    },
+    execute: getAssignmentsTool,
+  },
+
+  create_assignment: {
+    name: "create_assignment",
+    description: "Créer une nouvelle tâche scolaire ou un devoir à la maison pour une classe avec matière, titre, date limite, instructions et document/photo joint. Notifie immédiatement les parents et élèves via notification push.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "create_assignment",
+      description: "Attribuer une nouvelle tâche ou un devoir à une classe.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["title", "className", "dueDate"],
+        properties: {
+          title: { type: SchemaType.STRING, description: "Titre du devoir ou de la tâche (ex: 'Mathématiques Chapitre 5 Exercices', 'Devoir de français')." },
+          className: { type: SchemaType.STRING, description: "Classe concernée (ex: '1A', '4B')." },
+          subjectName: { type: SchemaType.STRING, description: "Matière concernée (ex: 'Mathématiques', 'Anglais', 'Français')." },
+          dueDate: {
+            type: SchemaType.STRING,
+            description: "Date d'échéance / date limite (ex: '2026-09-18', 'demain', 'dans 3 jours', 'vendredi prochain').",
+          },
+          description: { type: SchemaType.STRING, description: "Instructions détaillées ou consigne pour les élèves." },
+          img: { type: SchemaType.STRING, description: "URL de la pièce jointe (photo de la fiche d'exercice, document numérisé ou PDF)." },
+          startDate: { type: SchemaType.STRING, description: "Date de début (optionnel, par défaut aujourd'hui)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const subject = args.subjectName ? ` • 📖 <b>${args.subjectName}</b>` : "";
+      const desc = args.description ? `\n📝 <i>"${args.description}"</i>` : "";
+      const img = args.img ? "\n📎 <i>Pièce jointe attachée</i>" : "";
+      return `❓ <b>Création de Tâche / Devoir</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>${args.title}</b>\n👥 Classe : <code>${args.className}</code>${subject}\n⏰ Date limite : <code>${args.dueDate}</code>${desc}${img}\n\nConfirmer l'attribution et l'envoi des notifications push aux familles ?`;
+    },
+    execute: createAssignmentTool,
+  },
+
+  get_assignment_details: {
+    name: "get_assignment_details",
+    description: "Consulter les détails complets d'une tâche (instructions, pièces jointes, taux de remise et élèves ayant rendu ou non leur travail).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_assignment_details",
+      description: "Obtenir les détails complets et l'état des rendus d'une tâche ou devoir.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["assignmentIdOrTitle"],
+        properties: {
+          assignmentIdOrTitle: { type: SchemaType.STRING, description: "Identifiant ou titre de la tâche." },
+        },
+      },
+    },
+    execute: getAssignmentDetailsTool,
   },
 };
 
