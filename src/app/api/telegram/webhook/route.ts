@@ -345,11 +345,15 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
       return NextResponse.json({ ok: true });
     }
 
-    // 12. Run the Core Agent with tool-calling
+    // 12. Extract quoted reply text if user replied to a previous message
+    const replyToText = message.reply_to_message?.text;
+
+    // 13. Run the Core Agent with tool-calling and full conversation context
     await runTelegramAgent({
       userMessage: userPrompt,
       chatId,
       telegramId,
+      replyToText,
       tgAccount,
     });
 

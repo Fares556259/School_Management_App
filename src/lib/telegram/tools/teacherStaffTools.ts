@@ -3,6 +3,7 @@ import { MONTHS } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
+import { buildNameSearchConditions } from "./nameSearch";
 
 /**
  * Tool: get_staff
@@ -21,9 +22,7 @@ export async function getStaffTool(
   if (args.query) {
     const q = args.query.trim();
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { surname: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q } },
+      ...buildNameSearchConditions(q),
       { role: { contains: q, mode: "insensitive" } },
     ];
   }

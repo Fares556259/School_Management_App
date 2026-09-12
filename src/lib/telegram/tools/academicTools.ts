@@ -4,6 +4,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
+import { buildNameSearchConditions } from "./nameSearch";
 
 /**
  * Tool: get_student_profile
@@ -34,10 +35,7 @@ export async function getStudentProfileTool(
     const candidates = await prisma.student.findMany({
       where: {
         schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
+        OR: buildNameSearchConditions(query),
       },
       include: {
         class: true,
@@ -211,10 +209,16 @@ export async function getParentsTool(
 
   if (args.query) {
     const q = args.query.trim();
+    const nameConds = buildNameSearchConditions(q);
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { surname: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q } },
+      ...nameConds,
+      {
+        students: {
+          some: {
+            OR: nameConds,
+          },
+        },
+      },
     ];
   }
 

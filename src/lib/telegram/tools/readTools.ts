@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
+import { buildNameSearchConditions } from "./nameSearch";
 
 export interface ToolContext {
   schoolId: string;
@@ -20,7 +21,7 @@ export async function getStudentsTool(
   },
   context: ToolContext
 ) {
-  const limit = Math.min(args.limit || 20, 50);
+  const limit = Math.min(args.limit || 50, 100);
   const where: any = {
     schoolId: context.schoolId,
   };
@@ -41,11 +42,15 @@ export async function getStudentsTool(
 
   if (args.query) {
     const q = args.query.trim();
+    const nameConds = buildNameSearchConditions(q);
     where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { surname: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q } },
+      ...nameConds,
       { username: { contains: q, mode: "insensitive" } },
+      {
+        parent: {
+          OR: nameConds,
+        },
+      },
     ];
   }
 
@@ -400,11 +405,7 @@ export async function getTeachersTool(
 
   if (args.query) {
     const q = args.query.trim();
-    where.OR = [
-      { name: { contains: q, mode: "insensitive" } },
-      { surname: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q } },
-    ];
+    where.OR = buildNameSearchConditions(q);
   }
 
   if (args.subjectName) {

@@ -9,6 +9,7 @@ export interface AgentInput {
   userMessage: string;
   telegramId: string;
   chatId: string | number;
+  replyToText?: string;
   tgAccount: {
     id: string;
     schoolId: string;
@@ -29,7 +30,7 @@ export interface AgentInput {
  * Core agent processor for incoming messages from Telegram.
  */
 export async function runTelegramAgent(input: AgentInput): Promise<void> {
-  const { userMessage, chatId, tgAccount } = input;
+  const { userMessage, chatId, tgAccount, replyToText } = input;
 
   const apiKey =
     process.env.GEMINI_API_KEY ||
@@ -57,6 +58,11 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     language: tgAccount.language || "fr",
   };
 
+  let effectiveUserMessage = userMessage;
+  if (replyToText && replyToText.trim()) {
+    effectiveUserMessage = `[En réponse au message : "${replyToText.trim().slice(0, 300)}"]\n\n${userMessage}`;
+  }
+
   // 2. Find or create an active AIConversation
   let conversation = await prisma.aIConversation.findFirst({
     where: {
@@ -77,20 +83,27 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     });
   }
 
-  // 3. Save user message to database
+  // 3. Fetch recent conversation history prior to this turn (last 20 messages)
+  const historyMessagesDesc = await prisma.aIMessage.findMany({
+    where: { conversationId: conversation.id },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const historyMessages = historyMessagesDesc.reverse();
+
+  // 4. Save user message to database
   await prisma.aIMessage.create({
     data: {
       conversationId: conversation.id,
       role: "user",
-      content: userMessage,
+      content: effectiveUserMessage,
     },
   });
 
-  // 4. Fetch recent conversation history (last 10 messages)
-  const recentMessages = await prisma.aIMessage.findMany({
-    where: { conversationId: conversation.id },
-    orderBy: { createdAt: "asc" },
-    take: 12,
+  // Touch conversation to keep active
+  await prisma.aIConversation.update({
+    where: { id: conversation.id },
+    data: { updatedAt: new Date() },
   });
 
   // 5. Build system instruction
@@ -182,7 +195,13 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
 
 4. LANGUE :
    - Réponds toujours dans la langue de l'administrateur (arabe tunisien, français ou anglais).
-   - N'affiche JAMAIS de Markdown brut cassé ('###', '---') ni de noms de fonctions API techniques.`;
+   - N'affiche JAMAIS de Markdown brut cassé ('###', '---') ni de noms de fonctions API techniques.
+
+5. CONTINUITÉ CONVERSATIONNELLE & CONTEXTE :
+   - Tu as accès à l'historique des échanges récents. Chaque message s'inscrit dans la continuité directe de la discussion.
+   - Si l'administrateur pose une question courte, utilise des pronoms ou demande une précision (ex: "donne tous les noms", "et pour lui ?", "combien il doit ?", "affiche le reste", "qui d'autre ?"), réfère-toi TOUJOURS aux entités (classe, élève, parent, date) évoquées dans les messages précédents.
+   - Exemple crucial : si vous venez de parler des élèves de la classe 1A et que l'utilisateur demande "donne tous les noms", tu dois appeler get_students avec className: "1A" (avec limit: 50) pour afficher la totalité des élèves de la classe 1A, et JAMAIS ceux de toute l'école.
+   - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.`;
 
   // Candidate models with primary ultra-fast lite model and fallback
   const CANDIDATE_MODELS = [
@@ -207,23 +226,48 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
     return "Désolée, une erreur temporaire est survenue lors du traitement de votre demande. Veuillez réessayer dans quelques instants.";
   }
 
-  // Build chat contents
-  // Exclude current message from history to prevent duplication
-  const historyContents: any[] = [];
-  for (const m of recentMessages.slice(0, -1)) {
+  // Build clean alternating history for Gemini
+  const rawTurns: { role: "user" | "model"; text: string }[] = [];
+  for (const m of historyMessages) {
     if (!m.content || !m.content.trim()) continue;
-    historyContents.push({
+    rawTurns.push({
       role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content.trim() }],
+      text: m.content.trim(),
     });
   }
 
-  // Gemini API requires the first content to have role 'user'
-  while (historyContents.length > 0 && historyContents[0].role !== "user") {
-    historyContents.shift();
+  // Ensure strict role alternation (merge consecutive turns of the same role)
+  const normalizedTurns: { role: "user" | "model"; text: string }[] = [];
+  for (const turn of rawTurns) {
+    if (
+      normalizedTurns.length > 0 &&
+      normalizedTurns[normalizedTurns.length - 1].role === turn.role
+    ) {
+      normalizedTurns[normalizedTurns.length - 1].text += `\n${turn.text}`;
+    } else {
+      normalizedTurns.push({ role: turn.role, text: turn.text });
+    }
   }
 
-  const currentTurnParts: any[] = [{ text: userMessage }];
+  // Gemini requires history to start with 'user'
+  while (normalizedTurns.length > 0 && normalizedTurns[0].role !== "user") {
+    normalizedTurns.shift();
+  }
+
+  // Gemini requires history to end with 'model' (since chat.sendMessage will send the next 'user' turn)
+  while (
+    normalizedTurns.length > 0 &&
+    normalizedTurns[normalizedTurns.length - 1].role !== "model"
+  ) {
+    normalizedTurns.pop();
+  }
+
+  const historyContents = normalizedTurns.map((t) => ({
+    role: t.role,
+    parts: [{ text: t.text }],
+  }));
+
+  const currentTurnParts: any[] = [{ text: effectiveUserMessage }];
 
   const genAI = new GoogleGenerativeAI(apiKey);
   let succeeded = false;
