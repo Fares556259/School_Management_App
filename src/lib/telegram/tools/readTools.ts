@@ -77,10 +77,9 @@ export async function getStudentsTool(
     total: totalCount,
     returned: students.length,
     students: students.map((s) => ({
-      id: s.id,
       fullName: `${s.name} ${s.surname}`,
       class: s.class?.name || "Sans classe",
-      tuitionFee: s.level.tuitionFee,
+      tuitionFee: `${s.level.tuitionFee} DT`,
       parent: s.parent ? `${s.parent.name} ${s.parent.surname} (${s.parent.phone})` : null,
     })),
   };
@@ -460,7 +459,6 @@ export async function getTeachersTool(
       }
 
       return {
-        id: t.id,
         name: `${t.name} ${t.surname}`,
         phone: t.phone || "Non renseigné",
         subjects: t.subjects.map((s) => s.name).join(", ") || "Aucune",

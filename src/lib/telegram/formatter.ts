@@ -51,10 +51,39 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
   text = text.replace(/^>\s*(.+)$/gm, "<blockquote>$1</blockquote>");
   text = text.replace(/<\/blockquote>\n<blockquote>/g, "\n");
 
-  // 8. Auto-pill monetary amounts (e.g. 6 304 DT, 450 DT, 180 DT) if not already inside <code>
+  // 8. Mobile Cleanup: Strip technical UUIDs and database IDs
+  text = text.replace(/(?:🏷️|🆔|•)?\s*(?:ID|Id|id)\s*:\s*[a-f0-9-]{8,}(?:\.{3})?/gi, "");
+  text = text.replace(/\[ID:\s*[a-f0-9-]+\]/gi, "");
+  text = text.replace(/\([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\)/gi, "");
+
+  // 9. Mobile Cleanup: Translate English month names to French
+  const monthMap: Record<string, string> = {
+    January: "Janvier",
+    February: "Février",
+    March: "Mars",
+    April: "Avril",
+    May: "Mai",
+    June: "Juin",
+    July: "Juillet",
+    August: "Août",
+    September: "Septembre",
+    October: "Octobre",
+    November: "Novembre",
+    December: "Décembre",
+  };
+  for (const [en, fr] of Object.entries(monthMap)) {
+    text = text.replace(new RegExp(`\\b${en}\\b`, "g"), fr);
+  }
+
+  // 10. Mobile Cleanup: Unwrap single-line clarification questions from blockquotes
+  text = text.replace(/<blockquote>\s*(?:💡\s*(?:Analyse\s+Hnia\s*:\s*)?)?([^<>\n]+?\?)\s*<\/blockquote>/gi, "❓ $1");
+
+  // 11. Auto-pill monetary amounts (e.g. 6 304 DT, 450 DT, 180 DT) if not already inside <code>
   text = text.replace(/(?<!<code>)([-+]?\d[\d\s]*\s*DT)(?!<\/code>)/g, "<code>$1</code>");
 
-  // 9. Clean up extra newlines
+  // 12. Clean up dangling bullet points and redundant empty lines
+  text = text.replace(/[ \t]*•\s*•/g, "•");
+  text = text.replace(/[ \t]*•\s*$/gm, "");
   text = text.replace(/\n{3,}/g, "\n\n");
 
   return text.trim();

@@ -144,7 +144,6 @@ export async function findAvailableTeachersTool(
     subjectFilter: args.subjectName || "Toutes matières",
     availableCount: availableTeachers.length,
     availableTeachers: availableTeachers.map((t) => ({
-      id: t.id,
       name: `${t.name} ${t.surname}`,
       phone: t.phone || "Non renseigné",
       subjects: t.subjects.map((s) => s.name).join(", "),

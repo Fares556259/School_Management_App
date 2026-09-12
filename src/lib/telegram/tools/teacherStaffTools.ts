@@ -60,7 +60,6 @@ export async function getStaffTool(
         : "Non payé ce mois ⏳";
 
       return {
-        id: s.id,
         fullName: `${s.name} ${s.surname}`,
         role: s.role || "Général",
         phone: s.phone || "Non renseigné",

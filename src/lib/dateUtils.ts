@@ -108,4 +108,29 @@ export function getSchoolYearMonths(date: Date = new Date()): string[] {
   return months.map(({ m, y }) => `${MONTHS[m]} ${y}`);
 }
 
+export const MONTHS_FR: Record<string, string> = {
+  January: "Janvier",
+  February: "Février",
+  March: "Mars",
+  April: "Avril",
+  May: "Mai",
+  June: "Juin",
+  July: "Juillet",
+  August: "Août",
+  September: "Septembre",
+  October: "Octobre",
+  November: "Novembre",
+  December: "Décembre",
+};
+
+export function formatMonthFrench(monthKey: string): string {
+  if (!monthKey) return monthKey;
+  const parts = monthKey.split(" ");
+  if (parts.length >= 2 && MONTHS_FR[parts[0]]) {
+    return `${MONTHS_FR[parts[0]]} ${parts.slice(1).join(" ")}`;
+  }
+  return MONTHS_FR[monthKey] || monthKey;
+}
+
+
 

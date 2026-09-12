@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { MONTHS } from "@/lib/dateUtils";
+import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { createAnnouncementNotifications } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
@@ -201,7 +201,7 @@ export async function recordPaymentTool(
 
     if (candidates.length > 1) {
       const names = candidates
-        .map((c) => `• ${c.name} ${c.surname} (${c.class?.name || "Sans classe"}) [ID: ${c.id}]`)
+        .map((c) => `• <b>${c.name} ${c.surname}</b> (Classe : <code>${c.class?.name || "Sans classe"}</code>)`)
         .join("\n");
       return {
         success: false,
@@ -334,19 +334,21 @@ export async function recordPaymentTool(
     console.warn("[recordPaymentTool] Cache invalidation warning:", err);
   }
 
-  // 5. Build rich executive response
+  // 5. Build rich compact mobile response
   const breakdownLines = paymentsToProcess.map((p) => {
+    const frMonthYear = formatMonthFrench(p.monthYear);
     const statusBadge = p.isPartial
-      ? `PARTIEL ⚠️ (Versé: <code>${p.amount} DT</code>, Reste dû: <code>${p.gap} DT</code>)`
-      : `SOLDÉ ✅ (<code>${p.amount} DT</code>)`;
-    return `• <b>${p.monthYear}</b> : ${statusBadge}`;
+      ? `⚠️ <code>PARTIEL</code> (Reçu <code>${p.amount} DT</code> • Reste <code>${p.gap} DT</code>)`
+      : `✅ <code>SOLDÉ</code> (<code>${p.amount} DT</code>)`;
+    return `• <b>${frMonthYear}</b> : ${statusBadge}`;
   });
 
-  const message = `✅ <b>Paiement enregistré avec succès !</b>
-Élève : <b>${studentFullName}</b> (Classe : <code>${student.class?.name || "Sans classe"}</code>)
-Montant reçu : <code>${args.amount} DT</code> (Tarif mensuel : <code>${tuitionFee} DT</code>)
+  const message = `✅ <b>Paiement Enregistré</b>
 ━━━━━━━━━━━━━━━━━━━━━━
-📋 <b>Ventilation multi-mois appliquée :</b>
+👤 <b>${studentFullName}</b> • Classe <code>${student.class?.name || "Sans classe"}</code>
+💰 Reçu : <code>${args.amount} DT</code> (Tarif : <code>${tuitionFee} DT/m</code>)
+
+📋 <b>Ventilation :</b>
 ${breakdownLines.join("\n")}`;
 
   return {
@@ -354,9 +356,9 @@ ${breakdownLines.join("\n")}`;
     message,
     summary: `Paiement ${args.amount} DT réparti pour ${studentFullName} (${paymentsToProcess.length} mois)`,
     data: {
-      studentId: student.id,
+      studentName: studentFullName,
       paymentsCount: paymentsToProcess.length,
-      affectedMonths: paymentsToProcess.map((p) => p.monthYear),
+      affectedMonths: paymentsToProcess.map((p) => formatMonthFrench(p.monthYear)),
     },
   };
 }

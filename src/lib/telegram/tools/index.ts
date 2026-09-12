@@ -11,6 +11,7 @@ import {
   getTeachersTool,
 } from "./readTools";
 import prisma from "@/lib/prisma";
+import { formatMonthFrench } from "@/lib/dateUtils";
 import {
   recordPaymentTool,
   addExpenseTool,
@@ -166,8 +167,8 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous inscrire l'élève **${args.name} ${args.surname}** en classe de **${args.className}**${
-        args.parentPhone ? ` (Parent : ${args.parentPhone})` : ""
+      return `❓ <b>Confirmation d'Inscription</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous inscrire <b>${args.name} ${args.surname}</b> en classe <code>${args.className}</code>${
+        args.parentPhone ? ` (Parent : <code>${args.parentPhone}</code>)` : ""
       } ?`;
     },
     execute: createStudentTool,
@@ -191,7 +192,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous créer la classe **"${args.name}"** (Capacité : ${args.capacity || 25} élèves) ?`;
+      return `❓ <b>Création de Classe</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous créer la classe <code>${args.name}</code> (Capacité : <code>${args.capacity || 25} élèves</code>) ?`;
     },
     execute: createClassTool,
   },
@@ -213,7 +214,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous affecter l'élève **${args.studentNameOrId}** à la classe **${args.className}** ?`;
+      return `❓ <b>Affectation de Classe</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous affecter <b>${args.studentNameOrId}</b> à la classe <code>${args.className}</code> ?`;
     },
     execute: assignStudentToClassTool,
   },
@@ -279,7 +280,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous enregistrer l'enseignant(e) **${args.name} ${args.surname}** (Tél : ${args.phone}) ?`;
+      return `❓ <b>Nouveau Professeur</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer <b>${args.name} ${args.surname}</b> (📞 <code>${args.phone}</code>) ?`;
     },
     execute: createTeacherTool,
   },
@@ -303,8 +304,8 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous ajouter le membre du personnel **${args.name} ${args.surname}**${
-        args.salary ? ` (Salaire : ${args.salary} DT)` : ""
+      return `❓ <b>Nouveau Membre du Personnel</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous ajouter <b>${args.name} ${args.surname}</b>${
+        args.salary ? ` (Salaire : <code>${args.salary} DT</code>)` : ""
       } ?`;
     },
     execute: createStaffTool,
@@ -332,9 +333,9 @@ export const TOOLS: Record<string, ToolDefinition> = {
     },
     formatConfirmationMessage: (args) => {
       const type = args.isAdvance ? "l'avance sur salaire" : "le salaire";
-      const deductionNote = args.missedHours ? ` (déduction appliquée pour ${args.missedHours}h d'absence)` : "";
-      const monthStr = args.month ? ` pour le mois ${args.month}` : "";
-      return `❓ <b>Confirmation requise :</b>\nSouhaitez-vous enregistrer <b>${type} de ${args.amount} DT</b> pour l'enseignant(e) <b>${args.teacherNameOrId}</b>${monthStr}${deductionNote} ?`;
+      const deductionNote = args.missedHours ? ` (déduction <code>${args.missedHours}h</code>)` : "";
+      const monthStr = args.month ? ` pour le mois <code>${args.month}</code>` : "";
+      return `❓ <b>Paiement Enseignant</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer ${type} de <code>${args.amount} DT</code> pour <b>${args.teacherNameOrId}</b>${monthStr}${deductionNote} ?`;
     },
     execute: payTeacherSalaryTool,
   },
@@ -360,7 +361,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
     },
     formatConfirmationMessage: (args) => {
       const type = args.isAdvance ? "l'avance" : "le salaire";
-      return `❓ **Confirmation requise :**\nSouhaitez-vous enregistrer **${type} de ${args.amount} DT** pour **${args.staffNameOrId}** ?`;
+      return `❓ <b>Paiement Personnel</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer ${type} de <code>${args.amount} DT</code> pour <b>${args.staffNameOrId}</b> ?`;
     },
     execute: payStaffSalaryTool,
   },
@@ -424,11 +425,11 @@ export const TOOLS: Record<string, ToolDefinition> = {
     },
     formatConfirmationMessage: (args) => {
       const statusLabels: Record<string, string> = {
-        ABSENT: "ABSENT",
-        LATE: "EN RETARD",
-        PRESENT: "PRÉSENT",
+        ABSENT: "ABSENT ❌",
+        LATE: "EN RETARD ⚠️",
+        PRESENT: "PRÉSENT ✅",
       };
-      return `❓ **Confirmation requise :**\nSouhaitez-vous marquer l'élève **${args.studentNameOrId}** comme **${statusLabels[args.status] || args.status}** ?`;
+      return `❓ <b>Saisie de Présence</b>\n━━━━━━━━━━━━━━━━━━━━━━\nMarquer <b>${args.studentNameOrId}</b> comme <code>${statusLabels[args.status] || args.status}</code> ?`;
     },
     execute: markAttendanceTool,
   },
@@ -510,7 +511,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous enregistrer la note de **${args.score} / 20** en **${args.subjectName}** pour l'élève **${args.studentNameOrId}** (Trimestre ${args.term || 1}) ?`;
+      return `❓ <b>Saisie de Note</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la note <code>${args.score} / 20</code> en <b>${args.subjectName}</b> pour <b>${args.studentNameOrId}</b> (Trimestre <code>${args.term || 1}</code>) ?`;
     },
     execute: recordGradeTool,
   },
@@ -536,7 +537,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous planifier l'examen **"${args.title}"** (${args.subjectName}) pour la classe **${args.className}** le **${args.date}** ?`;
+      return `❓ <b>Planification d'Examen</b>\n━━━━━━━━━━━━━━━━━━━━━━\nPlanifier <b>${args.title}</b> (${args.subjectName}) pour la classe <code>${args.className}</code> le <code>${args.date}</code> ?`;
     },
     execute: scheduleExamTool,
   },
@@ -631,7 +632,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
       });
 
       if (!student) {
-        return `❓ <b>Confirmation requise :</b>\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${args.studentNameOrId}</b> ?`;
+        return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${args.studentNameOrId}</b> ?`;
       }
 
       const allocation = await calculateStudentPaymentAllocation(
@@ -643,18 +644,21 @@ export const TOOLS: Record<string, ToolDefinition> = {
       );
 
       if (!allocation || allocation.paymentsToProcess.length === 0) {
-        return `❓ <b>Confirmation requise :</b>\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> ?`;
+        return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> ?`;
       }
 
       const lines = allocation.paymentsToProcess.map((p) => {
+        const frMonth = formatMonthFrench(p.monthYear);
         const badge = p.isPartial
-          ? `PARTIEL ⚠️ (Versé: <code>${p.amount} DT</code>, Reste dû: <code>${p.gap} DT</code>)`
-          : `SOLDÉ ✅ (<code>${p.amount} DT</code>)`;
-        return `• <b>${p.monthYear}</b> : ${badge}`;
+          ? `⚠️ <code>PARTIEL</code> (Reçu <code>${p.amount} DT</code> • Reste <code>${p.gap} DT</code>)`
+          : `✅ <code>SOLDÉ</code> (<code>${p.amount} DT</code>)`;
+        return `• <b>${frMonth}</b> : ${badge}`;
       });
 
-      return `❓ <b>Confirmation requise :</b>
-Souhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> (Classe : <code>${student.class?.name || "Sans classe"}</code>) ?
+      return `❓ <b>Confirmation de Paiement</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>${student.name} ${student.surname}</b> • Classe <code>${student.class?.name || "Sans classe"}</code>
+💰 Versement reçu : <code>${args.amount} DT</code>
 
 📋 <b>Ventilation automatique calculée :</b>
 ${lines.join("\n")}`;
@@ -681,9 +685,9 @@ ${lines.join("\n")}`;
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous enregistrer la dépense **"${args.title}"** de **${args.amount} DT** (Catégorie : ${
+      return `❓ <b>Nouvelle Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la dépense <b>${args.title}</b> de <code>${args.amount} DT</code> (Catégorie : <code>${
         args.category || "Général"
-      }) ?`;
+      }</code>) ?`;
     },
     execute: addExpenseTool,
   },
@@ -703,7 +707,7 @@ ${lines.join("\n")}`;
       },
     },
     formatConfirmationMessage: () => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous envoyer un **rappel de paiement par notification** à toutes les familles ayant des impayés ce mois-ci ?`;
+      return `❓ <b>Rappels de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnvoyer une notification de rappel aux familles ayant des impayés ce mois-ci ?`;
     },
     execute: sendPaymentRemindersTool,
   },
@@ -770,7 +774,7 @@ ${lines.join("\n")}`;
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ **Confirmation requise :**\nSouhaitez-vous ajouter la séance de **${args.subjectName}** pour **${args.className}** avec **${args.teacherName}** le **${args.day}** de ${args.startTime} à ${args.endTime} ?`;
+      return `❓ <b>Ajout de Séance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nAjouter <b>${args.subjectName}</b> pour <code>${args.className}</code> avec <b>${args.teacherName}</b> le <b>${args.day}</b> (<code>${args.startTime} - ${args.endTime}</code>) ?`;
     },
     execute: addTimetableSlotTool,
   },
@@ -795,8 +799,8 @@ ${lines.join("\n")}`;
       },
     },
     formatConfirmationMessage: (args) => {
-      const target = args.className ? `la classe **${args.className}**` : "**toute l'école**";
-      return `❓ **Confirmation requise :**\nSouhaitez-vous publier l'annonce suivante pour ${target} ?\n\n📌 **${args.title}**\n${args.message}`;
+      const target = args.className ? `la classe <code>${args.className}</code>` : "<b>toute l'école</b>";
+      return `❓ <b>Publication d'Annonce</b>\n━━━━━━━━━━━━━━━━━━━━━━\nPublier pour ${target} :\n\n📌 <b>${args.title}</b>\n${args.message}`;
     },
     execute: postAnnouncementTool,
   },

@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
+import { MONTHS, getSchoolYearMonths, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
@@ -56,7 +56,6 @@ export async function getStudentProfileTool(
         multiple: true,
         message: `Plusieurs élèves correspondent à "${query}". Précisez :`,
         candidates: candidates.map((c) => ({
-          id: c.id,
           name: `${c.name} ${c.surname}`,
           class: c.class?.name || "Sans classe",
         })),
@@ -135,7 +134,7 @@ export async function getStudentProfileTool(
     else if (isPartial) statusLabel = `PARTIEL ⚠️ (Reste ${remainingDue} DT)`;
 
     return {
-      period: mKey,
+      period: formatMonthFrench(mKey),
       month: monthIdx,
       year: yearVal,
       amountPaid: `${amountPaid} DT`,
@@ -159,7 +158,6 @@ export async function getStudentProfileTool(
   return {
     found: true,
     student: {
-      id: student.id,
       fullName: `${student.name} ${student.surname}`,
       class: student.class?.name || "Sans classe",
       level: student.level ? `Niveau ${student.level.level}` : "N/A",
@@ -181,14 +179,14 @@ export async function getStudentProfileTool(
       attendance30Days: {
         absences: absencesCount,
         retards: latesCount,
-        recentRecords: attendances.map((a) => ({
+        recentRecords: attendances.slice(0, 3).map((a) => ({
           status: a.status,
           date: a.date.toISOString().split("T")[0],
           subject: a.lesson?.subject.name || null,
           note: a.note || null,
         })),
       },
-      recentGrades: grades.map((g) => ({
+      recentGrades: grades.slice(0, 4).map((g) => ({
         subject: g.subject.name,
         score: `${g.score} / 20`,
         term: `Trimestre ${g.term}`,
@@ -273,7 +271,6 @@ export async function getParentsTool(
           : "En attente";
 
         return {
-          id: s.id,
           name: `${s.name} ${s.surname}`,
           class: s.class?.name || "Sans classe",
           tuitionStatus: tuitionBadge,
@@ -282,7 +279,6 @@ export async function getParentsTool(
       });
 
       return {
-        id: p.id,
         fullName: `${p.name} ${p.surname}`,
         phone: p.phone,
         address: p.address || "Non renseignée",
@@ -328,7 +324,6 @@ export async function getClassesTool(
   return {
     totalClasses: classes.length,
     classes: classes.map((c) => ({
-      id: c.id,
       name: c.name,
       capacity: c.capacity,
       studentCount: c._count.students,

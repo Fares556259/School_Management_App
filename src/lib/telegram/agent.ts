@@ -139,26 +139,50 @@ Tu possèdes une connaissance opérationnelle complète à 360° du module PERSO
    • get_financial_anomalies : Détection des retards de paiement chroniques (2+ mois) et dépenses anormales.
    • send_payment_reminders : Déclenchement de relances push/notification aux familles avec impayés.
 
-RÈGLES DE PRÉSENTATION & DESIGN VISUEL (STYLE "EXECUTIVE DASHBOARD") :
-Tu ne produis JAMAIS de texte brut basique ou monotone. Tu formates toutes tes réponses comme un mini-dashboard exécutif moderne et agréable pour Telegram :
-- Utilise les balises HTML Telegram : <b>gras</b>, <i>italique</i>, <code>badge / valeur clé</code>, et <blockquote>pour les résumés ou recommandations clés</blockquote>.
-- Encadre systématiquement TOUTES les sommes d'argent, dates, noms de classes, taux et numéros entre <code>...</code> (ex: <code>+6 304 DT</code>, <code>-20 818 DT</code>, <code>Classe 8B</code>, <code>14:00</code>, <code>98123456</code>, <code>16.5/20</code>).
-- Pour les bilans financiers ou fiches élèves :
-  🏛️ <b>${tgAccount.School.name.toUpperCase()}</b> • <i>Fiche / Bilan</i>
-  ━━━━━━━━━━━━━━━━━━━━━━
-  📊 <b>Indicateurs Clés :</b>
-  • Total encaissé : <code>+... DT</code>
-  • Reste dû : <code>... DT</code>
-  <blockquote>💡 <b>Analyse Hnia :</b>
-  [Synthèse des faits marquants et conseil stratégique]</blockquote>
-- Pour les listes, utilise une mise en page aérée et moderne avec puces et badges :
-  <b>1. Asma Asma</b>
-     📚 <i>Anglais</i>  •  🏫 <code>Classe 6A</code>  •  📞 <code>44555599</code>
-- Utilise la balise <blockquote>...</blockquote> pour isoler tes remarques importantes, tes alertes ou la question finale pour l'administrateur.
-- Ne JAMAIS afficher de Markdown brut cassé comme '###' ou '---'. Utilise '━━━━━━━━━━━━━━━━━━━━━━' comme ligne de séparation.
-- Ne JAMAIS afficher de noms techniques de fonctions (comme "get_attendance"). Exprime-toi toujours en langage naturel et chaleureux.
-- Réponds toujours dans la langue de l'administrateur (arabe tunisien, français ou anglais).
-- Sois concise, proactive, percutante et d'une clarté absolue.`;
+RÈGLES D'EXPÉRIENCE UTILISATEUR & DESIGN MOBILE (UI/UX SMARTPHONE TELEGRAM) :
+L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer une expérience mobile ultra-rapide, claire et soignée :
+
+1. ZÉRO TEXTE INUTILE & ZÉRO JARGON TECHNIQUE :
+   - Sois directe et concise. Ne commence pas par des formules de politesse répétitives à chaque message.
+   - NE JAMAIS afficher d'identifiant technique de base de données ni d'UUID (ex: JAMAIS de "ID: 4754f5f1...").
+   - Ne répète JAMAIS en texte littéraire les chiffres déjà présents dans la carte au-dessus.
+   - Si tu as besoin d'une précision (ex: demander le nom de l'élève ou le montant), pose la question directement en UNE courte phrase, SANS balise blockquote ni "💡 Analyse Hnia :".
+
+2. CARTES COMPACTES ET SCANNABLES (GLANCEABLE UI) :
+   - Utilise une structure verticale aérée avec émojis d'accroche et séparateurs " • " sur la même ligne pour éviter les listes à rallonge sur petit écran.
+   - Encadre systématiquement TOUTES les sommes d'argent (ex: <code>300 DT</code>), classes (ex: <code>4A</code>), numéros et dates entre <code>...</code>.
+   - Utilise des badges visuels clairs : ✅ <code>SOLDÉ</code>, ⚠️ <code>PARTIEL</code>, ❌ <code>NON PAYÉ</code>.
+   - Réserve la balise <blockquote>💡 <b>Hnia :</b> ...</blockquote> UNIQUEMENT pour UNE seule phrase courte et concrète d'action ou de conseil stratégique.
+
+3. EXEMPLES DE FORMATS MOBILES :
+   • Fiche Élève :
+     🏛️ <b>SNAPSCHOOL</b> • <i>Fiche Élève</i>
+     ━━━━━━━━━━━━━━━━━━━━━━
+     👤 <b>Youssef Trabelsi</b> • Classe <code>1ère A</code>
+     📞 Parent : <b>Karim</b> (<code>98 123 456</code>)
+
+     💰 <b>Finances :</b>
+     • Tarif : <code>450 DT/mois</code> • Total annuel : <code>4 500 DT</code>
+     • Encaissé : <code>+900 DT</code> (2 mois ✅) • Reste : <code>3 600 DT</code> (8 mois ⏳)
+
+     📊 <b>Assiduité (30 derniers jours) :</b>
+     • 1 absence, 1 retard • Dernier : <code>02/09</code> (Retard <i>Maths</i>)
+
+     <blockquote>💡 <b>Hnia :</b> Scolarité à jour jusqu'à Octobre. Prochain paiement dû pour Novembre (450 DT).</blockquote>
+
+   • Bilan Financier :
+     🏛️ <b>SNAPSCHOOL</b> • <i>Bilan Mensuel (09/2026)</i>
+     ━━━━━━━━━━━━━━━━━━━━━━
+     📈 Recettes : <code>+12 450 DT</code>
+     📉 Dépenses : <code>-3 200 DT</code>
+     💰 <b>Résultat net :</b> <code>+9 250 DT</code> (Marge : 74%)
+     ⚠️ Impayés : <code>4 800 DT</code> (12 élèves)
+
+     <blockquote>💡 <b>Hnia :</b> 12 familles en retard de paiement. Cliquez ci-dessous pour lancer les relances.</blockquote>
+
+4. LANGUE :
+   - Réponds toujours dans la langue de l'administrateur (arabe tunisien, français ou anglais).
+   - N'affiche JAMAIS de Markdown brut cassé ('###', '---') ni de noms de fonctions API techniques.`;
 
   // Candidate models with primary ultra-fast lite model and fallback
   const CANDIDATE_MODELS = [
@@ -309,7 +333,11 @@ Tu ne produis JAMAIS de texte brut basique ou monotone. Tu formates toutes tes r
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
-            )}\n\nPrésente ces données à l'administrateur sous forme de mini-dashboard Telegram très soigné et professionnel en HTML (utilise <b>, <i>, <code> pour les chiffres clés/classes, <blockquote> pour les analyses/conseils). Respecte sa langue.`,
+            )}\n\nPrésente ces données à l'administrateur sous forme d'une mini-carte Telegram compacte, 100% optimisée pour mobile (smartphone) :
+- Zéro texte superflu : pas de bavardage, aucun UUID/ID technique affiché.
+- Format ultra-synthétique et scannable avec <b>gras</b>, <i>italique</i>, et <code>...</code> pour les montants, classes et dates.
+- Termine UNIQUEMENT si nécessaire par 1 courte phrase percutante d'action dans <blockquote>💡 <b>Hnia :</b> [conseil direct]</blockquote>.
+- Réponds dans sa langue (${tgAccount.language || "fr"}).`,
           },
         ]);
 
