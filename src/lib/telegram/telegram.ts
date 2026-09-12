@@ -16,6 +16,7 @@ export interface InlineKeyboardButton {
   text: string;
   callback_data?: string;
   url?: string;
+  web_app?: { url: string };
 }
 
 export interface InlineKeyboardMarkup {
@@ -253,5 +254,30 @@ export async function getTelegramWebhookInfo(): Promise<any> {
   const apiUrl = `${TELEGRAM_API_BASE}/bot${token}/getWebhookInfo`;
 
   const res = await fetch(apiUrl);
+  return await res.json();
+}
+
+/**
+ * Configure Telegram chat menu button (e.g. to open Mini App)
+ */
+export async function setChatMenuButton(
+  chatId?: string | number,
+  menuButton?: {
+    type: "default" | "commands" | "web_app";
+    text?: string;
+    web_app?: { url: string };
+  }
+): Promise<any> {
+  const token = getBotToken();
+  const url = `${TELEGRAM_API_BASE}/bot${token}/setChatMenuButton`;
+  const payload: Record<string, any> = {};
+  if (chatId) payload.chat_id = chatId;
+  if (menuButton) payload.menu_button = menuButton;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   return await res.json();
 }

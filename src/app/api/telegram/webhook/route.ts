@@ -4,6 +4,7 @@ import {
   sendTelegramChatAction,
   answerTelegramCallbackQuery,
   getTelegramFile,
+  setChatMenuButton,
 } from "@/lib/telegram/telegram";
 import {
   verifyAndLinkAccount,
@@ -14,6 +15,7 @@ import {
 import { handleConfirmationCallback } from "@/lib/telegram/confirmation";
 import { runTelegramAgent } from "@/lib/telegram/agent";
 import { transcribeTelegramVoice } from "@/lib/telegram/voice";
+import { generateCallToken } from "@/lib/call/token";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -239,6 +241,9 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
 
 ---
 
+📞 **Appel Vocal Direct (Nouveau !) :**
+• Tapez \`/call\` pour lancer un appel téléphonique en direct avec moi dans Telegram !
+
 🎓 **1. Pédagogie & Élèves**
 • _"Donne-moi le profil complet de l'élève Mohamed"_ (Fiche 360°)
 • _"Inscris un nouvel élève Youssef Trabelsi en 8ème B (Tél père: 98123456)"_
@@ -276,6 +281,7 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
 ---
 
 ⚙️ **Commandes système :**
+• \`/call\` — 📞 Passer un appel vocal en direct avec Hnia
 • \`/lang\` — Changer la langue (Français / العربية / English)
 • \`/status\` — Vérifier l'état de votre connexion
 • \`/unlink\` — Dissocier votre compte Telegram`,
@@ -315,6 +321,72 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
           `❌ Non connecté. Utilisez /start pour associer votre compte.`
         );
       }
+      return NextResponse.json({ ok: true });
+    }
+
+    // 9. Command: /call (or audio call trigger)
+    const lowerText = rawText.toLowerCase();
+    if (
+      lowerText === "/call" ||
+      lowerText.includes("appeler hnia") ||
+      lowerText.includes("appel vocal") ||
+      lowerText.includes("كلم هنية") ||
+      lowerText.includes("call hnia")
+    ) {
+      const account = await getLinkedAccount(telegramId);
+      if (!account) {
+        await sendTelegramMessage(
+          chatId,
+          `⚠️ Veuillez d'abord associer votre compte SnapSchool avec /start.`
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      const adminName =
+        [account.admin.name, account.admin.surname].filter(Boolean).join(" ") ||
+        account.admin.username;
+
+      const callToken = generateCallToken({
+        adminId: account.adminId,
+        schoolId: account.schoolId,
+        telegramChatId: chatId,
+        telegramId,
+        adminName,
+        schoolName: account.School.name,
+        language: account.language || "fr",
+      });
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.snapschool.academy";
+      const callUrl = `${appUrl}/call?auth=${callToken}`;
+
+      // Also set the persistent bottom menu button for instant access
+      try {
+        await setChatMenuButton(chatId, {
+          type: "web_app",
+          text: "📞 Appeler Hnia",
+          web_app: { url: callUrl },
+        });
+      } catch (menuErr) {
+        console.warn("[Telegram Webhook] Failed to set menu button:", menuErr);
+      }
+
+      await sendTelegramMessage(
+        chatId,
+        `📞 **Appel Vocal en Direct avec Hnia**\n\nPrêt à échanger de vive voix avec votre assistante opérationnelle ?\n• Dialogue fluide en **Tunisien / Français**\n• Exécution de vos ordres en direct (présences, finances, notes)\n• Compte-rendu automatique envoyé à la fin de l'appel\n\nCliquez ci-dessous pour décrocher l'appel :`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📞 Décrocher l'Appel avec Hnia",
+                  web_app: { url: callUrl },
+                },
+              ],
+            ],
+          },
+        }
+      );
       return NextResponse.json({ ok: true });
     }
 
