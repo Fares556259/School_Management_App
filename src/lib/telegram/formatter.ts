@@ -100,10 +100,24 @@ export function getQuickActionButtons(
   const isAnnouncementDraft =
     lower.includes("proposition d'annonce") ||
     lower.includes("proposition d’annonce") ||
+    lower.includes("projet d'annonce") ||
+    lower.includes("projet d’annonce") ||
     lower.includes("créer une annonce") ||
+    lower.includes("nouvelle annonce") ||
+    lower.includes("options de diffusion") ||
+    lower.includes("souhaitez-vous publier") ||
+    lower.includes("voulez-vous publier") ||
+    lower.includes("dites simplement « publier »") ||
+    lower.includes("dites simplement «publier»") ||
+    lower.includes("pour quelle classe souhaitez-vous diffuser") ||
+    lower.includes("avez-vous une photo") ||
+    lower.includes("avez-vous une affiche") ||
     (lower.includes("annonce") &&
       (lower.includes("destinataire") ||
         lower.includes("portée") ||
+        lower.includes("urgent") ||
+        lower.includes("affiche") ||
+        lower.includes("image") ||
         lower.includes("publier ce message") ||
         lower.includes("publier cette annonce") ||
         lower.includes("options de diffusion")));
