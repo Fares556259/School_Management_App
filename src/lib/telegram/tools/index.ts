@@ -10,10 +10,12 @@ import {
   getFinancialSummaryTool,
   getTeachersTool,
 } from "./readTools";
+import prisma from "@/lib/prisma";
 import {
   recordPaymentTool,
   addExpenseTool,
   postAnnouncementTool,
+  calculateStudentPaymentAllocation,
 } from "./writeTools";
 import {
   getStudentProfileTool,
@@ -67,7 +69,7 @@ export interface ToolDefinition {
   declaration: FunctionDeclaration;
   requiresConfirmation: boolean;
   execute: (args: any, context: ToolContext) => Promise<any>;
-  formatConfirmationMessage?: (args: any, context: ToolContext) => string;
+  formatConfirmationMessage?: (args: any, context: ToolContext) => string | Promise<string>;
 }
 
 export const TOOLS: Record<string, ToolDefinition> = {
@@ -329,8 +331,10 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      const type = args.isAdvance ? "l'avance" : "le salaire";
-      return `❓ **Confirmation requise :**\nSouhaitez-vous enregistrer **${type} de ${args.amount} DT** pour l'enseignant(e) **${args.teacherNameOrId}** ?`;
+      const type = args.isAdvance ? "l'avance sur salaire" : "le salaire";
+      const deductionNote = args.missedHours ? ` (déduction appliquée pour ${args.missedHours}h d'absence)` : "";
+      const monthStr = args.month ? ` pour le mois ${args.month}` : "";
+      return `❓ <b>Confirmation requise :</b>\nSouhaitez-vous enregistrer <b>${type} de ${args.amount} DT</b> pour l'enseignant(e) <b>${args.teacherNameOrId}</b>${monthStr}${deductionNote} ?`;
     },
     execute: payTeacherSalaryTool,
   },
@@ -596,25 +600,64 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   record_payment: {
     name: "record_payment",
-    description: "Enregistrer un paiement de scolarité reçu d'une famille.",
+    description: "Enregistrer un versement libre de scolarité reçu d'une famille (gère la ventilation multi-mois automatique de septembre à juin et les soldes partiels).",
     requiresConfirmation: true,
     declaration: {
       name: "record_payment",
-      description: "Enregistrer un paiement de scolarité en Dinars Tunisiens (DT).",
+      description: "Enregistrer un versement libre de scolarité en Dinars Tunisiens (DT) avec répartition multi-mois automatique.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["studentNameOrId", "amount"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
-          amount: { type: SchemaType.NUMBER, description: "Montant reçu en DT." },
-          month: { type: SchemaType.NUMBER, description: "Mois concerné (1 à 12)." },
-          year: { type: SchemaType.NUMBER, description: "Année (ex: 2026)." },
+          amount: { type: SchemaType.NUMBER, description: "Montant reçu en DT (ex: 450, 1000, 200)." },
+          month: { type: SchemaType.NUMBER, description: "Mois de début ou mois ciblé (1 à 12, optionnel : commence au 1er impayé par défaut)." },
+          year: { type: SchemaType.NUMBER, description: "Année (ex: 2026, optionnel)." },
         },
       },
     },
-    formatConfirmationMessage: (args) => {
-      const monthStr = args.month ? ` pour le mois ${args.month}` : "";
-      return `❓ **Confirmation requise :**\nSouhaitez-vous enregistrer le paiement de **${args.amount} DT** pour l'élève **${args.studentNameOrId}**${monthStr} ?`;
+    formatConfirmationMessage: async (args, context) => {
+      const query = (args.studentNameOrId || "").trim();
+      const student = await prisma.student.findFirst({
+        where: {
+          schoolId: context.schoolId,
+          OR: [
+            { id: query },
+            { name: { contains: query, mode: "insensitive" } },
+            { surname: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        include: { class: true },
+      });
+
+      if (!student) {
+        return `❓ <b>Confirmation requise :</b>\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${args.studentNameOrId}</b> ?`;
+      }
+
+      const allocation = await calculateStudentPaymentAllocation(
+        student.id,
+        args.amount,
+        context.schoolId,
+        args.month,
+        args.year
+      );
+
+      if (!allocation || allocation.paymentsToProcess.length === 0) {
+        return `❓ <b>Confirmation requise :</b>\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> ?`;
+      }
+
+      const lines = allocation.paymentsToProcess.map((p) => {
+        const badge = p.isPartial
+          ? `PARTIEL ⚠️ (Versé: <code>${p.amount} DT</code>, Reste dû: <code>${p.gap} DT</code>)`
+          : `SOLDÉ ✅ (<code>${p.amount} DT</code>)`;
+        return `• <b>${p.monthYear}</b> : ${badge}`;
+      });
+
+      return `❓ <b>Confirmation requise :</b>
+Souhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> (Classe : <code>${student.class?.name || "Sans classe"}</code>) ?
+
+📋 <b>Ventilation automatique calculée :</b>
+${lines.join("\n")}`;
     },
     execute: recordPaymentTool,
   },

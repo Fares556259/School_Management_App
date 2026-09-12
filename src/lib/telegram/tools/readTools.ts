@@ -416,6 +416,10 @@ export async function getTeachersTool(
     };
   }
 
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
   const teachers = await prisma.teacher.findMany({
     where,
     take: 25,
@@ -425,20 +429,51 @@ export async function getTeachersTool(
       name: true,
       surname: true,
       phone: true,
+      salary: true,
+      hourlyRate: true,
+      hoursPerMonth: true,
       subjects: { select: { id: true, name: true } },
       classes: { select: { id: true, name: true } },
-      salary: true,
+      payments: {
+        where: { schoolId: context.schoolId, month: currentMonth, year: currentYear, userType: "TEACHER" },
+        select: { id: true, amount: true, status: true, missedHours: true, paidAt: true },
+      },
     },
   });
 
   return {
     total: teachers.length,
-    teachers: teachers.map((t) => ({
-      id: t.id,
-      name: `${t.name} ${t.surname}`,
-      phone: t.phone || "Non renseigné",
-      subjects: t.subjects.map((s) => s.name).join(", ") || "Aucune",
-      supervisedClasses: t.classes.map((c) => c.name).join(", ") || "Aucune",
-    })),
+    teachers: teachers.map((t) => {
+      const currentP = t.payments[0];
+      const rate = t.hourlyRate || 15;
+      const missedHrs = currentP?.missedHours || 0;
+      const deduction = missedHrs * rate;
+      const advancePaid = currentP?.status === "PARTIAL" ? currentP.amount : 0;
+      const baseSalary = t.salary || 600;
+      const netDue = Math.max(0, baseSalary - deduction - (currentP?.amount || 0));
+
+      let monthlyStatus = "En attente ⏳";
+      if (currentP?.status === "PAID") {
+        monthlyStatus = `Soldé (${currentP.amount} DT) ✅`;
+      } else if (currentP?.status === "PARTIAL") {
+        monthlyStatus = `Avance : ${currentP.amount} DT (Reste net : ${netDue} DT) ⚠️`;
+      }
+
+      return {
+        id: t.id,
+        name: `${t.name} ${t.surname}`,
+        phone: t.phone || "Non renseigné",
+        subjects: t.subjects.map((s) => s.name).join(", ") || "Aucune",
+        supervisedClasses: t.classes.map((c) => c.name).join(", ") || "Aucune",
+        salary: `${baseSalary} DT`,
+        hourlyRate: `${rate} DT/h`,
+        hoursPerMonth: t.hoursPerMonth ? `${t.hoursPerMonth}h` : "Non fixé",
+        currentMonthPayroll: {
+          status: monthlyStatus,
+          missedHours: missedHrs > 0 ? `${missedHrs}h (-${deduction} DT)` : "0h",
+          netRemainingDue: `${netDue} DT`,
+        },
+      };
+    }),
   };
 }

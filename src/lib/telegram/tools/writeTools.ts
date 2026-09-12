@@ -13,8 +13,142 @@ export interface WriteToolResult {
 }
 
 /**
+ * Helper: Calculates the multi-month cascading tuition allocation for a student.
+ * Identical to the web application's receiveMultipleStudentPayments logic.
+ */
+export async function calculateStudentPaymentAllocation(
+  studentId: string,
+  amount: number,
+  schoolId: string,
+  startMonth?: number,
+  startYear?: number
+) {
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, schoolId },
+    include: { level: true, class: true },
+  });
+  if (!student) return null;
+
+  const { getSchoolYearMonths } = await import("@/lib/dateUtils");
+  const tuitionFee = student.customTuition || student.level?.tuitionFee || 450;
+  const schoolYearMonths = getSchoolYearMonths();
+
+  // Fetch existing payments for the student
+  const existingPayments = await prisma.payment.findMany({
+    where: {
+      studentId: student.id,
+      schoolId,
+      userType: "STUDENT",
+    },
+  });
+
+  // Determine starting month index
+  let currentIdx = 0;
+  if (startMonth && startYear) {
+    const targetKey = `${MONTHS[startMonth - 1]} ${startYear}`;
+    const foundIdx = schoolYearMonths.indexOf(targetKey);
+    if (foundIdx !== -1) {
+      currentIdx = foundIdx;
+    }
+  } else {
+    // Find earliest unpaid or partially paid month in academic year
+    const earliestIdx = schoolYearMonths.findIndex((mKey) => {
+      const [mName, yStr] = mKey.split(" ");
+      const mIdx = MONTHS.indexOf(mName) + 1;
+      const yVal = parseInt(yStr);
+      const payment = existingPayments.find((p) => p.month === mIdx && p.year === yVal);
+      const paid = payment?.amount || 0;
+      return paid < tuitionFee;
+    });
+    if (earliestIdx !== -1) {
+      currentIdx = earliestIdx;
+    }
+  }
+
+  let moneyToDistribute = amount;
+  const paymentsToProcess: Array<{
+    monthYear: string;
+    month: number;
+    year: number;
+    amount: number;
+    isPartial: boolean;
+    gap: number;
+    status: "PAID" | "PARTIAL";
+    previousAmount: number;
+    newMoneyCollected: number;
+    isRecovery: boolean;
+  }> = [];
+
+  while (moneyToDistribute > 0 && currentIdx >= 0 && currentIdx < schoolYearMonths.length) {
+    const mKey = schoolYearMonths[currentIdx];
+    const [mName, yStr] = mKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+
+    const existing = existingPayments.find((p) => p.month === monthIdx && p.year === yearVal);
+    const alreadyPaid = existing?.amount || 0;
+    const remainingForMonth = Math.max(0, tuitionFee - alreadyPaid);
+
+    // If already fully paid, skip to next month
+    if (remainingForMonth === 0) {
+      currentIdx++;
+      continue;
+    }
+
+    if (moneyToDistribute >= remainingForMonth) {
+      const allocated = remainingForMonth;
+      paymentsToProcess.push({
+        monthYear: mKey,
+        month: monthIdx,
+        year: yearVal,
+        amount: alreadyPaid + allocated,
+        isPartial: false,
+        gap: 0,
+        status: "PAID",
+        previousAmount: alreadyPaid,
+        newMoneyCollected: allocated,
+        isRecovery: alreadyPaid > 0,
+      });
+      moneyToDistribute -= allocated;
+    } else {
+      const allocated = moneyToDistribute;
+      const newTotal = alreadyPaid + allocated;
+      const newGap = tuitionFee - newTotal;
+      paymentsToProcess.push({
+        monthYear: mKey,
+        month: monthIdx,
+        year: yearVal,
+        amount: newTotal,
+        isPartial: true,
+        gap: newGap,
+        status: "PARTIAL",
+        previousAmount: alreadyPaid,
+        newMoneyCollected: allocated,
+        isRecovery: alreadyPaid > 0,
+      });
+      moneyToDistribute = 0;
+    }
+    currentIdx++;
+  }
+
+  // If excess money remains after all months, allocate to last month as overpayment
+  if (moneyToDistribute > 0 && paymentsToProcess.length > 0) {
+    const lastP = paymentsToProcess[paymentsToProcess.length - 1];
+    lastP.amount += moneyToDistribute;
+    lastP.newMoneyCollected += moneyToDistribute;
+    moneyToDistribute = 0;
+  }
+
+  return {
+    student,
+    tuitionFee,
+    paymentsToProcess,
+  };
+}
+
+/**
  * Tool: record_payment
- * Records a tuition payment for a student.
+ * Records a tuition payment with multi-month cascading allocation and partial recovery.
  */
 export async function recordPaymentTool(
   args: {
@@ -25,9 +159,6 @@ export async function recordPaymentTool(
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const now = new Date();
-  const month = args.month || now.getMonth() + 1;
-  const year = args.year || now.getFullYear();
   const query = args.studentNameOrId.trim();
 
   // 1. Locate the student
@@ -40,7 +171,6 @@ export async function recordPaymentTool(
   });
 
   if (!student) {
-    // Search by name
     const candidates = await prisma.student.findMany({
       where: {
         schoolId: context.schoolId,
@@ -85,92 +215,149 @@ export async function recordPaymentTool(
   }
 
   const studentFullName = `${student.name} ${student.surname}`;
-  const monthName = MONTHS[month - 1] || `Mois ${month}`;
-  const standardFee = student.customTuition || student.level.tuitionFee || 450;
-  const isPartial = args.amount < standardFee;
 
-  // 2. Perform transactional update
-  const result = await prisma.$transaction(async (tx) => {
-    // Find existing payment if any
-    const existing = await tx.payment.findFirst({
-      where: {
-        studentId: student.id,
-        month,
-        year,
-      },
-    });
+  // 2. Compute the cascading multi-month allocation
+  const allocation = await calculateStudentPaymentAllocation(
+    student.id,
+    args.amount,
+    context.schoolId,
+    args.month,
+    args.year
+  );
 
-    let paymentRecord;
-    if (existing) {
-      paymentRecord = await tx.payment.update({
-        where: { id: existing.id },
+  if (!allocation || allocation.paymentsToProcess.length === 0) {
+    return {
+      success: false,
+      message: `Tous les frais de scolarité pour **${studentFullName}** semblent déjà soldés pour cette année scolaire.`,
+      summary: `Paiement non requis`,
+    };
+  }
+
+  const { paymentsToProcess, tuitionFee } = allocation;
+  const upsertedPayments: any[] = [];
+  let totalNewMoneyCollected = 0;
+
+  // 3. Database transaction matching receiveMultipleStudentPayments
+  await prisma.$transaction(
+    async (tx) => {
+      for (const pmt of paymentsToProcess) {
+        totalNewMoneyCollected += pmt.newMoneyCollected;
+
+        const p = await tx.payment.upsert({
+          where: {
+            studentId_month_year: {
+              studentId: student.id,
+              month: pmt.month,
+              year: pmt.year,
+            },
+          },
+          update: {
+            status: pmt.status,
+            paidAt: new Date(),
+            amount: pmt.amount,
+            deferredAmount: pmt.isPartial ? pmt.gap : 0,
+          },
+          create: {
+            studentId: student.id,
+            amount: pmt.amount,
+            deferredAmount: pmt.isPartial ? pmt.gap : 0,
+            month: pmt.month,
+            year: pmt.year,
+            status: pmt.status,
+            userType: "STUDENT",
+            paidAt: new Date(),
+            schoolId: context.schoolId,
+          },
+        });
+
+        upsertedPayments.push(p);
+
+        // Delete deferred revenue gap expense if previously partial and now paid
+        if (!pmt.isPartial && pmt.previousAmount > 0) {
+          await tx.expense.deleteMany({
+            where: {
+              category: "Deferred Revenue Gap",
+              title: { contains: `${studentFullName} (${pmt.monthYear})` },
+              schoolId: context.schoolId,
+            },
+          });
+        }
+      }
+
+      // Record income entry
+      if (totalNewMoneyCollected > 0 && upsertedPayments.length > 0) {
+        let suffix = "";
+        const isRecovery = paymentsToProcess.some((p) => p.isRecovery);
+        if (paymentsToProcess.length > 1) {
+          suffix = " - Combined";
+        } else if (paymentsToProcess[0].isPartial) {
+          suffix = " - Partial";
+        } else if (isRecovery) {
+          suffix = " - Recovery";
+        }
+        const titleRef = paymentsToProcess[0].monthYear + suffix;
+        const bulkCategory = isRecovery ? "Recovery" : paymentsToProcess[0].isPartial ? "Partial" : "Tuition";
+
+        await tx.income.create({
+          data: {
+            title: `Tuition: ${studentFullName} (${titleRef})`,
+            amount: totalNewMoneyCollected,
+            date: new Date(),
+            category: bulkCategory,
+            referenceType: "StudentPayment",
+            referenceId: upsertedPayments[0].id.toString(),
+            schoolId: context.schoolId,
+          },
+        });
+      }
+
+      // Record audit log
+      await tx.auditLog.create({
         data: {
-          amount: args.amount,
-          status: isPartial ? "PARTIAL" : "PAID",
-          deferredAmount: isPartial ? standardFee - args.amount : 0,
-          paidAt: new Date(),
-        },
-      });
-    } else {
-      paymentRecord = await tx.payment.create({
-        data: {
-          studentId: student.id,
-          month,
-          year,
-          amount: args.amount,
-          status: isPartial ? "PARTIAL" : "PAID",
-          deferredAmount: isPartial ? standardFee - args.amount : 0,
-          userType: "STUDENT",
-          paidAt: new Date(),
+          action: "RECORD_PAYMENT",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Payment",
+          entityId: upsertedPayments[0]?.id.toString() || student.id,
+          amount: totalNewMoneyCollected,
+          description: `[Hnia AI Telegram] Répartition scolarité multi-mois pour ${studentFullName}: ${args.amount} DT (${paymentsToProcess.length} mois)`,
           schoolId: context.schoolId,
         },
       });
-    }
+    },
+    { timeout: 15000 }
+  );
 
-    // Record Income ledger entry
-    const ledgerTitle = `Frais de scolarité : ${studentFullName} (${monthName} ${year})`;
-    await tx.income.create({
-      data: {
-        title: ledgerTitle,
-        amount: args.amount,
-        category: "Tuition",
-        date: new Date(),
-        referenceType: "Payment",
-        referenceId: paymentRecord.id.toString(),
-        schoolId: context.schoolId,
-      },
-    });
-
-    // Write AuditLog
-    await tx.auditLog.create({
-      data: {
-        action: "RECORD_PAYMENT",
-        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
-        entityType: "Payment",
-        entityId: paymentRecord.id.toString(),
-        amount: args.amount,
-        description: `[Hnia AI Telegram] Paiement enregistré pour ${studentFullName}: ${args.amount} DT (${monthName} ${year})`,
-        schoolId: context.schoolId,
-      },
-    });
-
-    return paymentRecord;
-  });
-
-  // 3. Invalidate cache tags
+  // 4. Invalidate tenant cache tags
   try {
-    invalidateTenantTags(context.schoolId, "finance", "students", "incomes", "dashboard");
+    invalidateTenantTags(context.schoolId, "students", "finance", "dashboard", "incomes");
   } catch (err) {
     console.warn("[recordPaymentTool] Cache invalidation warning:", err);
   }
 
+  // 5. Build rich executive response
+  const breakdownLines = paymentsToProcess.map((p) => {
+    const statusBadge = p.isPartial
+      ? `PARTIEL ⚠️ (Versé: <code>${p.amount} DT</code>, Reste dû: <code>${p.gap} DT</code>)`
+      : `SOLDÉ ✅ (<code>${p.amount} DT</code>)`;
+    return `• <b>${p.monthYear}</b> : ${statusBadge}`;
+  });
+
+  const message = `✅ <b>Paiement enregistré avec succès !</b>
+Élève : <b>${studentFullName}</b> (Classe : <code>${student.class?.name || "Sans classe"}</code>)
+Montant reçu : <code>${args.amount} DT</code> (Tarif mensuel : <code>${tuitionFee} DT</code>)
+━━━━━━━━━━━━━━━━━━━━━━
+📋 <b>Ventilation multi-mois appliquée :</b>
+${breakdownLines.join("\n")}`;
+
   return {
     success: true,
-    message: `✅ Paiement de ${args.amount} DT enregistré avec succès pour ${studentFullName} (${monthName} ${year}). Statut : ${
-      isPartial ? "PARTIEL (Reste " + (standardFee - args.amount) + " DT)" : "COMPLET"
-    }.`,
-    summary: `Paiement ${args.amount} DT pour ${studentFullName} (${monthName} ${year})`,
-    data: { paymentId: result.id, studentId: student.id },
+    message,
+    summary: `Paiement ${args.amount} DT réparti pour ${studentFullName} (${paymentsToProcess.length} mois)`,
+    data: {
+      studentId: student.id,
+      paymentsCount: paymentsToProcess.length,
+      affectedMonths: paymentsToProcess.map((p) => p.monthYear),
+    },
   };
 }
 

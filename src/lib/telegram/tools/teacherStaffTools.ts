@@ -24,8 +24,13 @@ export async function getStaffTool(
       { name: { contains: q, mode: "insensitive" } },
       { surname: { contains: q, mode: "insensitive" } },
       { phone: { contains: q } },
+      { role: { contains: q, mode: "insensitive" } },
     ];
   }
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
   const staffList = await prisma.staff.findMany({
     where,
@@ -36,17 +41,33 @@ export async function getStaffTool(
       surname: true,
       phone: true,
       salary: true,
+      role: true,
+      payments: {
+        where: { schoolId: context.schoolId, month: currentMonth, year: currentYear, userType: "STAFF" },
+        select: { amount: true, status: true, paidAt: true },
+      },
     },
   });
 
   return {
     total: staffList.length,
-    staff: staffList.map((s) => ({
-      id: s.id,
-      fullName: `${s.name} ${s.surname}`,
-      phone: s.phone || "Non renseigné",
-      salary: s.salary ? `${s.salary} DT` : "Non fixé",
-    })),
+    staff: staffList.map((s) => {
+      const currentP = s.payments[0];
+      const statusLabel = currentP?.status === "PAID"
+        ? "Payé ce mois ✅"
+        : currentP?.status === "PARTIAL"
+        ? `Avance perçue : ${currentP.amount} DT ⚠️`
+        : "Non payé ce mois ⏳";
+
+      return {
+        id: s.id,
+        fullName: `${s.name} ${s.surname}`,
+        role: s.role || "Général",
+        phone: s.phone || "Non renseigné",
+        salary: s.salary ? `${s.salary} DT` : "Non fixé",
+        currentMonthStatus: statusLabel,
+      };
+    }),
   };
 }
 
@@ -271,13 +292,21 @@ export async function payTeacherSalaryTool(
       },
     });
 
+    if (existingPayment?.status === "PAID") {
+      throw new Error(`Le mois de ${monthName} ${year} est déjà entièrement payé et clôturé pour ${teacherFullName}.`);
+    }
+
     let paymentRecord;
+    const newTotalPaid = (existingPayment?.amount || 0) + args.amount;
+    const newMissedHours = args.missedHours !== undefined ? args.missedHours : (existingPayment?.missedHours || 0);
+
     if (existingPayment) {
       paymentRecord = await tx.payment.update({
         where: { id: existingPayment.id },
         data: {
-          amount: existingPayment.amount + args.amount,
+          amount: newTotalPaid,
           status: isAdvance ? "PARTIAL" : "PAID",
+          missedHours: newMissedHours,
           paidAt: new Date(),
         },
       });
@@ -287,25 +316,30 @@ export async function payTeacherSalaryTool(
           teacherId: teacher.id,
           month,
           year,
-          amount: args.amount,
+          amount: newTotalPaid,
           status: isAdvance ? "PARTIAL" : "PAID",
           userType: "TEACHER",
+          missedHours: newMissedHours,
           paidAt: new Date(),
           schoolId: context.schoolId,
         },
       });
     }
 
-    // 2. Add Expense ledger entry
-    const expenseTitle = isAdvance
+    // 2. Add Expense ledger entry matching app categories ("Advance" | "Salary")
+    let expenseTitle = isAdvance
       ? `Avance sur salaire : ${teacherFullName} (${monthName} ${year})`
       : `Salaire : ${teacherFullName} (${monthName} ${year})`;
+
+    if (deductionAmount > 0) {
+      expenseTitle += ` (${newMissedHours}h absence, -${deductionAmount} DT)`;
+    }
 
     await tx.expense.create({
       data: {
         title: expenseTitle,
         amount: args.amount,
-        category: "SALAIRE",
+        category: isAdvance ? "Advance" : "Salary",
         date: new Date(),
         referenceType: "TeacherSalary",
         referenceId: paymentRecord.id.toString(),
@@ -316,12 +350,14 @@ export async function payTeacherSalaryTool(
     // 3. Write AuditLog
     await tx.auditLog.create({
       data: {
-        action: "RECORD_PAYMENT",
+        action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Payment",
         entityId: paymentRecord.id.toString(),
         amount: args.amount,
-        description: `[Hnia AI Telegram] Paiement ${isAdvance ? "avance" : "salaire"} enseignant : ${teacherFullName} (${args.amount} DT - ${monthName} ${year})`,
+        description: `[Hnia AI Telegram] Paiement ${isAdvance ? "avance" : "salaire"} enseignant : ${teacherFullName} (${args.amount} DT - ${monthName} ${year})${
+          deductionAmount > 0 ? ` [${newMissedHours}h absence, -${deductionAmount} DT]` : ""
+        }`,
         schoolId: context.schoolId,
       },
     });
@@ -399,12 +435,18 @@ export async function payStaffSalaryTool(
       },
     });
 
+    if (existing?.status === "PAID") {
+      throw new Error(`Le mois de ${monthName} ${year} est déjà entièrement payé et clôturé pour ${staffFullName}.`);
+    }
+
     let paymentRecord;
+    const newTotal = (existing?.amount || 0) + args.amount;
+
     if (existing) {
       paymentRecord = await tx.payment.update({
         where: { id: existing.id },
         data: {
-          amount: existing.amount + args.amount,
+          amount: newTotal,
           status: isAdvance ? "PARTIAL" : "PAID",
           paidAt: new Date(),
         },
@@ -415,7 +457,7 @@ export async function payStaffSalaryTool(
           staffId: staff.id,
           month,
           year,
-          amount: args.amount,
+          amount: newTotal,
           status: isAdvance ? "PARTIAL" : "PAID",
           userType: "STAFF",
           paidAt: new Date(),
@@ -432,7 +474,7 @@ export async function payStaffSalaryTool(
       data: {
         title: expenseTitle,
         amount: args.amount,
-        category: "SALAIRE",
+        category: isAdvance ? "Advance" : "Salary",
         date: new Date(),
         referenceType: "StaffSalary",
         referenceId: paymentRecord.id.toString(),
@@ -442,7 +484,7 @@ export async function payStaffSalaryTool(
 
     await tx.auditLog.create({
       data: {
-        action: "RECORD_PAYMENT",
+        action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Payment",
         entityId: paymentRecord.id.toString(),

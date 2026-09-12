@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
@@ -67,7 +68,10 @@ export async function getStudentProfileTool(
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Fetch recent attendance and grades in parallel
+  // Fetch recent attendance, grades, and all student payments for tuition schedule
+  const schoolYearMonths = getSchoolYearMonths();
+  const standardTuition = student.customTuition || student.level?.tuitionFee || 450;
+
   const [attendances, grades, payments] = await Promise.all([
     prisma.attendance.findMany({
       where: {
@@ -96,22 +100,61 @@ export async function getStudentProfileTool(
     prisma.payment.findMany({
       where: {
         studentId: student.id,
-        year: new Date().getFullYear(),
+        schoolId: context.schoolId,
+        userType: "STUDENT",
       },
-      orderBy: { month: "desc" },
-      take: 6,
+      orderBy: [{ year: "asc" }, { month: "asc" }],
       select: {
         month: true,
         year: true,
         amount: true,
         status: true,
         paidAt: true,
+        deferredAmount: true,
       },
     }),
   ]);
 
   const absencesCount = attendances.filter((a) => a.status === "ABSENT").length;
   const latesCount = attendances.filter((a) => a.status === "LATE").length;
+
+  // Build the full 10-month academic tuition calendar (Septembre -> Juin)
+  const tuitionSchedule = schoolYearMonths.map((mKey) => {
+    const [mName, yStr] = mKey.split(" ");
+    const monthIdx = MONTHS.indexOf(mName) + 1;
+    const yearVal = parseInt(yStr);
+
+    const payment = payments.find((p) => p.month === monthIdx && p.year === yearVal);
+    const amountPaid = payment?.amount || 0;
+    const isPaid = payment?.status === "PAID" || amountPaid >= standardTuition;
+    const isPartial = !isPaid && amountPaid > 0;
+    const remainingDue = Math.max(0, standardTuition - amountPaid);
+
+    let statusLabel = "NON PAYÉ ❌";
+    if (isPaid) statusLabel = "SOLDÉ ✅";
+    else if (isPartial) statusLabel = `PARTIEL ⚠️ (Reste ${remainingDue} DT)`;
+
+    return {
+      period: mKey,
+      month: monthIdx,
+      year: yearVal,
+      amountPaid: `${amountPaid} DT`,
+      remainingDue: `${remainingDue} DT`,
+      status: isPaid ? "PAID" : isPartial ? "PARTIAL" : "UNPAID",
+      statusLabel,
+      paidAt: payment?.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
+    };
+  });
+
+  const totalPaidThisYear = tuitionSchedule.reduce(
+    (sum, m) => sum + parseInt(m.amountPaid),
+    0
+  );
+  const annualTuitionTotal = standardTuition * 10;
+  const totalRemainingDue = Math.max(0, annualTuitionTotal - totalPaidThisYear);
+  const paidMonthsCount = tuitionSchedule.filter((m) => m.status === "PAID").length;
+  const partialMonthsCount = tuitionSchedule.filter((m) => m.status === "PARTIAL").length;
+  const unpaidMonthsCount = tuitionSchedule.filter((m) => m.status === "UNPAID").length;
 
   return {
     found: true,
@@ -120,8 +163,13 @@ export async function getStudentProfileTool(
       fullName: `${student.name} ${student.surname}`,
       class: student.class?.name || "Sans classe",
       level: student.level ? `Niveau ${student.level.level}` : "N/A",
-      standardTuitionFee: student.level?.tuitionFee || 450,
-      customTuitionFee: student.customTuition || null,
+      tuitionSummary: {
+        monthlyFee: `${standardTuition} DT / mois`,
+        annualTotal: `${annualTuitionTotal} DT`,
+        totalPaid: `${totalPaidThisYear} DT`,
+        totalRemainingDue: `${totalRemainingDue} DT`,
+        monthsBreakdown: `${paidMonthsCount} soldés, ${partialMonthsCount} partiels, ${unpaidMonthsCount} impayés`,
+      },
       parent: student.parent
         ? {
             name: `${student.parent.name} ${student.parent.surname}`,
@@ -129,6 +177,7 @@ export async function getStudentProfileTool(
             address: student.parent.address || "Non renseignée",
           }
         : null,
+      tuitionSchedule,
       attendance30Days: {
         absences: absencesCount,
         retards: latesCount,
@@ -144,19 +193,13 @@ export async function getStudentProfileTool(
         score: `${g.score} / 20`,
         term: `Trimestre ${g.term}`,
       })),
-      recentPayments: payments.map((p) => ({
-        period: `${p.month}/${p.year}`,
-        amount: `${p.amount} DT`,
-        status: p.status,
-        paidAt: p.paidAt ? p.paidAt.toISOString().split("T")[0] : "Non réglé",
-      })),
     },
   };
 }
 
 /**
  * Tool: get_parents
- * Search parents by name or phone, view children enrolled.
+ * Search parents by name or phone, view children enrolled and financial status.
  */
 export async function getParentsTool(
   args: {
@@ -187,21 +230,70 @@ export async function getParentsTool(
           id: true,
           name: true,
           surname: true,
+          customTuition: true,
           class: { select: { name: true } },
+          level: { select: { tuitionFee: true } },
+          payments: {
+            where: { schoolId: context.schoolId, userType: "STUDENT" },
+            select: { amount: true, status: true, month: true, year: true, deferredAmount: true },
+          },
         },
       },
     },
   });
 
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
   return {
     total: parents.length,
-    parents: parents.map((p) => ({
-      id: p.id,
-      fullName: `${p.name} ${p.surname}`,
-      phone: p.phone,
-      address: p.address,
-      children: p.students.map((s) => `${s.name} ${s.surname} (${s.class?.name || "Sans classe"})`),
-    })),
+    parents: parents.map((p) => {
+      let familyUnpaidTotal = 0;
+
+      const childrenInfo = p.students.map((s) => {
+        const fee = s.customTuition || s.level?.tuitionFee || 450;
+        const currentMonthPayment = s.payments.find(
+          (pay) => pay.month === currentMonth && pay.year === currentYear
+        );
+
+        const currentPaid = currentMonthPayment?.amount || 0;
+        const isCurrentPaid = currentMonthPayment?.status === "PAID" || currentPaid >= fee;
+        const remainingForCurrentMonth = Math.max(0, fee - currentPaid);
+
+        // Sum uncollected across all recorded payments with deferred amounts or missing current month
+        const deferredGap = s.payments.reduce((acc, pay) => acc + (pay.deferredAmount || 0), 0);
+        const childUnpaid = (!isCurrentPaid ? remainingForCurrentMonth : 0) + deferredGap;
+        familyUnpaidTotal += childUnpaid;
+
+        const tuitionBadge = isCurrentPaid
+          ? "Scolarité à jour ✅"
+          : childUnpaid > 0
+          ? `Impayé : ${childUnpaid} DT ⚠️`
+          : "En attente";
+
+        return {
+          id: s.id,
+          name: `${s.name} ${s.surname}`,
+          class: s.class?.name || "Sans classe",
+          tuitionStatus: tuitionBadge,
+          monthlyFee: `${fee} DT`,
+        };
+      });
+
+      return {
+        id: p.id,
+        fullName: `${p.name} ${p.surname}`,
+        phone: p.phone,
+        address: p.address || "Non renseignée",
+        childrenCount: p.students.length,
+        familyTuitionBalance:
+          familyUnpaidTotal > 0
+            ? `⚠️ Impayés en cours : ${familyUnpaidTotal} DT`
+            : "✅ Scolarité familiale à jour",
+        children: childrenInfo,
+      };
+    }),
   };
 }
 
