@@ -342,9 +342,10 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
    - Exemple crucial : si vous venez de parler des élèves de la classe 1A et que l'utilisateur demande "donne tous les noms", tu dois appeler get_students avec className: "1A" (avec limit: 50) pour afficher la totalité des élèves de la classe 1A, et JAMAIS ceux de toute l'école.
    - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.`;
 
-  // Candidate models with primary ultra-fast lite model and fallback
+  // Candidate models with primary powerful flash model and fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
     "gemini-flash-latest",
   ];
 
