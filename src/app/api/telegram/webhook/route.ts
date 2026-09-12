@@ -3,6 +3,7 @@ import {
   sendTelegramMessage,
   sendTelegramChatAction,
   answerTelegramCallbackQuery,
+  getTelegramFile,
 } from "@/lib/telegram/telegram";
 import {
   verifyAndLinkAccount,
@@ -50,6 +51,35 @@ export async function POST(req: NextRequest) {
           update.callback_query.message.chat.id,
           langLabels[selectedLang] || "Langue mise à jour."
         );
+        return NextResponse.json({ ok: true });
+      }
+
+      // Handle announcement concierge quick action buttons
+      if (data.startsWith("announce:")) {
+        const actionType = data.replace("announce:", "");
+        const tgId = update.callback_query.from.id.toString();
+        const chatId = update.callback_query.message.chat.id;
+
+        await answerTelegramCallbackQuery(update.callback_query.id, "Traitement...");
+
+        const announcePrompts: Record<string, string> = {
+          publish: "Publie cette annonce telle quelle maintenant.",
+          regenerate: "Propose une autre formulation différente pour cette annonce.",
+          urgent: "Passe cette annonce en statut URGENT (alerte rouge prioritaire).",
+          class: "Je souhaite restreindre cette annonce à une classe. Quelles sont les classes disponibles dans l'école ?",
+          edit: "Je souhaite modifier le contenu de l'annonce.",
+        };
+
+        const prompt = announcePrompts[actionType] || "Que souhaitez-vous faire avec cette annonce ?";
+        const tgAccount = await getLinkedAccount(tgId);
+        if (tgAccount) {
+          await runTelegramAgent({
+            userMessage: prompt,
+            chatId,
+            telegramId: tgId,
+            tgAccount,
+          });
+        }
         return NextResponse.json({ ok: true });
       }
 
@@ -101,7 +131,7 @@ export async function POST(req: NextRequest) {
     const chatId = message.chat.id;
     const telegramId = message.from.id.toString();
     const telegramUsername = message.from.username;
-    const rawText = (message.text || "").trim();
+    const rawText = (message.text || message.caption || "").trim();
 
     // 3. Command: /start [code]
     if (rawText.startsWith("/start")) {
@@ -338,6 +368,31 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
           `⚠️ Impossible de transcrire le message vocal (${err.message || "Erreur"}). Veuillez réessayer ou envoyer un message texte.`
         );
         return NextResponse.json({ ok: true });
+      }
+    }
+
+    // 12. Handle Photo / Flyer Attachment
+    const photos = message.photo;
+    if (photos && photos.length > 0) {
+      await sendTelegramChatAction(chatId, "typing");
+      const bestPhoto = photos[photos.length - 1];
+      let photoUrl: string | undefined;
+      try {
+        const fileInfo = await getTelegramFile(bestPhoto.file_id);
+        const botToken = process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
+        photoUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.file_path}`;
+      } catch (err) {
+        console.warn("[Telegram Webhook] Failed to retrieve photo URL:", err);
+      }
+
+      const photoDescriptor = photoUrl
+        ? `[Une photo/affiche a été jointe par l'administrateur : ${photoUrl}]`
+        : `[Une photo/affiche a été jointe par l'administrateur]`;
+
+      if (!userPrompt || userPrompt.trim().length === 0) {
+        userPrompt = `${photoDescriptor}\nVoici l'affiche ou image pour l'annonce.`;
+      } else {
+        userPrompt = `${photoDescriptor}\n${userPrompt}`;
       }
     }
 

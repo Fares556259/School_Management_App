@@ -809,7 +809,7 @@ ${lines.join("\n")}`;
   // ── COMMUNICATION SUITE ───────────────────────────────────────────────────
   post_announcement: {
     name: "post_announcement",
-    description: "Publier une annonce officielle pour toute l'école ou une classe spécifique.",
+    description: "Publier une annonce officielle pour toute l'école ou une classe spécifique avec niveau d'urgence et image optionnelle.",
     requiresConfirmation: true,
     declaration: {
       name: "post_announcement",
@@ -821,13 +821,16 @@ ${lines.join("\n")}`;
           title: { type: SchemaType.STRING, description: "Titre de l'annonce." },
           message: { type: SchemaType.STRING, description: "Contenu détaillé." },
           className: { type: SchemaType.STRING, description: "Classe ciblée si réservée à une classe." },
-          important: { type: SchemaType.BOOLEAN, description: "Si annonce urgente." },
+          important: { type: SchemaType.BOOLEAN, description: "Si annonce urgente (alerte push rouge)." },
+          img: { type: SchemaType.STRING, description: "URL de l'image ou de l'affiche jointe." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      const target = args.className ? `la classe <code>${args.className}</code>` : "<b>toute l'école</b>";
-      return `❓ <b>Publication d'Annonce</b>\n━━━━━━━━━━━━━━━━━━━━━━\nPublier pour ${target} :\n\n📌 <b>${args.title}</b>\n${args.message}`;
+      const target = args.className ? `la classe <code>${args.className}</code>` : "<b>toute l'école (Général)</b>";
+      const urgentBadge = args.important ? " 🚨 <code>URGENT</code>" : "";
+      const imgBadge = args.img ? "\n🖼️ <i>Affiche / Image jointe</i>" : "";
+      return `❓ <b>Confirmation de Publication</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🎯 Destinataires : ${target}${urgentBadge}${imgBadge}\n\n📌 <b>${args.title}</b>\n${args.message}`;
     },
     execute: postAnnouncementTool,
   },

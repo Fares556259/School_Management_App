@@ -90,9 +90,42 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
 }
 
 /**
- * Returns contextual quick action buttons based on the tool that was executed.
+ * Returns contextual quick action buttons based on the tool that was executed or the message content.
  */
-export function getQuickActionButtons(lastTool?: string): InlineKeyboardMarkup | undefined {
+export function getQuickActionButtons(
+  lastTool?: string,
+  responseText?: string
+): InlineKeyboardMarkup | undefined {
+  const lower = (responseText || "").toLowerCase();
+  const isAnnouncementDraft =
+    lower.includes("proposition d'annonce") ||
+    lower.includes("proposition d’annonce") ||
+    lower.includes("créer une annonce") ||
+    (lower.includes("annonce") &&
+      (lower.includes("destinataire") ||
+        lower.includes("portée") ||
+        lower.includes("publier ce message") ||
+        lower.includes("publier cette annonce") ||
+        lower.includes("options de diffusion")));
+
+  if (isAnnouncementDraft) {
+    return {
+      inline_keyboard: [
+        [
+          { text: "🚀 Publier l'Annonce", callback_data: "announce:publish" },
+          { text: "🔄 Régénérer", callback_data: "announce:regenerate" },
+        ],
+        [
+          { text: "🚨 Basculer Urgent", callback_data: "announce:urgent" },
+          { text: "🎯 Choisir une classe", callback_data: "announce:class" },
+        ],
+        [
+          { text: "✏️ Modifier le texte", callback_data: "announce:edit" },
+        ],
+      ],
+    };
+  }
+
   if (!lastTool) return undefined;
 
   switch (lastTool) {

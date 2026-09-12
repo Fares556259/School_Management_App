@@ -429,6 +429,7 @@ export async function postAnnouncementTool(
     message: string;
     className?: string;
     important?: boolean;
+    img?: string;
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
@@ -453,6 +454,7 @@ export async function postAnnouncementTool(
         message: args.message.trim(),
         important: Boolean(args.important),
         classId: targetClassId || null,
+        img: args.img || null,
         schoolId: context.schoolId,
       },
     });
@@ -463,7 +465,7 @@ export async function postAnnouncementTool(
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Notice",
         entityId: notice.id.toString(),
-        description: `[Hnia AI Telegram] Annonce publiée : "${args.title}"${targetClassId ? " (Classe ciblée)" : " (Toute l'école)"}`,
+        description: `[Hnia AI Telegram] Annonce publiée : "${args.title}"${targetClassId ? " (Classe ciblée)" : " (Toute l'école)"}${args.important ? " [URGENT]" : ""}`,
         schoolId: context.schoolId,
       },
     });
