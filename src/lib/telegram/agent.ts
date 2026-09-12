@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { sendTelegramChatAction, sendTelegramMessage } from "./telegram";
 import { TOOLS, getGeminiFunctionDeclarations } from "./tools";
 import { ToolContext } from "./tools/readTools";
+import { formatTelegramMessage, getQuickActionButtons } from "./formatter";
 
 export interface AgentInput {
   userMessage: string;
@@ -105,48 +106,36 @@ Tu interagis directement avec l'administrateur : "${adminName}".
 Aujourd'hui nous sommes le : ${todayStr}.
 Devise de l'école : Dinars Tunisiens (DT).
 
-DOMAINES DE COMPÉTENCE COMPLETS (30+ OUTILS DISPONIBLES) :
-1. PÉDAGOGIE & ÉLÈVES :
-   - Fiche complète 360° d'un élève (get_student_profile)
-   - Recherche et listing d'élèves (get_students) et de parents (get_parents)
-   - Inscription d'élèves (create_student), création de classes (create_class) et affectations (assign_student_to_class)
-2. CORPS ENSEIGNANT & PERSONNEL :
-   - Profils enseignants (get_teachers) et personnel administratif/technique (get_staff)
-   - Recrutement d'enseignants (create_teacher) et staff (create_staff)
-   - Versement de salaires ou avances sur salaire avec déductions d'heures manquées (pay_teacher_salary, pay_staff_salary)
-3. PRÉSENCES & DISCIPLINE :
-   - Pointage et vérification des présences du jour (get_attendance)
-   - Historique 30 jours des absences d'un élève (get_student_attendance_history)
-   - Marquer un élève absent ou en retard avec alerte parentale (mark_attendance)
-4. NOTES, EXAMENS & BULLETINS :
-   - Consultation des notes et moyennes par trimestre (get_student_grades)
-   - Relevé de notes de classe par matière (get_class_grade_sheet)
-   - Enregistrement de notes sur 20 (record_grade) et planification d'examens (schedule_exam, get_exams)
-5. FINANCES & COMPTABILITÉ :
-   - Enregistrement des règlements de scolarité (record_payment) et des dépenses (add_expense)
-   - Bilan financier du mois (get_financial_summary) et impayés de scolarité (get_payments)
-   - Détection d'anomalies financières (get_financial_anomalies)
-   - Déclenchement de rappels de paiement collectifs aux parents d'élèves impayés (send_payment_reminders)
-6. EMPLOI DU TEMPS & REMPLACEMENTS D'URGENCE :
-   - Consultation des plannings de classe (get_class_timetable)
-   - Recherche d'enseignants libres pour un remplacement immédiat (find_available_teachers)
-   - Ajout de créneaux de cours (add_timetable_slot)
-7. COMMUNICATION :
-   - Publication d'annonces officielles école ou classe (post_announcement)
+DOMAINES DE COMPÉTENCE (31 OUTILS DISPONIBLES) :
+1. PÉDAGOGIE & ÉLÈVES (get_student_profile, get_students, get_parents, get_classes, create_student, create_class, assign_student_to_class)
+2. CORPS ENSEIGNANT & PERSONNEL (get_teachers, get_staff, create_teacher, create_staff, pay_teacher_salary, pay_staff_salary)
+3. PRÉSENCES & DISCIPLINE (get_attendance, get_student_attendance_history, mark_attendance)
+4. NOTES, EXAMENS & BULLETINS (get_student_grades, get_class_grade_sheet, get_exams, record_grade, schedule_exam)
+5. FINANCES & COMPTABILITÉ (record_payment, add_expense, get_financial_summary, get_payments, get_financial_anomalies, send_payment_reminders)
+6. EMPLOI DU TEMPS & REMPLACEMENTS (get_class_timetable, find_available_teachers, add_timetable_slot)
+7. COMMUNICATION (post_announcement)
 
-RÈGLES D'ACTION ET DE PRÉSENTATION :
-- NE JAMAIS afficher de noms techniques de fonctions (comme "get_attendance" ou "record_payment") dans tes messages à l'utilisateur. Exprime-toi toujours en langage naturel et chaleureux.
-- Si l'administrateur demande "comment tu peux m'aider ?", présente avec fierté et clarté tes 7 domaines d'intervention :
-  1. 🎓 **Élèves & Pédagogie** : Profil 360°, admissions, affectation aux classes, fiches familles.
-  2. 👥 **Personnel & Salaires** : Recrutement, gestion des enseignants et paiement des salaires avec déduction d'absences.
-  3. ⏱️ **Présences & Discipline** : Pointage en temps réel avec alerte push automatique aux parents, historique d'absences.
-  4. 📅 **Emplois du Temps & Remplacements d'urgence** : Emploi du temps par classe et recherche immédiate d'enseignants disponibles pour un remplacement.
-  5. 📝 **Notes & Examens** : Saisie des notes, consultation des bulletins et programmation des devoirs/examens.
-  6. 💰 **Finances & Relances** : Enregistrement des frais de scolarité, dépenses, bilans et relance groupée des impayés.
-  7. 📢 **Communication** : Diffusion d'annonces officielles ciblées ou générales.
-- Toutes les actions de modification déclenchent automatiquement un bouton de confirmation interactive pour l'administrateur.
+RÈGLES DE PRÉSENTATION & DESIGN VISUEL (STYLE "EXECUTIVE DASHBOARD") :
+Tu ne produis JAMAIS de texte brut basique ou monotone. Tu formates toutes tes réponses comme un mini-dashboard exécutif moderne et agréable pour Telegram :
+- Utilise les balises HTML Telegram : <b>gras</b>, <i>italique</i>, <code>badge / valeur clé</code>, et <blockquote>pour les résumés ou recommandations clés</blockquote>.
+- Encadre systématiquement TOUTES les sommes d'argent, dates, noms de classes, taux et numéros entre <code>...</code> (ex: <code>+6 304 DT</code>, <code>-20 818 DT</code>, <code>Classe 8B</code>, <code>14:00</code>, <code>98123456</code>, <code>16.5/20</code>).
+- Pour les bilans financiers :
+  🏛️ <b>${tgAccount.School.name.toUpperCase()}</b> • <i>Bilan Financier</i>
+  ━━━━━━━━━━━━━━━━━━━━━━
+  📊 <b>Indicateurs Clés :</b>
+  • Revenus encaissés : <code>+... DT</code>
+  • Dépenses totales : <code>-... DT</code>
+  • Résultat net : <code>... DT</code>
+  <blockquote>💡 <b>Analyse Hnia :</b>
+  [Synthèse des faits marquants et conseil stratégique]</blockquote>
+- Pour les listes de personnel, enseignants ou élèves, utilise une mise en page aérée et moderne avec puces et badges :
+  <b>1. Asma Asma</b>
+     📚 <i>Anglais</i>  •  🏫 <code>Classe 6A</code>  •  📞 <code>44555599</code>
+- Utilise la balise <blockquote>...</blockquote> pour isoler tes remarques importantes, tes alertes ou la question finale pour l'administrateur.
+- Ne JAMAIS afficher de Markdown Markdown brut cassé comme '###' ou '---'. Utilise '━━━━━━━━━━━━━━━━━━━━━━' comme ligne de séparation.
+- Ne JAMAIS afficher de noms techniques de fonctions (comme "get_attendance"). Exprime-toi toujours en langage naturel et chaleureux.
 - Réponds toujours dans la langue de l'administrateur (arabe tunisien, français ou anglais).
-- Sois concise, percutante et professionnelle.`;
+- Sois concise, percutante et d'une clarté absolue.`;
 
   // Candidate models with primary ultra-fast lite model and fallback
   const CANDIDATE_MODELS = [
@@ -215,6 +204,7 @@ RÈGLES D'ACTION ET DE PRÉSENTATION :
 
       // Handle tool calling loop
       let functionCalls = candidate.functionCalls();
+      let lastExecutedTool: string | undefined;
 
       while (functionCalls && functionCalls.length > 0) {
         const call = functionCalls[0];
@@ -245,9 +235,11 @@ RÈGLES D'ACTION ET DE PRÉSENTATION :
             ? toolDef.formatConfirmationMessage(toolArgs, context)
             : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
 
+          const styledConfirmText = formatTelegramMessage(confirmText);
+
           // Send confirmation message with inline buttons
-          await sendTelegramMessage(chatId, confirmText, {
-            parse_mode: "Markdown",
+          await sendTelegramMessage(chatId, styledConfirmText, {
+            parse_mode: "HTML",
             reply_markup: {
               inline_keyboard: [
                 [
@@ -273,6 +265,7 @@ RÈGLES D'ACTION ET DE PRÉSENTATION :
         }
 
         // Read-only tool: execute immediately
+        lastExecutedTool = toolName;
         await sendTelegramChatAction(chatId, "typing");
         const toolOutput = await toolDef.execute(toolArgs, context);
 
@@ -293,7 +286,7 @@ RÈGLES D'ACTION ET DE PRÉSENTATION :
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
-            )}\n\nPrésente ces données à l'administrateur de manière claire, concise, utile et professionnelle en respectant sa langue.`,
+            )}\n\nPrésente ces données à l'administrateur sous forme de mini-dashboard Telegram très soigné et professionnel en HTML (utilise <b>, <i>, <code> pour les chiffres clés/classes, <blockquote> pour les analyses/conseils). Respecte sa langue.`,
           },
         ]);
 
@@ -318,9 +311,14 @@ RÈGLES D'ACTION ET DE PRÉSENTATION :
         },
       });
 
-      // Send message to Telegram
-      await sendTelegramMessage(chatId, finalReply, {
-        parse_mode: "Markdown",
+      // Format reply as an executive-grade Telegram card
+      const formattedReply = formatTelegramMessage(finalReply, tgAccount.School.name);
+      const quickButtons = getQuickActionButtons(lastExecutedTool);
+
+      // Send formatted message to Telegram
+      await sendTelegramMessage(chatId, formattedReply, {
+        parse_mode: "HTML",
+        reply_markup: quickButtons,
       });
 
       succeeded = true;

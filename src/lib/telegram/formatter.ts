@@ -1,0 +1,154 @@
+import { InlineKeyboardMarkup } from "./telegram";
+
+/**
+ * Format raw assistant responses into executive-grade Telegram cards with HTML styling.
+ */
+export function formatTelegramMessage(raw: string, schoolName?: string): string {
+  if (!raw) return "";
+
+  let text = raw.trim();
+
+  // 1. Sanitize standard HTML angle brackets that are NOT Telegram tags
+  // Preserve: <b>, </b>, <i>, </i>, <code>, </code>, <pre>, </pre>, <blockquote>, </blockquote>, <a href="...">, </a>, <u>, </u>, <s>, </s>
+  const validTagTokens: { token: string; tag: string }[] = [];
+  let tokenCounter = 0;
+
+  const validTagRegex = /<\/?(?:b|i|code|pre|blockquote|u|s|a(?:\s+href="[^"]*")?)>/gi;
+  text = text.replace(validTagRegex, (match) => {
+    const token = `___TAG_${tokenCounter++}___`;
+    validTagTokens.push({ token, tag: match });
+    return token;
+  });
+
+  // Escape any raw HTML entities in the remaining text
+  text = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Restore valid tags
+  for (const { token, tag } of validTagTokens) {
+    text = text.replace(token, tag);
+  }
+
+  // 2. Convert Markdown headers (### Header, ## Header, # Header) to bold
+  text = text.replace(/^#{1,6}\s*(.+)$/gm, "<b>$1</b>");
+
+  // 3. Convert Markdown bold (**text**) to <b>text</b>
+  text = text.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+
+  // 4. Convert Markdown italic (*text* or _text_) to <i>text</i>
+  text = text.replace(/(?<![<a-zA-Z0-9])\*([^*\n]+?)\*(?![>a-zA-Z0-9])/g, "<i>$1</i>");
+  text = text.replace(/(?<![<a-zA-Z0-9])_([^_\n]+?)_(?![>a-zA-Z0-9])/g, "<i>$1</i>");
+
+  // 5. Convert Markdown code (`code`) to <code>code</code>
+  text = text.replace(/`([^`\n]+?)`/g, "<code>$1</code>");
+
+  // 6. Convert Markdown horizontal dividers
+  text = text.replace(/^---+$/gm, "━━━━━━━━━━━━━━━━━━━━━━");
+
+  // 7. Convert Markdown blockquotes (> text)
+  text = text.replace(/^>\s*(.+)$/gm, "<blockquote>$1</blockquote>");
+  text = text.replace(/<\/blockquote>\n<blockquote>/g, "\n");
+
+  // 8. Auto-pill monetary amounts (e.g. 6 304 DT, 450 DT, 180 DT) if not already inside <code>
+  text = text.replace(/(?<!<code>)([-+]?\d[\d\s]*\s*DT)(?!<\/code>)/g, "<code>$1</code>");
+
+  // 9. Clean up extra newlines
+  text = text.replace(/\n{3,}/g, "\n\n");
+
+  return text.trim();
+}
+
+/**
+ * Returns contextual quick action buttons based on the tool that was executed.
+ */
+export function getQuickActionButtons(lastTool?: string): InlineKeyboardMarkup | undefined {
+  if (!lastTool) return undefined;
+
+  switch (lastTool) {
+    case "get_financial_summary":
+    case "get_financial_anomalies":
+      return {
+        inline_keyboard: [
+          [
+            { text: "📢 Relancer les impayés", callback_data: "action:send_reminders" },
+            { text: "🔍 Détails dépenses", callback_data: "action:view_expenses" },
+          ],
+          [
+            { text: "➕ Enregistrer un paiement", callback_data: "action:record_payment" },
+          ],
+        ],
+      };
+
+    case "get_teachers":
+    case "get_staff":
+      return {
+        inline_keyboard: [
+          [
+            { text: "💸 Payer un salaire", callback_data: "action:pay_salary" },
+            { text: "➕ Nouvel enseignant", callback_data: "action:add_teacher" },
+          ],
+        ],
+      };
+
+    case "get_attendance":
+    case "get_student_attendance_history":
+      return {
+        inline_keyboard: [
+          [
+            { text: "❌ Pointer une absence", callback_data: "action:mark_attendance" },
+            { text: "📜 Historique 30j", callback_data: "action:attendance_history" },
+          ],
+        ],
+      };
+
+    case "get_payments":
+      return {
+        inline_keyboard: [
+          [
+            { text: "📢 Relancer les familles", callback_data: "action:send_reminders" },
+            { text: "➕ Enregistrer paiement", callback_data: "action:record_payment" },
+          ],
+        ],
+      };
+
+    case "get_class_timetable":
+    case "find_available_teachers":
+      return {
+        inline_keyboard: [
+          [
+            { text: "🔄 Trouver remplaçant", callback_data: "action:find_substitute" },
+            { text: "➕ Ajouter un cours", callback_data: "action:add_slot" },
+          ],
+        ],
+      };
+
+    case "get_student_grades":
+    case "get_class_grade_sheet":
+    case "get_exams":
+      return {
+        inline_keyboard: [
+          [
+            { text: "📝 Saisir une note", callback_data: "action:record_grade" },
+            { text: "📅 Planifier examen", callback_data: "action:schedule_exam" },
+          ],
+        ],
+      };
+
+    case "get_students":
+    case "get_student_profile":
+    case "get_parents":
+      return {
+        inline_keyboard: [
+          [
+            { text: "💳 Enregistrer scolarité", callback_data: "action:record_payment" },
+            { text: "⏱️ Pointer absence", callback_data: "action:mark_attendance" },
+          ],
+        ],
+      };
+
+    default:
+      return undefined;
+  }
+}

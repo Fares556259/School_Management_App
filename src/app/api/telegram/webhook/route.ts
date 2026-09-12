@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   sendTelegramMessage,
   sendTelegramChatAction,
+  answerTelegramCallbackQuery,
 } from "@/lib/telegram/telegram";
 import {
   verifyAndLinkAccount,
@@ -49,6 +50,41 @@ export async function POST(req: NextRequest) {
           update.callback_query.message.chat.id,
           langLabels[selectedLang] || "Langue mise à jour."
         );
+        return NextResponse.json({ ok: true });
+      }
+
+      // Handle contextual quick action buttons
+      if (data.startsWith("action:")) {
+        const actionType = data.replace("action:", "");
+        const tgId = update.callback_query.from.id.toString();
+        const chatId = update.callback_query.message.chat.id;
+
+        await answerTelegramCallbackQuery(update.callback_query.id, "Traitement en cours...");
+
+        const actionPrompts: Record<string, string> = {
+          send_reminders: "Envoie les rappels de paiement par notification à toutes les familles ayant des impayés ce mois-ci.",
+          view_expenses: "Donne-moi le détail complet des dépenses de ce mois par catégorie.",
+          record_payment: "Je souhaite enregistrer un paiement de scolarité reçu d'une famille.",
+          pay_salary: "Je souhaite enregistrer le versement d'un salaire ou d'une avance pour un enseignant.",
+          add_teacher: "Je souhaite recruter un nouvel enseignant.",
+          mark_attendance: "Je souhaite marquer un élève absent ou en retard aujourd'hui.",
+          attendance_history: "Montre-moi l'historique des absences récentes des élèves.",
+          find_substitute: "Qui peut remplacer un enseignant absent aujourd'hui ?",
+          add_slot: "Je souhaite ajouter une séance de cours à l'emploi du temps.",
+          record_grade: "Je souhaite enregistrer une note pour un élève.",
+          schedule_exam: "Je souhaite planifier un examen.",
+        };
+
+        const prompt = actionPrompts[actionType] || "Comment puis-je vous aider ?";
+        const tgAccount = await getLinkedAccount(tgId);
+        if (tgAccount) {
+          await runTelegramAgent({
+            userMessage: prompt,
+            chatId,
+            telegramId: tgId,
+            tgAccount,
+          });
+        }
         return NextResponse.json({ ok: true });
       }
 

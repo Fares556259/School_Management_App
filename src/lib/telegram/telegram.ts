@@ -64,9 +64,12 @@ export async function sendTelegramMessage(
     const data = await res.json();
     if (!data.ok) {
       console.error("[Telegram] sendMessage error:", data);
-      // Fallback: If Markdown parsing failed, try sending as plain text
+      // Fallback: If parsing failed, try sending as plain text
       if (options?.parse_mode && data.description?.includes("can't parse entities")) {
         delete payload.parse_mode;
+        if (options.parse_mode === "HTML") {
+          payload.text = payload.text.replace(/<[^>]*>/g, "");
+        }
         const retryRes = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
