@@ -16,9 +16,9 @@ import { transcribeTelegramVoice } from "@/lib/telegram/voice";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  // 1. Webhook Secret Validation
+  // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
   const secretHeader = req.headers.get("x-telegram-bot-api-secret-token");
-  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET || "snapschool_tg_secret_2026_secure_key";
+  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
   if (expectedSecret && secretHeader !== expectedSecret) {
     console.warn("[Telegram Webhook] Unauthorized request rejected (invalid secret).");
