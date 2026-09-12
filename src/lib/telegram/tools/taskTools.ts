@@ -685,6 +685,14 @@ export async function createResourceTool(
   }
 
   const fileUrl = args.url?.trim() || "";
+  if (!fileUrl) {
+    return {
+      success: false,
+      message:
+        "⚠️ <b>Aucun document ou fichier n'a été fourni pour ce cours.</b>\n\nVeuillez m'envoyer le fichier du cours (document PDF, Word ou photo de la leçon) pour que je puisse le publier.",
+      summary: "Document requis pour ajouter une ressource",
+    };
+  }
 
   // Create Resource in DB
   const resource = await prisma.resource.create({

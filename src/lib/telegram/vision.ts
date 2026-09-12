@@ -46,7 +46,8 @@ const VISION_MODELS = [
 export async function uploadTelegramPhotoToStorage(
   buffer: Buffer,
   schoolId: string,
-  filenamePrefix: string = "doc"
+  filenamePrefix: string = "doc",
+  contentType: string = "image/jpeg"
 ): Promise<string | null> {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -61,10 +62,16 @@ export async function uploadTelegramPhotoToStorage(
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const sanitizedSchool = schoolId.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const filePath = `documents/telegram/${sanitizedSchool}/${Date.now()}_${filenamePrefix}.jpg`;
+    let ext = "jpg";
+    if (contentType.includes("pdf")) ext = "pdf";
+    else if (contentType.includes("png")) ext = "png";
+    else if (contentType.includes("word") || contentType.includes("officedocument") || contentType.includes("docx")) ext = "docx";
+    else if (contentType.includes("excel") || contentType.includes("sheet")) ext = "xlsx";
+
+    const filePath = `documents/telegram/${sanitizedSchool}/${Date.now()}_${filenamePrefix}.${ext}`;
 
     const { error } = await supabase.storage.from("uploads").upload(filePath, buffer, {
-      contentType: "image/jpeg",
+      contentType,
       upsert: true,
     });
 

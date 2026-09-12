@@ -585,6 +585,61 @@ Instructions :
       }
     }
 
+    // 13. Handle Document File Attachment (PDF, Word, Excel, etc.)
+    const docFile = message.document;
+    if (docFile) {
+      await sendTelegramChatAction(chatId, "upload_document");
+      let docUrl: string | undefined;
+      let docBuffer: Buffer | undefined;
+
+      try {
+        const fileInfo = await getTelegramFile(docFile.file_id);
+        const botToken =
+          process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
+        docUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.file_path}`;
+        docBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
+      } catch (err) {
+        console.warn("[Telegram Webhook] Failed to retrieve or download document:", err);
+      }
+
+      if (docBuffer) {
+        const safeName = (docFile.file_name || "document").replace(/[^a-zA-Z0-9_-]/g, "_");
+        const permanentUrl = await uploadTelegramPhotoToStorage(
+          docBuffer,
+          tgAccount.schoolId,
+          safeName,
+          docFile.mime_type || "application/pdf"
+        );
+        if (permanentUrl) {
+          docUrl = permanentUrl;
+        }
+
+        const docTitle = docFile.file_name ? docFile.file_name.replace(/\.[^/.]+$/, "") : "Support de cours";
+        const docDescriptor = `[DOCUMENT / FICHIER REÇU PAR L'ADMINISTRATEUR]
+- Nom du fichier : ${docFile.file_name || "Document joint"}
+- Type : ${docFile.mime_type || "application/octet-stream"}
+- URL permanente du document : ${docUrl}
+${userPrompt ? `- Message de l'administrateur : "${userPrompt}"` : ""}`;
+
+        if (!userPrompt || userPrompt.trim().length === 0) {
+          userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé ce fichier / document (${docFile.file_name || "Document"}).
+Instructions :
+- Si ce fichier est un cours, support pédagogique ou résumé de leçon (ou si l'administrateur avait demandé d'ajouter un cours récemment) :
+  Propose d'appeler 'add_resource' avec url: "${docUrl}", title: "${docTitle}", et demande si une description spécifique doit être ajoutée ou si tu dois générer un résumé.
+- Si ce fichier est un sujet de devoir : propose 'create_assignment' avec img: "${docUrl}".
+- S'il n'y a pas de consigne, demande à l'administrateur pour quelle classe et matière publier cette ressource.`;
+        } else {
+          userPrompt = `${docDescriptor}
+
+Instructions :
+- Traite la demande de l'administrateur en associant ce fichier comme pièce jointe (URL : ${docUrl}).
+- Si la demande concerne l'ajout d'un cours ou d'une ressource pédagogique, utilise l'outil 'add_resource' avec url: "${docUrl}" et title: "${docTitle}".`;
+        }
+      }
+    }
+
     if (!userPrompt || userPrompt.trim().length === 0) {
       return NextResponse.json({ ok: true });
     }

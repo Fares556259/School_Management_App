@@ -1232,21 +1232,21 @@ ${lines.join("\n")}`;
   // ── COURSE RESOURCES SUITE (/list/resources) ─────────────────────────────
   add_resource: {
     name: "add_resource",
-    description: "Publier une ressource pédagogique, un cours, résumé ou document pour une classe avec titre, matière, description et lien de fichier/photo. Notifie les élèves et parents.",
+    description: "Publier une ressource pédagogique, un cours ou document pour une classe avec titre, classe, matière, description et lien de fichier obligatoire (url). OBLIGATOIRE: Nécessite un fichier (document PDF, Word, photo) préalablement envoyé et disponible via 'url'. Si l'administrateur n'a pas encore envoyé de fichier, NE PAS appeler cet outil ; lui demander d'abord d'envoyer le document et s'il a une description spécifique.",
     requiresConfirmation: true,
     declaration: {
       name: "add_resource",
-      description: "Partager des documents de cours ou résumés pédagogiques avec les élèves d'une classe.",
+      description: "Partager des documents de cours ou résumés pédagogiques avec les élèves d'une classe. Nécessite obligatoirement un document/fichier attaché.",
       parameters: {
         type: SchemaType.OBJECT,
-        required: ["title", "className"],
+        required: ["title", "className", "url"],
         properties: {
           title: { type: SchemaType.STRING, description: "Titre de la ressource (ex: 'Résumé Chapitre 1 - Les Fonctions', 'Cours d'Anglais PDF')." },
           className: { type: SchemaType.STRING, description: "Classe concernée (ex: '1A', '4B')." },
           subjectName: { type: SchemaType.STRING, description: "Matière concernée (ex: 'Mathématiques', 'Anglais')." },
           teacherName: { type: SchemaType.STRING, description: "Nom de l'enseignant responsable (ex: 'Mme Hnia Selmi'). Optionnel." },
-          url: { type: SchemaType.STRING, description: "Lien ou URL du document / photo / PDF attaché." },
-          description: { type: SchemaType.STRING, description: "Description ou aperçu du document partagé." },
+          url: { type: SchemaType.STRING, description: "Lien ou URL permanente du document / photo / PDF attaché (obligatoire)." },
+          description: { type: SchemaType.STRING, description: "Description ou aperçu pédagogique du document partagé." },
         },
       },
     },
