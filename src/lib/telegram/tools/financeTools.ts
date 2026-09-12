@@ -2,6 +2,10 @@ import prisma from "@/lib/prisma";
 import { processPaymentReminders } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
+import { resolveClassByName } from "./classResolver";
+import { buildNameSearchConditions } from "./nameSearch";
+import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
+import { invalidateTenantTags } from "@/lib/cache";
 
 /**
  * Tool: get_financial_anomalies
@@ -127,3 +131,656 @@ export async function sendPaymentRemindersTool(
     data: result,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 1. PAIEMENTS PARTIELS & RECOUVREMENT (READ & WRITE)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tool: get_partial_payments
+ * Fetches recovery queue metrics and dossiers for partially paid tuition fees.
+ */
+export async function getPartialPaymentsTool(
+  args: {
+    status?: "all" | "overdue" | "this_month" | "future" | "unscheduled";
+    className?: string;
+    studentName?: string;
+    month?: number;
+    year?: number;
+  },
+  context: ToolContext
+) {
+  const where: any = {
+    schoolId: context.schoolId,
+    status: "PARTIAL",
+    userType: "STUDENT",
+  };
+
+  if (args.month) where.month = args.month;
+  if (args.year) where.year = args.year;
+
+  if (args.className) {
+    const matched = await resolveClassByName(context.schoolId, args.className);
+    if (matched) {
+      where.student = { classId: matched.id };
+    } else {
+      where.student = {
+        class: { name: { contains: args.className.trim(), mode: "insensitive" } },
+      };
+    }
+  }
+
+  if (args.studentName) {
+    const q = args.studentName.trim();
+    where.student = {
+      ...(where.student || {}),
+      OR: buildNameSearchConditions(q),
+    };
+  }
+
+  const payments = await prisma.payment.findMany({
+    where,
+    orderBy: { deferredUntil: "asc" },
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          class: { select: { name: true } },
+          level: { select: { level: true, tuitionFee: true } },
+          parent: { select: { name: true, surname: true, phone: true } },
+        },
+      },
+    },
+  });
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  let totalPending = 0;
+  let overdueAmount = 0;
+  let overdueCount = 0;
+  let thisMonthAmount = 0;
+  let thisMonthCount = 0;
+  let futureAmount = 0;
+  let futureCount = 0;
+
+  const processed = payments.map((p) => {
+    const pending = p.deferredAmount || 0;
+    totalPending += pending;
+
+    let dueStatus: "overdue" | "this_month" | "future" | "unscheduled" = "unscheduled";
+    let statusBadge = "⚠️ NON PLANIFIÉ";
+
+    if (p.deferredUntil) {
+      const dueDate = new Date(p.deferredUntil);
+      if (dueDate < today) {
+        dueStatus = "overdue";
+        statusBadge = "❌ EN RETARD (ÉCHU)";
+        overdueAmount += pending;
+        overdueCount++;
+      } else if (dueDate <= endOfMonth) {
+        dueStatus = "this_month";
+        statusBadge = "⏳ ÉCHÉANCE CE MOIS";
+        thisMonthAmount += pending;
+        thisMonthCount++;
+      } else {
+        dueStatus = "future";
+        statusBadge = "📅 ÉCHÉANCE FUTURE";
+        futureAmount += pending;
+        futureCount++;
+      }
+    }
+
+    const mName = MONTHS[p.month - 1] || `Mois ${p.month}`;
+    const frMonth = formatMonthFrench(`${mName} ${p.year}`);
+
+    return {
+      id: p.id,
+      studentId: p.studentId,
+      studentName: p.student ? `${p.student.name} ${p.student.surname}` : "Inconnu",
+      className: p.student?.class?.name || "N/A",
+      feeMonth: frMonth,
+      paidAmount: p.amount,
+      remainingGap: pending,
+      totalTuition: p.amount + pending,
+      deferredUntil: p.deferredUntil ? p.deferredUntil.toISOString().split("T")[0] : null,
+      dueStatus,
+      statusBadge,
+      parentPhone: p.student?.parent?.phone || null,
+      parentName: p.student?.parent ? `${p.student.parent.name} ${p.student.parent.surname}` : null,
+    };
+  });
+
+  let filtered = processed;
+  if (args.status && args.status !== "all") {
+    filtered = processed.filter((item) => item.dueStatus === args.status);
+  }
+
+  return {
+    kpis: {
+      totalToRecover: `${totalPending} DT`,
+      totalDossiers: payments.length,
+      overdueAmount: `${overdueAmount} DT (${overdueCount} dossier(s))`,
+      thisMonthAmount: `${thisMonthAmount} DT (${thisMonthCount} dossier(s))`,
+      futureAmount: `${futureAmount} DT (${futureCount} dossier(s))`,
+    },
+    count: filtered.length,
+    items: filtered.slice(0, 30),
+  };
+}
+
+/**
+ * Tool: recover_partial_payment
+ * Settles or recovers a pending tuition balance (reliquat) for a student.
+ */
+export async function recoverPartialPaymentTool(
+  args: {
+    studentNameOrId: string;
+    amount?: number;
+    month?: number;
+    year?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const query = args.studentNameOrId.trim();
+
+  // Find student
+  let student = await prisma.student.findFirst({
+    where: { schoolId: context.schoolId, id: query },
+    include: { class: true, parent: true },
+  });
+
+  if (!student) {
+    const candidates = await prisma.student.findMany({
+      where: {
+        schoolId: context.schoolId,
+        OR: buildNameSearchConditions(query),
+      },
+      include: { class: true, parent: true },
+      take: 2,
+    });
+
+    if (candidates.length === 0) {
+      return { success: false, message: `Élève "${query}" introuvable.`, summary: `Élève introuvable` };
+    }
+    if (candidates.length > 1) {
+      return {
+        success: false,
+        message: `Plusieurs élèves correspondent à "${query}". Veuillez préciser son prénom et nom complet.`,
+        summary: `Plusieurs élèves trouvés`,
+      };
+    }
+    student = candidates[0];
+  }
+
+  // Find pending partial payment(s)
+  const paymentWhere: any = {
+    studentId: student.id,
+    schoolId: context.schoolId,
+    status: "PARTIAL",
+    userType: "STUDENT",
+  };
+  if (args.month) paymentWhere.month = args.month;
+  if (args.year) paymentWhere.year = args.year;
+
+  const partialPayments = await prisma.payment.findMany({
+    where: paymentWhere,
+    orderBy: [{ year: "asc" }, { month: "asc" }],
+  });
+
+  if (partialPayments.length === 0) {
+    return {
+      success: false,
+      message: `Aucun reliquat de paiement partiel trouvé pour <b>${student.name} ${student.surname}</b>.`,
+      summary: `Aucun reliquat trouvé`,
+    };
+  }
+
+  const targetPayment = partialPayments[0];
+  const currentGap = targetPayment.deferredAmount || 0;
+  const recoveryAmount = args.amount !== undefined ? Math.min(args.amount, currentGap) : currentGap;
+
+  if (recoveryAmount <= 0) {
+    return {
+      success: false,
+      message: `Le montant à recouvrer doit être supérieur à 0 DT. Reliquat actuel : <code>${currentGap} DT</code>.`,
+      summary: `Montant invalide`,
+    };
+  }
+
+  const newAmount = targetPayment.amount + recoveryAmount;
+  const newDeferred = currentGap - recoveryAmount;
+  const isFullySettled = newDeferred <= 0;
+  const finalStatus = isFullySettled ? "PAID" : "PARTIAL";
+
+  const mName = MONTHS[targetPayment.month - 1] || `Mois ${targetPayment.month}`;
+  const periodStr = formatMonthFrench(`${mName} ${targetPayment.year}`);
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Update Payment record
+    await tx.payment.update({
+      where: { id: targetPayment.id },
+      data: {
+        amount: newAmount,
+        deferredAmount: isFullySettled ? 0 : newDeferred,
+        deferredUntil: isFullySettled ? null : targetPayment.deferredUntil,
+        status: finalStatus as any,
+        paidAt: new Date(),
+      },
+    });
+
+    // 2. Log Income entry for recovered money
+    await tx.income.create({
+      data: {
+        title: `Tuition: ${student.name} ${student.surname} (${periodStr}) - Recovery`,
+        amount: recoveryAmount,
+        date: new Date(),
+        category: "Recovery",
+        referenceType: "StudentPayment",
+        referenceId: targetPayment.id.toString(),
+        schoolId: context.schoolId,
+      },
+    });
+
+    // 3. Log Audit
+    await tx.auditLog.create({
+      data: {
+        action: "RECOVER_PAYMENT",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Payment",
+        entityId: targetPayment.id.toString(),
+        description: `[Hnia AI Telegram] Recouvrement partiel : ${student.name} ${student.surname} - ${recoveryAmount} DT encaissés pour ${periodStr}${isFullySettled ? " (SOLDÉ ✅)" : ` (Reste : ${newDeferred} DT)`}`,
+        amount: recoveryAmount,
+        type: "income",
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "finance", "students", "incomes", "dashboard");
+
+  const badge = isFullySettled
+    ? "✅ <b>Dossier 100% SOLDÉ</b>"
+    : `⚠️ <b>Reste dû :</b> <code>${newDeferred} DT</code>`;
+
+  return {
+    success: true,
+    message: `✅ <b>Recouvrement Enregistré</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>${student.name} ${student.surname}</b> • Classe <code>${student.class?.name || "N/A"}</code>
+📅 Période : <code>${periodStr}</code>
+💰 Montant encaissé : <code>+${recoveryAmount} DT</code>
+📊 Nouveau total payé : <code>${newAmount} DT</code>
+${badge}`,
+    summary: `Recouvrement de ${recoveryAmount} DT pour ${student.name} (${periodStr})`,
+    data: {
+      studentId: student.id,
+      paymentId: targetPayment.id,
+      recoveredAmount: recoveryAmount,
+      remainingGap: isFullySettled ? 0 : newDeferred,
+      status: finalStatus,
+    },
+  };
+}
+
+/**
+ * Tool: schedule_recovery_date
+ * Sets or updates the promised recovery deadline (deferredUntil) for a partial payment.
+ */
+export async function scheduleRecoveryDateTool(
+  args: {
+    studentNameOrId: string;
+    date: string;
+    month?: number;
+    year?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const query = args.studentNameOrId.trim();
+  const scheduledDate = new Date(args.date);
+
+  if (isNaN(scheduledDate.getTime())) {
+    return { success: false, message: `Format de date invalide (attendu : AAAA-MM-JJ).`, summary: `Date invalide` };
+  }
+
+  // Find student
+  let student = await prisma.student.findFirst({
+    where: { schoolId: context.schoolId, id: query },
+    include: { class: true },
+  });
+
+  if (!student) {
+    const candidates = await prisma.student.findMany({
+      where: { schoolId: context.schoolId, OR: buildNameSearchConditions(query) },
+      include: { class: true },
+      take: 2,
+    });
+    if (candidates.length === 0) return { success: false, message: `Élève introuvable.`, summary: `Élève introuvable` };
+    if (candidates.length > 1) return { success: false, message: `Plusieurs élèves trouvés pour "${query}".`, summary: `Ambiguïté élève` };
+    student = candidates[0];
+  }
+
+  const paymentWhere: any = {
+    studentId: student.id,
+    schoolId: context.schoolId,
+    status: "PARTIAL",
+    userType: "STUDENT",
+  };
+  if (args.month) paymentWhere.month = args.month;
+  if (args.year) paymentWhere.year = args.year;
+
+  const targetPayment = await prisma.payment.findFirst({
+    where: paymentWhere,
+    orderBy: [{ year: "asc" }, { month: "asc" }],
+  });
+
+  if (!targetPayment) {
+    return {
+      success: false,
+      message: `Aucun reliquat de paiement partiel trouvé pour <b>${student.name} ${student.surname}</b>.`,
+      summary: `Aucun reliquat`,
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { id: targetPayment.id },
+      data: { deferredUntil: scheduledDate },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Payment",
+        entityId: targetPayment.id.toString(),
+        description: `[Hnia AI Telegram] Date d'échéance fixée au ${args.date} pour ${student.name} ${student.surname} (Reliquat : ${targetPayment.deferredAmount || 0} DT)`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "finance", "students", "dashboard");
+
+  const formattedDate = scheduledDate.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return {
+    success: true,
+    message: `📅 <b>Échéance Planifiée</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>${student.name} ${student.surname}</b> • Classe <code>${student.class?.name || "N/A"}</code>
+💰 Reliquat en attente : <code>${targetPayment.deferredAmount || 0} DT</code>
+🗓️ Nouvelle date limite : <code>${formattedDate}</code>`,
+    summary: `Échéance fixée au ${args.date} pour ${student.name}`,
+    data: { paymentId: targetPayment.id, scheduledDate: args.date },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. REVENUS / RECETTES DE L'ÉCOLE (READ & WRITE)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tool: get_incomes
+ * Lists detailed revenues, monthly/annual sums, and category breakdown.
+ */
+export async function getIncomesTool(
+  args: {
+    month?: number;
+    year?: number;
+    category?: string;
+    query?: string;
+    limit?: number;
+  },
+  context: ToolContext
+) {
+  const now = new Date();
+  const month = args.month || now.getMonth() + 1;
+  const year = args.year || now.getFullYear();
+
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+
+  const where: any = {
+    schoolId: context.schoolId,
+  };
+
+  if (args.category) {
+    where.category = { contains: args.category.trim(), mode: "insensitive" };
+  }
+
+  if (args.query) {
+    where.title = { contains: args.query.trim(), mode: "insensitive" };
+  }
+
+  const monthWhere = {
+    ...where,
+    date: { gte: startDate, lt: endDate },
+  };
+
+  const [monthSum, allTimeSum, categoryBreakdown, records] = await Promise.all([
+    prisma.income.aggregate({
+      where: monthWhere,
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.income.aggregate({
+      where: { schoolId: context.schoolId },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.income.groupBy({
+      by: ["category"],
+      where: monthWhere,
+      _sum: { amount: true },
+      _count: { id: true },
+      orderBy: { _sum: { amount: "desc" } },
+    }),
+    prisma.income.findMany({
+      where: monthWhere,
+      take: Math.min(args.limit || 25, 50),
+      orderBy: { date: "desc" },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        category: true,
+        date: true,
+        img: true,
+      },
+    }),
+  ]);
+
+  return {
+    period: `${month}/${year}`,
+    summary: {
+      currentMonthTotal: `${monthSum._sum.amount || 0} DT`,
+      currentMonthCount: monthSum._count.id || 0,
+      historicalTotal: `${allTimeSum._sum.amount || 0} DT`,
+    },
+    categories: categoryBreakdown.map((c) => ({
+      category: c.category,
+      amount: `${c._sum.amount || 0} DT`,
+      count: c._count.id || 0,
+    })),
+    records: records.map((r) => ({
+      id: r.id,
+      title: r.title,
+      amount: `${r.amount} DT`,
+      category: r.category,
+      date: r.date.toISOString().split("T")[0],
+      hasProof: Boolean(r.img),
+    })),
+  };
+}
+
+/**
+ * Tool: add_income
+ * Adds a new revenue/income record for the school.
+ */
+export async function addIncomeTool(
+  args: {
+    title: string;
+    amount: number;
+    category: string;
+    date?: string;
+    img?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const category = args.category?.trim() || "Général";
+  const incomeDate = args.date ? new Date(args.date) : new Date();
+
+  const result = await prisma.$transaction(async (tx) => {
+    const inc = await tx.income.create({
+      data: {
+        title: args.title.trim(),
+        amount: args.amount,
+        category,
+        date: incomeDate,
+        img: args.img || null,
+        schoolId: context.schoolId,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "GENERAL_INCOME",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "School",
+        entityId: inc.id.toString(),
+        amount: args.amount,
+        type: "income",
+        description: `[Hnia AI Telegram] Revenu enregistré : ${args.title} (${args.amount} DT - ${category})`,
+        effectiveDate: incomeDate,
+        schoolId: context.schoolId,
+      },
+    });
+
+    return inc;
+  });
+
+  invalidateTenantTags(context.schoolId, "incomes", "finance", "dashboard");
+
+  const dateStr = incomeDate.toLocaleDateString("fr-FR");
+  const imgStr = args.img ? "\n🖼️ <i>Preuve / reçu joint</i>" : "";
+
+  return {
+    success: true,
+    message: `✅ <b>Revenu Enregistré</b>
+━━━━━━━━━━━━━━━━━━━━━━
+💰 Montant : <code>+${args.amount} DT</code>
+🏷️ Source : <b>${args.title}</b>
+📂 Catégorie : <code>${category}</code>
+📅 Date : <code>${dateStr}</code>${imgStr}`,
+    summary: `Revenu "${args.title}" (+${args.amount} DT)`,
+    data: { incomeId: result.id },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. DÉPENSES DE L'ÉCOLE (READ)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tool: get_expenses
+ * Lists detailed expenses, monthly/annual sums, and category breakdown.
+ */
+export async function getExpensesTool(
+  args: {
+    month?: number;
+    year?: number;
+    category?: string;
+    query?: string;
+    limit?: number;
+  },
+  context: ToolContext
+) {
+  const now = new Date();
+  const month = args.month || now.getMonth() + 1;
+  const year = args.year || now.getFullYear();
+
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+
+  const where: any = {
+    schoolId: context.schoolId,
+  };
+
+  if (args.category) {
+    where.category = { contains: args.category.trim(), mode: "insensitive" };
+  }
+
+  if (args.query) {
+    where.title = { contains: args.query.trim(), mode: "insensitive" };
+  }
+
+  const monthWhere = {
+    ...where,
+    date: { gte: startDate, lt: endDate },
+  };
+
+  const [monthSum, allTimeSum, categoryBreakdown, records] = await Promise.all([
+    prisma.expense.aggregate({
+      where: monthWhere,
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.expense.aggregate({
+      where: { schoolId: context.schoolId },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.expense.groupBy({
+      by: ["category"],
+      where: monthWhere,
+      _sum: { amount: true },
+      _count: { id: true },
+      orderBy: { _sum: { amount: "desc" } },
+    }),
+    prisma.expense.findMany({
+      where: monthWhere,
+      take: Math.min(args.limit || 25, 50),
+      orderBy: { date: "desc" },
+      select: {
+        id: true,
+        title: true,
+        amount: true,
+        category: true,
+        date: true,
+        img: true,
+      },
+    }),
+  ]);
+
+  return {
+    period: `${month}/${year}`,
+    summary: {
+      currentMonthTotal: `${monthSum._sum.amount || 0} DT`,
+      currentMonthCount: monthSum._count.id || 0,
+      historicalTotal: `${allTimeSum._sum.amount || 0} DT`,
+    },
+    categories: categoryBreakdown.map((c) => ({
+      category: c.category,
+      amount: `${c._sum.amount || 0} DT`,
+      count: c._count.id || 0,
+    })),
+    records: records.map((r) => ({
+      id: r.id,
+      title: r.title,
+      amount: `${r.amount} DT`,
+      category: r.category,
+      date: r.date.toISOString().split("T")[0],
+      hasProof: Boolean(r.img),
+    })),
+  };
+}
+

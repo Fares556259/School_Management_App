@@ -143,6 +143,39 @@ export function getQuickActionButtons(
   if (!lastTool) return undefined;
 
   switch (lastTool) {
+    case "get_partial_payments":
+      return {
+        inline_keyboard: [
+          [
+            { text: "🤝 Recouvrer un reliquat", callback_data: "action:recover_partial" },
+            { text: "📅 Fixer une échéance", callback_data: "action:schedule_recovery" },
+          ],
+          [
+            { text: "📢 Relancer les impayés", callback_data: "action:send_reminders" },
+          ],
+        ],
+      };
+
+    case "get_incomes":
+      return {
+        inline_keyboard: [
+          [
+            { text: "➕ Ajouter un revenu", callback_data: "action:add_income" },
+            { text: "📊 Bilan financier", callback_data: "action:financial_summary" },
+          ],
+        ],
+      };
+
+    case "get_expenses":
+      return {
+        inline_keyboard: [
+          [
+            { text: "➕ Ajouter une dépense", callback_data: "action:add_expense" },
+            { text: "📊 Bilan financier", callback_data: "action:financial_summary" },
+          ],
+        ],
+      };
+
     case "get_financial_summary":
     case "get_financial_anomalies":
       return {

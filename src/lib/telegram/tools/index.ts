@@ -56,6 +56,12 @@ import {
 import {
   getFinancialAnomaliesTool,
   sendPaymentRemindersTool,
+  getPartialPaymentsTool,
+  recoverPartialPaymentTool,
+  scheduleRecoveryDateTool,
+  getIncomesTool,
+  addIncomeTool,
+  getExpensesTool,
 } from "./financeTools";
 
 // Suite 6: Timetable & Substitution
@@ -590,6 +596,94 @@ export const TOOLS: Record<string, ToolDefinition> = {
     execute: getPaymentsTool,
   },
 
+  get_partial_payments: {
+    name: "get_partial_payments",
+    description: "Consulter la file des dossiers de paiements partiels et reliquats à recouvrer (KPIs, dossiers échus, échéances ce mois, filtres par classe ou élève).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_partial_payments",
+      description: "Obtenir la liste des dossiers de paiements partiels et les indicateurs clés de recouvrement (KPIs).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          status: {
+            type: SchemaType.STRING,
+            description: "Filtrer par statut: 'all', 'overdue' (échus/en retard), 'this_month' (échéance ce mois), 'future' (futurs), ou 'unscheduled' (sans date).",
+          },
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '8ème B')." },
+          studentName: { type: SchemaType.STRING, description: "Nom ou prénom de l'élève." },
+          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12)." },
+          year: { type: SchemaType.NUMBER, description: "Année." },
+        },
+      },
+    },
+    execute: getPartialPaymentsTool,
+  },
+
+  recover_partial_payment: {
+    name: "recover_partial_payment",
+    description: "Recouvrer / encaisser le reliquat d'un paiement partiel de scolarité pour un élève (bouton RECOUVRER du tableau de bord).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "recover_partial_payment",
+      description: "Recouvrer ou encaisser tout ou partie d'un reliquat de paiement partiel pour un élève.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
+          amount: { type: SchemaType.NUMBER, description: "Montant encaissé en DT (optionnel, solde tout le reliquat par défaut)." },
+          month: { type: SchemaType.NUMBER, description: "Mois ciblé (1 à 12, optionnel)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel)." },
+        },
+      },
+    },
+    formatConfirmationMessage: async (args, context) => {
+      const q = (args.studentNameOrId || "").trim();
+      const student = await prisma.student.findFirst({
+        where: {
+          schoolId: context.schoolId,
+          OR: [
+            { id: q },
+            { name: { contains: q, mode: "insensitive" } },
+            { surname: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        include: { class: true },
+      });
+
+      const studentDisplay = student ? `${student.name} ${student.surname} (Classe : ${student.class?.name || "N/A"})` : args.studentNameOrId;
+      const amountStr = args.amount ? `<code>${args.amount} DT</code>` : "<b>la totalité du reliquat restant</b>";
+
+      return `❓ <b>Confirmation de Recouvrement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisplay}</b> ?`;
+    },
+    execute: recoverPartialPaymentTool,
+  },
+
+  schedule_recovery_date: {
+    name: "schedule_recovery_date",
+    description: "Fixer ou mettre à jour la date d'échéance promise pour le recouvrement d'un reliquat partiel.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "schedule_recovery_date",
+      description: "Fixer la date limite de paiement promise (deferredUntil) pour un dossier partiel.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId", "date"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
+          date: { type: SchemaType.STRING, description: "Date promise au format AAAA-MM-JJ (ex: '2026-09-25')." },
+          month: { type: SchemaType.NUMBER, description: "Mois concerné (optionnel)." },
+          year: { type: SchemaType.NUMBER, description: "Année concernée (optionnel)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Planification d'Échéance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nFixer la date limite de recouvrement pour <b>${args.studentNameOrId}</b> au <code>${args.date}</code> ?`;
+    },
+    execute: scheduleRecoveryDateTool,
+  },
+
   get_financial_summary: {
     name: "get_financial_summary",
     description: "Bilan financier : total revenus, dépenses, bénéfice net et impayés.",
@@ -693,9 +787,78 @@ ${lines.join("\n")}`;
     execute: recordPaymentTool,
   },
 
+  get_incomes: {
+    name: "get_incomes",
+    description: "Consulter les recettes et revenus de l'école (chiffres du mois, total historique, ventilation par catégorie).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_incomes",
+      description: "Consulter les revenus de l'école avec totaux et répartition par catégorie.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12, défaut mois actuel)." },
+          year: { type: SchemaType.NUMBER, description: "Année (défaut année actuelle)." },
+          category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'Tuition', 'Cantine', 'Transport', 'Général')." },
+          query: { type: SchemaType.STRING, description: "Rechercher par mot-clé dans l'intitulé." },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum de résultats (défaut 25)." },
+        },
+      },
+    },
+    execute: getIncomesTool,
+  },
+
+  add_income: {
+    name: "add_income",
+    description: "Enregistrer une recette ou un revenu pour l'école (cantine, bus, activités périscolaires, dons, subventions, etc.).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "add_income",
+      description: "Enregistrer un nouveau revenu encaissé par l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["title", "amount", "category"],
+        properties: {
+          title: { type: SchemaType.STRING, description: "Intitulé ou source de la recette." },
+          amount: { type: SchemaType.NUMBER, description: "Montant encaissé en DT." },
+          category: { type: SchemaType.STRING, description: "Catégorie (ex: 'Scolarité', 'Cantine', 'Transport', 'Activités', 'Général')." },
+          date: { type: SchemaType.STRING, description: "Date au format AAAA-MM-JJ (optionnel, aujourd'hui par défaut)." },
+          img: { type: SchemaType.STRING, description: "URL du reçu ou justificatif (optionnel)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const dateStr = args.date ? ` le <code>${args.date}</code>` : "";
+      const imgStr = args.img ? "\n🖼️ <i>Justificatif joint</i>" : "";
+      return `❓ <b>Nouveau Revenu</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer le revenu <b>${args.title}</b> de <code>+${args.amount} DT</code> (Catégorie : <code>${args.category}</code>)${dateStr}${imgStr} ?`;
+    },
+    execute: addIncomeTool,
+  },
+
+  get_expenses: {
+    name: "get_expenses",
+    description: "Consulter les dépenses opérationnelles de l'école (chiffres du mois, total historique, ventilation par catégorie).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_expenses",
+      description: "Consulter les dépenses de l'école avec totaux et ventilation par catégorie.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12, défaut mois actuel)." },
+          year: { type: SchemaType.NUMBER, description: "Année (défaut année actuelle)." },
+          category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'Factures', 'Fournitures', 'Maintenance', 'SALAIRE')." },
+          query: { type: SchemaType.STRING, description: "Recherche textuelle dans l'intitulé." },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum de résultats (défaut 25)." },
+        },
+      },
+    },
+    execute: getExpensesTool,
+  },
+
   add_expense: {
     name: "add_expense",
-    description: "Enregistrer une dépense opérationnelle (facture STEG, fournitures, entretien, etc.).",
+    description: "Enregistrer une dépense opérationnelle (facture STEG, fournitures, entretien, loyer, etc.).",
     requiresConfirmation: true,
     declaration: {
       name: "add_expense",
@@ -706,15 +869,17 @@ ${lines.join("\n")}`;
         properties: {
           title: { type: SchemaType.STRING, description: "Description de la dépense." },
           amount: { type: SchemaType.NUMBER, description: "Montant en DT." },
-          category: { type: SchemaType.STRING, description: "Catégorie (ex: 'Factures', 'Fournitures', 'Maintenance')." },
+          category: { type: SchemaType.STRING, description: "Catégorie (ex: 'Factures', 'Fournitures', 'Maintenance', 'Loyer')." },
           date: { type: SchemaType.STRING, description: "Date au format AAAA-MM-JJ." },
+          img: { type: SchemaType.STRING, description: "URL de la facture ou du reçu / justificatif (optionnel)." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ <b>Nouvelle Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la dépense <b>${args.title}</b> de <code>${args.amount} DT</code> (Catégorie : <code>${
+      const imgStr = args.img ? "\n🖼️ <i>Justificatif joint</i>" : "";
+      return `❓ <b>Nouvelle Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la dépense <b>${args.title}</b> de <code>-${args.amount} DT</code> (Catégorie : <code>${
         args.category || "Général"
-      }</code>) ?`;
+      }</code>)${imgStr} ?`;
     },
     execute: addExpenseTool,
   },

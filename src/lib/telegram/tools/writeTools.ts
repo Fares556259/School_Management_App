@@ -373,10 +373,11 @@ export async function addExpenseTool(
     amount: number;
     category?: string;
     date?: string;
+    img?: string;
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const category = args.category || "Général";
+  const category = args.category?.trim() || "Général";
   const expenseDate = args.date ? new Date(args.date) : new Date();
 
   const result = await prisma.$transaction(async (tx) => {
@@ -386,6 +387,7 @@ export async function addExpenseTool(
         amount: args.amount,
         category,
         date: expenseDate,
+        img: args.img || null,
         schoolId: context.schoolId,
       },
     });
@@ -411,10 +413,18 @@ export async function addExpenseTool(
     console.warn("[addExpenseTool] Cache invalidation warning:", err);
   }
 
+  const dateStr = expenseDate.toLocaleDateString("fr-FR");
+  const imgStr = args.img ? "\n🖼️ <i>Reçu / justificatif joint</i>" : "";
+
   return {
     success: true,
-    message: `✅ Dépense enregistrée : "${args.title}" pour un montant de ${args.amount} DT (Catégorie : ${category}).`,
-    summary: `Dépense "${args.title}" (${args.amount} DT)`,
+    message: `✅ <b>Dépense Enregistrée</b>
+━━━━━━━━━━━━━━━━━━━━━━
+💰 Montant : <code>-${args.amount} DT</code>
+🏷️ Intitulé : <b>${args.title.trim()}</b>
+📂 Catégorie : <code>${category}</code>
+📅 Date : <code>${dateStr}</code>${imgStr}`,
+    summary: `Dépense "${args.title}" (-${args.amount} DT)`,
     data: { expenseId: result.id },
   };
 }
