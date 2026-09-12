@@ -97,26 +97,48 @@ export async function editTelegramMessageText(
   const token = getBotToken();
   const url = `${TELEGRAM_API_BASE}/bot${token}/editMessageText`;
 
+  const parseMode = options?.parse_mode !== undefined ? options.parse_mode : "HTML";
+
   const payload: Record<string, any> = {
     chat_id: chatId,
     message_id: messageId,
     text,
   };
 
-  if (options?.parse_mode) {
-    payload.parse_mode = options.parse_mode;
+  if (parseMode) {
+    payload.parse_mode = parseMode;
   }
   if (options?.reply_markup) {
     payload.reply_markup = options.reply_markup;
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  return await res.json();
+    const data = await res.json();
+    if (!data.ok) {
+      console.error("[Telegram] editMessageText error:", data);
+      // Fallback: If parsing failed, retry as plain text stripping HTML tags
+      if (payload.parse_mode && data.description?.includes("can't parse entities")) {
+        delete payload.parse_mode;
+        payload.text = payload.text.replace(/<[^>]*>/g, "");
+        const retryRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        return await retryRes.json();
+      }
+    }
+    return data;
+  } catch (error) {
+    console.error("[Telegram] editMessageText fetch failed:", error);
+    throw error;
+  }
 }
 
 /**

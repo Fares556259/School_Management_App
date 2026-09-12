@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { answerTelegramCallbackQuery, editTelegramMessageText } from "./telegram";
+import { formatTelegramMessage } from "./formatter";
 import { TOOLS } from "./tools";
 import { ToolContext } from "./tools/readTools";
 
@@ -102,11 +103,10 @@ export async function handleConfirmationCallback(
     });
 
     await answerTelegramCallbackQuery(queryId, "Action annulée");
-    await editTelegramMessageText(
-      chatId,
-      messageId,
+    const cancelMsg = formatTelegramMessage(
       `❌ **Action annulée** par l'administrateur.\nAucune modification n'a été effectuée.`
     );
+    await editTelegramMessageText(chatId, messageId, cancelMsg, { parse_mode: "HTML" });
     return;
   }
 
@@ -145,10 +145,12 @@ export async function handleConfirmationCallback(
       });
 
       // Update message in Telegram to show completed confirmation
-      const confirmationMsg =
+      const rawConfirmationMsg =
         executionResult.message || `✅ Action **${toolCall.toolName}** exécutée avec succès.`;
 
-      await editTelegramMessageText(chatId, messageId, confirmationMsg);
+      const confirmationMsg = formatTelegramMessage(rawConfirmationMsg, tgAccount.School.name);
+
+      await editTelegramMessageText(chatId, messageId, confirmationMsg, { parse_mode: "HTML" });
     } catch (err: any) {
       console.error("[Confirmation] Tool execution error:", err);
 
@@ -160,11 +162,11 @@ export async function handleConfirmationCallback(
         },
       });
 
-      await editTelegramMessageText(
-        chatId,
-        messageId,
+      const errorMsg = formatTelegramMessage(
         `⚠️ **Erreur lors de l'exécution :**\n${err.message || "Une erreur inconnue est survenue."}`
       );
+
+      await editTelegramMessageText(chatId, messageId, errorMsg, { parse_mode: "HTML" });
     }
   }
 }
