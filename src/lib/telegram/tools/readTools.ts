@@ -129,10 +129,16 @@ export async function getAttendanceTool(
     where.status = args.status;
   }
 
+  let totalEnrolled: number | undefined;
+  let targetClass: any = null;
+
   if (args.className) {
-    const matched = await resolveClassByName(context.schoolId, args.className);
-    if (matched) {
-      where.student = { classId: matched.id };
+    targetClass = await resolveClassByName(context.schoolId, args.className);
+    if (targetClass) {
+      where.student = { classId: targetClass.id };
+      totalEnrolled = await prisma.student.count({
+        where: { schoolId: context.schoolId, classId: targetClass.id },
+      });
     } else {
       where.student = {
         class: {
@@ -176,18 +182,32 @@ export async function getAttendanceTool(
   const lates = records.filter((r) => r.status === "LATE");
   const presents = records.filter((r) => r.status === "PRESENT");
 
+  const absentCount = absents.length;
+  const lateCount = lates.length;
+  const presentCount =
+    totalEnrolled !== undefined ? Math.max(0, totalEnrolled - absentCount - lateCount) : presents.length;
+  const attendanceRate =
+    totalEnrolled && totalEnrolled > 0
+      ? `${Math.round((presentCount / totalEnrolled) * 100)}%`
+      : records.length > 0
+      ? `${Math.round(((records.length - absentCount) / records.length) * 100)}%`
+      : "100%";
+
   return {
     date: startOfDay.toISOString().split("T")[0],
+    className: targetClass?.name || args.className || "Toute l'école",
+    totalEnrolled: totalEnrolled !== undefined ? totalEnrolled : records.length,
     summary: {
-      totalMarked: records.length,
-      absentCount: absents.length,
-      lateCount: lates.length,
-      presentCount: presents.length,
+      totalInscrits: totalEnrolled !== undefined ? totalEnrolled : records.length,
+      presentCount,
+      absentCount,
+      lateCount,
+      attendanceRate,
     },
     absentStudents: absents.map((r) => ({
       name: `${r.student.name} ${r.student.surname}`,
       class: r.student.class?.name || "N/A",
-      lesson: r.lesson?.name || r.lesson?.subject.name || "N/A",
+      lesson: r.lesson?.name || r.lesson?.subject.name || "Séance",
       parentPhone: r.student.parent?.phone || null,
       note: r.note || null,
     })),

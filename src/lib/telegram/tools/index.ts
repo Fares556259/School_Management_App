@@ -41,6 +41,7 @@ import {
 import {
   getStudentAttendanceHistoryTool,
   markAttendanceTool,
+  markClassAttendanceTool,
 } from "./attendanceTools";
 
 // Suite 4: Grades & Exams
@@ -421,17 +422,18 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   get_student_attendance_history: {
     name: "get_student_attendance_history",
-    description: "Consulter l'historique complet des absences et retards d'un élève sur les 30 derniers jours.",
+    description: "Consulter l'historique complet des absences et retards d'un élève (sur toute l'année scolaire ou période choisie), avec taux d'assiduité, absences justifiées vs injustifiées et répartition par matière.",
     requiresConfirmation: false,
     declaration: {
       name: "get_student_attendance_history",
-      description: "Consulter l'historique des absences d'un élève.",
+      description: "Consulter les absences, retards et l'assiduité d'un élève sur l'année complète ou une période.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["studentNameOrId"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou ID de l'élève." },
-          daysCount: { type: SchemaType.NUMBER, description: "Nombre de jours d'historique (défaut : 30)." },
+          wholeYear: { type: SchemaType.BOOLEAN, description: "Calculer sur toute l'année scolaire (depuis le 1er septembre). Défaut: true." },
+          daysCount: { type: SchemaType.NUMBER, description: "Nombre de jours d'historique si différent de l'année scolaire (ex: 30, 60)." },
         },
       },
     },
@@ -440,31 +442,86 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   mark_attendance: {
     name: "mark_attendance",
-    description: "Pointer un élève comme ABSENT, EN RETARD ou PRÉSENT avec alerte automatique aux parents.",
+    description: "Pointer un élève comme ABSENT, EN RETARD ou PRÉSENT avec séance, motif et alerte automatique aux parents.",
     requiresConfirmation: true,
     declaration: {
       name: "mark_attendance",
-      description: "Enregistrer une absence ou un retard pour un élève.",
+      description: "Enregistrer une absence ou un retard pour un élève (avec séance et motif optionnels).",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["studentNameOrId", "status"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou ID de l'élève." },
           status: { type: SchemaType.STRING, description: "'ABSENT', 'LATE', ou 'PRESENT'." },
+          className: { type: SchemaType.STRING, description: "Classe de l'élève (optionnel, ex: '1A')." },
+          sessionName: { type: SchemaType.STRING, description: "Séance / Matière (ex: 'Anglais', 'Maths', '08:00')." },
           date: { type: SchemaType.STRING, description: "Date au format AAAA-MM-JJ si différente d'aujourd'hui." },
-          note: { type: SchemaType.STRING, description: "Remarque ou motif (ex: 'Maladie', 'Retard transport')." },
+          note: { type: SchemaType.STRING, description: "Remarque ou motif (ex: 'Maladie', 'Retard 15 min', 'Transport')." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
       const statusLabels: Record<string, string> = {
-        ABSENT: "ABSENT ❌",
-        LATE: "EN RETARD ⚠️",
-        PRESENT: "PRÉSENT ✅",
+        ABSENT: "ABSENT 🔴",
+        LATE: "EN RETARD 🟡",
+        PRESENT: "PRÉSENT 🟢",
       };
-      return `❓ <b>Saisie de Présence</b>\n━━━━━━━━━━━━━━━━━━━━━━\nMarquer <b>${args.studentNameOrId}</b> comme <code>${statusLabels[args.status] || args.status}</code> ?`;
+      const sessionStr = args.sessionName ? ` • Séance : <code>${args.sessionName}</code>` : "";
+      const dateStr = args.date ? ` • Date : <code>${args.date}</code>` : "";
+      const noteStr = args.note ? `\n📝 <i>Remarque : "${args.note}"</i>` : "";
+      return `❓ <b>Pointage Présence</b>\n━━━━━━━━━━━━━━━━━━━━━━\nMarquer <b>${args.studentNameOrId}</b> comme <code>${statusLabels[args.status] || args.status}</code>${sessionStr}${dateStr} ?${noteStr}`;
     },
     execute: markAttendanceTool,
+  },
+
+  mark_class_attendance: {
+    name: "mark_class_attendance",
+    description: "Faire l'appel complet d'une classe pour une séance et une date : marque la classe présente par défaut, avec la liste des absents et des retards.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "mark_class_attendance",
+      description: "Faire l'appel d'une classe complète avec séance, absents et retards.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A', '3ème B')." },
+          date: { type: SchemaType.STRING, description: "Date au format AAAA-MM-JJ (défaut: aujourd'hui)." },
+          sessionName: { type: SchemaType.STRING, description: "Séance ou créneau horaire (ex: 'Anglais', '08:00 AM', 'Maths')." },
+          defaultStatus: { type: SchemaType.STRING, description: "Statut par défaut du reste de la classe ('PRESENT' ou 'ABSENT'). Défaut: 'PRESENT'." },
+          absentStudents: {
+            type: SchemaType.ARRAY,
+            description: "Liste des prénoms/noms des élèves absents.",
+            items: { type: SchemaType.STRING },
+          },
+          lateStudents: {
+            type: SchemaType.ARRAY,
+            description: "Liste des élèves en retard avec durée/motif éventuel.",
+            items: {
+              type: SchemaType.OBJECT,
+              properties: {
+                name: { type: SchemaType.STRING, description: "Nom de l'élève en retard." },
+                note: { type: SchemaType.STRING, description: "Motif ou durée (ex: '10 min', '15 min de retard')." },
+              },
+            },
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const absentsStr = args.absentStudents?.length
+        ? `\n🔴 <b>Absents (${args.absentStudents.length}) :</b> ${args.absentStudents.join(", ")}`
+        : "\n🔴 <b>Absents :</b> <i>Aucun (0)</i>";
+      const latesStr = args.lateStudents?.length
+        ? `\n🟡 <b>En Retard (${args.lateStudents.length}) :</b> ${args.lateStudents
+            .map((l: any) => `${typeof l === "string" ? l : l.name}${l.note ? ` (${l.note})` : ""}`)
+            .join(", ")}`
+        : "";
+      const sessionStr = args.sessionName ? ` • Séance : <code>${args.sessionName}</code>` : "";
+      const dateStr = args.date ? ` • Date : <code>${args.date}</code>` : "";
+      return `❓ <b>Appel de Classe • ${args.className}</b>\n━━━━━━━━━━━━━━━━━━━━━━${sessionStr}${dateStr}\n🟢 <b>Reste de la classe :</b> <code>Présents</code>${absentsStr}${latesStr}\n\nEnregistrer cet appel et notifier les familles concernées ?`;
+    },
+    execute: markClassAttendanceTool,
   },
 
   // ── GRADES & EXAMS SUITE ──────────────────────────────────────────────────

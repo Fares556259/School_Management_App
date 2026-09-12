@@ -66,11 +66,22 @@ export async function getStudentProfileTool(
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Fetch recent attendance, grades, and all student payments for tuition schedule
+  const now = new Date();
+  const currentAcademicYearStart = new Date(
+    now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1,
+    8,
+    1,
+    0,
+    0,
+    0,
+    0
+  );
+
+  // Fetch recent attendance, annual attendance, grades, and all student payments for tuition schedule
   const schoolYearMonths = getSchoolYearMonths();
   const standardTuition = student.customTuition || student.level?.tuitionFee || 450;
 
-  const [attendances, grades, payments] = await Promise.all([
+  const [attendances, yearAttendances, grades, payments] = await Promise.all([
     prisma.attendance.findMany({
       where: {
         studentId: student.id,
@@ -83,6 +94,16 @@ export async function getStudentProfileTool(
         date: true,
         note: true,
         lesson: { select: { subject: { select: { name: true } } } },
+      },
+    }),
+    prisma.attendance.findMany({
+      where: {
+        studentId: student.id,
+        date: { gte: currentAcademicYearStart },
+      },
+      select: {
+        status: true,
+        justificationStatus: true,
       },
     }),
     prisma.grade.findMany({
@@ -115,6 +136,14 @@ export async function getStudentProfileTool(
 
   const absencesCount = attendances.filter((a) => a.status === "ABSENT").length;
   const latesCount = attendances.filter((a) => a.status === "LATE").length;
+
+  const yearAbsences = yearAttendances.filter((a) => a.status === "ABSENT").length;
+  const yearLates = yearAttendances.filter((a) => a.status === "LATE").length;
+  const yearExcused = yearAttendances.filter(
+    (a) => a.status === "ABSENT" && (a.justificationStatus === "ACCEPTED" || a.justificationStatus === "APPROVED")
+  ).length;
+  const yearTotal = yearAttendances.length;
+  const yearRate = yearTotal > 0 ? `${Math.round(((yearTotal - yearAbsences) / yearTotal) * 100)}%` : "100%";
 
   // Build the full 10-month academic tuition calendar (Septembre -> Juin)
   const tuitionSchedule = schoolYearMonths.map((mKey) => {
@@ -184,6 +213,13 @@ export async function getStudentProfileTool(
           subject: a.lesson?.subject.name || null,
           note: a.note || null,
         })),
+      },
+      annualAttendance: {
+        totalAbsencesWholeYear: yearAbsences,
+        excusedAbsences: yearExcused,
+        unexcusedAbsences: yearAbsences - yearExcused,
+        totalLatesWholeYear: yearLates,
+        attendanceRateWholeYear: yearRate,
       },
       recentGrades: grades.slice(0, 4).map((g) => ({
         subject: g.subject.name,
