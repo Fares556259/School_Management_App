@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
+import { resolveClassByName } from "./classResolver";
 
 /**
  * Tool: get_student_profile
@@ -267,19 +268,13 @@ export async function createStudentTool(
   const studentSurname = args.surname.trim();
 
   // Find class
-  const targetClass = await prisma.class.findFirst({
-    where: {
-      schoolId: context.schoolId,
-      name: { contains: className, mode: "insensitive" },
-    },
-    include: { level: true },
-  });
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
 
   if (!targetClass) {
     return {
       success: false,
-      message: `La classe "${className}" n'existe pas. Veuillez d'abord la créer.`,
-      summary: `Classe introuvable : ${className}`,
+      message: `La classe "${args.className}" n'existe pas. Veuillez d'abord la créer.`,
+      summary: `Classe introuvable : ${args.className}`,
     };
   }
 
@@ -501,12 +496,10 @@ export async function assignStudentToClassTool(
   }
 
   // Find target class
-  const targetClass = await prisma.class.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: className, mode: "insensitive" } },
-  });
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
 
   if (!targetClass) {
-    return { success: false, message: `La classe "${className}" n'existe pas.`, summary: `Classe introuvable` };
+    return { success: false, message: `La classe "${args.className}" n'existe pas.`, summary: `Classe introuvable` };
   }
 
   await prisma.$transaction(async (tx) => {

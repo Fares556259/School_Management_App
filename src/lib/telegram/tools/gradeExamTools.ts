@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
+import { resolveClassByName } from "./classResolver";
 
 /**
  * Tool: get_student_grades
@@ -98,11 +99,9 @@ export async function getClassGradeSheetTool(
   const subjectName = args.subjectName.trim();
   const term = args.term || 1;
 
-  const targetClass = await prisma.class.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: className, mode: "insensitive" } },
-  });
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
   if (!targetClass) {
-    return { found: false, message: `Classe "${className}" introuvable.` };
+    return { found: false, message: `Classe "${args.className}" introuvable.` };
   }
 
   const subject = await prisma.subject.findFirst({
@@ -377,11 +376,9 @@ export async function scheduleExamTool(
   const className = args.className.trim();
   const subjectName = args.subjectName.trim();
 
-  const targetClass = await prisma.class.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: className, mode: "insensitive" } },
-  });
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
   if (!targetClass) {
-    return { success: false, message: `Classe "${className}" introuvable.`, summary: `Classe introuvable` };
+    return { success: false, message: `Classe "${args.className}" introuvable.`, summary: `Classe introuvable` };
   }
 
   const subject = await prisma.subject.findFirst({

@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { resolveClassByName } from "./classResolver";
 
 export interface ToolContext {
   schoolId: string;
@@ -25,12 +26,17 @@ export async function getStudentsTool(
   };
 
   if (args.className) {
-    where.class = {
-      name: {
-        contains: args.className.trim(),
-        mode: "insensitive",
-      },
-    };
+    const matched = await resolveClassByName(context.schoolId, args.className);
+    if (matched) {
+      where.classId = matched.id;
+    } else {
+      where.class = {
+        name: {
+          contains: args.className.trim(),
+          mode: "insensitive",
+        },
+      };
+    }
   }
 
   if (args.query) {
@@ -119,14 +125,19 @@ export async function getAttendanceTool(
   }
 
   if (args.className) {
-    where.student = {
-      class: {
-        name: {
-          contains: args.className.trim(),
-          mode: "insensitive",
+    const matched = await resolveClassByName(context.schoolId, args.className);
+    if (matched) {
+      where.student = { classId: matched.id };
+    } else {
+      where.student = {
+        class: {
+          name: {
+            contains: args.className.trim(),
+            mode: "insensitive",
+          },
         },
-      },
-    };
+      };
+    }
   }
 
   const records = await prisma.attendance.findMany({

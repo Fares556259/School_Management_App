@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
+import { resolveClassByName } from "./classResolver";
 
 const DAYS_MAP: Record<string, "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY"> = {
   lundi: "MONDAY",
@@ -35,14 +36,10 @@ export async function getClassTimetableTool(
   },
   context: ToolContext
 ) {
-  const className = args.className.trim();
-
-  const targetClass = await prisma.class.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: className, mode: "insensitive" } },
-  });
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
 
   if (!targetClass) {
-    return { found: false, message: `Classe "${className}" introuvable.` };
+    return { found: false, message: `Classe "${args.className}" introuvable.` };
   }
 
   const where: any = {
@@ -174,9 +171,7 @@ export async function addTimetableSlotTool(
   const cleanDay = args.day.toLowerCase().trim();
   const dayEnum = DAYS_MAP[cleanDay] || "MONDAY";
 
-  const targetClass = await prisma.class.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: args.className.trim(), mode: "insensitive" } },
-  });
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
   if (!targetClass) {
     return { success: false, message: `Classe "${args.className}" introuvable.`, summary: `Classe introuvable` };
   }
