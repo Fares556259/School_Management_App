@@ -8,11 +8,10 @@ import { getTelegramFile, downloadTelegramFileBuffer } from "./telegram";
 export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   const apiKey =
     process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    process.env.OPENROUTER_API_KEY;
+    process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
-    throw new Error("No Gemini or Google AI key found for voice transcription");
+    throw new Error("Clé GEMINI_API_KEY manquante dans l'environnement Vercel");
   }
 
   // 1. Download audio file from Telegram
@@ -20,10 +19,10 @@ export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   const audioBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
   const base64Audio = audioBuffer.toString("base64");
 
-  // 2. Call Gemini 2.5 Flash with audio multimodal input
+  // 2. Call Gemini with audio multimodal input
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-flash-latest",
   });
 
   const prompt = `Transcribe this voice audio accurately word-for-word.

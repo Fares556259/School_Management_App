@@ -32,13 +32,12 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
 
   const apiKey =
     process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    process.env.OPENROUTER_API_KEY;
+    process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
     await sendTelegramMessage(
       chatId,
-      "⚠️ Erreur de configuration: Clé d'API AI manquante sur le serveur."
+      "⚠️ Veuillez configurer la variable `GEMINI_API_KEY` dans les paramètres de votre projet Vercel."
     );
     return;
   }
@@ -123,7 +122,7 @@ DIRECTIVES FONDAMENTALES :
   // 6. Initialize Gemini Model with tools
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-flash-latest",
     systemInstruction,
     tools: [
       {
