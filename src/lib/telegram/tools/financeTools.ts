@@ -113,9 +113,9 @@ export async function sendPaymentRemindersTool(
   await prisma.auditLog.create({
     data: {
       action: "SEND_NOTIFICATION",
-      performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+      performedBy: `Hnia AI (Telegram / ${context.adminName})`,
       entityType: "Payment",
-      description: `Rappels de paiement déclenchés via Telegram : ${count} notifications envoyées aux familles.`,
+      description: `[Hnia AI Telegram] Rappels de paiement déclenchés : ${count} notifications envoyées aux familles.`,
       schoolId: context.schoolId,
     },
   });

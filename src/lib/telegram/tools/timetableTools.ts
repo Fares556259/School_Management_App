@@ -236,10 +236,10 @@ export async function addTimetableSlotTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "TimetableSlot",
         entityId: s.id.toString(),
-        description: `Ajout séance : ${targetClass.name} - ${subject.name} (${teacher.name} ${teacher.surname}) le ${cleanDay} à ${args.startTime}`,
+        description: `[Hnia AI Telegram] Ajout séance : ${targetClass.name} - ${subject.name} (${teacher.name} ${teacher.surname}) le ${cleanDay} à ${args.startTime}`,
         schoolId: context.schoolId,
       },
     });

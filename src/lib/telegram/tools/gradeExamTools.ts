@@ -341,10 +341,10 @@ export async function recordGradeTool(
     await tx.auditLog.create({
       data: {
         action: "RECORD_GRADE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Grade",
         entityId: student.id,
-        description: `Note enregistrée : ${studentFullName} en ${subject.name} (Trimestre ${term}) : ${score}/20`,
+        description: `[Hnia AI Telegram] Note enregistrée : ${studentFullName} en ${subject.name} (Trimestre ${term}) : ${score}/20`,
         schoolId: context.schoolId,
       },
     });
@@ -446,10 +446,10 @@ export async function scheduleExamTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Exam",
         entityId: newExam.id.toString(),
-        description: `Planification examen : ${args.title} pour ${targetClass.name} en ${subject.name} le ${dateStr}`,
+        description: `[Hnia AI Telegram] Planification examen : ${args.title} pour ${targetClass.name} en ${subject.name} le ${dateStr}`,
         schoolId: context.schoolId,
       },
     });

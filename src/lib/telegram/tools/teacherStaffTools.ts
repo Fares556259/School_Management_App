@@ -115,10 +115,10 @@ export async function createTeacherTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Teacher",
         entityId: newTeacher.id,
-        description: `Ajout enseignant : ${name} ${surname} (${phone})`,
+        description: `[Hnia AI Telegram] Ajout enseignant : ${name} ${surname} (${phone})`,
         schoolId: context.schoolId,
       },
     });
@@ -178,10 +178,10 @@ export async function createStaffTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Staff",
         entityId: newStaff.id,
-        description: `Ajout personnel : ${name} ${surname} (${phone})`,
+        description: `[Hnia AI Telegram] Ajout personnel : ${name} ${surname} (${phone})`,
         schoolId: context.schoolId,
       },
     });
@@ -317,11 +317,11 @@ export async function payTeacherSalaryTool(
     await tx.auditLog.create({
       data: {
         action: "RECORD_PAYMENT",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Payment",
         entityId: paymentRecord.id.toString(),
         amount: args.amount,
-        description: `Paiement ${isAdvance ? "avance" : "salaire"} enseignant : ${teacherFullName} (${args.amount} DT - ${monthName} ${year})`,
+        description: `[Hnia AI Telegram] Paiement ${isAdvance ? "avance" : "salaire"} enseignant : ${teacherFullName} (${args.amount} DT - ${monthName} ${year})`,
         schoolId: context.schoolId,
       },
     });
@@ -443,11 +443,11 @@ export async function payStaffSalaryTool(
     await tx.auditLog.create({
       data: {
         action: "RECORD_PAYMENT",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Payment",
         entityId: paymentRecord.id.toString(),
         amount: args.amount,
-        description: `Paiement ${isAdvance ? "avance" : "salaire"} staff : ${staffFullName} (${args.amount} DT - ${monthName} ${year})`,
+        description: `[Hnia AI Telegram] Paiement ${isAdvance ? "avance" : "salaire"} staff : ${staffFullName} (${args.amount} DT - ${monthName} ${year})`,
         schoolId: context.schoolId,
       },
     });

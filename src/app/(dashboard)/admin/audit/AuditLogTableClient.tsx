@@ -165,6 +165,36 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
       <td className="p-4 hidden md:table-cell">
         {(() => {
           const performer = performerMap[item.performedBy];
+          const isAI =
+            performer?.isAI ||
+            item.performedBy?.toLowerCase().includes("telegram") ||
+            item.performedBy?.toLowerCase().includes("hnia") ||
+            item.performedBy?.toLowerCase().includes("snapschool ai");
+
+          if (isAI) {
+            const adminName = performer?.adminName || "Administrateur";
+            return (
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border border-purple-300 flex items-center justify-center text-white text-xs shrink-0 shadow-sm">
+                  🤖
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-purple-900 text-xs truncate group-hover:text-purple-700 transition-colors">
+                      Hnia (Telegram AI)
+                    </span>
+                    <span className="bg-purple-100 text-purple-700 text-[8px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                      IA
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium truncate">
+                    Par {adminName}
+                  </span>
+                </div>
+              </div>
+            );
+          }
+
           const rawName = performer?.name || item.performedBy;
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawName);
           const displayName = isUUID
@@ -202,6 +232,11 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
         </span>
       </td>
       <td className="p-4 hidden sm:table-cell text-xs text-slate-600 max-w-xs truncate" title={item.description}>
+        {(item.performedBy?.toLowerCase().includes("telegram") || item.performedBy?.toLowerCase().includes("hnia")) && (
+          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5 mr-1.5 shrink-0">
+            🤖 Telegram AI
+          </span>
+        )}
         {translateDescription(item.description, t, locale)}
       </td>
       <td className="p-4 hidden md:table-cell font-bold text-right">

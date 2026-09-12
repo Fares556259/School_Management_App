@@ -212,10 +212,10 @@ export async function markAttendanceTool(
     await tx.auditLog.create({
       data: {
         action: "UPDATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Attendance",
         entityId: att.id.toString(),
-        description: `Pointage présence : ${studentFullName} marqué ${args.status} le ${date.toISOString().split("T")[0]}`,
+        description: `[Hnia AI Telegram] Pointage présence : ${studentFullName} marqué ${args.status} le ${date.toISOString().split("T")[0]}`,
         schoolId: context.schoolId,
       },
     });

@@ -103,6 +103,29 @@ const AuditPage = async ({
     avatar: null,
   };
 
+  // Pre-resolve AI / Telegram performers
+  uniqueIds.forEach((uid) => {
+    const lower = uid.toLowerCase();
+    if (
+      lower.includes("telegram") ||
+      lower.includes("hnia") ||
+      lower.includes("snapschool ai") ||
+      lower.includes("ai (")
+    ) {
+      const adminMatch = uid.match(/\((?:Telegram \/ )?(.*?)\)/i);
+      const adminName = adminMatch ? adminMatch[1] : null;
+
+      performerMap[uid] = {
+        name: "Hnia AI (Telegram)",
+        email: adminName ? `Par ${adminName}` : "Assistant Telegram",
+        role: "Assistant IA",
+        avatar: null,
+        isAI: true,
+        adminName,
+      };
+    }
+  });
+
   if (uniqueIds.length > 0) {
     try {
       // 1. Check Prisma tables for matching profiles

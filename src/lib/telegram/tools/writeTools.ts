@@ -145,11 +145,11 @@ export async function recordPaymentTool(
     await tx.auditLog.create({
       data: {
         action: "RECORD_PAYMENT",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Payment",
         entityId: paymentRecord.id.toString(),
         amount: args.amount,
-        description: `Paiement enregistré pour ${studentFullName}: ${args.amount} DT (${monthName} ${year})`,
+        description: `[Hnia AI Telegram] Paiement enregistré pour ${studentFullName}: ${args.amount} DT (${monthName} ${year})`,
         schoolId: context.schoolId,
       },
     });
@@ -204,11 +204,11 @@ export async function addExpenseTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Expense",
         entityId: expense.id.toString(),
         amount: args.amount,
-        description: `Dépense ajoutée : ${args.title} (${args.amount} DT - ${category})`,
+        description: `[Hnia AI Telegram] Dépense ajoutée : ${args.title} (${args.amount} DT - ${category})`,
         schoolId: context.schoolId,
       },
     });
@@ -270,11 +270,11 @@ export async function postAnnouncementTool(
 
     await tx.auditLog.create({
       data: {
-        action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        action: "POST_NOTICE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Notice",
         entityId: notice.id.toString(),
-        description: `Annonce publiée : "${args.title}"${targetClassId ? " (Classe ciblée)" : " (Toute l'école)"}`,
+        description: `[Hnia AI Telegram] Annonce publiée : "${args.title}"${targetClassId ? " (Classe ciblée)" : " (Toute l'école)"}`,
         schoolId: context.schoolId,
       },
     });

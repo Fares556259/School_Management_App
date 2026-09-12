@@ -136,7 +136,10 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
 
   const isIncome = log.type === "income";
   const performer = log.performer;
-  const isAI = log.performedBy.toLowerCase().includes("ai") || log.performedBy.toLowerCase().includes("zbiba");
+  const isAI =
+    log.performedBy.toLowerCase().includes("ai") ||
+    log.performedBy.toLowerCase().includes("telegram") ||
+    log.performedBy.toLowerCase().includes("hnia");
   const isSystem = !isAI && (!performer?.name || log.performedBy === "system" || log.performedBy === "unknown");
   const actionStyle = getActionStyle(log.action);
   const entityLink = getEntityLink(log.entityType, log.entityId);
@@ -273,8 +276,8 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                     <Sparkles size={16} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white leading-none">{(t as any).auditLogPage?.details?.aiCopilot || "zbiba (AI Copilot)"}</p>
-                    <p className="text-[10px] text-indigo-300 mt-0.5">{(t as any).auditLogPage?.details?.autonomousAiAgent || "Autonomous AI Agent"}</p>
+                    <p className="text-sm font-bold text-white leading-none">Hnia AI (Telegram)</p>
+                    <p className="text-[10px] text-indigo-300 mt-0.5">Assistante IA Opérations • {log.performedBy}</p>
                   </div>
                   <span className="ml-auto px-2 py-0.5 rounded text-[9px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">{(t as any).auditLogPage?.details?.ai || "AI"}</span>
                 </div>

@@ -350,10 +350,10 @@ export async function createStudentTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Student",
         entityId: newStudent.id,
-        description: `Inscription élève : ${studentName} ${studentSurname} en classe ${targetClass.name}`,
+        description: `[Hnia AI Telegram] Inscription élève : ${studentName} ${studentSurname} en classe ${targetClass.name}`,
         schoolId: context.schoolId,
       },
     });
@@ -433,10 +433,10 @@ export async function createClassTool(
     await tx.auditLog.create({
       data: {
         action: "CREATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Class",
         entityId: cls.id.toString(),
-        description: `Création classe : ${name} (Capacité : ${capacity}, Niveau : ${levelNum})`,
+        description: `[Hnia AI Telegram] Création classe : ${name} (Capacité : ${capacity}, Niveau : ${levelNum})`,
         schoolId: context.schoolId,
       },
     });
@@ -521,10 +521,10 @@ export async function assignStudentToClassTool(
     await tx.auditLog.create({
       data: {
         action: "UPDATE",
-        performedBy: `SnapSchool AI (Telegram / ${context.adminName})`,
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Student",
         entityId: student.id,
-        description: `Changement de classe pour ${student.name} ${student.surname} : vers ${targetClass.name}`,
+        description: `[Hnia AI Telegram] Changement de classe pour ${student.name} ${student.surname} : vers ${targetClass.name}`,
         schoolId: context.schoolId,
       },
     });
