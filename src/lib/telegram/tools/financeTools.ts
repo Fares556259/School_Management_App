@@ -4,6 +4,7 @@ import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions } from "./nameSearch";
+import { resolveStudentByName } from "./entityResolvers";
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 
@@ -300,35 +301,10 @@ export async function recoverPartialPaymentTool(
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const query = args.studentNameOrId.trim();
-
   // Find student
-  let student = await prisma.student.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-    include: { class: true, parent: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: buildNameSearchConditions(query),
-      },
-      include: { class: true, parent: true },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { success: false, message: `Élève "${query}" introuvable.`, summary: `Élève introuvable` };
-    }
-    if (candidates.length > 1) {
-      return {
-        success: false,
-        message: `Plusieurs élèves correspondent à "${query}". Veuillez préciser son prénom et nom complet.`,
-        summary: `Plusieurs élèves trouvés`,
-      };
-    }
-    student = candidates[0];
+    return { success: false, message: `Élève "${args.studentNameOrId}" introuvable.`, summary: `Élève introuvable` };
   }
 
   // Find pending partial payment(s)
@@ -462,20 +438,9 @@ export async function scheduleRecoveryDateTool(
   }
 
   // Find student
-  let student = await prisma.student.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-    include: { class: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: { schoolId: context.schoolId, OR: buildNameSearchConditions(query) },
-      include: { class: true },
-      take: 2,
-    });
-    if (candidates.length === 0) return { success: false, message: `Élève introuvable.`, summary: `Élève introuvable` };
-    if (candidates.length > 1) return { success: false, message: `Plusieurs élèves trouvés pour "${query}".`, summary: `Ambiguïté élève` };
-    student = candidates[0];
+    return { success: false, message: `Élève "${args.studentNameOrId}" introuvable.`, summary: `Élève introuvable` };
   }
 
   const paymentWhere: any = {

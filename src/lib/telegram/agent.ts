@@ -450,45 +450,49 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
 
         // Check if tool requires confirmation
         if (toolDef.requiresConfirmation) {
-          // Create pending tool call record in DB
-          const toolCallRecord = await prisma.aIToolCall.create({
-            data: {
-              conversationId: conversation.id,
-              toolName,
-              arguments: toolArgs,
-              status: "PENDING",
-              requiresConfirm: true,
-            },
-          });
+          // If there are multiple function calls that require confirmation in this turn
+          // (e.g. scheduling multiple sessions at once), create confirmation cards for all of them!
+          for (const c of functionCalls) {
+            const def = TOOLS[c.name];
+            if (!def || !def.requiresConfirmation) continue;
+            const args = (c.args || {}) as Record<string, any>;
 
-          // Format confirmation prompt
-          const confirmText = toolDef.formatConfirmationMessage
-            ? await Promise.resolve(toolDef.formatConfirmationMessage(toolArgs, context))
-            : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
+            const toolCallRecord = await prisma.aIToolCall.create({
+              data: {
+                conversationId: conversation.id,
+                toolName: c.name,
+                arguments: args,
+                status: "PENDING",
+                requiresConfirm: true,
+              },
+            });
 
-          const styledConfirmText = formatTelegramMessage(confirmText);
+            const confirmText = def.formatConfirmationMessage
+              ? await Promise.resolve(def.formatConfirmationMessage(args, context))
+              : `❓ Souhaitez-vous confirmer l'exécution de l'action **${c.name}** ?`;
 
-          // Send confirmation message with inline buttons
-          await sendTelegramMessage(chatId, styledConfirmText, {
-            parse_mode: "HTML",
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: "✅ Confirmer", callback_data: `confirm:${toolCallRecord.id}` },
-                  { text: "❌ Annuler", callback_data: `cancel:${toolCallRecord.id}` },
+            const styledConfirmText = formatTelegramMessage(confirmText);
+
+            await sendTelegramMessage(chatId, styledConfirmText, {
+              parse_mode: "HTML",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: "✅ Confirmer", callback_data: `confirm:${toolCallRecord.id}` },
+                    { text: "❌ Annuler", callback_data: `cancel:${toolCallRecord.id}` },
+                  ],
                 ],
-              ],
-            },
-          });
+              },
+            });
 
-          // Save assistant note
-          await prisma.aIMessage.create({
-            data: {
-              conversationId: conversation.id,
-              role: "assistant",
-              content: confirmText,
-            },
-          });
+            await prisma.aIMessage.create({
+              data: {
+                conversationId: conversation.id,
+                role: "assistant",
+                content: confirmText,
+              },
+            });
+          }
 
           // Stop turn — user must confirm before anything further happens
           succeeded = true;

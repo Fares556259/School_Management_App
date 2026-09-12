@@ -4,6 +4,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { buildNameSearchConditions } from "./nameSearch";
+import { resolveTeacherByName, resolveStaffByName } from "./entityResolvers";
 
 /**
  * Tool: get_staff
@@ -239,36 +240,11 @@ export async function payTeacherSalaryTool(
   const now = new Date();
   const month = args.month || now.getMonth() + 1;
   const year = args.year || now.getFullYear();
-  const query = args.teacherNameOrId.trim();
 
   // Find teacher
-  let teacher = await prisma.teacher.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-  });
-
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherNameOrId);
   if (!teacher) {
-    const candidates = await prisma.teacher.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { success: false, message: `Enseignant "${query}" introuvable.`, summary: `Enseignant introuvable` };
-    }
-    if (candidates.length > 1) {
-      return {
-        success: false,
-        message: `Plusieurs enseignants correspondent à "${query}". Veuillez préciser prénom et nom.`,
-        summary: `Plusieurs enseignants trouvés`,
-      };
-    }
-    teacher = candidates[0];
+    return { success: false, message: `Enseignant "${args.teacherNameOrId}" introuvable.`, summary: `Enseignant introuvable` };
   }
 
   const teacherFullName = `${teacher.name} ${teacher.surname}`;
@@ -392,31 +368,10 @@ export async function payStaffSalaryTool(
   const now = new Date();
   const month = args.month || now.getMonth() + 1;
   const year = args.year || now.getFullYear();
-  const query = args.staffNameOrId.trim();
 
-  let staff = await prisma.staff.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-  });
-
+  const staff = await resolveStaffByName(context.schoolId, args.staffNameOrId);
   if (!staff) {
-    const candidates = await prisma.staff.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { success: false, message: `Membre du personnel "${query}" introuvable.`, summary: `Staff introuvable` };
-    }
-    if (candidates.length > 1) {
-      return { success: false, message: `Plusieurs personnes correspondent à "${query}".`, summary: `Multiples correspondances` };
-    }
-    staff = candidates[0];
+    return { success: false, message: `Membre du personnel "${args.staffNameOrId}" introuvable.`, summary: `Staff introuvable` };
   }
 
   const staffFullName = `${staff.name} ${staff.surname}`;

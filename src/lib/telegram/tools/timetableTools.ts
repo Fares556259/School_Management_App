@@ -2,28 +2,13 @@ import prisma from "@/lib/prisma";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
-import { resolveClassByName } from "./classResolver";
-
-const DAYS_MAP: Record<string, "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY"> = {
-  lundi: "MONDAY",
-  mardi: "TUESDAY",
-  mercredi: "WEDNESDAY",
-  jeudi: "THURSDAY",
-  vendredi: "FRIDAY",
-  samedi: "SATURDAY",
-  monday: "MONDAY",
-  tuesday: "TUESDAY",
-  wednesday: "WEDNESDAY",
-  thursday: "THURSDAY",
-  friday: "FRIDAY",
-  saturday: "SATURDAY",
-  "1": "MONDAY",
-  "2": "TUESDAY",
-  "3": "WEDNESDAY",
-  "4": "THURSDAY",
-  "5": "FRIDAY",
-  "6": "SATURDAY",
-};
+import {
+  resolveClassByName,
+  resolveSubjectByName,
+  resolveTeacherByName,
+  resolveRoomByName,
+  resolveDayOfWeek,
+} from "./entityResolvers";
 
 /**
  * Tool: get_class_timetable
@@ -32,7 +17,7 @@ const DAYS_MAP: Record<string, "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" |
 export async function getClassTimetableTool(
   args: {
     className: string;
-    day?: string; // "lundi", "mardi", "vendredi", etc.
+    day?: string; // "lundi", "mardi", "vendredi", "today", "اليوم", etc.
   },
   context: ToolContext
 ) {
@@ -48,8 +33,7 @@ export async function getClassTimetableTool(
   };
 
   if (args.day) {
-    const cleanDay = args.day.toLowerCase().trim();
-    const dayEnum = DAYS_MAP[cleanDay];
+    const { dayEnum } = resolveDayOfWeek(args.day);
     if (dayEnum) {
       where.day = dayEnum;
     }
@@ -95,14 +79,13 @@ export async function getClassTimetableTool(
  */
 export async function findAvailableTeachersTool(
   args: {
-    day: string; // e.g. "mardi"
+    day: string; // e.g. "mardi", "today", "اليوم"
     timeSlot: string; // e.g. "10:00" or "10:00 - 12:00"
     subjectName?: string;
   },
   context: ToolContext
 ) {
-  const cleanDay = args.day.toLowerCase().trim();
-  const dayEnum = DAYS_MAP[cleanDay] || "MONDAY";
+  const { dayEnum, displayDay } = resolveDayOfWeek(args.day);
   const searchTime = args.timeSlot.trim().slice(0, 5); // "10:00"
 
   // 1. Get all slots on this day that overlap with searchTime
@@ -125,9 +108,16 @@ export async function findAvailableTeachersTool(
   };
 
   if (args.subjectName) {
-    whereTeacher.subjects = {
-      some: { name: { contains: args.subjectName.trim(), mode: "insensitive" } },
-    };
+    const resolvedSub = await resolveSubjectByName(context.schoolId, args.subjectName);
+    if (resolvedSub) {
+      whereTeacher.subjects = {
+        some: { id: resolvedSub.id },
+      };
+    } else {
+      whereTeacher.subjects = {
+        some: { name: { contains: args.subjectName.trim(), mode: "insensitive" } },
+      };
+    }
   }
 
   const availableTeachers = await prisma.teacher.findMany({
@@ -139,7 +129,7 @@ export async function findAvailableTeachersTool(
   });
 
   return {
-    day: cleanDay,
+    day: displayDay,
     time: searchTime,
     subjectFilter: args.subjectName || "Toutes matières",
     availableCount: availableTeachers.length,
@@ -167,41 +157,37 @@ export async function addTimetableSlotTool(
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const cleanDay = args.day.toLowerCase().trim();
-  const dayEnum = DAYS_MAP[cleanDay] || "MONDAY";
+  const { dayEnum, displayDay } = resolveDayOfWeek(args.day);
 
   const targetClass = await resolveClassByName(context.schoolId, args.className);
   if (!targetClass) {
     return { success: false, message: `Classe "${args.className}" introuvable.`, summary: `Classe introuvable` };
   }
 
-  const subject = await prisma.subject.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: args.subjectName.trim(), mode: "insensitive" } },
-  });
+  const subject = await resolveSubjectByName(context.schoolId, args.subjectName);
   if (!subject) {
     return { success: false, message: `Matière "${args.subjectName}" introuvable.`, summary: `Matière introuvable` };
   }
 
-  const teacher = await prisma.teacher.findFirst({
-    where: {
-      schoolId: context.schoolId,
-      OR: [
-        { name: { contains: args.teacherName.trim(), mode: "insensitive" } },
-        { surname: { contains: args.teacherName.trim(), mode: "insensitive" } },
-      ],
-    },
-  });
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherName);
   if (!teacher) {
     return { success: false, message: `Enseignant "${args.teacherName}" introuvable.`, summary: `Enseignant introuvable` };
   }
 
-  const duration = 120; // Default 2-hour block
+  // Calculate duration dynamically from startTime and endTime
+  let duration = 120;
+  if (args.startTime && args.endTime) {
+    const [startH, startM] = args.startTime.split(":").map(Number);
+    const [endH, endM] = args.endTime.split(":").map(Number);
+    if (!isNaN(startH) && !isNaN(endH)) {
+      const diff = endH * 60 + (endM || 0) - (startH * 60 + (startM || 0));
+      if (diff > 0) duration = diff;
+    }
+  }
 
   let roomId: number | undefined = undefined;
   if (args.room) {
-    const r = await prisma.room.findFirst({
-      where: { schoolId: context.schoolId, name: { contains: args.room, mode: "insensitive" } },
-    });
+    const r = await resolveRoomByName(context.schoolId, args.room);
     if (r) roomId = r.id;
   }
 
@@ -233,7 +219,7 @@ export async function addTimetableSlotTool(
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "TimetableSlot",
         entityId: s.id.toString(),
-        description: `[Hnia AI Telegram] Ajout séance : ${targetClass.name} - ${subject.name} (${teacher.name} ${teacher.surname}) le ${cleanDay} à ${args.startTime}`,
+        description: `[Hnia AI Telegram] Ajout séance : ${targetClass.name} - ${subject.name} (${teacher.name} ${teacher.surname}) le ${displayDay} à ${args.startTime}`,
         schoolId: context.schoolId,
       },
     });
@@ -243,9 +229,10 @@ export async function addTimetableSlotTool(
 
   invalidateTenantTags(context.schoolId, "classes", "teachers", "dashboard");
 
+  const roomLabel = args.room ? ` en **${args.room}**` : "";
   return {
     success: true,
-    message: `✅ Séance ajoutée avec succès : **${subject.name}** pour la classe **${targetClass.name}** avec **${teacher.name} ${teacher.surname}** le **${cleanDay}** de ${args.startTime} à ${args.endTime}.`,
+    message: `✅ Séance ajoutée avec succès : **${subject.name}** pour la classe **${targetClass.name}** avec **${teacher.name} ${teacher.surname}** le **${displayDay}** de ${args.startTime} à ${args.endTime}${roomLabel}.`,
     summary: `Ajout séance ${subject.name} (${targetClass.name})`,
     data: { slotId: slot.id },
   };

@@ -3,6 +3,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
+import { resolveStudentByName, resolveSubjectByName } from "./entityResolvers";
 
 /**
  * Tool: get_student_grades
@@ -15,34 +16,11 @@ export async function getStudentGradesTool(
   },
   context: ToolContext
 ) {
-  const query = args.studentNameOrId.trim();
   const term = args.term || 1;
 
-  let student = await prisma.student.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-    include: { class: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      include: { class: true },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { found: false, message: `Élève "${query}" introuvable.` };
-    }
-    if (candidates.length > 1) {
-      return { found: false, message: `Plusieurs correspondances pour "${query}".` };
-    }
-    student = candidates[0];
+    return { found: false, message: `Élève "${args.studentNameOrId}" introuvable.` };
   }
 
   const grades = await prisma.grade.findMany({
@@ -239,43 +217,16 @@ export async function recordGradeTool(
     };
   }
 
-  const query = args.studentNameOrId.trim();
-  const subjectName = args.subjectName.trim();
   const term = args.term || 1;
 
-  let student = await prisma.student.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-    include: { class: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      include: { class: true },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { success: false, message: `Élève "${query}" introuvable.`, summary: `Élève introuvable` };
-    }
-    if (candidates.length > 1) {
-      return { success: false, message: `Plusieurs correspondances pour "${query}".`, summary: `Multiples élèves` };
-    }
-    student = candidates[0];
+    return { success: false, message: `Élève "${args.studentNameOrId}" introuvable.`, summary: `Élève introuvable` };
   }
 
-  const subject = await prisma.subject.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: subjectName, mode: "insensitive" } },
-  });
-
+  const subject = await resolveSubjectByName(context.schoolId, args.subjectName);
   if (!subject) {
-    return { success: false, message: `Matière "${subjectName}" introuvable.`, summary: `Matière introuvable` };
+    return { success: false, message: `Matière "${args.subjectName}" introuvable.`, summary: `Matière introuvable` };
   }
 
   if (!student.classId) {
@@ -381,11 +332,9 @@ export async function scheduleExamTool(
     return { success: false, message: `Classe "${args.className}" introuvable.`, summary: `Classe introuvable` };
   }
 
-  const subject = await prisma.subject.findFirst({
-    where: { schoolId: context.schoolId, name: { contains: subjectName, mode: "insensitive" } },
-  });
+  const subject = await resolveSubjectByName(context.schoolId, args.subjectName);
   if (!subject) {
-    return { success: false, message: `Matière "${subjectName}" introuvable.`, summary: `Matière introuvable` };
+    return { success: false, message: `Matière "${args.subjectName}" introuvable.`, summary: `Matière introuvable` };
   }
 
   // Anchor lesson

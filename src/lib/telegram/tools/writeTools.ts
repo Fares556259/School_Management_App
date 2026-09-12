@@ -3,6 +3,7 @@ import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { createAnnouncementNotifications } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
+import { resolveStudentByName } from "./entityResolvers";
 
 export interface WriteToolResult {
   success: boolean;
@@ -159,59 +160,14 @@ export async function recordPaymentTool(
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const query = args.studentNameOrId.trim();
-
   // 1. Locate the student
-  let student = await prisma.student.findFirst({
-    where: {
-      schoolId: context.schoolId,
-      id: query,
-    },
-    include: { level: true, class: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-          {
-            AND: query.includes(" ")
-              ? [
-                  { name: { contains: query.split(" ")[0], mode: "insensitive" } },
-                  { surname: { contains: query.split(" ").slice(1).join(" "), mode: "insensitive" } },
-                ]
-              : undefined,
-          },
-        ],
-      },
-      include: { class: true, level: true },
-      take: 5,
-    });
-
-    if (candidates.length === 0) {
-      return {
-        success: false,
-        message: `Aucun élève trouvé avec le nom "${query}". Veuillez vérifier l'orthographe.`,
-        summary: `Élève non trouvé: ${query}`,
-      };
-    }
-
-    if (candidates.length > 1) {
-      const names = candidates
-        .map((c) => `• <b>${c.name} ${c.surname}</b> (Classe : <code>${c.class?.name || "Sans classe"}</code>)`)
-        .join("\n");
-      return {
-        success: false,
-        needsClarification: true,
-        message: `Plusieurs élèves correspondent à "${query}". Précisez :\n${names}`,
-        summary: `Plusieurs correspondances pour ${query}`,
-      };
-    }
-
-    student = candidates[0];
+    return {
+      success: false,
+      message: `Aucun élève trouvé avec le nom "${args.studentNameOrId}". Veuillez vérifier l'orthographe.`,
+      summary: `Élève non trouvé: ${args.studentNameOrId}`,
+    };
   }
 
   const studentFullName = `${student.name} ${student.surname}`;

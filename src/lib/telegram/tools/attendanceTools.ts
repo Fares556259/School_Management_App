@@ -3,6 +3,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { createAttendanceNotification } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
+import { resolveStudentByName } from "./entityResolvers";
 
 /**
  * Tool: get_student_attendance_history
@@ -15,34 +16,11 @@ export async function getStudentAttendanceHistoryTool(
   },
   context: ToolContext
 ) {
-  const query = args.studentNameOrId.trim();
   const days = Math.min(args.daysCount || 30, 90);
 
-  let student = await prisma.student.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-    include: { class: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      include: { class: true },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { found: false, message: `Élève "${query}" introuvable.` };
-    }
-    if (candidates.length > 1) {
-      return { found: false, message: `Plusieurs correspondances pour "${query}".` };
-    }
-    student = candidates[0];
+    return { found: false, message: `Élève "${args.studentNameOrId}" introuvable.` };
   }
 
   const startDate = new Date();
@@ -97,38 +75,11 @@ export async function markAttendanceTool(
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const query = args.studentNameOrId.trim();
   const date = args.date ? new Date(args.date) : new Date();
 
-  let student = await prisma.student.findFirst({
-    where: { schoolId: context.schoolId, id: query },
-    include: { class: true, parent: true },
-  });
-
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
   if (!student) {
-    const candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { surname: { contains: query, mode: "insensitive" } },
-        ],
-      },
-      include: { class: true, parent: true },
-      take: 2,
-    });
-
-    if (candidates.length === 0) {
-      return { success: false, message: `Élève "${query}" introuvable.`, summary: `Élève introuvable` };
-    }
-    if (candidates.length > 1) {
-      return {
-        success: false,
-        message: `Plusieurs correspondances pour "${query}". Veuillez spécifier le prénom et le nom.`,
-        summary: `Multiples correspondances`,
-      };
-    }
-    student = candidates[0];
+    return { success: false, message: `Élève "${args.studentNameOrId}" introuvable.`, summary: `Élève introuvable` };
   }
 
   const studentFullName = `${student.name} ${student.surname}`;
