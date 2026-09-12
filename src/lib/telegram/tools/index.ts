@@ -797,6 +797,7 @@ ${lines.join("\n")}`;
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
+          date: { type: SchemaType.STRING, description: "Date précise au format AAAA-MM-JJ ou 'today' pour les recettes du jour." },
           month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12, défaut mois actuel)." },
           year: { type: SchemaType.NUMBER, description: "Année (défaut année actuelle)." },
           category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'Tuition', 'Cantine', 'Transport', 'Général')." },

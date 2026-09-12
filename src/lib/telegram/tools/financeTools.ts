@@ -549,6 +549,7 @@ export async function scheduleRecoveryDateTool(
  */
 export async function getIncomesTool(
   args: {
+    date?: string;
     month?: number;
     year?: number;
     category?: string;
@@ -564,6 +565,11 @@ export async function getIncomesTool(
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 1);
 
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+
   const where: any = {
     schoolId: context.schoolId,
   };
@@ -576,14 +582,35 @@ export async function getIncomesTool(
     where.title = { contains: args.query.trim(), mode: "insensitive" };
   }
 
-  const monthWhere = {
-    ...where,
-    date: { gte: startDate, lt: endDate },
-  };
+  let filterDateWhere: any;
+  if (args.date) {
+    let target = new Date();
+    if (args.date !== "today") {
+      const p = new Date(args.date);
+      if (!isNaN(p.getTime())) target = p;
+    }
+    const s = new Date(target);
+    s.setHours(0, 0, 0, 0);
+    const e = new Date(target);
+    e.setHours(23, 59, 59, 999);
+    filterDateWhere = { ...where, date: { gte: s, lte: e } };
+  } else {
+    filterDateWhere = { ...where, date: { gte: startDate, lt: endDate } };
+  }
 
-  const [monthSum, allTimeSum, categoryBreakdown, records] = await Promise.all([
+  const [dateSum, monthSum, todaySum, allTimeSum, categoryBreakdown, records] = await Promise.all([
     prisma.income.aggregate({
-      where: monthWhere,
+      where: filterDateWhere,
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.income.aggregate({
+      where: { ...where, date: { gte: startDate, lt: endDate } },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.income.aggregate({
+      where: { ...where, date: { gte: startOfToday, lte: endOfToday } },
       _sum: { amount: true },
       _count: { id: true },
     }),
@@ -594,13 +621,13 @@ export async function getIncomesTool(
     }),
     prisma.income.groupBy({
       by: ["category"],
-      where: monthWhere,
+      where: filterDateWhere,
       _sum: { amount: true },
       _count: { id: true },
       orderBy: { _sum: { amount: "desc" } },
     }),
     prisma.income.findMany({
-      where: monthWhere,
+      where: filterDateWhere,
       take: Math.min(args.limit || 25, 50),
       orderBy: { date: "desc" },
       select: {
@@ -615,8 +642,10 @@ export async function getIncomesTool(
   ]);
 
   return {
-    period: `${month}/${year}`,
+    period: args.date ? (args.date === "today" ? "Aujourd'hui" : args.date) : `${month}/${year}`,
     summary: {
+      todayTotal: `${todaySum._sum.amount || 0} DT`,
+      selectedTotal: `${dateSum._sum.amount || 0} DT`,
       currentMonthTotal: `${monthSum._sum.amount || 0} DT`,
       currentMonthCount: monthSum._count.id || 0,
       historicalTotal: `${allTimeSum._sum.amount || 0} DT`,

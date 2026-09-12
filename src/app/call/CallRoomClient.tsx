@@ -242,6 +242,9 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
             model: sessionConfig.model,
             generationConfig: {
               responseModalities: ["AUDIO"],
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
@@ -275,7 +278,7 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
               setDurationSeconds((sec) => sec + 1);
             }, 1000);
 
-            // Send initial voice greeting trigger
+            // Send initial voice greeting trigger in authentic Tunisian Arabic
             const initGreeting = {
               clientContent: {
                 turns: [
@@ -283,7 +286,7 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
                     role: "user",
                     parts: [
                       {
-                        text: `Bonjour Hnia ! Je suis ${sessionConfig.adminName}, administrateur de ${sessionConfig.schoolName}. Je t'appelle pour faire le point sur l'école. Salue-moi brièvement en une phrase chaleureuse.`,
+                        text: `أهلاً وسهلاً ! Je suis ${sessionConfig.adminName}, administrateur de ${sessionConfig.schoolName}. Salue-moi chaleureusement et brièvement en une seule phrase en dialecte tunisien (Derja) comme au téléphone (ex: "عسلامة سي ${sessionConfig.adminName} ! مرحبا بيك، تفضل أنا نسمع فيك، شنوة نحبو نثبتو توا ؟").`,
                       },
                     ],
                   },
@@ -336,8 +339,8 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
                   await handleServerToolCall(part.functionCall);
                 }
 
-                // Model Text Transcript
-                if (part.text) {
+                // Model Text Transcript (Filter out internal thinking markers)
+                if (part.text && !part.text.startsWith("**")) {
                   transcriptRef.current.push({
                     role: "hnia",
                     text: part.text,
@@ -371,13 +374,19 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
 
         const inputData = e.inputBuffer.getChannelData(0);
 
-        // Calculate simple volume for visualizer
+        // Calculate volume for visualizer and voice activity
         let sum = 0;
         for (let i = 0; i < inputData.length; i++) {
           sum += inputData[i] * inputData[i];
         }
         const rms = Math.sqrt(sum / inputData.length);
         setAudioVolume(Math.min(1, rms * 5));
+
+        // When Hnia is speaking, filter faint background noise to prevent false interruptions
+        const isHniaSpeaking = activeSourcesRef.current.length > 0;
+        if (isHniaSpeaking && rms < 0.02) {
+          return;
+        }
 
         // Send audio chunk if WebSocket is ready
         if (ws.readyState === WebSocket.OPEN) {
@@ -398,8 +407,12 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
         }
       };
 
+      // Prevent microphone feedback into device speaker
+      const muteGain = audioCtx.createGain();
+      muteGain.gain.value = 0;
       micSource.connect(scriptProcessor);
-      scriptProcessor.connect(audioCtx.destination);
+      scriptProcessor.connect(muteGain);
+      muteGain.connect(audioCtx.destination);
     } catch (err: any) {
       console.error("[CallRoom Error]:", err);
       setStatusText(`Erreur : ${err.message || "Microphone non accessible"}`);
