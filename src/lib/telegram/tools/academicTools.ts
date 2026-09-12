@@ -458,6 +458,115 @@ export async function createStudentTool(
 }
 
 /**
+ * Tool: create_parent
+ * Registers a new parent record and optionally links an enrolled student.
+ */
+export async function createParentTool(
+  args: {
+    name: string;
+    surname: string;
+    phone: string;
+    address?: string;
+    studentNameOrId?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const cleanPhone = args.phone.replace(/[\s\-\.]/g, "");
+  const pName = args.name.trim();
+  const pSurname = args.surname.trim();
+  const address = args.address?.trim() || "Tunis";
+
+  // Check if parent already exists with this phone in this school
+  const existing = await prisma.parent.findFirst({
+    where: { schoolId: context.schoolId, phone: cleanPhone },
+  });
+
+  if (existing) {
+    return {
+      success: false,
+      message: `Un parent avec le numéro <code>${cleanPhone}</code> existe déjà (${existing.name} ${existing.surname}).`,
+      summary: `Parent déjà existant: ${cleanPhone}`,
+    };
+  }
+
+  // Look for student to link if specified
+  let studentToLink: any = null;
+  if (args.studentNameOrId) {
+    const sQuery = args.studentNameOrId.trim();
+    studentToLink = await prisma.student.findFirst({
+      where: {
+        schoolId: context.schoolId,
+        OR: [
+          { id: sQuery },
+          ...buildNameSearchConditions(sQuery),
+        ],
+      },
+    });
+  }
+
+  const parentId = `p_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+  const newParent = await prisma.$transaction(async (tx) => {
+    const p = await tx.parent.create({
+      data: {
+        id: parentId,
+        username: `parent_${cleanPhone}`,
+        name: pName,
+        surname: pSurname,
+        phone: cleanPhone,
+        address,
+        schoolId: context.schoolId,
+      },
+    });
+
+    if (studentToLink) {
+      await tx.student.update({
+        where: { id: studentToLink.id },
+        data: { parentId: p.id },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        action: "CREATE_PARENT",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Parent",
+        entityId: p.id,
+        description: `[Hnia AI Telegram] Nouveau parent enregistré : ${pName} ${pSurname} (Tél : ${cleanPhone})${studentToLink ? ` relié à ${studentToLink.name} ${studentToLink.surname}` : ""}`,
+        schoolId: context.schoolId,
+      },
+    });
+
+    return p;
+  });
+
+  try {
+    invalidateTenantTags(context.schoolId, "parents", "students", "dashboard");
+  } catch (err) {
+    console.warn("[createParentTool] Cache invalidation warning:", err);
+  }
+
+  const linkNote = studentToLink
+    ? `\n🔗 Associé à l'élève : <b>${studentToLink.name} ${studentToLink.surname}</b>`
+    : "";
+
+  return {
+    success: true,
+    message: `✅ <b>Parent Enregistré</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>${pName} ${pSurname}</b>
+📞 Téléphone : <code>${cleanPhone}</code>
+📍 Adresse : <code>${address}</code>${linkNote}`,
+    summary: `Parent ${pName} ${pSurname} créé (${cleanPhone})`,
+    data: {
+      parentName: `${pName} ${pSurname}`,
+      phone: cleanPhone,
+      linkedStudent: studentToLink ? `${studentToLink.name} ${studentToLink.surname}` : null,
+    },
+  };
+}
+
+/**
  * Tool: create_class
  * Creates a new class division and links to appropriate level.
  */

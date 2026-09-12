@@ -23,6 +23,7 @@ import {
   getParentsTool,
   getClassesTool,
   createStudentTool,
+  createParentTool,
   createClassTool,
   assignStudentToClassTool,
 } from "./academicTools";
@@ -172,6 +173,32 @@ export const TOOLS: Record<string, ToolDefinition> = {
       } ?`;
     },
     execute: createStudentTool,
+  },
+
+  create_parent: {
+    name: "create_parent",
+    description: "Ajouter un nouveau parent d'élève avec son prénom, nom, téléphone et le relier optionnellement à un élève.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "create_parent",
+      description: "Ajouter un parent d'élève dans l'école et l'associer optionnellement à son enfant.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["name", "surname", "phone"],
+        properties: {
+          name: { type: SchemaType.STRING, description: "Prénom du parent." },
+          surname: { type: SchemaType.STRING, description: "Nom de famille du parent." },
+          phone: { type: SchemaType.STRING, description: "Numéro de téléphone du parent (ex: '98123456')." },
+          address: { type: SchemaType.STRING, description: "Adresse ou ville du parent (optionnel)." },
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom de l'enfant à rattacher (optionnel)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const childStr = args.studentNameOrId ? ` (Enfant : <b>${args.studentNameOrId}</b>)` : "";
+      return `❓ <b>Nouveau Parent</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer le parent <b>${args.name} ${args.surname}</b> (📞 <code>${args.phone}</code>)${childStr} ?`;
+    },
+    execute: createParentTool,
   },
 
   create_class: {
