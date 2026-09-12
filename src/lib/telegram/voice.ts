@@ -22,9 +22,10 @@ export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   // 2. Call Gemini with audio multimodal input (with multi-model fallback)
   // Use gemini-3.5-flash and gemini-3.6-flash for high acoustic fidelity on North African dialects
   const CANDIDATE_MODELS = [
-    "gemini-3.5-flash",
-    "gemini-3.6-flash",
-    "gemini-flash-latest",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-pro",
   ];
 
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -59,6 +60,7 @@ CRITICAL TRANSCRIBING RULES:
     } catch (err: any) {
       console.warn(`[Voice] Transcription failed with model ${modelName}:`, err.message || err);
       lastError = err;
+      await new Promise((r) => setTimeout(r, 500));
     }
   }
 

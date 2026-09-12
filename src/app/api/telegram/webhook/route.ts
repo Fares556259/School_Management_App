@@ -4,6 +4,7 @@ import {
   sendTelegramChatAction,
   answerTelegramCallbackQuery,
   getTelegramFile,
+  downloadTelegramFileBuffer,
   setChatMenuButton,
 } from "@/lib/telegram/telegram";
 import {
@@ -15,6 +16,7 @@ import {
 import { handleConfirmationCallback } from "@/lib/telegram/confirmation";
 import { runTelegramAgent } from "@/lib/telegram/agent";
 import { transcribeTelegramVoice } from "@/lib/telegram/voice";
+import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegram/vision";
 import { generateCallToken } from "@/lib/call/token";
 
 export const dynamic = "force-dynamic";
@@ -448,28 +450,107 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
       }
     }
 
-    // 12. Handle Photo / Flyer Attachment
+    // 12. Handle Photo / Scanned Document Attachment
     const photos = message.photo;
     if (photos && photos.length > 0) {
       await sendTelegramChatAction(chatId, "typing");
       const bestPhoto = photos[photos.length - 1];
       let photoUrl: string | undefined;
+      let photoBuffer: Buffer | undefined;
+
       try {
         const fileInfo = await getTelegramFile(bestPhoto.file_id);
-        const botToken = process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
+        const botToken =
+          process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
         photoUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.file_path}`;
+        photoBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
       } catch (err) {
-        console.warn("[Telegram Webhook] Failed to retrieve photo URL:", err);
+        console.warn("[Telegram Webhook] Failed to retrieve or download photo:", err);
       }
 
-      const photoDescriptor = photoUrl
-        ? `[Une photo/affiche a été jointe par l'administrateur : ${photoUrl}]`
-        : `[Une photo/affiche a été jointe par l'administrateur]`;
+      if (photoBuffer) {
+        // 1. Upload to Supabase Storage so the file URL never expires
+        const permanentUrl = await uploadTelegramPhotoToStorage(
+          photoBuffer,
+          tgAccount.schoolId,
+          "doc"
+        );
+        if (permanentUrl) {
+          photoUrl = permanentUrl;
+        }
 
-      if (!userPrompt || userPrompt.trim().length === 0) {
-        userPrompt = `${photoDescriptor}\nVoici l'affiche ou image pour l'annonce.`;
+        // 2. Perform intelligent multimodal document analysis with Gemini Vision
+        const analysis = await analyzeTelegramImage(photoBuffer, userPrompt);
+        console.log("[Telegram Webhook] Document analysis:", analysis);
+
+        const docDescriptor = `[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]
+- Type détecté : ${analysis.documentType}
+- Titre / Enseigne : ${analysis.title || analysis.merchant || "Non spécifié"}
+- Montant extrait : ${analysis.amount !== undefined ? `${analysis.amount} DT` : "Non spécifié"}
+- Date du document : ${analysis.date || "Non spécifiée"}
+- Catégorie : ${analysis.category || "Général"}
+- Personne concernée : ${analysis.studentName || analysis.parentName || "Non spécifié"}
+- Résumé visuel : ${analysis.summary}
+- Justificatif (URL image) : ${photoUrl}`;
+
+        if (!userPrompt || userPrompt.trim().length === 0) {
+          if (analysis.documentType === "EXPENSE_RECEIPT") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé la photo de ce ticket de caisse / facture sans texte d'accompagnement.
+Agis directement :
+Appelle immédiatement l'outil 'add_expense' avec :
+- title: "${analysis.merchant || analysis.title || "Dépense"}"
+- amount: ${analysis.amount || 0}
+- category: "${analysis.category || "Général"}"
+- date: "${analysis.date || new Date().toISOString().split("T")[0]}"
+- img: "${photoUrl}"
+(Cela générera la carte de confirmation d'enregistrement de la dépense avec le justificatif rattaché).`;
+          } else if (analysis.documentType === "PAYMENT_RECEIPT") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé un reçu de paiement / virement bancaire pour des frais scolaires.
+${analysis.studentName ? `Élève identifié : ${analysis.studentName}.` : "Élève à identifier."}
+${analysis.amount ? `Montant : ${analysis.amount} DT.` : ""}
+Propose d'enregistrer le paiement de scolarité via 'record_payment' avec ce justificatif.`;
+          } else if (analysis.documentType === "ABSENCE_CERTIFICATE") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé un certificat médical / mot d'absence.
+${analysis.studentName ? `Élève concerné : ${analysis.studentName}.` : "Élève à identifier."}
+Propose d'enregistrer et justifier l'absence de l'élève.`;
+          } else if (analysis.documentType === "ANNOUNCEMENT_FLYER") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé une affiche / visuel pour une annonce scolaire.
+Propose une annonce officielle attrayante reprenant le contenu de l'affiche et associe cette image (${photoUrl}).`;
+          } else {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé ce document / cette image : "${analysis.summary}".
+Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (dépense, justificatif ou annonce).`;
+          }
+        } else {
+          userPrompt = `${docDescriptor}
+
+Message / Consigne de l'administrateur : "${userPrompt}"
+
+Instructions :
+- Applique directement la consigne de l'administrateur en utilisant les informations déjà extraites du document (montant: ${
+            analysis.amount || 0
+          } DT, date, enseigne: "${analysis.merchant || analysis.title || "Dépense"}", justificatif URL: ${photoUrl}).
+- Si l'administrateur demande d'enregistrer cette dépense ou ce reçu ("ماركيها", "ajoute cette dépense", "garde le reçu"), appelle directement 'add_expense' avec le montant et l'intitulé extraits sans lui redemander les détails visibles sur la photo !`;
+        }
       } else {
-        userPrompt = `${photoDescriptor}\n${userPrompt}`;
+        const photoDescriptor = photoUrl
+          ? `[Une photo/affiche a été jointe par l'administrateur : ${photoUrl}]`
+          : `[Une photo/affiche a été jointe par l'administrateur]`;
+
+        if (!userPrompt || userPrompt.trim().length === 0) {
+          userPrompt = `${photoDescriptor}\nDocument ou photo reçu de l'administrateur. Que souhaitez-vous en faire ?`;
+        } else {
+          userPrompt = `${photoDescriptor}\n${userPrompt}`;
+        }
       }
     }
 

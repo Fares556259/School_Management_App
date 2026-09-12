@@ -878,7 +878,8 @@ ${lines.join("\n")}`;
     },
     formatConfirmationMessage: (args) => {
       const imgStr = args.img ? "\n🖼️ <i>Justificatif joint</i>" : "";
-      return `❓ <b>Nouvelle Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la dépense <b>${args.title}</b> de <code>-${args.amount} DT</code> (Catégorie : <code>${
+      const cleanAmount = Math.abs(Number(args.amount) || 0);
+      return `❓ <b>Nouvelle Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la dépense <b>${args.title}</b> de <code>${cleanAmount} DT</code> (Catégorie : <code>${
         args.category || "Général"
       }</code>)${imgStr} ?`;
     },

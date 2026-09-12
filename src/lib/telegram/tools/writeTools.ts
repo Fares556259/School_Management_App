@@ -334,13 +334,14 @@ export async function addExpenseTool(
   context: ToolContext
 ): Promise<WriteToolResult> {
   const category = args.category?.trim() || "Général";
+  const cleanAmount = Math.abs(Number(args.amount) || 0);
   const expenseDate = args.date ? new Date(args.date) : new Date();
 
   const result = await prisma.$transaction(async (tx) => {
     const expense = await tx.expense.create({
       data: {
         title: args.title.trim(),
-        amount: args.amount,
+        amount: cleanAmount,
         category,
         date: expenseDate,
         img: args.img || null,
@@ -354,8 +355,8 @@ export async function addExpenseTool(
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Expense",
         entityId: expense.id.toString(),
-        amount: args.amount,
-        description: `[Hnia AI Telegram] Dépense ajoutée : ${args.title} (${args.amount} DT - ${category})`,
+        amount: cleanAmount,
+        description: `[Hnia AI Telegram] Dépense ajoutée : ${args.title} (${cleanAmount} DT - ${category})`,
         schoolId: context.schoolId,
       },
     });
@@ -376,11 +377,11 @@ export async function addExpenseTool(
     success: true,
     message: `✅ <b>Dépense Enregistrée</b>
 ━━━━━━━━━━━━━━━━━━━━━━
-💰 Montant : <code>-${args.amount} DT</code>
+💰 Montant : <code>${cleanAmount} DT</code>
 🏷️ Intitulé : <b>${args.title.trim()}</b>
 📂 Catégorie : <code>${category}</code>
 📅 Date : <code>${dateStr}</code>${imgStr}`,
-    summary: `Dépense "${args.title}" (-${args.amount} DT)`,
+    summary: `Dépense "${args.title}" (${cleanAmount} DT)`,
     data: { expenseId: result.id },
   };
 }

@@ -261,13 +261,26 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
      - add_income : Enregistrer une recette (scolarité, cantine, bus, dons, etc.) avec date et justificatif.
    • DÉPENSES DE L'ÉCOLE :
      - get_expenses : Total mensuel, total historique, ventilation par catégorie de charges.
-     - add_expense : Enregistrer une dépense avec description, montant DT, catégorie, date et justificatif.
+     - add_expense : Enregistrer une dépense avec description, montant DT, catégorie, date et justificatif (img).
    • SCOLARITÉ & FACTURATION :
      - record_payment : Encaisser un versement libre avec ventilation multi-mois automatique de septembre à juin.
      - get_payments : Suivi des paiements et impayés de scolarité par mois, classe et statut.
      - get_financial_summary : Bilan global mensuel ou annuel (recettes, dépenses, résultat net, marge, impayés).
      - get_financial_anomalies : Détection des retards chroniques (2+ mois) et dépenses élevées.
      - send_payment_reminders : Déclenchement de relances push/notification aux familles avec impayés.
+
+4. TRAITEMENT MULTIMODAL & DOCUMENTS NUMÉRISÉS PAR PHOTO :
+   • Le système analyse automatiquement les photos envoyées par l'administrateur (tickets de caisse, factures, reçus bancaires, certificats médicaux, affiches).
+   • TICKETS DE CAISSE / FACTURES (EXPENSE_RECEIPT) :
+     - Dès qu'un ticket ou une note (restaurant, bistro, café, STEG, SONEDE, fournitures, essence) est reçu ou que l'administrateur te dit "enregistre ce reçu" / "ماركيها على لإكول" / "garde le reçu" :
+     - Déclenche DIRECTEMENT 'add_expense' avec le montant exact (positif, ex: 33.5 DT), le commerçant/titre (ex: "The Garden Bistro"), la catégorie appropriée (ex: "Restauration") et le lien permanent vers l'image reçu dans le prompt (paramètre img).
+     - RÈGLE ABSOLUE : Ne redemande JAMAIS le montant ni le titre s'ils ont déjà été extraits ou figurent dans les messages récents !
+   • BORDEREAUX & REÇUS DE VERSEMENT BANCAIRE (PAYMENT_RECEIPT) :
+     - Identifie l'élève et le montant, et propose d'enregistrer le paiement de scolarité via 'record_payment'.
+   • CERTIFICATS MÉDICAUX (ABSENCE_CERTIFICATE) :
+     - Propose de justifier l'absence de l'élève concerné.
+   • AFFICHES SCOLAIRES (ANNOUNCEMENT_FLYER) :
+     - Propose de diffuser une annonce officielle illustrée par cette affiche.
 
 ═══════════════════════════════════════════════════════════════
 RÈGLES D'EXPÉRIENCE UTILISATEUR & DESIGN MOBILE (UI/UX TELEGRAM) :
@@ -340,13 +353,15 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
    - Tu as accès à l'historique des échanges récents. Chaque message s'inscrit dans la continuité directe de la discussion.
    - Si l'administrateur pose une question courte, utilise des pronoms ou demande une précision (ex: "donne tous les noms", "et pour lui ?", "combien il doit ?", "affiche le reste", "qui d'autre ?"), réfère-toi TOUJOURS aux entités (classe, élève, parent, date) évoquées dans les messages précédents.
    - Exemple crucial : si vous venez de parler des élèves de la classe 1A et que l'utilisateur demande "donne tous les noms", tu dois appeler get_students avec className: "1A" (avec limit: 50) pour afficher la totalité des élèves de la classe 1A, et JAMAIS ceux de toute l'école.
+   - Si l'administrateur a envoyé une photo de reçu/ticket dans un message précédent et dit ensuite (par vocal ou texte) "enregistre-la", "ماركيها", "c'est une dépense", fais immédiatement le lien avec le reçu analysé et exécute 'add_expense' avec le montant et l'intitulé de ce reçu sans rien redemander !
    - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.`;
 
   // Candidate models with primary powerful flash model and fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-3.5-flash",
-    "gemini-3.6-flash",
-    "gemini-flash-latest",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-pro",
   ];
 
   // Helper to format friendly error message without raw API dumps
@@ -565,7 +580,8 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
     } catch (err: any) {
       console.warn(`[Agent] Model ${modelName} encountered error:`, err.message || err);
       lastError = err;
-      // Continue to next candidate model
+      // Wait briefly before trying next model (handles transient 503/429)
+      await new Promise((r) => setTimeout(r, 600));
     }
   }
 
