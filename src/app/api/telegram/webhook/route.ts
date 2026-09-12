@@ -161,26 +161,52 @@ export async function POST(req: NextRequest) {
     if (rawText === "/help") {
       await sendTelegramMessage(
         chatId,
-        `🤖 **SnapSchool AI — Aide & Commandes**
+        `🤖 **SnapSchool AI (Hnia / هنية) — Guide Complet**
 
-Je suis votre assistante d'opérations scolaires. Vous pouvez me parler naturellement ou m'envoyer des notes vocales en **Arabe tunisien**, **Français**, ou **Anglais**.
+Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langage naturel ou m'envoyer des notes vocales en **Arabe tunisien**, **Français**, ou **Anglais**.
 
-📋 **Exemples de questions (Lecture) :**
-• _"Qui est absent aujourd'hui ?"_
-• _"Quels sont les élèves de la 8ème B ?"_
-• _"Montre-moi les frais de scolarité impayés pour ce mois"_
-• _"Quel est le chiffre d'affaires et les dépenses de ce mois ?"_
-• _"Qui enseigne les mathématiques ?"_
+---
 
-✍️ **Exemples d'actions (Écriture avec confirmation) :**
-• _"J'ai reçu 500 DT de Mohamed Ali pour le mois de septembre"_
-• _"Ajoute une dépense de 180 DT pour achat de fournitures de bureau"_
-• _"Publie une annonce pour demain : réunion des parents à 16h"_
+🎓 **1. Pédagogie & Élèves**
+• _"Donne-moi le profil complet de l'élève Mohamed"_ (Fiche 360°)
+• _"Inscris un nouvel élève Youssef Trabelsi en 8ème B (Tél père: 98123456)"_
+• _"Crée la classe 8ème C avec une capacité de 25 élèves"_
+
+👥 **2. Personnel & Salaires**
+• _"Ajoute un enseignant de Français nommé Karim Gharbi (Taux: 25 DT)"_
+• _"Paie le salaire de Monsieur Trabelsi pour septembre avec déduction de ses absences"_
+• _"Donne-moi la liste de tout le personnel de l'école"_
+
+⏱️ **3. Présences & Discipline**
+• _"Qui est absent aujourd'hui ?"_ ou _"chkoun ghayeb lyoum ?"_
+• _"Marque l'élève Sarah Ben Salem ABSENTE aujourd'hui"_ (notifie les parents)
+• _"Historique des absences de Mohamed sur les 30 derniers jours"_
+
+📅 **4. Emplois du Temps & Remplacements**
+• _"Qui peut remplacer un prof de maths mardi de 10h à 12h ?"_ (Remplacement d'urgence)
+• _"Montre-moi l'emploi du temps de la 7ème A pour mercredi"_
+• _"Ajoute une séance d'Histoire pour la 8ème B vendredi de 08:00 à 10:00"_
+
+📝 **5. Notes & Examens**
+• _"Enregistre la note 16.5/20 pour Mohamed Ben Amor en Physique"_
+• _"Planifie un examen d'Anglais pour la 9ème A le 2026-10-15 à 09:00"_
+• _"Donne-moi le relevé de notes de la classe 4A en Mathématiques"_
+
+💰 **6. Finances & Relances**
+• _"J'ai reçu 450 DT de Mohamed pour septembre"_
+• _"Ajoute une dépense de 120 DT pour facture STEG"_
+• _"Quelles sont les anomalies financières et les gros impayés ?"_
+• _"Envoie les rappels de paiement à toutes les familles en retard"_
+
+📢 **7. Communication**
+• _"Publie une annonce pour demain : Réunion des parents à 16h"_
+
+---
 
 ⚙️ **Commandes système :**
 • \`/lang\` — Changer la langue (Français / العربية / English)
-• \`/status\` — Vérifier l'état de la connexion
-• \`/unlink\` — Dissocier ce compte Telegram`,
+• \`/status\` — Vérifier l'état de votre connexion
+• \`/unlink\` — Dissocier votre compte Telegram`,
         { parse_mode: "Markdown" }
       );
       return NextResponse.json({ ok: true });
