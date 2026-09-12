@@ -110,6 +110,170 @@ export async function getStudentAttendanceHistoryTool(
 }
 
 /**
+ * Resolves the timetable slot and its canonical Lesson for a class, date, and optional session description.
+ * This guarantees 100% synchronization with the web dashboard (/admin/attendance).
+ */
+export async function resolveSessionLesson(
+  schoolId: string,
+  classId: number,
+  date: Date,
+  sessionName?: string
+): Promise<{ lesson: any; slot: any; slotName: string } | null> {
+  const DAY_MAP: Record<number, string> = {
+    1: "MONDAY",
+    2: "TUESDAY",
+    3: "WEDNESDAY",
+    4: "THURSDAY",
+    5: "FRIDAY",
+    6: "SATURDAY",
+    0: "SUNDAY",
+  };
+  const dayEnum = DAY_MAP[date.getDay()] || "MONDAY";
+
+  // 1. Fetch all timetable slots for this class and day
+  const slots = await prisma.timetableSlot.findMany({
+    where: {
+      classId,
+      day: dayEnum as any,
+      isDraft: false,
+    },
+    include: { subject: true },
+    orderBy: { slotNumber: "asc" },
+  });
+
+  let targetSlot: any = null;
+
+  if (sessionName && slots.length > 0) {
+    const raw = sessionName.toLowerCase().trim();
+
+    // Check ordinal slot indicators (1ère, 2ème, etc.)
+    if (
+      raw.includes("1ère") ||
+      raw.includes("1ere") ||
+      raw.includes("1er") ||
+      raw.includes("premier") ||
+      raw.includes("premiere") ||
+      raw.includes("first") ||
+      raw.includes("الأولى") ||
+      raw.includes("الاولى")
+    ) {
+      targetSlot = slots[0];
+    } else if (
+      raw.includes("2ème") ||
+      raw.includes("2eme") ||
+      raw.includes("deuxième") ||
+      raw.includes("deuxieme") ||
+      raw.includes("second") ||
+      raw.includes("الثانية")
+    ) {
+      targetSlot = slots[1] || slots[0];
+    } else if (
+      raw.includes("3ème") ||
+      raw.includes("3eme") ||
+      raw.includes("troisième") ||
+      raw.includes("troisieme") ||
+      raw.includes("third") ||
+      raw.includes("الثالثة")
+    ) {
+      targetSlot = slots[2] || slots[0];
+    } else if (
+      raw.includes("4ème") ||
+      raw.includes("4eme") ||
+      raw.includes("quatrième") ||
+      raw.includes("quatrieme") ||
+      raw.includes("الرابعة")
+    ) {
+      targetSlot = slots[3] || slots[0];
+    }
+
+    // If not matched by ordinal, match by subject name or time
+    if (!targetSlot) {
+      targetSlot = slots.find((s) => {
+        const subName = (s.subject?.name || "").toLowerCase();
+        const start = (s.startTime || "").toLowerCase();
+        return (
+          raw.includes(subName) ||
+          subName.includes(raw) ||
+          (subName.includes("anglais") && (raw.includes("anglais") || raw.includes("english") || raw.includes("إنقليزية") || raw.includes("انكليزية") || raw.includes("انقليزية"))) ||
+          (subName.includes("arabe") && (raw.includes("arabe") || raw.includes("arabic") || raw.includes("عربية"))) ||
+          (subName.includes("français") && (raw.includes("francais") || raw.includes("french") || raw.includes("فرنسية"))) ||
+          (subName.includes("math") && (raw.includes("math") || raw.includes("رياضيات"))) ||
+          (subName.includes("histoire") && (raw.includes("histoire") || raw.includes("history") || raw.includes("تاريخ"))) ||
+          (subName.includes("sport") && (raw.includes("sport") || raw.includes("بدنية"))) ||
+          (start && raw.includes(start))
+        );
+      });
+    }
+  }
+
+  // If no targetSlot found, default to current time slot or first slot
+  if (!targetSlot && slots.length > 0) {
+    const now = new Date();
+    const currentMinutesFromMidnight = now.getHours() * 60 + now.getMinutes();
+
+    const activeSlot = slots.find((s) => {
+      if (!s.startTime || !s.endTime) return false;
+      const [sh, sm] = s.startTime.split(":").map(Number);
+      const [eh, em] = s.endTime.split(":").map(Number);
+      const startMin = sh * 60 + (sm || 0);
+      const endMin = eh * 60 + (em || 0);
+      return currentMinutesFromMidnight >= startMin && currentMinutesFromMidnight <= endMin;
+    });
+
+    targetSlot = activeSlot || slots[0];
+  }
+
+  if (targetSlot && targetSlot.subjectId) {
+    const lessonName = `${targetSlot.subject?.name || "Session"} - ${targetSlot.startTime}`;
+    let lesson = await prisma.lesson.findFirst({
+      where: {
+        classId,
+        subjectId: targetSlot.subjectId,
+        day: targetSlot.day,
+        name: lessonName,
+      },
+    });
+
+    if (!lesson) {
+      const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+
+      lesson = await prisma.lesson.create({
+        data: {
+          name: lessonName,
+          day: targetSlot.day,
+          startTime: dayStart,
+          endTime: dayStart,
+          subjectId: targetSlot.subjectId,
+          classId,
+          teacherId: targetSlot.teacherId || anyTeacher?.id || "",
+          schoolId,
+        },
+      });
+    }
+
+    const slotName = `${targetSlot.subject?.name || "Séance"} (${targetSlot.startTime})`;
+    return { lesson, slot: targetSlot, slotName };
+  }
+
+  // Fallback: If no slots exist for that day in timetableSlot
+  let fallbackLesson = await prisma.lesson.findFirst({
+    where: { schoolId, classId, day: dayEnum as any },
+  });
+
+  if (!fallbackLesson) {
+    fallbackLesson = await prisma.lesson.findFirst({
+      where: { schoolId, classId },
+    });
+  }
+
+  return fallbackLesson
+    ? { lesson: fallbackLesson, slot: null, slotName: fallbackLesson.name }
+    : null;
+}
+
+/**
  * Tool: mark_attendance
  * Directly marks a single student as ABSENT, LATE, or PRESENT for a date and optional session.
  */
@@ -140,46 +304,14 @@ export async function markAttendanceTool(
     student.classId ||
     (args.className ? (await resolveClassByName(context.schoolId, args.className))?.id : undefined);
 
-  // Find target lesson/session if specified
+  // Find target lesson/session via resolveSessionLesson
   let lesson: any = null;
-  if (args.sessionName && targetClassId) {
-    lesson = await prisma.lesson.findFirst({
-      where: {
-        schoolId: context.schoolId,
-        classId: targetClassId,
-        OR: [
-          { name: { contains: args.sessionName.trim(), mode: "insensitive" } },
-          { subject: { name: { contains: args.sessionName.trim(), mode: "insensitive" } } },
-        ],
-      },
-    });
-  }
-
-  if (!lesson && targetClassId) {
-    lesson = await prisma.lesson.findFirst({
-      where: {
-        schoolId: context.schoolId,
-        classId: targetClassId,
-      },
-    });
-  }
-
-  if (!lesson) {
-    const subject = await prisma.subject.findFirst({ where: { schoolId: context.schoolId } });
-    const teacher = await prisma.teacher.findFirst({ where: { schoolId: context.schoolId } });
-    if (subject && targetClassId && teacher) {
-      lesson = await prisma.lesson.create({
-        data: {
-          name: args.sessionName || "Séance Générale",
-          day: "MONDAY",
-          startTime: new Date(),
-          endTime: new Date(),
-          subjectId: subject.id,
-          classId: targetClassId,
-          teacherId: teacher.id,
-          schoolId: context.schoolId,
-        },
-      });
+  let sessionLabel = args.sessionName;
+  if (targetClassId) {
+    const resolved = await resolveSessionLesson(context.schoolId, targetClassId, date, args.sessionName);
+    if (resolved) {
+      lesson = resolved.lesson;
+      sessionLabel = resolved.slotName || resolved.lesson.name;
     }
   }
 
@@ -303,44 +435,13 @@ export async function markClassAttendanceTool(
     };
   }
 
-  // Find or create lesson/session
+  // Find or create lesson/session via resolveSessionLesson
   let lesson: any = null;
-  if (args.sessionName) {
-    lesson = await prisma.lesson.findFirst({
-      where: {
-        schoolId: context.schoolId,
-        classId: cls.id,
-        OR: [
-          { name: { contains: args.sessionName.trim(), mode: "insensitive" } },
-          { subject: { name: { contains: args.sessionName.trim(), mode: "insensitive" } } },
-        ],
-      },
-    });
-  }
-
-  if (!lesson) {
-    lesson = await prisma.lesson.findFirst({
-      where: { schoolId: context.schoolId, classId: cls.id },
-    });
-  }
-
-  if (!lesson) {
-    const subject = await prisma.subject.findFirst({ where: { schoolId: context.schoolId } });
-    const teacher = await prisma.teacher.findFirst({ where: { schoolId: context.schoolId } });
-    if (subject && teacher) {
-      lesson = await prisma.lesson.create({
-        data: {
-          name: args.sessionName || "Séance Générale",
-          day: "MONDAY",
-          startTime: new Date(),
-          endTime: new Date(),
-          subjectId: subject.id,
-          classId: cls.id,
-          teacherId: teacher.id,
-          schoolId: context.schoolId,
-        },
-      });
-    }
+  let sessionLabel = args.sessionName;
+  const resolved = await resolveSessionLesson(context.schoolId, cls.id, date, args.sessionName);
+  if (resolved) {
+    lesson = resolved.lesson;
+    sessionLabel = resolved.slotName || resolved.lesson.name;
   }
 
   // Matching helper for students

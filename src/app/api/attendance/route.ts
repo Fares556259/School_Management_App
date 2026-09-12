@@ -119,6 +119,34 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
+  // Ensure each slot has a canonical Lesson record in the DB so realLessonId is never null
+  for (const s of slots) {
+    if (!s.subjectId) continue;
+    const expectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
+    let realLesson = lessonIds.find((l) => l.subjectId === s.subjectId && l.name === expectedName);
+    if (!realLesson) {
+      const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
+      try {
+        const createdLesson = await prisma.lesson.create({
+          data: {
+            name: expectedName,
+            day: dayEnum as any,
+            startTime: dayStart,
+            endTime: dayStart,
+            subjectId: s.subjectId,
+            classId: parsedClassId,
+            teacherId: s.teacherId || anyTeacher?.id || "",
+            schoolId,
+          },
+          select: { id: true, subjectId: true, name: true },
+        });
+        lessonIds.push(createdLesson);
+      } catch (err) {
+        console.warn("[GET /api/attendance] lesson creation warning:", err);
+      }
+    }
+  }
+
   const usedLegacyLessonIds = new Set<number>();
 
   const lessonsForUI = slots.map((s) => {
@@ -210,7 +238,7 @@ export async function GET(request: NextRequest) {
   const aggregatedStudents = students.map((s) => {
     const relevantAttendance = isAll
       ? s.attendance
-      : s.attendance.filter((a) => (targetLessonId ? a.lessonId === targetLessonId : false));
+      : s.attendance.filter((a) => (targetLessonId ? (a.lessonId === targetLessonId || a.lessonId === null) : true));
 
     if (isAll) {
       let finalStatus: string | null = null;
