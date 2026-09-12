@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   // 1. Webhook Secret Validation
   const secretHeader = req.headers.get("x-telegram-bot-api-secret-token");
-  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET || "snapschool_tg_secret_2026_secure_key";
 
   if (expectedSecret && secretHeader !== expectedSecret) {
     console.warn("[Telegram Webhook] Unauthorized request rejected (invalid secret).");

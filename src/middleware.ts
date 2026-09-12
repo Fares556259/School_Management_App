@@ -17,6 +17,8 @@ const isPublicRoute = (pathname: string) => {
   if (pathname.startsWith("/uploads")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/api/public")) return true;
+  if (pathname.startsWith("/api/telegram")) return true;
+  if (pathname.startsWith("/api/cron")) return true;
   if (pathname.startsWith("/api/dev-promote")) return true;
   if (pathname.startsWith("/api/dev-reset-password")) return true;
   return false;

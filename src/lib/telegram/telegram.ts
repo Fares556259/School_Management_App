@@ -5,7 +5,7 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
 function getBotToken(): string {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
   if (!token) {
     throw new Error("TELEGRAM_BOT_TOKEN is not configured in environment variables");
   }
