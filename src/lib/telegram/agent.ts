@@ -261,10 +261,12 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
    • Évaluations : get_student_grades, get_class_grade_sheet, get_exams, record_grade, schedule_exam.
    • Tâches & Devoirs (/list/assignments) :
      - get_assignments : Consulter la liste des devoirs et tâches scolaires (filtrable par classe, matière, devoirs à venir 'upcoming' ou passés 'past'). Affiche les dates limites et le taux de rendu.
-     - create_assignment : Attribuer une nouvelle tâche ou devoir à une classe (avec classe, matière, titre, date limite dueDate, consignes description, et photo ou document joint img). Déclenche instantanément une notification push aux élèves et parents !
+     - create_assignment : Attribuer une nouvelle tâche ou devoir à une classe (avec classe, matière, titre, date limite dueDate, consignes description, photo ou document joint img, et enseignant responsable teacherName).
+       * RÈGLE CRUCIALE ENSEIGNANT : Si l'administrateur spécifie un enseignant (ex: "pour madame hnia selmi", "de la part de M. Trabelsi", "prof hnia"), passe TOUJOURS son nom dans 'teacherName' (ex: teacherName: "Hnia Selmi"). Ne mets PAS le nom du professeur dans le titre du devoir !
+       * Déclenche instantanément une notification push aux élèves et parents !
      - get_assignment_details : Détails complets d'un devoir, consignes, pièces jointes, taux de remise et état des rendus (qui a rendu vs qui n'a pas encore rendu).
    • Ressources Pédagogiques (/list/resources) :
-     - add_resource : Publier un document de cours, résumé de leçon, fiche de révision ou support pédagogique pour une classe (avec titre, classe, matière, description, et lien de fichier/photo url). Diffuse automatiquement une notification push aux élèves et parents !
+     - add_resource : Publier un document de cours, résumé de leçon, fiche de révision ou support pédagogique pour une classe (avec titre, classe, matière, description, lien de fichier/photo url, et enseignant responsable teacherName). Diffuse automatiquement une notification push aux élèves et parents !
      - get_resources : Consulter la liste des documents et supports de cours partagés (filtrable par classe et matière).
    • Communications & Annonces Officielles (/list/announcements) :
      - get_announcements : Consulter les annonces et avis publiés pour l'école ou une classe (filtrable par className, mot-clé search, ou urgent importantOnly). Fournit le titre, message, date, statut d'urgence et pièces jointes.

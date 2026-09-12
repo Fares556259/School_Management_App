@@ -1190,6 +1190,7 @@ ${lines.join("\n")}`;
           title: { type: SchemaType.STRING, description: "Titre du devoir ou de la tâche (ex: 'Mathématiques Chapitre 5 Exercices', 'Devoir de français')." },
           className: { type: SchemaType.STRING, description: "Classe concernée (ex: '1A', '4B')." },
           subjectName: { type: SchemaType.STRING, description: "Matière concernée (ex: 'Mathématiques', 'Anglais', 'Français')." },
+          teacherName: { type: SchemaType.STRING, description: "Nom de l'enseignant responsable (ex: 'Mme Hnia Selmi', 'M. Trabelsi'). Optionnel." },
           dueDate: {
             type: SchemaType.STRING,
             description: "Date d'échéance / date limite (ex: '2026-09-18', 'demain', 'dans 3 jours', 'vendredi prochain').",
@@ -1202,9 +1203,10 @@ ${lines.join("\n")}`;
     },
     formatConfirmationMessage: (args) => {
       const subject = args.subjectName ? ` • 📖 <b>${args.subjectName}</b>` : "";
+      const teacher = args.teacherName ? `\n👨‍🏫 Enseignant : <b>${args.teacherName}</b>` : "";
       const desc = args.description ? `\n📝 <i>"${args.description}"</i>` : "";
       const img = args.img ? "\n📎 <i>Pièce jointe attachée</i>" : "";
-      return `❓ <b>Création de Tâche / Devoir</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>${args.title}</b>\n👥 Classe : <code>${args.className}</code>${subject}\n⏰ Date limite : <code>${args.dueDate}</code>${desc}${img}\n\nConfirmer l'attribution et l'envoi des notifications push aux familles ?`;
+      return `❓ <b>Création de Tâche / Devoir</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>${args.title}</b>\n👥 Classe : <code>${args.className}</code>${subject}${teacher}\n⏰ Date limite : <code>${args.dueDate}</code>${desc}${img}\n\nConfirmer l'attribution et l'envoi des notifications push aux familles ?`;
     },
     execute: createAssignmentTool,
   },
@@ -1242,6 +1244,7 @@ ${lines.join("\n")}`;
           title: { type: SchemaType.STRING, description: "Titre de la ressource (ex: 'Résumé Chapitre 1 - Les Fonctions', 'Cours d'Anglais PDF')." },
           className: { type: SchemaType.STRING, description: "Classe concernée (ex: '1A', '4B')." },
           subjectName: { type: SchemaType.STRING, description: "Matière concernée (ex: 'Mathématiques', 'Anglais')." },
+          teacherName: { type: SchemaType.STRING, description: "Nom de l'enseignant responsable (ex: 'Mme Hnia Selmi'). Optionnel." },
           url: { type: SchemaType.STRING, description: "Lien ou URL du document / photo / PDF attaché." },
           description: { type: SchemaType.STRING, description: "Description ou aperçu du document partagé." },
         },
@@ -1249,9 +1252,10 @@ ${lines.join("\n")}`;
     },
     formatConfirmationMessage: (args) => {
       const subject = args.subjectName ? ` • 📖 <b>${args.subjectName}</b>` : "";
+      const teacher = args.teacherName ? `\n👨‍🏫 Enseignant : <b>${args.teacherName}</b>` : "";
       const desc = args.description ? `\n📝 <i>"${args.description}"</i>` : "";
       const file = args.url ? "\n📎 <i>Fichier(s) attaché(s)</i>" : "";
-      return `❓ <b>Publication de Ressource Pédagogique</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>${args.title}</b>\n👥 Classe : <code>${args.className}</code>${subject}${desc}${file}\n\nConfirmer la publication et l'envoi des notifications aux familles ?`;
+      return `❓ <b>Publication de Ressource Pédagogique</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>${args.title}</b>\n👥 Classe : <code>${args.className}</code>${subject}${teacher}${desc}${file}\n\nConfirmer la publication et l'envoi des notifications aux familles ?`;
     },
     execute: createResourceTool,
   },

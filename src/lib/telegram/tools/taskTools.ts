@@ -4,7 +4,7 @@ import { createAssignmentNotification, createResourceNotification } from "@/lib/
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
-import { resolveSubjectByName } from "./entityResolvers";
+import { resolveSubjectByName, resolveTeacherByName } from "./entityResolvers";
 
 /**
  * Robust date parser for task deadlines.
@@ -132,12 +132,15 @@ export function parseDueDate(raw?: string | null): Date {
 }
 
 /**
- * Resolves or creates a canonical Lesson for a class and subject to link an Assignment.
+ * Resolves or creates a canonical Lesson for a class and subject to link an Assignment or Resource.
+ * Intelligently assigns the lesson to the requested teacher, the timetable slot's teacher,
+ * or an existing subject lesson.
  */
 async function resolveLessonForTask(
   schoolId: string,
   classId: number,
-  subjectName?: string
+  subjectName?: string,
+  teacherName?: string
 ): Promise<any> {
   let subject: any = null;
   if (subjectName) {
@@ -161,7 +164,68 @@ async function resolveLessonForTask(
     throw new Error("Aucune matière trouvée pour cette école.");
   }
 
-  // 1. Try to find an existing lesson for this class and subject
+  // 1. If a specific teacher was requested by the user:
+  if (teacherName?.trim()) {
+    const targetTeacher = await resolveTeacherByName(schoolId, teacherName);
+    if (targetTeacher) {
+      // Check if there is an existing lesson with this teacher
+      let lesson = await prisma.lesson.findFirst({
+        where: {
+          schoolId,
+          classId,
+          subjectId: subject.id,
+          teacherId: targetTeacher.id,
+        },
+        include: { subject: true, class: true, teacher: true },
+        orderBy: { id: "desc" },
+      });
+
+      if (lesson) return lesson;
+
+      // Create a canonical lesson with this requested teacher
+      const cls = await prisma.class.findUnique({ where: { id: classId } });
+      const className = cls?.name || "Classe";
+      const lessonName = `${subject.name} (${className}) - ${targetTeacher.name} ${targetTeacher.surname}`;
+
+      lesson = await prisma.lesson.create({
+        data: {
+          name: lessonName,
+          day: "MONDAY",
+          startTime: new Date(),
+          endTime: new Date(),
+          subjectId: subject.id,
+          classId,
+          teacherId: targetTeacher.id,
+          schoolId,
+        },
+        include: { subject: true, class: true, teacher: true },
+      });
+
+      return lesson;
+    }
+  }
+
+  // 2. If no specific teacher requested: check timetable slots to see who teaches this subject in this class
+  const slot = await prisma.timetableSlot.findFirst({
+    where: { classId, subjectId: subject.id, teacherId: { not: null } },
+    include: { teacher: true },
+  });
+
+  if (slot?.teacherId) {
+    let lesson = await prisma.lesson.findFirst({
+      where: {
+        schoolId,
+        classId,
+        subjectId: subject.id,
+        teacherId: slot.teacherId,
+      },
+      include: { subject: true, class: true, teacher: true },
+      orderBy: { id: "desc" },
+    });
+    if (lesson) return lesson;
+  }
+
+  // 3. Check for any existing lesson for this class and subject (most recent first)
   let lesson = await prisma.lesson.findFirst({
     where: {
       schoolId,
@@ -169,16 +233,16 @@ async function resolveLessonForTask(
       subjectId: subject.id,
     },
     include: { subject: true, class: true, teacher: true },
+    orderBy: { id: "desc" },
   });
 
   if (lesson) return lesson;
 
-  // 2. If no lesson exists, check TimetableSlot to find the assigned teacher
-  const slot = await prisma.timetableSlot.findFirst({
-    where: { classId, subjectId: subject.id },
+  // 4. Create new canonical lesson with slot teacher or any teacher in school
+  const anyTeacher = await prisma.teacher.findFirst({
+    where: { schoolId },
+    orderBy: { createdAt: "desc" },
   });
-
-  const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
   const teacherId = slot?.teacherId || anyTeacher?.id;
   if (!teacherId) {
     throw new Error("Aucun enseignant trouvé pour dispenser cette matière.");
@@ -371,6 +435,7 @@ export async function createAssignmentTool(
     title: string;
     className: string;
     subjectName?: string;
+    teacherName?: string;
     dueDate: string;
     description?: string;
     img?: string;
@@ -389,7 +454,12 @@ export async function createAssignmentTool(
 
   let lesson: any;
   try {
-    lesson = await resolveLessonForTask(context.schoolId, cls.id, args.subjectName);
+    lesson = await resolveLessonForTask(
+      context.schoolId,
+      cls.id,
+      args.subjectName,
+      args.teacherName
+    );
   } catch (err: any) {
     return {
       success: false,
@@ -583,6 +653,7 @@ export async function createResourceTool(
     title: string;
     className: string;
     subjectName?: string;
+    teacherName?: string;
     url?: string;
     description?: string;
   },
@@ -599,7 +670,12 @@ export async function createResourceTool(
 
   let lesson: any;
   try {
-    lesson = await resolveLessonForTask(context.schoolId, cls.id, args.subjectName);
+    lesson = await resolveLessonForTask(
+      context.schoolId,
+      cls.id,
+      args.subjectName,
+      args.teacherName
+    );
   } catch (err: any) {
     return {
       success: false,
