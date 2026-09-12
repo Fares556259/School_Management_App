@@ -57,6 +57,19 @@ RÈGLES CAPITALES POUR L'APPEL VOCAL TÉLÉPHONIQUE :
       wsUrl: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`,
       systemInstruction,
       tools: [{ functionDeclarations: tools }],
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: "Aoede",
+            },
+          },
+        },
+      },
       adminName: payload.adminName,
       schoolName: payload.schoolName,
       schoolId: payload.schoolId,

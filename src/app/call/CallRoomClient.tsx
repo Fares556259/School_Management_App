@@ -64,28 +64,59 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
     }
   };
 
-  // Convert Float32Array to 16-bit PCM Buffer
-  const floatTo16BitPCM = (input: Float32Array): ArrayBuffer => {
-    const output = new Int16Array(input.length);
-    for (let i = 0; i < input.length; i++) {
-      const s = Math.max(-1, Math.min(1, input[i]));
-      output[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  // Resample from any input sample rate (e.g. 48000Hz or 44100Hz on iPhone/Safari) to exactly 16000Hz for Gemini
+  const downsampleTo16kHz = (inputData: Float32Array, inputSampleRate: number): Int16Array => {
+    if (inputSampleRate === 16000) {
+      const output = new Int16Array(inputData.length);
+      for (let i = 0; i < inputData.length; i++) {
+        const s = Math.max(-1, Math.min(1, inputData[i]));
+        output[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      return output;
     }
-    return output.buffer;
+
+    const sampleRateRatio = inputSampleRate / 16000;
+    const newLength = Math.round(inputData.length / sampleRateRatio);
+    const result = new Int16Array(newLength);
+    let offsetResult = 0;
+    let offsetBuffer = 0;
+
+    while (offsetResult < result.length) {
+      const nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+      let accum = 0;
+      let count = 0;
+      for (let i = offsetBuffer; i < nextOffsetBuffer && i < inputData.length; i++) {
+        accum += inputData[i];
+        count++;
+      }
+      const sample = count > 0 ? accum / count : 0;
+      const clamped = Math.max(-1, Math.min(1, sample));
+      result[offsetResult] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
+      offsetResult++;
+      offsetBuffer = nextOffsetBuffer;
+    }
+
+    return result;
   };
 
-  // Convert ArrayBuffer to Base64
-  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  // Convert Int16Array to Base64 safely in chunks
+  const pcm16ToBase64 = (int16Array: Int16Array): string => {
     let binary = "";
-    const bytes = new Uint8Array(buffer);
+    const bytes = new Uint8Array(
+      int16Array.buffer,
+      int16Array.byteOffset,
+      int16Array.byteLength
+    );
     const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < len; i += chunkSize) {
+      const sub = bytes.subarray(i, Math.min(i + chunkSize, len));
+      binary += String.fromCharCode.apply(null, sub as unknown as number[]);
     }
     return window.btoa(binary);
   };
 
-  // Convert Base64 to 24kHz AudioBuffer
+  // Convert Base64 from Gemini (24kHz little-endian PCM) to AudioBuffer safely with DataView
   const base64ToAudioBuffer = async (audioCtx: AudioContext, base64: string): Promise<AudioBuffer> => {
     const binary = window.atob(base64);
     const len = binary.length;
@@ -94,10 +125,12 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
       bytes[i] = binary.charCodeAt(i);
     }
 
-    const int16Array = new Int16Array(bytes.buffer);
-    const float32Array = new Float32Array(int16Array.length);
-    for (let i = 0; i < int16Array.length; i++) {
-      float32Array[i] = int16Array[i] / 32768.0;
+    const sampleCount = Math.floor(len / 2);
+    const float32Array = new Float32Array(sampleCount);
+    const dataView = new DataView(bytes.buffer, bytes.byteOffset, len);
+    for (let i = 0; i < sampleCount; i++) {
+      const int16 = dataView.getInt16(i * 2, true); // true = little-endian PCM
+      float32Array[i] = int16 / 32768.0;
     }
 
     // Gemini Live audio is 24kHz mono PCM
@@ -286,7 +319,7 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
                     role: "user",
                     parts: [
                       {
-                        text: `أهلاً وسهلاً ! Je suis ${sessionConfig.adminName}, administrateur de ${sessionConfig.schoolName}. Salue-moi chaleureusement et brièvement en une seule phrase en dialecte tunisien (Derja) comme au téléphone (ex: "عسلامة سي ${sessionConfig.adminName} ! مرحبا بيك، تفضل أنا نسمع فيك، شنوة نحبو نثبتو توا ؟").`,
+                        text: `عسلامة، أنا ${sessionConfig.adminName} مدير ${sessionConfig.schoolName}. رحب بيا بكلمتين تونسي في التليفون وقلي تفضل نسمع فيك.`,
                       },
                     ],
                   },
@@ -388,10 +421,10 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
           return;
         }
 
-        // Send audio chunk if WebSocket is ready
+        // Send audio chunk if WebSocket is ready (downsampled to exact 16000Hz)
         if (ws.readyState === WebSocket.OPEN) {
-          const pcm16Buffer = floatTo16BitPCM(inputData);
-          const base64Audio = arrayBufferToBase64(pcm16Buffer);
+          const pcm16 = downsampleTo16kHz(inputData, audioCtx.sampleRate);
+          const base64Audio = pcm16ToBase64(pcm16);
 
           const audioChunkMsg = {
             realtimeInput: {
