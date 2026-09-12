@@ -72,11 +72,13 @@ import {
   addTimetableSlotTool,
 } from "./timetableTools";
 
-// Suite 7: Tasks & Assignments
+// Suite 7: Tasks, Homework & Course Resources
 import {
   getAssignmentsTool,
   createAssignmentTool,
   getAssignmentDetailsTool,
+  createResourceTool,
+  getResourcesTool,
 } from "./taskTools";
 
 export interface ToolDefinition {
@@ -1139,6 +1141,54 @@ ${lines.join("\n")}`;
       },
     },
     execute: getAssignmentDetailsTool,
+  },
+
+  // ── COURSE RESOURCES SUITE (/list/resources) ─────────────────────────────
+  add_resource: {
+    name: "add_resource",
+    description: "Publier une ressource pédagogique, un cours, résumé ou document pour une classe avec titre, matière, description et lien de fichier/photo. Notifie les élèves et parents.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "add_resource",
+      description: "Partager des documents de cours ou résumés pédagogiques avec les élèves d'une classe.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["title", "className"],
+        properties: {
+          title: { type: SchemaType.STRING, description: "Titre de la ressource (ex: 'Résumé Chapitre 1 - Les Fonctions', 'Cours d'Anglais PDF')." },
+          className: { type: SchemaType.STRING, description: "Classe concernée (ex: '1A', '4B')." },
+          subjectName: { type: SchemaType.STRING, description: "Matière concernée (ex: 'Mathématiques', 'Anglais')." },
+          url: { type: SchemaType.STRING, description: "Lien ou URL du document / photo / PDF attaché." },
+          description: { type: SchemaType.STRING, description: "Description ou aperçu du document partagé." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const subject = args.subjectName ? ` • 📖 <b>${args.subjectName}</b>` : "";
+      const desc = args.description ? `\n📝 <i>"${args.description}"</i>` : "";
+      const file = args.url ? "\n📎 <i>Fichier(s) attaché(s)</i>" : "";
+      return `❓ <b>Publication de Ressource Pédagogique</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>${args.title}</b>\n👥 Classe : <code>${args.className}</code>${subject}${desc}${file}\n\nConfirmer la publication et l'envoi des notifications aux familles ?`;
+    },
+    execute: createResourceTool,
+  },
+
+  get_resources: {
+    name: "get_resources",
+    description: "Consulter la liste des ressources pédagogiques et documents de cours publiés pour une classe ou matière.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_resources",
+      description: "Consulter les ressources pédagogiques et documents de cours partagés avec les élèves.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A'). Optionnel." },
+          subjectName: { type: SchemaType.STRING, description: "Nom de la matière (ex: 'Mathématiques'). Optionnel." },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum de ressources à retourner." },
+        },
+      },
+    },
+    execute: getResourcesTool,
   },
 };
 

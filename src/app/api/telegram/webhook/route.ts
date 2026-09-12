@@ -524,11 +524,36 @@ Propose d'enregistrer et justifier l'absence de l'élève.`;
 
 L'administrateur a envoyé une affiche / visuel pour une annonce scolaire.
 Propose une annonce officielle attrayante reprenant le contenu de l'affiche et associe cette image (${photoUrl}).`;
+          } else if (analysis.documentType === "COURSE_RESOURCE") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé un support de cours / résumé de leçon / document pédagogique.
+- Titre suggéré : "${analysis.title || "Support de cours"}"
+${analysis.className ? `- Classe identifiée : "${analysis.className}"` : "- Classe : à préciser si non spécifiée"}
+${analysis.subjectName ? `- Matière identifiée : "${analysis.subjectName}"` : "- Matière : à préciser si non spécifiée"}
+- Description : "${analysis.summary}"
+- Fichier joint : ${photoUrl}
+
+Instructions :
+Propose de publier cette ressource pédagogique avec l'outil 'add_resource' en pré-remplissant title: "${analysis.title || "Support de cours"}", url: "${photoUrl}", description: "${analysis.summary}"${analysis.className ? `, className: "${analysis.className}"` : ""}${analysis.subjectName ? `, subjectName: "${analysis.subjectName}"` : ""}.
+Rappelle que les élèves et parents recevront une notification push dès publication.`;
+          } else if (analysis.documentType === "HOMEWORK_ASSIGNMENT") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé une fiche de devoir / exercices scolaires.
+- Titre suggéré : "${analysis.title || "Devoir maison"}"
+${analysis.className ? `- Classe identifiée : "${analysis.className}"` : "- Classe : à préciser si non spécifiée"}
+${analysis.subjectName ? `- Matière identifiée : "${analysis.subjectName}"` : "- Matière : à préciser si non spécifiée"}
+- Consignes : "${analysis.summary}"
+- Document joint : ${photoUrl}
+
+Instructions :
+Propose de créer ce devoir scolaire avec l'outil 'create_assignment' en pré-remplissant title: "${analysis.title || "Devoir"}", img: "${photoUrl}", description: "${analysis.summary}"${analysis.className ? `, className: "${analysis.className}"` : ""}${analysis.subjectName ? `, subjectName: "${analysis.subjectName}"` : ""}.`;
           } else {
             userPrompt = `${docDescriptor}
 
 L'administrateur a envoyé ce document / cette image : "${analysis.summary}".
-Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (dépense, justificatif ou annonce).`;
+Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (ressource de cours, devoir, dépense, justificatif ou annonce).`;
           }
         } else {
           userPrompt = `${docDescriptor}

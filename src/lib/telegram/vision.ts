@@ -2,7 +2,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
 
 export interface DocumentAnalysisResult {
-  documentType: "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "OTHER";
+  documentType:
+    | "EXPENSE_RECEIPT"
+    | "PAYMENT_RECEIPT"
+    | "ABSENCE_CERTIFICATE"
+    | "ANNOUNCEMENT_FLYER"
+    | "COURSE_RESOURCE"
+    | "HOMEWORK_ASSIGNMENT"
+    | "OTHER";
   title: string;
   summary: string;
   amount?: number;
@@ -10,8 +17,17 @@ export interface DocumentAnalysisResult {
   category?: string;
   studentName?: string;
   parentName?: string;
+  className?: string;
+  subjectName?: string;
   merchant?: string;
-  suggestedAction?: "add_expense" | "record_payment" | "excuse_absence" | "post_announcement" | "none";
+  suggestedAction?:
+    | "add_expense"
+    | "record_payment"
+    | "excuse_absence"
+    | "post_announcement"
+    | "add_resource"
+    | "create_assignment"
+    | "none";
   publicUrl?: string;
 }
 
@@ -114,14 +130,29 @@ IDENTIFIE LA NATURE EXACTE DU DOCUMENT :
    - summary : Brève description du contenu de l'affiche.
    - suggestedAction : "post_announcement"
 
-5. "OTHER" : Autre type d'image ou document ne rentrant pas dans les catégories ci-dessus.
+5. "COURSE_RESOURCE" : Un support de cours, résumé de leçon, fiche de révision, polycopié, document PDF ou support pédagogique pour une classe / matière.
+   - title : Titre du cours ou de la ressource.
+   - className : Classe ciblée si identifiable (ex: "1A", "3B").
+   - subjectName : Matière concernée (ex: "Mathématiques", "Français", "Histoire").
+   - summary : Résumé du contenu pédagogique.
+   - suggestedAction : "add_resource"
+
+6. "HOMEWORK_ASSIGNMENT" : Une fiche d'exercices, devoir maison, énoncé de travail scolaire ou consignes de devoir avec date limite.
+   - title : Titre de la tâche ou des exercices.
+   - className : Classe ciblée.
+   - subjectName : Matière.
+   - date : Date limite de rendu si mentionnée.
+   - summary : Consignes ou description des exercices.
+   - suggestedAction : "create_assignment"
+
+7. "OTHER" : Autre type d'image ou document ne rentrant pas dans les catégories ci-dessus.
    - title : Titre descriptif.
    - summary : Ce que l'on voit dans l'image.
    - suggestedAction : "none"
 
 RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans balises markdown extra, sans explications) :
 {
-  "documentType": "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "OTHER",
+  "documentType": "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "COURSE_RESOURCE" | "HOMEWORK_ASSIGNMENT" | "OTHER",
   "title": "...",
   "summary": "...",
   "amount": 33.5,
@@ -130,6 +161,8 @@ RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans b
   "merchant": "The Garden Bistro",
   "studentName": null,
   "parentName": null,
+  "className": null,
+  "subjectName": null,
   "suggestedAction": "add_expense"
 }`;
 
@@ -166,6 +199,8 @@ RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans b
         merchant: parsed.merchant || undefined,
         studentName: parsed.studentName || undefined,
         parentName: parsed.parentName || undefined,
+        className: parsed.className || undefined,
+        subjectName: parsed.subjectName || undefined,
         suggestedAction: parsed.suggestedAction || "none",
       };
     } catch (err: any) {

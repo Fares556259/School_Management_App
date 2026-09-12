@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { invalidateTenantTags } from "@/lib/cache";
-import { createAssignmentNotification } from "@/lib/notifications";
+import { createAssignmentNotification, createResourceNotification } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
@@ -571,5 +571,192 @@ export async function getAssignmentDetailsTool(
     submissionRate: allStudents.length > 0 ? `${Math.round((submittedList.length / allStudents.length) * 100)}%` : "0%",
     submittedList: submittedList.slice(0, 20),
     missingStudents: missingStudents.slice(0, 20),
+  };
+}
+
+/**
+ * Tool: add_resource (ou create_resource)
+ * Publishes course materials / resources (PDF, images, summaries) for a class and notifies students/parents.
+ */
+export async function createResourceTool(
+  args: {
+    title: string;
+    className: string;
+    subjectName?: string;
+    url?: string;
+    description?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const cls = await resolveClassByName(context.schoolId, args.className);
+  if (!cls) {
+    return {
+      success: false,
+      message: `Classe "${args.className}" introuvable.`,
+      summary: "Classe introuvable",
+    };
+  }
+
+  let lesson: any;
+  try {
+    lesson = await resolveLessonForTask(context.schoolId, cls.id, args.subjectName);
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Erreur lors de la préparation de la séance : ${err?.message || "Matière introuvable."}`,
+      summary: "Erreur séance ressource",
+    };
+  }
+
+  const fileUrl = args.url?.trim() || "";
+
+  // Create Resource in DB
+  const resource = await prisma.resource.create({
+    data: {
+      title: args.title.trim(),
+      description: args.description?.trim() || null,
+      url: fileUrl,
+      lessonId: lesson.id,
+      schoolId: context.schoolId,
+    },
+    include: {
+      lesson: {
+        include: {
+          class: true,
+          subject: true,
+          teacher: true,
+        },
+      },
+    },
+  });
+
+  // Audit log
+  await prisma.auditLog.create({
+    data: {
+      action: "CREATE_RESOURCE",
+      performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+      entityType: "Resource",
+      entityId: resource.id.toString(),
+      description: `[Hnia AI Telegram] Publication de ressource : "${args.title}" pour la classe ${cls.name} (${cleanSubjectName(lesson.subject.name)})`,
+      schoolId: context.schoolId,
+    },
+  });
+
+  // Push notifications to parents and students
+  try {
+    await createResourceNotification(resource.id);
+  } catch (err) {
+    console.warn("[createResourceTool] Push notification warning:", err);
+  }
+
+  invalidateTenantTags(context.schoolId, "resources", "dashboard");
+
+  const subjectLabel = cleanSubjectName(lesson.subject.name);
+  const teacherLabel = lesson.teacher ? `${lesson.teacher.name} ${lesson.teacher.surname}` : "Enseignant";
+
+  const message = [
+    `✅ <b>Ressource Pédagogique Publiée avec Succès !</b>`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `📚 <b>Titre :</b> ${resource.title}`,
+    `👥 <b>Classe :</b> <code>${cls.name}</code> • 📖 <b>Matière :</b> ${subjectLabel}`,
+    `👨‍🏫 <b>Enseignant :</b> ${teacherLabel}`,
+    resource.description ? `📝 <b>Description :</b> <i>"${resource.description}"</i>` : null,
+    resource.url ? `📎 <b>Fichier(s) :</b> Document(s) joint(s) disponible(s) en ligne ✅` : null,
+    ``,
+    `📱 <i>Notification push transmise instantanément aux élèves et parents de la classe ${cls.name}.</i>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    success: true,
+    message,
+    summary: `Ressource "${resource.title}" publiée pour ${cls.name}`,
+    data: { resourceId: resource.id },
+  };
+}
+
+/**
+ * Tool: get_resources
+ * Fetches and filters published educational resources and course materials.
+ */
+export async function getResourcesTool(
+  args: {
+    className?: string;
+    subjectName?: string;
+    limit?: number;
+  },
+  context: ToolContext
+) {
+  const limit = args.limit || 20;
+  const where: any = {
+    schoolId: context.schoolId,
+  };
+
+  if (args.className) {
+    const cls = await resolveClassByName(context.schoolId, args.className);
+    if (cls) {
+      where.lesson = { classId: cls.id };
+    }
+  }
+
+  if (args.subjectName) {
+    const subject = await resolveSubjectByName(context.schoolId, args.subjectName);
+    if (subject) {
+      where.lesson = {
+        ...(where.lesson || {}),
+        subjectId: subject.id,
+      };
+    }
+  }
+
+  const resources = await prisma.resource.findMany({
+    where,
+    include: {
+      lesson: {
+        include: {
+          class: true,
+          subject: true,
+          teacher: { select: { name: true, surname: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+  const totalCount = await prisma.resource.count({ where: { schoolId: context.schoolId } });
+
+  if (resources.length === 0) {
+    return {
+      found: false,
+      message: `Aucune ressource pédagogique trouvée${args.className ? ` pour la classe ${args.className}` : ""}.`,
+      totalCount,
+      resources: [],
+    };
+  }
+
+  return {
+    found: true,
+    totalCount,
+    displayedCount: resources.length,
+    resources: resources.map((r) => {
+      const created = new Date(r.createdAt);
+      return {
+        id: r.id,
+        title: r.title,
+        description: r.description || null,
+        className: r.lesson.class.name,
+        subject: cleanSubjectName(r.lesson.subject.name),
+        teacher: r.lesson.teacher ? `${r.lesson.teacher.name} ${r.lesson.teacher.surname}` : null,
+        createdAt: created.toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }),
+        hasFiles: !!r.url,
+        fileUrls: r.url ? r.url.split(",").map((u) => u.trim()) : [],
+      };
+    }),
   };
 }
