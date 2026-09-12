@@ -14,6 +14,7 @@ import { runTelegramAgent } from "@/lib/telegram/agent";
 import { transcribeTelegramVoice } from "@/lib/telegram/voice";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
