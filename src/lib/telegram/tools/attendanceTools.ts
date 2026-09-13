@@ -591,3 +591,104 @@ export async function markClassAttendanceTool(
     },
   };
 }
+
+/**
+ * Tool: justify_attendance
+ * Excuses/justifies a student's absence with a reason, medical certificate, or note.
+ * Updates or creates the Attendance record with justificationStatus="APPROVED".
+ */
+export async function justifyAttendanceTool(
+  args: {
+    studentNameOrId: string;
+    reason: string;
+    date?: string;
+    certificateUrl?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
+  if (!student) {
+    return {
+      success: false,
+      message: `Élève "${args.studentNameOrId}" introuvable.`,
+      summary: "Élève introuvable",
+    };
+  }
+
+  const targetDate = args.date ? new Date(args.date) : new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Find attendance record for that day
+  const existingRecord = await prisma.attendance.findFirst({
+    where: {
+      studentId: student.id,
+      schoolId: context.schoolId,
+      date: { gte: startOfDay, lte: endOfDay },
+    },
+    orderBy: { date: "desc" },
+  });
+
+  const cleanReason = args.reason.trim();
+  const certImg = args.certificateUrl?.trim() || null;
+
+  if (existingRecord) {
+    await prisma.attendance.update({
+      where: { id: existingRecord.id },
+      data: {
+        justificationStatus: "APPROVED",
+        justificationNote: cleanReason,
+        justificationImg: certImg || existingRecord.justificationImg,
+        note: cleanReason,
+      },
+    });
+  } else {
+    // If teacher hasn't entered roll call yet, register the justified absence upfront
+    await prisma.attendance.create({
+      data: {
+        studentId: student.id,
+        date: startOfDay,
+        status: "ABSENT",
+        justificationStatus: "APPROVED",
+        justificationNote: cleanReason,
+        justificationImg: certImg,
+        note: cleanReason,
+        schoolId: context.schoolId,
+      },
+    });
+  }
+
+  // Audit log
+  await prisma.auditLog.create({
+    data: {
+      action: "UPDATE",
+      performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+      entityType: "Attendance",
+      entityId: student.id,
+      description: `[Hnia AI Telegram] Justification absence : ${student.name} ${student.surname} le ${targetDate.toLocaleDateString("fr-FR")} - Motif: "${cleanReason}"`,
+      schoolId: context.schoolId,
+    },
+  });
+
+  invalidateTenantTags(context.schoolId, "attendance", "dashboard", "students");
+
+  const proofBadge = certImg ? " • 📎 <i>Certificat médical joint ✅</i>" : "";
+  const dateStr = targetDate.toLocaleDateString("fr-FR");
+
+  return {
+    success: true,
+    message: `🩺 <b>Absence Justifiée avec Succès</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Élève :</b> <b>${student.name} ${student.surname}</b> • Classe <code>${(student as any).class?.name || "N/A"}</code>
+📅 <b>Date :</b> <code>${dateStr}</code>
+📋 <b>Motif :</b> <i>"${cleanReason}"</i>${proofBadge}
+🏷️ <b>Statut :</b> 🔵 <code>JUSTIFIÉE / APPROUVÉE</code>
+
+<blockquote>💡 <b>Hnia :</b> Le dossier de l'élève a été mis à jour dans SnapSchool. L'absence ne comptera plus comme non motivée.</blockquote>`,
+    summary: `Absence justifiée ${student.name} (${dateStr})`,
+    data: { studentId: student.id, date: dateStr, status: "APPROVED" },
+  };
+}
+

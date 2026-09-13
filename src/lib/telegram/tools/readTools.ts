@@ -513,3 +513,158 @@ export async function getTeachersTool(
     }),
   };
 }
+
+/**
+ * Tool: get_morning_briefing
+ * Gathers a 360° executive morning briefing for the school director:
+ * - Today's timetable slots and load
+ * - Unjustified absences from yesterday
+ * - Partial recovery / promises due today
+ * - Upcoming exams or tests scheduled today
+ * - Active urgent announcements
+ */
+export async function getMorningBriefingTool(
+  args: { date?: string },
+  context: ToolContext
+) {
+  const targetDate = args.date ? new Date(args.date) : new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Day of week enum
+  const dayIndex = targetDate.getDay(); // 0 = Sunday, 1 = Monday...
+  const dayEnumMap: Record<number, any> = {
+    1: "MONDAY",
+    2: "TUESDAY",
+    3: "WEDNESDAY",
+    4: "THURSDAY",
+    5: "FRIDAY",
+    6: "SATURDAY",
+  };
+  const todayEnum = dayEnumMap[dayIndex] || "MONDAY";
+
+  // Yesterday
+  const yesterdayStart = new Date(startOfDay);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const yesterdayEnd = new Date(endOfDay);
+  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+  const [
+    timetableSlots,
+    unjustifiedAbsencesYesterday,
+    dueRecoveriesToday,
+    urgentAnnouncements,
+    totalEnrolled,
+  ] = await Promise.all([
+    // 1. Timetable slots for today
+    prisma.timetableSlot.findMany({
+      where: {
+        schoolId: context.schoolId,
+        day: todayEnum,
+        isDraft: false,
+      },
+      orderBy: { startTime: "asc" },
+      include: {
+        class: { select: { name: true } },
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } },
+        room: { select: { name: true } },
+      },
+    }),
+    // 2. Unjustified absences from yesterday
+    prisma.attendance.findMany({
+      where: {
+        schoolId: context.schoolId,
+        date: { gte: yesterdayStart, lte: yesterdayEnd },
+        status: "ABSENT",
+        justificationStatus: { not: "APPROVED" },
+      },
+      include: {
+        student: {
+          select: {
+            name: true,
+            surname: true,
+            class: { select: { name: true } },
+            parent: { select: { phone: true, name: true } },
+          },
+        },
+      },
+      take: 10,
+    }),
+    // 3. Partial recoveries / promises due today
+    prisma.payment.findMany({
+      where: {
+        schoolId: context.schoolId,
+        status: "PARTIAL",
+        deferredUntil: { lte: endOfDay },
+      },
+      include: {
+        student: {
+          select: {
+            name: true,
+            surname: true,
+            class: { select: { name: true } },
+            parent: { select: { phone: true } },
+          },
+        },
+      },
+      take: 10,
+    }),
+    // 4. Urgent announcements
+    prisma.notice.findMany({
+      where: {
+        schoolId: context.schoolId,
+        important: true,
+      },
+      orderBy: { date: "desc" },
+      take: 3,
+    }),
+    // 5. Total enrolled students
+    prisma.student.count({
+      where: { schoolId: context.schoolId },
+    }),
+  ]);
+
+  const dateStr = targetDate.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return {
+    date: dateStr,
+    totalEnrolled,
+    sessionsCountToday: timetableSlots.length,
+    activeClassesCount: new Set(timetableSlots.map((s) => s.class?.name).filter(Boolean)).size,
+    schedulePreview: timetableSlots.slice(0, 8).map((s) => ({
+      time: `${s.startTime} - ${s.endTime}`,
+      class: s.class?.name || "N/A",
+      subject: s.subject?.name || "Cours",
+      teacher: s.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "Non assigné",
+      room: s.room?.name || null,
+    })),
+    followUpsNeeded: {
+      unjustifiedAbsencesYesterdayCount: unjustifiedAbsencesYesterday.length,
+      unjustifiedAbsencesList: unjustifiedAbsencesYesterday.map((a) => ({
+        student: `${a.student.name} ${a.student.surname}`,
+        class: a.student.class?.name || "N/A",
+        parentPhone: a.student.parent?.phone || null,
+      })),
+      recoveriesDueTodayCount: dueRecoveriesToday.length,
+      recoveriesDueTodayList: dueRecoveriesToday.map((p) => ({
+        student: p.student ? `${p.student.name} ${p.student.surname}` : "Élève",
+        class: p.student?.class?.name || "N/A",
+        dueAmount: `${p.deferredAmount || 0} DT`,
+        parentPhone: p.student?.parent?.phone || null,
+      })),
+    },
+    urgentNotices: urgentAnnouncements.map((n) => ({
+      title: n.title,
+      message: n.message.slice(0, 100),
+    })),
+  };
+}
+

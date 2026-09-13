@@ -793,3 +793,272 @@ export async function getExpensesTool(
   };
 }
 
+/**
+ * Tool: get_daily_caisse
+ * Generates an end-of-day cash register closing report (Clôture de Caisse).
+ * Computes:
+ * - Cash/income collected today (tuition, registrations, etc.)
+ * - Expenses paid out of register today
+ * - Physical net cash balance
+ * - Today's attendance summary (absents & unexcused)
+ */
+export async function getDailyCaisseTool(
+  args: { date?: string },
+  context: ToolContext
+) {
+  const targetDate = args.date ? new Date(args.date) : new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const [incomesToday, expensesToday, paymentsToday, absencesToday] = await Promise.all([
+    // 1. Total income today
+    prisma.income.findMany({
+      where: {
+        schoolId: context.schoolId,
+        date: { gte: startOfDay, lte: endOfDay },
+      },
+      select: { id: true, title: true, amount: true, category: true },
+    }),
+    // 2. Total expenses today
+    prisma.expense.findMany({
+      where: {
+        schoolId: context.schoolId,
+        date: { gte: startOfDay, lte: endOfDay },
+      },
+      select: { id: true, title: true, amount: true, category: true },
+    }),
+    // 3. Student payments recorded today
+    prisma.payment.findMany({
+      where: {
+        schoolId: context.schoolId,
+        paidAt: { gte: startOfDay, lte: endOfDay },
+        userType: "STUDENT",
+      },
+      include: {
+        student: {
+          select: { name: true, surname: true, class: { select: { name: true } } },
+        },
+      },
+    }),
+    // 4. Absences recorded today
+    prisma.attendance.findMany({
+      where: {
+        schoolId: context.schoolId,
+        date: { gte: startOfDay, lte: endOfDay },
+        status: "ABSENT",
+      },
+      include: {
+        student: {
+          select: { name: true, surname: true, class: { select: { name: true } } },
+        },
+      },
+    }),
+  ]);
+
+  const totalIncomes = incomesToday.reduce((sum, inc) => sum + inc.amount, 0);
+  const totalExpenses = expensesToday.reduce((sum, exp) => sum + exp.amount, 0);
+  const netCaisse = totalIncomes - totalExpenses;
+
+  const unexcusedAbsences = absencesToday.filter(
+    (a) => a.justificationStatus !== "APPROVED"
+  );
+
+  return {
+    date: targetDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+    summary: {
+      totalIncomes: `${totalIncomes} DT`,
+      totalExpenses: `${totalExpenses} DT`,
+      netCashBalance: `${netCaisse} DT`,
+      paymentsCount: paymentsToday.length,
+      expensesCount: expensesToday.length,
+      absencesCount: absencesToday.length,
+      unexcusedAbsencesCount: unexcusedAbsences.length,
+    },
+    incomesDetail: incomesToday.map((i) => ({
+      title: i.title,
+      amount: `${i.amount} DT`,
+      category: i.category,
+    })),
+    expensesDetail: expensesToday.map((e) => ({
+      title: e.title,
+      amount: `${e.amount} DT`,
+      category: e.category,
+    })),
+    recentPayments: paymentsToday.map((p) => ({
+      student: p.student ? `${p.student.name} ${p.student.surname}` : "Élève",
+      class: p.student?.class?.name || "N/A",
+      amount: `${p.amount} DT`,
+      month: `${MONTHS[p.month - 1]} ${p.year}`,
+      status: p.status,
+    })),
+    unexcusedAbsents: unexcusedAbsences.map((a) => ({
+      student: `${a.student.name} ${a.student.surname}`,
+      class: a.student.class?.name || "N/A",
+    })),
+  };
+}
+
+/**
+ * Tool: void_expense
+ * Voids/deletes an accidental expense entry from the school register.
+ */
+export async function voidExpenseTool(
+  args: {
+    expenseId?: number;
+    query?: string;
+    amount?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  let targetExpense: any = null;
+
+  if (args.expenseId) {
+    targetExpense = await prisma.expense.findFirst({
+      where: { id: args.expenseId, schoolId: context.schoolId },
+    });
+  } else if (args.query || args.amount) {
+    const where: any = { schoolId: context.schoolId };
+    if (args.query) {
+      where.title = { contains: args.query.trim(), mode: "insensitive" };
+    }
+    if (args.amount) {
+      where.amount = args.amount;
+    }
+    targetExpense = await prisma.expense.findFirst({
+      where,
+      orderBy: { date: "desc" },
+    });
+  }
+
+  if (!targetExpense) {
+    return {
+      success: false,
+      message: `⚠️ Dépense introuvable dans le registre de l'école.`,
+      summary: "Dépense introuvable",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.expense.delete({
+      where: { id: targetExpense.id },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "DELETE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Expense",
+        entityId: targetExpense.id.toString(),
+        description: `[Hnia AI Telegram] Annulation dépense : "${targetExpense.title}" de ${targetExpense.amount} DT (${targetExpense.category})`,
+        amount: targetExpense.amount,
+        type: "expense",
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "finance", "dashboard");
+
+  return {
+    success: true,
+    message: `🗑️ Dépense annulée avec succès : <b>${targetExpense.title}</b> d'un montant de <code>${targetExpense.amount} DT</code> a été retirée du registre financier.`,
+    summary: `Annulation dépense ${targetExpense.amount} DT`,
+    data: { voidedExpenseId: targetExpense.id },
+  };
+}
+
+/**
+ * Tool: cancel_payment
+ * Cancels or resets a tuition payment entered by mistake.
+ */
+export async function cancelPaymentTool(
+  args: {
+    studentNameOrId: string;
+    month?: number;
+    year?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
+  if (!student) {
+    return {
+      success: false,
+      message: `Élève "${args.studentNameOrId}" introuvable.`,
+      summary: "Élève introuvable",
+    };
+  }
+
+  const now = new Date();
+  const month = args.month || now.getMonth() + 1;
+  const year = args.year || now.getFullYear();
+
+  const payment = await prisma.payment.findFirst({
+    where: {
+      studentId: student.id,
+      month,
+      year,
+      schoolId: context.schoolId,
+      userType: "STUDENT",
+    },
+  });
+
+  if (!payment) {
+    return {
+      success: false,
+      message: `Aucun paiement trouvé pour <b>${student.name} ${student.surname}</b> pour <code>${MONTHS[month - 1]} ${year}</code>.`,
+      summary: "Paiement introuvable",
+    };
+  }
+
+  const cancelledAmount = payment.amount;
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Reset payment to PENDING with 0 amount
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "PENDING",
+        amount: 0,
+        paidAt: null,
+        deferredAmount: null,
+        deferredUntil: null,
+      },
+    });
+
+    // 2. Remove associated Income record if exists
+    await tx.income.deleteMany({
+      where: {
+        schoolId: context.schoolId,
+        referenceType: "StudentPayment",
+        referenceId: payment.id.toString(),
+      },
+    });
+
+    // 3. Log Audit
+    await tx.auditLog.create({
+      data: {
+        action: "CANCEL_PAYMENT",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Payment",
+        entityId: payment.id.toString(),
+        description: `[Hnia AI Telegram] Annulation paiement scolarité : ${student.name} ${student.surname} (${MONTHS[month - 1]} ${year}) - ${cancelledAmount} DT annulés`,
+        amount: cancelledAmount,
+        type: "income",
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "finance", "students", "dashboard");
+
+  return {
+    success: true,
+    message: `↩️ Paiement annulé avec succès : Le règlement de <code>${cancelledAmount} DT</code> de <b>${student.name} ${student.surname}</b> pour <code>${MONTHS[month - 1]} ${year}</code> a été remis en statut ❌ <code>NON PAYÉ</code>.`,
+    summary: `Annulation paiement ${student.name} (${cancelledAmount} DT)`,
+    data: { paymentId: payment.id },
+  };
+}
+
+

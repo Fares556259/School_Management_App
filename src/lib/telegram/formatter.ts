@@ -158,6 +158,34 @@ export function getQuickActionButtons(
   if (!lastTool) return undefined;
 
   switch (lastTool) {
+    case "get_daily_caisse":
+      return {
+        inline_keyboard: [
+          [
+            { text: "➕ Enregistrer dépense", callback_data: "action:add_expense" },
+            { text: "💳 Encaisser scolarité", callback_data: "action:record_payment" },
+          ],
+          [
+            { text: "📊 Bilan mensuel", callback_data: "action:financial_summary" },
+            { text: "📢 Relancer impayés", callback_data: "action:send_reminders" },
+          ],
+        ],
+      };
+
+    case "get_morning_briefing":
+      return {
+        inline_keyboard: [
+          [
+            { text: "⏱️ Pointer présence", callback_data: "action:mark_attendance" },
+            { text: "🔄 Trouver remplaçant", callback_data: "action:find_substitute" },
+          ],
+          [
+            { text: "📢 Relancer impayés", callback_data: "action:send_reminders" },
+            { text: "💵 Caisse du jour", callback_data: "action:view_caisse" },
+          ],
+        ],
+      };
+
     case "get_partial_payments":
       return {
         inline_keyboard: [

@@ -9,6 +9,7 @@ import {
   getPaymentsTool,
   getFinancialSummaryTool,
   getTeachersTool,
+  getMorningBriefingTool,
 } from "./readTools";
 import prisma from "@/lib/prisma";
 import { formatMonthFrench } from "@/lib/dateUtils";
@@ -30,6 +31,8 @@ import {
   createParentTool,
   createClassTool,
   assignStudentToClassTool,
+  updateParentPhoneTool,
+  updateStudentTool,
 } from "./academicTools";
 
 // Suite 2: Teachers & Staff
@@ -46,6 +49,7 @@ import {
   getStudentAttendanceHistoryTool,
   markAttendanceTool,
   markClassAttendanceTool,
+  justifyAttendanceTool,
 } from "./attendanceTools";
 
 // Suite 4: Grades & Exams
@@ -67,6 +71,9 @@ import {
   getIncomesTool,
   addIncomeTool,
   getExpensesTool,
+  getDailyCaisseTool,
+  voidExpenseTool,
+  cancelPaymentTool,
 } from "./financeTools";
 
 // Suite 6: Timetable & Substitution
@@ -1277,6 +1284,161 @@ ${lines.join("\n")}`;
       },
     },
     execute: getResourcesTool,
+  },
+
+  get_daily_caisse: {
+    name: "get_daily_caisse",
+    description: "Clôture de caisse journalière : total des encaissements reçus aujourd'hui (espèces/scolarités), total des dépenses réglées, solde net en caisse physique, et récapitulatif des absences.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_daily_caisse",
+      description: "Générer le rapport de clôture de caisse journalière (recettes, dépenses, solde physique net du jour).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          date: { type: SchemaType.STRING, description: "Date cible au format AAAA-MM-JJ (par défaut aujourd'hui)." },
+        },
+      },
+    },
+    execute: getDailyCaisseTool,
+  },
+
+  get_morning_briefing: {
+    name: "get_morning_briefing",
+    description: "Briefing exécutif du matin pour le directeur : séances du jour, absences de la veille à suivre, échéances et promesses de paiement du jour, annonces urgentes.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_morning_briefing",
+      description: "Obtenir le briefing exécutif du matin de l'école (emploi du temps, relances, absences).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          date: { type: SchemaType.STRING, description: "Date cible au format AAAA-MM-JJ (par défaut aujourd'hui)." },
+        },
+      },
+    },
+    execute: getMorningBriefingTool,
+  },
+
+  justify_attendance: {
+    name: "justify_attendance",
+    description: "Justifier ou motiver l'absence d'un élève avec un certificat médical, mot des parents ou raison valable. Met à jour le statut en 'JUSTIFIÉE/APPROUVÉE'.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "justify_attendance",
+      description: "Justifier l'absence d'un élève avec motif et éventuel certificat médical joint.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId", "reason"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève (ex: 'Youssef Trabelsi')." },
+          reason: { type: SchemaType.STRING, description: "Motif de la justification (ex: 'Certificat médical Dr. Ben Amor - 3 jours de repos')." },
+          date: { type: SchemaType.STRING, description: "Date de l'absence au format AAAA-MM-JJ (par défaut aujourd'hui)." },
+          certificateUrl: { type: SchemaType.STRING, description: "URL de l'image ou du document scanné du certificat médical (optionnel)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const certBadge = args.certificateUrl ? "\n📎 <i>Certificat médical / justificatif joint</i>" : "";
+      return `❓ <b>Confirmation : Justification d'Absence</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Élève : <b>${args.studentNameOrId}</b>\n📋 Motif : <i>"${args.reason}"</i>${certBadge}\n\nValider la justification de cette absence ?`;
+    },
+    execute: justifyAttendanceTool,
+  },
+
+  update_parent_phone: {
+    name: "update_parent_phone",
+    description: "Mettre à jour le numéro de téléphone d'un parent d'élève sur SnapSchool.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_parent_phone",
+      description: "Modifier le numéro de téléphone d'un parent d'élève.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrParentName", "newPhone"],
+        properties: {
+          studentNameOrParentName: { type: SchemaType.STRING, description: "Nom de l'élève ou nom du parent." },
+          newPhone: { type: SchemaType.STRING, description: "Nouveau numéro de téléphone (8 chiffres, ex: '98123456')." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Confirmation : Changement de Téléphone</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Cible : <b>${args.studentNameOrParentName}</b>\n📞 Nouveau numéro : <code>${args.newPhone}</code>\n\nConfirmer la mise à jour du contact ?`;
+    },
+    execute: updateParentPhoneTool,
+  },
+
+  void_expense: {
+    name: "void_expense",
+    description: "Annuler ou supprimer une dépense enregistrée par erreur dans le registre financier.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "void_expense",
+      description: "Annuler une dépense enregistrée par erreur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          expenseId: { type: SchemaType.NUMBER, description: "Identifiant numérique de la dépense si connu." },
+          query: { type: SchemaType.STRING, description: "Titre ou enseigne de la dépense (ex: 'Monoprix', 'Facture STEG')." },
+          amount: { type: SchemaType.NUMBER, description: "Montant de la dépense en Dinars Tunisiens (DT)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const q = args.query ? ` "${args.query}"` : "";
+      const amt = args.amount ? ` de ${args.amount} DT` : "";
+      return `❓ <b>Confirmation : Annulation de Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\n⚠️ Vous êtes sur le point d'annuler et retirer la dépense${q}${amt} du registre financier.\n\nConfirmer l'annulation ?`;
+    },
+    execute: voidExpenseTool,
+  },
+
+  cancel_payment: {
+    name: "cancel_payment",
+    description: "Annuler ou rembourser un paiement de scolarité saisi par erreur pour un élève.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "cancel_payment",
+      description: "Annuler un paiement de scolarité pour un élève et remettre le mois en impayé.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId", "month"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
+          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12)." },
+          year: { type: SchemaType.NUMBER, description: "Année (par défaut année courante)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Confirmation : Annulation de Règlement</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Élève : <b>${args.studentNameOrId}</b>\n📅 Mois : <code>Mois ${args.month} ${args.year || ""}</code>\n\nRemettre ce mois en statut ❌ NON PAYÉ ?`;
+    },
+    execute: cancelPaymentTool,
+  },
+
+  update_student: {
+    name: "update_student",
+    description: "Mettre à jour les informations d'un élève : transfert de classe, tarif mensuel personnalisé ou téléphone.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_student",
+      description: "Modifier la classe, le tarif ou les coordonnées d'un élève.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
+          newClassName: { type: SchemaType.STRING, description: "Nouvelle classe d'affectation (ex: '2B')." },
+          customTuition: { type: SchemaType.NUMBER, description: "Nouveau tarif mensuel personnalisé en DT (ex: 420)." },
+          phone: { type: SchemaType.STRING, description: "Nouveau téléphone personnel de l'élève." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const cls = args.newClassName ? `\n🏫 Nouvelle classe : <code>${args.newClassName}</code>` : "";
+      const tui = args.customTuition ? `\n💰 Nouveau tarif : <code>${args.customTuition} DT/mois</code>` : "";
+      const ph = args.phone ? `\n📞 Tél : <code>${args.phone}</code>` : "";
+      return `❓ <b>Confirmation : Modification Fiche Élève</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Élève : <b>${args.studentNameOrId}</b>${cls}${tui}${ph}\n\nAppliquer ces changements immédiatement ?`;
+    },
+    execute: updateStudentTool,
   },
 };
 

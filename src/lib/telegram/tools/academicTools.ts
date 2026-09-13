@@ -739,3 +739,182 @@ export async function assignStudentToClassTool(
     summary: `Affectation de ${student.name} à ${targetClass.name}`,
   };
 }
+
+/**
+ * Tool: update_parent_phone
+ * Updates the phone number for a parent (found via student or parent name).
+ */
+export async function updateParentPhoneTool(
+  args: {
+    studentNameOrParentName: string;
+    newPhone: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const cleanPhone = args.newPhone.replace(/[\s\-\+]/g, "").slice(-8);
+  if (!cleanPhone || cleanPhone.length < 8) {
+    return {
+      success: false,
+      message: `⚠️ Le numéro "${args.newPhone}" est invalide (doit comporter 8 chiffres).`,
+      summary: "Numéro invalide",
+    };
+  }
+
+  // 1. Try finding via student first
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrParentName);
+  let targetParent: any = null;
+
+  if (student && student.parentId) {
+    targetParent = await prisma.parent.findUnique({
+      where: { id: student.parentId },
+    });
+  }
+
+  // 2. If not found via student, search Parent table directly
+  if (!targetParent) {
+    const q = args.studentNameOrParentName.trim();
+    targetParent = await prisma.parent.findFirst({
+      where: {
+        schoolId: context.schoolId,
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { surname: { contains: q, mode: "insensitive" } },
+        ],
+      },
+    });
+  }
+
+  if (!targetParent) {
+    return {
+      success: false,
+      message: `Parent / Élève "${args.studentNameOrParentName}" introuvable.`,
+      summary: "Parent introuvable",
+    };
+  }
+
+  const oldPhone = targetParent.phone;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.parent.update({
+      where: { id: targetParent.id },
+      data: { phone: cleanPhone },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Parent",
+        entityId: targetParent.id,
+        description: `[Hnia AI Telegram] Mise à jour téléphone parent ${targetParent.name} ${targetParent.surname} : ${oldPhone || "N/A"} ➔ ${cleanPhone}`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "parents", "students", "dashboard");
+
+  return {
+    success: true,
+    message: `📱 <b>Numéro de Téléphone Mis à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Parent :</b> <b>${targetParent.name} ${targetParent.surname}</b>
+📞 <b>Nouveau Téléphone :</b> <a href="tel:+216${cleanPhone}">+216 ${cleanPhone}</a> • <a href="https://wa.me/216${cleanPhone}">WhatsApp 💬</a>
+
+<blockquote>💡 <b>Hnia :</b> Le contact a été synchronisé sur l'ensemble de la plateforme SnapSchool.</blockquote>`,
+    summary: `Mise à jour tél parent ${targetParent.name} (${cleanPhone})`,
+    data: { parentId: targetParent.id, phone: cleanPhone },
+  };
+}
+
+/**
+ * Tool: update_student
+ * Updates student attributes (custom tuition fee, class transfer, or personal phone).
+ */
+export async function updateStudentTool(
+  args: {
+    studentNameOrId: string;
+    newClassName?: string;
+    customTuition?: number;
+    phone?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
+  if (!student) {
+    return {
+      success: false,
+      message: `Élève "${args.studentNameOrId}" introuvable.`,
+      summary: "Élève introuvable",
+    };
+  }
+
+  const updateData: any = {};
+  const changeDescriptions: string[] = [];
+
+  if (args.customTuition !== undefined) {
+    updateData.customTuition = args.customTuition;
+    changeDescriptions.push(`Tarif mensuel : <code>${args.customTuition} DT/mois</code>`);
+  }
+
+  if (args.phone) {
+    const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
+    updateData.phone = cleanPhone;
+    changeDescriptions.push(`Tél élève : <code>${cleanPhone}</code>`);
+  }
+
+  if (args.newClassName) {
+    const targetClass = await resolveClassByName(context.schoolId, args.newClassName);
+    if (!targetClass) {
+      return {
+        success: false,
+        message: `Classe "${args.newClassName}" introuvable.`,
+        summary: "Classe introuvable",
+      };
+    }
+    updateData.classId = targetClass.id;
+    updateData.levelId = targetClass.levelId;
+    changeDescriptions.push(`Classe : <code>${targetClass.name}</code>`);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: false,
+      message: "Aucune modification spécifiée (veuillez indiquer un nouveau tarif, une classe ou un numéro).",
+      summary: "Aucune modification",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.student.update({
+      where: { id: student.id },
+      data: updateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Student",
+        entityId: student.id,
+        description: `[Hnia AI Telegram] Mise à jour élève ${student.name} ${student.surname} : ${changeDescriptions.join(", ")}`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "students", "classes", "dashboard", "finance");
+
+  return {
+    success: true,
+    message: `✏️ <b>Fiche Élève Mise à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Élève :</b> <b>${student.name} ${student.surname}</b>
+• ${changeDescriptions.join("\n• ")}
+
+<blockquote>💡 <b>Hnia :</b> Les modifications ont été appliquées immédiatement dans le dossier de l'élève.</blockquote>`,
+    summary: `Mise à jour élève ${student.name}`,
+    data: { studentId: student.id, updates: updateData },
+  };
+}
+

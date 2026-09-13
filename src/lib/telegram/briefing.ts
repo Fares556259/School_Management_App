@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { sendTelegramMessage } from "./telegram";
 import { getAttendanceTool, getPaymentsTool } from "./tools/readTools";
+import { formatTelegramMessage } from "./formatter";
 
 /**
  * Generates and sends a morning operational briefing to a linked administrator.
@@ -75,56 +76,74 @@ export async function sendDailyBriefing(telegramAccountId: string): Promise<bool
   let text: string;
 
   if (isArabic) {
-    text = `☀️ **صباح الخير ${adminName} !**
-إليك ملخص عمليات اليوم في **${account.School.name}** (${todayStr}) :
+    text = `🏛️ <b>SNAPSCHOOL</b> │ <b>ملخص العمليات الصباحي</b>
+━━━━━━━━━━━━━━━━━━━━━━
+☀️ <b>صباح الخير ${adminName} !</b>
+📅 <code>${todayStr}</code> • 🏫 <b>${account.School.name}</b>
 
-📍 **الحضور والغياب :**
-• غيابات مسجلة اليوم : **${attendance.summary.absentCount}**
-• تأخيرات : **${attendance.summary.lateCount}**
+📍 <b>الحضور والغياب :</b>
+• غيابات مسجلة : <code>${attendance.summary.absentCount}</code>
+• تأخيرات : <code>${attendance.summary.lateCount}</code>
 
-💰 **متابعة الرسوم المدرسية (الشهر الحالي) :**
-• اشتراكات مدفوعة : **${payments.overview.paidCount}** (${payments.overview.paidAmount} د.ت)
-• اشتراكات معلقة : **${payments.overview.unpaidCount}** (${payments.overview.unpaidAmount} د.ت)`;
+💰 <b>الرسوم المدرسية (الشهر الحالي) :</b>
+• مدفوع : <code>${payments.overview.paidAmount} DT</code> (${payments.overview.paidCount} تلميذ ✅)
+• معلق : <code>${payments.overview.unpaidAmount} DT</code> (${payments.overview.unpaidCount} تلميذ ⏳)`;
 
     if (upcomingExams.length > 0) {
-      text += `\n\n📝 **الامتحانات القادمة (خلال 3 أيام) :**\n` +
+      text += `\n\n📝 <b>الامتحانات القادمة (خلال 3 أيام) :</b>\n` +
         upcomingExams
           .map(
             (e) =>
-              `• ${e.title} (${e.lesson.class.name} - ${e.lesson.subject.name})`
+              `• <b>${e.title}</b> (<code>${e.lesson.class.name}</code> - <i>${e.lesson.subject.name}</i>)`
           )
           .join("\n");
     }
 
-    text += `\n\n💬 _أنا في انتظارك، أرسل لي أي رسالة أو تسجيل صوتي لإدارة شؤون مدرستك !_`;
+    text += `\n\n<blockquote>💡 <b>هنية :</b> جاهزة لمساعدتك في أي لحظة. أرسل رسالة أو تسجيلاً صوتياً للبدء !</blockquote>`;
   } else {
-    text = `☀️ **Bonjour ${adminName} !**
-Voici le point opérationnel du jour pour **${account.School.name}** (${todayStr}) :
+    text = `🏛️ <b>SNAPSCHOOL</b> │ <b>BRIEFING EXÉCUTIF DU MATIN</b>
+━━━━━━━━━━━━━━━━━━━━━━
+☀️ <b>Bonjour ${adminName} !</b>
+📅 <code>${todayStr}</code> • 🏫 <b>${account.School.name}</b>
 
-📍 **Présences du jour :**
-• Absents signalés : **${attendance.summary.absentCount}** élève(s)
-• Retards : **${attendance.summary.lateCount}** élève(s)
+📍 <b>Présences & Vie Scolaire :</b>
+• Absents signalés : <code>${attendance.summary.absentCount} élève(s)</code>
+• Retards : <code>${attendance.summary.lateCount} élève(s)</code>
 
-💰 **Frais de scolarité (Mois en cours) :**
-• Règlements perçus : **${payments.overview.paidCount}** (${payments.overview.paidAmount} DT)
-• Frais en attente : **${payments.overview.unpaidCount}** (${payments.overview.unpaidAmount} DT)`;
+💰 <b>Frais de Scolarité (Mois en cours) :</b>
+• Encaissé : <code>+${payments.overview.paidAmount} DT</code> (${payments.overview.paidCount} soldés 🟢)
+• En attente : <code>${payments.overview.unpaidAmount} DT</code> (${payments.overview.unpaidCount} élèves ⏳)`;
 
     if (upcomingExams.length > 0) {
-      text += `\n\n📝 **Examens prévus (prochains 3 jours) :**\n` +
+      text += `\n\n📝 <b>Examens Prévus (Prochains 3 jours) :</b>\n` +
         upcomingExams
           .map(
             (e) =>
-              `• ${e.title} (${e.lesson.class.name} - ${e.lesson.subject.name})`
+              `• <b>${e.title}</b> (<code>${e.lesson.class.name}</code> - <i>${e.lesson.subject.name}</i>)`
           )
           .join("\n");
     }
 
-    text += `\n\n💬 _Envoyez-moi un message ou une note vocale à tout moment pour agir ou consulter vos données !_`;
+    text += `\n\n<blockquote>💡 <b>Hnia :</b> Journée opérationnelle lancée. Utilisez les boutons ci-dessous pour agir rapidement.</blockquote>`;
   }
 
-  // Find active chat or use telegramId as chat ID (for 1-on-1 private bots, user ID is the chat ID)
-  await sendTelegramMessage(account.telegramId, text, {
-    parse_mode: "Markdown",
+  const styledMessage = formatTelegramMessage(text);
+
+  // Find active chat or use telegramId as chat ID
+  await sendTelegramMessage(account.telegramId, styledMessage, {
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "⏱️ Pointer présence", callback_data: "action:mark_attendance" },
+          { text: "🔄 Trouver remplaçant", callback_data: "action:find_substitute" },
+        ],
+        [
+          { text: "📢 Relancer impayés", callback_data: "action:send_reminders" },
+          { text: "💵 Caisse du jour", callback_data: "action:view_caisse" },
+        ],
+      ],
+    },
   });
 
   return true;

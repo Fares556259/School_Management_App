@@ -114,6 +114,8 @@ export async function POST(req: NextRequest) {
           add_slot: "Je souhaite ajouter une séance de cours à l'emploi du temps.",
           record_grade: "Je souhaite enregistrer une note pour un élève.",
           schedule_exam: "Je souhaite planifier un examen.",
+          view_caisse: "Fais le bilan de clôture de caisse d'aujourd'hui (recettes, dépenses, solde physique net en caisse).",
+          morning_briefing: "Donne-moi le briefing exécutif du matin pour aujourd'hui.",
         };
 
         const prompt = actionPrompts[actionType] || "Comment puis-je vous aider ?";
@@ -289,6 +291,8 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
 ---
 
 ⚙️ **Commandes système :**
+• \`/briefing\` — 🌅 Briefing exécutif du matin (séances, absences, échéances)
+• \`/caisse\` — 🌇 Clôture de caisse du jour (recettes, dépenses, solde net)
 • \`/call\` — 📞 Passer un appel vocal en direct avec Hnia
 • \`/lang\` — Changer la langue (Français / العربية / English)
 • \`/status\` — Vérifier l'état de votre connexion
@@ -332,8 +336,36 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
       return NextResponse.json({ ok: true });
     }
 
-    // 9. Command: /call (or audio call trigger)
+    // 8b. Command: /caisse
     const lowerText = rawText.toLowerCase();
+    if (lowerText === "/caisse" || lowerText === "caisse" || lowerText === "cloture de caisse" || lowerText === "كاسة") {
+      const tgAccount = await getLinkedAccount(telegramId);
+      if (tgAccount) {
+        await runTelegramAgent({
+          userMessage: "Fais le bilan de clôture de caisse du jour (recettes, dépenses, solde net physique en caisse).",
+          chatId,
+          telegramId,
+          tgAccount,
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // 8c. Command: /briefing
+    if (lowerText === "/briefing" || lowerText === "briefing" || lowerText === "صباح الخير" || lowerText === "bonjour") {
+      const tgAccount = await getLinkedAccount(telegramId);
+      if (tgAccount) {
+        await runTelegramAgent({
+          userMessage: "Donne-moi le briefing exécutif du matin pour aujourd'hui (séances du jour, absences récentes à suivre, promesses de paiement et alertes).",
+          chatId,
+          telegramId,
+          tgAccount,
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // 9. Command: /call (or audio call trigger)
     if (
       lowerText === "/call" ||
       lowerText.includes("appeler hnia") ||
@@ -522,9 +554,17 @@ Propose d'enregistrer le paiement de scolarité via 'record_payment' avec ce jus
           } else if (analysis.documentType === "ABSENCE_CERTIFICATE") {
             userPrompt = `${docDescriptor}
 
-L'administrateur a envoyé un certificat médical / mot d'absence.
-${analysis.studentName ? `Élève concerné : ${analysis.studentName}.` : "Élève à identifier."}
-Propose d'enregistrer et justifier l'absence de l'élève.`;
+L'administrateur a envoyé la photo d'un certificat médical ou mot d'absence.
+${analysis.studentName ? `Élève identifié : "${analysis.studentName}".` : "Élève à confirmer."}
+${analysis.date ? `Date / Période : ${analysis.date}.` : ""}
+Description : "${analysis.summary}".
+
+Instructions :
+${
+  analysis.studentName
+    ? `Appelle directement l'outil 'justify_attendance' avec studentNameOrId: "${analysis.studentName}", reason: "${analysis.summary || "Certificat médical"}", certificateUrl: "${photoUrl}"${analysis.date ? `, date: "${analysis.date}"` : ""}. Cela générera la carte de confirmation pour justifier l'absence avec la pièce jointe.`
+    : `Demande en UNE phrase courte de confirmer le prénom et nom de l'élève pour valider la justification de son absence avec ce certificat médical.`
+}`;
           } else if (analysis.documentType === "ANNOUNCEMENT_FLYER") {
             userPrompt = `${docDescriptor}
 
