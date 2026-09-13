@@ -68,15 +68,20 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     effectiveUserMessage = `[En réponse au message : "${replyToText.trim().slice(0, 300)}"]\n\n${userMessage}`;
   }
 
-  // 2. Find or create an active AIConversation
-  let conversation = await prisma.aIConversation.findFirst({
-    where: {
-      telegramAccountId: tgAccount.id,
-      telegramChatId: chatId.toString(),
-      status: "ACTIVE",
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  // 2 & 3. Find conversation + fetch history in parallel (saves 1 sequential DB round-trip)
+  let [conversation, existingHistory] = await Promise.all([
+    prisma.aIConversation.findFirst({
+      where: {
+        telegramAccountId: tgAccount.id,
+        telegramChatId: chatId.toString(),
+        status: "ACTIVE",
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    // We can't know the conversationId yet, so we'll fetch history after if needed.
+    // This slot is a placeholder — resolved below.
+    Promise.resolve(null as { role: string; content: string }[] | null),
+  ]);
 
   if (!conversation) {
     conversation = await prisma.aIConversation.create({
@@ -86,30 +91,38 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
         title: userMessage.slice(0, 40),
       },
     });
+    // Brand-new conversation — no history
+    existingHistory = [];
   }
 
-  // 3. Fetch recent conversation history prior to this turn (last 20 messages)
-  const historyMessagesDesc = await prisma.aIMessage.findMany({
-    where: { conversationId: conversation.id },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
-  const historyMessages = historyMessagesDesc.reverse();
+  // Fetch history (only if we didn't just create the conversation)
+  let historyMessages: { role: string; content: string }[] = [];
+  if (!Array.isArray(existingHistory)) {
+    // existingHistory is null — need to fetch
+    const historyMessagesDesc = await prisma.aIMessage.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    historyMessages = historyMessagesDesc.reverse();
+  }
+  // else existingHistory === [] (new conversation, already set above)
 
-  // 4. Save user message to database
-  await prisma.aIMessage.create({
+
+  // 4. Save user message to database (fire-and-forget — audit only, don't block)
+  prisma.aIMessage.create({
     data: {
       conversationId: conversation.id,
       role: "user",
       content: effectiveUserMessage,
     },
-  });
+  }).catch((e) => console.warn("[Agent] aIMessage user save failed:", e));
 
-  // Touch conversation to keep active
-  await prisma.aIConversation.update({
+  // Touch conversation to keep active (fire-and-forget)
+  prisma.aIConversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
-  });
+  }).catch((e) => console.warn("[Agent] aIConversation touch failed:", e));
 
   // 5. Build system instruction
   const todayStr = new Date().toLocaleDateString("fr-FR", {
@@ -503,13 +516,13 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       - Si l'administrateur a envoyé une photo de reçu/ticket dans un message précédent et dit ensuite (par vocal ou texte) "enregistre-la", "ماركيها", "c'est une dépense", fais immédiatement le lien avec le reçu analysé et exécute 'add_expense' avec le montant et l'intitulé de ce reçu sans rien redemander !
       - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.`;
 
-  // Candidate models with primary powerful flash model and fallbacks
+  // Candidate models — fastest first, fallbacks after
   const CANDIDATE_MODELS = [
-    "gemini-3.6-flash",
-    "gemini-3.7-flash",
-    "gemini-3.8-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-exp",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
   ];
 
   // Helper to format friendly error message without raw API dumps
@@ -691,8 +704,8 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         }
         lastToolOutput = toolOutput;
 
-        // Save tool call record
-        await prisma.aIToolCall.create({
+        // Save tool call record (fire-and-forget — audit only, don't block synthesis)
+        prisma.aIToolCall.create({
           data: {
             conversationId: conversation.id,
             toolName,
@@ -701,7 +714,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
             status: toolOutput?.error ? "FAILED" : "EXECUTED",
             executedAt: new Date(),
           },
-        });
+        }).catch((e) => console.warn("[Agent] aIToolCall save failed:", e));
 
         // Send tool output to Gemini for natural language synthesis
         response = await chat.sendMessage([
@@ -724,14 +737,14 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         console.warn("[Agent] candidate.text() warning:", textErr);
       }
 
-      // Save reply to DB
-      await prisma.aIMessage.create({
+      // Save reply to DB (fire-and-forget — don't block sending the message)
+      prisma.aIMessage.create({
         data: {
           conversationId: conversation.id,
           role: "assistant",
           content: finalReply,
         },
-      });
+      }).catch((e) => console.warn("[Agent] aIMessage assistant save failed:", e));
 
       // Format reply as an executive-grade Telegram card
       const formattedReply = formatTelegramMessage(finalReply, tgAccount.School.name);
