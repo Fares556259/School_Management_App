@@ -149,6 +149,12 @@ export async function getAttendanceTool(
         },
       };
     }
+  } else {
+    // No class filter — count ALL students for accurate school-wide attendance rate.
+    // (records have take:60 limit, so we can't use records.length as the total)
+    totalEnrolled = await prisma.student.count({
+      where: { schoolId: context.schoolId },
+    });
   }
 
   const records = await prisma.attendance.findMany({

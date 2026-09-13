@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
       if (data.startsWith("lang:")) {
         const selectedLang = data.replace("lang:", "") as "fr" | "ar" | "en";
         const tgId = update.callback_query.from.id.toString();
+        // Answer callback query immediately to stop the loading spinner
+        await answerTelegramCallbackQuery(update.callback_query.id, "Langue mise à jour !");
         await updateAccountLanguage(tgId, selectedLang);
 
         const langLabels = {
@@ -51,10 +53,10 @@ export async function POST(req: NextRequest) {
           en: "🇬🇧 Language changed to English.",
         };
 
-        await sendTelegramMessage(
-          update.callback_query.message.chat.id,
-          langLabels[selectedLang] || "Langue mise à jour."
-        );
+        const chatId = update.callback_query.message?.chat.id;
+        if (chatId) {
+          await sendTelegramMessage(chatId, langLabels[selectedLang] || "Langue mise à jour.");
+        }
         return NextResponse.json({ ok: true });
       }
 
@@ -138,6 +140,10 @@ export async function POST(req: NextRequest) {
     }
 
     const chatId = message.chat.id;
+    // Guard: channel posts and anonymous group admins have no 'from' field
+    if (!message.from?.id) {
+      return NextResponse.json({ ok: true });
+    }
     const telegramId = message.from.id.toString();
     const telegramUsername = message.from.username;
     const rawText = (message.text || message.caption || "").trim();
@@ -659,6 +665,8 @@ Instructions :
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error("[Telegram Webhook Exception]:", error);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    // Always return 200 to Telegram to prevent aggressive retry storms.
+    // Telegram retries on any non-200 response, which can cause infinite loops.
+    return NextResponse.json({ ok: true });
   }
 }

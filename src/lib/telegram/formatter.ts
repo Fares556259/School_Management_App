@@ -78,8 +78,23 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
   // 10. Mobile Cleanup: Unwrap single-line clarification questions from blockquotes
   text = text.replace(/<blockquote>\s*(?:💡\s*(?:Analyse\s+Hnia\s*:\s*)?)?([^<>\n]+?\?)\s*<\/blockquote>/gi, "❓ $1");
 
+  // 10b. Convert Markdown hyperlinks [text](url) to <a href="url">text</a>
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // 10c. Convert triple-backtick code blocks to <pre><code>...</code></pre>
+  text = text.replace(/```(?:[a-z]*)\n?([\s\S]*?)```/g, (_, code) => {
+    const escaped = code.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `<pre><code>${escaped}</code></pre>`;
+  });
+
   // 11. Auto-pill monetary amounts (e.g. 6 304 DT, 450 DT, 180 DT) if not already inside <code>
-  text = text.replace(/(?<!<code>)([-+]?\d[\d\s]*\s*DT)(?!<\/code>)/g, "<code>$1</code>");
+  // Fix: Use a safe replacement that avoids nested <code> tags (which Telegram rejects).
+  // First collect all existing <code>...</code> blocks and skip amounts inside them.
+  text = text.replace(/(<code>[^<]*<\/code>)|(([-+]?\d[\d\s]*\s*DT))/g, (match, codeBlock, _outer, amount) => {
+    if (codeBlock) return codeBlock; // Already in a code block — leave untouched
+    if (amount) return `<code>${amount}</code>`; // Wrap bare amount
+    return match;
+  });
 
   // 12. Clean up dangling bullet points and redundant empty lines
   text = text.replace(/[ \t]*•\s*•/g, "•");

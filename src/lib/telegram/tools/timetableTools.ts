@@ -86,15 +86,20 @@ export async function findAvailableTeachersTool(
   context: ToolContext
 ) {
   const { dayEnum, displayDay } = resolveDayOfWeek(args.day);
-  const searchTime = args.timeSlot.trim().slice(0, 5); // "10:00"
+  // Parse the time range: supports both "10:00" and "10:00 - 12:00" formats
+  const parts = args.timeSlot.split("-").map((s) => s.trim());
+  const searchStart = parts[0].slice(0, 5); // "10:00"
+  const searchEnd = parts.length > 1 ? parts[1].slice(0, 5) : null; // "12:00" if provided
 
-  // 1. Get all slots on this day that overlap with searchTime
+  // 1. Get all slots on this day that OVERLAP with the requested time range.
+  // Overlap condition: slot.startTime < requestedEnd AND slot.endTime > requestedStart
   const busySlots = await prisma.timetableSlot.findMany({
     where: {
       isDraft: false,
       day: dayEnum,
-      startTime: { lte: searchTime },
-      endTime: { gt: searchTime },
+      // A slot overlaps if it starts before the end of our window AND ends after the start
+      startTime: searchEnd ? { lt: searchEnd } : { lte: searchStart },
+      endTime: { gt: searchStart },
     },
     select: { teacherId: true },
   });
@@ -130,7 +135,7 @@ export async function findAvailableTeachersTool(
 
   return {
     day: displayDay,
-    time: searchTime,
+    time: searchEnd ? `${searchStart} - ${searchEnd}` : searchStart,
     subjectFilter: args.subjectName || "Toutes matières",
     availableCount: availableTeachers.length,
     availableTeachers: availableTeachers.map((t) => ({
@@ -189,6 +194,46 @@ export async function addTimetableSlotTool(
   if (args.room) {
     const r = await resolveRoomByName(context.schoolId, args.room);
     if (r) roomId = r.id;
+  }
+
+  // Check for teacher scheduling conflict on this day/time
+  const teacherConflict = await prisma.timetableSlot.findFirst({
+    where: {
+      isDraft: false,
+      teacherId: teacher.id,
+      day: dayEnum,
+      startTime: { lt: args.endTime },
+      endTime: { gt: args.startTime },
+    },
+    include: { class: { select: { name: true } }, subject: { select: { name: true } } },
+  });
+
+  if (teacherConflict) {
+    return {
+      success: false,
+      message: `⚠️ Conflit d'emploi du temps : <b>${teacher.name} ${teacher.surname}</b> a déjà cours de <code>${teacherConflict.startTime}</code> à <code>${teacherConflict.endTime}</code> en <b>${(teacherConflict as any).class?.name || "une autre classe"}</b> le <b>${displayDay}</b>. Veuillez choisir un autre créneau ou un autre enseignant.`,
+      summary: `Conflit horaire enseignant`,
+    };
+  }
+
+  // Check for class scheduling conflict on this day/time
+  const classConflict = await prisma.timetableSlot.findFirst({
+    where: {
+      isDraft: false,
+      classId: targetClass.id,
+      day: dayEnum,
+      startTime: { lt: args.endTime },
+      endTime: { gt: args.startTime },
+    },
+    include: { subject: { select: { name: true } }, teacher: { select: { name: true, surname: true } } },
+  });
+
+  if (classConflict) {
+    return {
+      success: false,
+      message: `⚠️ Conflit d'emploi du temps : la classe <b>${targetClass.name}</b> a déjà <b>${(classConflict as any).subject?.name || "un cours"}</b> de <code>${classConflict.startTime}</code> à <code>${classConflict.endTime}</code> le <b>${displayDay}</b>. Veuillez choisir un autre créneau.`,
+      summary: `Conflit horaire classe`,
+    };
   }
 
   // Get next slot number

@@ -82,7 +82,8 @@ export async function handleConfirmationCallback(
     return;
   }
 
-  // 4. Check idempotency: Has this action already been processed?
+  // 4. Atomic idempotency guard: atomically claim PENDING → EXECUTING
+  // This prevents double-execution if user double-taps or Telegram retries.
   if (toolCall.status === "EXECUTED") {
     await answerTelegramCallbackQuery(queryId, "Cette action a déjà été exécutée.");
     return;
@@ -93,20 +94,40 @@ export async function handleConfirmationCallback(
     return;
   }
 
+  if (toolCall.status === "EXECUTING") {
+    await answerTelegramCallbackQuery(queryId, "Cette action est déjà en cours d'exécution.");
+    return;
+  }
+
+  // Atomically transition PENDING → EXECUTING (prevents race condition on double-tap)
+  const claimed = await prisma.aIToolCall.updateMany({
+    where: { id: toolCallId, status: "PENDING" },
+    data: { status: "EXECUTING" },
+  });
+  if (claimed.count === 0) {
+    await answerTelegramCallbackQuery(queryId, "Cette action est déjà en cours ou a été traitée.");
+    return;
+  }
+
   // 5. Handle cancellation
   if (action === "cancel") {
-    await prisma.aIToolCall.update({
-      where: { id: toolCallId },
-      data: {
-        status: "REJECTED",
-      },
-    });
-
-    await answerTelegramCallbackQuery(queryId, "Action annulée");
-    const cancelMsg = formatTelegramMessage(
-      `❌ **Action annulée** par l'administrateur.\nAucune modification n'a été effectuée.`
-    );
-    await editTelegramMessageText(chatId, messageId, cancelMsg, { parse_mode: "HTML" });
+    try {
+      await prisma.aIToolCall.update({
+        where: { id: toolCallId },
+        data: { status: "REJECTED" },
+      });
+      await answerTelegramCallbackQuery(queryId, "Action annulée");
+    } catch (cancelErr) {
+      console.error("[Confirmation] Cancel DB update error:", cancelErr);
+    }
+    try {
+      const cancelMsg = formatTelegramMessage(
+        `❌ **Action annulée** par l'administrateur.\nAucune modification n'a été effectuée.`
+      );
+      await editTelegramMessageText(chatId, messageId, cancelMsg, { parse_mode: "HTML" });
+    } catch (editErr) {
+      console.warn("[Confirmation] Failed to edit cancel message (non-critical):", editErr);
+    }
     return;
   }
 
@@ -129,11 +150,14 @@ export async function handleConfirmationCallback(
       language: tgAccount.language,
     };
 
+    // STEP A: Execute the tool — separate from UI update to prevent state inversion
+    let executionResult: any;
+    let toolError: any = null;
     try {
       const args = toolCall.arguments as Record<string, any>;
-      const executionResult = await tool.execute(args, context);
+      executionResult = await tool.execute(args, context);
 
-      // Mark tool call as EXECUTED
+      // Mark EXECUTED only after confirmed success
       await prisma.aIToolCall.update({
         where: { id: toolCallId },
         data: {
@@ -143,30 +167,34 @@ export async function handleConfirmationCallback(
           executedAt: new Date(),
         },
       });
-
-      // Update message in Telegram to show completed confirmation
-      const rawConfirmationMsg =
-        executionResult.message || `✅ Action **${toolCall.toolName}** exécutée avec succès.`;
-
-      const confirmationMsg = formatTelegramMessage(rawConfirmationMsg, tgAccount.School.name);
-
-      await editTelegramMessageText(chatId, messageId, confirmationMsg, { parse_mode: "HTML" });
     } catch (err: any) {
+      toolError = err;
       console.error("[Confirmation] Tool execution error:", err);
+      try {
+        await prisma.aIToolCall.update({
+          where: { id: toolCallId },
+          data: { status: "FAILED", result: { error: err.message } },
+        });
+      } catch (dbErr) {
+        console.error("[Confirmation] Failed to mark tool as FAILED in DB:", dbErr);
+      }
+    }
 
-      await prisma.aIToolCall.update({
-        where: { id: toolCallId },
-        data: {
-          status: "FAILED",
-          result: { error: err.message },
-        },
-      });
-
-      const errorMsg = formatTelegramMessage(
-        `⚠️ **Erreur lors de l'exécution :**\n${err.message || "Une erreur inconnue est survenue."}`
-      );
-
-      await editTelegramMessageText(chatId, messageId, errorMsg, { parse_mode: "HTML" });
+    // STEP B: Update Telegram UI — independent try/catch so UI failure doesn't corrupt DB state
+    try {
+      if (toolError) {
+        const errorMsg = formatTelegramMessage(
+          `⚠️ **Erreur lors de l'exécution :**\n${toolError.message || "Une erreur inconnue est survenue."}`
+        );
+        await editTelegramMessageText(chatId, messageId, errorMsg, { parse_mode: "HTML" });
+      } else {
+        const rawConfirmationMsg =
+          executionResult?.message || `✅ Action **${toolCall.toolName}** exécutée avec succès.`;
+        const confirmationMsg = formatTelegramMessage(rawConfirmationMsg, tgAccount.School.name);
+        await editTelegramMessageText(chatId, messageId, confirmationMsg, { parse_mode: "HTML" });
+      }
+    } catch (editErr) {
+      console.warn("[Confirmation] Failed to edit Telegram message (non-critical — action already saved to DB):", editErr);
     }
   }
 }

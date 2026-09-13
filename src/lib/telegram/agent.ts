@@ -461,11 +461,9 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
 
   // Candidate models with primary powerful flash model and fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
   ];
 
   // Helper to format friendly error message without raw API dumps
@@ -543,6 +541,10 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
             functionDeclarations: getGeminiFunctionDeclarations(),
           },
         ],
+        generationConfig: {
+          temperature: 0.15,
+          maxOutputTokens: 2048,
+        },
       });
 
       const chat = model.startChat({
@@ -555,8 +557,17 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
       // Handle tool calling loop
       let functionCalls = candidate.functionCalls();
       let lastExecutedTool: string | undefined;
+      const MAX_TOOL_ITERATIONS = 5;
+      let toolIterations = 0;
 
       while (functionCalls && functionCalls.length > 0) {
+        // Safety guard: prevent infinite tool call loops
+        if (toolIterations >= MAX_TOOL_ITERATIONS) {
+          console.warn(`[Agent] Max tool iterations (${MAX_TOOL_ITERATIONS}) reached. Breaking loop.`);
+          break;
+        }
+        toolIterations++;
+
         const call = functionCalls[0];
         const toolName = call.name;
         const toolArgs = (call.args || {}) as Record<string, any>;
@@ -620,8 +631,17 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
 
         // Read-only tool: execute immediately
         lastExecutedTool = toolName;
+        // Refresh typing indicator to show bot is still working
         await sendTelegramChatAction(chatId, "typing");
-        const toolOutput = await toolDef.execute(toolArgs, context);
+
+        let toolOutput: any;
+        try {
+          toolOutput = await toolDef.execute(toolArgs, context);
+        } catch (toolErr: any) {
+          console.error(`[Agent] Tool execution error for '${toolName}':`, toolErr);
+          // Return error as tool output so model can handle it gracefully
+          toolOutput = { error: true, message: toolErr.message || "Tool execution failed" };
+        }
 
         // Save tool call record
         await prisma.aIToolCall.create({
@@ -630,7 +650,7 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
             toolName,
             arguments: toolArgs,
             result: toolOutput,
-            status: "EXECUTED",
+            status: toolOutput?.error ? "FAILED" : "EXECUTED",
             executedAt: new Date(),
           },
         });
@@ -640,11 +660,7 @@ L'administrateur te lit sur son smartphone (écran étroit). Tu dois délivrer u
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
-            )}\n\nPrésente ces données à l'administrateur sous forme d'une mini-carte Telegram compacte, 100% optimisée pour mobile (smartphone) :
-- Zéro texte superflu : pas de bavardage, aucun UUID/ID technique affiché.
-- Format ultra-synthétique et scannable avec <b>gras</b>, <i>italique</i>, et <code>...</code> pour les montants, classes et dates.
-- Termine UNIQUEMENT si nécessaire par 1 courte phrase percutante d'action dans <blockquote>💡 <b>Hnia :</b> [conseil direct]</blockquote>.
-- Réponds dans sa langue (${tgAccount.language || "fr"}).`,
+            )}\n\nPrésente ces données à l'administrateur sous forme d'une mini-carte Telegram compacte, 100% optimisée pour mobile (smartphone) :\n- Zéro texte superflu : pas de bavardage, aucun UUID/ID technique affiché.\n- Format ultra-synthétique et scannable avec <b>gras</b>, <i>italique</i>, et <code>...</code> pour les montants, classes et dates.\n- Termine UNIQUEMENT si nécessaire par 1 courte phrase percutante d'action dans <blockquote>💡 <b>Hnia :</b> [conseil direct]</blockquote>.\n- Réponds dans sa langue (${tgAccount.language || "fr"}).`,
           },
         ]);
 

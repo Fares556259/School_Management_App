@@ -5,9 +5,9 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 
 function getBotToken(): string {
-  const token = process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
+  const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
-    throw new Error("TELEGRAM_BOT_TOKEN is not configured in environment variables");
+    throw new Error("TELEGRAM_BOT_TOKEN is not configured in environment variables. Set it in your Vercel/local .env settings.");
   }
   return token;
 }
@@ -30,6 +30,25 @@ export interface SendMessageOptions {
 }
 
 /**
+ * Split a long text into chunks of at most maxLen characters,
+ * breaking at newlines to preserve formatting.
+ */
+function splitMessage(text: string, maxLen = 3900): string[] {
+  if (text.length <= maxLen) return [text];
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > maxLen) {
+    // Try to break at the last newline before maxLen
+    let breakAt = remaining.lastIndexOf("\n", maxLen);
+    if (breakAt <= 0) breakAt = maxLen;
+    chunks.push(remaining.slice(0, breakAt));
+    remaining = remaining.slice(breakAt).trimStart();
+  }
+  if (remaining.length > 0) chunks.push(remaining);
+  return chunks;
+}
+
+/**
  * Send a text message to a Telegram chat
  */
 export async function sendTelegramMessage(
@@ -40,50 +59,58 @@ export async function sendTelegramMessage(
   const token = getBotToken();
   const url = `${TELEGRAM_API_BASE}/bot${token}/sendMessage`;
 
-  const payload: Record<string, any> = {
-    chat_id: chatId,
-    text,
-  };
+  // Chunk long messages to stay within Telegram's 4096-char limit
+  const chunks = splitMessage(text);
+  let lastResult: any;
+  for (const chunk of chunks) {
+    const payload: Record<string, any> = {
+      chat_id: chatId,
+      text: chunk,
+    };
 
-  if (options?.parse_mode) {
-    payload.parse_mode = options.parse_mode;
-  }
-  if (options?.reply_markup) {
-    payload.reply_markup = options.reply_markup;
-  }
-  if (options?.reply_to_message_id) {
-    payload.reply_to_message_id = options.reply_to_message_id;
-  }
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-    if (!data.ok) {
-      console.error("[Telegram] sendMessage error:", data);
-      // Fallback: If parsing failed, try sending as plain text
-      if (options?.parse_mode && data.description?.includes("can't parse entities")) {
-        delete payload.parse_mode;
-        if (options.parse_mode === "HTML") {
-          payload.text = payload.text.replace(/<[^>]*>/g, "");
-        }
-        const retryRes = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        return await retryRes.json();
-      }
+    if (options?.parse_mode) {
+      payload.parse_mode = options.parse_mode;
     }
-    return data;
-  } catch (error) {
-    console.error("[Telegram] sendMessage fetch failed:", error);
-    throw error;
+    // Only add reply_markup to the last chunk
+    if (options?.reply_markup && chunk === chunks[chunks.length - 1]) {
+      payload.reply_markup = options.reply_markup;
+    }
+    if (options?.reply_to_message_id) {
+      payload.reply_to_message_id = options.reply_to_message_id;
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        console.error("[Telegram] sendMessage error:", data);
+        // Fallback: If parsing failed, try sending as plain text
+        if (options?.parse_mode && data.description?.includes("can't parse entities")) {
+          delete payload.parse_mode;
+          if (options.parse_mode === "HTML") {
+            payload.text = payload.text.replace(/<[^>]*>/g, "");
+          }
+          const retryRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          lastResult = await retryRes.json();
+          continue;
+        }
+      }
+      lastResult = data;
+    } catch (error) {
+      console.error("[Telegram] sendMessage fetch failed:", error);
+      // Don't throw — log and continue with next chunk
+    }
   }
+  return lastResult;
 }
 
 /**
