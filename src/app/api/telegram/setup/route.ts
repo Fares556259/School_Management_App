@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setTelegramWebhook, getTelegramWebhookInfo } from "@/lib/telegram/telegram";
+import {
+  setTelegramWebhook,
+  getTelegramWebhookInfo,
+  setTelegramBotCommands,
+} from "@/lib/telegram/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +17,13 @@ export async function GET(req: NextRequest) {
     const webhookUrl = `${appUrl}/api/telegram/webhook`;
     const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-    // Check query param action: ?action=info or ?action=set
+    // Check query param action: ?action=info or ?action=set or ?action=commands
     const action = req.nextUrl.searchParams.get("action") || "set";
+
+    if (action === "commands") {
+      const cmdResult = await setTelegramBotCommands();
+      return NextResponse.json({ ok: true, commandsResult: cmdResult });
+    }
 
     if (action === "info") {
       const info = await getTelegramWebhookInfo();
@@ -24,13 +33,15 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Set webhook
+    // Set webhook & bot commands
     const setResult = await setTelegramWebhook(webhookUrl, secret);
+    const cmdResult = await setTelegramBotCommands();
     const updatedInfo = await getTelegramWebhookInfo();
 
     return NextResponse.json({
       ok: true,
       result: setResult,
+      commandsResult: cmdResult,
       webhookUrl,
       webhookInfo: updatedInfo,
     });

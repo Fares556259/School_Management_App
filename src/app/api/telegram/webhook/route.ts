@@ -427,6 +427,16 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
           parse_mode: "HTML",
           reply_markup: getMainHubInlineKeyboard(account.language),
         });
+
+        await sendTelegramMessage(
+          chatId,
+          isAr
+            ? "👇 تم تفعيل أزرار العمليات السريعة أسفل الشاشة :"
+            : "👇 Clavier de raccourcis rapides activé au bas de votre écran :",
+          {
+            reply_markup: getMainHubKeyboard(account.language),
+          }
+        );
       }
       return NextResponse.json({ ok: true });
     }

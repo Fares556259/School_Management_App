@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
-import { sendTelegramChatAction, sendTelegramMessage } from "./telegram";
+import {
+  sendTelegramChatAction,
+  sendTelegramMessage,
+  getMainHubInlineKeyboard,
+} from "./telegram";
 import { TOOLS, getGeminiFunctionDeclarations } from "./tools";
 import { ToolContext } from "./tools/readTools";
 import { formatTelegramMessage, getQuickActionButtons } from "./formatter";
@@ -715,7 +719,9 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 
       // Format reply as an executive-grade Telegram card
       const formattedReply = formatTelegramMessage(finalReply, tgAccount.School.name);
-      const quickButtons = getQuickActionButtons(lastExecutedTool, formattedReply);
+      const quickButtons =
+        getQuickActionButtons(lastExecutedTool, formattedReply) ||
+        getMainHubInlineKeyboard(tgAccount.language);
 
       // Send formatted message to Telegram
       await sendTelegramMessage(chatId, formattedReply, {

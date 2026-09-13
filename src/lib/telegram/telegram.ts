@@ -387,3 +387,35 @@ export async function setChatMenuButton(
   });
   return await res.json();
 }
+
+/**
+ * Register the official command list with Telegram so it appears in the [/] menu
+ */
+export async function setTelegramBotCommands(
+  commands?: Array<{ command: string; description: string }>
+): Promise<any> {
+  const token = getBotToken();
+  const url = `${TELEGRAM_API_BASE}/bot${token}/setMyCommands`;
+
+  const defaultCommands = commands || [
+    { command: "menu", description: "🏛️ Menu principal & Accès direct" },
+    { command: "school", description: "🏫 Mon École (Vue d'ensemble)" },
+    { command: "finance", description: "💰 Finances & Caisse" },
+    { command: "teachers", description: "👨‍🏫 Enseignants & Salaires" },
+    { command: "students", description: "👨‍🎓 Élèves & Classes" },
+    { command: "timetable", description: "📅 Emploi du Temps" },
+    { command: "reports", description: "📊 Rapports & Tableau de bord" },
+    { command: "briefing", description: "🌅 Briefing du matin" },
+    { command: "caisse", description: "🌇 Clôture de caisse du jour" },
+    { command: "call", description: "📞 Appel vocal direct avec Hnia" },
+    { command: "help", description: "❓ Guide complet d'utilisation" },
+    { command: "lang", description: "🌐 Changer la langue" },
+  ];
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commands: defaultCommands }),
+  });
+  return await res.json();
+}
