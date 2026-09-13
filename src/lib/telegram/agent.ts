@@ -313,6 +313,8 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
      - schedule_recovery_date : Fixer ou modifier la date limite promise de recouvrement (deferredUntil).
     • REVENUS DE L'ÉCOLE (INCOMES) :
       - get_incomes : Chiffres du mois, total historique, et ventilation par catégorie de recettes.
+        * 🔍 REQUÊTES PAR CATÉGORIE (ex: "combien on a en Cantine ?", "total des Dons ?", "recettes transport") :
+          -> Appelle 'get_incomes' avec category: "[Nom de catégorie, ex: 'Dons', 'Cantine']" pour obtenir le total all-time, ce mois et les entrées.
       - add_income : Enregistrer une recette avec titre, montant, catégorie, date et justificatif (img).
       - 🏷️ RÉFÉRENTIEL DES CATÉGORIES DE REVENUS :
         * 'Tuition' (ou 'Scolarité') : Frais de scolarité mensuels, inscriptions et réinscriptions.
@@ -325,7 +327,13 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
         * Si l'admin indique une catégorie personnalisée (ex: 'Périscolaire'), applique-la fidèlement.
 
     • DÉPENSES DE L'ÉCOLE (EXPENSES) :
-      - get_expenses : Total mensuel, total historique, ventilation par catégorie de charges.
+      - get_expenses : Total mensuel, total historique, ventilation par catégorie de charges et historique complet.
+        * 🔍 REQUÊTES PAR CATÉGORIE OU CODE BUS (ex: "how much we have in BUS02", "combien on a dépensé pour BUS02 ?", "قداش صرفنا في BUS02 ؟", "dépenses de BUS01", "total Loyer") :
+          -> Appelle TOUJOURS 'get_expenses' avec category: "[Code ou Catégorie, ex: 'BUS02', 'BUS01', 'Transport', 'Loyer']" !
+          -> Réponds directement et précisément avec :
+             1. Le total historique / all-time pour cette catégorie (ex: 150 DT pour BUS02).
+             2. Le total du mois en cours (ex: 50 DT ce mois-ci).
+             3. La liste des dépenses avec date, intitulé et montant (ex: 50 DT le 03/09 pour 'huhyio', 100 DT le 26/08 pour 'test').
       - add_expense : Enregistrer une dépense avec description/titre, montant DT, catégorie, date et justificatif (img).
       - 🏷️ RÉFÉRENTIEL DES CATÉGORIES DE DÉPENSES :
         * 'Transport' / 'FUEL' / Flotte scolaire : Carburant (essence, mazout, 7a9 l'essence), vidanges, réparations et lavage des véhicules.
@@ -339,6 +347,7 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
         * 'Salary' : Salaires nets payés aux enseignants et au personnel.
         * 'Advance' : Avances sur salaire / acomptes versés en cours de mois.
         * Catégorie personnalisée : Si l'admin spécifie un nom précis de catégorie (ex: 'TEST01'), respecte ce choix.
+      - 💡 INDICATION DE STATUT DE CATÉGORIE : Le système indique automatiquement sous chaque carte si la catégorie est existante dans la base (✅) ou s'il s'agit d'une nouvelle catégorie créée (🆕).
    • SCOLARITÉ & FACTURATION :
      - record_payment : Encaisser un versement libre avec ventilation multi-mois automatique de septembre à juin.
      - get_payments : Suivi complet des paiements et impayés de scolarité par mois, classe et statut.

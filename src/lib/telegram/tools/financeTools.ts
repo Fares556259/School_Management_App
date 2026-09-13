@@ -714,6 +714,10 @@ export async function getIncomesTool(
     where.title = { contains: args.query.trim(), mode: "insensitive" };
   }
 
+  const hasExplicitDate = Boolean(args.date);
+  const hasExplicitMonth = args.month !== undefined && args.month !== null;
+  const queryAllTime = Boolean(args.category || args.query) && !hasExplicitDate && !hasExplicitMonth;
+
   let filterDateWhere: any;
   if (args.date) {
     let target = new Date();
@@ -726,11 +730,13 @@ export async function getIncomesTool(
     const e = new Date(target);
     e.setHours(23, 59, 59, 999);
     filterDateWhere = { ...where, date: { gte: s, lte: e } };
+  } else if (queryAllTime) {
+    filterDateWhere = where;
   } else {
     filterDateWhere = { ...where, date: { gte: startDate, lt: endDate } };
   }
 
-  const [dateSum, monthSum, todaySum, allTimeSum, categoryBreakdown, records] = await Promise.all([
+  const [dateSum, monthSum, todaySum, filteredAllTimeSum, schoolAllTimeSum, allCategoriesBreakdown, records] = await Promise.all([
     prisma.income.aggregate({
       where: filterDateWhere,
       _sum: { amount: true },
@@ -747,13 +753,18 @@ export async function getIncomesTool(
       _count: { id: true },
     }),
     prisma.income.aggregate({
+      where,
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.income.aggregate({
       where: { schoolId: context.schoolId },
       _sum: { amount: true },
       _count: { id: true },
     }),
     prisma.income.groupBy({
       by: ["category"],
-      where: filterDateWhere,
+      where: { schoolId: context.schoolId },
       _sum: { amount: true },
       _count: { id: true },
       orderBy: { _sum: { amount: "desc" } },
@@ -774,17 +785,24 @@ export async function getIncomesTool(
   ]);
 
   return {
-    period: args.date ? (args.date === "today" ? "Aujourd'hui" : args.date) : `${month}/${year}`,
+    period: args.date ? (args.date === "today" ? "Aujourd'hui" : args.date) : (queryAllTime ? `Historique complet (${args.category || args.query})` : `${month}/${year}`),
+    categoryStats: args.category ? {
+      category: args.category,
+      totalAllTime: `${filteredAllTimeSum._sum.amount || 0} DT`,
+      countAllTime: filteredAllTimeSum._count.id || 0,
+      totalCurrentMonth: `${monthSum._sum.amount || 0} DT (${month}/${year})`,
+      countCurrentMonth: monthSum._count.id || 0,
+    } : undefined,
     summary: {
       todayTotal: `${todaySum._sum.amount || 0} DT`,
       selectedTotal: `${dateSum._sum.amount || 0} DT`,
       currentMonthTotal: `${monthSum._sum.amount || 0} DT`,
       currentMonthCount: monthSum._count.id || 0,
-      historicalTotal: `${allTimeSum._sum.amount || 0} DT`,
+      historicalTotal: `${schoolAllTimeSum._sum.amount || 0} DT`,
     },
-    categories: categoryBreakdown.map((c) => ({
+    allCategoriesInSchool: allCategoriesBreakdown.map((c) => ({
       category: c.category,
-      amount: `${c._sum.amount || 0} DT`,
+      total: `${c._sum.amount || 0} DT`,
       count: c._count.id || 0,
     })),
     records: records.map((r) => ({
@@ -814,6 +832,15 @@ export async function addIncomeTool(
 ): Promise<WriteToolResult> {
   const category = args.category?.trim() || "Général";
   const incomeDate = args.date ? new Date(args.date) : new Date();
+
+  const priorCategory = await prisma.income.findFirst({
+    where: {
+      schoolId: context.schoolId,
+      category: { equals: category, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+  const isExisting = Boolean(priorCategory);
 
   const result = await prisma.$transaction(async (tx) => {
     const inc = await tx.income.create({
@@ -855,7 +882,7 @@ export async function addIncomeTool(
 ━━━━━━━━━━━━━━━━━━━━━━
 💰 Montant : <code>+${args.amount} DT</code>
 🏷️ Source : <b>${args.title}</b>
-📂 Catégorie : <code>${category}</code>
+📂 Catégorie : <code>${category}</code> ${isExisting ? "(Catégorie existante ✅)" : "(Nouvelle catégorie 🆕)"}
 📅 Date : <code>${dateStr}</code>${imgStr}`,
     summary: `Revenu "${args.title}" (+${args.amount} DT)`,
     data: { incomeId: result.id },
@@ -881,32 +908,46 @@ export async function getExpensesTool(
   context: ToolContext
 ) {
   const now = new Date();
+  const hasExplicitMonth = args.month !== undefined && args.month !== null;
   const month = args.month || now.getMonth() + 1;
   const year = args.year || now.getFullYear();
 
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 1);
 
-  const where: any = {
+  const baseWhere: any = {
     schoolId: context.schoolId,
   };
 
   if (args.category) {
-    where.category = { contains: args.category.trim(), mode: "insensitive" };
+    baseWhere.category = { contains: args.category.trim(), mode: "insensitive" };
   }
 
   if (args.query) {
-    where.title = { contains: args.query.trim(), mode: "insensitive" };
+    baseWhere.title = { contains: args.query.trim(), mode: "insensitive" };
   }
 
-  const monthWhere = {
-    ...where,
-    date: { gte: startDate, lt: endDate },
-  };
+  // If user is inquiring about a specific category or search term without specifying a month,
+  // we query across all time to ensure older records (e.g. August for BUS02) are not lost!
+  const queryAllTime = Boolean(args.category || args.query) && !hasExplicitMonth;
+  const recordWhere = queryAllTime
+    ? baseWhere
+    : { ...baseWhere, date: { gte: startDate, lt: endDate } };
 
-  const [monthSum, allTimeSum, categoryBreakdown, records] = await Promise.all([
+  const [
+    filteredMonthSum,
+    filteredAllTimeSum,
+    schoolAllTimeSum,
+    allCategoriesBreakdown,
+    records,
+  ] = await Promise.all([
     prisma.expense.aggregate({
-      where: monthWhere,
+      where: { ...baseWhere, date: { gte: startDate, lt: endDate } },
+      _sum: { amount: true },
+      _count: { id: true },
+    }),
+    prisma.expense.aggregate({
+      where: baseWhere,
       _sum: { amount: true },
       _count: { id: true },
     }),
@@ -917,13 +958,13 @@ export async function getExpensesTool(
     }),
     prisma.expense.groupBy({
       by: ["category"],
-      where: monthWhere,
+      where: { schoolId: context.schoolId },
       _sum: { amount: true },
       _count: { id: true },
       orderBy: { _sum: { amount: "desc" } },
     }),
     prisma.expense.findMany({
-      where: monthWhere,
+      where: recordWhere,
       take: Math.min(args.limit || 25, 50),
       orderBy: { date: "desc" },
       select: {
@@ -938,15 +979,27 @@ export async function getExpensesTool(
   ]);
 
   return {
-    period: `${month}/${year}`,
-    summary: {
-      currentMonthTotal: `${monthSum._sum.amount || 0} DT`,
-      currentMonthCount: monthSum._count.id || 0,
-      historicalTotal: `${allTimeSum._sum.amount || 0} DT`,
+    period: hasExplicitMonth ? `${month}/${year}` : (args.category ? `Historique complet (${args.category})` : `${month}/${year}`),
+    filter: {
+      category: args.category || null,
+      query: args.query || null,
+      isAllTime: queryAllTime,
     },
-    categories: categoryBreakdown.map((c) => ({
+    categoryStats: args.category ? {
+      category: args.category,
+      totalAllTime: `${filteredAllTimeSum._sum.amount || 0} DT`,
+      countAllTime: filteredAllTimeSum._count.id || 0,
+      totalCurrentMonth: `${filteredMonthSum._sum.amount || 0} DT (${month}/${year})`,
+      countCurrentMonth: filteredMonthSum._count.id || 0,
+    } : undefined,
+    summary: {
+      filteredPeriodTotal: `${(queryAllTime ? filteredAllTimeSum : filteredMonthSum)._sum.amount || 0} DT`,
+      filteredPeriodCount: (queryAllTime ? filteredAllTimeSum : filteredMonthSum)._count.id || 0,
+      historicalTotal: `${schoolAllTimeSum._sum.amount || 0} DT`,
+    },
+    allCategoriesInSchool: allCategoriesBreakdown.map((c) => ({
       category: c.category,
-      amount: `${c._sum.amount || 0} DT`,
+      total: `${c._sum.amount || 0} DT`,
       count: c._count.id || 0,
     })),
     records: records.map((r) => ({

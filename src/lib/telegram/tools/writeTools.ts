@@ -337,6 +337,15 @@ export async function addExpenseTool(
   const cleanAmount = Math.abs(Number(args.amount) || 0);
   const expenseDate = args.date ? new Date(args.date) : new Date();
 
+  const priorCategory = await prisma.expense.findFirst({
+    where: {
+      schoolId: context.schoolId,
+      category: { equals: category, mode: "insensitive" },
+    },
+    select: { id: true },
+  });
+  const isExisting = Boolean(priorCategory);
+
   const result = await prisma.$transaction(async (tx) => {
     const expense = await tx.expense.create({
       data: {
@@ -379,7 +388,7 @@ export async function addExpenseTool(
 ━━━━━━━━━━━━━━━━━━━━━━
 💰 Montant : <code>${cleanAmount} DT</code>
 🏷️ Intitulé : <b>${args.title.trim()}</b>
-📂 Catégorie : <code>${category}</code>
+📂 Catégorie : <code>${category}</code> ${isExisting ? "(Catégorie existante ✅)" : "(Nouvelle catégorie 🆕)"}
 📅 Date : <code>${dateStr}</code>${imgStr}`,
     summary: `Dépense "${args.title}" (${cleanAmount} DT)`,
     data: { expenseId: result.id },

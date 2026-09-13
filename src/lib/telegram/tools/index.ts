@@ -927,21 +927,43 @@ ${lines.join("\n")}`;
         },
       },
     },
-    formatConfirmationMessage: (args) => {
+    formatConfirmationMessage: async (args, context) => {
       const cleanAmount = Math.abs(Number(args.amount) || 0);
       const title = (args.title || "Revenu").trim();
-      const category = (args.category || "Général").trim();
+      const rawCategory = (args.category || "Général").trim();
       const incomeDate = args.date ? new Date(args.date) : new Date();
       const dateStr = !isNaN(incomeDate.getTime())
         ? incomeDate.toLocaleDateString("fr-FR")
         : new Date().toLocaleDateString("fr-FR");
       const imgStr = args.img ? "\n🖼️ <i>Justificatif joint</i>" : "";
 
+      // Check if category already exists in database for this school
+      const existingInDb = await prisma.income.findFirst({
+        where: {
+          schoolId: context.schoolId,
+          category: { equals: rawCategory, mode: "insensitive" },
+        },
+        select: { category: true },
+      });
+
+      const STANDARD_INCOME_CATS = [
+        "tuition", "scolarité", "frais scolaires", "inscriptions",
+        "cantine", "repas", "transport", "bus", "dons", "donations",
+        "events", "événements", "grant", "subventions", "recovery",
+      ];
+      const isStandard = STANDARD_INCOME_CATS.includes(rawCategory.toLowerCase());
+
+      const categoryLabel = existingInDb
+        ? `<code>${existingInDb.category}</code> (Catégorie existante ✅)`
+        : isStandard
+        ? `<code>${rawCategory}</code> (Catégorie standard ✅)`
+        : `<code>${rawCategory}</code> (Nouvelle catégorie 🆕)`;
+
       return `❓ <b>Nouveau Revenu</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 💰 <b>Montant :</b> <code>+${cleanAmount} DT</code>
 🏷️ <b>Intitulé / Source :</b> <b>${title}</b>
-📂 <b>Catégorie :</b> <code>${category}</code>
+📂 <b>Catégorie :</b> ${categoryLabel}
 📅 <b>Date :</b> <code>${dateStr}</code>${imgStr}
 
 Confirmer l'enregistrement de ce revenu ?`;
@@ -951,17 +973,17 @@ Confirmer l'enregistrement de ce revenu ?`;
 
   get_expenses: {
     name: "get_expenses",
-    description: "Consulter les dépenses opérationnelles de l'école (chiffres du mois, total historique, ventilation par catégorie).",
+    description: "Consulter les dépenses opérationnelles de l'école (chiffres du mois, total historique, ventilation par catégorie, ex: total dépensé pour BUS01, BUS02, Transport, Loyer).",
     requiresConfirmation: false,
     declaration: {
       name: "get_expenses",
-      description: "Consulter les dépenses de l'école avec totaux et ventilation par catégorie.",
+      description: "Consulter les dépenses de l'école avec totaux et ventilation par catégorie (ex: BUS01, BUS02, Transport, Loyer, Fournitures).",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
-          month: { type: SchemaType.NUMBER, description: "Mois (1 à 12, défaut mois actuel)." },
-          year: { type: SchemaType.NUMBER, description: "Année (défaut année actuelle)." },
-          category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'Transport', 'BUS01', 'Factures', 'Fournitures', 'Maintenance', 'Loyer', 'Salary', 'Advance')." },
+          month: { type: SchemaType.NUMBER, description: "Mois (1 à 12, optionnel : omettre pour voir l'historique complet de la catégorie)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel)." },
+          category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'BUS02', 'BUS01', 'Transport', 'Factures', 'Fournitures', 'Maintenance', 'Loyer')." },
           query: { type: SchemaType.STRING, description: "Recherche textuelle dans l'intitulé." },
           limit: { type: SchemaType.NUMBER, description: "Nombre maximum de résultats (défaut 25)." },
         },
@@ -992,21 +1014,44 @@ Confirmer l'enregistrement de ce revenu ?`;
         },
       },
     },
-    formatConfirmationMessage: (args) => {
+    formatConfirmationMessage: async (args, context) => {
       const cleanAmount = Math.abs(Number(args.amount) || 0);
       const title = (args.title || "Dépense").trim();
-      const category = (args.category || "Général").trim();
+      const rawCategory = (args.category || "Général").trim();
       const expenseDate = args.date ? new Date(args.date) : new Date();
       const dateStr = !isNaN(expenseDate.getTime())
         ? expenseDate.toLocaleDateString("fr-FR")
         : new Date().toLocaleDateString("fr-FR");
       const imgStr = args.img ? "\n🖼️ <i>Reçu / justificatif joint</i>" : "";
 
+      // Check if category already exists in database for this school
+      const existingInDb = await prisma.expense.findFirst({
+        where: {
+          schoolId: context.schoolId,
+          category: { equals: rawCategory, mode: "insensitive" },
+        },
+        select: { category: true },
+      });
+
+      const STANDARD_EXPENSE_CATS = [
+        "transport", "fuel", "carburant", "essence", "mazout", "bus", "bus01", "bus02",
+        "factures", "electricity", "water", "internet", "téléphone", "services",
+        "fournitures", "supplies", "maintenance", "entretien", "loyer", "restauration",
+        "salary", "salaire", "advance", "avance",
+      ];
+      const isStandard = STANDARD_EXPENSE_CATS.includes(rawCategory.toLowerCase());
+
+      const categoryLabel = existingInDb
+        ? `<code>${existingInDb.category}</code> (Catégorie existante ✅)`
+        : isStandard
+        ? `<code>${rawCategory}</code> (Catégorie standard ✅)`
+        : `<code>${rawCategory}</code> (Nouvelle catégorie 🆕)`;
+
       return `❓ <b>Nouvelle Dépense</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 💰 <b>Montant :</b> <code>${cleanAmount} DT</code>
 🏷️ <b>Intitulé :</b> <b>${title}</b>
-📂 <b>Catégorie :</b> <code>${category}</code>
+📂 <b>Catégorie :</b> ${categoryLabel}
 📅 <b>Date :</b> <code>${dateStr}</code>${imgStr}
 
 Confirmer l'enregistrement de cette dépense ?`;
