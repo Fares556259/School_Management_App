@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { processPaymentReminders } from "@/lib/notifications";
+import { processPaymentReminders, sendMobileMessageToParents } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
@@ -26,28 +26,33 @@ export async function getFinancialAnomaliesTool(
   const month = args.month || now.getMonth() + 1;
   const year = args.year || now.getFullYear();
 
-  // 1. Find consecutive unpaid students (unpaid this month AND last month)
   const prevMonth = month === 1 ? 12 : month - 1;
   const prevYear = month === 1 ? year - 1 : year;
 
+  // 1. Find consecutive unpaid students (unpaid this month AND last month)
   const [unpaidThisMonth, unpaidPrevMonth] = await Promise.all([
     prisma.payment.findMany({
       where: {
         schoolId: context.schoolId,
         month,
         year,
-        userType: "STUDENT",
         status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+        userType: "STUDENT",
       },
-      select: { studentId: true, amount: true, student: { select: { name: true, surname: true, class: { select: { name: true } } } } },
+      select: {
+        studentId: true,
+        amount: true,
+        deferredAmount: true,
+        student: { select: { name: true, surname: true, class: { select: { name: true } } } },
+      },
     }),
     prisma.payment.findMany({
       where: {
         schoolId: context.schoolId,
         month: prevMonth,
         year: prevYear,
-        userType: "STUDENT",
         status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+        userType: "STUDENT",
       },
       select: { studentId: true },
     }),
@@ -56,20 +61,17 @@ export async function getFinancialAnomaliesTool(
   const prevUnpaidIds = new Set(unpaidPrevMonth.map((p) => p.studentId));
   const chronicUnpaid = unpaidThisMonth.filter((p) => prevUnpaidIds.has(p.studentId));
 
-  // 2. Unusually high general expenses this month (> 500 DT)
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 1);
-
+  // 2. Find abnormally large expenses (> 2000 DT)
   const largeExpenses = await prisma.expense.findMany({
     where: {
       schoolId: context.schoolId,
-      date: { gte: startDate, lt: endDate },
-      amount: { gte: 500 },
-      NOT: { category: "SALAIRE" },
+      amount: { gte: 2000 },
+      date: {
+        gte: new Date(year, month - 1, 1),
+        lt: new Date(year, month, 1),
+      },
     },
-    take: 5,
-    orderBy: { amount: "desc" },
-    select: { title: true, amount: true, category: true, date: true },
+    select: { id: true, title: true, amount: true, category: true, date: true },
   });
 
   return {
@@ -77,18 +79,23 @@ export async function getFinancialAnomaliesTool(
     totalAnomaliesDetected: chronicUnpaid.length + largeExpenses.length,
     chronicUnpaidStudents: {
       count: chronicUnpaid.length,
-      description: "Élèves ayant au moins 2 mois consécutifs d'impayés",
+      description: "Élèves avec impayés consécutifs sur 2 mois ou plus",
       students: chronicUnpaid.map((p) => ({
-        name: `${p.student?.name} ${p.student?.surname}`,
+        name: p.student ? `${p.student.name} ${p.student.surname}` : "Inconnu",
         class: p.student?.class?.name || "N/A",
+        dueAmount: p.deferredAmount || p.amount,
       })),
     },
-    unusuallyHighExpenses: largeExpenses.map((e) => ({
-      title: e.title,
-      amount: `${e.amount} DT`,
-      category: e.category,
-      date: e.date.toISOString().split("T")[0],
-    })),
+    largeExpenses: {
+      count: largeExpenses.length,
+      description: "Dépenses exceptionnelles supérieures à 2 000 DT ce mois",
+      expenses: largeExpenses.map((e) => ({
+        title: e.title,
+        amount: `${e.amount} DT`,
+        category: e.category,
+        date: e.date.toISOString().split("T")[0],
+      })),
+    },
   };
 }
 
@@ -96,14 +103,42 @@ export async function getFinancialAnomaliesTool(
  * Tool: send_payment_reminders
  * Triggers automated push & in-app payment reminders to parents of students
  * who have unpaid tuition for the current month.
+ * Can target a specific student, an entire class, or all unpaid students across the school.
  */
 export async function sendPaymentRemindersTool(
   args: {
     force?: boolean;
+    studentName?: string;
+    className?: string;
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const result = await processPaymentReminders(Boolean(args.force));
+  let targetStudentId: string | undefined;
+  let targetClassId: number | undefined;
+  let targetLabel = "tous les élèves ayant des impayés";
+
+  if (args.studentName) {
+    const student = await resolveStudentByName(context.schoolId, args.studentName);
+    if (student) {
+      targetStudentId = student.id;
+      targetLabel = `l'élève ${student.name} ${student.surname}`;
+    }
+  }
+
+  if (args.className) {
+    const cls = await resolveClassByName(context.schoolId, args.className);
+    if (cls) {
+      targetClassId = cls.id;
+      targetLabel = `la classe ${cls.name}`;
+    }
+  }
+
+  const result = await processPaymentReminders(
+    Boolean(args.force),
+    context.schoolId,
+    targetStudentId,
+    targetClassId
+  );
 
   if (!result.success) {
     return {
@@ -120,16 +155,148 @@ export async function sendPaymentRemindersTool(
       action: "SEND_NOTIFICATION",
       performedBy: `Hnia AI (Telegram / ${context.adminName})`,
       entityType: "Payment",
-      description: `[Hnia AI Telegram] Rappels de paiement déclenchés : ${count} notifications envoyées aux familles.`,
+      description: `[Hnia AI Telegram] Rappels de paiement déclenchés pour ${targetLabel} : ${count} notifications envoyées aux familles.`,
       schoolId: context.schoolId,
     },
   });
 
   return {
     success: true,
-    message: `📢 **Rappels de paiement envoyés avec succès !**\n• Notifications transmises aux familles : **${count}**`,
+    message: `📢 **Rappels de paiement envoyés avec succès sur l'application mobile !**\n• Cible : **${targetLabel}**\n• Notifications transmises aux familles : **${count}**\n📱 *Les parents reçoivent une alerte push instantanée et une notification dans leur application mobile.*`,
     summary: `Envoi de rappels de paiement (${count} envoyés)`,
     data: result,
+  };
+}
+
+/**
+ * Tool: send_parent_message
+ * Allows AI to send custom in-app and push notifications to parents:
+ * - to a specific student's parents (ex: "préviens les parents d'Ahmed...")
+ * - to an entire class's parents (ex: "envoie aux parents de 1A...")
+ * - to all unpaid parents (ex: "envoie un rappel personnalisé aux impayés...")
+ * - to all parents in the school
+ */
+export async function sendParentMessageTool(
+  args: {
+    message: string;
+    title?: string;
+    studentName?: string;
+    className?: string;
+    target?: "student" | "class" | "unpaid" | "all";
+    type?: "MESSAGE" | "PAYMENT" | "REMINDER" | "ANNOUNCEMENT" | "ATTENDANCE";
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const title = args.title || "Message de l'administration";
+  const type = args.type || "MESSAGE";
+  let parentIds: string[] = [];
+  let targetDescription = "";
+  let studentIdRef: string | null = null;
+
+  // Case 1: Specific student
+  if (args.studentName || args.target === "student") {
+    const student = await resolveStudentByName(context.schoolId, args.studentName || "");
+    if (!student) {
+      return {
+        success: false,
+        message: `⚠️ Aucun élève trouvé correspondant à "${args.studentName}".`,
+        summary: "Élève introuvable",
+      };
+    }
+    if (!student.parentId) {
+      return {
+        success: false,
+        message: `⚠️ L'élève **${student.name} ${student.surname}** n'a aucun profil parent rattaché dans l'application.`,
+        summary: "Parent non rattaché",
+      };
+    }
+    parentIds = [student.parentId];
+    studentIdRef = student.id;
+    targetDescription = `les parents de **${student.name} ${student.surname}**`;
+  }
+  // Case 2: Specific class
+  else if (args.className || args.target === "class") {
+    const cls = await resolveClassByName(context.schoolId, args.className || "");
+    if (!cls) {
+      return {
+        success: false,
+        message: `⚠️ Classe "${args.className}" introuvable.`,
+        summary: "Classe introuvable",
+      };
+    }
+    const studentsInClass = await prisma.student.findMany({
+      where: { schoolId: context.schoolId, classId: cls.id, parentId: { not: "" } },
+      select: { parentId: true },
+    });
+    parentIds = Array.from(new Set(studentsInClass.map((s) => s.parentId).filter(Boolean)));
+    targetDescription = `les familles de la classe **${cls.name}** (${parentIds.length} parents)`;
+  }
+  // Case 3: Unpaid students
+  else if (args.target === "unpaid") {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const unpaidStudents = await prisma.student.findMany({
+      where: {
+        schoolId: context.schoolId,
+        parentId: { not: "" },
+        payments: {
+          none: {
+            month: currentMonth,
+            year: currentYear,
+            status: "PAID",
+            userType: "STUDENT",
+          },
+        },
+      },
+      select: { parentId: true },
+    });
+    parentIds = Array.from(new Set(unpaidStudents.map((s) => s.parentId).filter(Boolean)));
+    targetDescription = `les familles ayant un solde de scolarité dû (${parentIds.length} parents)`;
+  }
+  // Case 4: All parents
+  else {
+    const allParents = await prisma.parent.findMany({
+      where: { schoolId: context.schoolId },
+      select: { id: true },
+    });
+    parentIds = allParents.map((p) => p.id);
+    targetDescription = `toutes les familles de l'établissement (${parentIds.length} parents)`;
+  }
+
+  if (parentIds.length === 0) {
+    return {
+      success: false,
+      message: `⚠️ Aucun parent trouvé pour la cible sélectionnée (${targetDescription}).`,
+      summary: "Aucun destinataire",
+    };
+  }
+
+  const { count } = await sendMobileMessageToParents({
+    schoolId: context.schoolId,
+    parentIds,
+    studentId: studentIdRef,
+    title,
+    message: args.message,
+    type,
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      action: "SEND_NOTIFICATION",
+      performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+      entityType: "Notification",
+      description: `[Hnia AI Telegram] Message mobile envoyé à ${targetDescription} : "${title}" (${count} destinataires).`,
+      schoolId: context.schoolId,
+    },
+  });
+
+  return {
+    success: true,
+    message: `📢 **Notification mobile transmise avec succès !**\n\n🎯 **Destinataires :** ${targetDescription}\n📌 **Titre :** ${title}\n💬 **Message :** <i>"${args.message}"</i>\n\n📱 <i>${count} famille(s) ont reçu la notification push et peuvent la consulter dans leur espace mobile.</i>`,
+    summary: `Message mobile envoyé (${count} familles)`,
+    data: { count, target: targetDescription },
   };
 }
 

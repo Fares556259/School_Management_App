@@ -65,6 +65,7 @@ import {
 import {
   getFinancialAnomaliesTool,
   sendPaymentRemindersTool,
+  sendParentMessageTool,
   getPartialPaymentsTool,
   recoverPartialPaymentTool,
   scheduleRecoveryDateTool,
@@ -966,7 +967,7 @@ ${lines.join("\n")}`;
 
   send_payment_reminders: {
     name: "send_payment_reminders",
-    description: "Déclencher l'envoi de rappels de paiement (push et notifications) aux parents des élèves ayant des impayés.",
+    description: "Déclencher l'envoi de rappels de paiement (push et notifications) aux parents des élèves ayant des impayés (global, par classe ou par élève).",
     requiresConfirmation: true,
     declaration: {
       name: "send_payment_reminders",
@@ -975,13 +976,56 @@ ${lines.join("\n")}`;
         type: SchemaType.OBJECT,
         properties: {
           force: { type: SchemaType.BOOLEAN, description: "Forcer l'envoi même si un rappel a été envoyé récemment." },
+          studentName: { type: SchemaType.STRING, description: "Nom ou prénom d'un élève spécifique pour lui envoyer un rappel ciblé (optionnel)." },
+          className: { type: SchemaType.STRING, description: "Nom de la classe pour cibler uniquement les impayés de cette classe (ex: '7ème A') (optionnel)." },
         },
       },
     },
-    formatConfirmationMessage: () => {
-      return `❓ <b>Rappels de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnvoyer une notification de rappel aux familles ayant des impayés ce mois-ci ?`;
+    formatConfirmationMessage: (args: any) => {
+      let target = "toutes les familles ayant des impayés";
+      if (args?.studentName) target = `la famille de l'élève <b>${args.studentName}</b>`;
+      else if (args?.className) target = `les familles de la classe <b>${args.className}</b>`;
+      return `❓ <b>Rappels de Paiement Mobile</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnvoyer une notification push et in-app de rappel à <b>${target}</b> ?`;
     },
     execute: sendPaymentRemindersTool,
+  },
+
+  send_parent_message: {
+    name: "send_parent_message",
+    description: "Envoyer une notification mobile et push directe aux parents d'un élève, d'une classe, aux impayés ou à toute l'école.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "send_parent_message",
+      description: "Envoyer un message ou notification mobile push aux parents d'élèves (un élève, une classe, impayés ou tous).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["message"],
+        properties: {
+          message: { type: SchemaType.STRING, description: "Le contenu du message à envoyer aux parents sur leur application mobile." },
+          title: { type: SchemaType.STRING, description: "Titre de la notification (ex: 'Rappel important', 'Convocation', 'Frais de scolarité')." },
+          studentName: { type: SchemaType.STRING, description: "Nom de l'élève si le message vise les parents d'un élève en particulier." },
+          className: { type: SchemaType.STRING, description: "Nom de la classe si le message vise les parents d'une classe (ex: '1ère A', '7ème B')." },
+          target: {
+            type: SchemaType.STRING,
+            description: "Cible du message: 'student' (élève spécifique), 'class' (classe entière), 'unpaid' (tous les parents ayant des impayés), ou 'all' (toute l'école).",
+          },
+          type: {
+            type: SchemaType.STRING,
+            description: "Type de notification: 'MESSAGE', 'PAYMENT', 'REMINDER', 'ANNOUNCEMENT', 'ATTENDANCE'.",
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args: any) => {
+      let targetLabel = "toutes les familles de l'école";
+      if (args?.studentName) targetLabel = `les parents de <b>${args.studentName}</b>`;
+      else if (args?.className) targetLabel = `les parents de la classe <b>${args.className}</b>`;
+      else if (args?.target === "unpaid") targetLabel = "tous les parents ayant un solde impayé";
+
+      const title = args?.title || "Message de l'administration";
+      return `❓ <b>Envoi Notification Mobile aux Parents</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🎯 <b>Destinataire(s) :</b> ${targetLabel}\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${args?.message}"</i>\n\nConfirmer l'envoi de cette notification push mobile ?`;
+    },
+    execute: sendParentMessageTool,
   },
 
   // ── TIMETABLE & SUBSTITUTION SUITE ────────────────────────────────────────

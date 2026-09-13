@@ -6,7 +6,7 @@ const expo = new Expo();
 /**
  * Sends a push notification to a parent via Expo.
  */
-async function sendPush(parentId: string, title: string, body: string, data: any = {}) {
+export async function sendPush(parentId: string, title: string, body: string, data: any = {}) {
   try {
     const parent = await prisma.parent.findUnique({
       where: { id: parentId },
@@ -38,7 +38,7 @@ async function sendPush(parentId: string, title: string, body: string, data: any
  * Sends push notifications to multiple parents in a single batch.
  * Fetches all tokens in one query and uses Expo's batch API.
  */
-async function sendPushBatch(parentIds: string[], title: string, body: string, data: any = {}) {
+export async function sendPushBatch(parentIds: string[], title: string, body: string, data: any = {}) {
   if (parentIds.length === 0) return;
   try {
     const parents = await prisma.parent.findMany({
@@ -184,23 +184,36 @@ export async function createAnnouncementNotifications(noticeId: number) {
 
 /**
  * Scans for students who haven't paid for the current month and reminds parents.
- * Can be called by a cron job or a manually triggered endpoint.
+ * Can be called by a cron job, manually triggered endpoint, or AI Telegram assistant.
  */
-export async function processPaymentReminders(force: boolean = false) {
+export async function processPaymentReminders(
+  force: boolean = false,
+  schoolId?: string,
+  targetStudentId?: string,
+  targetClassId?: number
+) {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
   const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
   try {
-    // 1. Find all students
+    const studentWhere: any = {};
+    if (schoolId) studentWhere.schoolId = schoolId;
+    if (targetStudentId) studentWhere.id = targetStudentId;
+    if (targetClassId) studentWhere.classId = targetClassId;
+
+    // 1. Find all eligible students
     const students = await prisma.student.findMany({
+      where: studentWhere,
       include: {
         parent: true,
+        class: true,
         payments: {
           where: {
             month: currentMonth,
             year: currentYear,
+            userType: "STUDENT",
           },
         },
       },
@@ -209,30 +222,41 @@ export async function processPaymentReminders(force: boolean = false) {
     let remindersSent = 0;
 
     for (const student of students) {
+      if (!student.parent) continue;
+
       const isPaid = student.payments.some((p) => p.status === "PAID");
       
       if (!isPaid) {
-        // Unpaid or pending
+        const isPartial = student.payments.some((p) => p.status === "PARTIAL");
+        const partialPayment = student.payments.find((p) => p.status === "PARTIAL");
+        const remaining = partialPayment?.deferredAmount;
+
         // 2. Check for existing payment notification for this cycle
         const existingNotify = await prisma.notification.findFirst({
           where: {
             parentId: student.parentId,
             studentId: student.id,
             type: "PAYMENT",
-            // We consider it the "current" cycle if created in this month/year
             createdAt: {
-               gte: new Date(currentYear, currentMonth - 1, 1)
-            }
+              gte: new Date(currentYear, currentMonth - 1, 1),
+            },
           },
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: "desc" },
         });
 
         const shouldRemind = force || !existingNotify || 
           (now.getTime() - new Date(existingNotify.updatedAt).getTime() > SIX_HOURS_MS);
 
         if (shouldRemind) {
-          const message = `Payment for ${student.name} for ${new Intl.DateTimeFormat('en-US', { month: 'long' }).format(now)} ${currentYear} is pending. Please settle at your earliest convenience.`;
-          
+          const monthFrench = new Intl.DateTimeFormat("fr-FR", { month: "long" }).format(now);
+          const title = isPartial 
+            ? `تذكير بالخلاص • Reliquat Scolarité (${student.name})`
+            : `تذكير بالخلاص • Frais de Scolarité (${student.name})`;
+
+          const message = isPartial
+            ? `تذكير: نرجو تسوية المتبقي (${remaining ? remaining + " DT" : "المبلغ المتبقي"}) من معاليم دراسة ${student.name} لشهر ${monthFrench} ${currentYear}.\n\nRappel : Merci de régulariser le reliquat de scolarité pour ${student.name} pour le mois de ${monthFrench} ${currentYear}.`
+            : `تذكير: نرجو تسوية معاليم دراسة ${student.name} لشهر ${monthFrench} ${currentYear} في أقرب الآجال.\n\nRappel : Les frais de scolarité pour ${student.name} pour le mois de ${monthFrench} ${currentYear} sont en attente de règlement.`;
+
           if (existingNotify && !force) {
             // Update the existing one (bump timestamp and mark as unread)
             await prisma.notification.update({
@@ -240,28 +264,29 @@ export async function processPaymentReminders(force: boolean = false) {
               data: {
                 isRead: false,
                 updatedAt: now,
-                message: message // Refresh message possibly
-              }
+                message,
+                title,
+              },
             });
           } else {
-            // Create new notification (Force always creates new for "Just now" timestamp)
+            // Create new notification
             await prisma.notification.create({
               data: {
                 schoolId: student.schoolId,
                 parentId: student.parentId,
                 studentId: student.id,
                 type: "PAYMENT",
-                title: "Payment Reminder",
-                message: message,
-              }
+                title,
+                message,
+              },
             });
           }
           
-          // Send push notification
+          // Send push notification via Expo
           await sendPush(
             student.parentId,
-            "💰 Payment Reminder",
-            message,
+            `💰 ${title}`,
+            message.split("\n")[0] || message,
             { type: "PAYMENT", studentId: student.id }
           );
 
@@ -275,6 +300,58 @@ export async function processPaymentReminders(force: boolean = false) {
     console.error("[NOTIFICATIONS] Error processing payment reminders:", error);
     return { success: false, error };
   }
+}
+
+/**
+ * Direct message / notification dispatch to mobile parents from administration or AI.
+ * Creates records in prisma.notification and dispatches push notifications.
+ */
+export async function sendMobileMessageToParents({
+  schoolId,
+  parentIds,
+  studentId,
+  title,
+  message,
+  type = "MESSAGE",
+  data = {},
+}: {
+  schoolId: string;
+  parentIds: string[];
+  studentId?: string | null;
+  title: string;
+  message: string;
+  type?: "MESSAGE" | "PAYMENT" | "REMINDER" | "ANNOUNCEMENT" | "ATTENDANCE" | "GRADE";
+  data?: any;
+}) {
+  if (!parentIds || parentIds.length === 0) return { count: 0 };
+
+  const uniqueParentIds = Array.from(new Set(parentIds));
+
+  // 1. Create notifications in DB for mobile app retrieval
+  await prisma.notification.createMany({
+    data: uniqueParentIds.map((parentId) => ({
+      schoolId,
+      parentId,
+      studentId: studentId || null,
+      type,
+      title,
+      message,
+    })),
+  });
+
+  // 2. Dispatch push notifications via Expo
+  await sendPushBatch(
+    uniqueParentIds,
+    title,
+    message.substring(0, 140) + (message.length > 140 ? "..." : ""),
+    {
+      type,
+      studentId: studentId || undefined,
+      ...data,
+    }
+  );
+
+  return { count: uniqueParentIds.length };
 }
 
 /**
