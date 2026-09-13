@@ -516,13 +516,13 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       - Si l'administrateur a envoyé une photo de reçu/ticket dans un message précédent et dit ensuite (par vocal ou texte) "enregistre-la", "ماركيها", "c'est une dépense", fais immédiatement le lien avec le reçu analysé et exécute 'add_expense' avec le montant et l'intitulé de ce reçu sans rien redemander !
       - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.`;
 
-  // Candidate models — fastest first, fallbacks after
+  // Candidate models — fastest first (gemini-3.5-flash-lite ~700ms), followed by solid fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-exp",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
+    "gemini-3.5-flash-lite",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.8-flash",
   ];
 
   // Helper to format friendly error message without raw API dumps
@@ -793,8 +793,11 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
     } catch (err: any) {
       console.warn(`[Agent] Model ${modelName} encountered error:`, err.message || err);
       lastError = err;
-      // Wait briefly before trying next model (handles transient 503/429)
-      await new Promise((r) => setTimeout(r, 600));
+      // Wait briefly before trying next model (only if rate limited / overloaded)
+      const errStr = (err?.message || "").toLowerCase();
+      if (errStr.includes("429") || errStr.includes("503") || errStr.includes("quota")) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
     }
   }
 
