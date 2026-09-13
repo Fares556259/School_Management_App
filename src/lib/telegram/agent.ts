@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import {
   sendTelegramChatAction,
   sendTelegramMessage,
+  sendTelegramContact,
   getMainHubInlineKeyboard,
 } from "./telegram";
 import { TOOLS, getGeminiFunctionDeclarations } from "./tools";
@@ -602,6 +603,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       // Handle tool calling loop
       let functionCalls = candidate.functionCalls();
       let lastExecutedTool: string | undefined;
+      let lastToolOutput: any;
       const MAX_TOOL_ITERATIONS = 5;
       let toolIterations = 0;
 
@@ -687,6 +689,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
           // Return error as tool output so model can handle it gracefully
           toolOutput = { error: true, message: toolErr.message || "Tool execution failed" };
         }
+        lastToolOutput = toolOutput;
 
         // Save tool call record
         await prisma.aIToolCall.create({
@@ -741,6 +744,36 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         parse_mode: "HTML",
         reply_markup: quickButtons,
       });
+
+      // If a single contact phone was retrieved, also send the official native Telegram Contact card
+      // This gives the user an immediate 1-tap phone call button directly in Telegram without any web popup!
+      try {
+        if (lastExecutedTool && lastToolOutput) {
+          let contactPhone: string | undefined;
+          let contactFirst: string | undefined;
+          let contactLast: string | undefined;
+
+          if (lastExecutedTool === "get_student_profile" && lastToolOutput.student?.parent?.phone) {
+            contactPhone = lastToolOutput.student.parent.phone;
+            contactFirst = lastToolOutput.student.parent.name || "Parent";
+            contactLast = `(Parent ${lastToolOutput.student.fullName || "Élève"})`;
+          } else if (lastExecutedTool === "get_parents" && lastToolOutput.parents?.length === 1 && lastToolOutput.parents[0]?.phone) {
+            contactPhone = lastToolOutput.parents[0].phone;
+            contactFirst = `${lastToolOutput.parents[0].name || "Parent"} ${lastToolOutput.parents[0].surname || ""}`.trim();
+            contactLast = "Parent";
+          } else if (lastExecutedTool === "get_teachers" && lastToolOutput.teachers?.length === 1 && lastToolOutput.teachers[0]?.phone) {
+            contactPhone = lastToolOutput.teachers[0].phone;
+            contactFirst = `${lastToolOutput.teachers[0].name || "Enseignant"}`.trim();
+            contactLast = "Enseignant";
+          }
+
+          if (contactPhone && contactPhone.replace(/\D/g, "").length >= 4) {
+            await sendTelegramContact(chatId, contactPhone, contactFirst || "Contact", contactLast);
+          }
+        }
+      } catch (contactErr) {
+        console.warn("[Agent] sendTelegramContact non-critical warning:", contactErr);
+      }
 
       succeeded = true;
       break;

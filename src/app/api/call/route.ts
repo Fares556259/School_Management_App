@@ -140,8 +140,9 @@ export async function GET(request: NextRequest) {
 </html>`;
 
   return new NextResponse(html, {
-    status: 200,
+    status: 307,
     headers: {
+      Location: telUrl,
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store, no-cache, must-revalidate",
     },

@@ -92,10 +92,9 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
     return `<pre><code>${escaped}</code></pre>`;
   });
 
-  // 10d. Auto-format phone numbers into native international plain text (+216 XX XXX XXX)
-  // This allows Telegram on iOS and Android to natively detect the number as a phone_number entity.
-  // When tapped by the user on smartphone, Telegram smoothly and directly opens the Phone app dialer
-  // with the number prefilled, without ANY web browser redirect or "Open Link" popup!
+  // 10d. Auto-link phone numbers following phone icons (e.g. 📞 12 357 5478) into direct call URLs
+  // The /api/call endpoint issues an immediate HTTP 307 redirect to tel:,
+  // seamlessly launching the phone dialer while remaining 100% clickable on desktop & mobile!
   text = text.replace(/(📞|☎️|Téléphone\s*:\s*|Tél\s*:\s*)\s*([+0-9][0-9\s.-]{2,18}\d)/gi, (match, prefix, phoneStr) => {
     const digits = phoneStr.replace(/\D/g, "");
     if (digits.length < 4) return match;
@@ -104,16 +103,21 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
     if (local.startsWith("00216")) local = local.slice(5);
     else if (local.startsWith("216") && local.length > 8) local = local.slice(3);
 
-    let formattedNumber: string;
+    let cleanNumber: string;
+    let displayNumber: string;
     if (local.length === 8) {
-      formattedNumber = `+216 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5)}`;
+      cleanNumber = `+216${local}`;
+      displayNumber = `+216 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5)}`;
     } else if (local.length === 9) {
-      formattedNumber = `+216 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5)}`;
+      cleanNumber = `+216${local}`;
+      displayNumber = `+216 ${local.slice(0, 2)} ${local.slice(2, 5)} ${local.slice(5)}`;
     } else {
-      formattedNumber = `+216 ${local}`;
+      cleanNumber = `+216${local}`;
+      displayNumber = `+216 ${local}`;
     }
 
-    return `${prefix.trim()} ${formattedNumber}`;
+    const callUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.snapschool.academy"}/api/call?phone=${encodeURIComponent(cleanNumber)}`;
+    return `<a href="${callUrl}">${prefix.trim()} ${displayNumber}</a>`;
   });
 
   // 11. Auto-pill monetary amounts (e.g. 6 304 DT, 450 DT, 180 DT) if not already inside <code>

@@ -197,6 +197,47 @@ export async function sendTelegramMessage(
 }
 
 /**
+ * Send a native Telegram contact card to a chat.
+ * Tapping a contact card on mobile directly opens native 1-tap phone dialing without any browser redirect.
+ */
+export async function sendTelegramContact(
+  chatId: string | number,
+  phoneNumber: string,
+  firstName: string,
+  lastName?: string
+): Promise<any> {
+  const token = getBotToken();
+  const url = `${TELEGRAM_API_BASE}/bot${token}/sendContact`;
+
+  const digits = phoneNumber.replace(/\D/g, "");
+  let cleanPhone = phoneNumber.trim().startsWith("+")
+    ? `+${digits}`
+    : digits.startsWith("216")
+    ? `+${digits}`
+    : `+216${digits}`;
+
+  const payload: Record<string, any> = {
+    chat_id: chatId,
+    phone_number: cleanPhone,
+    first_name: firstName,
+  };
+  if (lastName) {
+    payload.last_name = lastName;
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error("[Telegram] sendTelegramContact error:", err);
+  }
+}
+
+/**
  * Edit an existing message's text and buttons
  */
 export async function editTelegramMessageText(
