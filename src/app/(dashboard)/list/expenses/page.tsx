@@ -1,7 +1,5 @@
 import { getRole } from "@/lib/role";
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import ExpensesListClient from "./ExpensesListClient";
@@ -13,65 +11,35 @@ const ExpenseListPage = async ({
 }) => {
   const role = await getRole();
   const safeSearchParams = searchParams || {};
-  const { page, search, from, to, category } = safeSearchParams;
+  const { page, category } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
 
   const schoolId = await getSchoolId();
 
-  // URL QUERY PARAMS CONDITION
-  const query: Prisma.ExpenseWhereInput = { schoolId };
-
-  if (search) {
-    query.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { category: { contains: search, mode: "insensitive" } },
-    ];
-  }
-
-  if (category) {
-    query.category = { equals: category, mode: "insensitive" };
-  }
-
-  if (from || to) {
-    query.date = {
-      gte: from ? new Date(from) : undefined,
-      lte: to ? new Date(to) : undefined,
-    };
-  }
-
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
+  // Fetch all expenses for client-side filtering (matching incomes page pattern)
   const fetchExpensesData = () =>
     Promise.all([
       prisma.expense.findMany({
-        where: query,
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
+        where: { schoolId },
         orderBy: { date: "desc" },
       }),
-      prisma.expense.count({ where: query }),
       prisma.expense.findMany({
         where: { schoolId },
         select: { category: true },
         distinct: ["category"],
-      }),
-      prisma.expense.findMany({
-        where: { ...query, date: { gte: twelveMonthsAgo } },
-        orderBy: { date: "desc" },
       }),
     ]);
 
   const cached = await getCachedTenantData(
     schoolId,
     'expenses',
-    [p, JSON.stringify(safeSearchParams), schoolId],
+    [],
     fetchExpensesData,
-    300
+    60
   ).catch(() => null);
 
-  const [data, count, uniqueCategoriesData, allData] =
-    Array.isArray(cached) && cached.length === 4 ? cached : await fetchExpensesData();
+  const [data, uniqueCategoriesData] =
+    Array.isArray(cached) && cached.length === 2 ? cached : await fetchExpensesData();
 
   const relatedData = {
     category: (uniqueCategoriesData || []).map((c: any) => ({ value: c.category, label: c.category })),
