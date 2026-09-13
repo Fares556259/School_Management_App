@@ -37,6 +37,10 @@ import {
   Sparkles,
   ChevronRight,
   Users,
+  Mic,
+  Camera,
+  CheckCheck,
+  Bot,
 } from "lucide-react";
 
 /* ─────────── ANIMATION HELPERS ─────────── */
@@ -136,6 +140,7 @@ const Navbar = ({
     { label: "Aperçu de l'app", href: "#apercu" },
     { label: "Système Tunisien", href: "#tunisie" },
     { label: "Paiements Flexibles", href: "#finances-flexibles" },
+    { label: "Hnia IA Telegram", href: "#hnia-ia" },
     { label: "Modules", href: "#modules" },
     { label: "Apps Mobiles", href: "#parents" },
     { label: "Tarifs", href: "#tarifs" },
@@ -1408,6 +1413,249 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* ═══════════ ASSISTANT IA TELEGRAM : HNIA ═══════════ */}
+      <section id="hnia-ia" className="py-24 bg-gradient-to-b from-white via-blue-50/40 to-white relative overflow-hidden border-b border-slate-200/70">
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 -right-20 w-96 h-96 bg-indigo-200/25 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <Section>
+            <div className="max-w-3xl mx-auto text-center mb-14">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold mb-4 border border-blue-200/60 shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>Exclusivité SnapSchool • Intelligence Artificielle & Telegram Bot</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
+                Rencontrez <span className="text-blue-600">Hnia</span>, l&apos;assistante IA de votre école
+              </h2>
+              <p className="text-gray-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+                Pourquoi allumer un PC pour chaque petite tâche ? Depuis votre smartphone sur Telegram, dictez un encaissement, scannez un reçu par photo ou demandez la situation d&apos;une classe en dialecte tunisien ou en français.
+              </p>
+            </div>
+          </Section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+            {/* Left Column: Mascot presentation & Feature cards */}
+            <Section className="lg:col-span-6 space-y-6" delay={0.1}>
+              {/* Mascot Spotlight Card */}
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white shadow-xl shadow-blue-500/15 relative overflow-hidden flex flex-col sm:flex-row items-center gap-6">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative shrink-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white/30 bg-white">
+                    <Image
+                      src="/hnia_mascot_icon.png"
+                      alt="Mascotte Hnia AI SnapSchool"
+                      width={112}
+                      height={112}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-full bg-emerald-400 text-slate-900 text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-900 animate-ping" />
+                    En Ligne
+                  </span>
+                </div>
+                <div className="text-center sm:text-left">
+                  <span className="text-xs font-semibold text-blue-200 uppercase tracking-wider">Votre Co-pilote 24h/7j</span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mt-0.5">
+                    Hnia (@HniaSnapSchoolBot)
+                  </h3>
+                  <p className="text-xs sm:text-sm text-blue-100 mt-1.5 leading-relaxed">
+                    Connectée en direct à la base de données SnapSchool de votre établissement. Elle reconnaît vos élèves, professeurs et finances en temps réel.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <span className="text-[11px] font-medium bg-white/15 px-2.5 py-1 rounded-lg">
+                      🇹🇳 Dialecte Tunisien
+                    </span>
+                    <span className="text-[11px] font-medium bg-white/15 px-2.5 py-1 rounded-lg">
+                      🇫🇷 Français
+                    </span>
+                    <span className="text-[11px] font-medium bg-white/15 px-2.5 py-1 rounded-lg">
+                      🎙️ Vocaux & Photos
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Feature Items */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mb-2.5">
+                    <Mic className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Dictée Vocale & Derja</h4>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    « أم أحمد خلصت 500 دينار » — Hnia comprend qui est l&apos;élève, calcule le reliquat et enregistre le paiement avec reçu PDF.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm mb-2.5">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Scan de Factures par Photo</h4>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Envoyez la photo d&apos;un ticket de caisse ou facture : l&apos;IA extrait montant, date et fournisseur et l&apos;enregistre dans vos dépenses.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm mb-2.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Validation Sécurisée en 1 Clic</h4>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Chaque action critique (salaire, avance, dépense) génère une carte interactive avec boutons <code>[✅ Confirmer]</code> et <code>[❌ Annuler]</code>.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white border border-gray-200/80 shadow-xs hover:border-blue-300 hover:shadow-md transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-2.5">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm">Mémoire Contextuelle</h4>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Posez des questions courtes (« Et le reste ? », « Envoie un rappel aux autres ») : Hnia garde le fil de la discussion sans répétition.
+                  </p>
+                </div>
+              </div>
+            </Section>
+
+            {/* Right Column: Realistic Telegram Mockup */}
+            <Section className="lg:col-span-6 flex justify-center" delay={0.2}>
+              <div className="w-full max-w-md bg-[#0e1621] rounded-[32px] p-3.5 shadow-2xl border border-slate-700/60 ring-1 ring-white/10">
+                {/* Telegram App Header */}
+                <div className="bg-[#17212b] rounded-2xl px-4 py-3 flex items-center justify-between border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Image
+                        src="/hnia_mascot_full.png"
+                        alt="Avatar Hnia"
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500/50"
+                      />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#17212b]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold text-white">Hnia • SnapSchool</span>
+                        <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">bot</span>
+                      </div>
+                      <span className="text-[11px] text-blue-400 font-medium">en ligne • assistant IA</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-400 font-mono">
+                    Telegram
+                  </div>
+                </div>
+
+                {/* Telegram Messages Feed */}
+                <div className="p-3 space-y-3.5 text-[12.5px] font-sans">
+                  {/* User message (Derja) */}
+                  <div className="flex justify-end">
+                    <div className="bg-[#2b5278] text-white rounded-2xl rounded-tr-xs px-3.5 py-2 max-w-[85%] shadow-xs">
+                      <p className="font-sans text-sm text-right" dir="rtl">
+                        أم أحمد خلصت 500 دينار نقدا
+                      </p>
+                      <div className="flex items-center justify-end gap-1 text-[10px] text-blue-200 mt-1">
+                        <span>10:42</span>
+                        <CheckCheck className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bot Reply: Card with action */}
+                  <div className="flex justify-start">
+                    <div className="bg-[#182533] text-slate-200 rounded-2xl rounded-tl-xs p-3.5 max-w-[92%] border border-slate-700/60 shadow-md space-y-2">
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs pb-1 border-b border-slate-700">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Paiement Encaissé avec Succès</span>
+                      </div>
+                      <div className="space-y-1 text-[12px]">
+                        <p>👤 <strong>Élève :</strong> Ahmed Ben Salah (7ème B)</p>
+                        <p>💵 <strong>Montant :</strong> <code className="bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">500.000 DT</code></p>
+                        <p>📉 <strong>Reliquat restant :</strong> <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono">150.000 DT</code></p>
+                        <p className="text-[11px] text-slate-400 pt-0.5">📄 Quittance n° REC-2026-089 générée</p>
+                      </div>
+
+                      {/* Inline Buttons */}
+                      <div className="pt-1 grid grid-cols-2 gap-1.5 text-[11px]">
+                        <div className="bg-[#2b5278] text-white font-semibold py-1.5 px-2 rounded-lg text-center cursor-default">
+                          📄 Reçu PDF
+                        </div>
+                        <div className="bg-[#2b5278] text-white font-semibold py-1.5 px-2 rounded-lg text-center cursor-default">
+                          💬 Reçu WhatsApp
+                        </div>
+                      </div>
+
+                      <div className="text-right text-[10px] text-slate-400">10:42</div>
+                    </div>
+                  </div>
+
+                  {/* User follow up message (context memory) */}
+                  <div className="flex justify-end">
+                    <div className="bg-[#2b5278] text-white rounded-2xl rounded-tr-xs px-3.5 py-2 max-w-[85%] shadow-xs">
+                      <p className="font-sans text-sm text-right" dir="rtl">
+                        والباقي في القسم متاعو قداش؟
+                      </p>
+                      <div className="flex items-center justify-end gap-1 text-[10px] text-blue-200 mt-1">
+                        <span>10:43</span>
+                        <CheckCheck className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bot reply: synthesized data card */}
+                  <div className="flex justify-start">
+                    <div className="bg-[#182533] text-slate-200 rounded-2xl rounded-tl-xs p-3.5 max-w-[92%] border border-slate-700/60 shadow-md space-y-2">
+                      <div className="flex items-center gap-1.5 text-blue-400 font-bold text-xs pb-1 border-b border-slate-700">
+                        <BarChart3 className="w-3.5 h-3.5" />
+                        <span>Situation Financière • 7ème Année B</span>
+                      </div>
+                      <div className="space-y-1 text-[12px]">
+                        <p>✅ <strong>Encaissé :</strong> 14 200 DT (86%)</p>
+                        <p>⚠️ <strong>Impayés restants :</strong> 2 300 DT (4 élèves)</p>
+                      </div>
+                      <blockquote className="border-l-2 border-amber-400 pl-2 text-[11px] text-amber-200 bg-amber-950/30 py-1 rounded-r">
+                        💡 <strong>Hnia :</strong> Voulez-vous préparer un rappel de paiement par SMS/WhatsApp pour ces 4 parents ?
+                      </blockquote>
+                      <div className="pt-1">
+                        <div className="w-full bg-[#2b5278] text-white font-semibold py-1.5 px-3 rounded-lg text-center text-[11px] cursor-default">
+                          🔔 Envoyer Rappels aux 4 Parents
+                        </div>
+                      </div>
+                      <div className="text-right text-[10px] text-slate-400">10:43</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Telegram Bottom Quick Reply Keyboard */}
+                <div className="mt-2 bg-[#17212b] rounded-2xl p-2 border border-slate-800 space-y-1.5">
+                  <div className="text-[10px] text-slate-400 text-center font-medium">
+                    Clavier de commandes rapides dans Telegram
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs font-semibold">
+                    <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
+                      <span>🏫</span> Mon École
+                    </div>
+                    <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
+                      <span>💰</span> Finances
+                    </div>
+                    <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
+                      <span>👨‍🏫</span> Enseignants
+                    </div>
+                    <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
+                      <span>📊</span> Rapports
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Section>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════ TARIFS (en DT) ═══════════ */}
       <section id="tarifs" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1439,13 +1687,13 @@ export default function Homepage() {
               {
                 name: "Pro Académie", price: "290 DT", period: "/ mois",
                 desc: "Pour les écoles primaires, collèges et lycées privés.",
-                features: ["Jusqu'à 600 élèves", "Enseignants illimités", "Emploi du temps automatique", "Statistiques & Finances en DT", "Support WhatsApp prioritaire 7j/7", "Import Excel gratuit"],
+                features: ["Jusqu'à 600 élèves", "Enseignants illimités", "Assistant IA Hnia sur Telegram 24/7", "Emploi du temps automatique", "Statistiques & Finances en DT", "Support WhatsApp prioritaire 7j/7", "Import Excel gratuit"],
                 featured: true, btnText: "Essai gratuit 14 jours",
               },
               {
                 name: "Sur mesure", price: "Sur devis", period: "",
                 desc: "Pour les groupes scolaires et réseaux multi-sites.",
-                features: ["Élèves et campus illimités", "Serveur dédié & sauvegardes", "Intégration sur mesure", "Formation sur place", "Interlocuteur dédié"],
+                features: ["Élèves et campus illimités", "Assistant IA Hnia sur mesure", "Serveur dédié & sauvegardes", "Intégration sur mesure", "Formation sur place", "Interlocuteur dédié"],
                 featured: false, btnText: "Contacter l'équipe",
               },
             ].map((plan, i) => (
@@ -1589,6 +1837,7 @@ export default function Homepage() {
                 <li><a href="#apercu" className="hover:text-white transition-colors">Aperçu du système</a></li>
                 <li><a href="#tunisie" className="hover:text-white transition-colors">Système Tunisien</a></li>
                 <li><a href="#finances-flexibles" className="hover:text-white transition-colors">Paiements Flexibles</a></li>
+                <li><a href="#hnia-ia" className="hover:text-white transition-colors">Assistant Hnia IA</a></li>
                 <li><a href="#modules" className="hover:text-white transition-colors">Modules</a></li>
                 <li><a href="#parents" className="hover:text-white transition-colors">Apps Mobiles</a></li>
                 <li><a href="#tarifs" className="hover:text-white transition-colors">Tarifs</a></li>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Send,
   CheckCircle2,
@@ -102,8 +103,14 @@ export default function TelegramLinkCard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#2AABEE]/10 text-[#2AABEE] flex items-center justify-center shrink-0">
-            <Send size={20} className="translate-x-[-1px] translate-y-[1px]" />
+          <div className="w-11 h-11 rounded-xl overflow-hidden shadow-xs shrink-0 ring-2 ring-[#2AABEE]/25 bg-white">
+            <Image
+              src="/hnia_mascot_icon.png"
+              alt="Hnia AI"
+              width={44}
+              height={44}
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <div className="flex items-center gap-2">
