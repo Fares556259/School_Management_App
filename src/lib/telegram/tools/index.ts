@@ -655,18 +655,19 @@ export const TOOLS: Record<string, ToolDefinition> = {
   // ── FINANCE SUITE ─────────────────────────────────────────────────────────
   get_payments: {
     name: "get_payments",
-    description: "Consulter les paiements de scolarité pour un mois/année donné. (NOTE: Pour la file de recouvrement des paiements partiels et reliquats, utiliser impérativement get_partial_payments).",
+    description: "Consulter la situation complète des paiements et impayés de scolarité pour un mois/année donné. Indique les élèves à jour (payés), les paiements partiels (avec reliquats), ET les élèves totalement non payés (qui n'ont encore rien versé 0 DT). À UTILISER IMPÉRATIVEMENT quand l'administrateur demande qui a payé, qui n'a pas payé ('شكون ما خلصش', 'qui doit de l'argent ce mois', 'situation des impayés').",
     requiresConfirmation: false,
     declaration: {
       name: "get_payments",
-      description: "Vérifier le statut des frais de scolarité pour un mois/année.",
+      description: "Vérifier le statut complet des frais de scolarité (payés, partiels et non payés 0 DT) pour un mois/année.",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
           month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12)." },
           year: { type: SchemaType.NUMBER, description: "Année (ex: 2026)." },
-          status: { type: SchemaType.STRING, description: "'PENDING', 'PAID', ou 'PARTIAL'." },
-          studentName: { type: SchemaType.STRING, description: "Filtrer par nom d'élève." },
+          status: { type: SchemaType.STRING, description: "'UNPAID' (pour voir tous les élèves avec solde dû : 0 DT et partiels), 'PAID', ou 'PARTIAL'." },
+          className: { type: SchemaType.STRING, description: "Filtrer par nom de classe (ex: '7ème B')." },
+          studentName: { type: SchemaType.STRING, description: "Filtrer par nom ou prénom d'élève." },
         },
       },
     },
@@ -675,7 +676,7 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   get_partial_payments: {
     name: "get_partial_payments",
-    description: "Consulter la file de recouvrement des paiements partiels (/list/payments-partial) : KPIs globaux (Total à recouvrer), tous les reliquats d'élèves en attente, échéances échues ou futures. À utiliser pour toute demande sur 'paiements partiels', 'reliquats', 'qui doit encore payer'.",
+    description: "Consulter UNIQUEMENT la file des paiements partiels (/list/payments-partial) pour les dossiers ayant déjà un acompte avec promesse de paiement ou date d'échéance. (Pour la liste globale de qui n'a pas payé ou les impayés du mois, utiliser get_payments).",
     requiresConfirmation: false,
     declaration: {
       name: "get_partial_payments",

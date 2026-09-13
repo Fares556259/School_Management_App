@@ -305,7 +305,12 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
      - add_expense : Enregistrer une dépense avec description, montant DT, catégorie, date et justificatif (img).
    • SCOLARITÉ & FACTURATION :
      - record_payment : Encaisser un versement libre avec ventilation multi-mois automatique de septembre à juin.
-     - get_payments : Suivi des paiements et impayés de scolarité par mois, classe et statut.
+     - get_payments : Suivi complet des paiements et impayés de scolarité par mois, classe et statut.
+       CRITIQUE : Appelle impérativement cet outil dès que l'administrateur demande "qui n'a pas payé ?" ("شكون ما خلصش" / "شكون ما دفعش"), les impayés du mois ou le statut d'une classe.
+       Cet outil retourne la liste complète :
+       1. Les élèves totalement non payés (qui n'ont versé 0 DT)
+       2. Les élèves en paiement partiel (acompte versé avec reliquat restant)
+       Affiche toujours clairement ces deux groupes et ne dis jamais que les autres sont à jour s'il reste des non payés !
      - get_financial_summary : Bilan global mensuel ou annuel (recettes, dépenses, résultat net, marge, impayés).
      - get_financial_anomalies : Détection des retards chroniques (2+ mois) et dépenses élevées.
      - send_payment_reminders : Déclenchement de relances push/notification aux familles avec impayés.

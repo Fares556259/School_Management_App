@@ -228,127 +228,207 @@ export async function getAttendanceTool(
 /**
  * Tool: get_payments
  * Query tuition payment status for a specific month/year.
+ * Authoritative: checks all enrolled students to identify fully paid, partial (reliquats), and completely unpaid (0 DT).
  */
 export async function getPaymentsTool(
   args: {
     month?: number; // 1-12
     year?: number;
-    status?: "PENDING" | "PAID" | "PARTIAL" | "OVERDUE";
+    status?: "PENDING" | "PAID" | "PARTIAL" | "OVERDUE" | "UNPAID";
+    className?: string;
     studentName?: string;
   },
   context: ToolContext
 ) {
   const now = new Date();
-  const where: any = {
+  const month = args.month || now.getMonth() + 1;
+  const year = args.year || now.getFullYear();
+
+  // 1. Build filter for students
+  const studentWhere: any = {
     schoolId: context.schoolId,
-    userType: "STUDENT",
   };
 
-  // Only force current month if month is explicitly passed OR if querying general overview without status
-  if (args.month) {
-    where.month = args.month;
-  } else if (!args.status || args.status === "PAID") {
-    where.month = now.getMonth() + 1;
-  }
-
-  if (args.year) {
-    where.year = args.year;
-  } else if (!args.status || args.status === "PAID") {
-    where.year = now.getFullYear();
-  }
-
-  if (args.status) {
-    where.status = args.status;
+  if (args.className) {
+    const matched = await resolveClassByName(context.schoolId, args.className);
+    if (matched) {
+      studentWhere.classId = matched.id;
+    } else {
+      studentWhere.class = {
+        name: { contains: args.className.trim(), mode: "insensitive" },
+      };
+    }
   }
 
   if (args.studentName) {
-    where.student = {
-      OR: [
-        { name: { contains: args.studentName.trim(), mode: "insensitive" } },
-        { surname: { contains: args.studentName.trim(), mode: "insensitive" } },
-      ],
-    };
+    const q = args.studentName.trim();
+    studentWhere.OR = buildNameSearchConditions(q);
   }
 
-  const aggregateWhere: any = {
-    schoolId: context.schoolId,
-    userType: "STUDENT",
-  };
-  if (where.month) aggregateWhere.month = where.month;
-  if (where.year) aggregateWhere.year = where.year;
-
-  const [totalPayments, payments, unpaidAggregate, paidAggregate] = await Promise.all([
-    prisma.payment.count({ where }),
-    prisma.payment.findMany({
-      where,
-      take: 40,
-      orderBy: [{ year: "asc" }, { month: "asc" }, { status: "asc" }],
-      select: {
-        id: true,
-        amount: true,
-        status: true,
-        month: true,
-        year: true,
-        paidAt: true,
-        deferredAmount: true,
-        student: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            class: { select: { name: true } },
-            level: { select: { tuitionFee: true } },
-            parent: { select: { phone: true, name: true } },
-          },
+  // 2. Query all enrolled students with their class, level, parent, and payments for the target month
+  const students = await prisma.student.findMany({
+    where: studentWhere,
+    select: {
+      id: true,
+      name: true,
+      surname: true,
+      customTuition: true,
+      class: { select: { id: true, name: true } },
+      level: { select: { id: true, level: true, tuitionFee: true } },
+      parent: { select: { id: true, name: true, surname: true, phone: true } },
+      payments: {
+        where: {
+          month,
+          year,
+          userType: "STUDENT",
+        },
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          month: true,
+          year: true,
+          paidAt: true,
+          deferredAmount: true,
         },
       },
-    }),
-    prisma.payment.aggregate({
-      where: {
-        ...aggregateWhere,
-        status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
-      },
-      _sum: { amount: true, deferredAmount: true },
-      _count: { id: true },
-    }),
-    prisma.payment.aggregate({
-      where: {
-        ...aggregateWhere,
+    },
+    orderBy: [{ class: { name: "asc" } }, { name: "asc" }],
+  });
+
+  const paidStudents: any[] = [];
+  const partialStudents: any[] = [];
+  const unpaidStudents: any[] = [];
+
+  let totalCollected = 0;
+  let totalOutstanding = 0;
+
+  for (const s of students) {
+    const tuitionFee = s.customTuition || s.level?.tuitionFee || 450;
+    const payment = s.payments?.[0]; // One payment record per student/month/year
+
+    const baseInfo = {
+      studentId: s.id,
+      studentName: `${s.name} ${s.surname}`.trim(),
+      class: s.class?.name || "Sans classe",
+      tuitionFee,
+      parentName: s.parent ? `${s.parent.name} ${s.parent.surname}`.trim() : "Non renseigné",
+      parentPhone: s.parent?.phone || null,
+      month,
+      year,
+      feePeriod: `${MONTHS[month - 1] || month} ${year}`,
+    };
+
+    if (!payment) {
+      // 0 DT paid - Completely Unpaid!
+      unpaidStudents.push({
+        ...baseInfo,
+        status: "UNPAID",
+        paidAmount: 0,
+        dueAmount: tuitionFee,
+        paidAt: null,
+      });
+      totalOutstanding += tuitionFee;
+    } else if (payment.status === "PAID") {
+      paidStudents.push({
+        ...baseInfo,
+        paymentId: payment.id,
         status: "PAID",
-      },
-      _sum: { amount: true },
-      _count: { id: true },
-    }),
-  ]);
+        paidAmount: payment.amount,
+        dueAmount: 0,
+        paidAt: payment.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
+      });
+      totalCollected += payment.amount;
+    } else if (payment.status === "PARTIAL") {
+      const remaining = payment.deferredAmount || Math.max(0, tuitionFee - payment.amount);
+      partialStudents.push({
+        ...baseInfo,
+        paymentId: payment.id,
+        status: "PARTIAL",
+        paidAmount: payment.amount,
+        dueAmount: remaining,
+        paidAt: payment.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
+      });
+      totalCollected += payment.amount;
+      totalOutstanding += remaining;
+    } else {
+      // PENDING / OVERDUE
+      const remaining = payment.deferredAmount || payment.amount || tuitionFee;
+      unpaidStudents.push({
+        ...baseInfo,
+        paymentId: payment.id,
+        status: payment.status,
+        paidAmount: payment.amount || 0,
+        dueAmount: remaining,
+        paidAt: payment.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
+      });
+      totalOutstanding += remaining;
+    }
+  }
+
+  const requestedStatus = (args.status || "").toUpperCase();
+  let returnRecords: any[] = [];
+
+  if (requestedStatus === "PAID") {
+    returnRecords = paidStudents;
+  } else if (requestedStatus === "PARTIAL") {
+    returnRecords = partialStudents;
+  } else if (requestedStatus === "UNPAID" || requestedStatus === "PENDING" || requestedStatus === "OVERDUE") {
+    returnRecords = [...unpaidStudents, ...partialStudents];
+  } else {
+    // Default when general query: list those who owe money (unpaid + partials)
+    returnRecords = [...unpaidStudents, ...partialStudents];
+  }
 
   return {
-    month: where.month || "Tous les mois",
-    year: where.year || "Toutes les années",
-    totalMatching: totalPayments,
+    month,
+    year,
+    feePeriod: `${MONTHS[month - 1] || month} ${year}`,
+    totalStudents: students.length,
     overview: {
-      paidCount: paidAggregate._count.id || 0,
-      paidAmount: paidAggregate._sum.amount || 0,
-      unpaidCount: unpaidAggregate._count.id || 0,
-      unpaidAmount: (unpaidAggregate._sum.amount || 0) + (unpaidAggregate._sum.deferredAmount || 0),
+      totalEnrolledStudents: students.length,
+      paidCount: paidStudents.length,
+      paidAmount: totalCollected,
+      unpaidCount: unpaidStudents.length,
+      unpaidAmount: unpaidStudents.reduce((acc, u) => acc + u.dueAmount, 0),
+      partialCount: partialStudents.length,
+      partialRemainingAmount: partialStudents.reduce((acc, p) => acc + p.dueAmount, 0),
+      totalStudentsOwingMoney: unpaidStudents.length + partialStudents.length,
+      totalAmountDue: totalOutstanding,
     },
-    records: payments.map((p) => ({
-      studentName: p.student ? `${p.student.name} ${p.student.surname}` : "Inconnu",
-      class: p.student?.class?.name || "N/A",
-      month: p.month,
-      year: p.year,
-      feePeriod: `${MONTHS[p.month - 1] || p.month} ${p.year}`,
-      status: p.status,
-      paidAmount: p.amount,
-      deferredAmount: p.deferredAmount || 0,
-      parentPhone: p.student?.parent?.phone || null,
-      paidAt: p.paidAt ? p.paidAt.toISOString().split("T")[0] : null,
-    })),
+    // Explicit sections so the assistant NEVER misses anyone
+    summaryHeadline: `${paidStudents.length} payés (${totalCollected} DT), ${partialStudents.length} partiels (${partialStudents.reduce((acc, p) => acc + p.dueAmount, 0)} DT restants), et ${unpaidStudents.length} non payés (${unpaidStudents.reduce((acc, u) => acc + u.dueAmount, 0)} DT restants). Total avec solde dû : ${unpaidStudents.length + partialStudents.length} élèves sur ${students.length}.`,
+    completelyUnpaid: {
+      count: unpaidStudents.length,
+      description: "Élèves n'ayant encore rien versé (0 DT)",
+      students: unpaidStudents.map((u) => ({
+        studentName: u.studentName,
+        class: u.class,
+        tariff: `${u.tuitionFee} DT`,
+        parentName: u.parentName,
+        parentPhone: u.parentPhone,
+      })),
+    },
+    partiallyPaid: {
+      count: partialStudents.length,
+      description: "Élèves ayant versé un acompte avec reliquat restant",
+      students: partialStudents.map((p) => ({
+        studentName: p.studentName,
+        class: p.class,
+        paid: `${p.paidAmount} DT`,
+        remainingDue: `${p.dueAmount} DT`,
+        tariff: `${p.tuitionFee} DT`,
+        parentName: p.parentName,
+        parentPhone: p.parentPhone,
+      })),
+    },
+    records: returnRecords,
   };
 }
 
 /**
  * Tool: get_financial_summary
- * Overall school finances for month/year: revenue, expenses, profit margin.
+ * Overall school finances for month/year: revenue, expenses, profit margin, total outstanding tuition.
  */
 export async function getFinancialSummaryTool(
   args: {
@@ -364,7 +444,7 @@ export async function getFinancialSummaryTool(
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 1);
 
-  const [incomes, expenses, unpaidSummary] = await Promise.all([
+  const [incomes, expenses, allStudents] = await Promise.all([
     prisma.income.aggregate({
       where: {
         schoolId: context.schoolId,
@@ -381,22 +461,44 @@ export async function getFinancialSummaryTool(
       _sum: { amount: true },
       _count: { id: true },
     }),
-    prisma.payment.aggregate({
-      where: {
-        schoolId: context.schoolId,
-        month,
-        year,
-        status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+    prisma.student.findMany({
+      where: { schoolId: context.schoolId },
+      select: {
+        id: true,
+        customTuition: true,
+        level: { select: { tuitionFee: true } },
+        payments: {
+          where: { month, year, userType: "STUDENT" },
+          select: { amount: true, status: true, deferredAmount: true },
+        },
       },
-      _sum: { amount: true, deferredAmount: true },
-      _count: { id: true },
     }),
   ]);
 
   const totalIncome = incomes._sum.amount || 0;
   const totalExpense = expenses._sum.amount || 0;
   const netProfit = totalIncome - totalExpense;
-  const unpaidTuition = (unpaidSummary._sum.amount || 0) + (unpaidSummary._sum.deferredAmount || 0);
+
+  let unpaidTuition = 0;
+  let unpaidStudentsCount = 0;
+
+  for (const s of allStudents) {
+    const fee = s.customTuition || s.level?.tuitionFee || 450;
+    const payment = s.payments?.[0];
+
+    if (!payment) {
+      unpaidTuition += fee;
+      unpaidStudentsCount++;
+    } else if (payment.status === "PARTIAL") {
+      const remaining = payment.deferredAmount || Math.max(0, fee - payment.amount);
+      unpaidTuition += remaining;
+      unpaidStudentsCount++;
+    } else if (payment.status === "PENDING" || payment.status === "OVERDUE") {
+      const remaining = payment.deferredAmount || payment.amount || fee;
+      unpaidTuition += remaining;
+      unpaidStudentsCount++;
+    }
+  }
 
   // Top expense categories
   const expenseCategories = await prisma.expense.groupBy({
@@ -417,7 +519,7 @@ export async function getFinancialSummaryTool(
     netProfit,
     marginPercentage: totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0,
     unpaidTuition,
-    unpaidStudentsCount: unpaidSummary._count.id || 0,
+    unpaidStudentsCount,
     topExpenses: expenseCategories.map((c) => ({
       category: c.category,
       amount: c._sum.amount || 0,
