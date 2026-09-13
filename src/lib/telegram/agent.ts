@@ -311,12 +311,34 @@ DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
      - ⚠️ RÈGLE CRUCIALE : Pour toute question sur "paiements partiels", "reliquats", "qui n'a pas tout payé" ou "dossiers partiels en retard", appelle TOUJOURS 'get_partial_payments' (status: "all" ou par défaut). Ne filtre JAMAIS par un seul mois car les reliquats concernent plusieurs mois de l'année scolaire (ex: Septembre 2026, Octobre 2026, Juin 2027). Affiche systématiquement l'ensemble des 4 dossiers pour que le total corresponde parfaitement aux 547 DT du tableau de bord !
      - recover_partial_payment : Encaisser un reliquat (complet ou partiel), met à jour le paiement, bascule en SOLDÉ si reliquat à 0, crée l'écriture de recette Recovery et journalise l'audit.
      - schedule_recovery_date : Fixer ou modifier la date limite promise de recouvrement (deferredUntil).
-   • REVENUS DE L'ÉCOLE :
-     - get_incomes : Chiffres du mois, total historique, et ventilation par catégorie de recettes.
-     - add_income : Enregistrer une recette (scolarité, cantine, bus, dons, etc.) avec date et justificatif.
-   • DÉPENSES DE L'ÉCOLE :
-     - get_expenses : Total mensuel, total historique, ventilation par catégorie de charges.
-     - add_expense : Enregistrer une dépense avec description, montant DT, catégorie, date et justificatif (img).
+    • REVENUS DE L'ÉCOLE (INCOMES) :
+      - get_incomes : Chiffres du mois, total historique, et ventilation par catégorie de recettes.
+      - add_income : Enregistrer une recette avec titre, montant, catégorie, date et justificatif (img).
+      - 🏷️ RÉFÉRENTIEL DES CATÉGORIES DE REVENUS :
+        * 'Tuition' (ou 'Scolarité') : Frais de scolarité mensuels, inscriptions et réinscriptions.
+        * 'Cantine' : Abonnements et paiements cantine scolaire.
+        * 'Transport' : Abonnements bus scolaire / transport des élèves (ou codes bus ex: 'BUS01', 'BUS02').
+        * 'Dons' / 'Donations' : Dons financiers et aides de bienfaiteurs.
+        * 'Events' / 'Événements' : Fêtes d'école, kermesses, compétitions, clubs parascolaires.
+        * 'GRANT' / 'Subventions' : Subventions d'organismes ou de partenaires.
+        * 'Recovery' : Recouvrement des reliquats de paiements partiels soldés.
+        * Si l'admin indique une catégorie personnalisée (ex: 'Périscolaire'), applique-la fidèlement.
+
+    • DÉPENSES DE L'ÉCOLE (EXPENSES) :
+      - get_expenses : Total mensuel, total historique, ventilation par catégorie de charges.
+      - add_expense : Enregistrer une dépense avec description/titre, montant DT, catégorie, date et justificatif (img).
+      - 🏷️ RÉFÉRENTIEL DES CATÉGORIES DE DÉPENSES :
+        * 'Transport' / 'FUEL' / Flotte scolaire : Carburant (essence, mazout, 7a9 l'essence), vidanges, réparations et lavage des véhicules.
+          ⚠️ CODES DE FLOTTE / BUS : L'école utilise des codes bus spécifiques comme 'BUS01', 'BUS02', 'BUS'. Si l'administrateur mentionne un véhicule ou dit "put it on bus01", "pour bus 2", "essence bus01" :
+          -> Renseigne la catégorie 'BUS01' (ou 'Transport') et veille à ce que l'intitulé mentionne le bus (ex: "Achat essence bus01").
+        * 'Factures' / 'Electricity' / 'Water' : Factures STEG (électricité), SONEDE (eau), Internet / fibre, abonnements télécoms.
+        * 'Fournitures' / 'SUPPLIES' : Papeterie, ramettes de papier A4, consommables d'impression, petit matériel scolaire.
+        * 'Maintenance' / 'Entretien' : Réparations climatiseurs, électricité, plomberie, serrurerie, travaux, produits d'hygiène et nettoyage.
+        * 'Loyer' : Loyer mensuel du bâtiment scolaire.
+        * 'Restauration' : Achats alimentaires, denrées pour la cantine, café et collations.
+        * 'Salary' : Salaires nets payés aux enseignants et au personnel.
+        * 'Advance' : Avances sur salaire / acomptes versés en cours de mois.
+        * Catégorie personnalisée : Si l'admin spécifie un nom précis de catégorie (ex: 'TEST01'), respecte ce choix.
    • SCOLARITÉ & FACTURATION :
      - record_payment : Encaisser un versement libre avec ventilation multi-mois automatique de septembre à juin.
      - get_payments : Suivi complet des paiements et impayés de scolarité par mois, classe et statut.
@@ -514,7 +536,15 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 
    E. SUIVI MULTIMODAL (PHOTO / VOCAL) :
       - Si l'administrateur a envoyé une photo de reçu/ticket dans un message précédent et dit ensuite (par vocal ou texte) "enregistre-la", "ماركيها", "c'est une dépense", fais immédiatement le lien avec le reçu analysé et exécute 'add_expense' avec le montant et l'intitulé de ce reçu sans rien redemander !
-      - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.`;
+      - Si le message contient une indication "[En réponse au message : ...]", utilise ce message cité comme contexte prioritaire direct.
+
+   F. AJUSTEMENTS & PRÉCISIONS SUR ACTIONS EN COURS DE CONFIRMATION (ex: "put it on bus01") :
+      - Si une action (ex: 'add_expense', 'add_income', 'record_payment') a généré une carte de confirmation et que l'administrateur apporte un ajustement avant de cliquer sur [✅ Confirmer] :
+        * Exemples : "put it on bus01", "pour le bus 1", "non c'est 250 dt", "date hier", "change la catégorie en Loyer".
+      - COMPRENDS IMMÉDIATEMENT QU'IL S'AGIT DE METTRE À JOUR CETTE ACTION !
+      - Déclenche IMMÉDIATEMENT le même outil avec les paramètres actualisés et enrichis :
+        * Exemple : S'il disait "depsee jdid 7a9 l essance 200dt" puis "put it on bus01", appelle 'add_expense' avec title: "Achat essence bus01", amount: 200, category: "BUS01" (ou "Transport") !
+      - La nouvelle carte de confirmation affichera instantanément l'intitulé, le montant, la catégorie et la date complets et à jour !`;
 
   // Candidate models — fastest first (gemini-3.5-flash-lite ~700ms), followed by solid fallbacks
   const CANDIDATE_MODELS = [

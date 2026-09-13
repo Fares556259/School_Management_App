@@ -387,10 +387,18 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      const type = args.isAdvance ? "l'avance sur salaire" : "le salaire";
-      const deductionNote = args.missedHours ? ` (déduction <code>${args.missedHours}h</code>)` : "";
-      const monthStr = args.month ? ` pour le mois <code>${args.month}</code>` : "";
-      return `❓ <b>Paiement Enseignant</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer ${type} de <code>${args.amount} DT</code> pour <b>${args.teacherNameOrId}</b>${monthStr}${deductionNote} ?`;
+      const type = args.isAdvance ? "Avance sur salaire" : "Salaire mensuel";
+      const cleanAmount = Math.abs(Number(args.amount) || 0);
+      const deductionNote = args.missedHours ? `\n⏳ <b>Déduction absence :</b> <code>${args.missedHours}h</code>` : "";
+      const monthStr = args.month ? `\n📅 <b>Mois :</b> <code>Mois ${args.month}</code>` : "";
+
+      return `❓ <b>Paiement Enseignant</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Enseignant :</b> <b>${args.teacherNameOrId}</b>
+💼 <b>Type :</b> <code>${type}</code>
+💰 <b>Montant :</b> <code>${cleanAmount} DT</code>${monthStr}${deductionNote}
+
+Confirmer ce paiement ?`;
     },
     execute: payTeacherSalaryTool,
   },
@@ -415,8 +423,17 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      const type = args.isAdvance ? "l'avance" : "le salaire";
-      return `❓ <b>Paiement Personnel</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer ${type} de <code>${args.amount} DT</code> pour <b>${args.staffNameOrId}</b> ?`;
+      const type = args.isAdvance ? "Avance sur salaire" : "Salaire mensuel";
+      const cleanAmount = Math.abs(Number(args.amount) || 0);
+      const monthStr = args.month ? `\n📅 <b>Mois :</b> <code>Mois ${args.month}</code>` : "";
+
+      return `❓ <b>Paiement Personnel</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Personnel :</b> <b>${args.staffNameOrId}</b>
+💼 <b>Type :</b> <code>${type}</code>
+💰 <b>Montant :</b> <code>${cleanAmount} DT</code>${monthStr}
+
+Confirmer ce paiement ?`;
     },
     execute: payStaffSalaryTool,
   },
@@ -890,7 +907,7 @@ ${lines.join("\n")}`;
 
   add_income: {
     name: "add_income",
-    description: "Enregistrer une recette ou un revenu pour l'école (cantine, bus, activités périscolaires, dons, subventions, etc.).",
+    description: "Enregistrer une recette ou un revenu pour l'école (scolarité, cantine, transport, bus scolaire, activités, dons, subventions, événements, etc.).",
     requiresConfirmation: true,
     declaration: {
       name: "add_income",
@@ -899,18 +916,35 @@ ${lines.join("\n")}`;
         type: SchemaType.OBJECT,
         required: ["title", "amount", "category"],
         properties: {
-          title: { type: SchemaType.STRING, description: "Intitulé ou source de la recette." },
-          amount: { type: SchemaType.NUMBER, description: "Montant encaissé en DT." },
-          category: { type: SchemaType.STRING, description: "Catégorie (ex: 'Scolarité', 'Cantine', 'Transport', 'Activités', 'Général')." },
+          title: { type: SchemaType.STRING, description: "Intitulé ou source de la recette (ex: 'Abonnement Bus 01', 'Forfait Cantine Octobre', 'Donation association')." },
+          amount: { type: SchemaType.NUMBER, description: "Montant encaissé en Dinars Tunisiens (DT)." },
+          category: {
+            type: SchemaType.STRING,
+            description: "Catégorie du revenu : 'Tuition' (Scolarité/Inscriptions), 'Cantine', 'Transport' (ou 'BUS01', 'BUS02'), 'Dons' (Donations), 'Events' (Événements/Fêtes), 'GRANT' (Subventions), 'Recovery' (Recouvrement reliquats), ou catégorie personnalisée.",
+          },
           date: { type: SchemaType.STRING, description: "Date au format AAAA-MM-JJ (optionnel, aujourd'hui par défaut)." },
           img: { type: SchemaType.STRING, description: "URL du reçu ou justificatif (optionnel)." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      const dateStr = args.date ? ` le <code>${args.date}</code>` : "";
+      const cleanAmount = Math.abs(Number(args.amount) || 0);
+      const title = (args.title || "Revenu").trim();
+      const category = (args.category || "Général").trim();
+      const incomeDate = args.date ? new Date(args.date) : new Date();
+      const dateStr = !isNaN(incomeDate.getTime())
+        ? incomeDate.toLocaleDateString("fr-FR")
+        : new Date().toLocaleDateString("fr-FR");
       const imgStr = args.img ? "\n🖼️ <i>Justificatif joint</i>" : "";
-      return `❓ <b>Nouveau Revenu</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer le revenu <b>${args.title}</b> de <code>+${args.amount} DT</code> (Catégorie : <code>${args.category}</code>)${dateStr}${imgStr} ?`;
+
+      return `❓ <b>Nouveau Revenu</b>
+━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>Montant :</b> <code>+${cleanAmount} DT</code>
+🏷️ <b>Intitulé / Source :</b> <b>${title}</b>
+📂 <b>Catégorie :</b> <code>${category}</code>
+📅 <b>Date :</b> <code>${dateStr}</code>${imgStr}
+
+Confirmer l'enregistrement de ce revenu ?`;
     },
     execute: addIncomeTool,
   },
@@ -925,9 +959,9 @@ ${lines.join("\n")}`;
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
-          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12, défaut mois actuel)." },
+          month: { type: SchemaType.NUMBER, description: "Mois (1 à 12, défaut mois actuel)." },
           year: { type: SchemaType.NUMBER, description: "Année (défaut année actuelle)." },
-          category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'Factures', 'Fournitures', 'Maintenance', 'SALAIRE')." },
+          category: { type: SchemaType.STRING, description: "Filtrer par catégorie (ex: 'Transport', 'BUS01', 'Factures', 'Fournitures', 'Maintenance', 'Loyer', 'Salary', 'Advance')." },
           query: { type: SchemaType.STRING, description: "Recherche textuelle dans l'intitulé." },
           limit: { type: SchemaType.NUMBER, description: "Nombre maximum de résultats (défaut 25)." },
         },
@@ -938,7 +972,7 @@ ${lines.join("\n")}`;
 
   add_expense: {
     name: "add_expense",
-    description: "Enregistrer une dépense opérationnelle (facture STEG, fournitures, entretien, loyer, etc.).",
+    description: "Enregistrer une dépense opérationnelle (carburant/essence, transport/bus, facture STEG/SONEDE, fournitures, entretien, loyer, restauration, etc.).",
     requiresConfirmation: true,
     declaration: {
       name: "add_expense",
@@ -947,20 +981,35 @@ ${lines.join("\n")}`;
         type: SchemaType.OBJECT,
         required: ["title", "amount"],
         properties: {
-          title: { type: SchemaType.STRING, description: "Description de la dépense." },
-          amount: { type: SchemaType.NUMBER, description: "Montant en DT." },
-          category: { type: SchemaType.STRING, description: "Catégorie (ex: 'Factures', 'Fournitures', 'Maintenance', 'Loyer')." },
+          title: { type: SchemaType.STRING, description: "Description de la dépense (ex: 'Achat essence bus01', 'Facture STEG Septembre', 'Fournitures papier A4')." },
+          amount: { type: SchemaType.NUMBER, description: "Montant en Dinars Tunisiens (DT)." },
+          category: {
+            type: SchemaType.STRING,
+            description: "Catégorie : 'Transport' (ou véhicules 'BUS01', 'BUS02', 'FUEL'), 'Factures' (ou 'Electricity', 'Water'), 'Fournitures' (ou 'SUPPLIES'), 'Maintenance', 'Loyer', 'Restauration', 'Salary', 'Advance', ou catégorie personnalisée.",
+          },
           date: { type: SchemaType.STRING, description: "Date au format AAAA-MM-JJ." },
           img: { type: SchemaType.STRING, description: "URL de la facture ou du reçu / justificatif (optionnel)." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      const imgStr = args.img ? "\n🖼️ <i>Justificatif joint</i>" : "";
       const cleanAmount = Math.abs(Number(args.amount) || 0);
-      return `❓ <b>Nouvelle Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la dépense <b>${args.title}</b> de <code>${cleanAmount} DT</code> (Catégorie : <code>${
-        args.category || "Général"
-      }</code>)${imgStr} ?`;
+      const title = (args.title || "Dépense").trim();
+      const category = (args.category || "Général").trim();
+      const expenseDate = args.date ? new Date(args.date) : new Date();
+      const dateStr = !isNaN(expenseDate.getTime())
+        ? expenseDate.toLocaleDateString("fr-FR")
+        : new Date().toLocaleDateString("fr-FR");
+      const imgStr = args.img ? "\n🖼️ <i>Reçu / justificatif joint</i>" : "";
+
+      return `❓ <b>Nouvelle Dépense</b>
+━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>Montant :</b> <code>${cleanAmount} DT</code>
+🏷️ <b>Intitulé :</b> <b>${title}</b>
+📂 <b>Catégorie :</b> <code>${category}</code>
+📅 <b>Date :</b> <code>${dateStr}</code>${imgStr}
+
+Confirmer l'enregistrement de cette dépense ?`;
     },
     execute: addExpenseTool,
   },
