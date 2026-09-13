@@ -147,6 +147,8 @@ export async function sendTelegramMessage(
     const payload: Record<string, any> = {
       chat_id: chatId,
       text: chunk,
+      link_preview_options: { is_disabled: true },
+      disable_web_page_preview: true,
     };
 
     if (options?.parse_mode) {
