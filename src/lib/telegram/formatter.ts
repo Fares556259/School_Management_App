@@ -8,6 +8,8 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
 
   let text = raw.trim();
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.snapschool.academy";
+
   // 1. Sanitize standard HTML angle brackets that are NOT Telegram tags
   // Preserve: <b>, </b>, <i>, </i>, <code>, </code>, <pre>, </pre>, <blockquote>, </blockquote>, <a href="...">, </a>, <u>, </u>, <s>, </s>
   const validTagTokens: { token: string; tag: string }[] = [];
@@ -15,8 +17,16 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
 
   const validTagRegex = /<\/?(?:b|i|code|pre|blockquote|u|s|a(?:\s+href="[^"]*")?)>/gi;
   text = text.replace(validTagRegex, (match) => {
+    let safeTag = match;
+    // Intercept tel: links in <a> tags and convert them to web call redirect URLs (Telegram Bot API forbids tel: URLs)
+    if (/^<a\s+href="tel:/i.test(match)) {
+      safeTag = match.replace(/href="tel:([^"]+)"/i, (_, p) => {
+        const clean = p.replace(/[^0-9+]/g, "");
+        return `href="${appUrl}/api/call?phone=${encodeURIComponent(clean)}"`;
+      });
+    }
     const token = `___TAG_${tokenCounter++}___`;
-    validTagTokens.push({ token, tag: match });
+    validTagTokens.push({ token, tag: safeTag });
     return token;
   });
 
@@ -79,12 +89,48 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
   text = text.replace(/<blockquote>\s*(?:💡\s*(?:Analyse\s+Hnia\s*:\s*)?)?([^<>\n]+?\?)\s*<\/blockquote>/gi, "❓ $1");
 
   // 10b. Convert Markdown hyperlinks [text](url) to <a href="url">text</a>
-  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2">$1</a>');
+  // Also converts tel: links to web call redirect URLs
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+|tel:[^)]+)\)/gi, (match, linkText, url) => {
+    if (url.toLowerCase().startsWith("tel:")) {
+      const cleanPhone = url.slice(4).replace(/[^0-9+]/g, "");
+      return `<a href="${appUrl}/api/call?phone=${encodeURIComponent(cleanPhone)}">${linkText}</a>`;
+    }
+    return `<a href="${url}">${linkText}</a>`;
+  });
 
   // 10c. Convert triple-backtick code blocks to <pre><code>...</code></pre>
   text = text.replace(/```(?:[a-z]*)\n?([\s\S]*?)```/g, (_, code) => {
     const escaped = code.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return `<pre><code>${escaped}</code></pre>`;
+  });
+
+  // 10d. Auto-link bare phone numbers following phone icons (e.g. 📞 12 357 5478) into direct call URLs
+  // This ensures that when the user presses on the phone number in Telegram on their mobile,
+  // it immediately opens the phone dialer with the number prefilled!
+  text = text.replace(/(📞|☎️)\s*(?!<a\b)(?![^<]*<\/a>)([+0-9][0-9\s.-]{2,18}\d)/g, (match, icon, phoneStr) => {
+    const digits = phoneStr.replace(/\D/g, "");
+    if (digits.length < 4) return match;
+
+    let cleanNumber: string;
+    let displayNumber: string;
+    if (phoneStr.trim().startsWith("+")) {
+      cleanNumber = `+${digits}`;
+      displayNumber = cleanNumber;
+    } else if (digits.startsWith("00216")) {
+      cleanNumber = `+${digits.slice(2)}`;
+      displayNumber = cleanNumber;
+    } else if (digits.startsWith("216") && digits.length > 8) {
+      cleanNumber = `+${digits}`;
+      displayNumber = cleanNumber;
+    } else if (digits.length === 8) {
+      cleanNumber = `+216${digits}`;
+      displayNumber = `+216 ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+    } else {
+      cleanNumber = `+216${digits}`;
+      displayNumber = `+216 ${phoneStr.trim()}`;
+    }
+
+    return `<a href="${appUrl}/api/call?phone=${encodeURIComponent(cleanNumber)}">${icon} ${displayNumber}</a>`;
   });
 
   // 11. Auto-pill monetary amounts (e.g. 6 304 DT, 450 DT, 180 DT) if not already inside <code>

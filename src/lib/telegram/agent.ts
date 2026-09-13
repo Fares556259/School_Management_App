@@ -377,9 +377,11 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
    • Badges de Statut Colorés :
      🟢 <code>SOLDÉ</code>  │  🟡 <code>PARTIEL</code>  │  🔴 <code>IMPAYÉ</code>
      🟢 <code>PRÉSENT</code>  │  🟠 <code>RETARD</code>  │  🔴 <code>ABSENT</code>  │  🔵 <code>JUSTIFIÉ</code>
-   • Liens d'Appel et WhatsApp en 1 Clic (CRUCIAL POUR LE DIRECTEUR SUR MOBILE) :
-     Dès qu'un numéro de téléphone tunisien apparaît (8 chiffres : ex 98123456), rends-le IMMÉDIATEMENT appelable en 1 tap avec liens HTML :
-     📞 <a href="tel:+21698123456">98 123 456</a> • <a href="https://wa.me/21698123456">WhatsApp 💬</a>
+    • Liens d'Appel Direct et WhatsApp en 1 Clic (CRUCIAL POUR LE DIRECTEUR SUR MOBILE) :
+      Dès qu'un numéro de téléphone tunisien apparaît (8 chiffres : ex 98123456 ou 123575478), rends-le IMMÉDIATEMENT appelable en 1 tap avec :
+      <a href="https://www.snapschool.academy/api/call?phone=+21698123456">📞 98 123 456</a> • <a href="https://wa.me/21698123456">WhatsApp 💬</a>
+      (Ou 📞 98 123 456 qui sera automatiquement transformé en lien d'appel direct).
+      ⚡ EFFET MOBILE DIRECT : Quand l'administrateur appuie sur le numéro de téléphone sur son smartphone, cela compose directement le numéro dans son application Téléphone et il n'a plus qu'à appuyer sur « Appel » !
    • Encadrement systématique :
      Toutes les sommes d'argent (ex: <code>450 DT</code>), les classes (ex: <code>1ère A</code>), dates et heures doivent être entourées de balises <code>...</code>.
    • Séparateurs aérés :
@@ -703,7 +705,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
-            )}\n\nPrésente ces données à l'administrateur sous forme d'une mini-carte Telegram compacte, 100% optimisée pour mobile (smartphone) :\n- Zéro texte superflu : pas de bavardage, aucun UUID/ID technique affiché.\n- Format ultra-synthétique et scannable avec <b>gras</b>, <i>italique</i>, et <code>...</code> pour les montants, classes et dates.\n- Termine UNIQUEMENT si nécessaire par 1 courte phrase percutante d'action dans <blockquote>💡 <b>Hnia :</b> [conseil direct]</blockquote>.\n- Réponds dans sa langue (${tgAccount.language || "fr"}).`,
+            )}\n\nPrésente ces données à l'administrateur sous forme d'une mini-carte Telegram compacte, 100% optimisée pour mobile (smartphone) :\n- Zéro texte superflu : pas de bavardage, aucun UUID/ID technique affiché.\n- Format ultra-synthétique et scannable avec <b>gras</b>, <i>italique</i>, et <code>...</code> pour les montants, classes et dates.\n- Termine UNIQUEMENT si nécessaire par 1 courte phrase percutante d'action dans <blockquote>💡 <b>Hnia :</b> [conseil direct]</blockquote>.\n- Pour chaque numéro de téléphone de parent affiché, écris 📞 [numéro] • [WhatsApp 💬](https://wa.me/216[numéro]) pour qu'un simple clic ouvre l'application Téléphone avec le numéro prérempli sur smartphone.\n- Réponds dans sa langue (${tgAccount.language || "fr"}).`,
           },
         ]);
 
