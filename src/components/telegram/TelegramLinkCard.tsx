@@ -19,6 +19,7 @@ import {
   requestTelegramLinkCode,
   disconnectTelegramAccount,
 } from "@/app/(dashboard)/admin/actions/telegramActions";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function TelegramLinkCard() {
   const [loading, setLoading] = useState(true);
@@ -216,38 +217,53 @@ export default function TelegramLinkCard() {
           </div>
 
           {activeCode ? (
-            <div className="flex flex-col gap-3 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
-              <span className="text-[12px] font-medium text-indigo-900">
-                Votre code d&apos;association à 6 chiffres (valide 15 minutes) :
-              </span>
-              <div className="flex items-center gap-3">
-                <div className="text-[28px] font-mono font-bold text-indigo-700 tracking-[0.25em] bg-white px-4 py-1.5 rounded-lg border border-indigo-200 shadow-sm">
-                  {activeCode}
-                </div>
-                <button
-                  onClick={handleCopyCode}
-                  className="p-2.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors shadow-sm"
-                  title="Copier le code"
-                >
-                  {copied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
-                </button>
+            <div className="flex flex-col md:flex-row items-center gap-6 p-5 bg-gradient-to-br from-indigo-50/70 to-blue-50/40 rounded-xl border border-indigo-100 shadow-sm">
+              {/* QR Code for instant smartphone camera scanning */}
+              <div className="flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-indigo-100 shadow-sm shrink-0">
+                <QRCodeSVG
+                  value={`https://t.me/HniaSnapSchoolBot?start=${activeCode}`}
+                  size={120}
+                  level="M"
+                />
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Scanner au mobile
+                </span>
               </div>
 
-              <div className="pt-2 flex flex-wrap items-center gap-3">
-                <a
-                  href={`https://t.me/HniaSnapSchoolBot?start=${activeCode}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#2AABEE] hover:bg-[#229ED9] text-white text-[13px] font-medium rounded-[6px] transition-colors shadow-sm"
-                >
-                  <Send size={14} />
-                  <span>Activer en 1 clic sur Telegram</span>
-                  <ExternalLink size={13} />
-                </a>
-
-                <span className="text-[12px] text-slate-500">
-                  ou envoyez le code au bot <strong className="text-slate-700">@HniaSnapSchoolBot</strong>
+              {/* Code + 1-Click Action */}
+              <div className="flex flex-col gap-3 flex-1">
+                <span className="text-[12px] font-medium text-indigo-900">
+                  Code d&apos;association unique (valide 15 minutes) :
                 </span>
+                <div className="flex items-center gap-3">
+                  <div className="text-[28px] font-mono font-bold text-indigo-700 tracking-[0.25em] bg-white px-4 py-1.5 rounded-lg border border-indigo-200 shadow-sm">
+                    {activeCode}
+                  </div>
+                  <button
+                    onClick={handleCopyCode}
+                    className="p-2.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors shadow-sm"
+                    title="Copier le code"
+                  >
+                    {copied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
+                  </button>
+                </div>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <a
+                    href={`https://t.me/HniaSnapSchoolBot?start=${activeCode}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#2AABEE] hover:bg-[#229ED9] text-white text-[13px] font-medium rounded-[6px] transition-colors shadow-sm"
+                  >
+                    <Send size={14} />
+                    <span>Ouvrir dans Telegram</span>
+                    <ExternalLink size={13} />
+                  </a>
+
+                  <span className="text-[12px] text-slate-500">
+                    ou envoyez le code au bot <strong className="text-slate-700">@HniaSnapSchoolBot</strong>
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
