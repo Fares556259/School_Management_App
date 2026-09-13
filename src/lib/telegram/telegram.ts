@@ -23,10 +23,89 @@ export interface InlineKeyboardMarkup {
   inline_keyboard: InlineKeyboardButton[][];
 }
 
+export interface KeyboardButton {
+  text: string;
+  request_contact?: boolean;
+  request_location?: boolean;
+}
+
+export interface ReplyKeyboardMarkup {
+  keyboard: KeyboardButton[][];
+  resize_keyboard?: boolean;
+  one_time_keyboard?: boolean;
+  is_persistent?: boolean;
+}
+
+export type TelegramReplyMarkup =
+  | InlineKeyboardMarkup
+  | ReplyKeyboardMarkup
+  | { remove_keyboard: true };
+
 export interface SendMessageOptions {
   parse_mode?: "Markdown" | "HTML" | "MarkdownV2";
-  reply_markup?: InlineKeyboardMarkup;
+  reply_markup?: TelegramReplyMarkup;
   reply_to_message_id?: number;
+}
+
+/**
+ * Returns the persistent bottom keyboard for quick access to school operations.
+ * Designed for administrators who prefer tapping on mobile.
+ */
+export function getMainHubKeyboard(language = "fr"): ReplyKeyboardMarkup {
+  const isArabic = language === "ar";
+  return {
+    keyboard: isArabic
+      ? [
+          [{ text: "🏫 مدرستي" }, { text: "💰 المالية" }],
+          [{ text: "👨‍🏫 الأساتذة" }, { text: "👨‍🎓 التلاميذ" }],
+          [{ text: "📅 الجدول" }, { text: "📊 التقارير" }],
+        ]
+      : [
+          [{ text: "🏫 Mon École" }, { text: "💰 Finances" }],
+          [{ text: "👨‍🏫 Enseignants" }, { text: "👨‍🎓 Élèves" }],
+          [{ text: "📅 Emploi du Temps" }, { text: "📊 Rapports" }],
+        ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
+/**
+ * Returns the inline hub action buttons for greeting / overview cards.
+ */
+export function getMainHubInlineKeyboard(language = "fr"): InlineKeyboardMarkup {
+  const isArabic = language === "ar";
+  return {
+    inline_keyboard: isArabic
+      ? [
+          [
+            { text: "🏫 مدرستي", callback_data: "hub:school" },
+            { text: "💰 المالية", callback_data: "hub:finance" },
+          ],
+          [
+            { text: "👨‍🏫 الأساتذة", callback_data: "hub:teachers" },
+            { text: "👨‍🎓 التلاميذ", callback_data: "hub:students" },
+          ],
+          [
+            { text: "📅 الجدول", callback_data: "hub:timetable" },
+            { text: "📊 التقارير", callback_data: "hub:reports" },
+          ],
+        ]
+      : [
+          [
+            { text: "🏫 Mon École", callback_data: "hub:school" },
+            { text: "💰 Finances", callback_data: "hub:finance" },
+          ],
+          [
+            { text: "👨‍🏫 Enseignants", callback_data: "hub:teachers" },
+            { text: "👨‍🎓 Élèves", callback_data: "hub:students" },
+          ],
+          [
+            { text: "📅 Emploi du Temps", callback_data: "hub:timetable" },
+            { text: "📊 Rapports", callback_data: "hub:reports" },
+          ],
+        ],
+  };
 }
 
 /**

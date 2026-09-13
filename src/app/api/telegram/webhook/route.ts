@@ -6,6 +6,8 @@ import {
   getTelegramFile,
   downloadTelegramFileBuffer,
   setChatMenuButton,
+  getMainHubKeyboard,
+  getMainHubInlineKeyboard,
 } from "@/lib/telegram/telegram";
 import {
   verifyAndLinkAccount,
@@ -131,6 +133,36 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      // Handle Hub direct section buttons
+      if (data.startsWith("hub:")) {
+        const hubType = data.replace("hub:", "");
+        const tgId = update.callback_query.from.id.toString();
+        const chatId = update.callback_query.message.chat.id;
+
+        await answerTelegramCallbackQuery(update.callback_query.id, "Ouverture...");
+
+        const hubPrompts: Record<string, string> = {
+          school: "Donne-moi la vue d'ensemble complète et officielle de mon établissement (effectif élèves, classes, équipe pédagogique, présence générale).",
+          finance: "Fais le point financier complet de l'école (recettes perçues ce mois, dépenses enregistrées, impayés à recouvrer et solde de caisse du jour).",
+          teachers: "Affiche la situation de l'équipe pédagogique (liste des enseignants, matières enseignées et état de paiement des salaires).",
+          students: "Donne-moi le point sur les élèves (effectif par classe, présences/absences du jour, et fiches nécessitant une attention).",
+          timetable: "Affiche l'emploi du temps et les séances de cours prévues pour aujourd'hui avec les salles et enseignants.",
+          reports: "Présente-moi le tableau de bord exécutif 360° et les principaux indicateurs de performance de l'école.",
+        };
+
+        const prompt = hubPrompts[hubType] || "Comment puis-je vous aider ?";
+        const tgAccount = await getLinkedAccount(tgId);
+        if (tgAccount) {
+          await runTelegramAgent({
+            userMessage: prompt,
+            chatId,
+            telegramId: tgId,
+            tgAccount,
+          });
+        }
+        return NextResponse.json({ ok: true });
+      }
+
       // Handle write action confirmations
       await handleConfirmationCallback(update.callback_query);
       return NextResponse.json({ ok: true });
@@ -159,10 +191,18 @@ export async function POST(req: NextRequest) {
         // Deep-link code provided: /start 123456
         const linkResult = await verifyAndLinkAccount(telegramId, telegramUsername, startArg);
         if (linkResult.success) {
+          const isAr = linkResult.language === "ar";
+          const welcomeMsg = isAr
+            ? `🎉 <b>تهانينا ${linkResult.adminName} !</b>\nتم ربط حسابك بنجاح مع مدرسة <b>${linkResult.schoolName}</b>.\n\nأنا <b>هنية</b>، مساعدتك الإدارية والعملياتية الذكية.\nيمكنك الضغط على أي قسم بالأسفل للوصول المباشر أو التحدث معي طبيعياً بنص أو تسجيل صوتي :`
+            : `🎉 <b>Félicitations ${linkResult.adminName} !</b>\nVotre compte Telegram est maintenant relié à l'école <b>${linkResult.schoolName}</b>.\n\nJe suis <b>Hnia</b>, votre assistante opérationnelle. Touchez un bouton d'accès direct ci-dessous ou parlez-moi directement par texte ou note vocale :`;
+
           await sendTelegramMessage(
             chatId,
-            `🎉 **Félicitations ${linkResult.adminName} !**\nVotre compte Telegram est maintenant relié à l'école **${linkResult.schoolName}**.\n\nJe suis **Hnia**, votre assistante opérationnelle. Vous pouvez me poser des questions par texte ou par note vocale :\n• _"Qui est absent aujourd'hui ?"_\n• _"Quels sont les impayés de ce mois ?"_\n• _"J'ai reçu 500 DT de Mohamed pour septembre"_\n• _"Combien de revenus avons-nous ce mois-ci ?"_\n\nQue puis-je faire pour vous ?`,
-            { parse_mode: "Markdown" }
+            welcomeMsg,
+            {
+              parse_mode: "HTML",
+              reply_markup: getMainHubKeyboard(linkResult.language || "fr"),
+            }
           );
           return NextResponse.json({ ok: true });
         } else {
@@ -181,10 +221,18 @@ export async function POST(req: NextRequest) {
         const adminName =
           [existing.admin.name, existing.admin.surname].filter(Boolean).join(" ") ||
           existing.admin.username;
+        const isAr = existing.language === "ar";
+        const welcomeMsg = isAr
+          ? `🏛️ <b>SNAPSCHOOL</b> │ <b>مركز التحكم والعمليات</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👋 <b>أهلاً بك ${adminName} !</b>\nحسابك متصل بمدرسة <b>${existing.School.name}</b>.\n\nاختر قسماً من الأزرار بالأسفل، أو تحدث معي مباشرة بالصوت أو النص :`
+          : `🏛️ <b>SNAPSCHOOL</b> │ <b>CENTRE DE COMMANDE</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👋 <b>Bonjour ${adminName} !</b>\nVotre compte est bien connecté à <b>${existing.School.name}</b>.\n\nTouchez un bouton d'accès rapide ci-dessous ou posez-moi votre question en vocal ou par texte :`;
+
         await sendTelegramMessage(
           chatId,
-          `👋 **Bonjour ${adminName} !**\nVotre compte est bien relié à **${existing.School.name}**.\n\nEnvoyez-moi un message ou une note vocale, ou tapez /help pour voir les fonctionnalités disponibles.`,
-          { parse_mode: "Markdown" }
+          welcomeMsg,
+          {
+            parse_mode: "HTML",
+            reply_markup: getMainHubKeyboard(existing.language),
+          }
         );
         return NextResponse.json({ ok: true });
       } else {
@@ -291,6 +339,7 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
 ---
 
 ⚙️ **Commandes système :**
+• \`/menu\` — 🏛️ Afficher le centre de commande et les boutons d'accès rapide
 • \`/briefing\` — 🌅 Briefing exécutif du matin (séances, absences, échéances)
 • \`/caisse\` — 🌇 Clôture de caisse du jour (recettes, dépenses, solde net)
 • \`/call\` — 📞 Passer un appel vocal en direct avec Hnia
@@ -357,6 +406,87 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
       if (tgAccount) {
         await runTelegramAgent({
           userMessage: "Donne-moi le briefing exécutif du matin pour aujourd'hui (séances du jour, absences récentes à suivre, promesses de paiement et alertes).",
+          chatId,
+          telegramId,
+          tgAccount,
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // 8d. Command: /menu
+    if (lowerText === "/menu" || lowerText === "menu" || lowerText === "قائمة" || lowerText === "الرئيسية") {
+      const account = await getLinkedAccount(telegramId);
+      if (account) {
+        const isAr = account.language === "ar";
+        const menuMsg = isAr
+          ? `🏛️ <b>مركز التحكم والعمليات</b> │ <b>SnapSchool</b>\n━━━━━━━━━━━━━━━━━━━━━━\nاختر من الأقسام السريعة بالأسفل أو تحدث معي مباشرة :`
+          : `🏛️ <b>CENTRE DE COMMANDE</b> │ <b>SnapSchool</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSélectionnez une action rapide ou parlez-moi directement :`;
+
+        await sendTelegramMessage(chatId, menuMsg, {
+          parse_mode: "HTML",
+          reply_markup: getMainHubInlineKeyboard(account.language),
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // 8e. Hub Quick Action Buttons (Persistent Reply Keyboard and Shortcut Commands)
+    const HUB_BUTTON_PROMPTS: Record<string, string> = {
+      // French buttons
+      "🏫 mon école": "Donne-moi la vue d'ensemble complète et officielle de mon établissement (effectif élèves, classes, équipe pédagogique, présence générale).",
+      "mon école": "Donne-moi la vue d'ensemble complète et officielle de mon établissement (effectif élèves, classes, équipe pédagogique, présence générale).",
+      "/school": "Donne-moi la vue d'ensemble complète et officielle de mon établissement (effectif élèves, classes, équipe pédagogique, présence générale).",
+
+      "💰 finances": "Fais le point financier complet de l'école (recettes perçues ce mois, dépenses enregistrées, impayés à recouvrer et solde de caisse du jour).",
+      "finances": "Fais le point financier complet de l'école (recettes perçues ce mois, dépenses enregistrées, impayés à recouvrer et solde de caisse du jour).",
+      "/finance": "Fais le point financier complet de l'école (recettes perçues ce mois, dépenses enregistrées, impayés à recouvrer et solde de caisse du jour).",
+
+      "👨‍🏫 enseignants": "Affiche la situation de l'équipe pédagogique (liste des enseignants, matières enseignées et état de paiement des salaires).",
+      "enseignants": "Affiche la situation de l'équipe pédagogique (liste des enseignants, matières enseignées et état de paiement des salaires).",
+      "/teachers": "Affiche la situation de l'équipe pédagogique (liste des enseignants, matières enseignées et état de paiement des salaires).",
+
+      "👨‍🎓 élèves": "Donne-moi le point sur les élèves (effectif par classe, présences/absences du jour, et fiches nécessitant une attention).",
+      "élèves": "Donne-moi le point sur les élèves (effectif par classe, présences/absences du jour, et fiches nécessitant une attention).",
+      "eleves": "Donne-moi le point sur les élèves (effectif par classe, présences/absences du jour, et fiches nécessitant une attention).",
+      "/students": "Donne-moi le point sur les élèves (effectif par classe, présences/absences du jour, et fiches nécessitant une attention).",
+
+      "📅 emploi du temps": "Affiche l'emploi du temps et les séances de cours prévues pour aujourd'hui avec les salles et enseignants.",
+      "emploi du temps": "Affiche l'emploi du temps et les séances de cours prévues pour aujourd'hui avec les salles et enseignants.",
+      "/timetable": "Affiche l'emploi du temps et les séances de cours prévues pour aujourd'hui avec les salles et enseignants.",
+
+      "📊 rapports": "Présente-moi le tableau de bord exécutif 360° et les principaux indicateurs de performance de l'école.",
+      "rapports": "Présente-moi le tableau de bord exécutif 360° et les principaux indicateurs de performance de l'école.",
+      "/reports": "Présente-moi le tableau de bord exécutif 360° et les principaux indicateurs de performance de l'école.",
+
+      // Arabic buttons
+      "🏫 مدرستي": "أعطني نظرة شاملة عن مدرستي (عدد التلاميذ، الفصول، الأساتذة ونسبة الحضور اليومية).",
+      "مدرستي": "أعطني نظرة شاملة عن مدرستي (عدد التلاميذ، الفصول، الأساتذة ونسبة الحضور اليومية).",
+
+      "💰 المالية": "قم بإعطائي التقرير المالي الشامل للمدرسة (المداخيل، المصاريف، المبالغ غير المستخلصة ورصيد الصندوق اليوم).",
+      "المالية": "قم بإعطائي التقرير المالي الشامل للمدرسة (المداخيل، المصاريف، المبالغ غير المستخلصة ورصيد الصندوق اليوم).",
+
+      "👨‍🏫 الأساتذة": "اعرض لي وضعية الإطار التربوي والأساتذة (قائمة الأساتذة، المواد وحالة صرف الرواتب).",
+      "الأساتذة": "اعرض لي وضعية الإطار التربوي والأساتذة (قائمة الأساتذة، المواد وحالة صرف الرواتب).",
+      "اساتذة": "اعرض لي وضعية الإطار التربوي والأساتذة (قائمة الأساتذة، المواد وحالة صرف الرواتب).",
+
+      "👨‍🎓 التلاميذ": "أعطني وضعية التلاميذ في المدرسة (التوزيع حسب الأقسام، الغيابات اليومية والحالات الخاصة).",
+      "التلاميذ": "أعطني وضعية التلاميذ في المدرسة (التوزيع حسب الأقسام، الغيابات اليومية والحالات الخاصة).",
+      "تلاميذ": "أعطني وضعية التلاميذ في المدرسة (التوزيع حسب الأقسام، الغيابات اليومية والحالات الخاصة).",
+
+      "📅 الجدول": "اعرض جدول الحصص والدروس المبرمجة لليوم مع القاعات والأساتذة.",
+      "الجدول": "اعرض جدول الحصص والدروس المبرمجة لليوم مع القاعات والأساتذة.",
+
+      "📊 التقارير": "قدم لي لوحة القيادة الشاملة ومؤشرات الأداء الرئيسية للمدرسة.",
+      "التقارير": "قدم لي لوحة القيادة الشاملة ومؤشرات الأداء الرئيسية للمدرسة.",
+    };
+
+    const hubPrompt = HUB_BUTTON_PROMPTS[lowerText] || HUB_BUTTON_PROMPTS[rawText.trim()];
+    if (hubPrompt) {
+      const tgAccount = await getLinkedAccount(telegramId);
+      if (tgAccount) {
+        await runTelegramAgent({
+          userMessage: hubPrompt,
           chatId,
           telegramId,
           tgAccount,

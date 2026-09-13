@@ -117,6 +117,16 @@ export async function handleConfirmationCallback(
         data: { status: "REJECTED" },
       });
       await answerTelegramCallbackQuery(queryId, "Action annulée");
+
+      if (toolCall.conversationId) {
+        await prisma.aIMessage.create({
+          data: {
+            conversationId: toolCall.conversationId,
+            role: "assistant",
+            content: `❌ L'administrateur a annulé l'action ${toolCall.toolName}.`,
+          },
+        });
+      }
     } catch (cancelErr) {
       console.error("[Confirmation] Cancel DB update error:", cancelErr);
     }
@@ -167,6 +177,23 @@ export async function handleConfirmationCallback(
           executedAt: new Date(),
         },
       });
+
+      // Persist completed action result into conversation memory so subsequent turns recall it
+      if (toolCall.conversationId) {
+        try {
+          const rawConfirmationMsg =
+            executionResult?.message || `✅ Action ${toolCall.toolName} exécutée avec succès.`;
+          await prisma.aIMessage.create({
+            data: {
+              conversationId: toolCall.conversationId,
+              role: "assistant",
+              content: rawConfirmationMsg,
+            },
+          });
+        } catch (memErr) {
+          console.warn("[Confirmation] Memory logging error:", memErr);
+        }
+      }
     } catch (err: any) {
       toolError = err;
       console.error("[Confirmation] Tool execution error:", err);
@@ -175,6 +202,16 @@ export async function handleConfirmationCallback(
           where: { id: toolCallId },
           data: { status: "FAILED", result: { error: err.message } },
         });
+
+        if (toolCall.conversationId) {
+          await prisma.aIMessage.create({
+            data: {
+              conversationId: toolCall.conversationId,
+              role: "assistant",
+              content: `⚠️ Erreur lors de l'exécution de ${toolCall.toolName} : ${err.message}`,
+            },
+          });
+        }
       } catch (dbErr) {
         console.error("[Confirmation] Failed to mark tool as FAILED in DB:", dbErr);
       }

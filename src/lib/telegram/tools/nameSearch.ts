@@ -20,7 +20,7 @@ export function cleanHonorifics(query: string): string {
   if (!query) return "";
   return query
     .replace(
-      /(?:^|\s+)(مدام|مادام|أستاذة|استاذة|الاستاذة|المدام|أستاذ|استاذ|الاستاذ|سي|سيد|سيدة|الشيخ|monsieur|madame|mme|mlle|mr|m\.|mme\.|prof|professeur|docteur|dr|eleve|élève|tuteur|parent)(?:\s+|$)/gi,
+      /(?:^|\s+)(أم|ام|بو|ابو|أبو|والد|والدة|mère\s+d['’e]\s*|maman\s+d['’e]\s*|père\s+d['’e]\s*|papa\s+d['’e]\s*|parent\s+d['’e]\s*|مدام|مادام|أستاذة|استاذة|الاستاذة|المدام|أستاذ|استاذ|الاستاذ|سي|سيد|سيدة|الشيخ|monsieur|madame|mme|mlle|mr|m\.|mme\.|prof|professeur|docteur|dr|eleve|élève|tuteur|parent)(?:\s+|$)/gi,
       " "
     )
     .replace(/\s+/g, " ")
