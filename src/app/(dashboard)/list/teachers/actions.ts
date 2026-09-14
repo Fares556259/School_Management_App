@@ -28,11 +28,17 @@ export const updateMissedHours = async (
     const imgData = meta ? JSON.stringify(meta) : undefined;
 
     // Check if month is already paid - cannot apply deduction to already paid month
-    const existing = await prisma.payment.findUnique({
-      where: {
-        teacherId_month_year: { teacherId, month: monthIdx, year: yearVal }
-      }
-    });
+    const [existing, teacher] = await Promise.all([
+      prisma.payment.findUnique({
+        where: {
+          teacherId_month_year: { teacherId, month: monthIdx, year: yearVal }
+        }
+      }),
+      prisma.teacher.findUnique({
+        where: { id: teacherId },
+        select: { salary: true, hourlyRate: true }
+      })
+    ]);
 
     if (existing?.status === "PAID" && meta?.deductionStatus === "APPLIED") {
       return {
@@ -41,12 +47,23 @@ export const updateMissedHours = async (
       };
     }
 
+    const baseSalary = teacher?.salary || 0;
+    const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
+    const deductedH = meta?.deductionStatus === "APPLIED" ? (meta.deductedHours !== undefined ? meta.deductedHours : missedHours) : 0;
+    const deductionAmt = deductedH * effectiveRate;
+    const netDue = Math.max(0, baseSalary - deductionAmt);
+
+    // If an existing payment (advance) covers or exceeds the net due, automatically mark as PAID
+    const shouldAutoSettle = Boolean(existing && existing.amount > 0 && existing.amount >= netDue);
+    const resolvedStatus = shouldAutoSettle ? "PAID" : (existing?.status || "PENDING");
+
     await prisma.payment.upsert({
       where: {
         teacherId_month_year: { teacherId, month: monthIdx, year: yearVal }
       },
       update: {
         missedHours,
+        ...(shouldAutoSettle ? { status: "PAID" } : {}),
         ...(imgData !== undefined ? { img: imgData } : {}),
       },
       create: {
@@ -54,7 +71,7 @@ export const updateMissedHours = async (
         amount: 0,
         month: monthIdx,
         year: yearVal,
-        status: "PENDING",
+        status: resolvedStatus,
         userType: "TEACHER",
         missedHours,
         ...(imgData !== undefined ? { img: imgData } : {}),
@@ -195,7 +212,7 @@ export const payTeacherSalary = async (
   const yearVal = parseInt(yStr);
 
   try {
-    const [schoolId, existing] = await Promise.all([
+    const [schoolId, existing, teacher] = await Promise.all([
       getSchoolId(),
       prisma.payment.findUnique({
         where: {
@@ -205,6 +222,10 @@ export const payTeacherSalary = async (
             year: yearVal
           }
         }
+      }),
+      prisma.teacher.findUnique({
+        where: { id: teacherId },
+        select: { salary: true, hourlyRate: true }
       })
     ]);
 
@@ -212,8 +233,16 @@ export const payTeacherSalary = async (
       throw new Error("Ce mois est déjà entièrement payé et clôturé.");
     }
 
+    const baseSalary = teacher?.salary || 0;
+    const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
+    const metaObj = meta || (existing?.img ? (() => { try { return JSON.parse(existing.img); } catch { return null; } })() : null);
+    const deductedH = metaObj?.deductionStatus === "APPLIED" ? (metaObj.deductedHours !== undefined ? metaObj.deductedHours : (existing?.missedHours || 0)) : (deduction ? (deduction / effectiveRate) : 0);
+    const deductionAmt = deductedH * effectiveRate;
+    const netDue = Math.max(0, baseSalary - deductionAmt);
+
     const newTotalAmount = (existing?.amount || 0) + amountPaidNow;
-    const newStatus = isAdvance ? "PARTIAL" : "PAID";
+    const isFullyCovered = newTotalAmount >= netDue && newTotalAmount > 0;
+    const newStatus = isFullyCovered ? "PAID" : (isAdvance ? "PARTIAL" : "PAID");
     const imgData = meta ? JSON.stringify(meta) : undefined;
 
     const payment = await prisma.$transaction(async (tx) => {

@@ -156,6 +156,10 @@ export default function TeacherFinanceHub({
     paymentMap.set(`${p.month}-${p.year}`, p);
   });
 
+  // Rates & Base Salary
+  const effectiveHourlyRate = hourlyRate && hourlyRate > 0 ? hourlyRate : 15;
+  const baseMonthlySalary = salary;
+
   // Calculate 10 Academic Months with live status
   const academicMonths = ACADEMIC_MONTHS_CONFIG.map((cfg) => {
     const y = academicStartYear + cfg.offsetYear;
@@ -165,8 +169,16 @@ export default function TeacherFinanceHub({
     const isElapsed = y < currentYear || (y === currentYear && m <= currentMonthIdx);
     const isCurrent = y === currentYear && m === currentMonthIdx;
 
+    // Check if auto-settled via advance + deduction covering base salary
+    const pMeta = parsePaymentMeta(p);
+    const pDeductedHours = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
+    const pDeduction = pDeductedHours * effectiveHourlyRate;
+    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction);
+    const pPaidAmount = p?.amount || 0;
+    const isAutoPaid = pPaidAmount > 0 && pPaidAmount >= pNetDue;
+
     let status: "PAID" | "PARTIAL" | "OVERDUE" | "PENDING" = "PENDING";
-    if (p?.status === "PAID") {
+    if (p?.status === "PAID" || isAutoPaid) {
       status = "PAID";
     } else if (p?.status === "PARTIAL") {
       status = "PARTIAL";
@@ -185,10 +197,6 @@ export default function TeacherFinanceHub({
       isCurrent,
     };
   });
-
-  // Rates & Base Salary
-  const effectiveHourlyRate = hourlyRate && hourlyRate > 0 ? hourlyRate : 15;
-  const baseMonthlySalary = salary;
 
   // Selected Month details
   const selectedKey = `${selectedMonth}-${selectedYear}`;
@@ -212,9 +220,6 @@ export default function TeacherFinanceHub({
     ? `${nextMonthConfig.fullFr} ${nextMonthYear}`
     : null;
 
-  const isSelectedPaid = currentSelectedPayment?.status === "PAID";
-  const isSelectedPartial = currentSelectedPayment?.status === "PARTIAL";
-
   // Deduction & Missed Hours Counter for Selected Month
   const selectedMeta = parsePaymentMeta(currentSelectedPayment);
   const selectedTrackedHours = selectedMeta.trackedHours;
@@ -237,7 +242,7 @@ export default function TeacherFinanceHub({
     (sum, e) => sum + (e.amount || 0),
     0
   );
-  const selectedAdvanceAmount = isSelectedPartial
+  const rawAdvanceAmount = currentSelectedPayment?.status === "PARTIAL"
     ? currentSelectedPayment.amount
     : expenseAdvanceTotal > 0
     ? expenseAdvanceTotal
@@ -245,19 +250,40 @@ export default function TeacherFinanceHub({
 
   const advanceDate =
     linkedAdvanceExpenses[0]?.date ||
-    (isSelectedPartial ? currentSelectedPayment?.paidAt : null);
+    (currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment?.paidAt : null);
 
   // Net amounts for Selected Month
+  const selectedNetDue = Math.max(0, baseMonthlySalary - selectedDeductionAmount);
   const selectedRemainingToPay = Math.max(
     0,
-    baseMonthlySalary - selectedDeductionAmount - selectedAdvanceAmount
+    baseMonthlySalary - selectedDeductionAmount - rawAdvanceAmount
   );
 
-  // EXACT CALCULATIONS
-  // 1. Total Paid: Sum of ALL payments recorded for this academic year
-  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  // Auto-settled: if payment recorded >= net due (e.g. 270 DT advance with 30 DT deduction on 300 DT salary)
+  const isAutoSettled = Boolean(
+    currentSelectedPayment &&
+    (currentSelectedPayment.amount || 0) > 0 &&
+    (currentSelectedPayment.amount || 0) >= selectedNetDue
+  );
+  const isSelectedPaid = currentSelectedPayment?.status === "PAID" || isAutoSettled;
+  const isSelectedPartial = currentSelectedPayment?.status === "PARTIAL" && !isAutoSettled;
+  const selectedAdvanceAmount = rawAdvanceAmount;
 
-  // 2. Total Advances: Sum of active partial amounts + linked advance expenses
+  // Net salary paid for selected month
+  const netSalaryPaid = currentSelectedPayment?.amount || selectedNetDue;
+  const paidAtDate = currentSelectedPayment?.paidAt || advanceDate;
+
+  // EXACT CALCULATIONS
+  // 1. Total Paid: Sum of payments recorded for this academic year only
+  const academicYearMonthKeys = new Set(
+    academicMonths.map((m) => `${m.month}-${m.year}`)
+  );
+  const academicPayments = payments.filter((p) =>
+    academicYearMonthKeys.has(`${p.month}-${p.year}`)
+  );
+  const totalPaid = academicPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+  // 2. Total Advances: Sum of active partial amounts + linked advance expenses for this academic year
   const advanceExpenseRefIds = new Set<string>();
   let totalAdvancesFromExpenses = 0;
   expensesList.forEach((e) => {
@@ -271,37 +297,40 @@ export default function TeacherFinanceHub({
     }
   });
   const totalAdvancesFromPayments = payments
-    .filter((p) => p.status === "PARTIAL" && !advanceExpenseRefIds.has(String(p.id)))
+    .filter((p) => academicYearMonthKeys.has(`${p.month}-${p.year}`) && p.status === "PARTIAL" && !advanceExpenseRefIds.has(String(p.id)))
     .reduce((sum, p) => sum + (p.amount || 0), 0);
   const totalAdvances = totalAdvancesFromExpenses + totalAdvancesFromPayments;
 
-  // 3. Deductions: Missed hours deductions applied
-  const totalDeductions = payments.reduce((sum, p) => {
-    const meta = parsePaymentMeta(p);
-    if (meta.deductionStatus === "APPLIED") {
-      const hours = meta.deductedHours > 0 ? meta.deductedHours : (p.missedHours || 0);
-      return sum + hours * effectiveHourlyRate;
-    }
-    if (p.status === "PAID" && baseMonthlySalary > p.amount && !p.img && (!p.missedHours || p.missedHours === 0)) {
-      return sum + (baseMonthlySalary - p.amount);
-    }
-    return sum;
-  }, 0);
+  // 3. Deductions: Missed hours deductions applied for this academic year
+  const totalDeductions = payments
+    .filter((p) => academicYearMonthKeys.has(`${p.month}-${p.year}`))
+    .reduce((sum, p) => {
+      const meta = parsePaymentMeta(p);
+      if (meta.deductionStatus === "APPLIED") {
+        const hours = meta.deductedHours > 0 ? meta.deductedHours : (p.missedHours || 0);
+        return sum + hours * effectiveHourlyRate;
+      }
+      if (p.status === "PAID" && baseMonthlySalary > p.amount && !p.img && (!p.missedHours || p.missedHours === 0)) {
+        return sum + (baseMonthlySalary - p.amount);
+      }
+      return sum;
+    }, 0);
 
   // 4. Outstanding Balance: Sum of unpaid amounts for elapsed months only
   const outstandingBalance = academicMonths
     .filter((m) => m.isElapsed)
     .reduce((sum, m) => {
       if (m.status === "PAID") return sum;
-      if (m.status === "PARTIAL" && m.payment) {
-        return sum + (m.payment.deferredAmount ?? Math.max(0, baseMonthlySalary - m.payment.amount));
-      }
       const meta = parsePaymentMeta(m.payment);
       const ded =
         meta.deductionStatus === "APPLIED"
           ? (meta.deductedHours || m.payment?.missedHours || 0) * effectiveHourlyRate
           : 0;
-      return sum + Math.max(0, baseMonthlySalary - ded);
+      const mNetDue = Math.max(0, baseMonthlySalary - ded);
+      if (m.status === "PARTIAL" && m.payment) {
+        return sum + Math.max(0, mNetDue - (m.payment.amount || 0));
+      }
+      return sum + mNetDue;
     }, 0);
 
   const paidMonthsCount = academicMonths.filter((m) => m.status === "PAID").length;
@@ -1096,52 +1125,20 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
                       <CheckCircle2 size={20} />
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-emerald-950 block">
-                        {selectedAdvanceAmount > 0 
-                          ? `Solde final réglé pour ${frMonthName}`
-                          : `Salaire net réglé pour ${frMonthName}`}
+                      <span className="text-xs sm:text-sm font-bold text-emerald-950 block">
+                        Mois soldé pour {frMonthName}
                       </span>
-                      <span className="text-[11px] text-emerald-700 block mt-0.5">
-                        {selectedAdvanceAmount > 0 ? (
-                          <>
-                            Dernier versement (solde) : <strong className="font-extrabold text-emerald-950">{fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))}</strong>
-                            {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
-                            {" · "}Total net versé : <strong className="font-bold text-emerald-900">{fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount))}</strong>
-                          </>
-                        ) : (
-                          <>
-                            Montant versé : {fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount))}
-                            {currentSelectedPayment?.paidAt ? ` le ${formatDate(currentSelectedPayment.paidAt)}` : ""}
-                          </>
-                        )}
+                      <span className="text-[11px] sm:text-xs text-emerald-700 block mt-0.5">
+                        Total net versé : <strong className="font-extrabold text-emerald-950">{fmt(netSalaryPaid)}</strong>
+                        {paidAtDate ? ` · Réglé le ${formatDate(paidAtDate)}` : ""}
                       </span>
-                      {(selectedDeductionAmount > 0 || selectedAdvanceAmount > 0) && (
-                        <div className="text-[10px] text-emerald-800/80 mt-1 font-semibold flex flex-col gap-0.5">
-                          <span>
-                            Détail : {fmt(baseMonthlySalary)} (base)
-                            {selectedDeductionAmount > 0 ? ` − ${fmt(selectedDeductionAmount)} (retenue absence)` : ""}
-                            {selectedDeductionAmount > 0 ? ` = ${fmt(baseMonthlySalary - selectedDeductionAmount)} net dû` : ""}
-                          </span>
-                          {selectedAdvanceAmount > 0 && (
-                            <span className="text-amber-800 font-medium">
-                              (Avance déduite : {fmt(selectedAdvanceAmount)} · Solde final réglé : {fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))})
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0 flex flex-col items-end">
-                    <span className="inline-block text-xs sm:text-sm font-extrabold px-3 py-1 bg-white rounded-lg border border-emerald-200 text-emerald-700 shadow-2xs">
-                      {selectedAdvanceAmount > 0
-                        ? fmt(Math.max(0, (currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount)) - selectedAdvanceAmount))
-                        : fmt(currentSelectedPayment?.amount || (baseMonthlySalary - selectedDeductionAmount))}
+                  <div className="text-right shrink-0">
+                    <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-black px-3 py-1.5 bg-white rounded-lg border border-emerald-200 text-emerald-700 shadow-2xs">
+                      <span>{fmt(netSalaryPaid)}</span>
+                      <span className="text-emerald-600 font-bold">✓ Payé</span>
                     </span>
-                    {selectedAdvanceAmount > 0 && (
-                      <span className="text-[10px] font-bold text-emerald-700 mt-1">
-                        Solde final
-                      </span>
-                    )}
                   </div>
                 </div>
                 {/* Absence link row — visible below settlement, not buried inside it */}
@@ -1317,17 +1314,17 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
                 </h3>
               </div>
               <span className="text-xs font-semibold text-slate-400">
-                {payments.length} versement{payments.length > 1 ? "s" : ""}
+                {academicPayments.length} versement{academicPayments.length > 1 ? "s" : ""}
               </span>
             </div>
 
             <div className="flex flex-col gap-2.5 max-h-[320px] overflow-y-auto pr-1">
-              {payments.length === 0 ? (
+              {academicPayments.length === 0 ? (
                 <div className="py-8 text-center text-slate-400 text-xs italic">
                   Aucun versement enregistré pour cette année scolaire.
                 </div>
               ) : (
-                [...payments]
+                [...academicPayments]
                   .sort((a, b) => b.year - a.year || b.month - a.month)
                   .map((p) => {
                     const monthCfg = ACADEMIC_MONTHS_CONFIG.find((c) => c.month === p.month);
@@ -1337,6 +1334,11 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
                     const hasPendingTracking = pMeta.deductionStatus === "PENDING" && pMeta.trackedHours > 0;
                     const isExcused = pMeta.deductionStatus === "EXCUSED" && pMeta.trackedHours > 0;
                     
+                    const pDeductedHours = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
+                    const pDeduction = pDeductedHours * effectiveHourlyRate;
+                    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction);
+                    const isMonthSettled = p.status === "PAID" || (p.amount > 0 && p.amount >= pNetDue);
+
                     const pAdvances = expensesList.filter(
                       (e) =>
                         p.id &&
@@ -1359,9 +1361,11 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
                           </span>
                           <span className="text-[10px] text-slate-400 block mt-0.5">
                             {formatDate(p.paidAt)}
-                            {p.status === "PAID" && pAdvanceTotal > 0 && (
+                            {isMonthSettled && pAdvanceTotal > 0 && (
                               <span className="text-amber-700 font-semibold ml-1.5">
-                                (Avance : {fmt(pAdvanceTotal)} · Solde : {fmt(pFinalSettlement)})
+                                {pFinalSettlement > 0
+                                  ? `(Avance : ${fmt(pAdvanceTotal)} · Solde : ${fmt(pFinalSettlement)})`
+                                  : `(Avance : ${fmt(pAdvanceTotal)})`}
                               </span>
                             )}
                             {hasAppliedDeduction && (
@@ -1384,19 +1388,19 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
                         <div className="text-right flex items-center gap-2">
                           <span className={`text-xs font-black ${
-                            p.status === "PAID" ? "text-emerald-700" :
+                            isMonthSettled ? "text-emerald-700" :
                             p.status === "PARTIAL" ? "text-amber-700" : "text-rose-600"
                           }`}>
                             {fmt(p.amount)}
                           </span>
                           <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                            p.status === "PAID" 
+                            isMonthSettled 
                               ? "bg-emerald-100 text-emerald-800" 
                               : p.status === "PARTIAL" 
                               ? "bg-amber-100 text-amber-800 border border-amber-200" 
                               : "bg-rose-100 text-rose-800"
                           }`}>
-                            {p.status === "PARTIAL" ? "AVANCE" : p.status}
+                            {isMonthSettled ? "PAYÉ" : p.status === "PARTIAL" ? "AVANCE" : p.status}
                           </span>
                         </div>
                       </div>

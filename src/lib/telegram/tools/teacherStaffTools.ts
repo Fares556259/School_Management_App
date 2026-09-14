@@ -347,21 +347,8 @@ export async function getSalaryDetailsTool(
       ? 0
       : Math.max(0, baseSalary - deductionAmount - advancePaid);
 
-    // Total paid across all months in the DB
-    const totalPaidYear = t.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const paidMonthsCount = t.payments.filter((p) => p.status === "PAID").length;
-
-    let statusLabel = "⏳ Non encore payé";
-    let statusBadge = "⏳ <code>NON PAYÉ</code>";
-    if (targetPayment?.status === "PAID") {
-      statusLabel = "Soldé / Entièrement réglé";
-      statusBadge = "🟢 <code>SOLDÉ</code>";
-    } else if (targetPayment?.status === "PARTIAL" || advancePaid > 0) {
-      statusLabel = `Avance en cours (${advancePaid} DT perçus)`;
-      statusBadge = "🟡 <code>AVANCE EN COURS</code>";
-    }
-
-    const subjectsList = t.subjects.map((s) => s.name.split("|")[0].trim()).join(", ") || "Aucune";
+    const isMonthAutoSettled = advancePaid > 0 && remainingToPay <= 0;
+    const isFullyPaid = targetPayment?.status === "PAID" || isMonthAutoSettled;
 
     const academicStartYear = month >= 9 ? year : year - 1;
     const ACADEMIC_MONTHS = [
@@ -377,10 +364,42 @@ export async function getSalaryDetailsTool(
       { m: 6, y: academicStartYear + 1, label: "Juin" },
     ];
 
+    const academicYearKeys = new Set(ACADEMIC_MONTHS.map((am) => `${am.m}-${am.y}`));
+
+    // Total paid across months in the current academic year
+    const academicPayments = t.payments.filter((p) => academicYearKeys.has(`${p.month}-${p.year}`));
+    const totalPaidYear = academicPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const paidMonthsCount = academicPayments.filter((p) => {
+      if (p.status === "PAID") return true;
+      const pMeta = parsePaymentMeta(p);
+      const pDedH = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
+      const pDed = pDedH * effectiveHourlyRate;
+      const pNet = Math.max(0, baseSalary - pDed);
+      return (p.amount || 0) > 0 && (p.amount || 0) >= pNet;
+    }).length;
+
+    let statusLabel = "⏳ Non encore payé";
+    let statusBadge = "⏳ <code>NON PAYÉ</code>";
+    if (isFullyPaid) {
+      statusLabel = "Soldé / Entièrement réglé";
+      statusBadge = "🟢 <code>SOLDÉ</code>";
+    } else if (targetPayment?.status === "PARTIAL" || advancePaid > 0) {
+      statusLabel = `Avance en cours (${advancePaid} DT perçus)`;
+      statusBadge = "🟡 <code>AVANCE EN COURS</code>";
+    }
+
+    const subjectsList = t.subjects.map((s) => s.name.split("|")[0].trim()).join(", ") || "Aucune";
+
     const academicMonthsSchedule = ACADEMIC_MONTHS.map((am) => {
       const p = t.payments.find((pay) => pay.month === am.m && pay.year === am.y);
+      const pMeta = parsePaymentMeta(p);
+      const pDedH = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
+      const pDed = pDedH * effectiveHourlyRate;
+      const pNet = Math.max(0, baseSalary - pDed);
+      const isSettled = p?.status === "PAID" || (p && p.amount > 0 && p.amount >= pNet);
+
       let badge = "⏳ À venir";
-      if (p?.status === "PAID") badge = `🟢 Payé (${p.amount} DT)`;
+      if (isSettled) badge = `🟢 Payé (${p?.amount} DT)`;
       else if (p?.status === "PARTIAL") badge = `🟡 Avance (${p.amount} DT)`;
       else if (am.y < year || (am.y === year && am.m < month)) badge = "🔴 En retard";
       return `${am.label}: ${badge}`;
@@ -406,7 +425,7 @@ export async function getSalaryDetailsTool(
       remainingToPay: `${remainingToPay} DT`,
       status: statusLabel,
       statusBadge,
-      isFullyPaid: targetPayment?.status === "PAID",
+      isFullyPaid,
       totalPaidAcademicYear: `${totalPaidYear} DT (${paidMonthsCount} mois réglés)`,
       academicMonthsSchedule,
       summary: `${teacherFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Déduction d'absence ${deductionAmount} DT (${trackedHours}h à ${effectiveHourlyRate} DT/h), Avances perçues ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
@@ -533,6 +552,22 @@ export async function trackTeacherAbsentHoursTool(
     notes: args.notes || `Saisi via Hnia Telegram (${args.missedHours}h manquées)`,
   };
 
+  const baseSalary = teacher.salary || 600;
+
+  // Check if there are advances already recorded for this month
+  const existingPayment = await prisma.payment.findUnique({
+    where: {
+      teacherId_month_year: {
+        teacherId: teacher.id,
+        month,
+        year,
+      },
+    },
+  });
+  const advancePaid = existingPayment ? (existingPayment.amount || 0) : 0;
+  const newNetDue = Math.max(0, baseSalary - deductionAmount - advancePaid);
+  const shouldAutoSettle = advancePaid > 0 && newNetDue <= 0;
+
   await prisma.payment.upsert({
     where: {
       teacherId_month_year: {
@@ -544,13 +579,14 @@ export async function trackTeacherAbsentHoursTool(
     update: {
       missedHours: args.missedHours,
       img: JSON.stringify(meta),
+      ...(shouldAutoSettle ? { status: "PAID" } : {}),
     },
     create: {
       teacherId: teacher.id,
       amount: 0,
       month,
       year,
-      status: "PENDING",
+      status: shouldAutoSettle ? "PAID" : "PENDING",
       userType: "TEACHER",
       missedHours: args.missedHours,
       img: JSON.stringify(meta),
@@ -559,21 +595,6 @@ export async function trackTeacherAbsentHoursTool(
   });
 
   invalidateTenantTags(context.schoolId, "teachers", "finance", "dashboard");
-
-  const baseSalary = teacher.salary || 600;
-
-  // Check if there are advances already recorded for this month
-  const currentPayment = await prisma.payment.findUnique({
-    where: {
-      teacherId_month_year: {
-        teacherId: teacher.id,
-        month,
-        year,
-      },
-    },
-  });
-  const advancePaid = currentPayment?.status === "PARTIAL" ? (currentPayment.amount || 0) : 0;
-  const newNetDue = Math.max(0, baseSalary - deductionAmount - advancePaid);
 
   let advanceLine = "";
   if (advancePaid > 0) {
@@ -650,13 +671,16 @@ export async function payTeacherSalaryTool(
 
     let paymentRecord;
     const newTotalPaid = (existingPayment?.amount || 0) + args.amount;
+    const netDue = Math.max(0, baseSalary - deductionAmount);
+    const isFullyCovered = !isAdvance || (newTotalPaid >= netDue && newTotalPaid > 0);
+    const paymentStatus = isFullyCovered ? "PAID" : "PARTIAL";
 
     if (existingPayment) {
       paymentRecord = await tx.payment.update({
         where: { id: existingPayment.id },
         data: {
           amount: newTotalPaid,
-          status: isAdvance ? "PARTIAL" : "PAID",
+          status: paymentStatus,
           missedHours: newMissedHours,
           img: JSON.stringify(newMeta),
           paidAt: new Date(),
@@ -669,7 +693,7 @@ export async function payTeacherSalaryTool(
           month,
           year,
           amount: newTotalPaid,
-          status: isAdvance ? "PARTIAL" : "PAID",
+          status: paymentStatus,
           userType: "TEACHER",
           missedHours: newMissedHours,
           img: JSON.stringify(newMeta),
