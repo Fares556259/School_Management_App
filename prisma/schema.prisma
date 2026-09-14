@@ -607,6 +607,7 @@ model School {
   Teacher               Teacher[]
   TimetableSlot         TimetableSlot[]
   TelegramAccount       TelegramAccount[]
+  AIKnowledge           AIKnowledge[]
 }
 
 model SetupRequest {
@@ -746,4 +747,20 @@ model AIToolCall {
 
   @@index([conversationId])
   @@index([status])
+}
+
+model AIKnowledge {
+  id          String   @id @default(cuid())
+  schoolId    String
+  adminId     String?
+  category    String   @default("GENERAL") // GENERAL, FINANCE, TRANSPORT, RULES, TIMETABLE, STAFF, PEDAGOGY
+  instruction String   @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  School      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([category])
+  @@index([isActive])
 }

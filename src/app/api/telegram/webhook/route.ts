@@ -118,6 +118,8 @@ export async function POST(req: NextRequest) {
           schedule_exam: "Je souhaite planifier un examen.",
           view_caisse: "Fais le bilan de clôture de caisse d'aujourd'hui (recettes, dépenses, solde physique net en caisse).",
           morning_briefing: "Donne-moi le briefing exécutif du matin pour aujourd'hui.",
+          view_teachings: "Affiche toutes les règles et connaissances personnalisées que je t'ai enseignées.",
+          teach_hnia: "Je souhaite t'enseigner une nouvelle consigne pour notre école.",
         };
 
         const prompt = actionPrompts[actionType] || "Comment puis-je vous aider ?";

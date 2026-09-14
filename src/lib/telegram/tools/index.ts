@@ -93,6 +93,13 @@ import {
   getResourcesTool,
 } from "./taskTools";
 
+// Suite 8: School Knowledge & Admin Teaching
+import {
+  teachHniaTool,
+  getHniaTeachingsTool,
+  forgetHniaTeachingTool,
+} from "./knowledgeTools";
+
 export interface ToolDefinition {
   name: string;
   description: string;
@@ -1578,6 +1585,80 @@ Confirmer l'enregistrement de cette dépense ?`;
       return `❓ <b>Confirmation : Modification Fiche Élève</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Élève : <b>${args.studentNameOrId}</b>${cls}${tui}${ph}\n\nAppliquer ces changements immédiatement ?`;
     },
     execute: updateStudentTool,
+  },
+
+  // ── SUITE 8: SCHOOL KNOWLEDGE & ADMIN TEACHING ────────────────────────────
+  teach_hnia: {
+    name: "teach_hnia",
+    description: "Mémoriser et enregistrer une nouvelle consigne, fait, règle de fonctionnement, contact utile (chauffeur bus, etc.), tarif ou correction pour l'école.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "teach_hnia",
+      description: "Mémoriser une consigne, règle, contact ou fait enseigné par l'administrateur pour son école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["instruction"],
+        properties: {
+          instruction: {
+            type: SchemaType.STRING,
+            description: "La consigne, fait ou règle exacte à mémoriser (ex: 'Le chauffeur du bus 2 est Am Hedi 98123456', 'La cantine est à 130 DT').",
+          },
+          category: {
+            type: SchemaType.STRING,
+            description: "Catégorie facultative : 'GENERAL', 'FINANCE', 'TRANSPORT', 'RULES', 'TIMETABLE', 'STAFF', 'PEDAGOGY'.",
+          },
+        },
+      },
+    },
+    execute: teachHniaTool,
+  },
+
+  get_hnia_teachings: {
+    name: "get_hnia_teachings",
+    description: "Consulter la liste de toutes les consignes, règles et notes spécifiques que l'administrateur a enseignées à Hnia.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_hnia_teachings",
+      description: "Consulter les connaissances et règles de l'école enseignées à Hnia.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          category: {
+            type: SchemaType.STRING,
+            description: "Filtrer par catégorie ('GENERAL', 'FINANCE', 'TRANSPORT', 'RULES', 'TIMETABLE', 'STAFF', 'PEDAGOGY').",
+          },
+          query: {
+            type: SchemaType.STRING,
+            description: "Mots-clés de recherche dans les consignes.",
+          },
+        },
+      },
+    },
+    execute: getHniaTeachingsTool,
+  },
+
+  forget_hnia_teaching: {
+    name: "forget_hnia_teaching",
+    description: "Oublier ou supprimer une consigne ou règle précédemment apprise par Hnia.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "forget_hnia_teaching",
+      description: "Supprimer ou désactiver une consigne apprise par Hnia selon des mots-clés ou un identifiant.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          query: {
+            type: SchemaType.STRING,
+            description: "Mots-clés désignant la règle à oublier (ex: 'bus 2', 'cantine', ou 'tout').",
+          },
+          teachingId: {
+            type: SchemaType.STRING,
+            description: "Identifiant exact de la consigne (facultatif).",
+          },
+        },
+      },
+    },
+    execute: forgetHniaTeachingTool,
   },
 };
 

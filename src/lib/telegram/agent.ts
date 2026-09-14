@@ -49,8 +49,10 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     return;
   }
 
-  // 1. Send "typing..." action so user sees bot is thinking
-  await sendTelegramChatAction(chatId, "typing");
+  // 1. Send "typing..." action so user sees bot is thinking (fire-and-forget for instant processing)
+  sendTelegramChatAction(chatId, "typing").catch((e) =>
+    console.warn("[Agent] Initial typing action warning:", e)
+  );
 
   const adminName =
     [tgAccount.admin.name, tgAccount.admin.surname].filter(Boolean).join(" ") ||
@@ -68,8 +70,8 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     effectiveUserMessage = `[En réponse au message : "${replyToText.trim().slice(0, 300)}"]\n\n${userMessage}`;
   }
 
-  // 2 & 3. Find conversation + fetch history in parallel (saves 1 sequential DB round-trip)
-  let [conversation, existingHistory] = await Promise.all([
+  // 2 & 3. Single-query parallel fetch: active conversation (with messages) + school custom teachings
+  let [conversation, schoolTeachings] = await Promise.all([
     prisma.aIConversation.findFirst({
       where: {
         telegramAccountId: tgAccount.id,
@@ -77,42 +79,43 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
         status: "ACTIVE",
       },
       orderBy: { updatedAt: "desc" },
+      include: {
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
+      },
     }),
-    // We can't know the conversationId yet, so we'll fetch history after if needed.
-    // This slot is a placeholder — resolved below.
-    Promise.resolve(null as { role: string; content: string }[] | null),
+    prisma.aIKnowledge.findMany({
+      where: {
+        schoolId: tgAccount.schoolId,
+        isActive: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    }),
   ]);
 
-  if (!conversation) {
-    conversation = await prisma.aIConversation.create({
+  let conversationId: string;
+  let historyMessages: { role: string; content: string }[] = [];
+  if (conversation) {
+    conversationId = conversation.id;
+    historyMessages = [...conversation.messages].reverse();
+  } else {
+    const newConv = await prisma.aIConversation.create({
       data: {
         telegramAccountId: tgAccount.id,
         telegramChatId: chatId.toString(),
         title: userMessage.slice(0, 40),
       },
     });
-    // Brand-new conversation — no history
-    existingHistory = [];
+    conversationId = newConv.id;
   }
-
-  // Fetch history (only if we didn't just create the conversation)
-  let historyMessages: { role: string; content: string }[] = [];
-  if (!Array.isArray(existingHistory)) {
-    // existingHistory is null — need to fetch
-    const historyMessagesDesc = await prisma.aIMessage.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
-    historyMessages = historyMessagesDesc.reverse();
-  }
-  // else existingHistory === [] (new conversation, already set above)
-
 
   // 4. Save user message to database (fire-and-forget — audit only, don't block)
   prisma.aIMessage.create({
     data: {
-      conversationId: conversation.id,
+      conversationId,
       role: "user",
       content: effectiveUserMessage,
     },
@@ -120,7 +123,7 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
 
   // Touch conversation to keep active (fire-and-forget)
   prisma.aIConversation.update({
-    where: { id: conversation.id },
+    where: { id: conversationId },
     data: { updatedAt: new Date() },
   }).catch((e) => console.warn("[Agent] aIConversation touch failed:", e));
 
@@ -132,11 +135,21 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     day: "numeric",
   });
 
+  let teachingsBlock = "";
+  if (schoolTeachings && schoolTeachings.length > 0) {
+    teachingsBlock = `\n═══════════════════════════════════════════════════════════════
+🧠 DIRECTIVES & CONNAISSANCES DE L'ÉCOLE (ENSEIGNÉES PAR L'ADMINISTRATEUR) :
+L'administrateur vous a enseigné les règles, faits, tarifs, contacts et consignes spécifiques suivants pour l'établissement "${tgAccount.School.name}". Vous DEVEZ impérativement les appliquer et vous en servir en priorité absolue :
+` +
+      schoolTeachings.map((t, idx) => `   ${idx + 1}. [${t.category}] ${t.instruction}`).join("\n") +
+      `\n═══════════════════════════════════════════════════════════════\n`;
+  }
+
   const systemInstruction = `Tu es Hnia (هنية), l'assistante intelligente d'opérations scolaires ET le guide officiel de l'application SnapSchool pour l'école "${tgAccount.School.name}".
 Tu interagis directement avec l'administrateur : "${adminName}".
 Aujourd'hui nous sommes le : ${todayStr}.
 Devise de l'école : Dinars Tunisiens (DT).
-
+${teachingsBlock}
 ═══════════════════════════════════════════════════════════════
 🌟 RÔLE N°1 : LE GUIDE OFFICIEL SNAPSCHOOL (NAVIGATION & AIDE WEB)
 ═══════════════════════════════════════════════════════════════
@@ -553,7 +566,16 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       - COMPRENDS IMMÉDIATEMENT QU'IL S'AGIT DE METTRE À JOUR CETTE ACTION !
       - Déclenche IMMÉDIATEMENT le même outil avec les paramètres actualisés et enrichis :
         * Exemple : S'il disait "depsee jdid 7a9 l essance 200dt" puis "put it on bus01", appelle 'add_expense' avec title: "Achat essence bus01", amount: 200, category: "BUS01" (ou "Transport") !
-      - La nouvelle carte de confirmation affichera instantanément l'intitulé, le montant, la catégorie et la date complets et à jour !`;
+      - La nouvelle carte de confirmation affichera instantanément l'intitulé, le montant, la catégorie et la date complets et à jour !
+
+   G. ENSEIGNEMENT & MÉMOIRE DE HNIA (APPRENDRE DE L'ADMINISTRATEUR) :
+      - L'administrateur peut vous enseigner directement de nouvelles règles, faits, tarifs, chauffeurs de bus, consignes ou corrections (ex: "Hnia retiens que...", "احفظ عندك", "note cette règle", "le chauffeur du bus 2 s'appelle Am Hedi tél 98123456", "la cantine coûte 130 DT", "tu t'es trompée : ...").
+      - Dès que l'administrateur formule une consigne, un fait ou une correction à retenir :
+        * Appelle IMMÉDIATEMENT l'outil 'teach_hnia' avec instruction: "le fait ou la consigne" et category: "TRANSPORT" | "FINANCE" | "RULES" | "TIMETABLE" | "STAFF" | "GENERAL" !
+      - Si l'administrateur demande ce que vous avez appris ou retenu (ex: "qu'est-ce que tu as appris ?", "شنوة مسجل عندك ؟", "montre tes notes") :
+        * Appelle IMMÉDIATEMENT 'get_hnia_teachings' !
+      - Si l'administrateur demande d'oublier ou supprimer une consigne (ex: "oublie la note sur la cantine", "فسخ الملاحظة") :
+        * Appelle IMMÉDIATEMENT 'forget_hnia_teaching' !`;
 
   // Candidate models — fastest first (gemini-3.5-flash-lite ~700ms), followed by solid fallbacks
   const CANDIDATE_MODELS = [
@@ -641,7 +663,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         ],
         generationConfig: {
           temperature: 0.15,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 1024,
         },
       });
 
@@ -656,6 +678,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       let functionCalls = candidate.functionCalls();
       let lastExecutedTool: string | undefined;
       let lastToolOutput: any;
+      let finalReply: string | undefined;
       const MAX_TOOL_ITERATIONS = 5;
       let toolIterations = 0;
 
@@ -688,7 +711,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 
             const toolCallRecord = await prisma.aIToolCall.create({
               data: {
-                conversationId: conversation.id,
+                conversationId,
                 toolName: c.name,
                 arguments: args,
                 status: "PENDING",
@@ -714,13 +737,14 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
               },
             });
 
-            await prisma.aIMessage.create({
+            // Fire-and-forget assistant message save
+            prisma.aIMessage.create({
               data: {
-                conversationId: conversation.id,
+                conversationId,
                 role: "assistant",
                 content: confirmText,
               },
-            });
+            }).catch((e) => console.warn("[Agent] aIMessage confirm save failed:", e));
           }
 
           // Stop turn — user must confirm before anything further happens
@@ -728,10 +752,10 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
           return;
         }
 
-        // Read-only tool: execute immediately
+        // Read-only or direct execution tool: execute immediately
         lastExecutedTool = toolName;
-        // Refresh typing indicator to show bot is still working
-        await sendTelegramChatAction(chatId, "typing");
+        // Refresh typing indicator to show bot is still working (fire-and-forget)
+        sendTelegramChatAction(chatId, "typing").catch(() => null);
 
         let toolOutput: any;
         try {
@@ -746,7 +770,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         // Save tool call record (fire-and-forget — audit only, don't block synthesis)
         prisma.aIToolCall.create({
           data: {
-            conversationId: conversation.id,
+            conversationId,
             toolName,
             arguments: toolArgs,
             result: toolOutput,
@@ -754,6 +778,13 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
             executedAt: new Date(),
           },
         }).catch((e) => console.warn("[Agent] aIToolCall save failed:", e));
+
+        // FAST-PATH SYNTHESIS: If tool already prepared a rich Telegram formattedText,
+        // use it directly and eliminate the 2nd Gemini roundtrip (~700-1200ms saved)!
+        if (toolOutput && toolOutput.formattedText) {
+          finalReply = toolOutput.formattedText;
+          break;
+        }
 
         // Send tool output to Gemini for natural language synthesis
         response = await chat.sendMessage([
@@ -769,17 +800,19 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       }
 
       // Final textual response
-      let finalReply = "Je reste à votre disposition pour toute autre question.";
-      try {
-        finalReply = candidate.text() || finalReply;
-      } catch (textErr) {
-        console.warn("[Agent] candidate.text() warning:", textErr);
+      if (!finalReply) {
+        try {
+          finalReply = candidate.text() || "Je reste à votre disposition pour toute autre question.";
+        } catch (textErr) {
+          console.warn("[Agent] candidate.text() warning:", textErr);
+          finalReply = "Je reste à votre disposition pour toute autre question.";
+        }
       }
 
       // Save reply to DB (fire-and-forget — don't block sending the message)
       prisma.aIMessage.create({
         data: {
-          conversationId: conversation.id,
+          conversationId,
           role: "assistant",
           content: finalReply,
         },

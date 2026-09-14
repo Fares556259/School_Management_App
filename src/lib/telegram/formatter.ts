@@ -333,6 +333,18 @@ export function getQuickActionButtons(
         ],
       };
 
+    case "teach_hnia":
+    case "get_hnia_teachings":
+    case "forget_hnia_teaching":
+      return {
+        inline_keyboard: [
+          [
+            { text: "🧠 Voir mes notes", callback_data: "action:view_teachings" },
+            { text: "➕ Enseigner une consigne", callback_data: "action:teach_hnia" },
+          ],
+        ],
+      };
+
     default:
       return undefined;
   }

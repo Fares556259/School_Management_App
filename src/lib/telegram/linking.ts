@@ -138,23 +138,42 @@ export async function verifyAndLinkAccount(
   };
 }
 
+// Fast in-memory cache for linked TelegramAccount (TTL: 60s)
+const linkedAccountCache = new Map<string, { account: any; expiresAt: number }>();
+
 /**
  * Retrieve linked TelegramAccount along with Admin and School data
  */
 export async function getLinkedAccount(telegramId: string) {
-  return await prisma.telegramAccount.findUnique({
+  const now = Date.now();
+  const cached = linkedAccountCache.get(telegramId);
+  if (cached && cached.expiresAt > now) {
+    return cached.account;
+  }
+
+  const account = await prisma.telegramAccount.findUnique({
     where: { telegramId },
     include: {
       admin: true,
       School: true,
     },
   });
+
+  if (account) {
+    linkedAccountCache.set(telegramId, {
+      account,
+      expiresAt: now + 60 * 1000, // 60 seconds TTL
+    });
+  }
+
+  return account;
 }
 
 /**
  * Update language preference
  */
 export async function updateAccountLanguage(telegramId: string, language: "fr" | "ar" | "en") {
+  linkedAccountCache.delete(telegramId);
   return await prisma.telegramAccount.update({
     where: { telegramId },
     data: { language },
@@ -165,7 +184,9 @@ export async function updateAccountLanguage(telegramId: string, language: "fr" |
  * Unlink Telegram from Admin
  */
 export async function unlinkAccount(adminId: string) {
+  linkedAccountCache.clear();
   return await prisma.telegramAccount.deleteMany({
     where: { adminId },
   });
 }
+
