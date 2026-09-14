@@ -21,6 +21,7 @@ import { transcribeTelegramVoice } from "@/lib/telegram/voice";
 import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegram/vision";
 import { generateCallToken } from "@/lib/call/token";
 import { dispatchPendingReminders } from "@/lib/telegram/tools/reminderTools";
+import { flagConversationForLearning, markConversationPositive } from "@/lib/telegram/feedback";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -64,6 +65,26 @@ export async function POST(req: NextRequest) {
         const chatId = update.callback_query.message?.chat.id;
         if (chatId) {
           await sendTelegramMessage(chatId, langLabels[selectedLang] || "Langue mise à jour.");
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // Handle response feedback buttons (thumbs up / thumbs down)
+      if (data.startsWith("feedback:")) {
+        const parts = data.split(":");
+        const rating = parts[1]; // "good" or "bad"
+        const convId = parts[2];
+
+        if (rating === "good") {
+          if (convId) markConversationPositive(convId).catch(() => {});
+          await answerTelegramCallbackQuery(update.callback_query.id, "Merci pour votre appréciation ! 👍");
+        } else if (rating === "bad") {
+          if (convId) flagConversationForLearning(convId, "USER_DOWNVOTE").catch(() => {});
+          await answerTelegramCallbackQuery(
+            update.callback_query.id,
+            "Signalement bien reçu. Précisez ce qui doit être corrigé, Hnia l'analysera !",
+            true
+          );
         }
         return NextResponse.json({ ok: true });
       }

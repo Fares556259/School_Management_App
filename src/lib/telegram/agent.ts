@@ -9,6 +9,7 @@ import {
 import { TOOLS, getGeminiFunctionDeclarations } from "./tools";
 import { ToolContext } from "./tools/readTools";
 import { formatTelegramMessage, getQuickActionButtons } from "./formatter";
+import { isCorrectionMessage, flagConversationForLearning } from "./feedback";
 
 export interface AgentInput {
   userMessage: string;
@@ -127,6 +128,11 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     where: { id: conversationId },
     data: { updatedAt: new Date() },
   }).catch((e) => console.warn("[Agent] aIConversation touch failed:", e));
+
+  // Detect if user message is an explicit or implicit correction
+  if (isCorrectionMessage(userMessage)) {
+    flagConversationForLearning(conversationId, "USER_CORRECTION_DETECTED").catch(() => {});
+  }
 
   // 5. Build system instruction
   const todayStr = new Date().toLocaleDateString("fr-FR", {
@@ -928,9 +934,26 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 
       // Format reply as an executive-grade Telegram card
       const formattedReply = formatTelegramMessage(finalReply, tgAccount.School.name);
-      const quickButtons =
+      let quickButtons =
         getQuickActionButtons(lastExecutedTool, formattedReply) ||
         getMainHubInlineKeyboard(tgAccount.language);
+
+      // Attach feedback buttons to allow the admin to signal errors or satisfaction
+      if (conversationId) {
+        const feedbackRow = [
+          { text: "👍", callback_data: `feedback:good:${conversationId}` },
+          { text: "👎 Signaler", callback_data: `feedback:bad:${conversationId}` },
+        ];
+        if (quickButtons && quickButtons.inline_keyboard) {
+          quickButtons = {
+            inline_keyboard: [...quickButtons.inline_keyboard, feedbackRow],
+          };
+        } else {
+          quickButtons = {
+            inline_keyboard: [feedbackRow],
+          };
+        }
+      }
 
       // Send formatted message to Telegram
       await sendTelegramMessage(chatId, formattedReply, {

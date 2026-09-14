@@ -6,7 +6,8 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:evals": "tsx src/lib/telegram/evals/runEvals.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"
