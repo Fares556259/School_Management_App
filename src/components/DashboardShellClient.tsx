@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import MobileNav from "@/components/MobileNav";
 import Navbar from "@/components/Navbar";
 
@@ -25,6 +25,16 @@ const DashboardShellClient = ({
 
   const openDrawer = useCallback(() => setDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // Silent background heartbeat to dispatch any pending reminders opportunistically
+  useEffect(() => {
+    const ping = () => {
+      fetch("/api/cron/dispatch-reminders", { method: "GET", keepalive: true }).catch(() => null);
+    };
+    ping();
+    const interval = setInterval(ping, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>

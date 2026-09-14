@@ -23,7 +23,7 @@ import { generateCallToken } from "@/lib/call/token";
 import { dispatchPendingReminders } from "@/lib/telegram/tools/reminderTools";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
@@ -841,7 +841,18 @@ Instructions :
     // 12. Extract quoted reply text if user replied to a previous message
     const replyToText = message.reply_to_message?.text;
 
-    // 13. Run the Core Agent with tool-calling and full conversation context
+    // 13. Intent enhancement: Guarantee reminder tool invocation for any Derja / typo variations
+    const isReminderIntent = /(?:\b(fak+ar+ni|fkar+ni|faker+ni|akar+ni|ckar+ni|tfak+ar+ni|rappelle[- ]moi|remind me)\b|(?:^|\s)(فكرني|ذكرني)(?:$|\s))/i.test(userPrompt);
+    if (isReminderIntent) {
+      userPrompt = `[INSTRUCTION SYSTÈME PRIORITAIRE : PROGRAMMATION D'UN RAPPEL / ALARME]
+L'administrateur demande explicitement un rappel ou une alarme ("${userPrompt.trim()}").
+Tu DOIS impérativement appeler l'outil 'schedule_reminder' avec le sujet extrait (paramètre subject) et le délai en minutes (paramètre delayMinutes) ou l'heure cible (paramètre targetTime).
+Ne réponds JAMAIS par du texte sans exécuter 'schedule_reminder' !
+
+Demande de l'administrateur : ${userPrompt}`;
+    }
+
+    // 14. Run the Core Agent with tool-calling and full conversation context
     await runTelegramAgent({
       userMessage: userPrompt,
       chatId,

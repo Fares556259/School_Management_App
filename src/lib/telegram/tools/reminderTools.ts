@@ -87,6 +87,83 @@ export async function deliverSingleReminder(reminderId: string): Promise<boolean
 }
 
 /**
+ * Spawns the next hop asynchronously via HTTP fetch to /api/cron/dispatch-reminders
+ */
+export function chainToNextRelayHop(nextHop: number) {
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://www.snapschool.academy");
+
+  fetch(`${appUrl}/api/cron/dispatch-reminders?hop=${nextHop}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-cron-relay": "true",
+    },
+  }).catch((e) => {
+    console.warn(`[Reminder Relay] Hop ${nextHop} fetch error (non-critical):`, e.message);
+  });
+}
+
+/**
+ * Executes or continues the precision reminder dispatcher relay.
+ * Guaranteed to respect serverless limits (max ~25s per hop)
+ * and self-perpetuates until all pending reminders within reach are dispatched.
+ */
+export async function runReminderRelay(hop = 1): Promise<number> {
+  const MAX_HOPS = 40; // Supports continuous precision relay up to ~15-20 minutes
+  if (hop > MAX_HOPS) return 0;
+
+  try {
+    // 1. Deliver all reminders that are already due now (remindAt <= now)
+    let delivered = await dispatchPendingReminders();
+
+    // 2. Find the earliest pending reminder
+    const nextDue = await prisma.aIReminder.findFirst({
+      where: {
+        status: "PENDING",
+      },
+      orderBy: { remindAt: "asc" },
+    });
+
+    if (!nextDue) {
+      return delivered; // No pending reminders — relay stops cleanly!
+    }
+
+    const waitMs = nextDue.remindAt.getTime() - Date.now();
+
+    // If it's already due or due within 25 seconds, wait the exact time and deliver it!
+    if (waitMs <= 25_000) {
+      if (waitMs > 0) {
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
+      const ok = await deliverSingleReminder(nextDue.id);
+      if (ok) delivered++;
+
+      // Check if there are more pending reminders
+      const remainingCount = await prisma.aIReminder.count({
+        where: { status: "PENDING" },
+      });
+
+      if (remainingCount > 0) {
+        chainToNextRelayHop(hop + 1);
+      }
+      return delivered;
+    }
+
+    // If it's due further out (> 25s, like 1m, 2m, etc.):
+    // Sleep safely for 20 seconds, then spawn next hop
+    await new Promise((r) => setTimeout(r, 20_000));
+    chainToNextRelayHop(hop + 1);
+
+    return delivered;
+  } catch (err) {
+    console.error("[Reminder Relay Error]:", err);
+    return 0;
+  }
+}
+
+/**
  * Check and dispatch all pending reminders whose remindAt <= now
  */
 export async function dispatchPendingReminders(): Promise<number> {
@@ -182,20 +259,11 @@ export async function scheduleReminderTool(args: ScheduleReminderArgs, context: 
     },
   });
 
-  const delayMs = remindAt.getTime() - Date.now();
-
-  // If reminder is within 5 minutes (300 seconds), trigger background timer
-  if (delayMs > 0 && delayMs <= 5 * 60 * 1000) {
-    const deliveryPromise = (async () => {
-      await new Promise((r) => setTimeout(r, delayMs));
-      await deliverSingleReminder(record.id);
-    })();
-
-    try {
-      waitUntil(deliveryPromise);
-    } catch {
-      // In standard Node.js / dev server, setTimeout keeps running in the event loop
-    }
+  // Kick off background precision relay
+  try {
+    waitUntil(runReminderRelay(1));
+  } catch {
+    runReminderRelay(1).catch(() => null);
   }
 
   const targetTimeDisplay = remindAt.toLocaleTimeString("fr-FR", {
