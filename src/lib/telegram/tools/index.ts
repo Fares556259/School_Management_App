@@ -15,9 +15,12 @@ import prisma from "@/lib/prisma";
 import { formatMonthFrench } from "@/lib/dateUtils";
 import {
   recordPaymentTool,
+  recordParentPaymentTool,
   addExpenseTool,
   calculateStudentPaymentAllocation,
+  calculateParentPaymentDistribution,
 } from "./writeTools";
+import { resolveStudentByName, resolveParentByName } from "./entityResolvers";
 import {
   getAnnouncementsTool,
   postAnnouncementTool,
@@ -170,8 +173,8 @@ export const TOOLS: Record<string, ToolDefinition> = {
         type: SchemaType.OBJECT,
         properties: {
           query: { type: SchemaType.STRING, description: "Nom, prénom, téléphone ou contact du parent (ex: 'Moune Saoud', '6458558')." },
-          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12, optionnel)." },
-          year: { type: SchemaType.NUMBER, description: "Année (optionnel, ex: 2026)." },
+          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12, optionnel. Par défaut : mois actuel en cours)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel, ex: 2026. Par défaut : année actuelle)." },
         },
       },
     },
@@ -776,8 +779,8 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
-          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12)." },
-          year: { type: SchemaType.NUMBER, description: "Année (ex: 2026)." },
+          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12, optionnel. Par défaut : mois actuel en cours)." },
+          year: { type: SchemaType.NUMBER, description: "Année (ex: 2026, optionnel. Par défaut : année actuelle)." },
           status: { type: SchemaType.STRING, description: "'UNPAID' (pour voir tous les élèves avec solde dû : 0 DT et partiels), 'PAID', ou 'PARTIAL'." },
           className: { type: SchemaType.STRING, description: "Filtrer par nom de classe (ex: '7ème B')." },
           studentName: { type: SchemaType.STRING, description: "Filtrer par nom ou prénom d'élève." },
@@ -932,17 +935,7 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
     },
     formatConfirmationMessage: async (args, context) => {
       const query = (args.studentNameOrId || "").trim();
-      const student = await prisma.student.findFirst({
-        where: {
-          schoolId: context.schoolId,
-          OR: [
-            { id: query },
-            { name: { contains: query, mode: "insensitive" } },
-            { surname: { contains: query, mode: "insensitive" } },
-          ],
-        },
-        include: { class: true },
-      });
+      const student = await resolveStudentByName(context.schoolId, query);
 
       if (!student) {
         return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${args.studentNameOrId}</b> ?`;
@@ -977,6 +970,76 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
 ${lines.join("\n")}`;
     },
     execute: recordPaymentTool,
+  },
+
+  record_parent_payment: {
+    name: "record_parent_payment",
+    description: "Encaisser un versement global d'un parent pour régler la scolarité de ses enfants, avec ventilation automatique et intelligente entre les enfants ayant des impayés (ex: 'haw khalesni fihom 300', 'a réglé 300 DT between his kids', 'il m'a donné 300 pour ses deux filles').",
+    requiresConfirmation: true,
+    declaration: {
+      name: "record_parent_payment",
+      description: "Encaisser un paiement d'un parent et ventiler automatiquement la somme entre ses enfants endettés.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["parentNameOrId", "amount"],
+        properties: {
+          parentNameOrId: {
+            type: SchemaType.STRING,
+            description: "Nom, prénom ou téléphone du parent (ex: 'fares selmi', '123456789').",
+          },
+          amount: {
+            type: SchemaType.NUMBER,
+            description: "Montant total versé par le parent en Dinars Tunisiens (ex: 300).",
+          },
+          month: {
+            type: SchemaType.NUMBER,
+            description: "Mois cible (1 à 12, optionnel. Par défaut : mois actuel).",
+          },
+          year: {
+            type: SchemaType.NUMBER,
+            description: "Année (optionnel, par défaut : année actuelle).",
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: async (args, context) => {
+      const parent = await resolveParentByName(context.schoolId, args.parentNameOrId);
+      if (!parent) {
+        return `❓ <b>Confirmation de Paiement Parental</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> du parent <b>${args.parentNameOrId}</b> ?`;
+      }
+
+      const now = new Date();
+      const targetMonth = args.month || now.getMonth() + 1;
+      const targetYear = args.year || now.getFullYear();
+
+      const dist = await calculateParentPaymentDistribution(
+        parent.id,
+        args.amount,
+        context.schoolId,
+        targetMonth,
+        targetYear
+      );
+
+      if (!dist || dist.allocations.length === 0) {
+        return `❓ <b>Confirmation de Paiement Parental</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>\n💰 Montant : <code>${args.amount} DT</code>\n\nTous les enfants de ce parent semblent déjà en règle. Confirmer le versement ?`;
+      }
+
+      const lines = dist.allocations.map((a) => {
+        const badge = a.isFullyCleared ? "✅ <code>SOLDÉ</code>" : `⚠️ <code>PARTIEL</code> (Reste : <code>${a.remainingAfter} DT</code>)`;
+        return `• <b>${a.studentName}</b> (<code>${a.className}</code>) : <code>${a.amount} DT</code> (${badge})`;
+      });
+
+      return `❓ <b>Confirmation : Règlement Parental Multi-Enfants</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>
+💰 <b>Montant total versé :</b> <code>${args.amount} DT</code>
+
+📋 <b>Ventilation automatique calculée :</b>
+${lines.join("\n")}
+
+Souhaitez-vous valider ce règlement pour les ${dist.allocations.length} enfants ?`;
+    },
+    execute: recordParentPaymentTool,
   },
 
   get_incomes: {

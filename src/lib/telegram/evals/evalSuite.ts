@@ -130,6 +130,17 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
+  // ── TEST 2c: Logique de ventilation multi-enfants ───────────────────────────
+  await runTestCase("Validation du contrat de ventilation multi-enfants", async () => {
+    const { calculateParentPaymentDistribution, recordParentPaymentTool } = await import("@/lib/telegram/tools/writeTools");
+    if (typeof calculateParentPaymentDistribution !== "function") {
+      throw new Error("calculateParentPaymentDistribution doit être une fonction");
+    }
+    if (typeof recordParentPaymentTool !== "function") {
+      throw new Error("recordParentPaymentTool doit être une fonction");
+    }
+  });
+
   // ── TEST 3, 4, 5: Tests nécessitant une connexion à la base ──────────────
   if (!dbAvailable) {
     results.push({
