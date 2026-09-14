@@ -221,6 +221,373 @@ export async function createStaffTool(
   };
 }
 
+export interface PaymentMeta {
+  trackedHours: number;
+  deductedHours: number;
+  deductionStatus: "PENDING" | "APPLIED" | "EXCUSED";
+  notes?: string;
+}
+
+export const parsePaymentMeta = (p?: { img?: string | null; missedHours?: number | null } | null): PaymentMeta => {
+  if (!p) {
+    return { trackedHours: 0, deductedHours: 0, deductionStatus: "PENDING" };
+  }
+  if (p.img) {
+    try {
+      const parsed = JSON.parse(p.img);
+      if (typeof parsed === "object" && parsed !== null) {
+        const tracked = Number(parsed.trackedHours ?? p.missedHours ?? 0);
+        const status = (parsed.deductionStatus as "PENDING" | "APPLIED" | "EXCUSED") || "PENDING";
+        const deducted = Number(parsed.deductedHours ?? (status === "APPLIED" ? tracked : 0));
+        return {
+          trackedHours: tracked,
+          deductedHours: deducted,
+          deductionStatus: status,
+          notes: parsed.notes || "",
+        };
+      }
+    } catch {
+      // ignore json parse error
+    }
+  }
+  const hrs = p.missedHours || 0;
+  return {
+    trackedHours: hrs,
+    deductedHours: hrs,
+    deductionStatus: hrs > 0 ? "APPLIED" : "PENDING",
+  };
+};
+
+/**
+ * Tool: get_salary_details
+ * Retrieves complete salary, advance, deduction (missed hours) and outstanding balance
+ * for a teacher or staff member with 100% web parity.
+ */
+export async function getSalaryDetailsTool(
+  args: {
+    nameOrId: string;
+    month?: number;
+    year?: number;
+  },
+  context: ToolContext
+) {
+  const now = new Date();
+  const month = args.month || now.getMonth() + 1;
+  const year = args.year || now.getFullYear();
+  const monthName = MONTHS[month - 1] || `Mois ${month}`;
+
+  // 1. Try finding teacher first
+  const teacher = await resolveTeacherByName(context.schoolId, args.nameOrId);
+  if (teacher) {
+    const [fullTeacher, allTeacherExpenses] = await Promise.all([
+      prisma.teacher.findUnique({
+        where: { id: teacher.id },
+        include: {
+          subjects: true,
+          classes: true,
+          payments: {
+            where: { schoolId: context.schoolId, userType: "TEACHER" },
+            orderBy: [{ year: "desc" }, { month: "desc" }],
+          },
+        },
+      }),
+      prisma.expense.findMany({
+        where: {
+          schoolId: context.schoolId,
+          OR: [
+            { referenceType: "TeacherSalary" },
+            { category: "Advance" },
+            { category: "Salary" },
+          ],
+        },
+        orderBy: { date: "asc" },
+      }),
+    ]);
+
+    if (!fullTeacher) {
+      return { error: true, message: `Enseignant "${args.nameOrId}" introuvable.` };
+    }
+
+    const t = fullTeacher;
+    const teacherFullName = `${t.name} ${t.surname}`;
+    const baseSalary = t.salary || 600;
+    const effectiveHourlyRate = t.hourlyRate && t.hourlyRate > 0 ? t.hourlyRate : 15;
+
+    // Target month payment
+    const targetPayment = t.payments.find((p) => p.month === month && p.year === year);
+    const meta = parsePaymentMeta(targetPayment);
+    const trackedHours = meta.trackedHours;
+    const deductedHours = meta.deductionStatus === "APPLIED" ? (meta.deductedHours || trackedHours) : 0;
+    const deductionAmount = deductedHours * effectiveHourlyRate;
+
+    // Advances for this specific month
+    const pIds = t.payments.map((p) => p.id.toString());
+    const linkedExpenses = allTeacherExpenses.filter((exp) => {
+      if (exp.referenceType === "TeacherSalary" && pIds.includes(exp.referenceId || "")) return true;
+      if (exp.referenceType === "TeacherSalary" && exp.referenceId === t.id) return true;
+      if (exp.category === "Advance" && exp.title?.toLowerCase().includes(t.name.toLowerCase())) return true;
+      return false;
+    });
+
+    const targetMonthAdvanceExpenses = linkedExpenses.filter((e) => {
+      if (targetPayment && String(e.referenceId) === String(targetPayment.id)) {
+        return e.category === "Advance" || e.title?.toLowerCase().includes("avance") || e.title?.toLowerCase().includes("advance");
+      }
+      return false;
+    });
+
+    const expenseAdvanceTotal = targetMonthAdvanceExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const advancePaid = targetPayment?.status === "PARTIAL"
+      ? targetPayment.amount
+      : expenseAdvanceTotal > 0
+      ? expenseAdvanceTotal
+      : 0;
+
+    const remainingToPay = targetPayment?.status === "PAID"
+      ? 0
+      : Math.max(0, baseSalary - deductionAmount - advancePaid);
+
+    // Total paid across all months in the DB
+    const totalPaidYear = t.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const paidMonthsCount = t.payments.filter((p) => p.status === "PAID").length;
+
+    let statusLabel = "⏳ Non encore payé";
+    let statusBadge = "⏳ <code>NON PAYÉ</code>";
+    if (targetPayment?.status === "PAID") {
+      statusLabel = "Soldé / Entièrement réglé";
+      statusBadge = "🟢 <code>SOLDÉ</code>";
+    } else if (targetPayment?.status === "PARTIAL" || advancePaid > 0) {
+      statusLabel = `Avance en cours (${advancePaid} DT perçus)`;
+      statusBadge = "🟡 <code>AVANCE EN COURS</code>";
+    }
+
+    const subjectsList = t.subjects.map((s) => s.name.split("|")[0].trim()).join(", ") || "Aucune";
+
+    const academicStartYear = month >= 9 ? year : year - 1;
+    const ACADEMIC_MONTHS = [
+      { m: 9, y: academicStartYear, label: "Sep" },
+      { m: 10, y: academicStartYear, label: "Oct" },
+      { m: 11, y: academicStartYear, label: "Nov" },
+      { m: 12, y: academicStartYear, label: "Déc" },
+      { m: 1, y: academicStartYear + 1, label: "Jan" },
+      { m: 2, y: academicStartYear + 1, label: "Fév" },
+      { m: 3, y: academicStartYear + 1, label: "Mar" },
+      { m: 4, y: academicStartYear + 1, label: "Avr" },
+      { m: 5, y: academicStartYear + 1, label: "Mai" },
+      { m: 6, y: academicStartYear + 1, label: "Juin" },
+    ];
+
+    const academicMonthsSchedule = ACADEMIC_MONTHS.map((am) => {
+      const p = t.payments.find((pay) => pay.month === am.m && pay.year === am.y);
+      let badge = "⏳ À venir";
+      if (p?.status === "PAID") badge = `🟢 Payé (${p.amount} DT)`;
+      else if (p?.status === "PARTIAL") badge = `🟡 Avance (${p.amount} DT)`;
+      else if (am.y < year || (am.y === year && am.m < month)) badge = "🔴 En retard";
+      return `${am.label}: ${badge}`;
+    }).join(" • ");
+
+    return {
+      success: true,
+      userType: "TEACHER",
+      id: t.id,
+      fullName: teacherFullName,
+      phone: t.phone || "Non renseigné",
+      subjects: subjectsList,
+      targetMonth: `${monthName} ${year}`,
+      month,
+      year,
+      baseSalary: `${baseSalary} DT`,
+      hourlyRate: `${effectiveHourlyRate} DT/h`,
+      hoursPerMonth: t.hoursPerMonth ? `${t.hoursPerMonth}h/mois` : "Non fixé",
+      missedHours: `${trackedHours}h`,
+      deductionStatus: meta.deductionStatus,
+      deductionAmount: `${deductionAmount} DT`,
+      advancePaid: `${advancePaid} DT`,
+      remainingToPay: `${remainingToPay} DT`,
+      status: statusLabel,
+      statusBadge,
+      isFullyPaid: targetPayment?.status === "PAID",
+      totalPaidAcademicYear: `${totalPaidYear} DT (${paidMonthsCount} mois réglés)`,
+      academicMonthsSchedule,
+      summary: `${teacherFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Déduction d'absence ${deductionAmount} DT (${trackedHours}h à ${effectiveHourlyRate} DT/h), Avances perçues ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
+    };
+  }
+
+  // 2. Try finding Staff member
+  const staff = await resolveStaffByName(context.schoolId, args.nameOrId);
+  if (staff) {
+    const fullStaff = await prisma.staff.findUnique({
+      where: { id: staff.id },
+      include: {
+        payments: {
+          where: { schoolId: context.schoolId, userType: "STAFF" },
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+        },
+      },
+    });
+
+    if (!fullStaff) {
+      return { error: true, message: `Membre du personnel "${args.nameOrId}" introuvable.` };
+    }
+
+    const s = fullStaff;
+    const staffFullName = `${s.name} ${s.surname}`;
+    const baseSalary = s.salary || 1500;
+    const targetPayment = s.payments.find((p) => p.month === month && p.year === year);
+    const advancePaid = targetPayment?.status === "PARTIAL" ? targetPayment.amount : 0;
+    const remainingToPay = targetPayment?.status === "PAID" ? 0 : Math.max(0, baseSalary - advancePaid);
+    const totalPaidYear = s.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const paidMonthsCount = s.payments.filter((p) => p.status === "PAID").length;
+
+    let statusBadge = "⏳ <code>NON PAYÉ</code>";
+    if (targetPayment?.status === "PAID") {
+      statusBadge = "🟢 <code>SOLDÉ</code>";
+    } else if (targetPayment?.status === "PARTIAL" || advancePaid > 0) {
+      statusBadge = "🟡 <code>AVANCE EN COURS</code>";
+    }
+
+    const staffAcademicStartYear = month >= 9 ? year : year - 1;
+    const STAFF_ACADEMIC_MONTHS = [
+      { m: 9, y: staffAcademicStartYear, label: "Sep" },
+      { m: 10, y: staffAcademicStartYear, label: "Oct" },
+      { m: 11, y: staffAcademicStartYear, label: "Nov" },
+      { m: 12, y: staffAcademicStartYear, label: "Déc" },
+      { m: 1, y: staffAcademicStartYear + 1, label: "Jan" },
+      { m: 2, y: staffAcademicStartYear + 1, label: "Fév" },
+      { m: 3, y: staffAcademicStartYear + 1, label: "Mar" },
+      { m: 4, y: staffAcademicStartYear + 1, label: "Avr" },
+      { m: 5, y: staffAcademicStartYear + 1, label: "Mai" },
+      { m: 6, y: staffAcademicStartYear + 1, label: "Juin" },
+    ];
+
+    const staffMonthsSchedule = STAFF_ACADEMIC_MONTHS.map((am) => {
+      const p = s.payments.find((pay) => pay.month === am.m && pay.year === am.y);
+      let badge = "⏳ À venir";
+      if (p?.status === "PAID") badge = `🟢 Payé (${p.amount} DT)`;
+      else if (p?.status === "PARTIAL") badge = `🟡 Avance (${p.amount} DT)`;
+      else if (am.y < year || (am.y === year && am.m < month)) badge = "🔴 En retard";
+      return `${am.label}: ${badge}`;
+    }).join(" • ");
+
+    return {
+      success: true,
+      userType: "STAFF",
+      id: s.id,
+      fullName: staffFullName,
+      role: s.role || "Général",
+      phone: s.phone || "Non renseigné",
+      targetMonth: `${monthName} ${year}`,
+      month,
+      year,
+      baseSalary: `${baseSalary} DT`,
+      advancePaid: `${advancePaid} DT`,
+      remainingToPay: `${remainingToPay} DT`,
+      statusBadge,
+      isFullyPaid: targetPayment?.status === "PAID",
+      totalPaidAcademicYear: `${totalPaidYear} DT (${paidMonthsCount} mois réglés)`,
+      academicMonthsSchedule: staffMonthsSchedule,
+      summary: `${staffFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Avance ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
+    };
+  }
+
+  return {
+    error: true,
+    message: `Aucun enseignant ou membre du personnel trouvé pour "${args.nameOrId}".`,
+  };
+}
+
+/**
+ * Tool: track_teacher_absent_hours
+ * Records missed/absent hours for an instructor, computes deduction and updates net balance.
+ */
+export async function trackTeacherAbsentHoursTool(
+  args: {
+    teacherNameOrId: string;
+    missedHours: number;
+    month?: number;
+    year?: number;
+    deductionStatus?: "APPLIED" | "PENDING" | "EXCUSED";
+    notes?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const now = new Date();
+  const month = args.month || now.getMonth() + 1;
+  const year = args.year || now.getFullYear();
+  const monthName = MONTHS[month - 1] || `Mois ${month}`;
+  const deductionStatus = args.deductionStatus || "APPLIED";
+
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherNameOrId);
+  if (!teacher) {
+    return { success: false, message: `Enseignant "${args.teacherNameOrId}" introuvable.`, summary: `Enseignant introuvable` };
+  }
+
+  const teacherFullName = `${teacher.name} ${teacher.surname}`;
+  const effectiveHourlyRate = teacher.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
+  const deductionAmount = deductionStatus === "APPLIED" ? args.missedHours * effectiveHourlyRate : 0;
+
+  const meta = {
+    trackedHours: args.missedHours,
+    deductedHours: deductionStatus === "APPLIED" ? args.missedHours : 0,
+    deductionStatus,
+    notes: args.notes || `Saisi via Hnia Telegram (${args.missedHours}h manquées)`,
+  };
+
+  await prisma.payment.upsert({
+    where: {
+      teacherId_month_year: {
+        teacherId: teacher.id,
+        month,
+        year,
+      },
+    },
+    update: {
+      missedHours: args.missedHours,
+      img: JSON.stringify(meta),
+    },
+    create: {
+      teacherId: teacher.id,
+      amount: 0,
+      month,
+      year,
+      status: "PENDING",
+      userType: "TEACHER",
+      missedHours: args.missedHours,
+      img: JSON.stringify(meta),
+      schoolId: context.schoolId,
+    },
+  });
+
+  invalidateTenantTags(context.schoolId, "teachers", "finance", "dashboard");
+
+  const baseSalary = teacher.salary || 600;
+
+  // Check if there are advances already recorded for this month
+  const currentPayment = await prisma.payment.findUnique({
+    where: {
+      teacherId_month_year: {
+        teacherId: teacher.id,
+        month,
+        year,
+      },
+    },
+  });
+  const advancePaid = currentPayment?.status === "PARTIAL" ? (currentPayment.amount || 0) : 0;
+  const newNetDue = Math.max(0, baseSalary - deductionAmount - advancePaid);
+
+  let advanceLine = "";
+  if (advancePaid > 0) {
+    advanceLine = `\n• Avances déjà perçues : <code>${advancePaid} DT</code>`;
+  }
+
+  return {
+    success: true,
+    message: `✅ **Heures d'absence enregistrées avec succès pour ${teacherFullName} (${monthName} ${year}) !**\n\n• Heures manquées : <code>${args.missedHours}h</code>\n• Taux horaire de retenue : <code>${effectiveHourlyRate} DT/h</code>\n• Retenue calculée : <code>-${deductionAmount} DT</code>\n• Salaire de base : <code>${baseSalary} DT</code>${advanceLine}\n• <b>Nouveau solde net restant dû :</b> <code>${newNetDue} DT</code>.`,
+    summary: `Absence ${teacherFullName} : ${args.missedHours}h (-${deductionAmount} DT) · Reste net : ${newNetDue} DT`,
+    data: { teacherId: teacher.id, missedHours: args.missedHours, deductionAmount, advancePaid, newNetDue },
+  };
+}
+
 /**
  * Tool: pay_teacher_salary
  * Records teacher payroll payment or salary advance, calculates deductions for missed hours,
@@ -251,9 +618,9 @@ export async function payTeacherSalaryTool(
   const monthName = MONTHS[month - 1] || `Mois ${month}`;
   const isAdvance = Boolean(args.isAdvance);
 
-  // Deduction calculation
-  const hourlyRate = teacher.hourlyRate || 25;
-  const deductionAmount = args.missedHours ? args.missedHours * hourlyRate : 0;
+  // Deduction calculation matching web TeacherFinanceHub
+  const effectiveHourlyRate = teacher.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
+  const baseSalary = teacher.salary || 600;
 
   const result = await prisma.$transaction(async (tx) => {
     // 1. Check or update Payment record
@@ -270,9 +637,19 @@ export async function payTeacherSalaryTool(
       throw new Error(`Le mois de ${monthName} ${year} est déjà entièrement payé et clôturé pour ${teacherFullName}.`);
     }
 
+    const existingMeta = parsePaymentMeta(existingPayment);
+    const newMissedHours = args.missedHours !== undefined ? args.missedHours : (existingPayment?.missedHours || 0);
+    const deductionAmount = newMissedHours * effectiveHourlyRate;
+
+    const newMeta = {
+      trackedHours: newMissedHours,
+      deductedHours: newMissedHours,
+      deductionStatus: (newMissedHours > 0 ? "APPLIED" : existingMeta.deductionStatus) as "APPLIED" | "PENDING" | "EXCUSED",
+      notes: isAdvance ? `Avance de ${args.amount} DT` : `Règlement salaire ${args.amount} DT`,
+    };
+
     let paymentRecord;
     const newTotalPaid = (existingPayment?.amount || 0) + args.amount;
-    const newMissedHours = args.missedHours !== undefined ? args.missedHours : (existingPayment?.missedHours || 0);
 
     if (existingPayment) {
       paymentRecord = await tx.payment.update({
@@ -281,6 +658,7 @@ export async function payTeacherSalaryTool(
           amount: newTotalPaid,
           status: isAdvance ? "PARTIAL" : "PAID",
           missedHours: newMissedHours,
+          img: JSON.stringify(newMeta),
           paidAt: new Date(),
         },
       });
@@ -294,6 +672,7 @@ export async function payTeacherSalaryTool(
           status: isAdvance ? "PARTIAL" : "PAID",
           userType: "TEACHER",
           missedHours: newMissedHours,
+          img: JSON.stringify(newMeta),
           paidAt: new Date(),
           schoolId: context.schoolId,
         },
@@ -336,18 +715,26 @@ export async function payTeacherSalaryTool(
       },
     });
 
-    return paymentRecord;
+    return { paymentRecord, newTotalPaid, deductionAmount };
   });
 
   invalidateTenantTags(context.schoolId, "teachers", "finance", "expenses", "dashboard");
 
+  const remainingAfter = isAdvance
+    ? Math.max(0, baseSalary - result.deductionAmount - result.newTotalPaid)
+    : 0;
+
+  const resultMsg = isAdvance
+    ? `✅ **Avance sur salaire enregistrée avec succès pour ${teacherFullName} (${monthName} ${year}) !**\n\n• Montant versé maintenant : <code>${args.amount} DT</code>\n• Total avances ce mois : <code>${result.newTotalPaid} DT</code>\n• Salaire de base : <code>${baseSalary} DT</code>${
+        result.deductionAmount > 0 ? `\n• Retenue d'absence : <code>-${result.deductionAmount} DT</code>` : ""
+      }\n• <b>Solde restant dû :</b> <code>${remainingAfter} DT</code>.`
+    : `✅ **Salaire soldé avec succès pour ${teacherFullName} (${monthName} ${year}) !**\n\n• Montant réglé : <code>${args.amount} DT</code>\n• Total perçu ce mois : <code>${result.newTotalPaid} DT</code>\n• Statut du mois : 🟢 <b>SOLDÉ / CLÔTURÉ</b>.`;
+
   return {
     success: true,
-    message: `✅ ${isAdvance ? "L'avance" : "Le salaire"} de **${args.amount} DT** pour **${teacherFullName}** (${monthName} ${year}) a été enregistré avec succès dans le journal des dépenses.${
-      deductionAmount > 0 ? ` Déduction appliquée pour heures manquées : ${deductionAmount} DT.` : ""
-    }`,
-    summary: `Paiement salaire ${teacherFullName} (${args.amount} DT)`,
-    data: { paymentId: result.id },
+    message: resultMsg,
+    summary: `${isAdvance ? "Avance" : "Salaire"} ${teacherFullName} (${args.amount} DT)`,
+    data: { paymentId: result.paymentRecord.id, remainingAfter },
   };
 }
 
@@ -377,6 +764,7 @@ export async function payStaffSalaryTool(
   const staffFullName = `${staff.name} ${staff.surname}`;
   const monthName = MONTHS[month - 1] || `Mois ${month}`;
   const isAdvance = Boolean(args.isAdvance);
+  const baseSalary = staff.salary || 1500;
 
   const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.payment.findFirst({
@@ -447,15 +835,21 @@ export async function payStaffSalaryTool(
       },
     });
 
-    return paymentRecord;
+    return { paymentRecord, newTotal };
   });
 
   invalidateTenantTags(context.schoolId, "staff", "finance", "expenses", "dashboard");
 
+  const remainingAfter = isAdvance ? Math.max(0, baseSalary - result.newTotal) : 0;
+
+  const resultMsg = isAdvance
+    ? `✅ **Avance sur salaire enregistrée avec succès pour ${staffFullName} (${monthName} ${year}) !**\n\n• Montant versé maintenant : <code>${args.amount} DT</code>\n• Total avances perçues ce mois : <code>${result.newTotal} DT</code>\n• Salaire de base : <code>${baseSalary} DT</code>\n• <b>Solde restant dû :</b> <code>${remainingAfter} DT</code>.`
+    : `✅ **Salaire soldé avec succès pour ${staffFullName} (${monthName} ${year}) !**\n\n• Montant réglé : <code>${args.amount} DT</code>\n• Statut du mois : 🟢 <b>SOLDÉ / CLÔTURÉ</b>.`;
+
   return {
     success: true,
-    message: `✅ ${isAdvance ? "L'avance" : "Le salaire"} de **${args.amount} DT** pour **${staffFullName}** (${monthName} ${year}) a été enregistré avec succès.`,
-    summary: `Paiement staff ${staffFullName} (${args.amount} DT)`,
-    data: { paymentId: result.id },
+    message: resultMsg,
+    summary: `${isAdvance ? "Avance" : "Salaire"} staff ${staffFullName} (${args.amount} DT)`,
+    data: { paymentId: result.paymentRecord.id, remainingAfter },
   };
 }

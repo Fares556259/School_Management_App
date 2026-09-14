@@ -35,13 +35,14 @@ import {
   updateStudentTool,
 } from "./academicTools";
 
-// Suite 2: Teachers & Staff
 import {
   getStaffTool,
   createTeacherTool,
   createStaffTool,
   payTeacherSalaryTool,
   payStaffSalaryTool,
+  getSalaryDetailsTool,
+  trackTeacherAbsentHoursTool,
 } from "./teacherStaffTools";
 
 // Suite 3: Attendance
@@ -381,46 +382,113 @@ export const TOOLS: Record<string, ToolDefinition> = {
     execute: createStaffTool,
   },
 
+  get_salary_details: {
+    name: "get_salary_details",
+    description: "Consulter la fiche financière détaillée d'un enseignant ou membre du personnel : salaire de base, heures d'absence, déductions appliquées, avances perçues et solde net restant dû pour un mois ou l'année.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_salary_details",
+      description: "Obtenir la fiche financière d'un enseignant ou personnel : salaire de base, retenues d'absences, avances perçues et solde net restant dû.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["nameOrId"],
+        properties: {
+          nameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'enseignant ou membre du personnel (ex: 'Asma', 'Si Moncef', 'Mme Trabelsi')." },
+          month: { type: SchemaType.NUMBER, description: "Mois cible (1 à 12, ex: 9 pour Septembre). Par défaut : mois actuel." },
+          year: { type: SchemaType.NUMBER, description: "Année cible (ex: 2026). Par défaut : année actuelle." },
+        },
+      },
+    },
+    execute: getSalaryDetailsTool,
+  },
+
+  track_teacher_absent_hours: {
+    name: "track_teacher_absent_hours",
+    description: "Enregistrer des heures d'absence manquées pour un enseignant et calculer la retenue financière sur salaire correspondante.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "track_teacher_absent_hours",
+      description: "Noter des heures manquées d'absence pour un enseignant et ajuster sa déduction sur salaire.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["teacherNameOrId", "missedHours"],
+        properties: {
+          teacherNameOrId: { type: SchemaType.STRING, description: "Nom ou ID de l'enseignant (ex: 'Asma', 'Si Moncef')." },
+          missedHours: { type: SchemaType.NUMBER, description: "Nombre total d'heures d'absence à enregistrer pour ce mois (ex: 2)." },
+          month: { type: SchemaType.NUMBER, description: "Mois concerné (1 à 12). Par défaut : mois actuel." },
+          year: { type: SchemaType.NUMBER, description: "Année (ex: 2026)." },
+          deductionStatus: { type: SchemaType.STRING, description: "Statut de la retenue : 'APPLIED' (déduire du salaire) ou 'PENDING' (en attente d'arbitrage). Par défaut : 'APPLIED'." },
+          notes: { type: SchemaType.STRING, description: "Remarque ou motif de l'absence." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const FRENCH_MONTHS = [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+      ];
+      const monthLabel = args.month
+        ? `${FRENCH_MONTHS[args.month - 1] || "Mois " + args.month}${args.year ? " " + args.year : ""}`
+        : "ce mois-ci";
+      return `❓ <b>Enregistrement Heures d'Absence</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Enseignant :</b> <b>${args.teacherNameOrId}</b>
+⏳ <b>Heures d'absence :</b> <code>${args.missedHours}h</code> (${monthLabel})
+✂️ <b>Impact :</b> Retenue automatique sur le solde de paie
+
+Confirmer l'enregistrement de ces heures d'absence ?`;
+    },
+    execute: trackTeacherAbsentHoursTool,
+  },
+
   pay_teacher_salary: {
     name: "pay_teacher_salary",
-    description: "Enregistrer un paiement de salaire ou une avance pour un enseignant avec déduction pour heures manquées.",
+    description: "Enregistrer un versement de salaire ou une avance pour un enseignant avec déduction pour heures d'absence manquées.",
     requiresConfirmation: true,
     declaration: {
       name: "pay_teacher_salary",
-      description: "Enregistrer un salaire ou une avance sur salaire pour un enseignant.",
+      description: "Enregistrer un versement de salaire complet ou une avance sur salaire pour un enseignant.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["teacherNameOrId", "amount"],
         properties: {
           teacherNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'enseignant." },
           amount: { type: SchemaType.NUMBER, description: "Montant payé en Dinars Tunisiens (DT)." },
-          month: { type: SchemaType.NUMBER, description: "Mois concerné (1 à 12)." },
+          month: { type: SchemaType.NUMBER, description: "Mois concerné (1 à 12). Par défaut : mois actuel." },
           year: { type: SchemaType.NUMBER, description: "Année (ex: 2026)." },
-          isAdvance: { type: SchemaType.BOOLEAN, description: "Vrai s'il s'agit d'une avance sur salaire." },
-          missedHours: { type: SchemaType.NUMBER, description: "Nombre d'heures manquées à déduire." },
+          isAdvance: { type: SchemaType.BOOLEAN, description: "VRAI s'il s'agit d'une avance sur salaire (acompte), FAUX pour le solde final." },
+          missedHours: { type: SchemaType.NUMBER, description: "Nombre d'heures d'absence à déduire (optionnel)." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      const type = args.isAdvance ? "Avance sur salaire" : "Salaire mensuel";
+      const FRENCH_MONTHS = [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+      ];
+      const isAdv = Boolean(args.isAdvance);
       const cleanAmount = Math.abs(Number(args.amount) || 0);
+      const typeBadge = isAdv ? "🟡 AVANCE SUR SALAIRE" : "🟢 RÈGLEMENT DU SOLDE DE PAIE";
       const deductionNote = args.missedHours ? `\n⏳ <b>Déduction absence :</b> <code>${args.missedHours}h</code>` : "";
-      const monthStr = args.month ? `\n📅 <b>Mois :</b> <code>Mois ${args.month}</code>` : "";
+      const monthStr = args.month
+        ? `\n📅 <b>Période :</b> <code>${FRENCH_MONTHS[args.month - 1] || "Mois " + args.month}${args.year ? " " + args.year : ""}</code>`
+        : "";
 
-      return `❓ <b>Paiement Enseignant</b>
+      return `❓ <b>Confirmation Paiement Enseignant</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>Enseignant :</b> <b>${args.teacherNameOrId}</b>
-💼 <b>Type :</b> <code>${type}</code>
-💰 <b>Montant :</b> <code>${cleanAmount} DT</code>${monthStr}${deductionNote}
+💼 <b>Opération :</b> <b>${typeBadge}</b>
+💰 <b>Montant à verser :</b> <code>${cleanAmount} DT</code>${monthStr}${deductionNote}
+📝 <b>Catégorie compta :</b> <code>${isAdv ? "Advance" : "Salary"}</code>
 
-Confirmer ce paiement ?`;
+Confirmer l'enregistrement et le versement de ce montant ?`;
     },
     execute: payTeacherSalaryTool,
   },
 
   pay_staff_salary: {
     name: "pay_staff_salary",
-    description: "Enregistrer un paiement de salaire ou une avance pour un membre du staff.",
+    description: "Enregistrer un paiement de salaire ou une avance pour un membre du personnel non-enseignant.",
     requiresConfirmation: true,
     declaration: {
       name: "pay_staff_salary",
@@ -433,22 +501,30 @@ Confirmer ce paiement ?`;
           amount: { type: SchemaType.NUMBER, description: "Montant en DT." },
           month: { type: SchemaType.NUMBER, description: "Mois concerné (1 à 12)." },
           year: { type: SchemaType.NUMBER, description: "Année (ex: 2026)." },
-          isAdvance: { type: SchemaType.BOOLEAN, description: "Vrai s'il s'agit d'une avance." },
+          isAdvance: { type: SchemaType.BOOLEAN, description: "VRAI s'il s'agit d'une avance sur salaire (acompte)." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      const type = args.isAdvance ? "Avance sur salaire" : "Salaire mensuel";
+      const FRENCH_MONTHS = [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+      ];
+      const isAdv = Boolean(args.isAdvance);
       const cleanAmount = Math.abs(Number(args.amount) || 0);
-      const monthStr = args.month ? `\n📅 <b>Mois :</b> <code>Mois ${args.month}</code>` : "";
+      const typeBadge = isAdv ? "🟡 AVANCE SUR SALAIRE" : "🟢 RÈGLEMENT DU SOLDE DE PAIE";
+      const monthStr = args.month
+        ? `\n📅 <b>Période :</b> <code>${FRENCH_MONTHS[args.month - 1] || "Mois " + args.month}${args.year ? " " + args.year : ""}</code>`
+        : "";
 
-      return `❓ <b>Paiement Personnel</b>
+      return `❓ <b>Confirmation Paiement Personnel</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>Personnel :</b> <b>${args.staffNameOrId}</b>
-💼 <b>Type :</b> <code>${type}</code>
-💰 <b>Montant :</b> <code>${cleanAmount} DT</code>${monthStr}
+💼 <b>Opération :</b> <b>${typeBadge}</b>
+💰 <b>Montant à verser :</b> <code>${cleanAmount} DT</code>${monthStr}
+📝 <b>Catégorie compta :</b> <code>${isAdv ? "Advance" : "Salary"}</code>
 
-Confirmer ce paiement ?`;
+Confirmer l'enregistrement et le versement de ce montant ?`;
     },
     execute: payStaffSalaryTool,
   },
