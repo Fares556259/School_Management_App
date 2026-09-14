@@ -8,6 +8,7 @@ export interface ToolContext {
   adminId: string;
   adminName: string;
   language: string;
+  chatId?: string;
 }
 
 /**

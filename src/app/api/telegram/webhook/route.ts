@@ -20,9 +20,10 @@ import { runTelegramAgent } from "@/lib/telegram/agent";
 import { transcribeTelegramVoice } from "@/lib/telegram/voice";
 import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegram/vision";
 import { generateCallToken } from "@/lib/call/token";
+import { dispatchPendingReminders } from "@/lib/telegram/tools/reminderTools";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
@@ -33,6 +34,11 @@ export async function POST(req: NextRequest) {
     console.warn("[Telegram Webhook] Unauthorized request rejected (invalid secret).");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Opportunistic reminder check: flush any due reminders in the background
+  dispatchPendingReminders().catch((e) =>
+    console.warn("[Telegram Webhook] dispatchPendingReminders warning:", e)
+  );
 
   try {
     const update = await req.json();

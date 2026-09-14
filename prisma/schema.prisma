@@ -608,6 +608,7 @@ model School {
   TimetableSlot         TimetableSlot[]
   TelegramAccount       TelegramAccount[]
   AIKnowledge           AIKnowledge[]
+  AIReminder            AIReminder[]
 }
 
 model SetupRequest {
@@ -764,3 +765,21 @@ model AIKnowledge {
   @@index([category])
   @@index([isActive])
 }
+
+model AIReminder {
+  id          String    @id @default(cuid())
+  schoolId    String
+  adminId     String?
+  chatId      String
+  subject     String
+  remindAt    DateTime
+  status      String    @default("PENDING") // PENDING, DELIVERED, CANCELLED
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+  School      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([remindAt])
+}
+

@@ -100,6 +100,14 @@ import {
   forgetHniaTeachingTool,
 } from "./knowledgeTools";
 
+// Suite 9: Personal Reminders & Alarms
+import {
+  scheduleReminderTool,
+  getRemindersTool,
+  cancelReminderTool,
+} from "./reminderTools";
+
+
 export interface ToolDefinition {
   name: string;
   description: string;
@@ -1659,6 +1667,80 @@ Confirmer l'enregistrement de cette dépense ?`;
       },
     },
     execute: forgetHniaTeachingTool,
+  },
+
+  // ── SUITE 9: PERSONAL REMINDERS & ALARMS ─────────────────────────────────
+  schedule_reminder: {
+    name: "schedule_reminder",
+    description: "Programmer un rappel ou une alarme personnelle pour l'administrateur avec notification Telegram automatique (ex: 'fakarni baad 2 minutes bech ntfa9ed sallet', 'rappelle-moi dans 15 minutes', 'fakarni m3a 14h').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "schedule_reminder",
+      description: "Programmer un rappel ou une alarme qui notifiera automatiquement l'administrateur sur Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["subject"],
+        properties: {
+          subject: {
+            type: SchemaType.STRING,
+            description: "Le sujet de la tâche ou de l'alerte à rappeler (ex: 'Vérifier la salle de cours', 'Appeler M. Trabelsi').",
+          },
+          delayMinutes: {
+            type: SchemaType.NUMBER,
+            description: "Délai en minutes avant l'alerte (ex: 2 pour 2 minutes, 15 pour 15 minutes, 60 pour 1 heure).",
+          },
+          targetTime: {
+            type: SchemaType.STRING,
+            description: "Heure cible exacte si précisée (ex: '14:30', '16:00', '08:15').",
+          },
+        },
+      },
+    },
+    execute: scheduleReminderTool,
+  },
+
+  get_reminders: {
+    name: "get_reminders",
+    description: "Consulter la liste des rappels programmés et alarmes en attente.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_reminders",
+      description: "Lister les rappels prévus pour l'administrateur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          limit: {
+            type: SchemaType.NUMBER,
+            description: "Nombre maximum de rappels à afficher (défaut 10).",
+          },
+        },
+      },
+    },
+    execute: getRemindersTool,
+  },
+
+  cancel_reminder: {
+    name: "cancel_reminder",
+    description: "Annuler un rappel programmé existant.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "cancel_reminder",
+      description: "Annuler un rappel par mot-clé ou identifiant.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          query: {
+            type: SchemaType.STRING,
+            description: "Mot-clé du sujet du rappel à annuler (ex: 'salle', 'tous').",
+          },
+          reminderId: {
+            type: SchemaType.STRING,
+            description: "Identifiant exact du rappel.",
+          },
+        },
+      },
+    },
+    execute: cancelReminderTool,
   },
 };
 

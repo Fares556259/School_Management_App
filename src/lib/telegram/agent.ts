@@ -63,6 +63,7 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     adminId: tgAccount.adminId,
     adminName,
     language: tgAccount.language || "fr",
+    chatId: chatId.toString(),
   };
 
   let effectiveUserMessage = userMessage;
@@ -575,7 +576,18 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
       - Si l'administrateur demande ce que vous avez appris ou retenu (ex: "qu'est-ce que tu as appris ?", "شنوة مسجل عندك ؟", "montre tes notes") :
         * Appelle IMMÉDIATEMENT 'get_hnia_teachings' !
       - Si l'administrateur demande d'oublier ou supprimer une consigne (ex: "oublie la note sur la cantine", "فسخ الملاحظة") :
-        * Appelle IMMÉDIATEMENT 'forget_hnia_teaching' !`;
+        * Appelle IMMÉDIATEMENT 'forget_hnia_teaching' !
+
+   H. RAPPELS PERSONNELS & ALARMES DE L'ADMINISTRATEUR (فكرني / rappelle-moi / alarme / minuteur) :
+      - Dès que l'administrateur demande un rappel, une alarme ou dit "fakarni..." / "فكرني..." / "rappelle-moi dans X minutes" / "fakarni baad..." / "fakarni m3a..." :
+        * Tu DOIS impérativement appeler l'outil 'schedule_reminder' !
+        * Paramètres :
+          - subject : le sujet ou la tâche exacte à rappeler (ex: "Vérifier la salle", "Appeler M. Trabelsi", "Clôture de caisse").
+          - delayMinutes : délai converti en minutes (ex: "d9i9tin" / "2 minutes" -> 2, "draj" / "5 min" -> 5, "darjin" / "10 min" -> 10, "nos se3a" / "30 min" -> 30, "se3a" / "1h" -> 60).
+          - targetTime : l'heure exacte si mentionnée (ex: "14h30", "16:00", "08:15").
+      - NE RÉPONDS JAMAIS par une simple promesse textuelle en l'air ! Tu DOIS appeler l'outil 'schedule_reminder' pour que le système déclenche réellement le message d'alerte Telegram au moment voulu.
+      - Pour consulter les rappels : appelle 'get_reminders'.
+      - Pour annuler un rappel : appelle 'cancel_reminder'.`;
 
   // Candidate models — fastest first (gemini-3.5-flash-lite ~700ms), followed by solid fallbacks
   const CANDIDATE_MODELS = [
