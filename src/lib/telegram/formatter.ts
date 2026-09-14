@@ -13,6 +13,16 @@ export function formatTelegramMessage(raw: string, schoolName?: string): string 
   text = text.replace(/<a\s+href="(?:\/api\/call|https?:\/\/[^"]*(?:\/api\/call|\/dial)|tel:)[^"]*"[^>]*>(.*?)<\/a>/gi, "$1");
   text = text.replace(/\[([^\]]+)\]\((?:\/api\/call|https?:\/\/[^)]*(?:\/api\/call|\/dial)|tel:)[^)]+\)/gi, "$1");
 
+  // 0b. Remove all WhatsApp links (HTML <a>, Markdown links, raw URLs, and unclosed cut-offs)
+  // School directors in Tunisia do not use WhatsApp for this and requested its complete removal.
+  text = text.replace(/\s*•?\s*<a\s+href="https?:\/\/wa\.me\/[^"]*"[^>]*>.*?<\/a>/gi, "");
+  text = text.replace(/\s*•?\s*\[(?:WhatsApp|Relancer WhatsApp|WhatsApp\s*💬)[^\]]*\]\(https?:\/\/wa\.me\/[^)]+\)/gi, "");
+  text = text.replace(/\s*•?\s*https?:\/\/wa\.me\/\S+/gi, "");
+  text = text.replace(/\s*•?\s*<a\s+href="https?:\/\/wa\.me\/?[^"]*$/gi, ""); // Strips cut-off wa.me tags
+
+  // 0c. Strip any cut-off / unclosed trailing tag at the very end of truncated responses
+  text = text.replace(/<[a-z]+(?:\s+[^>]*)?$/gi, "");
+
   // 1. Sanitize standard HTML angle brackets that are NOT Telegram tags
   // Preserve: <b>, </b>, <i>, </i>, <code>, </code>, <pre>, </pre>, <blockquote>, </blockquote>, <a href="...">, </a>, <u>, </u>, <s>, </s>
   const validTagTokens: { token: string; tag: string }[] = [];

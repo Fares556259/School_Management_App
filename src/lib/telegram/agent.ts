@@ -465,11 +465,12 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
    • Badges de Statut Colorés :
      🟢 <code>SOLDÉ</code>  │  🟡 <code>PARTIEL</code>  │  🔴 <code>IMPAYÉ</code>
      🟢 <code>PRÉSENT</code>  │  🟠 <code>RETARD</code>  │  🔴 <code>ABSENT</code>  │  🔵 <code>JUSTIFIÉ</code>
-    • Liens d'Appel Direct et WhatsApp en 1 Clic (CRUCIAL POUR LE DIRECTEUR SUR MOBILE) :
+    • Numéros d'Appel Direct (CRUCIAL POUR LE DIRECTEUR SUR MOBILE) :
       Dès qu'un numéro de téléphone d'un parent apparaît, écris-le au format international natif :
-      📞 +216 98 123 456 • <a href="https://wa.me/21698123456">WhatsApp 💬</a>
-      (Ou 📞 [numéro] • [WhatsApp 💬](https://wa.me/216[numéro])).
-      ⚡ RÈGLE CRUCIALE MOBILE : Ne mets JAMAIS de balise <a href> sur le numéro de téléphone. Telegram sur smartphone (iOS et Android) détecte automatiquement le format +216 et ouvre DIRECTEMENT l'application Téléphone avec le numéro prérempli sur le clavier (sans jamais ouvrir de navigateur web ni de fenêtre 'Open Link').
+      📞 +216 98 123 456
+      ⚡ RÈGLES CRUCIALES MOBILE & DIRECTEURS :
+      - NE METS JAMAIS DE LIEN WHATSAPP (pas de wa.me, pas de bouton WhatsApp). Les directeurs d'école n'utilisent pas WhatsApp pour cela et ne veulent aucun lien WhatsApp dans les messages.
+      - Ne mets JAMAIS de balise <a href> sur le numéro de téléphone. Telegram sur smartphone (iOS et Android) détecte automatiquement le format +216 et ouvre DIRECTEMENT l'application Téléphone avec le numéro prérempli sur le clavier (sans jamais ouvrir de navigateur web ni de fenêtre 'Open Link').
    • Encadrement systématique :
      Toutes les sommes d'argent (ex: <code>450 DT</code>), les classes (ex: <code>1ère A</code>), dates et heures doivent être entourées de balises <code>...</code>.
    • Séparateurs aérés :
@@ -484,8 +485,8 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
      🏛️ <b>SNAPSCHOOL</b> │ <b>FICHE ÉLÈVE</b>
      ━━━━━━━━━━━━━━━━━━━━━━
      👤 <b>Youssef Trabelsi</b> • Classe <code>1ère A</code>
-     📞 Parent : <b>Karim Trabelsi</b>
-     └ 📞 +216 98 123 456 • <a href="https://wa.me/21698123456">WhatsApp 💬</a>
+      📞 Parent : <b>Karim Trabelsi</b>
+      └ 📞 +216 98 123 456
 
      💰 <b>Scolarité :</b> <code>450 DT/mois</code>
      • Encaissé : <code>+900 DT</code> (2 mois 🟢) • Reste : <code>3 600 DT</code> (8 mois ⏳)
@@ -504,7 +505,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
      👥 Effectif : <code>19 élèves</code> (17 présents 🟢)
 
      🔴 <b>Absents (1) :</b>
-     • Mohamed Ben Ali • <a href="tel:+21620123456">Appeler Parent (20 123 456)</a>
+     • Mohamed Ben Ali • 📞 +216 20 123 456
 
      🟠 <b>Retards (1) :</b>
      • Youssef Gharbi • <code>+15 min</code> (Arrivé à 08h15)
@@ -548,9 +549,9 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
      💰 <b>Total à recouvrer :</b> <code>2 450 DT</code> (7 familles)
      Progression : <code>[██████░░░░] 62%</code> du mois recouvré
 
-     🔴 <b>Retards Critiques (2+ mois) :</b>
-     • <b>Ahmed Marzouki</b> (<code>3B</code>) • Reste : <code>900 DT</code>
-       └ Parent : <a href="tel:+21698222333">98 222 333</a> • <a href="https://wa.me/21698222333">Relancer WhatsApp</a>
+      🔴 <b>Retards Critiques (2+ mois) :</b>
+      • <b>Ahmed Marzouki</b> (<code>3B</code>) • Reste : <code>900 DT</code>
+        └ Parent : 📞 +216 98 222 333
 
      🟡 <b>Reliquats Partiels (Promesses) :</b>
      • <b>Sarra Riahi</b> (<code>2A</code>) • Reste : <code>150 DT</code> • 📅 Échéance : <code>20/09</code>
@@ -768,7 +769,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         ],
         generationConfig: {
           temperature: 0.15,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096,
         },
       });
 
@@ -904,7 +905,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 - Zéro texte superflu : pas de bavardage, aucun UUID/ID technique affiché.
 - Format ultra-synthétique et scannable avec <b>gras</b>, <i>italique</i>, et <code>...</code> pour les montants, classes et dates.
 - Termine UNIQUEMENT si nécessaire par 1 courte phrase percutante d'action dans <blockquote>💡 <b>Hnia :</b> [conseil direct en français simple ou easy English]</blockquote>.
-- Pour chaque parent affiché, écris son téléphone sous forme native : 📞 +216 [numéro] • [WhatsApp 💬](https://wa.me/216[numéro]) (SANS balise lien web sur le téléphone pour que Telegram ouvre directement et immédiatement l'application Téléphone sur smartphone).
+- Pour chaque parent affiché, écris son téléphone sous forme native : 📞 +216 [numéro] (SANS AUCUN LIEN WHATSAPP, les directeurs n'utilisent pas WhatsApp. Laisse le numéro en texte brut avec préfixe +216 pour que Telegram ouvre directement le composeur d'appel).
 - Réponds dans sa langue (${tgAccount.language || "fr"}).`,
           },
         ]);

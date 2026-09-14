@@ -3,6 +3,7 @@ import { getParentsTool } from "@/lib/telegram/tools/academicTools";
 import { resolveStudentByName, resolveParentByName } from "@/lib/telegram/tools/entityResolvers";
 import { isCorrectionMessage } from "@/lib/telegram/feedback";
 import { buildNameSearchConditions } from "@/lib/telegram/tools/nameSearch";
+import { formatTelegramMessage } from "@/lib/telegram/formatter";
 
 export interface EvalResult {
   name: string;
@@ -100,6 +101,32 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     const hasNameCond = conds.some((c: any) => c.name?.contains?.includes("moune"));
     if (!hasNameCond) {
       throw new Error("Échec : Le nom 'moune' n'a pas été extrait des conditions.");
+    }
+  });
+
+  // ── TEST 2b: Suppression stricte des liens WhatsApp & balises HTML tronquées ─
+  await runTestCase("Sanitisation des liens WhatsApp & balises HTML tronquées", async () => {
+    const rawCutoff = `Paiements partiels (Reste dû) :\n• dzdzdz dzdzdzdz (1A) • Reste : 344 DT (Versé : 100 DT)\n  └ Parent : moune saoud • 📞 +216 6458558 • <a href="https://wa.me/2166458`;
+    const formattedCutoff = formatTelegramMessage(rawCutoff);
+
+    if (
+      formattedCutoff.includes("wa.me") ||
+      formattedCutoff.includes("<a href=\"https://wa.me") ||
+      formattedCutoff.includes("&lt;a href=")
+    ) {
+      throw new Error(`Échec : La balise WhatsApp tronquée n'a pas été supprimée : ${formattedCutoff}`);
+    }
+
+    const rawMarkdown = `Parent : Ali • 📞 +216 98 123 456 • [WhatsApp 💬](https://wa.me/21698123456)`;
+    const formattedMd = formatTelegramMessage(rawMarkdown);
+    if (formattedMd.includes("wa.me") || formattedMd.includes("WhatsApp")) {
+      throw new Error(`Échec : Le lien Markdown WhatsApp n'a pas été supprimé : ${formattedMd}`);
+    }
+
+    const rawTrailingTag = `Bilan des cours : <b>Mathématiques</b> <a href="`;
+    const formattedTrailing = formatTelegramMessage(rawTrailingTag);
+    if (formattedTrailing.includes("<a href=") || formattedTrailing.includes("&lt;a")) {
+      throw new Error(`Échec : La balise HTML non fermée en fin de chaîne n'a pas été retirée : ${formattedTrailing}`);
     }
   });
 

@@ -967,7 +967,7 @@ export async function updateParentPhoneTool(
     message: `📱 <b>Numéro de Téléphone Mis à Jour</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>Parent :</b> <b>${targetParent.name} ${targetParent.surname}</b>
-📞 <b>Nouveau Téléphone :</b> <a href="tel:+216${cleanPhone}">+216 ${cleanPhone}</a> • <a href="https://wa.me/216${cleanPhone}">WhatsApp 💬</a>
+📞 <b>Nouveau Téléphone :</b> +216 ${cleanPhone}
 
 <blockquote>💡 <b>Hnia :</b> Le contact a été synchronisé sur l'ensemble de la plateforme SnapSchool.</blockquote>`,
     summary: `Mise à jour tél parent ${targetParent.name} (${cleanPhone})`,
