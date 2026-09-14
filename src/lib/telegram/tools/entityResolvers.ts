@@ -137,29 +137,96 @@ export async function resolveTeacherByName(schoolId: string, rawQuery?: string |
 }
 
 // ── STUDENT RESOLVER ─────────────────────────────────────────────────────────
-export async function resolveStudentByName(schoolId: string, rawQuery?: string | null) {
+export async function resolveStudentByName(
+  schoolId: string,
+  rawQuery?: string | null,
+  classHint?: string | null,
+  parentHint?: string | null
+) {
   if (!rawQuery || !rawQuery.trim()) return null;
-  const clean = cleanHonorifics(rawQuery).trim();
-  if (!clean) return null;
+  const raw = rawQuery.trim();
 
   // 1. Direct ID lookup
   const byId = await prisma.student.findFirst({
-    where: { schoolId, id: clean },
+    where: { schoolId, id: raw },
     include: { class: true, parent: true, level: true },
   });
   if (byId) return byId;
 
-  // 2. Prisma name search conditions
-  const nameConds = buildNameSearchConditions(clean);
-  if (nameConds.length > 0) {
-    const direct = await prisma.student.findFirst({
-      where: { schoolId, OR: nameConds },
-      include: { class: true, parent: true, level: true },
-    });
-    if (direct) return direct;
+  // 2. Extract embedded class hint or parent hint
+  let queryText = raw;
+  let targetClass = classHint?.trim();
+  let targetParent = parentHint?.trim();
+
+  // Class clue in query: e.g. "Bringa bring 3A", "Bringa bring (3A)", "Bringa bring de 3A"
+  const classMatch = queryText.match(/\b(?:en\s+|classe\s+|de\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
+  if (classMatch && !targetClass) {
+    targetClass = classMatch[1];
+    queryText = queryText.replace(classMatch[0], " ").trim();
   }
 
-  // 3. In-memory candidate search
+  // Parent clue in query: e.g. "(Parent moune saoud)", "wled moune saoud", "fils de moune saoud"
+  const parentMatch = queryText.match(/(?:\(?(?:parent|tuteur|père|mère|wled|weldet|bent|fils de|fille de)[:\s]+([^)]+)\)?)/i);
+  if (parentMatch && !targetParent) {
+    targetParent = parentMatch[1].trim();
+    queryText = queryText.replace(parentMatch[0], " ").trim();
+  }
+
+  const clean = cleanHonorifics(queryText.replace(/[()]/g, " ")).trim();
+  if (!clean) return null;
+
+  // 3. Prisma name search conditions
+  const nameConds = buildNameSearchConditions(clean);
+  if (nameConds.length > 0) {
+    const matchingStudents = await prisma.student.findMany({
+      where: { schoolId, OR: nameConds },
+      include: { class: true, parent: true, level: true },
+      take: 10,
+    });
+
+    if (matchingStudents.length === 1) {
+      return matchingStudents[0];
+    }
+
+    if (matchingStudents.length > 1) {
+      // Multiple candidates found (Homonyms!)
+      // Filter by targetClass if available
+      if (targetClass) {
+        const normClass = targetClass.toLowerCase().replace(/\s+/g, "");
+        const classMatched = matchingStudents.filter((s) =>
+          s.class?.name?.toLowerCase().replace(/\s+/g, "").includes(normClass)
+        );
+        if (classMatched.length === 1) return classMatched[0];
+        if (classMatched.length > 1) {
+          if (targetParent) {
+            const normParent = targetParent.toLowerCase().replace(/\s+/g, "");
+            const parentMatched = classMatched.filter((s) => {
+              const pName = `${s.parent?.name || ""} ${s.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
+              const pPhone = (s.parent?.phone || "").replace(/\s+/g, "");
+              return pName.includes(normParent) || s.parent?.id === targetParent || pPhone.includes(normParent);
+            });
+            if (parentMatched.length >= 1) return parentMatched[0];
+          }
+          return classMatched[0];
+        }
+      }
+
+      // Filter by targetParent if available
+      if (targetParent) {
+        const normParent = targetParent.toLowerCase().replace(/\s+/g, "");
+        const parentMatched = matchingStudents.filter((s) => {
+          const pName = `${s.parent?.name || ""} ${s.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
+          const pPhone = (s.parent?.phone || "").replace(/\s+/g, "");
+          return pName.includes(normParent) || s.parent?.id === targetParent || pPhone.includes(normParent);
+        });
+        if (parentMatched.length >= 1) return parentMatched[0];
+      }
+
+      return matchingStudents[0];
+    }
+  }
+
+  // 4. In-memory candidate search
   const allStudents = await prisma.student.findMany({
     where: { schoolId },
     select: { id: true, name: true, surname: true, phone: true, classId: true },
@@ -212,35 +279,58 @@ export async function resolveStaffByName(schoolId: string, rawQuery?: string | n
 // ── PARENT RESOLVER ──────────────────────────────────────────────────────────
 export async function resolveParentByName(schoolId: string, rawQuery?: string | null) {
   if (!rawQuery || !rawQuery.trim()) return null;
-  const clean = cleanHonorifics(rawQuery).trim();
-  if (!clean) return null;
+  const raw = rawQuery.trim();
 
   // 1. Direct ID lookup
   const byId = await prisma.parent.findFirst({
-    where: { schoolId, id: clean },
+    where: { schoolId, id: raw },
+    include: { students: { include: { class: true } } },
   });
   if (byId) return byId;
 
-  // 2. Prisma search
-  const nameConds = buildNameSearchConditions(clean);
-  if (nameConds.length > 0) {
-    const direct = await prisma.parent.findFirst({
-      where: { schoolId, OR: nameConds },
+  // 2. Extract phone if present (e.g. "+216 6458558", "6458558", "12345678")
+  const phoneMatch = raw.match(/(?:\+216\s*)?(\d{6,12})/);
+  const phoneDigits = phoneMatch ? phoneMatch[1] : null;
+  if (phoneDigits) {
+    const byPhone = await prisma.parent.findFirst({
+      where: {
+        schoolId,
+        phone: { contains: phoneDigits },
+      },
+      include: { students: { include: { class: true } } },
     });
-    if (direct) return direct;
+    if (byPhone) return byPhone;
   }
 
-  // 3. In-memory candidate search
+  // 3. Strip parenthesized text & phone numbers to get clean name
+  const textWithoutParens = raw.replace(/\([^)]*\)/g, " ").trim();
+  const cleanName = cleanHonorifics(
+    textWithoutParens.replace(/(?:\+216)?\s*\d{6,12}/g, " ").trim()
+  ).trim();
+
+  if (cleanName) {
+    const nameConds = buildNameSearchConditions(cleanName);
+    if (nameConds.length > 0) {
+      const byName = await prisma.parent.findFirst({
+        where: { schoolId, OR: nameConds },
+        include: { students: { include: { class: true } } },
+      });
+      if (byName) return byName;
+    }
+  }
+
+  // 4. In-memory candidate search
   const allParents = await prisma.parent.findMany({
     where: { schoolId },
     select: { id: true, name: true, surname: true, phone: true },
   });
 
-  const matched = matchPersonCandidates(allParents, clean);
+  const matched = matchPersonCandidates(allParents, cleanName || raw);
   if (!matched) return null;
 
   return prisma.parent.findUnique({
     where: { id: matched.id },
+    include: { students: { include: { class: true } } },
   });
 }
 

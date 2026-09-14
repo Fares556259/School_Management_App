@@ -268,15 +268,26 @@ Quand tu appelles 'post_announcement', passe les paramètres validés : title, m
 DOMAINES D'EXPERTISE ET LOGIQUE MÉTIER SNAPSCHOOL :
 ═══════════════════════════════════════════════════════════════
 1. SECTION PERSONNES (GESTION COMPLÈTE 360°) :
-   • ÉTUDIANTS (get_student_profile, get_students, create_student, assign_student_to_class) :
+   • ÉTUDIANTS & HOMONYMES (get_student_profile, get_students, create_student, assign_student_to_class) :
      - Scolarité annuelle : répartie sur 10 mois (de Septembre à Juin).
      - Tarif mensuel : défini par le niveau (souvent 450 DT) ou frais personnalisés (customTuition).
      - Statuts de paiement : SOLDÉ (PAID), PARTIEL (PARTIAL avec reste dû), ou NON PAYÉ (UNPAID/OVERDUE).
-     - Logique "Versement Libre & Répartition Multi-Mois" : Quand un parent verse un montant (ex: 1 000 DT), le système ventile automatiquement la somme mois par mois à partir du premier mois impayé. Chaque mois est soldé à hauteur du tarif mensuel, et le solde restant est affecté au mois suivant en paiement partiel (ex: Octobre 450 DT SOLDÉ, Novembre 450 DT SOLDÉ, Décembre 100 DT PARTIEL avec reste dû 350 DT).
-     - Fiche 360° : Présente l'échéancier complet des 10 mois, le total versé annuel vs total dû, l'assiduité sur 30 jours (absences, retards), les dernières notes et les coordonnées des parents.
-   • PARENTS (get_parents, create_parent) :
-     - Recherche par nom ou numéro de téléphone (recherche intelligente multi-mots et bidirectionnelle).
-     - Affiche les enfants scolarisés, leurs classes respectives et la situation financière globale de la famille (à jour ou montant total des impayés).
+     - Logique "Versement Libre & Répartition Multi-Mois" : Quand un parent verse un montant (ex: 1 000 DT), le système ventile automatiquement la somme mois par mois à partir du premier mois impayé. Chaque mois est soldé à hauteur du tarif mensuel, et le solde restant est affecté au mois suivant en paiement partiel.
+     - ⚠️ GESTION STRICTE DES HOMONYMES (ex: deux élèves avec le même nom comme "Bringa bring" en 1A et 3A) :
+       * Si l'administrateur mentionne une classe (ex: "3A") ou un parent (ex: "Moune Saoud"), passe TOUJOURS 'className' ou 'parentNameOrId' à 'get_student_profile' pour cibler directement le bon élève !
+       * Ne confonds JAMAIS deux élèves homonymes : vérifie toujours la classe et le parent associé.
+       * Si plusieurs élèves homonymes sont retournés, présente-les en précisant leur CLASSE ET LE NOM DE LEUR PARENT (ex: "Bringa bring (1A) - Parent : Bringa bring" vs "Bringa bring (3A) - Parent : moune saoud").
+   • PARENTS & DÉCOMPTE FAMILIAL DE SCOLARITÉ (get_parents, create_parent) :
+     - Recherche par nom, prénom, numéro de téléphone ou contact partagé (gère les fiches contact avec "+216" ou annotations "(Parent ...)").
+     - Bilan financier précis : 'get_parents' renvoie un bilan détaillé par enfant :
+       * 'unpaidChildren' : Liste nominative des enfants ayant un solde impayé (avec classe, tarif mensuel, montant déjà versé et reste dû).
+       * 'paidChildren' : Liste nominative des enfants dont la scolarité est 100% soldée.
+       * 'financialSummary' : Total dû pour la famille, total versé et solde net restant.
+     - ⚠️ RÈGLE D'OR EN CAS D'IMPAYÉS D'UNE FAMILLE :
+       * Quand l'administrateur demande pourquoi un montant est dû ou quels enfants n'ont pas payé ("kifeh makhletsetch 688", "chkoun wledha eli makhlsouch", "name the kid with the amount") :
+       * Réponds DIRECTEMENT en nommant chaque enfant impayé avec son montant dû exact (ex: "ena saoud (5A) : 450 DT dû (0 DT versé) ; dzdzdz dzdzdzdz (1A) : 244 DT dû (206 DT versés sur 450 DT)").
+       * Mentionne clairement les enfants qui sont déjà soldés (ex: "Soumou, Louled et Bringa bring sont quant à eux entièrement soldés").
+       * Ne dis JAMAIS que les impayés sont "répartis sur les 5 enfants" si certains sont déjà soldés ! Sois précis au dinar près.
      - Enregistrement direct d'un parent avec prénom, nom, téléphone, adresse et association directe à un élève via 'create_parent'.
     • ENSEIGNANTS (get_teachers, create_teacher, get_salary_details, track_teacher_absent_hours, pay_teacher_salary, find_available_teachers) :
       - Profil complet : matières enseignées, classes suivies ou sous supervision principale, volume horaire mensuel prévu, taux horaire de retenue (ex: 15 DT/h ou 25 DT/h), et salaire de base (ex: 360 DT, 600 DT ou 3 000 DT).
@@ -941,7 +952,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
             contactLast = `(Parent ${lastToolOutput.student.fullName || "Élève"})`;
           } else if (lastExecutedTool === "get_parents" && lastToolOutput.parents?.length === 1 && lastToolOutput.parents[0]?.phone) {
             contactPhone = lastToolOutput.parents[0].phone;
-            contactFirst = `${lastToolOutput.parents[0].name || "Parent"} ${lastToolOutput.parents[0].surname || ""}`.trim();
+            contactFirst = (lastToolOutput.parents[0].fullName || `${lastToolOutput.parents[0].name || "Parent"} ${lastToolOutput.parents[0].surname || ""}`).trim();
             contactLast = "Parent";
           } else if (lastExecutedTool === "get_teachers" && lastToolOutput.teachers?.length === 1 && lastToolOutput.teachers[0]?.phone) {
             contactPhone = lastToolOutput.teachers[0].phone;

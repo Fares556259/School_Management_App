@@ -20,7 +20,7 @@ export function cleanHonorifics(query: string): string {
   if (!query) return "";
   return query
     .replace(
-      /(?:^|\s+)(أم|ام|بو|ابو|أبو|والد|والدة|mère\s+d['’e]\s*|maman\s+d['’e]\s*|père\s+d['’e]\s*|papa\s+d['’e]\s*|parent\s+d['’e]\s*|مدام|مادام|أستاذة|استاذة|الاستاذة|المدام|أستاذ|استاذ|الاستاذ|سي|سيد|سيدة|الشيخ|monsieur|madame|mme|mlle|mr|m\.|mme\.|prof|professeur|docteur|dr|eleve|élève|tuteur|parent)(?:\s+|$)/gi,
+      /(?:^|[\s\(\[\{,\.:;]+)(أم|ام|بو|ابو|أبو|والد|والدة|mère\s+d['’e]\s*|maman\s+d['’e]\s*|père\s+d['’e]\s*|papa\s+d['’e]\s*|parent\s+d['’e]\s*|مدام|مادام|أستاذة|استاذة|الاستاذة|المدام|أستاذ|استاذ|الاستاذ|سي|سيد|سيدة|الشيخ|monsieur|madame|mme|mlle|mr|m\.|mme\.|prof|professeur|docteur|dr|eleve|élève|tuteur|parent)(?:[\s\)\]\},;:]+|$)/gi,
       " "
     )
     .replace(/\s+/g, " ")
@@ -136,17 +136,40 @@ export function transliterateArabicQuery(query: string): string[] {
 }
 
 export function buildNameSearchConditions(query: string) {
-  const clean = cleanHonorifics(query);
-  const q = clean.trim() || query.trim();
-  if (!q) return [];
+  if (!query) return [];
+
+  const orConditions: any[] = [];
+
+  // Extract phone if embedded (e.g. "+216 6458558" or "6458558")
+  const phoneMatch = query.match(/(?:\+216\s*)?(\d{6,12})/);
+  if (phoneMatch) {
+    orConditions.push({ phone: { contains: phoneMatch[1] } });
+  }
+
+  // Extract parenthesized note (e.g. "(Parent soumou saoud)" or "(3A)")
+  const parenMatch = query.match(/\(([^)]+)\)/);
+  if (parenMatch) {
+    const insideParen = cleanHonorifics(parenMatch[1]).trim();
+    if (insideParen && insideParen.length >= 2) {
+      orConditions.push({ name: { contains: insideParen, mode: "insensitive" } });
+      orConditions.push({ surname: { contains: insideParen, mode: "insensitive" } });
+    }
+  }
+
+  // Strip parentheses and phone numbers to get clean name string
+  const textNoParens = query.replace(/\([^)]*\)/g, " ");
+  const textNoPhone = textNoParens.replace(/(?:\+216)?\s*\d{6,12}/g, " ");
+  const clean = cleanHonorifics(textNoPhone);
+  const q = clean.trim() || cleanHonorifics(query).trim() || query.trim();
+  if (!q) return orConditions;
 
   const cleanPhone = q.replace(/[\s\-\.]/g, "");
   const words = q.split(/\s+/).filter(Boolean);
 
-  const orConditions: any[] = [
+  orConditions.push(
     { name: { contains: q, mode: "insensitive" } },
-    { surname: { contains: q, mode: "insensitive" } },
-  ];
+    { surname: { contains: q, mode: "insensitive" } }
+  );
 
   if (cleanPhone.length >= 3 && /^\+?\d+$/.test(cleanPhone)) {
     orConditions.push({ phone: { contains: cleanPhone } });

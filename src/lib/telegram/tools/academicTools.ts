@@ -4,7 +4,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
-import { buildNameSearchConditions } from "./nameSearch";
+import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
 import { resolveStudentByName } from "./entityResolvers";
 
 /**
@@ -15,10 +15,31 @@ import { resolveStudentByName } from "./entityResolvers";
 export async function getStudentProfileTool(
   args: {
     studentNameOrId: string;
+    className?: string;
+    parentNameOrId?: string;
   },
   context: ToolContext
 ) {
-  const query = args.studentNameOrId.trim();
+  const raw = args.studentNameOrId.trim();
+  let query = raw;
+  let detectedClass = args.className?.trim();
+  let detectedParent = args.parentNameOrId?.trim();
+
+  // Extract class if embedded in studentNameOrId: e.g. "Bringa bring (3A)" or "Bringa bring 3A"
+  const classInQueryMatch = query.match(/\b(?:en\s+|classe\s+|de\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
+  if (classInQueryMatch && !detectedClass) {
+    detectedClass = classInQueryMatch[1];
+    query = query.replace(classInQueryMatch[0], " ").trim();
+  }
+
+  // Extract parent info if embedded: e.g. "(Parent: moune saoud)" or "(Parent moune saoud)"
+  const parentInQueryMatch = query.match(/\(?(?:parent|tuteur|père|mère)[:\s]+([^)]+)\)?/i);
+  if (parentInQueryMatch && !detectedParent) {
+    detectedParent = parentInQueryMatch[1].trim();
+    query = query.replace(parentInQueryMatch[0], " ").trim();
+  }
+
+  query = query.replace(/[()]/g, " ").trim();
 
   let student = await prisma.student.findFirst({
     where: {
@@ -33,7 +54,7 @@ export async function getStudentProfileTool(
   });
 
   if (!student) {
-    const candidates = await prisma.student.findMany({
+    let candidates = await prisma.student.findMany({
       where: {
         schoolId: context.schoolId,
         OR: buildNameSearchConditions(query),
@@ -43,22 +64,59 @@ export async function getStudentProfileTool(
         level: true,
         parent: true,
       },
-      take: 5,
+      take: 10,
     });
 
     if (candidates.length === 0) {
       return { found: false, message: `Aucun élève trouvé avec le nom "${query}".` };
     }
+
+    // Disambiguate if multiple candidates exist
     if (candidates.length > 1) {
-      return {
-        found: false,
-        multiple: true,
-        message: `Plusieurs élèves correspondent à "${query}". Précisez :`,
-        candidates: candidates.map((c) => ({
-          name: `${c.name} ${c.surname}`,
-          class: c.class?.name || "Sans classe",
-        })),
-      };
+      if (detectedClass) {
+        const normClass = detectedClass.toLowerCase().replace(/\s+/g, "");
+        const classFiltered = candidates.filter((c) =>
+          c.class?.name?.toLowerCase().replace(/\s+/g, "").includes(normClass)
+        );
+        if (classFiltered.length === 1) {
+          student = classFiltered[0];
+        } else if (classFiltered.length > 1) {
+          candidates = classFiltered;
+        }
+      }
+
+      if (!student && detectedParent) {
+        const normParent = detectedParent.toLowerCase().replace(/\s+/g, "");
+        const parentFiltered = candidates.filter((c) => {
+          const pName = `${c.parent?.name || ""} ${c.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
+          const pPhone = (c.parent?.phone || "").replace(/\s+/g, "");
+          return pName.includes(normParent) || (c.parent?.id && c.parent.id === detectedParent) || (pPhone && pPhone.includes(normParent));
+        });
+        if (parentFiltered.length === 1) {
+          student = parentFiltered[0];
+        } else if (parentFiltered.length > 1) {
+          candidates = parentFiltered;
+        }
+      }
+    }
+
+    if (!student) {
+      if (candidates.length === 1) {
+        student = candidates[0];
+      } else {
+        return {
+          found: false,
+          multiple: true,
+          message: `Plusieurs élèves correspondent à "${query}". Précisez la classe ou le nom du parent :`,
+          candidates: candidates.map((c) => ({
+            id: c.id,
+            name: `${c.name} ${c.surname}`.trim(),
+            class: c.class?.name || "Sans classe",
+            parentName: c.parent ? `${c.parent.name} ${c.parent.surname}`.trim() : "Non renseigné",
+            parentPhone: c.parent?.phone || null,
+          })),
+        };
+      }
     }
     student = candidates[0];
   }
@@ -237,6 +295,8 @@ export async function getStudentProfileTool(
 export async function getParentsTool(
   args: {
     query?: string;
+    month?: number;
+    year?: number;
   },
   context: ToolContext
 ) {
@@ -246,17 +306,41 @@ export async function getParentsTool(
 
   if (args.query) {
     const q = args.query.trim();
-    const nameConds = buildNameSearchConditions(q);
-    where.OR = [
-      ...nameConds,
-      {
+
+    // 1. Extract phone digits if present
+    const phoneMatch = q.match(/(?:\+216\s*)?(\d{6,12})/);
+    const phoneDigits = phoneMatch ? phoneMatch[1] : null;
+
+    // 2. Strip parenthesized notes (e.g. "(Parent soumou saoud)" or "(3A)")
+    const textWithoutParens = q.replace(/\([^)]*\)/g, " ").trim();
+    const nameOnly = cleanHonorifics(
+      textWithoutParens.replace(/(?:\+216)?\s*\d{6,12}/g, " ").trim()
+    ).trim();
+
+    const orConditions: any[] = [];
+
+    if (nameOnly) {
+      const nameConds = buildNameSearchConditions(nameOnly);
+      orConditions.push(...nameConds);
+      // Also match if any of the parent's children match the name
+      orConditions.push({
         students: {
           some: {
             OR: nameConds,
           },
         },
-      },
-    ];
+      });
+    }
+
+    if (phoneDigits) {
+      orConditions.push({
+        phone: { contains: phoneDigits },
+      });
+    }
+
+    if (orConditions.length > 0) {
+      where.OR = orConditions;
+    }
   }
 
   const parents = await prisma.parent.findMany({
@@ -270,11 +354,11 @@ export async function getParentsTool(
           name: true,
           surname: true,
           customTuition: true,
-          class: { select: { name: true } },
-          level: { select: { tuitionFee: true } },
+          class: { select: { id: true, name: true } },
+          level: { select: { id: true, tuitionFee: true } },
           payments: {
             where: { schoolId: context.schoolId, userType: "STUDENT" },
-            select: { amount: true, status: true, month: true, year: true, deferredAmount: true },
+            select: { id: true, amount: true, status: true, month: true, year: true, deferredAmount: true },
           },
         },
       },
@@ -282,52 +366,116 @@ export async function getParentsTool(
   });
 
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const targetMonth = args.month || now.getMonth() + 1;
+  const targetYear = args.year || now.getFullYear();
 
   return {
     total: parents.length,
+    month: targetMonth,
+    year: targetYear,
+    monthLabel: `${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`,
     parents: parents.map((p) => {
-      let familyUnpaidTotal = 0;
+      let familyTotalMonthlyFees = 0;
+      let familyTotalPaid = 0;
+      let familyTotalRemaining = 0;
+
+      const unpaidChildren: any[] = [];
+      const paidChildren: any[] = [];
 
       const childrenInfo = p.students.map((s) => {
         const fee = s.customTuition || s.level?.tuitionFee || 450;
+        familyTotalMonthlyFees += fee;
+
         const currentMonthPayment = s.payments.find(
-          (pay) => pay.month === currentMonth && pay.year === currentYear
+          (pay) => pay.month === targetMonth && pay.year === targetYear
         );
 
         const currentPaid = currentMonthPayment?.amount || 0;
-        const isCurrentPaid = currentMonthPayment?.status === "PAID" || currentPaid >= fee;
-        const remainingForCurrentMonth = Math.max(0, fee - currentPaid);
+        const isCurrentPaid = currentMonthPayment?.status === "PAID" || (currentPaid >= fee && currentPaid > 0);
 
-        // Sum uncollected across all recorded payments with deferred amounts or missing current month
-        const deferredGap = s.payments.reduce((acc, pay) => acc + (pay.deferredAmount || 0), 0);
-        const childUnpaid = (!isCurrentPaid ? remainingForCurrentMonth : 0) + deferredGap;
-        familyUnpaidTotal += childUnpaid;
+        let remainingForCurrentMonth = 0;
+        if (!isCurrentPaid) {
+          if (currentMonthPayment?.deferredAmount != null) {
+            remainingForCurrentMonth = currentMonthPayment.deferredAmount;
+          } else {
+            remainingForCurrentMonth = Math.max(0, fee - currentPaid);
+          }
+        }
 
-        const tuitionBadge = isCurrentPaid
-          ? "Scolarité à jour ✅"
-          : childUnpaid > 0
-          ? `Impayé : ${childUnpaid} DT ⚠️`
-          : "En attente";
+        // Past uncollected debt from other months (excluding targetMonth)
+        const pastDeferredGap = s.payments
+          .filter(
+            (pay) =>
+              !(pay.month === targetMonth && pay.year === targetYear) &&
+              pay.status !== "PAID"
+          )
+          .reduce((acc, pay) => acc + (pay.deferredAmount || 0), 0);
 
-        return {
-          name: `${s.name} ${s.surname}`,
+        const childTotalUnpaid = remainingForCurrentMonth + pastDeferredGap;
+        familyTotalPaid += currentPaid;
+        familyTotalRemaining += childTotalUnpaid;
+
+        const childStatus = isCurrentPaid
+          ? "SOLDÉ"
+          : currentPaid > 0
+          ? "PARTIEL"
+          : "NON_PAYÉ";
+
+        const childSummary = {
+          id: s.id,
+          name: `${s.name} ${s.surname}`.trim(),
           class: s.class?.name || "Sans classe",
-          tuitionStatus: tuitionBadge,
-          monthlyFee: `${fee} DT`,
+          monthlyFee: fee,
+          paidAmount: currentPaid,
+          remainingDue: childTotalUnpaid,
+          remainingForMonth: remainingForCurrentMonth,
+          pastDebt: pastDeferredGap,
+          status: childStatus,
+          details: isCurrentPaid
+            ? `Soldé ✅ (${currentPaid} DT versés)`
+            : currentPaid > 0
+            ? `Partiel ⚠️ (${currentPaid} DT versés, reste ${remainingForCurrentMonth} DT)`
+            : `Non payé ❌ (0 DT versé sur ${fee} DT dus)`,
         };
+
+        if (childTotalUnpaid > 0) {
+          unpaidChildren.push(childSummary);
+        } else {
+          paidChildren.push(childSummary);
+        }
+
+        return childSummary;
       });
 
+      const hasDebt = familyTotalRemaining > 0;
+      const familyStatus = !hasDebt
+        ? "SOLDÉ ✅"
+        : familyTotalPaid > 0
+        ? "PARTIEL ⚠️"
+        : "NON PAYÉ ❌";
+
       return {
-        fullName: `${p.name} ${p.surname}`,
+        id: p.id,
+        fullName: `${p.name} ${p.surname}`.trim(),
         phone: p.phone,
         address: p.address || "Non renseignée",
         childrenCount: p.students.length,
-        familyTuitionBalance:
-          familyUnpaidTotal > 0
-            ? `⚠️ Impayés en cours : ${familyUnpaidTotal} DT`
-            : "✅ Scolarité familiale à jour",
+        financialSummary: {
+          totalTuitionDue: familyTotalMonthlyFees,
+          totalPaid: familyTotalPaid,
+          totalRemainingDue: familyTotalRemaining,
+          status: familyStatus,
+          explanation: hasDebt
+            ? `Total dû pour ${p.students.length} enfant(s) : ${familyTotalMonthlyFees} DT. Total versé : ${familyTotalPaid} DT. Reste à payer pour la famille : ${familyTotalRemaining} DT.`
+            : `Scolarité familiale 100% à jour (${familyTotalPaid} DT versés sur ${familyTotalMonthlyFees} DT).`,
+        },
+        familyTuitionBalance: hasDebt
+          ? `⚠️ Reste à payer : ${familyTotalRemaining} DT (${familyTotalPaid} DT versés sur ${familyTotalMonthlyFees} DT dus)`
+          : "✅ Scolarité familiale à jour",
+        unpaidChildrenCount: unpaidChildren.length,
+        paidChildrenCount: paidChildren.length,
+        unpaidChildren,
+        paidChildren,
         children: childrenInfo,
       };
     }),

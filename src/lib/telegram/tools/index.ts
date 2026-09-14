@@ -141,16 +141,18 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   get_student_profile: {
     name: "get_student_profile",
-    description: "Consulter la fiche complète 360° d'un élève (coordonnées parents, scolarité, absences, dernières notes).",
+    description: "Consulter la fiche complète 360° d'un élève (coordonnées parents, scolarité, absences, dernières notes). Supporte le filtrage par classe (ex: '3A') ou par nom/téléphone de parent pour désambiguïser immédiatement les élèves homonymes.",
     requiresConfirmation: false,
     declaration: {
       name: "get_student_profile",
-      description: "Obtenir la fiche complète 360° d'un élève avec scolarité, coordonnées parentales, présences et notes.",
+      description: "Obtenir la fiche complète 360° d'un élève avec scolarité, coordonnées parentales, présences et notes. Peut être filtré par classe ou parent pour lever toute ambiguïté sur des homonymes.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["studentNameOrId"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '3A', '1A') pour désambiguïser les homonymes." },
+          parentNameOrId: { type: SchemaType.STRING, description: "Nom ou téléphone du parent pour désambiguïser les homonymes." },
         },
       },
     },
@@ -159,15 +161,17 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   get_parents: {
     name: "get_parents",
-    description: "Rechercher des parents d'élèves par nom ou téléphone et voir leurs enfants inscrits.",
+    description: "Rechercher des parents d'élèves par nom, prénom, téléphone ou nom d'un enfant. Fournit le bilan financier familial complet pour le mois (frais totaux, montant versé, reste à payer) et le détail nominatif précis des enfants impayés (unpaidChildren) et des enfants soldés (paidChildren).",
     requiresConfirmation: false,
     declaration: {
       name: "get_parents",
-      description: "Rechercher des parents d'élèves par nom ou téléphone.",
+      description: "Rechercher des parents d'élèves par nom, prénom, téléphone ou contact, et consulter la situation financière de chaque enfant.",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
-          query: { type: SchemaType.STRING, description: "Nom, prénom ou téléphone du parent." },
+          query: { type: SchemaType.STRING, description: "Nom, prénom, téléphone ou contact du parent (ex: 'Moune Saoud', '6458558')." },
+          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12, optionnel)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel, ex: 2026)." },
         },
       },
     },
@@ -764,7 +768,7 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
   // ── FINANCE SUITE ─────────────────────────────────────────────────────────
   get_payments: {
     name: "get_payments",
-    description: "Consulter la situation complète des paiements et impayés de scolarité pour un mois/année donné. Indique les élèves à jour (payés), les paiements partiels (avec reliquats), ET les élèves totalement non payés (qui n'ont encore rien versé 0 DT). À UTILISER IMPÉRATIVEMENT quand l'administrateur demande qui a payé, qui n'a pas payé ('شكون ما خلصش', 'qui doit de l'argent ce mois', 'situation des impayés').",
+    description: "Consulter la situation complète des paiements et impayés de scolarité pour un mois/année donné. Indique les élèves à jour (payés), les paiements partiels (avec reliquats), ET les élèves totalement non payés (qui n'ont encore rien versé 0 DT). Peut être filtré par classe, par nom d'élève ou par nom/téléphone de parent. À UTILISER IMPÉRATIVEMENT quand l'administrateur demande qui a payé, qui n'a pas payé ('شكون ما خلصش', 'qui doit de l'argent ce mois', 'situation des impayés').",
     requiresConfirmation: false,
     declaration: {
       name: "get_payments",
@@ -777,6 +781,7 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
           status: { type: SchemaType.STRING, description: "'UNPAID' (pour voir tous les élèves avec solde dû : 0 DT et partiels), 'PAID', ou 'PARTIAL'." },
           className: { type: SchemaType.STRING, description: "Filtrer par nom de classe (ex: '7ème B')." },
           studentName: { type: SchemaType.STRING, description: "Filtrer par nom ou prénom d'élève." },
+          parentName: { type: SchemaType.STRING, description: "Filtrer par nom, prénom ou téléphone du parent (ex: 'moune saoud', '6458558')." },
         },
       },
     },

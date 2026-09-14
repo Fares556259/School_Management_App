@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
-import { buildNameSearchConditions } from "./nameSearch";
+import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
 import { MONTHS } from "@/lib/dateUtils";
 
 export interface ToolContext {
@@ -238,6 +238,7 @@ export async function getPaymentsTool(
     status?: "PENDING" | "PAID" | "PARTIAL" | "OVERDUE" | "UNPAID";
     className?: string;
     studentName?: string;
+    parentName?: string;
   },
   context: ToolContext
 ) {
@@ -264,6 +265,32 @@ export async function getPaymentsTool(
   if (args.studentName) {
     const q = args.studentName.trim();
     studentWhere.OR = buildNameSearchConditions(q);
+  }
+
+  if (args.parentName) {
+    const parentQuery = args.parentName.trim();
+    const phoneMatch = parentQuery.match(/(?:\+216\s*)?(\d{6,12})/);
+    const phoneDigits = phoneMatch ? phoneMatch[1] : null;
+    const nameWithoutPhone = cleanHonorifics(
+      parentQuery
+        .replace(/(?:\+216)?\s*\d{6,12}/g, " ")
+        .replace(/\([^)]*\)/g, " ")
+        .trim()
+    ).trim();
+
+    const parentConds: any[] = [];
+    if (nameWithoutPhone) {
+      parentConds.push(...buildNameSearchConditions(nameWithoutPhone));
+    }
+    if (phoneDigits) {
+      parentConds.push({ phone: { contains: phoneDigits } });
+    }
+
+    if (parentConds.length > 0) {
+      studentWhere.parent = {
+        OR: parentConds,
+      };
+    }
   }
 
   // 2. Query all enrolled students with their class, level, parent, and payments for the target month
