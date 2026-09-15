@@ -374,6 +374,7 @@ export async function getParentsTool(
     month: targetMonth,
     year: targetYear,
     monthLabel: `${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`,
+    monthLabelFrench: formatMonthFrench(`${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`),
     parents: parents.map((p) => {
       let familyTotalMonthlyFees = 0;
       let familyTotalPaid = 0;

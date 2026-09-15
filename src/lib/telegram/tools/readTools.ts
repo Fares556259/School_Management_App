@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
-import { MONTHS } from "@/lib/dateUtils";
+import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 
 export interface ToolContext {
   schoolId: string;
@@ -412,6 +412,7 @@ export async function getPaymentsTool(
     month,
     year,
     feePeriod: `${MONTHS[month - 1] || month} ${year}`,
+    feePeriodFrench: formatMonthFrench(`${MONTHS[month - 1] || month} ${year}`),
     totalStudents: students.length,
     overview: {
       totalEnrolledStudents: students.length,
@@ -542,6 +543,7 @@ export async function getFinancialSummaryTool(
 
   return {
     period: `${month}/${year}`,
+    periodFrench: formatMonthFrench(`${MONTHS[month - 1]} ${year}`),
     totalIncome,
     totalExpense,
     netProfit,
