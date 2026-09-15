@@ -198,12 +198,30 @@ export function getQuickActionButtons(
     };
   }
 
-  if (!lastTool) return undefined;
+  if (!lastTool) {
+    if (lower.includes("caisse") && (lower.includes("solde") || lower.includes("recette") || lower.includes("dépense"))) {
+      return {
+        inline_keyboard: [
+          [
+            { text: "📄 Imprimer le Bordereau PDF", callback_data: "pdf:daily_cash:today" },
+          ],
+          [
+            { text: "➕ Enregistrer dépense", callback_data: "action:add_expense" },
+            { text: "💳 Encaisser scolarité", callback_data: "action:record_payment" },
+          ],
+        ],
+      };
+    }
+    return undefined;
+  }
 
   switch (lastTool) {
     case "get_daily_caisse":
       return {
         inline_keyboard: [
+          [
+            { text: "📄 Imprimer le Bordereau PDF", callback_data: "pdf:daily_cash:today" },
+          ],
           [
             { text: "➕ Enregistrer dépense", callback_data: "action:add_expense" },
             { text: "💳 Encaisser scolarité", callback_data: "action:record_payment" },
@@ -215,9 +233,26 @@ export function getQuickActionButtons(
         ],
       };
 
+    case "get_daily_cash_pdf":
+      return {
+        inline_keyboard: [
+          [
+            { text: "➕ Enregistrer dépense", callback_data: "action:add_expense" },
+            { text: "💳 Encaisser scolarité", callback_data: "action:record_payment" },
+          ],
+          [
+            { text: "💵 Caisse du jour", callback_data: "action:view_caisse" },
+            { text: "📊 Bilan mensuel", callback_data: "action:financial_summary" },
+          ],
+        ],
+      };
+
     case "get_morning_briefing":
       return {
         inline_keyboard: [
+          [
+            { text: "📄 Bordereau de Caisse PDF", callback_data: "pdf:daily_cash:today" },
+          ],
           [
             { text: "⏱️ Pointer présence", callback_data: "action:mark_attendance" },
             { text: "🔄 Trouver remplaçant", callback_data: "action:find_substitute" },
@@ -246,6 +281,9 @@ export function getQuickActionButtons(
       return {
         inline_keyboard: [
           [
+            { text: "📄 Bordereau de Caisse PDF", callback_data: "pdf:daily_cash:today" },
+          ],
+          [
             { text: "➕ Ajouter un revenu", callback_data: "action:add_income" },
             { text: "📊 Bilan financier", callback_data: "action:financial_summary" },
           ],
@@ -255,6 +293,9 @@ export function getQuickActionButtons(
     case "get_expenses":
       return {
         inline_keyboard: [
+          [
+            { text: "📄 Bordereau de Caisse PDF", callback_data: "pdf:daily_cash:today" },
+          ],
           [
             { text: "➕ Ajouter une dépense", callback_data: "action:add_expense" },
             { text: "📊 Bilan financier", callback_data: "action:financial_summary" },
@@ -266,6 +307,9 @@ export function getQuickActionButtons(
     case "get_financial_anomalies":
       return {
         inline_keyboard: [
+          [
+            { text: "📄 Bordereau de Caisse PDF", callback_data: "pdf:daily_cash:today" },
+          ],
           [
             { text: "📢 Relancer les impayés", callback_data: "action:send_reminders" },
             { text: "🔍 Détails dépenses", callback_data: "action:view_expenses" },

@@ -1,6 +1,10 @@
 import prisma from "@/lib/prisma";
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
-import { generateTuitionReceiptPdf, generateSalaryPayslipPdf } from "@/lib/pdf/receipts";
+import {
+  generateTuitionReceiptPdf,
+  generateSalaryPayslipPdf,
+  generateDailyCashRegisterPdf,
+} from "@/lib/pdf/receipts";
 import { sendTelegramDocument } from "../telegram";
 import { resolveStudentByName, resolveTeacherByName, resolveStaffByName } from "./entityResolvers";
 import { ToolContext } from "./readTools";
@@ -24,6 +28,9 @@ export async function deliverTuitionReceipt(params: {
   month?: number;
   year?: number;
   amountOverride?: number;
+  paymentMethod?: string;
+  checkNumber?: string;
+  bankName?: string;
 }): Promise<boolean> {
   try {
     const student = await prisma.student.findFirst({
@@ -73,6 +80,9 @@ export async function deliverTuitionReceipt(params: {
       amountPaid,
       tuitionFee,
       remainingDue,
+      paymentMethod: params.paymentMethod || (params.checkNumber ? "Chèque" : "Espèces"),
+      checkNumber: params.checkNumber,
+      bankName: params.bankName,
       adminName: params.adminName,
     });
 
@@ -379,3 +389,225 @@ export async function getSalaryPayslipTool(
     data: { employeeId, employeeType: isTeacher ? "TEACHER" : "STAFF", month: targetMonth, year: targetYear },
   };
 }
+
+/**
+ * Deliver a daily cash register & financial summary PDF to the chat.
+ */
+export async function deliverDailyCashReport(params: {
+  schoolId: string;
+  schoolName: string;
+  adminName?: string;
+  chatId: string | number;
+  date?: string;
+}): Promise<boolean> {
+  try {
+    const targetDate = params.date ? new Date(params.date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const [incomesToday, expensesToday, paymentsToday] = await Promise.all([
+      prisma.income.findMany({
+        where: {
+          schoolId: params.schoolId,
+          date: { gte: startOfDay, lte: endOfDay },
+        },
+        orderBy: { date: "asc" },
+      }),
+      prisma.expense.findMany({
+        where: {
+          schoolId: params.schoolId,
+          date: { gte: startOfDay, lte: endOfDay },
+        },
+        orderBy: { date: "asc" },
+      }),
+      prisma.payment.findMany({
+        where: {
+          schoolId: params.schoolId,
+          paidAt: { gte: startOfDay, lte: endOfDay },
+          userType: "STUDENT",
+        },
+        include: {
+          student: {
+            select: { name: true, surname: true, class: { select: { name: true } } },
+          },
+        },
+        orderBy: { paidAt: "asc" },
+      }),
+    ]);
+
+    // Build inflow items
+    const inflowItems: Array<{
+      time?: string;
+      label: string;
+      categoryOrClass?: string;
+      method?: string;
+      checkDetails?: string;
+      amount: number;
+    }> = [];
+
+    // Track income reference IDs to avoid duplication if payment also generated an Income record
+    const recordedIncomeRefIds = new Set(
+      incomesToday.map((inc) => inc.referenceId).filter(Boolean)
+    );
+
+    for (const inc of incomesToday) {
+      const isCheck = inc.title.toLowerCase().includes("chèque") || inc.title.toLowerCase().includes("cheque");
+      const isTransfer = inc.title.toLowerCase().includes("virement") || inc.category.toLowerCase().includes("transfer");
+      const method = isCheck ? "Chèque" : isTransfer ? "Virement" : "Espèces";
+
+      // Check if check number is mentioned in title (e.g. "Chèque N° 123456")
+      const checkMatch = inc.title.match(/ch[eè]que\s*(?:n[°o]?)?\s*([0-9a-zA-Z_-]+)/i);
+      const checkDetails = checkMatch ? checkMatch[1] : undefined;
+
+      inflowItems.push({
+        time: inc.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        label: inc.title,
+        categoryOrClass: inc.category,
+        method,
+        checkDetails,
+        amount: inc.amount,
+      });
+    }
+
+    // Include any student payments that were not recorded as an Income record
+    for (const pmt of paymentsToday) {
+      if (recordedIncomeRefIds.has(pmt.id.toString())) continue;
+      const studentName = pmt.student ? `${pmt.student.name} ${pmt.student.surname}` : "Élève";
+      const className = pmt.student?.class?.name || "Sans classe";
+      const time = pmt.paidAt ? pmt.paidAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "—";
+
+      inflowItems.push({
+        time,
+        label: `Scolarité : ${studentName}`,
+        categoryOrClass: className,
+        method: "Espèces",
+        amount: pmt.amount,
+      });
+    }
+
+    // Build outflow items
+    const outflowItems = expensesToday.map((exp) => {
+      const isTransfer = exp.title.toLowerCase().includes("virement");
+      const isCheck = exp.title.toLowerCase().includes("chèque") || exp.title.toLowerCase().includes("cheque");
+      const method = isCheck ? "Chèque" : isTransfer ? "Virement" : "Espèces / Caisse";
+
+      return {
+        time: exp.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        label: exp.title,
+        categoryOrClass: exp.category,
+        method,
+        amount: exp.amount,
+      };
+    });
+
+    const totalIncomes = inflowItems.reduce((sum, item) => sum + item.amount, 0);
+    const totalExpenses = outflowItems.reduce((sum, item) => sum + item.amount, 0);
+    const netBalance = totalIncomes - totalExpenses;
+
+    const totalChecks = inflowItems
+      .filter((i) => i.method === "Chèque" || Boolean(i.checkDetails))
+      .reduce((sum, i) => sum + i.amount, 0);
+    const checkCount = inflowItems.filter((i) => i.method === "Chèque" || Boolean(i.checkDetails)).length;
+
+    const totalTransfers = inflowItems
+      .filter((i) => i.method === "Virement")
+      .reduce((sum, i) => sum + i.amount, 0);
+
+    const totalCash = Math.max(0, totalIncomes - totalChecks - totalTransfers);
+
+    const { buffer, filename } = await generateDailyCashRegisterPdf({
+      schoolName: params.schoolName,
+      date: targetDate,
+      adminName: params.adminName,
+      totalIncomes,
+      totalExpenses,
+      netBalance,
+      totalCash,
+      totalChecks,
+      checkCount,
+      totalTransfers,
+      inflowItems,
+      outflowItems,
+    });
+
+    const dateFormatted = targetDate.toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const caption = `📊 <b>Bordereau Officiel de Caisse Journalière</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Date : <code>${dateFormatted}</code>\n🏢 Établissement : <b>${params.schoolName}</b>\n💰 Recettes : <code>+${totalIncomes.toFixed(2)} DT</code>\n💸 Dépenses : <code>-${totalExpenses.toFixed(2)} DT</code>\n⚖️ Solde Net : <b>${netBalance >= 0 ? "+" : ""}${netBalance.toFixed(2)} DT</b>\n🏦 Chèques : <code>${totalChecks.toFixed(2)} DT (${checkCount})</code> | 💵 Espèces : <code>${totalCash.toFixed(2)} DT</code>\n\n<i>Bordereau certifié pour classement physique et archives comptables.</i>`;
+
+    await sendTelegramDocument(params.chatId, buffer, filename, {
+      caption,
+      parse_mode: "HTML",
+    });
+
+    return true;
+  } catch (err) {
+    console.error("[deliverDailyCashReport] Error generating/sending daily cash PDF:", err);
+    return false;
+  }
+}
+
+/**
+ * On-demand Tool: get_daily_cash_pdf
+ * Generates and delivers the official Daily Cash Register PDF for today or a specific date.
+ */
+export async function getDailyCashPdfTool(
+  args: { date?: string },
+  context: ToolContext
+): Promise<DocumentToolResult> {
+  const school = await prisma.school.findUnique({
+    where: { id: context.schoolId },
+    select: { name: true },
+  });
+  const schoolName = school?.name || "SnapSchool";
+
+  if (!context.chatId) {
+    return {
+      success: false,
+      message: "Chat ID non disponible pour l'envoi du document.",
+      summary: "Chat ID manquant",
+    };
+  }
+
+  const targetDate = args.date ? new Date(args.date) : new Date();
+  const dateFormatted = targetDate.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const delivered = await deliverDailyCashReport({
+    schoolId: context.schoolId,
+    schoolName,
+    adminName: context.adminName,
+    chatId: context.chatId,
+    date: args.date,
+  });
+
+  if (!delivered) {
+    return {
+      success: false,
+      message: `⚠️ Impossible de générer le bordereau de caisse pour le <b>${dateFormatted}</b>.`,
+      summary: "Échec bordereau caisse",
+    };
+  }
+
+  return {
+    success: true,
+    message: `📊 <b>Bordereau officiel de caisse transmis</b>
+━━━━━━━━━━━━━━━━━━━━━━
+📅 Date : <code>${dateFormatted}</code>
+🏢 Établissement : <b>${schoolName}</b>
+
+<blockquote>💡 <b>Hnia :</b> Le bordereau de caisse au format A4 a été envoyé ci-dessus en pièce jointe PDF. Vous pouvez l'imprimer directement pour votre classeur de caisse physique.</blockquote>`,
+    summary: `Bordereau PDF (${dateFormatted})`,
+    data: { date: dateFormatted },
+  };
+}
+

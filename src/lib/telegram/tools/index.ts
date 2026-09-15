@@ -115,6 +115,7 @@ import {
 import {
   getPaymentReceiptTool,
   getSalaryPayslipTool,
+  getDailyCashPdfTool,
 } from "./documentTools";
 
 
@@ -1950,6 +1951,23 @@ Confirmer l'enregistrement de cette dépense ?`;
       },
     },
     execute: getSalaryPayslipTool,
+  },
+
+  get_daily_cash_pdf: {
+    name: "get_daily_cash_pdf",
+    description: "Générer et envoyer directement en pièce jointe PDF A4 dans Telegram le bordereau officiel de clôture de caisse journalière (avec total recettes, total dépenses, solde net, ventilation espèces vs chèques au classeur, détail des entrées/sorties et zones d'émargement caissier/direction). À déclencher quand l'admin demande le bordereau de caisse PDF, la situation financière du jour en PDF, la feuille de caisse ou pour imprimer la caisse.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_daily_cash_pdf",
+      description: "Générer et envoyer le bordereau officiel de clôture de caisse en document PDF A4 dans Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          date: { type: SchemaType.STRING, description: "Date cible au format YYYY-MM-DD (optionnel, par défaut: aujourd'hui)." },
+        },
+      },
+    },
+    execute: getDailyCashPdfTool,
   },
 };
 

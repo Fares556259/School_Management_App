@@ -257,6 +257,9 @@ export async function handleConfirmationCallback(
               month: data.targetMonth || args.month,
               year: data.targetYear || args.year,
               amountOverride: data.amount || args.amount,
+              paymentMethod: data.paymentMethod || args.paymentMethod,
+              checkNumber: data.checkNumber || args.checkNumber,
+              bankName: data.bankName || args.bankName,
             });
           }
         } else if (toolCall.toolName === "record_parent_payment") {

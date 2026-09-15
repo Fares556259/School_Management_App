@@ -4,7 +4,11 @@ import { resolveStudentByName, resolveParentByName } from "@/lib/telegram/tools/
 import { isCorrectionMessage } from "@/lib/telegram/feedback";
 import { buildNameSearchConditions } from "@/lib/telegram/tools/nameSearch";
 import { formatTelegramMessage } from "@/lib/telegram/formatter";
-import { generateTuitionReceiptPdf, generateSalaryPayslipPdf } from "@/lib/pdf/receipts";
+import {
+  generateTuitionReceiptPdf,
+  generateSalaryPayslipPdf,
+  generateDailyCashRegisterPdf,
+} from "@/lib/pdf/receipts";
 import { TOOLS, getGeminiFunctionDeclarations } from "@/lib/telegram/tools";
 
 export interface EvalResult {
@@ -188,8 +192,8 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
-  // ── TEST 2g: Génération Reçu de Scolarité PDF (jsPDF) ────────────────────
-  await runTestCase("Génération haute fidélité du Reçu de Scolarité PDF (jsPDF)", async () => {
+  // ── TEST 2g: Génération Reçu de Scolarité Double-Volet A4 (Parent + Souche Chèque) ───
+  await runTestCase("Génération haute fidélité du Reçu Double-Volet A4 (Parent + Souche Chèque)", async () => {
     const receipt = await generateTuitionReceiptPdf({
       schoolName: "École Privée Les Lumières",
       receiptNumber: "REC-202609-00123",
@@ -202,10 +206,13 @@ export async function runAllEvals(): Promise<EvalResult[]> {
       amountPaid: 100,
       tuitionFee: 100,
       remainingDue: 0,
+      paymentMethod: "Chèque",
+      checkNumber: "CHQ-7894561",
+      bankName: "BIAT",
       adminName: "Fares Selmi",
     });
 
-    if (!receipt.buffer || receipt.buffer.length < 3000) {
+    if (!receipt.buffer || receipt.buffer.length < 5000) {
       throw new Error(`Buffer PDF invalide ou trop petit (${receipt.buffer?.length} bytes)`);
     }
     if (!receipt.filename.startsWith("Recu_") || !receipt.filename.endsWith(".pdf")) {
@@ -240,24 +247,87 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
-  // ── TEST 2i: Enregistrement des outils PDF dans TOOLS et Gemini ──────────
-  await runTestCase("Disponibilité des outils de documents (get_payment_receipt & get_salary_payslip)", async () => {
+  // ── TEST 2i: Génération Bordereau Quotidien de Caisse PDF (jsPDF) ───────────
+  await runTestCase("Génération officielle du Bordereau Quotidien de Caisse PDF (A4)", async () => {
+    const dailyRegister = await generateDailyCashRegisterPdf({
+      schoolName: "École Privée Les Lumières",
+      date: new Date(),
+      adminName: "Fares Selmi",
+      totalIncomes: 950,
+      totalExpenses: 230,
+      netBalance: 720,
+      totalCash: 500,
+      totalChecks: 450,
+      checkCount: 1,
+      totalTransfers: 0,
+      inflowItems: [
+        {
+          time: "09:30",
+          label: "Scolarité Wiem Marzouki (Septembre 2026)",
+          categoryOrClass: "1A",
+          method: "Espèces",
+          amount: 500,
+        },
+        {
+          time: "11:15",
+          label: "Scolarité Yassine Ben Ali (Septembre 2026)",
+          categoryOrClass: "2B",
+          method: "Chèque",
+          checkDetails: "CHQ-123456 BIAT",
+          amount: 450,
+        },
+      ],
+      outflowItems: [
+        {
+          time: "14:00",
+          label: "Achat ramettes de papier et marqueurs",
+          categoryOrClass: "Fournitures",
+          method: "Espèces",
+          amount: 130,
+        },
+        {
+          time: "15:30",
+          label: "Réparation serrure laboratoire",
+          categoryOrClass: "Maintenance",
+          method: "Espèces",
+          amount: 100,
+        },
+      ],
+    });
+
+    if (!dailyRegister.buffer || dailyRegister.buffer.length < 5000) {
+      throw new Error(`Buffer PDF bordereau invalide ou trop petit (${dailyRegister.buffer?.length} bytes)`);
+    }
+    if (!dailyRegister.filename.startsWith("Bordereau_Caisse_") || !dailyRegister.filename.endsWith(".pdf")) {
+      throw new Error(`Nom de fichier bordereau inattendu : ${dailyRegister.filename}`);
+    }
+  });
+
+  // ── TEST 2j: Enregistrement des outils PDF dans TOOLS et Gemini ──────────
+  await runTestCase("Disponibilité des outils de documents (reçu, fiche de paie & bordereau caisse)", async () => {
     if (!TOOLS.get_payment_receipt) {
       throw new Error("L'outil 'get_payment_receipt' n'est pas enregistré dans TOOLS !");
     }
     if (!TOOLS.get_salary_payslip) {
       throw new Error("L'outil 'get_salary_payslip' n'est pas enregistré dans TOOLS !");
     }
+    if (!TOOLS.get_daily_cash_pdf) {
+      throw new Error("L'outil 'get_daily_cash_pdf' n'est pas enregistré dans TOOLS !");
+    }
 
     const decls = getGeminiFunctionDeclarations();
     const hasReceiptDecl = decls.some((d) => d.name === "get_payment_receipt");
     const hasPayslipDecl = decls.some((d) => d.name === "get_salary_payslip");
+    const hasCashPdfDecl = decls.some((d) => d.name === "get_daily_cash_pdf");
 
     if (!hasReceiptDecl) {
       throw new Error("La déclaration de fonction Gemini pour 'get_payment_receipt' est manquante !");
     }
     if (!hasPayslipDecl) {
       throw new Error("La déclaration de fonction Gemini pour 'get_salary_payslip' est manquante !");
+    }
+    if (!hasCashPdfDecl) {
+      throw new Error("La déclaration de fonction Gemini pour 'get_daily_cash_pdf' est manquante !");
     }
   });
 

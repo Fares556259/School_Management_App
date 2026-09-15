@@ -22,6 +22,7 @@ import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegr
 import { generateCallToken } from "@/lib/call/token";
 import { dispatchPendingReminders } from "@/lib/telegram/tools/reminderTools";
 import { flagConversationForLearning, markConversationPositive } from "@/lib/telegram/feedback";
+import { deliverDailyCashReport } from "@/lib/telegram/tools/documentTools";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -187,6 +188,32 @@ export async function POST(req: NextRequest) {
             chatId,
             telegramId: tgId,
             tgAccount,
+          });
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // Handle PDF daily cash register download button
+      if (data.startsWith("pdf:daily_cash:")) {
+        const rawDate = data.replace("pdf:daily_cash:", "").trim();
+        const targetDateStr = !rawDate || rawDate === "today" ? undefined : rawDate;
+        const tgId = update.callback_query.from.id.toString();
+        const chatId = update.callback_query.message?.chat?.id;
+
+        await answerTelegramCallbackQuery(update.callback_query.id, "Génération du bordereau PDF en cours...");
+
+        const tgAccount = await getLinkedAccount(tgId);
+        if (tgAccount && chatId) {
+          const adminName =
+            [tgAccount.admin.name, tgAccount.admin.surname].filter(Boolean).join(" ") ||
+            tgAccount.admin.username;
+
+          await deliverDailyCashReport({
+            schoolId: tgAccount.schoolId,
+            schoolName: tgAccount.School.name,
+            adminName,
+            chatId,
+            date: targetDateStr || undefined,
           });
         }
         return NextResponse.json({ ok: true });
