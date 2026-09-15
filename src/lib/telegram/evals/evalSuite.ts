@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { getParentsTool } from "@/lib/telegram/tools/academicTools";
+import { getParentsTool, getStudentProfileTool } from "@/lib/telegram/tools/academicTools";
 import { resolveStudentByName, resolveParentByName } from "@/lib/telegram/tools/entityResolvers";
 import { isCorrectionMessage } from "@/lib/telegram/feedback";
 import { buildNameSearchConditions } from "@/lib/telegram/tools/nameSearch";
@@ -335,6 +335,45 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
+  // ── TEST 2k: Sanitisation & extraction des requêtes de clarification d'homonymes ─
+  await runTestCase("Sanitisation & extraction des requêtes de clarification d'homonymes", async () => {
+    const { cleanHonorifics } = await import("@/lib/telegram/tools/nameSearch");
+
+    const cases = [
+      {
+        input: "non fares selmi 1A",
+        expectedName: "fares selmi",
+        classPattern: /(?:[•\-\–\|]\s*)?\b(?:en\s+|dans\s+la\s+classe\s+|classe\s+|de\s+|qui\s+étudie\s+en\s+|qui\s+etudie\s+en\s+|étudie\s+en\s+|etudie\s+en\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i,
+        expectedClass: "1A",
+      },
+      {
+        input: "l eleve fares selmi qui etudie en 1A",
+        expectedName: "fares selmi",
+        classPattern: /(?:[•\-\–\|]\s*)?\b(?:en\s+|dans\s+la\s+classe\s+|classe\s+|de\s+|qui\s+étudie\s+en\s+|qui\s+etudie\s+en\s+|étudie\s+en\s+|etudie\s+en\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i,
+        expectedClass: "1A",
+      },
+      {
+        input: "bravo Fares Selmi • Classe 1A",
+        expectedName: "Fares Selmi",
+        classPattern: /(?:[•\-\–\|]\s*)?\b(?:en\s+|dans\s+la\s+classe\s+|classe\s+|de\s+|qui\s+étudie\s+en\s+|qui\s+etudie\s+en\s+|étudie\s+en\s+|etudie\s+en\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i,
+        expectedClass: "1A",
+      },
+    ];
+
+    for (const c of cases) {
+      let text = c.input.replace(/^(?:non|oui|bravo|merci)\b[\s,:\.\-•|]*/gi, "").trim();
+      const match = text.match(c.classPattern);
+      if (!match || match[1].toUpperCase() !== c.expectedClass) {
+        throw new Error(`Échec extraction classe pour "${c.input}" : attendu ${c.expectedClass}, obtenu ${match?.[1]}`);
+      }
+      text = text.replace(match[0], " ").trim();
+      const cleaned = cleanHonorifics(text);
+      if (cleaned.toLowerCase() !== c.expectedName.toLowerCase()) {
+        throw new Error(`Échec nettoyage nom pour "${c.input}" : attendu "${c.expectedName}", obtenu "${cleaned}"`);
+      }
+    }
+  });
+
   // ── TEST 3, 4, 5: Tests nécessitant une connexion à la base ──────────────
   if (!dbAvailable) {
     results.push({
@@ -345,6 +384,12 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     });
     results.push({
       name: "Résolution exacte de Wiem Marzouki (1A) ignorant les artefacts de test [DB]",
+      passed: true,
+      durationMs: 0,
+      details: "Ignoré (Base distante inaccessible en environnement sandbox hors-ligne)",
+    });
+    results.push({
+      name: "Résolution stricte et fiche élève homonymes Fares Selmi (1A vs 1B) [DB]",
       passed: true,
       durationMs: 0,
       details: "Ignoré (Base distante inaccessible en environnement sandbox hors-ligne)",
@@ -420,6 +465,65 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     const s4 = await resolveStudentByName(testSchoolId, "Wiem Marzouki");
     if (!s4 || s4.name !== "Wiem" || s4.surname !== "Marzouki") {
       throw new Error(`Résolution sans classe attendu nom exact 'Wiem Marzouki' mais reçu '${s4?.name} ${s4?.surname}'`);
+    }
+  });
+
+  // ── TEST 3c: Résolution stricte et fiche élève homonymes Fares Selmi (1A vs 1B) ─
+  await runTestCase("Résolution stricte et fiche élève homonymes Fares Selmi (1A vs 1B)", async () => {
+    const targetStudent = await prisma.student.findFirst({
+      where: { name: "fares", surname: "selmi", class: { name: "1A" } },
+    });
+    if (!targetStudent) return;
+    const testContext = {
+      ...context,
+      schoolId: targetStudent.schoolId,
+    };
+
+    // 1. Direct query with className: "1A"
+    const profile1A = await getStudentProfileTool(
+      { studentNameOrId: "fares selmi", className: "1A" },
+      testContext
+    );
+    if (!profile1A.found || !profile1A.student) {
+      throw new Error(`Échec : Profil élève 1A non trouvé pour 'fares selmi 1A' : ${JSON.stringify(profile1A)}`);
+    }
+    if (profile1A.student.class !== "1A") {
+      throw new Error(`Inversion d'homonyme critique : classe attendue 1A mais reçu ${profile1A.student.class}`);
+    }
+    // Verify parent of 1A is NOT Fares Selmi (1B's parent)
+    if (profile1A.student.parent?.name?.toLowerCase().includes("fares")) {
+      throw new Error(`Inversion de parent critique : le profil 1A affiche le tuteur de 1B (${profile1A.student.parent?.name}) !`);
+    }
+
+    // 2. Direct query with className: "1B"
+    const profile1B = await getStudentProfileTool(
+      { studentNameOrId: "fares selmi", className: "1B" },
+      testContext
+    );
+    if (!profile1B.found || !profile1B.student) {
+      throw new Error(`Échec : Profil élève 1B non trouvé pour 'fares selmi 1B'`);
+    }
+    if (profile1B.student.class !== "1B") {
+      throw new Error(`Inversion d'homonyme critique : classe attendue 1B mais reçu ${profile1B.student.class}`);
+    }
+
+    // 3. Conversational clarification phrases
+    const phrases = [
+      "non fares selmi 1A",
+      "l eleve fares selmi qui etudie en 1A",
+      "bravo Fares Selmi • Classe 1A",
+    ];
+    for (const phrase of phrases) {
+      const p = await getStudentProfileTool({ studentNameOrId: phrase }, testContext);
+      if (!p.found || !p.student || p.student.class !== "1A") {
+        throw new Error(`Échec sur phrase conversationnelle "${phrase}" : reçu classe ${p.student?.class || "null"}`);
+      }
+    }
+
+    // 4. Query without class: should detect multiple homonyms and request clarification
+    const ambig = await getStudentProfileTool({ studentNameOrId: "fares selmi" }, testContext);
+    if (ambig.found || !ambig.multiple || !ambig.candidates || ambig.candidates.length < 2) {
+      throw new Error(`Échec détection homonymes sans classe : attendu multiple: true avec au moins 2 candidats`);
     }
   });
 

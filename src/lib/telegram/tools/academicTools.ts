@@ -25,21 +25,29 @@ export async function getStudentProfileTool(
   let detectedClass = args.className?.trim();
   let detectedParent = args.parentNameOrId?.trim();
 
-  // Extract class if embedded in studentNameOrId: e.g. "Bringa bring (3A)" or "Bringa bring 3A"
-  const classInQueryMatch = query.match(/\b(?:en\s+|classe\s+|de\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
+  // Clean conversational affirmatives/negations and lead-in prefixes
+  query = query.replace(/^(?:non|oui|bravo|merci|svp|stp|je parle de|l'élève|l'eleve)\b[\s,:\.\-•|]*/gi, "").trim();
+
+  // Clean class argument if passed with prefix like "classe 1A", "en 1A"
+  if (detectedClass) {
+    detectedClass = detectedClass.replace(/^(?:en|dans\s+la|classe|de)\s+/i, "").trim();
+  }
+
+  // Extract class if embedded in studentNameOrId: e.g. "Bringa bring (3A)" or "Bringa bring 3A", "qui étudie en 1A", "• Classe 1A"
+  const classInQueryMatch = query.match(/(?:[•\-\–\|]\s*)?\b(?:en\s+|dans\s+la\s+classe\s+|classe\s+|de\s+|qui\s+étudie\s+en\s+|qui\s+etudie\s+en\s+|étudie\s+en\s+|etudie\s+en\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
   if (classInQueryMatch && !detectedClass) {
     detectedClass = classInQueryMatch[1];
     query = query.replace(classInQueryMatch[0], " ").trim();
   }
 
   // Extract parent info if embedded: e.g. "(Parent: moune saoud)" or "(Parent moune saoud)"
-  const parentInQueryMatch = query.match(/\(?(?:parent|tuteur|père|mère)[:\s]+([^)]+)\)?/i);
+  const parentInQueryMatch = query.match(/\(?(?:parent|tuteur|père|mère|wled|weldet|bent|fils de|fille de)[:\s]+([^)]+)\)?/i);
   if (parentInQueryMatch && !detectedParent) {
     detectedParent = parentInQueryMatch[1].trim();
     query = query.replace(parentInQueryMatch[0], " ").trim();
   }
 
-  query = query.replace(/[()]/g, " ").trim();
+  query = cleanHonorifics(query).trim();
 
   let student = await prisma.student.findFirst({
     where: {
@@ -54,71 +62,94 @@ export async function getStudentProfileTool(
   });
 
   if (!student) {
-    let candidates = await prisma.student.findMany({
-      where: {
-        schoolId: context.schoolId,
-        OR: buildNameSearchConditions(query),
-      },
-      include: {
-        class: true,
-        level: true,
-        parent: true,
-      },
-      take: 10,
-    });
-
-    if (candidates.length === 0) {
-      return { found: false, message: `Aucun élève trouvé avec le nom "${query}".` };
-    }
-
-    // Disambiguate if multiple candidates exist
-    if (candidates.length > 1) {
-      if (detectedClass) {
-        const normClass = detectedClass.toLowerCase().replace(/\s+/g, "");
-        const classFiltered = candidates.filter((c) =>
-          c.class?.name?.toLowerCase().replace(/\s+/g, "").includes(normClass)
-        );
-        if (classFiltered.length === 1) {
-          student = classFiltered[0];
-        } else if (classFiltered.length > 1) {
-          candidates = classFiltered;
-        }
-      }
-
-      if (!student && detectedParent) {
-        const normParent = detectedParent.toLowerCase().replace(/\s+/g, "");
-        const parentFiltered = candidates.filter((c) => {
-          const pName = `${c.parent?.name || ""} ${c.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
-          const pPhone = (c.parent?.phone || "").replace(/\s+/g, "");
-          return pName.includes(normParent) || (c.parent?.id && c.parent.id === detectedParent) || (pPhone && pPhone.includes(normParent));
-        });
-        if (parentFiltered.length === 1) {
-          student = parentFiltered[0];
-        } else if (parentFiltered.length > 1) {
-          candidates = parentFiltered;
+    // If target class or parent was specified, first try resolveStudentByName with scoring
+    if (detectedClass || detectedParent) {
+      const resolved = await resolveStudentByName(context.schoolId, raw, detectedClass, detectedParent);
+      if (resolved) {
+        if (detectedClass) {
+          const normD = detectedClass.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const normC = (resolved.class?.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (normC === normD || normC.includes(normD) || normD.includes(normC)) {
+            student = resolved;
+          }
+        } else {
+          student = resolved;
         }
       }
     }
 
     if (!student) {
-      if (candidates.length === 1) {
-        student = candidates[0];
-      } else {
-        return {
-          found: false,
-          multiple: true,
-          message: `Plusieurs élèves correspondent à "${query}". Précisez la classe ou le nom du parent :`,
-          candidates: candidates.map((c) => ({
-            id: c.id,
-            name: `${c.name} ${c.surname}`.trim(),
-            class: c.class?.name || "Sans classe",
-            parentName: c.parent ? `${c.parent.name} ${c.parent.surname}`.trim() : "Non renseigné",
-            parentPhone: c.parent?.phone || null,
-          })),
-        };
+      let candidates = await prisma.student.findMany({
+        where: {
+          schoolId: context.schoolId,
+          OR: buildNameSearchConditions(query),
+        },
+        include: {
+          class: true,
+          level: true,
+          parent: true,
+        },
+        take: 20,
+      });
+
+      if (candidates.length === 0) {
+        return { found: false, message: `Aucun élève trouvé avec le nom "${query}".` };
+      }
+
+      // Disambiguate if multiple candidates exist
+      if (candidates.length > 1) {
+        if (detectedClass) {
+          const normClass = detectedClass.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const classFiltered = candidates.filter((c) => {
+            const candClass = (c.class?.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            return candClass === normClass || candClass.includes(normClass) || normClass.includes(candClass);
+          });
+          if (classFiltered.length === 1) {
+            student = classFiltered[0];
+          } else if (classFiltered.length > 1) {
+            candidates = classFiltered;
+          } else {
+            return {
+              found: false,
+              message: `Aucun élève nommé "${query}" n'a été trouvé dans la classe "${detectedClass}".`,
+            };
+          }
+        }
+
+        if (!student && detectedParent) {
+          const normParent = detectedParent.toLowerCase().replace(/\s+/g, "");
+          const parentFiltered = candidates.filter((c) => {
+            const pName = `${c.parent?.name || ""} ${c.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
+            const pPhone = (c.parent?.phone || "").replace(/[\s\-\.]/g, "");
+            return pName.includes(normParent) || (c.parent?.id && c.parent.id === detectedParent) || (pPhone && pPhone.includes(normParent));
+          });
+          if (parentFiltered.length === 1) {
+            student = parentFiltered[0];
+          } else if (parentFiltered.length > 1) {
+            candidates = parentFiltered;
+          }
+        }
+      }
+
+      if (!student) {
+        if (candidates.length === 1) {
+          student = candidates[0];
+        } else {
+          return {
+            found: false,
+            multiple: true,
+            message: `Plusieurs élèves correspondent à "${query}". Précisez la classe ou le nom du parent :`,
+            candidates: candidates.map((c) => ({
+              id: c.id,
+              name: `${c.name} ${c.surname}`.trim(),
+              class: c.class?.name || "Sans classe",
+              parentName: c.parent ? `${c.parent.name} ${c.parent.surname}`.trim() : "Non renseigné",
+              parentPhone: c.parent?.phone || null,
+            })),
+          };
+        }
       }
     }
-    student = candidates[0];
   }
 
   const thirtyDaysAgo = new Date();

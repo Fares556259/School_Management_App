@@ -19,10 +19,14 @@
 export function cleanHonorifics(query: string): string {
   if (!query) return "";
   return query
+    .replace(/^(?:non|oui|bravo|merci|svp|s'il vous plait|stp|veuillez|je veux|je parle de)\b[\s,:\.\-•|]*/gi, " ")
+    .replace(/(?:^|\s+)(?:l['’]\s*élève|l['’]\s*eleve|l\s+élève|l\s+eleve)(?:\s+|$)/gi, " ")
+    .replace(/(?:^|\s+)(?:qui\s+étudie\s+en|qui\s+etudie\s+en|étudie\s+en|etudie\s+en)(?:\s+|$)/gi, " ")
     .replace(
-      /(?:^|[\s\(\[\{,\.:;]+)(أم|ام|بو|ابو|أبو|والد|والدة|mère\s+d['’e]\s*|maman\s+d['’e]\s*|père\s+d['’e]\s*|papa\s+d['’e]\s*|parent\s+d['’e]\s*|مدام|مادام|أستاذة|استاذة|الاستاذة|المدام|أستاذ|استاذ|الاستاذ|سي|سيد|سيدة|الشيخ|monsieur|madame|mme|mlle|mr|m\.|mme\.|prof|professeur|docteur|dr|eleve|élève|tuteur|parent)(?:[\s\)\]\},;:]+|$)/gi,
+      /(?:^|[\s\(\[\{,\.:;•\-\–\|]+)(أم|ام|بو|ابو|أبو|والد|والدة|mère\s+d['’e]\s*|maman\s+d['’e]\s*|père\s+d['’e]\s*|papa\s+d['’e]\s*|parent\s+d['’e]\s*|مدام|مادام|أستاذة|استاذة|الاستاذة|المدام|أستاذ|استاذ|الاستاذ|سي|سيد|سيدة|الشيخ|monsieur|madame|mme|mlle|mr|m\.|mme\.|prof|professeur|docteur|dr|eleve|élève|tuteur|parent)(?:[\s\)\]\},;:•\-\–\|]+|$)/gi,
       " "
     )
+    .replace(/[()\[\]{}•\-\–—|]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

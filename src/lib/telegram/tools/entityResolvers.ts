@@ -274,14 +274,18 @@ export async function resolveStudentByName(
   let targetClass = classHint?.trim();
   let targetParent = parentHint?.trim();
 
+  if (targetClass) {
+    targetClass = targetClass.replace(/^(?:en|dans\s+la|classe|de)\s+/i, "").trim();
+  }
+
   // Strip common payment action words if full sentence was passed
   queryText = queryText
     .replace(/(?:^|\s+)(?:a\s+pay[eé]|pay[eé]|a\s+vers[eé]|vers[eé]|a\s+donn[eé]|donn[eé]|خلص|خلصت|خالص|دفعت?)(?:\s+|$)/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  // Class clue in query: e.g. "Bringa bring 3A", "Bringa bring (3A)", "Bringa bring de 3A"
-  const classMatch = queryText.match(/\b(?:en\s+|classe\s+|de\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
+  // Class clue in query: e.g. "Bringa bring 3A", "Bringa bring (3A)", "Bringa bring de 3A", "qui étudie en 1A", "• Classe 1A"
+  const classMatch = queryText.match(/(?:[•\-\–\|]\s*)?\b(?:en\s+|dans\s+la\s+classe\s+|classe\s+|de\s+|qui\s+étudie\s+en\s+|qui\s+etudie\s+en\s+|étudie\s+en\s+|etudie\s+en\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
   if (classMatch) {
     if (!targetClass) {
       targetClass = classMatch[1];
@@ -298,7 +302,7 @@ export async function resolveStudentByName(
     queryText = queryText.replace(parentMatch[0], " ").trim();
   }
 
-  const clean = cleanHonorifics(queryText.replace(/[()]/g, " ")).trim();
+  const clean = cleanHonorifics(queryText).trim();
   if (!clean) return null;
 
   // 3. Prisma name search conditions
