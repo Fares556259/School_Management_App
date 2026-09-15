@@ -225,10 +225,10 @@ export async function sendParentMessageTool(
       };
     }
     const studentsInClass = await prisma.student.findMany({
-      where: { schoolId: context.schoolId, classId: cls.id, parentId: { not: "" } },
+      where: { schoolId: context.schoolId, classId: cls.id, parentId: { not: null } },
       select: { parentId: true },
     });
-    parentIds = Array.from(new Set(studentsInClass.map((s) => s.parentId).filter(Boolean)));
+    parentIds = Array.from(new Set(studentsInClass.map((s) => s.parentId).filter((id): id is string => Boolean(id))));
     targetDescription = `les familles de la classe **${cls.name}** (${parentIds.length} parents)`;
   }
   // Case 3: Unpaid students
@@ -240,7 +240,7 @@ export async function sendParentMessageTool(
     const unpaidStudents = await prisma.student.findMany({
       where: {
         schoolId: context.schoolId,
-        parentId: { not: "" },
+        parentId: { not: null },
         payments: {
           none: {
             month: currentMonth,
@@ -252,7 +252,7 @@ export async function sendParentMessageTool(
       },
       select: { parentId: true },
     });
-    parentIds = Array.from(new Set(unpaidStudents.map((s) => s.parentId).filter(Boolean)));
+    parentIds = Array.from(new Set(unpaidStudents.map((s) => s.parentId).filter((id): id is string => Boolean(id))));
     targetDescription = `les familles ayant un solde de scolarité dû (${parentIds.length} parents)`;
   }
   // Case 4: All parents

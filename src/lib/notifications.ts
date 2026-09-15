@@ -134,14 +134,14 @@ export async function createAnnouncementNotifications(noticeId: number) {
         where: { id: notice.targetStudentId },
         select: { parentId: true },
       });
-      if (student) parentIds = [student.parentId];
+      if (student?.parentId) parentIds = [student.parentId];
     } else if (notice.classId) {
       // 2. Class notice
       const students = await prisma.student.findMany({
-        where: { classId: notice.classId },
+        where: { classId: notice.classId, parentId: { not: null } },
         select: { parentId: true },
       });
-      parentIds = Array.from(new Set(students.map((s) => s.parentId)));
+      parentIds = Array.from(new Set(students.map((s) => s.parentId).filter((id): id is string => Boolean(id))));
     } else {
       // 3. Global notice
       const parents = await prisma.parent.findMany({
@@ -222,7 +222,7 @@ export async function processPaymentReminders(
     let remindersSent = 0;
 
     for (const student of students) {
-      if (!student.parent) continue;
+      if (!student.parent || !student.parentId) continue;
 
       const isPaid = student.payments.some((p) => p.status === "PAID");
       
@@ -382,8 +382,8 @@ export async function createAttendanceNotification(studentId: string, status: st
       }
     }
     
-    // We removed aggressive deduplication here because the API route now ensures
-    // notifications are only fired when the status ACTUALLY changes for a specific lesson.
+    // If student has no parent assigned, skip sending notification
+    if (!student.parentId) return;
 
     await prisma.notification.create({
       data: {
@@ -471,7 +471,7 @@ export async function createAttendanceNotificationsBatch(
 
     for (const r of nonPresent) {
       const student = studentMap.get(r.studentId);
-      if (!student) continue;
+      if (!student || !student.parentId) continue;
 
       const statusLabel = r.status === "ABSENT" ? "غائب" : "متأخر";
       notificationsData.push({
@@ -524,18 +524,19 @@ export async function createAssignmentNotification(assignmentId: number) {
     if (!assignment) return;
 
     const students = await prisma.student.findMany({
-      where: { classId: assignment.lesson.classId },
+      where: { classId: assignment.lesson.classId, parentId: { not: null } },
       select: { parentId: true, id: true, name: true, schoolId: true },
     });
 
-    const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
+    const validStudents = students.filter((s): s is typeof s & { parentId: string } => Boolean(s.parentId));
+    const parentIds = Array.from(new Set(validStudents.map((s) => s.parentId)));
 
     const rawSubject = assignment.lesson.subject.name || "";
     const cleanSubject = rawSubject.split('|')[0].trim();
 
     // Create database notifications
     await prisma.notification.createMany({
-      data: students.map((s) => ({
+      data: validStudents.map((s) => ({
         schoolId: s.schoolId,
         parentId: s.parentId,
         studentId: s.id,
@@ -553,7 +554,7 @@ export async function createAssignmentNotification(assignmentId: number) {
       { type: "HOMEWORK", homeworkId: assignment.id }
     );
 
-    console.log(`[NOTIFICATIONS] Created ${students.length} assignment notifications for assignment ${assignmentId}`);
+    console.log(`[NOTIFICATIONS] Created ${validStudents.length} assignment notifications for assignment ${assignmentId}`);
   } catch (error) {
     console.error("[NOTIFICATIONS] Error creating assignment notification:", error);
   }
@@ -572,13 +573,15 @@ export async function createResourceNotification(resourceId: number) {
     if (!resource) return;
 
     const students = await prisma.student.findMany({
-      where: { classId: resource.lesson.classId },
+      where: { classId: resource.lesson.classId, parentId: { not: null } },
       select: { parentId: true, id: true, name: true, schoolId: true },
     });
 
+    const validStudents = students.filter((s): s is typeof s & { parentId: string } => Boolean(s.parentId));
+
     // Create database notifications
     await prisma.notification.createMany({
-      data: students.map((s) => ({
+      data: validStudents.map((s) => ({
         schoolId: s.schoolId,
         parentId: s.parentId,
         studentId: s.id,
@@ -589,7 +592,7 @@ export async function createResourceNotification(resourceId: number) {
     });
 
     // Send push notifications in batch
-    const parentIds = Array.from(new Set(students.map((s) => s.parentId)));
+    const parentIds = Array.from(new Set(validStudents.map((s) => s.parentId)));
     await sendPushBatch(
       parentIds,
       `📚 ملخص جديد: ${resource.title}`,
@@ -597,7 +600,7 @@ export async function createResourceNotification(resourceId: number) {
       { type: "RESOURCE", resourceId: resource.id }
     );
 
-    console.log(`[NOTIFICATIONS] Created ${students.length} resource notifications for resource ${resourceId}`);
+    console.log(`[NOTIFICATIONS] Created ${validStudents.length} resource notifications for resource ${resourceId}`);
   } catch (error) {
     console.error("[NOTIFICATIONS] Error creating resource notification:", error);
   }
@@ -612,7 +615,7 @@ export async function createDetailedAbsenceAlert(studentId: string, history: { d
       where: { id: studentId },
       select: { name: true, surname: true, parentId: true, schoolId: true }
     });
-    if (!student) return;
+    if (!student || !student.parentId) return;
 
     const count = history.length;
     // Deduplication: Don't send more than one absence alert per 7 days
@@ -675,7 +678,7 @@ export async function createRemarkNotification(studentId: string, subjectName: s
       where: { id: studentId },
       select: { name: true, parentId: true }
     });
-    if (!student) return;
+    if (!student || !student.parentId) return;
 
     const truncated = remarkText.length > 100 ? remarkText.substring(0, 100) + '...' : remarkText;
 
@@ -709,7 +712,7 @@ export async function createRemarkNotification(studentId: string, subjectName: s
 export async function createExamScheduleNotification(classId: number, period: number) {
   try {
     const students = await prisma.student.findMany({
-      where: { classId },
+      where: { classId, parentId: { not: null } },
       select: { parentId: true, id: true, name: true, schoolId: true },
     });
 
@@ -718,7 +721,7 @@ export async function createExamScheduleNotification(classId: number, period: nu
     // We can just notify per parent
     const parentMap = new Map<string, string>(); // parentId -> schoolId
     for (const s of students) {
-      if (!parentMap.has(s.parentId)) {
+      if (s.parentId && !parentMap.has(s.parentId)) {
         parentMap.set(s.parentId, s.schoolId);
       }
     }

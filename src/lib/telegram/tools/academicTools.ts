@@ -5,7 +5,7 @@ import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
-import { resolveStudentByName } from "./entityResolvers";
+import { resolveStudentByName, resolveParentByName } from "./entityResolvers";
 
 /**
  * Tool: get_student_profile
@@ -869,34 +869,187 @@ export async function createClassTool(
  */
 export async function assignStudentToClassTool(
   args: {
-    studentNameOrId: string;
+    studentNameOrId?: string;
+    studentNames?: string[];
     className: string;
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const query = args.studentNameOrId.trim();
-  const className = args.className.trim();
-
-  // Find student
-  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
-  if (!student) {
-    return { success: false, message: `Élève "${args.studentNameOrId}" introuvable.`, summary: `Élève introuvable` };
-  }
-
-  // Find target class
-  const targetClass = await resolveClassByName(context.schoolId, args.className);
+  const className = (args.className || "").trim();
+  const targetClass = await resolveClassByName(context.schoolId, className);
 
   if (!targetClass) {
-    return { success: false, message: `La classe "${args.className}" n'existe pas.`, summary: `Classe introuvable` };
+    return {
+      success: false,
+      message: `La classe "${className}" n'existe pas.`,
+      summary: "Classe introuvable",
+    };
+  }
+
+  // Collect target student names
+  const queries: string[] = [];
+  if (Array.isArray(args.studentNames) && args.studentNames.length > 0) {
+    queries.push(...args.studentNames.map(s => String(s).trim()).filter(Boolean));
+  } else if (args.studentNameOrId) {
+    const parts = args.studentNameOrId.split(/,|\bet\b|\bو\b/i).map(s => s.trim()).filter(Boolean);
+    queries.push(...parts);
+  }
+
+  if (queries.length === 0) {
+    return {
+      success: false,
+      message: "Veuillez spécifier le nom d'au moins un élève.",
+      summary: "Élève non spécifié",
+    };
+  }
+
+  const assigned: string[] = [];
+  const notFound: string[] = [];
+
+  for (const q of queries) {
+    const student = await resolveStudentByName(context.schoolId, q);
+    if (!student) {
+      notFound.push(q);
+      continue;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.student.update({
+        where: { id: student.id },
+        data: {
+          classId: targetClass.id,
+          levelId: targetClass.levelId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: "UPDATE",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Student",
+          entityId: student.id,
+          description: `[Hnia AI Telegram] Affectation de classe pour ${student.name} ${student.surname} : vers ${targetClass.name}`,
+          schoolId: context.schoolId,
+        },
+      });
+    });
+
+    assigned.push(`${student.name} ${student.surname}`);
+  }
+
+  invalidateTenantTags(context.schoolId, "students", "classes", "dashboard");
+
+  let msg = "";
+  if (assigned.length > 0) {
+    msg += `✅ <b>${assigned.length} élève(s) affecté(s) à la classe ${targetClass.name} :</b>\n` +
+      assigned.map(name => `• <b>${name}</b>`).join("\n");
+  }
+  if (notFound.length > 0) {
+    if (msg) msg += "\n\n";
+    msg += `⚠️ <b>Introuvable(s) :</b> ${notFound.map(n => `"${n}"`).join(", ")}`;
+  }
+
+  return {
+    success: assigned.length > 0,
+    message: msg,
+    summary: `Affectation vers ${targetClass.name} (${assigned.length} élèves)`,
+  };
+}
+
+/**
+ * Tool: list_unassigned_students
+ * Lists students who have no assigned class (classId == null) or no parent (parentId == null).
+ */
+export async function listUnassignedStudentsTool(
+  args: {
+    filter?: "no_class" | "no_parent" | "both";
+    limit?: number;
+  },
+  context: ToolContext
+) {
+  const limit = Math.min(args.limit || 50, 100);
+  const filter = args.filter || "no_class";
+
+  const where: any = {
+    schoolId: context.schoolId,
+  };
+
+  if (filter === "no_class") {
+    where.classId = null;
+  } else if (filter === "no_parent") {
+    where.parentId = null;
+  } else if (filter === "both") {
+    where.OR = [{ classId: null }, { parentId: null }];
+  }
+
+  const [totalCount, students] = await Promise.all([
+    prisma.student.count({ where }),
+    prisma.student.findMany({
+      where,
+      take: limit,
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        phone: true,
+        classId: true,
+        parentId: true,
+        class: { select: { name: true } },
+        parent: { select: { name: true, surname: true, phone: true } },
+      },
+    }),
+  ]);
+
+  return {
+    filter,
+    totalCount,
+    countReturned: students.length,
+    students: students.map((s) => ({
+      id: s.id,
+      fullName: `${s.name} ${s.surname}`.trim(),
+      phone: s.phone || null,
+      classe: s.class ? s.class.name : "Non classé ⚠️",
+      parent: s.parent
+        ? `${s.parent.name} ${s.parent.surname} (${s.parent.phone})`
+        : "Sans parent ⚠️",
+    })),
+  };
+}
+
+/**
+ * Tool: link_student_to_parent
+ * Links an existing student to an existing parent (by name or phone).
+ */
+export async function linkStudentToParentTool(
+  args: {
+    studentNameOrId: string;
+    parentPhoneOrName: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
+  if (!student) {
+    return {
+      success: false,
+      message: `Élève "${args.studentNameOrId}" introuvable.`,
+      summary: "Élève introuvable",
+    };
+  }
+
+  const parent = await resolveParentByName(context.schoolId, args.parentPhoneOrName);
+  if (!parent) {
+    return {
+      success: false,
+      message: `Parent "${args.parentPhoneOrName}" introuvable. Veuillez vérifier le nom ou le numéro de téléphone.`,
+      summary: "Parent introuvable",
+    };
   }
 
   await prisma.$transaction(async (tx) => {
     await tx.student.update({
       where: { id: student.id },
-      data: {
-        classId: targetClass.id,
-        levelId: targetClass.levelId,
-      },
+      data: { parentId: parent.id },
     });
 
     await tx.auditLog.create({
@@ -905,18 +1058,18 @@ export async function assignStudentToClassTool(
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Student",
         entityId: student.id,
-        description: `[Hnia AI Telegram] Changement de classe pour ${student.name} ${student.surname} : vers ${targetClass.name}`,
+        description: `[Hnia AI Telegram] Liaison de l'élève ${student.name} ${student.surname} au parent ${parent.name} ${parent.surname}`,
         schoolId: context.schoolId,
       },
     });
   });
 
-  invalidateTenantTags(context.schoolId, "students", "classes", "dashboard");
+  invalidateTenantTags(context.schoolId, "students", "parents", "dashboard");
 
   return {
     success: true,
-    message: `✅ L'élève **${student.name} ${student.surname}** a été affecté à la classe **${targetClass.name}** avec succès.`,
-    summary: `Affectation de ${student.name} à ${targetClass.name}`,
+    message: `✅ L'élève <b>${student.name} ${student.surname}</b> a été associé(e) au parent <b>${parent.name} ${parent.surname}</b> (📞 ${parent.phone}) avec succès.`,
+    summary: `Liaison de ${student.name} à ${parent.name}`,
   };
 }
 

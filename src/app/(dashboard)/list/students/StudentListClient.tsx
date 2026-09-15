@@ -217,7 +217,13 @@ export default function StudentListClient({
               <h3 className="text-[14px] font-medium text-[#181d26] group-hover/name:text-blue-600 group-hover/name:underline transition-colors">
                 {item.name} {item.surname}
               </h3>
-              <p className="text-[12px] text-[#5a5a5a]">{item.class?.name ?? t.students.noClass}</p>
+              {item.class?.name ? (
+                <p className="text-[12px] text-[#5a5a5a]">{item.class.name}</p>
+              ) : (
+                <span className="inline-block px-1.5 py-0.5 mt-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                  {t.students?.noClass || "Non classé"}
+                </span>
+              )}
             </div>
           </Link>
         </td>
@@ -233,7 +239,9 @@ export default function StudentListClient({
               )}
             </div>
           ) : (
-            <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>
+            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+              Sans parent
+            </span>
           )}
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>

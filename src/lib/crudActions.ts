@@ -188,7 +188,7 @@ export const deleteTeacher = async (id: string) => {
 
 // ===================== STUDENT =====================
 export const createStudent = async (data: {
-  username: string;
+  username?: string;
   name: string;
   surname: string;
   phone?: string;
@@ -196,7 +196,7 @@ export const createStudent = async (data: {
   bloodType?: string;
   birthday: string;
   sex: "MALE" | "FEMALE";
-  parentId: string;
+  parentId?: string | null;
   classId?: number | null | string;
   levelId?: number;
     customTuition?: number | null;
@@ -229,6 +229,8 @@ export const createStudent = async (data: {
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
+    const finalParentId = data.parentId && data.parentId !== "null" && data.parentId !== "" ? data.parentId : null;
+
     await prisma.student.create({
       data: {
         schoolId,
@@ -241,7 +243,7 @@ export const createStudent = async (data: {
         bloodType: data.bloodType || "O+",
         birthday: new Date(data.birthday),
         sex: data.sex,
-        parentId: data.parentId,
+        parentId: finalParentId,
         classId: finalClassId,
         levelId: finalLevelId,
         customTuition: data.customTuition || null,
@@ -317,16 +319,10 @@ export const bulkCreateStudents = async (students: any[]) => {
 
     // 4. Validate and construct student records
     const studentsToCreate = students.map((s) => {
-      let parentId = s.parentId;
+      let parentId = s.parentId || null;
       if (!parentId && s.parentPhone) {
         const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
-        parentId = phoneToParentIdMap.get(cleanPhone);
-      }
-
-      if (!parentId) {
-        throw new Error(
-          `Cannot create student "${s.name} ${s.surname}" — no parent found. Provide a parentId or parentPhone.`
-        );
+        parentId = phoneToParentIdMap.get(cleanPhone) || null;
       }
 
       return {
@@ -341,7 +337,7 @@ export const bulkCreateStudents = async (students: any[]) => {
         birthday: new Date(s.birthday || "2015-01-01"),
         sex: (s.sex as UserSex) || UserSex.MALE,
         parentId,
-        classId: s.classId ? Number(s.classId) : 1,
+        classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
         levelId: s.levelId ? Number(s.levelId) : 1,
       };
     });
@@ -1349,8 +1345,12 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         }
       }
 
-      // 2. Create Students
-      for (const child of children) {
+      // 2. Create Students (only if provided with at least a name)
+      const validChildren = (children || []).filter(
+        (c) => c && c.name && String(c.name).trim() !== ""
+      );
+
+      for (const child of validChildren) {
         let finalLevelId: number | undefined;
         let finalClassId = null;
         
@@ -1597,3 +1597,22 @@ export const checkParentPhoneExists = async (phone: string): Promise<{ exists: b
   }
 };
 
+export const linkStudentToParent = async (
+  studentId: string,
+  parentId: string | null
+) => {
+  try {
+    const schoolId = await getSchoolId();
+    await prisma.student.update({
+      where: { id: studentId, schoolId },
+      data: { parentId },
+    });
+
+    invalidateTenantTags(schoolId, "students", "parents", "dashboard");
+    revalidatePath("/list/students");
+    return { success: true };
+  } catch (err: any) {
+    console.error("[linkStudentToParent] Error:", err);
+    return { success: false, error: err?.message || "Failed to link student to parent." };
+  }
+};

@@ -61,7 +61,7 @@ model Student {
   bloodType     String
   sex           UserSex
   createdAt     DateTime       @default(now())
-  parentId      String
+  parentId      String?
   classId       Int?
   birthday      DateTime
   levelId       Int
@@ -76,7 +76,7 @@ model Student {
   results       Result[]
   class         Class?         @relation(fields: [classId], references: [id])
   level         Level          @relation(fields: [levelId], references: [id])
-  parent        Parent         @relation(fields: [parentId], references: [id])
+  parent        Parent?        @relation(fields: [parentId], references: [id])
   School        School         @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])

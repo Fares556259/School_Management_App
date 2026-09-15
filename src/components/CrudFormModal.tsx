@@ -77,7 +77,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
     { name: "address", label: "Address", type: "text", required: true },
     { name: "birthday", label: "Birthday", type: "date", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "parentId", label: "Parent", type: "searchable-select", required: true },
+    { name: "parentId", label: "Parent", type: "searchable-select", required: false },
     { name: "classId", label: "Class", type: "select", required: false, parseAsNumber: true },
     { name: "customTuition", label: "Special Tuition Rate", type: "conditional-number", parseAsNumber: true },
 
@@ -253,10 +253,8 @@ export default function CrudFormModal({
   }, []);
 
 
-  // Unified Enrollment State
-  const [students, setStudents] = useState<any[]>([
-    { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
-  ]);
+  // Unified Enrollment State (Optional children for parent)
+  const [students, setStudents] = useState<any[]>([]);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -270,9 +268,7 @@ export default function CrudFormModal({
       setPhoneExists({ exists: false });
       setCheckingPhone(false);
       if (phoneDebounceRef.current) clearTimeout(phoneDebounceRef.current);
-      setStudents([
-        { id: Date.now(), name: "", surname: "", sex: "MALE", birthday: "", classId: "", levelId: "", username: "" }
-      ]);
+      setStudents([]);
     } else {
       setImgs(parseImgs(data?.img));
     }
@@ -283,9 +279,7 @@ export default function CrudFormModal({
   };
 
   const removeStudent = (id: number) => {
-    if (students.length > 1) {
-      setStudents(students.filter(s => s.id !== id));
-    }
+    setStudents(students.filter(s => s.id !== id));
   };
 
   // Merge dynamic relatedData options into field definitions
@@ -359,18 +353,20 @@ export default function CrudFormModal({
         try {
           if (mode === "create") {
             if (entity === "parent") {
-              const studentList = students.map((s, index) => ({
-                name: formData.get(`student-${index}-name`),
-                surname: formData.get(`student-${index}-surname`),
-                sex: formData.get(`student-${index}-sex`),
-                birthday: formData.get(`student-${index}-birthday`),
-                classId: formData.get(`student-${index}-classId`),
-                bloodType: "O+",
-              }));
+              const studentList = students
+                .map((s, index) => ({
+                  name: formData.get(`student-${index}-name`),
+                  surname: formData.get(`student-${index}-surname`),
+                  sex: formData.get(`student-${index}-sex`) || "MALE",
+                  birthday: formData.get(`student-${index}-birthday`),
+                  classId: formData.get(`student-${index}-classId`),
+                  bloodType: "O+",
+                }))
+                .filter((s) => s.name && String(s.name).trim() !== "");
 
-              const missingInfo = studentList.some(s => !s.name || !s.surname);
+              const missingInfo = studentList.some((s) => !s.surname || !String(s.surname).trim());
               if (missingInfo) {
-                setError("Please fill in all student details.");
+                setError("Veuillez renseigner le nom et le prénom de l'élève.");
                 return reject("Missing student details");
               }
 
@@ -923,85 +919,87 @@ export default function CrudFormModal({
                     <div className="flex flex-col gap-6 mt-4 pt-6 border-t border-[#dddddd]">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-[16px] font-medium text-[#181d26]">{t.parents?.form?.children || "Children"}</h3>
-                          <p className="text-[13px] font-normal text-[#41454d]">{t.parents?.form?.registerChild || "Register at least one student"}</p>
+                          <h3 className="text-[16px] font-medium text-[#181d26]">{t.parents?.form?.children || "Enfants"}</h3>
+                          <p className="text-[13px] font-normal text-[#41454d]">Ajouter un ou plusieurs enfants associés (facultatif)</p>
                         </div>
                         <button
                           type="button"
                           onClick={addStudent}
                           className="text-[14px] font-medium text-[#1b61c9] hover:text-[#1a3866] flex items-center gap-1 transition-colors"
                         >
-                          <span className="text-[18px] leading-none">+</span> {t.parents?.form?.addSibling || "Add Sibling"}
+                          <span className="text-[18px] leading-none">+</span> Ajouter un enfant
                         </button>
                       </div>
 
-                      <div className="flex flex-col gap-6">
-                        {students.map((student, index) => (
-                          <div key={student.id} className="relative p-5 bg-[#f8fafc] rounded-[10px] border border-[#dddddd]">
-                            {students.length > 1 && (
+                      {students.length === 0 ? (
+                        <div className="p-4 rounded-[8px] border border-dashed border-[#dddddd] bg-[#fcfcfc] text-center text-[13px] text-[#71717a]">
+                          Aucun enfant ajouté pour le moment. Vous pouvez enregistrer le parent seul ou cliquer sur <button type="button" onClick={addStudent} className="text-[#1b61c9] font-medium underline inline">Ajouter un enfant</button>.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-6">
+                          {students.map((student, index) => (
+                            <div key={student.id} className="relative p-5 bg-[#f8fafc] rounded-[10px] border border-[#dddddd]">
                               <button
                                 type="button"
                                 onClick={() => removeStudent(student.id)}
                                 className="absolute -top-3 -right-3 w-7 h-7 bg-white border border-[#dddddd] text-rose-500 rounded-[8px] flex items-center justify-center shadow-sm hover:bg-rose-50 transition-colors"
+                                title="Supprimer cet enfant"
                               >
                                 ✕
                               </button>
-                            )}
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                              <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.firstName || "First Name"} *</label>
-                                <input
-                                  name={`student-${index}-name`}
-                                  required
-                                  placeholder={t.parents?.form?.childName || "Child's Name"}
-                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.lastName || "Last Name"} *</label>
-                                <input
-                                  name={`student-${index}-surname`}
-                                  required
-                                  placeholder={t.parents?.form?.childSurname || "Child's Surname"}
-                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.sex || "Sex"} *</label>
-                                <select
-                                  name={`student-${index}-sex`}
-                                  required
-                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
-                                >
-                                  <option value="MALE">{t.parents?.form?.male || "Male"}</option>
-                                  <option value="FEMALE">{t.parents?.form?.female || "Female"}</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.birthday || "Birthday"} *</label>
-                                <input
-                                  type="date"
-                                  name={`student-${index}-birthday`}
-                                  required
-                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.class || "Class"}</label>
-                                <select
-                                  name={`student-${index}-classId`}
-                                  className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
-                                >
-                                  {relatedData?.classId?.map(o => (
-                                    <option key={o.value} value={o.value}>{o.label}</option>
-                                  ))}
-                                </select>
+                              
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.firstName || "Prénom"} *</label>
+                                  <input
+                                    name={`student-${index}-name`}
+                                    placeholder={t.parents?.form?.childName || "Prénom de l'élève"}
+                                    className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.lastName || "Nom"} *</label>
+                                  <input
+                                    name={`student-${index}-surname`}
+                                    placeholder={t.parents?.form?.childSurname || "Nom de l'élève"}
+                                    className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.sex || "Sexe"}</label>
+                                  <select
+                                    name={`student-${index}-sex`}
+                                    className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
+                                  >
+                                    <option value="MALE">{t.parents?.form?.male || "Garçon (Homme)"}</option>
+                                    <option value="FEMALE">{t.parents?.form?.female || "Fille (Femme)"}</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.birthday || "Date de naissance"}</label>
+                                  <input
+                                    type="date"
+                                    name={`student-${index}-birthday`}
+                                    className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.class || "Classe"}</label>
+                                  <select
+                                    name={`student-${index}-classId`}
+                                    className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
+                                  >
+                                    <option value="">Non classé</option>
+                                    {relatedData?.classId?.map(o => (
+                                      <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 

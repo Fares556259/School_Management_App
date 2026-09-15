@@ -34,6 +34,8 @@ import {
   createParentTool,
   createClassTool,
   assignStudentToClassTool,
+  listUnassignedStudentsTool,
+  linkStudentToParentTool,
   updateParentPhoneTool,
   updateStudentTool,
 } from "./academicTools";
@@ -292,24 +294,75 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   assign_student_to_class: {
     name: "assign_student_to_class",
-    description: "Déplacer ou affecter un élève dans une classe spécifique.",
+    description: "Déplacer ou affecter un ou plusieurs élèves dans une classe spécifique.",
     requiresConfirmation: true,
     declaration: {
       name: "assign_student_to_class",
-      description: "Affecter ou déplacer un élève vers une autre classe.",
+      description: "Affecter ou déplacer un ou plusieurs élèves vers une classe de destination.",
       parameters: {
         type: SchemaType.OBJECT,
-        required: ["studentNameOrId", "className"],
+        required: ["className"],
         properties: {
-          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou ID de l'élève." },
-          className: { type: SchemaType.STRING, description: "Nouvelle classe de destination." },
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou ID d'un élève (ou plusieurs séparés par des virgules)." },
+          studentNames: {
+            type: SchemaType.ARRAY,
+            description: "Liste des noms ou IDs des élèves à affecter en masse à la classe.",
+            items: { type: SchemaType.STRING },
+          },
+          className: { type: SchemaType.STRING, description: "Nouvelle classe de destination (ex: 8ème B, 7A, etc.)." },
         },
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ <b>Affectation de Classe</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous affecter <b>${args.studentNameOrId}</b> à la classe <code>${args.className}</code> ?`;
+      const target = Array.isArray(args.studentNames) && args.studentNames.length > 0
+        ? `les <b>${args.studentNames.length}</b> élève(s) (<code>${args.studentNames.join(", ")}</code>)`
+        : `<b>${args.studentNameOrId}</b>`;
+      return `❓ <b>Affectation de Classe</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous affecter ${target} à la classe <code>${args.className}</code> ?`;
     },
     execute: assignStudentToClassTool,
+  },
+
+  list_unassigned_students: {
+    name: "list_unassigned_students",
+    description: "Lister les élèves qui n'ont pas encore de classe assignée (non classés) ou qui n'ont pas de parent lié.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "list_unassigned_students",
+      description: "Lister les élèves non classés (sans classe) ou sans parent.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          filter: {
+            type: SchemaType.STRING,
+            description: "Filtre: 'no_class' (sans classe), 'no_parent' (sans parent), ou 'both' (les deux). Par défaut 'no_class'.",
+          },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum d'élèves à retourner (défaut: 50)." },
+        },
+      },
+    },
+    execute: listUnassignedStudentsTool,
+  },
+
+  link_student_to_parent: {
+    name: "link_student_to_parent",
+    description: "Associer un élève existant à un parent existant (par nom ou numéro de téléphone).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "link_student_to_parent",
+      description: "Associer un élève à un parent existant via son nom ou numéro de téléphone.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId", "parentPhoneOrName"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom ou ID de l'élève à lier." },
+          parentPhoneOrName: { type: SchemaType.STRING, description: "Nom ou numéro de téléphone du parent." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Liaison Élève - Parent</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous associer l'élève <b>${args.studentNameOrId}</b> au parent <code>${args.parentPhoneOrName}</code> ?`;
+    },
+    execute: linkStudentToParentTool,
   },
 
   // ── TEACHERS & STAFF SUITE ────────────────────────────────────────────────
