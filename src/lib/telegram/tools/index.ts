@@ -1561,11 +1561,11 @@ Confirmer l'enregistrement de cette dépense ?`;
   // ── COURSE RESOURCES SUITE (/list/resources) ─────────────────────────────
   add_resource: {
     name: "add_resource",
-    description: "Publier une ressource pédagogique, un cours ou document pour une classe avec titre, classe, matière, description et lien de fichier obligatoire (url). OBLIGATOIRE: Nécessite un fichier (document PDF, Word, photo) préalablement envoyé et disponible via 'url'. Si l'administrateur n'a pas encore envoyé de fichier, NE PAS appeler cet outil ; lui demander d'abord d'envoyer le document et s'il a une description spécifique.",
+    description: "Publier une ressource pédagogique, un cours ou document pour une classe d'élèves. STRICTEMENT RÉSERVÉ aux documents scolaires attachés (PDF, Word, photo). INTERDICTION STRICTE d'appeler cet outil pour des questions de cuisine, recettes culinaires, questions personnelles ou sans fichier.",
     requiresConfirmation: true,
     declaration: {
       name: "add_resource",
-      description: "Partager des documents de cours ou résumés pédagogiques avec les élèves d'une classe. Nécessite obligatoirement un document/fichier attaché.",
+      description: "Partager des documents de cours ou fiches d'exercices avec les élèves d'une classe. Nécessite obligatoirement un document/fichier scolaire déjà attaché. Ne JAMAIS appeler pour des questions de cuisine (recette de pizza, etc.) ou culture générale.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["title", "className", "url"],

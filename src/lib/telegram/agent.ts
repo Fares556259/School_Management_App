@@ -244,6 +244,26 @@ Tu parles comme une collègue d'école ultra-efficace, sympa et directe :
 - Réponses directes, cartes ultra-claires, zéro bavardage.
 
 ═══════════════════════════════════════════════════════════════
+🍕 QUESTIONS GÉNÉRALES, CUISINE, TECH & VIE DU QUOTIDIEN (HORS-GESTION SCOLAIRE) :
+═══════════════════════════════════════════════════════════════
+L'administrateur peut te poser des questions courantes qui n'ont AUCUN rapport avec la gestion de l'école :
+- Cuisine & recettes : "recette pizza", "comment faire pizza", "comment faire une pizza", "recette gâteau", "recette pâtes", "comment cuisiner...", etc.
+- Informatique & Programmation : "explique-moi Python input()", "comment marche une API", "corrige ce code", "aide-moi avec Excel".
+- Culture générale, langues, météo, vie quotidienne : "qui a gagné la ligue des champions", "traduis cette phrase", "raconte une blague", "météo à Tunis".
+- Salutations & bavardage : "bonjour", "salut", "comment tu vas", "tu fais quoi".
+
+🛑 RÈGLES FORMELLES ET ABSOLUES SUR LES QUESTIONS DU QUOTIDIEN :
+1. RÉPONDS DIRECTEMENT ET AVEC BONNE HUMEUR À SA QUESTION :
+   - Si l'administrateur demande "recette pizza" ou "comment faire pizza", il veut UNE RECETTE DE CUISINE POUR LUI-MÊME !
+     -> Donne-lui directement une super recette de pizza avec les ingrédients simples (farine, levure, eau tiède, huile d'olive, sel), les étapes de la pâte, la sauce tomate maison, la garniture (mozzarella, basilic, origan) et la cuisson au four à 220-250°C !
+     -> ⛔ INTERDICTION FORMELLE d'appeler 'add_resource' ! Une recette de pizza n'est PAS un cours pour les élèves !
+     -> ⛔ INTERDICTION FORMELLE de proposer d'en faire une annonce scolaire ou de diffuser aux familles de l'école !
+     -> ⛔ Ne confonds JAMAIS "recette de cuisine" (food/culinaire) avec "recette financière / encaissement" (incomes) !
+2. QUAND DÉCLENCHER DES OUTILS SCOLAIRES :
+   - Tu ne dois appeler d'outils scolaires (gestion financière, présences, notes, devoirs, ressources, annonces) QUE ET UNIQUEMENT SI la demande concerne CLAIREMENT et DIRECTEMENT la gestion des élèves, des profs ou des opérations de l'école "${tgAccount.School.name}" !
+   - Pour toute question générale, réponds en texte fluide, direct et chaleureux SANS AUCUN APPEL D'OUTIL.
+
+═══════════════════════════════════════════════════════════════
 🌟 RÔLE N°1 : LE GUIDE OFFICIEL SNAPSCHOOL (NAVIGATION & AIDE WEB)
 ═══════════════════════════════════════════════════════════════
 Tu connais l'interface web de SnapSchool par cœur. Quand l'administrateur te demande comment faire une tâche sur la plateforme, comment ajouter un élément ou où trouver une fonctionnalité, donne-lui des étapes ultra-claires, limpides et structurées, tout en lui rappelant ton super-pouvoir (faire l'action directement depuis Telegram) :
@@ -902,6 +922,29 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         if (!toolDef) {
           console.warn(`[Agent] Unknown function call: ${toolName}`);
           break;
+        }
+
+        // Guard against hallucinated add_resource calls without real attachment
+        if (toolName === "add_resource") {
+          const fileUrl = ((toolArgs.url as string) || "").trim().toLowerCase();
+          const isInvalid =
+            !fileUrl ||
+            fileUrl === "dummy" ||
+            fileUrl === "fichier" ||
+            fileUrl === "attachement" ||
+            fileUrl === "url" ||
+            (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://") && !fileUrl.startsWith("/"));
+          if (isInvalid) {
+            console.warn("[Agent] Blocked add_resource without valid file URL:", toolArgs);
+            response = await chat.sendMessage([
+              {
+                text: `[ERREUR SYSTÈME] : L'outil 'add_resource' a été bloqué car aucun fichier/URL valide n'a été attaché (${fileUrl}). S'il s'agit d'une question générale (ex: recette de cuisine, informatique, culture, météo), réponds directement en texte à l'administrateur sans appeler d'outils scolaires. S'il s'agit d'un vrai support de cours scolaire, demande-lui d'abord d'envoyer le document.`,
+              },
+            ]);
+            candidate = response.response;
+            functionCalls = candidate.functionCalls();
+            continue;
+          }
         }
 
         // Check if tool requires confirmation

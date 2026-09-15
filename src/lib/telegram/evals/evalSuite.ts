@@ -374,6 +374,32 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
+  // ── TEST 2l: Non-régression des boutons d'annonces sur guides et questions hors-contexte ─
+  await runTestCase("Non-régression des boutons d'annonces sur guides et questions hors-contexte", async () => {
+    const { getQuickActionButtons } = await import("@/lib/telegram/formatter");
+
+    // 1. Guide containing "souhaitez-vous publier cette recette de pizza" must NOT trigger announcement buttons
+    const guideText = `Guide SnapSchool : Ajouter un cours ou une ressource pédagogique\nPour quelle classe souhaitez-vous publier cette recette de pizza ?`;
+    const buttonsGuide = getQuickActionButtons(undefined, guideText);
+    if (buttonsGuide?.inline_keyboard?.some((row) => row.some((b) => b.callback_data.includes("announce")))) {
+      throw new Error("Échec : Les boutons d'annonce ont été faussement affichés sur un guide de recette de pizza !");
+    }
+
+    // 2. Pure pizza recipe text must NOT trigger announcement buttons
+    const pizzaText = `Voici une super recette de pizza : 1. Pâte avec farine et levure. 2. Cuisson au four à 220°C.`;
+    const buttonsPizza = getQuickActionButtons(undefined, pizzaText);
+    if (buttonsPizza) {
+      throw new Error("Échec : Des boutons ont été attachés à une simple recette de cuisine !");
+    }
+
+    // 3. Legitimate announcement proposal MUST still trigger announcement buttons
+    const legitAnnouncement = `📢 **Proposition d'annonce : Fête de l'école**\nOptions de diffusion :\n• Portée : Toute l'école\n• Priorité : Normale\n💡 Hnia : Souhaitez-vous publier cette annonce ?`;
+    const buttonsLegit = getQuickActionButtons(undefined, legitAnnouncement);
+    if (!buttonsLegit?.inline_keyboard?.some((row) => row.some((b) => b.callback_data === "announce:publish"))) {
+      throw new Error("Échec : Les boutons de publication d'annonce doivent s'afficher sur une vraie proposition d'annonce !");
+    }
+  });
+
   // ── TEST 3, 4, 5: Tests nécessitant une connexion à la base ──────────────
   if (!dbAvailable) {
     results.push({
