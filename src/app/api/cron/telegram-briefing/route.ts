@@ -23,13 +23,17 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get("type");
 
-    // Determine whether morning briefing or evening caisse
+    // Determine mode: morning briefing, evening caisse, or proactive overdue alert
     const currentHour = new Date().getHours();
-    const isEvening = typeParam === "evening" || (typeParam !== "morning" && currentHour >= 14);
+    const isOverdueAlert = typeParam === "overdue" || typeParam === "reminders";
+    const isEvening = !isOverdueAlert && (typeParam === "evening" || (typeParam !== "morning" && currentHour >= 14));
 
-    const prompt = isEvening
-      ? "Fais le bilan officiel de clôture de caisse du jour (recettes encaissées, dépenses sorties, solde physique net en caisse et absences)."
-      : "Donne-moi le briefing exécutif du matin pour aujourd'hui (séances prévues, absences récentes à suivre, échéances de paiement et alertes urgentes).";
+    let prompt = "Donne-moi le briefing exécutif du matin pour aujourd'hui (séances prévues, absences récentes à suivre, échéances de paiement et alertes urgentes).";
+    if (isOverdueAlert) {
+      prompt = "Fais le point proactif sur les impayés de scolarité du mois en cours, et propose à l'administrateur de lancer la campagne de relances par notifications push aux familles.";
+    } else if (isEvening) {
+      prompt = "Fais le bilan officiel de clôture de caisse du jour avec get_daily_caisse (total des recettes perçues, dépenses décaissées, solde physique net en caisse et récapitulatif des présences).";
+    }
 
     // Find all linked Telegram accounts with dailyBriefing enabled
     const accounts = await prisma.telegramAccount.findMany({

@@ -22,11 +22,9 @@ export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   // 2. Call Gemini with audio multimodal input (with multi-model fallback)
   // Use gemini-3.5-flash and gemini-3.6-flash for high acoustic fidelity on North African dialects
   const CANDIDATE_MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.7-flash",
-    "gemini-3.5-flash",
-    "gemini-3.6-flash",
-    "gemini-3.8-flash",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
   ];
 
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -36,12 +34,13 @@ Transcribe the speaker's exact spoken words word-for-word.
 CRITICAL TRANSCRIBING RULES:
 1. DIALECT RECOGNITION: The speaker is speaking in Tunisian Arabic (Derja / Tounsi), French, English, or a natural mix of Tunisian Arabic and French (code-switching).
 2. DO NOT TRANSLATE: Never translate Tunisian words into French or English. Transcribe in the exact language spoken:
-   - If the speaker speaks Tunisian Arabic, transcribe it in authentic Arabic script (e.g. شكون غايب, أعطيني الخلاصات, مريم ما نعرفهاش, قداش فما فلوس...) or accurate phonetic text.
+   - If the speaker speaks Tunisian Arabic, transcribe it in authentic Arabic script (e.g. شكون غايب, قيدلي خلاص, أعطيني الخلاصات, مريم ما نعرفهاش, قداش فما فلوس, سجل مازوط للكار, فاتورة الـ steg, بيلان الكاسة...) or accurate phonetic text.
    - If the speaker speaks French, transcribe in French.
-   - If mixed (e.g. "les reliquats mta3 el khlassat", "chouf-li l'appel mta3 8ème B"), transcribe both languages faithfully.
-3. ZERO HALLUCINATIONS: Do NOT guess, imagine, or invent words that were not said.
-4. SCHOOL VOCABULARY: Common terms include: élèves, profs, classes (1A, 2B, 7ème, 8ème, 9ème...), matières, notes, absences, retards, paiements, reliquats, impayés, factures, STEG, SONEDE, Dinars / DT, cantine.
-5. OUTPUT: Output ONLY the exact transcribed text. No quotes, no markdown explanations, no introductions.`;
+   - If mixed (e.g. "les reliquats mta3 el khlassat", "chouf-li l'appel mta3 8ème B", "9ayedli 300 khlass w 40 mazout"), transcribe both languages faithfully.
+3. MULTI-INTENT SPOKEN COMMANDS: School directors frequently give compound or multiple instructions in a single audio note (e.g. recording a student payment AND a vehicle gas expense, or marking 2 students absent). Capture every single instruction clearly.
+4. ZERO HALLUCINATIONS: Do NOT guess, imagine, or invent words that were not said.
+5. SCHOOL VOCABULARY: Common terms include: élèves, profs, classes (1A, 2B, 7ème, 8ème, 9ème...), matières, notes, absences, retards, paiements, reliquats, impayés, factures, STEG, SONEDE, Dinars / DT, cantine, مازوط, كاسة, شيك, تلامذة, معلمين, Appel.
+6. OUTPUT: Output ONLY the exact transcribed text. No quotes, no markdown explanations, no introductions.`;
 
   let lastError: any = null;
   for (const modelName of CANDIDATE_MODELS) {

@@ -697,7 +697,7 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
 - Date du document : ${analysis.date || "Non spécifiée"}
 - Catégorie : ${analysis.category || "Général"}
 - Personne concernée : ${analysis.studentName || analysis.parentName || "Non spécifié"}
-- Résumé visuel : ${analysis.summary}
+${analysis.bankName ? `- Banque : ${analysis.bankName}\n` : ""}${analysis.chequeNumber ? `- N° Chèque : ${analysis.chequeNumber}\n` : ""}${analysis.className ? `- Classe : ${analysis.className}\n` : ""}${analysis.sessionName ? `- Séance : ${analysis.sessionName}\n` : ""}- Résumé visuel : ${analysis.summary}
 - Justificatif (URL image) : ${photoUrl}`;
 
         if (!userPrompt || userPrompt.trim().length === 0) {
@@ -720,6 +720,47 @@ L'administrateur a envoyé un reçu de paiement / virement bancaire pour des fra
 ${analysis.studentName ? `Élève identifié : ${analysis.studentName}.` : "Élève à identifier."}
 ${analysis.amount ? `Montant : ${analysis.amount} DT.` : ""}
 Propose d'enregistrer le paiement de scolarité via 'record_payment' avec ce justificatif.`;
+          } else if (analysis.documentType === "BANK_CHEQUE") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé la photo d'un chèque bancaire pour le règlement de frais de scolarité.
+- Banque : ${analysis.bankName || "Banque"}
+- Numéro de chèque : ${analysis.chequeNumber || "Non spécifié"}
+- Montant : ${analysis.amount ? `${analysis.amount} DT` : "À préciser"}
+${analysis.studentName ? `- Élève annoté : ${analysis.studentName}` : ""}
+${analysis.parentName ? `- Émetteur / Parent : ${analysis.parentName}` : ""}
+
+Instructions :
+${
+  analysis.studentName
+    ? `Propose directement d'enregistrer le paiement via 'record_payment' pour "${analysis.studentName}" avec amount: ${analysis.amount || 0}. Mentionne le chèque ${analysis.bankName || ""} N°${analysis.chequeNumber || ""}.`
+    : `Affiche les détails du chèque détecté (${analysis.bankName || "Banque"} - ${analysis.amount ? `${analysis.amount} DT` : "montant"}, N°${analysis.chequeNumber || "inconnu"}) et demande en UNE courte phrase à quel élève ou parent rattacher ce chèque.`
+}`;
+          } else if (analysis.documentType === "ATTENDANCE_SHEET") {
+            const absentListStr =
+              analysis.absentStudents && analysis.absentStudents.length > 0
+                ? analysis.absentStudents.join(", ")
+                : "Aucun absent identifié";
+            const lateListStr =
+              analysis.lateStudents && analysis.lateStudents.length > 0
+                ? analysis.lateStudents.join(", ")
+                : "Aucun retardataire";
+
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé la photo d'une feuille d'appel papier de classe.
+- Classe identifiée : "${analysis.className || "À préciser"}"
+- Séance / Matière : "${analysis.sessionName || "Séance du jour"}"
+- Date : "${analysis.date || new Date().toISOString().split("T")[0]}"
+- Absents détectés : ${absentListStr}
+- Retards détectés : ${lateListStr}
+
+Instructions :
+${
+  analysis.className
+    ? `Propose de valider l'appel de la classe ${analysis.className} pour la séance "${analysis.sessionName || "Séance"}" avec les absents [${absentListStr}] et retards [${lateListStr}] via 'mark_class_attendance'.`
+    : `Affiche la synthèse de la feuille d'appel (${absentListStr}) et demande simplement de confirmer pour quelle classe enregistrer cet appel.`
+}`;
           } else if (analysis.documentType === "ABSENCE_CERTIFICATE") {
             userPrompt = `${docDescriptor}
 

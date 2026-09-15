@@ -170,6 +170,22 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
+  // ── TEST 2e: Validation du contrat Vision & OCR Intelligent ─────────────────
+  await runTestCase("Validation du contrat Vision & OCR Intelligent", async () => {
+    const { analyzeTelegramImage } = await import("@/lib/telegram/vision");
+    if (typeof analyzeTelegramImage !== "function") {
+      throw new Error("analyzeTelegramImage doit être une fonction exportée");
+    }
+  });
+
+  // ── TEST 2f: Validation de la configuration Audio & Vocaux Derja ───────────
+  await runTestCase("Validation de la configuration Audio & Vocaux Derja", async () => {
+    const { transcribeTelegramVoice } = await import("@/lib/telegram/voice");
+    if (typeof transcribeTelegramVoice !== "function") {
+      throw new Error("transcribeTelegramVoice doit être une fonction exportée");
+    }
+  });
+
   // ── TEST 3, 4, 5: Tests nécessitant une connexion à la base ──────────────
   if (!dbAvailable) {
     results.push({
