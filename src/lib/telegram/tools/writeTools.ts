@@ -172,13 +172,17 @@ export async function recordPaymentTool(
 
   const studentFullName = `${student.name} ${student.surname}`;
 
-  // 2. Compute the cascading multi-month allocation
+  const now = new Date();
+  const targetMonth = args.month || now.getMonth() + 1;
+  const targetYear = args.year || now.getFullYear();
+
+  // 2. Compute the cascading multi-month allocation starting from targetMonth
   const allocation = await calculateStudentPaymentAllocation(
     student.id,
     args.amount,
     context.schoolId,
-    args.month,
-    args.year
+    targetMonth,
+    targetYear
   );
 
   if (!allocation || allocation.paymentsToProcess.length === 0) {
@@ -299,9 +303,11 @@ export async function recordPaymentTool(
     return `• <b>${frMonthYear}</b> : ${statusBadge}`;
   });
 
+  const targetMonthLabel = formatMonthFrench(`${MONTHS[targetMonth - 1]} ${targetYear}`);
   const message = `✅ <b>Paiement Enregistré</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>${studentFullName}</b> • Classe <code>${student.class?.name || "Sans classe"}</code>
+📅 <b>Mois concerné :</b> <code>${targetMonthLabel}</code>
 💰 Reçu : <code>${args.amount} DT</code> (Tarif : <code>${tuitionFee} DT/m</code>)
 
 📋 <b>Ventilation :</b>
@@ -691,17 +697,19 @@ export async function recordParentPaymentTool(
     return `• <b>${a.studentName}</b> (<code>${a.className}</code>) : <code>+${a.amount} DT</code> (${badge})`;
   });
 
+  const targetMonthLabel = formatMonthFrench(`${MONTHS[targetMonth - 1]} ${targetYear}`);
   return {
     success: true,
     message: `💳 <b>Règlement Parental Enregistré avec Succès</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>
+📅 <b>Mois concerné :</b> <code>${targetMonthLabel}</code>
 💰 <b>Total encaissé :</b> <code>${args.amount} DT</code>
 
 📋 <b>Ventilation appliquée :</b>
 ${detailLines.join("\n")}
 
-<blockquote>💡 <b>Hnia :</b> Les scolarités ont été mises à jour et les reçus de caisse générés.</blockquote>`,
+<blockquote>💡 <b>Hnia :</b> Les scolarités de ${targetMonthLabel} ont été mises à jour et les reçus de caisse générés.</blockquote>`,
     summary: `Règlement parental ${parent.name} (${args.amount} DT pour ${processedStudents.join(", ")})`,
     data: { parentId: parent.id, amount: args.amount, allocations: dist.allocations },
   };

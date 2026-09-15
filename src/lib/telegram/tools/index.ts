@@ -12,7 +12,7 @@ import {
   getMorningBriefingTool,
 } from "./readTools";
 import prisma from "@/lib/prisma";
-import { formatMonthFrench } from "@/lib/dateUtils";
+import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import {
   recordPaymentTool,
   recordParentPaymentTool,
@@ -473,13 +473,14 @@ Confirmer l'enregistrement de ces heures d'absence ?`;
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
       ];
+      const now = new Date();
+      const targetMonth = args.month || now.getMonth() + 1;
+      const targetYear = args.year || now.getFullYear();
       const isAdv = Boolean(args.isAdvance);
       const cleanAmount = Math.abs(Number(args.amount) || 0);
       const typeBadge = isAdv ? "🟡 AVANCE SUR SALAIRE" : "🟢 RÈGLEMENT DU SOLDE DE PAIE";
       const deductionNote = args.missedHours ? `\n⏳ <b>Déduction absence :</b> <code>${args.missedHours}h</code>` : "";
-      const monthStr = args.month
-        ? `\n📅 <b>Période :</b> <code>${FRENCH_MONTHS[args.month - 1] || "Mois " + args.month}${args.year ? " " + args.year : ""}</code>`
-        : "";
+      const monthStr = `\n📅 <b>Période :</b> <code>${FRENCH_MONTHS[targetMonth - 1] || "Mois " + targetMonth} ${targetYear}</code>`;
 
       return `❓ <b>Confirmation Paiement Enseignant</b>
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -517,12 +518,13 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
       ];
+      const now = new Date();
+      const targetMonth = args.month || now.getMonth() + 1;
+      const targetYear = args.year || now.getFullYear();
       const isAdv = Boolean(args.isAdvance);
       const cleanAmount = Math.abs(Number(args.amount) || 0);
       const typeBadge = isAdv ? "🟡 AVANCE SUR SALAIRE" : "🟢 RÈGLEMENT DU SOLDE DE PAIE";
-      const monthStr = args.month
-        ? `\n📅 <b>Période :</b> <code>${FRENCH_MONTHS[args.month - 1] || "Mois " + args.month}${args.year ? " " + args.year : ""}</code>`
-        : "";
+      const monthStr = `\n📅 <b>Période :</b> <code>${FRENCH_MONTHS[targetMonth - 1] || "Mois " + targetMonth} ${targetYear}</code>`;
 
       return `❓ <b>Confirmation Paiement Personnel</b>
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -847,10 +849,21 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
         include: { class: true },
       });
 
+      const now = new Date();
+      const targetMonth = args.month || now.getMonth() + 1;
+      const targetYear = args.year || now.getFullYear();
+      const monthLabel = formatMonthFrench(`${MONTHS[targetMonth - 1]} ${targetYear}`);
+
       const studentDisplay = student ? `${student.name} ${student.surname} (Classe : ${student.class?.name || "N/A"})` : args.studentNameOrId;
       const amountStr = args.amount ? `<code>${args.amount} DT</code>` : "<b>la totalité du reliquat restant</b>";
 
-      return `❓ <b>Confirmation de Recouvrement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisplay}</b> ?`;
+      return `❓ <b>Confirmation de Recouvrement</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Élève :</b> <b>${studentDisplay}</b>
+📅 <b>Mois concerné :</b> <code>${monthLabel}</code>
+💰 <b>Montant :</b> ${amountStr}
+
+Souhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisplay}</b> (${monthLabel}) ?`;
     },
     execute: recoverPartialPaymentTool,
   },
@@ -937,20 +950,25 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
       const query = (args.studentNameOrId || "").trim();
       const student = await resolveStudentByName(context.schoolId, query);
 
+      const now = new Date();
+      const targetMonth = args.month || now.getMonth() + 1;
+      const targetYear = args.year || now.getFullYear();
+      const monthLabel = formatMonthFrench(`${MONTHS[targetMonth - 1]} ${targetYear}`);
+
       if (!student) {
-        return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${args.studentNameOrId}</b> ?`;
+        return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${args.studentNameOrId}</b> (${monthLabel}) ?`;
       }
 
       const allocation = await calculateStudentPaymentAllocation(
         student.id,
         args.amount,
         context.schoolId,
-        args.month,
-        args.year
+        targetMonth,
+        targetYear
       );
 
       if (!allocation || allocation.paymentsToProcess.length === 0) {
-        return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> ?`;
+        return `❓ <b>Confirmation de Paiement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> pour <b>${student.name} ${student.surname}</b> (${monthLabel}) ?`;
       }
 
       const lines = allocation.paymentsToProcess.map((p) => {
@@ -964,10 +982,13 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
       return `❓ <b>Confirmation de Paiement</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>${student.name} ${student.surname}</b> • Classe <code>${student.class?.name || "Sans classe"}</code>
+📅 <b>Mois concerné :</b> <code>${monthLabel}</code>
 💰 Versement reçu : <code>${args.amount} DT</code>
 
 📋 <b>Ventilation automatique calculée :</b>
-${lines.join("\n")}`;
+${lines.join("\n")}
+
+Souhaitez-vous enregistrer ce versement pour <b>${student.name} ${student.surname}</b> (${monthLabel}) ?`;
     },
     execute: recordPaymentTool,
   },
@@ -1004,13 +1025,14 @@ ${lines.join("\n")}`;
     },
     formatConfirmationMessage: async (args, context) => {
       const parent = await resolveParentByName(context.schoolId, args.parentNameOrId);
-      if (!parent) {
-        return `❓ <b>Confirmation de Paiement Parental</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> du parent <b>${args.parentNameOrId}</b> ?`;
-      }
-
       const now = new Date();
       const targetMonth = args.month || now.getMonth() + 1;
       const targetYear = args.year || now.getFullYear();
+      const monthLabel = formatMonthFrench(`${MONTHS[targetMonth - 1]} ${targetYear}`);
+
+      if (!parent) {
+        return `❓ <b>Confirmation de Paiement Parental</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer le versement de <code>${args.amount} DT</code> du parent <b>${args.parentNameOrId}</b> (${monthLabel}) ?`;
+      }
 
       const dist = await calculateParentPaymentDistribution(
         parent.id,
@@ -1021,7 +1043,7 @@ ${lines.join("\n")}`;
       );
 
       if (!dist || dist.allocations.length === 0) {
-        return `❓ <b>Confirmation de Paiement Parental</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>\n💰 Montant : <code>${args.amount} DT</code>\n\nTous les enfants de ce parent semblent déjà en règle. Confirmer le versement ?`;
+        return `❓ <b>Confirmation de Paiement Parental</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>\n📅 <b>Mois concerné :</b> <code>${monthLabel}</code>\n💰 Montant : <code>${args.amount} DT</code>\n\nTous les enfants de ce parent semblent déjà en règle pour ${monthLabel}. Confirmer le versement ?`;
       }
 
       const lines = dist.allocations.map((a) => {
@@ -1032,12 +1054,13 @@ ${lines.join("\n")}`;
       return `❓ <b>Confirmation : Règlement Parental Multi-Enfants</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>
+📅 <b>Mois concerné :</b> <code>${monthLabel}</code>
 💰 <b>Montant total versé :</b> <code>${args.amount} DT</code>
 
 📋 <b>Ventilation automatique calculée :</b>
 ${lines.join("\n")}
 
-Souhaitez-vous valider ce règlement pour les ${dist.allocations.length} enfants ?`;
+Souhaitez-vous valider ce règlement pour les ${dist.allocations.length} enfants (${monthLabel}) ?`;
     },
     execute: recordParentPaymentTool,
   },

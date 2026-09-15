@@ -141,6 +141,35 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     }
   });
 
+  // ── TEST 2d: Mention explicite du mois dans les cartes de confirmation ──────
+  await runTestCase("Mention explicite du mois dans les cartes de confirmation", async () => {
+    const { TOOLS } = await import("@/lib/telegram/tools");
+    const { MONTHS, formatMonthFrench } = await import("@/lib/dateUtils");
+    const now = new Date();
+    const currentMonthFr = formatMonthFrench(`${MONTHS[now.getMonth()]} ${now.getFullYear()}`);
+
+    const mockContext = { schoolId: "mock", adminId: "mock", adminName: "Admin", language: "fr" as const };
+    const teacherMsg = await Promise.resolve(
+      TOOLS["pay_teacher_salary"].formatConfirmationMessage?.(
+        { teacherNameOrId: "Mourad Test", amount: 600 },
+        mockContext
+      )
+    );
+    if (!teacherMsg || !teacherMsg.includes(currentMonthFr)) {
+      throw new Error(`Échec : La carte de confirmation pay_teacher_salary ne mentionne pas le mois actuel (${currentMonthFr}) : ${teacherMsg}`);
+    }
+
+    const staffMsg = await Promise.resolve(
+      TOOLS["pay_staff_salary"].formatConfirmationMessage?.(
+        { staffNameOrId: "Sami Test", amount: 400 },
+        mockContext
+      )
+    );
+    if (!staffMsg || !staffMsg.includes(currentMonthFr)) {
+      throw new Error(`Échec : La carte de confirmation pay_staff_salary ne mentionne pas le mois actuel (${currentMonthFr}) : ${staffMsg}`);
+    }
+  });
+
   // ── TEST 3, 4, 5: Tests nécessitant une connexion à la base ──────────────
   if (!dbAvailable) {
     results.push({
