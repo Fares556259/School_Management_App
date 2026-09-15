@@ -119,76 +119,79 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   // ═════════════════════════════════════════════════════════════
   // VOLET 1 : EXEMPLAIRE PARENT / ÉLÈVE (HAUT DE PAGE)
   // ═════════════════════════════════════════════════════════════
-  // 1. Top Decorative Brand Bar
-  doc.setFillColor(79, 70, 229); // Indigo 600
-  doc.rect(0, 0, 210, 4, "F");
+  // 1. Top Decorative Brand Bar (Subtle Black Rule)
+  doc.setFillColor(17, 24, 39); // Deep Slate / Black
+  doc.rect(0, 0, 210, 2.5, "F");
 
   // 2. School Header
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.setTextColor(30, 41, 59); // Slate 800
+  doc.setTextColor(0, 0, 0);
   doc.text(school.toUpperCase(), 15, 12);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text("Établissement Scolaire Privé • Quittance & Recouvrement", 15, 17);
 
   // Top Right Meta Box
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(79, 70, 229);
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
   doc.text(`QUITTANCE N° ${data.receiptNumber}`, 195, 12, { align: "right" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text(`Date : ${formatDateTime(data.paymentDate)} • Mode : ${methodLabel}`, 195, 17, { align: "right" });
 
-  // 3. Document Title Banner
-  doc.setFillColor(241, 245, 249); // Slate 100
-  doc.roundedRect(15, 21, 180, 7, 1.5, 1.5, "F");
+  // 3. Document Title Banner (Clean Monochrome Frame)
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(17, 24, 39);
+  doc.setLineWidth(0.7);
+  doc.roundedRect(15, 21, 180, 7, 1, 1, "DF");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(79, 70, 229);
+  doc.setFontSize(8.5);
+  doc.setTextColor(0, 0, 0);
   doc.text("VOLET N° 1 : EXEMPLAIRE PARENT / ÉLÈVE — REÇU DE SCOLARITÉ", 105, 25.5, { align: "center" });
 
   // 4. Beneficiary and Parent Info Container
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(15, 31, 180, 31, 2, 2, "DF");
+  doc.setDrawColor(209, 213, 219);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(15, 31, 180, 31, 1.5, 1.5, "DF");
 
   // Left column: Student details
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(107, 114, 128);
   doc.text("ÉLÈVE CONCERNÉ", 20, 37);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(0, 0, 0);
   doc.text(data.studentName, 20, 43);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(55, 65, 81);
   doc.text(`Classe : ${data.studentClass || "Non assignée"}  •  Période : ${data.periodFrench}`, 20, 49);
   doc.text(`Règlement : ${methodLabel}`, 20, 55);
 
   // Right column: Parent details
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(107, 114, 128);
   doc.text("PARENT & ENCAISSEMENT", 110, 37);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(0, 0, 0);
   doc.text(data.parentName, 110, 43);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(55, 65, 81);
   doc.text(`Tél : ${data.parentPhone || "Non renseigné"}  •  Reçu par : ${data.adminName || "Direction"}`, 110, 49);
   doc.text(
     `Statut comptable : ${isFullyPaid ? "Soldé entièrement (0 DT restant)" : `Partiel (Reste dû : ${remaining.toFixed(2)} DT)`}`,
@@ -197,60 +200,66 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   );
 
   // 5. Summary row
-  doc.setFillColor(245, 247, 255);
-  doc.setDrawColor(199, 210, 254);
-  doc.roundedRect(15, 65, 180, 17, 2, 2, "DF");
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(156, 163, 175);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(15, 65, 180, 17, 1.5, 1.5, "DF");
 
-  if (isFullyPaid) {
-    doc.setFillColor(209, 250, 229); // Emerald 100
-    doc.roundedRect(20, 68.5, 62, 10, 1.5, 1.5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(5, 150, 105);
-    doc.text("SOLDE ENTIÈREMENT RÉGLÉ", 51, 75, { align: "center" });
-  } else {
-    doc.setFillColor(254, 243, 199); // Amber 100
-    doc.roundedRect(20, 68.5, 68, 10, 1.5, 1.5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(180, 83, 9);
-    doc.text(`PAIEMENT PARTIEL (DÛ: ${remaining.toFixed(2)} DT)`, 54, 75, { align: "center" });
-  }
+  // Status badge inside card
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+  const badgeW = isFullyPaid ? 62 : 68;
+  doc.roundedRect(20, 68.5, badgeW, 10, 1.5, 1.5, "DF");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text(
+    isFullyPaid ? "SOLDE ENTIÈREMENT RÉGLÉ" : `PAIEMENT PARTIEL (DÛ: ${remaining.toFixed(2)} DT)`,
+    20 + badgeW / 2,
+    75,
+    { align: "center" }
+  );
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text("TOTAL VERSÉ & ACQUITTÉ :", 145, 71.5, { align: "right" });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.setTextColor(79, 70, 229);
+  doc.setTextColor(0, 0, 0);
   doc.text(`${data.amountPaid.toFixed(2)} DT`, 190, 78.5, { align: "right" });
 
   // 6. Stamp & Signature
-  doc.setDrawColor(5, 150, 105);
-  doc.setLineWidth(0.8);
+  doc.setDrawColor(17, 24, 39);
+  doc.setLineWidth(1.0);
   doc.roundedRect(135, 85, 60, 24, 2, 2, "S");
+  doc.setLineWidth(0.4);
+  doc.roundedRect(136.5, 86.5, 57, 21, 1.5, 1.5, "S");
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  doc.setTextColor(5, 150, 105);
+  doc.setTextColor(0, 0, 0);
   const truncatedSchool = school.length > 22 ? school.slice(0, 20) + "..." : school;
   doc.text(truncatedSchool.toUpperCase(), 165, 91, { align: "center" });
   doc.setFontSize(8.5);
   doc.text("• PAYÉ & ACQUITTÉ •", 165, 97, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
+  doc.setTextColor(75, 85, 99);
   doc.text(`Le ${formatDate(data.paymentDate)} • Visa Direction`, 165, 103, { align: "center" });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(0, 0, 0);
   doc.text("Visa & Signature Administration :", 20, 91);
-  doc.setDrawColor(203, 213, 225);
+  doc.setDrawColor(156, 163, 175);
+  doc.setLineWidth(0.5);
   doc.line(20, 105, 80, 105);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(107, 114, 128);
   doc.text(
     "* Règlement sous réserve de bon encaissement bancaire. Quittance officielle opposable émise par SnapSchool.",
     15,
@@ -344,22 +353,22 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   doc.text(`${data.amountPaid.toFixed(2)} DT`, 190, v2Y + 46, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(isFullyPaid ? 5 : 180, isFullyPaid ? 150 : 83, isFullyPaid ? 105 : 9);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Solde restant dû : ${remaining.toFixed(2)} DT (${isFullyPaid ? "Soldé" : "Impayé"})`, 190, v2Y + 52, {
     align: "right",
   });
 
   // CHECK / PIECE ATTACHMENT BOX
   const checkY = v2Y + 59;
-  doc.setFillColor(250, 250, 250);
-  doc.setDrawColor(180, 190, 205);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(107, 114, 128);
   doc.setLineDashPattern([1.5, 1.5], 0);
   doc.roundedRect(15, checkY, 180, 23, 2, 2, "DF");
   doc.setLineDashPattern([], 0);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.8);
-  doc.setTextColor(79, 70, 229);
+  doc.setTextColor(0, 0, 0);
   doc.text("[ARCHIVE] RÈGLEMENT PAR CHÈQUE & JUSTIFICATIF (Emplacement chèque) :", 20, checkY + 5.5);
 
   const isCheck = Boolean(data.checkNumber || data.paymentMethod?.toLowerCase().includes("chèque"));
@@ -554,7 +563,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
     doc.line(18, currentY + 10, 192, currentY + 10);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(225, 29, 72); // Rose 600
+    doc.setTextColor(0, 0, 0);
     doc.text(`Déduction absence (${data.missedHours || 0}h non justifiées)`, 24, currentY + 6.5);
     doc.text(`${data.missedHours || 0} heures`, 95, currentY + 6.5);
     doc.text("—", 140, currentY + 6.5, { align: "right" });
@@ -572,7 +581,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
     doc.line(18, currentY + 10, 192, currentY + 10);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(147, 51, 234); // Purple 600
+    doc.setTextColor(0, 0, 0);
     doc.text("Avance sur salaire déjà perçue", 24, currentY + 6.5);
     doc.text("Acompte", 95, currentY + 6.5);
     doc.text("—", 140, currentY + 6.5, { align: "right" });
@@ -584,36 +593,33 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
 
   // 6. Net Pay Card
   const netCardY = currentY + 6;
-  doc.setFillColor(240, 253, 244); // Emerald 50
-  doc.setDrawColor(167, 243, 208); // Emerald 200
-  doc.setLineWidth(0.6);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(17, 24, 39);
+  doc.setLineWidth(1.0);
   doc.roundedRect(18, netCardY, 174, 26, 2.5, 2.5, "DF");
 
   // Badge inside Net Card
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(24, netCardY + 7, 72, 12, 2, 2, "DF");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
   if (isFullyPaid) {
-    doc.setFillColor(209, 250, 229);
-    doc.roundedRect(24, netCardY + 7, 65, 12, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(5, 150, 105);
-    doc.text("SALAIRE SOLDÉ DU MOIS", 56.5, netCardY + 14.5, { align: "center" });
+    doc.text("SALAIRE SOLDÉ DU MOIS", 60, netCardY + 14.5, { align: "center" });
   } else {
-    doc.setFillColor(243, 232, 255); // Purple 100
-    doc.roundedRect(24, netCardY + 7, 65, 12, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(126, 34, 206);
-    doc.text(`AVANCE VERSÉE (SOLDE: ${remaining} DT)`, 56.5, netCardY + 14.5, { align: "center" });
+    doc.text(`AVANCE VERSÉE (SOLDE: ${remaining} DT)`, 60, netCardY + 14.5, { align: "center" });
   }
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text("NET PAYÉ / VERSÉ CE JOUR :", 186, netCardY + 9, { align: "right" });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.setTextColor(5, 150, 105); // Emerald 600
+  doc.setTextColor(0, 0, 0);
   doc.text(`${data.netPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT`, 186, netCardY + 20, { align: "right" });
 
   // 7. Official Seal & Signatures
@@ -729,15 +735,17 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   drawHeader(pageNum);
 
   // Document Title Banner
-  doc.setFillColor(241, 245, 249);
-  doc.roundedRect(15, 23, 180, 7, 1.5, 1.5, "F");
+  doc.setFillColor(245, 245, 245);
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(15, 23, 180, 7.5, 1.5, 1.5, "DF");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(30, 41, 59);
+  doc.setTextColor(0, 0, 0);
   doc.text(
     `ÉTAT DE CAISSE & SITUATION FINANCIÈRE DU ${dateFormatted.toUpperCase()}`,
     105,
-    27.5,
+    27.8,
     { align: "center" }
   );
 
@@ -747,80 +755,89 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   const cardH = 18;
 
   // Card 1: Total Recettes (Inflows)
-  doc.setFillColor(240, 253, 244); // Emerald 50
-  doc.setDrawColor(167, 243, 208); // Emerald 200
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(156, 163, 175);
+  doc.setLineWidth(0.6);
   doc.roundedRect(15, cardY, cardW, cardH, 2, 2, "DF");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text("TOTAL RECETTES (+)", 19, cardY + 5.5);
   doc.setFontSize(12);
-  doc.setTextColor(5, 150, 105); // Emerald 600
+  doc.setTextColor(0, 0, 0);
   doc.text(`+${data.totalIncomes.toFixed(2)} DT`, 19, cardY + 12);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(107, 114, 128);
   doc.text(`${data.inflowItems.length} encaissement(s)`, 19, cardY + 16);
 
   // Card 2: Total Dépenses (Outflows)
-  doc.setFillColor(254, 242, 242); // Rose 50
-  doc.setDrawColor(254, 202, 202); // Rose 200
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(156, 163, 175);
+  doc.setLineWidth(0.6);
   doc.roundedRect(76.5, cardY, cardW, cardH, 2, 2, "DF");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text("TOTAL DÉPENSES (-)", 80.5, cardY + 5.5);
   doc.setFontSize(12);
-  doc.setTextColor(225, 29, 72); // Rose 600
+  doc.setTextColor(0, 0, 0);
   doc.text(`-${data.totalExpenses.toFixed(2)} DT`, 80.5, cardY + 12);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(107, 114, 128);
   doc.text(`${data.outflowItems.length} décaissement(s)`, 80.5, cardY + 16);
 
-  // Card 3: Solde Net (Net Balance)
+  // Card 3: Solde Net (Net Balance) — Prominent card with high contrast border
   const isNetPositive = data.netBalance >= 0;
-  doc.setFillColor(isNetPositive ? 238 : 254, isNetPositive ? 242 : 242, isNetPositive ? 255 : 242);
-  doc.setDrawColor(isNetPositive ? 199 : 254, isNetPositive ? 210 : 202, isNetPositive ? 254 : 202);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(17, 24, 39);
+  doc.setLineWidth(1.2);
   doc.roundedRect(138, cardY, cardW, cardH, 2, 2, "DF");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(0, 0, 0);
   doc.text("SOLDE NET DU JOUR (=)", 142, cardY + 5.5);
   doc.setFontSize(12);
-  doc.setTextColor(isNetPositive ? 79 : 225, isNetPositive ? 70 : 29, isNetPositive ? 229 : 72);
+  doc.setTextColor(0, 0, 0);
   doc.text(`${isNetPositive ? "+" : ""}${data.netBalance.toFixed(2)} DT`, 142, cardY + 12);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(55, 65, 81);
   doc.text(isNetPositive ? "Excédent de caisse" : "Déficit journalier", 142, cardY + 16);
 
   // Payment Breakdown Bar (Cash vs Checks)
   const breakY = 54;
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
+  doc.setFillColor(250, 250, 250);
+  doc.setDrawColor(209, 213, 219);
+  doc.setLineWidth(0.5);
   doc.roundedRect(15, breakY, 180, 11, 2, 2, "DF");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(30, 41, 59);
+  doc.setTextColor(0, 0, 0);
   doc.text("VENTILATION PAR MODE DE PAIEMENT :", 19, breakY + 4.5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(75, 85, 99);
   doc.text("Espèces :", 20, breakY + 8.5);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
   doc.text(`${data.totalCash.toFixed(2)} DT`, 35, breakY + 8.5);
 
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(75, 85, 99);
   doc.text("Chèques au classeur :", 75, breakY + 8.5);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
   doc.text(`${data.totalChecks.toFixed(2)} DT (${data.checkCount} chq)`, 108, breakY + 8.5);
 
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(75, 85, 99);
   doc.text("Virements :", 155, breakY + 8.5);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
   doc.text(`${(data.totalTransfers ?? 0).toFixed(2)} DT`, 172, breakY + 8.5);
 
   let currentY = 70;
@@ -838,12 +855,12 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   checkAddPage(20);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(5, 150, 105);
+  doc.setTextColor(0, 0, 0);
   doc.text(`1. RECETTES DU JOUR — ENTRÉES EN CAISSE (${data.inflowItems.length})`, 15, currentY);
   currentY += 3.5;
 
   // Table header
-  doc.setFillColor(30, 41, 59);
+  doc.setFillColor(31, 41, 55);
   doc.rect(15, currentY, 180, 6, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
@@ -893,7 +910,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
       doc.text(modeStr.slice(0, 24), 140, currentY + 4.5);
 
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 150, 105);
+      doc.setTextColor(0, 0, 0);
       doc.text(`+${item.amount.toFixed(2)} DT`, 192, currentY + 4.5, { align: "right" });
 
       currentY += 6.5;
@@ -906,12 +923,12 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   checkAddPage(20);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(225, 29, 72);
+  doc.setTextColor(0, 0, 0);
   doc.text(`2. DÉPENSES DU JOUR — SORTIES DE CAISSE (${data.outflowItems.length})`, 15, currentY);
   currentY += 3.5;
 
   // Table header
-  doc.setFillColor(30, 41, 59);
+  doc.setFillColor(31, 41, 55);
   doc.rect(15, currentY, 180, 6, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
@@ -961,7 +978,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
       doc.text(modeStr.slice(0, 24), 140, currentY + 4.5);
 
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(225, 29, 72);
+      doc.setTextColor(0, 0, 0);
       doc.text(`-${item.amount.toFixed(2)} DT`, 192, currentY + 4.5, { align: "right" });
 
       currentY += 6.5;
@@ -973,30 +990,31 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   const sigY = Math.max(currentY + 6, 238);
 
   doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(203, 213, 225);
+  doc.setDrawColor(156, 163, 175);
+  doc.setLineWidth(0.6);
   doc.roundedRect(15, sigY, 180, 28, 2, 2, "DF");
 
   // Left signature: Caissier
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(30, 41, 59);
+  doc.setTextColor(0, 0, 0);
   doc.text("Arrêté de Caisse par le Caissier / Secrétaire :", 20, sigY + 5.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text(`Établi par : ${data.adminName || "Responsable Caisse"}`, 20, sigY + 9.5);
   doc.text("Certifie l'exactitude des espèces et chèques en caisse physique.", 20, sigY + 13.5);
-  doc.setDrawColor(203, 213, 225);
+  doc.setDrawColor(156, 163, 175);
   doc.line(20, sigY + 23, 85, sigY + 23);
 
   // Right signature: Direction
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(30, 41, 59);
+  doc.setTextColor(0, 0, 0);
   doc.text("Validation & Visa Direction Générale :", 115, sigY + 5.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(75, 85, 99);
   doc.text(`Contrôle journalier arrêté le ${dateFormatted}`, 115, sigY + 9.5);
   doc.text("Signature et cachet officiel de l'établissement.", 115, sigY + 13.5);
   doc.line(115, sigY + 23, 185, sigY + 23);
