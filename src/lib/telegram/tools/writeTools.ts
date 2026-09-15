@@ -319,8 +319,13 @@ ${breakdownLines.join("\n")}`;
     summary: `Paiement ${args.amount} DT réparti pour ${studentFullName} (${paymentsToProcess.length} mois)`,
     data: {
       studentName: studentFullName,
+      studentId: student.id,
       paymentsCount: paymentsToProcess.length,
       affectedMonths: paymentsToProcess.map((p) => formatMonthFrench(p.monthYear)),
+      payments: upsertedPayments,
+      amount: args.amount,
+      targetMonth,
+      targetYear,
     },
   };
 }

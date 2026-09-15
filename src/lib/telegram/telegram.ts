@@ -464,3 +464,55 @@ export async function setTelegramBotCommands(
   });
   return await res.json();
 }
+
+/**
+ * Send a document/file (PDF, spreadsheet, image) to a Telegram chat.
+ * Uses native multipart/form-data via Node 18+ FormData & Blob.
+ */
+export async function sendTelegramDocument(
+  chatId: string | number,
+  fileBuffer: Buffer,
+  filename: string,
+  options?: {
+    caption?: string;
+    parse_mode?: "HTML" | "Markdown";
+    reply_markup?: TelegramReplyMarkup;
+  }
+): Promise<any> {
+  const token = getBotToken();
+  const url = `${TELEGRAM_API_BASE}/bot${token}/sendDocument`;
+
+  try {
+    const formData = new FormData();
+    formData.append("chat_id", chatId.toString());
+
+    // Convert Node Buffer to a Blob
+    const blob = new Blob([new Uint8Array(fileBuffer)], { type: "application/pdf" });
+    formData.append("document", blob, filename);
+
+    if (options?.caption) {
+      formData.append("caption", options.caption);
+    }
+    if (options?.parse_mode) {
+      formData.append("parse_mode", options.parse_mode);
+    }
+    if (options?.reply_markup) {
+      formData.append("reply_markup", JSON.stringify(options.reply_markup));
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!data.ok) {
+      console.error("[Telegram] sendDocument error:", data);
+    }
+    return data;
+  } catch (error) {
+    console.error("[Telegram] sendTelegramDocument fetch failed:", error);
+    return { ok: false, error };
+  }
+}
+

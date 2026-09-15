@@ -3,6 +3,7 @@ import { answerTelegramCallbackQuery, editTelegramMessageText } from "./telegram
 import { formatTelegramMessage } from "./formatter";
 import { TOOLS } from "./tools";
 import { ToolContext } from "./tools/readTools";
+import { deliverTuitionReceipt, deliverSalaryPayslip } from "./tools/documentTools";
 
 export interface CallbackQueryPayload {
   id: string;
@@ -158,6 +159,7 @@ export async function handleConfirmationCallback(
         [tgAccount.admin.name, tgAccount.admin.surname].filter(Boolean).join(" ") ||
         tgAccount.admin.username,
       language: tgAccount.language,
+      chatId: String(chatId),
     };
 
     // STEP A: Execute the tool — separate from UI update to prevent state inversion
@@ -232,6 +234,101 @@ export async function handleConfirmationCallback(
       }
     } catch (editErr) {
       console.warn("[Confirmation] Failed to edit Telegram message (non-critical — action already saved to DB):", editErr);
+    }
+
+    // STEP C: Automatically generate & deliver official PDF document (Receipt / Payslip)
+    if (!toolError && executionResult?.success) {
+      try {
+        const schoolName = tgAccount.School.name;
+        const schoolId = tgAccount.schoolId;
+        const adminName = context.adminName;
+        const args = (toolCall.arguments || {}) as Record<string, any>;
+        const data = executionResult.data || {};
+
+        if (toolCall.toolName === "record_payment") {
+          const studentId = data.studentId;
+          if (studentId) {
+            await deliverTuitionReceipt({
+              studentId,
+              schoolId,
+              schoolName,
+              adminName,
+              chatId,
+              month: data.targetMonth || args.month,
+              year: data.targetYear || args.year,
+              amountOverride: data.amount || args.amount,
+            });
+          }
+        } else if (toolCall.toolName === "record_parent_payment") {
+          const allocations = data.allocations || [];
+          for (const alloc of allocations) {
+            if (alloc.studentId && alloc.amount > 0) {
+              await deliverTuitionReceipt({
+                studentId: alloc.studentId,
+                schoolId,
+                schoolName,
+                adminName,
+                chatId,
+                month: args.month,
+                year: args.year,
+                amountOverride: alloc.amount,
+              });
+            }
+          }
+        } else if (toolCall.toolName === "recover_partial_payment") {
+          const studentId = data.studentId;
+          if (studentId) {
+            await deliverTuitionReceipt({
+              studentId,
+              schoolId,
+              schoolName,
+              adminName,
+              chatId,
+              month: args.month,
+              year: args.year,
+              amountOverride: data.recoveredAmount || args.amount,
+            });
+          }
+        } else if (toolCall.toolName === "pay_teacher_salary") {
+          const teacherId = data.teacherId;
+          if (teacherId) {
+            await deliverSalaryPayslip({
+              employeeId: teacherId,
+              employeeType: "TEACHER",
+              schoolId,
+              schoolName,
+              adminName,
+              chatId,
+              month: data.month || args.month,
+              year: data.year || args.year,
+              amountOverride: data.amount || args.amount,
+              isAdvance: data.isAdvance,
+              missedHours: data.missedHours,
+              deductionsAmount: data.deductionAmount,
+              remainingAfter: data.remainingAfter,
+            });
+          }
+        } else if (toolCall.toolName === "pay_staff_salary") {
+          const staffId = data.staffId;
+          if (staffId) {
+            await deliverSalaryPayslip({
+              employeeId: staffId,
+              employeeType: "STAFF",
+              schoolId,
+              schoolName,
+              adminName,
+              chatId,
+              month: data.month || args.month,
+              year: data.year || args.year,
+              amountOverride: data.amount || args.amount,
+              isAdvance: data.isAdvance,
+              remainingAfter: data.remainingAfter,
+            });
+          }
+        }
+      } catch (pdfErr) {
+        console.warn("[Confirmation] Automatic PDF delivery error (non-critical):", pdfErr);
+      }
     }
   }
 }

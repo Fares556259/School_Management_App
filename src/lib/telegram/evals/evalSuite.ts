@@ -4,6 +4,8 @@ import { resolveStudentByName, resolveParentByName } from "@/lib/telegram/tools/
 import { isCorrectionMessage } from "@/lib/telegram/feedback";
 import { buildNameSearchConditions } from "@/lib/telegram/tools/nameSearch";
 import { formatTelegramMessage } from "@/lib/telegram/formatter";
+import { generateTuitionReceiptPdf, generateSalaryPayslipPdf } from "@/lib/pdf/receipts";
+import { TOOLS, getGeminiFunctionDeclarations } from "@/lib/telegram/tools";
 
 export interface EvalResult {
   name: string;
@@ -183,6 +185,79 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     const { transcribeTelegramVoice } = await import("@/lib/telegram/voice");
     if (typeof transcribeTelegramVoice !== "function") {
       throw new Error("transcribeTelegramVoice doit être une fonction exportée");
+    }
+  });
+
+  // ── TEST 2g: Génération Reçu de Scolarité PDF (jsPDF) ────────────────────
+  await runTestCase("Génération haute fidélité du Reçu de Scolarité PDF (jsPDF)", async () => {
+    const receipt = await generateTuitionReceiptPdf({
+      schoolName: "École Privée Les Lumières",
+      receiptNumber: "REC-202609-00123",
+      paymentDate: new Date(),
+      studentName: "Wiem Marzouki",
+      studentClass: "1A",
+      parentName: "Fares Selmi",
+      parentPhone: "+216 20 123 456",
+      periodFrench: "Septembre 2026",
+      amountPaid: 100,
+      tuitionFee: 100,
+      remainingDue: 0,
+      adminName: "Fares Selmi",
+    });
+
+    if (!receipt.buffer || receipt.buffer.length < 3000) {
+      throw new Error(`Buffer PDF invalide ou trop petit (${receipt.buffer?.length} bytes)`);
+    }
+    if (!receipt.filename.startsWith("Recu_") || !receipt.filename.endsWith(".pdf")) {
+      throw new Error(`Nom de fichier PDF inattendu : ${receipt.filename}`);
+    }
+  });
+
+  // ── TEST 2h: Génération Bulletin de Paie PDF (jsPDF) ─────────────────────
+  await runTestCase("Génération haute fidélité du Bulletin de Paie PDF (jsPDF)", async () => {
+    const payslip = await generateSalaryPayslipPdf({
+      schoolName: "École Privée Les Lumières",
+      payslipNumber: "BUL-202609-00042",
+      paymentDate: new Date(),
+      employeeName: "Mohamed Trabelsi",
+      employeeRole: "Enseignant Mathématiques",
+      employeeType: "TEACHER",
+      periodFrench: "Septembre 2026",
+      baseSalary: 600,
+      hourlyRate: 15,
+      missedHours: 2,
+      deductionsAmount: 30,
+      netPaid: 570,
+      remainingDue: 0,
+      adminName: "Fares Selmi",
+    });
+
+    if (!payslip.buffer || payslip.buffer.length < 3000) {
+      throw new Error(`Buffer PDF bulletin invalide ou trop petit (${payslip.buffer?.length} bytes)`);
+    }
+    if (!payslip.filename.startsWith("Bulletin_Paie_") || !payslip.filename.endsWith(".pdf")) {
+      throw new Error(`Nom de fichier bulletin inattendu : ${payslip.filename}`);
+    }
+  });
+
+  // ── TEST 2i: Enregistrement des outils PDF dans TOOLS et Gemini ──────────
+  await runTestCase("Disponibilité des outils de documents (get_payment_receipt & get_salary_payslip)", async () => {
+    if (!TOOLS.get_payment_receipt) {
+      throw new Error("L'outil 'get_payment_receipt' n'est pas enregistré dans TOOLS !");
+    }
+    if (!TOOLS.get_salary_payslip) {
+      throw new Error("L'outil 'get_salary_payslip' n'est pas enregistré dans TOOLS !");
+    }
+
+    const decls = getGeminiFunctionDeclarations();
+    const hasReceiptDecl = decls.some((d) => d.name === "get_payment_receipt");
+    const hasPayslipDecl = decls.some((d) => d.name === "get_salary_payslip");
+
+    if (!hasReceiptDecl) {
+      throw new Error("La déclaration de fonction Gemini pour 'get_payment_receipt' est manquante !");
+    }
+    if (!hasPayslipDecl) {
+      throw new Error("La déclaration de fonction Gemini pour 'get_salary_payslip' est manquante !");
     }
   });
 

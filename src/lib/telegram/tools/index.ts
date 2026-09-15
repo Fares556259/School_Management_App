@@ -111,6 +111,12 @@ import {
   cancelReminderTool,
 } from "./reminderTools";
 
+// Suite 10: Official PDF Documents & Receipts
+import {
+  getPaymentReceiptTool,
+  getSalaryPayslipTool,
+} from "./documentTools";
+
 
 export interface ToolDefinition {
   name: string;
@@ -1908,6 +1914,48 @@ Confirmer l'enregistrement de cette dépense ?`;
       },
     },
     execute: cancelReminderTool,
+  },
+
+  // ── OFFICIAL PDF DOCUMENTS & RECEIPTS SUITE ───────────────────────────────
+  get_payment_receipt: {
+    name: "get_payment_receipt",
+    description: "Générer et envoyer directement en pièce jointe PDF dans Telegram le reçu officiel de paiement de scolarité pour un élève (avec cachet officiel de l'école, N° de quittance et détail du règlement). À utiliser dès que l'administrateur demande le reçu ('donne-moi le reçu de Wiem', 'reçu de scolarité', 'quittance de paiement', 'reçu pdf').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_payment_receipt",
+      description: "Générer et envoyer le reçu officiel de paiement de scolarité en document PDF dans Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom, prénom ou ID de l'élève concerné." },
+          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12, optionnel. Par défaut: mois en cours)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel. Par défaut: année en cours)." },
+        },
+        required: ["studentNameOrId"],
+      },
+    },
+    execute: getPaymentReceiptTool,
+  },
+
+  get_salary_payslip: {
+    name: "get_salary_payslip",
+    description: "Générer et envoyer directement en pièce jointe PDF dans Telegram le bulletin de paie (fiche de salaire) officiel pour un enseignant ou membre du personnel (avec détail salaire de base, retenues, avances, net versé et cachet officiel). À utiliser quand l'administrateur demande le bulletin ou la fiche de paie ('fiche de paie de Mohamed', 'bulletin de salaire enseignant', 'fiche de paie pdf').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_salary_payslip",
+      description: "Générer et envoyer la fiche de paie officielle en document PDF dans Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          nameOrId: { type: SchemaType.STRING, description: "Nom, prénom ou ID de l'enseignant ou du personnel." },
+          userType: { type: SchemaType.STRING, description: "'TEACHER' pour enseignant (par défaut), ou 'STAFF' pour personnel." },
+          month: { type: SchemaType.NUMBER, description: "Numéro du mois (1 à 12, optionnel. Par défaut: mois en cours)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel. Par défaut: année en cours)." },
+        },
+        required: ["nameOrId"],
+      },
+    },
+    execute: getSalaryPayslipTool,
   },
 };
 

@@ -739,7 +739,7 @@ export async function payTeacherSalaryTool(
       },
     });
 
-    return { paymentRecord, newTotalPaid, deductionAmount };
+    return { paymentRecord, newTotalPaid, deductionAmount, missedHours: newMissedHours };
   });
 
   invalidateTenantTags(context.schoolId, "teachers", "finance", "expenses", "dashboard");
@@ -758,7 +758,20 @@ export async function payTeacherSalaryTool(
     success: true,
     message: resultMsg,
     summary: `${isAdvance ? "Avance" : "Salaire"} ${teacherFullName} (${args.amount} DT)`,
-    data: { paymentId: result.paymentRecord.id, remainingAfter },
+    data: {
+      paymentId: result.paymentRecord.id,
+      remainingAfter,
+      teacherId: teacher.id,
+      teacherName: teacherFullName,
+      amount: args.amount,
+      month,
+      year,
+      isAdvance,
+      baseSalary,
+      missedHours: result.missedHours,
+      deductionAmount: result.deductionAmount,
+      totalPaid: result.newTotalPaid,
+    },
   };
 }
 
@@ -874,6 +887,18 @@ export async function payStaffSalaryTool(
     success: true,
     message: resultMsg,
     summary: `${isAdvance ? "Avance" : "Salaire"} staff ${staffFullName} (${args.amount} DT)`,
-    data: { paymentId: result.paymentRecord.id, remainingAfter },
+    data: {
+      paymentId: result.paymentRecord.id,
+      remainingAfter,
+      staffId: staff.id,
+      staffName: staffFullName,
+      role: staff.role || "Staff",
+      amount: args.amount,
+      month,
+      year,
+      isAdvance,
+      baseSalary,
+      totalPaid: result.newTotal,
+    },
   };
 }
