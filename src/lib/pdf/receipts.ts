@@ -236,7 +236,7 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   const truncatedSchool = school.length > 22 ? school.slice(0, 20) + "..." : school;
   doc.text(truncatedSchool.toUpperCase(), 165, 91, { align: "center" });
   doc.setFontSize(8.5);
-  doc.text("★ PAYÉ & ACQUITTÉ ★", 165, 97, { align: "center" });
+  doc.text("• PAYÉ & ACQUITTÉ •", 165, 97, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
   doc.text(`Le ${formatDate(data.paymentDate)} • Visa Direction`, 165, 103, { align: "center" });
@@ -258,7 +258,7 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   );
 
   // ═════════════════════════════════════════════════════════════
-  // LIGNE MÉDIANE DE DÉCOUPE ✂️
+  // LIGNE MÉDIANE DE DÉCOUPE (CISEAUX)
   // ═════════════════════════════════════════════════════════════
   const cutY = 122;
   doc.setDrawColor(148, 163, 184);
@@ -270,7 +270,7 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   doc.setFontSize(6.8);
   doc.setTextColor(100, 116, 139);
   doc.text(
-    "✂   LIGNE DE DÉCOUPE  —  DETACHER LE VOLET PARENT (HAUT) ET CONSERVER LA SOUCHE (BAS)   ✂",
+    "- - - - - - - - - - -   LIGNE DE DÉCOUPE : DÉTACHER LE VOLET PARENT (HAUT) ET CONSERVER LA SOUCHE (BAS)   - - - - - - - - - - -",
     105,
     cutY + 3.5,
     { align: "center" }
@@ -360,22 +360,22 @@ export async function generateTuitionReceiptPdf(data: TuitionReceiptData): Promi
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.8);
   doc.setTextColor(79, 70, 229);
-  doc.text("📎 RÈGLEMENT PAR CHÈQUE & JUSTIFICATIF COMPTABLE (Emplacement pour agrafer la pièce) :", 20, checkY + 6);
+  doc.text("[ARCHIVE] RÈGLEMENT PAR CHÈQUE & JUSTIFICATIF (Emplacement chèque) :", 20, checkY + 5.5);
 
   const isCheck = Boolean(data.checkNumber || data.paymentMethod?.toLowerCase().includes("chèque"));
   const checkNum = data.checkNumber || "______________";
   const bankStr = data.bankName || "______________";
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.8);
   doc.setTextColor(51, 65, 85);
-  doc.text(`[ ${isCheck ? "X" : " "} ] CHÈQUE N° : ${checkNum}     BANQUE : ${bankStr}     ÉCHÉANCE : ${formatDate(data.paymentDate)}`, 20, checkY + 12);
-  doc.text(`[ ${!isCheck ? "X" : " "} ] ESPÈCES       [   ] VIREMENT       [   ] DÉPÔT BANCAIRE DIRECT`, 20, checkY + 17.5);
+  doc.text(`[ ${isCheck ? "X" : " "} ] CHÈQUE N° : ${checkNum}     BANQUE : ${bankStr}     ÉCHÉANCE : ${formatDate(data.paymentDate)}`, 20, checkY + 11.5);
+  doc.text(`[ ${!isCheck ? "X" : " "} ] ESPÈCES         [   ] VIREMENT BANCAIRE         [   ] DÉPÔT DIRECT`, 20, checkY + 16.5);
 
   doc.setFont("helvetica", "italic");
   doc.setFontSize(6.8);
   doc.setTextColor(100, 116, 139);
-  doc.text("Agrafer le chèque physique ou la copie de pièce ici pour le classeur comptable.", 190, checkY + 17.5, { align: "right" });
+  doc.text("* Agrafer le chèque physique ou la copie de pièce ici pour le classeur comptable.", 20, checkY + 21);
 
   // Signatures on souche
   const sigY = checkY + 26;
@@ -808,20 +808,20 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(51, 65, 85);
-  doc.text(`💵 Espèces en caisse : `, 19, breakY + 8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text("Espèces :", 20, breakY + 8.5);
   doc.setFont("helvetica", "bold");
-  doc.text(`${data.totalCash.toFixed(2)} DT`, 48, breakY + 8.5);
+  doc.text(`${data.totalCash.toFixed(2)} DT`, 35, breakY + 8.5);
 
   doc.setFont("helvetica", "normal");
-  doc.text(`🏦 Chèques au classeur : `, 82, breakY + 8.5);
+  doc.text("Chèques au classeur :", 75, breakY + 8.5);
   doc.setFont("helvetica", "bold");
-  doc.text(`${data.totalChecks.toFixed(2)} DT (${data.checkCount} chèque${data.checkCount > 1 ? "s" : ""})`, 117, breakY + 8.5);
+  doc.text(`${data.totalChecks.toFixed(2)} DT (${data.checkCount} chq)`, 108, breakY + 8.5);
 
   doc.setFont("helvetica", "normal");
-  doc.text(`💳 Virements : `, 158, breakY + 8.5);
+  doc.text("Virements :", 155, breakY + 8.5);
   doc.setFont("helvetica", "bold");
-  doc.text(`${(data.totalTransfers ?? 0).toFixed(2)} DT`, 178, breakY + 8.5);
+  doc.text(`${(data.totalTransfers ?? 0).toFixed(2)} DT`, 172, breakY + 8.5);
 
   let currentY = 70;
 
