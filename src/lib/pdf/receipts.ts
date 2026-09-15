@@ -698,301 +698,390 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   const school = data.schoolName || "SnapSchool";
   const dateFormatted = formatDate(data.date);
 
-  const drawHeader = (pageNum: number) => {
-    // Top brand stripe
-    doc.setFillColor(15, 23, 42); // Slate 900
+  // 1. Helper to extract Client/Tiers vs Description from item label
+  const parseTransactionLabel = (item: {
+    label: string;
+    categoryOrClass?: string;
+    type: "IN" | "OUT";
+  }): { client: string; description: string } => {
+    let client = "";
+    let description = "";
+
+    const clean = item.label.trim();
+    if (clean.toLowerCase().startsWith("scolarité")) {
+      // E.g. "Scolarité Wiem Marzouki (Septembre 2026)"
+      const parts = clean.replace(/^scolarit[ée]\s*[:\-]?\s*/i, "").trim();
+      const parenMatch = parts.match(/^(.*?)\s*\((.*?)\)$/);
+      if (parenMatch) {
+        client = parenMatch[1].trim();
+        description = parenMatch[2].trim();
+      } else {
+        client = parts;
+        description = "Scolarité mensuelle";
+      }
+      if (item.categoryOrClass && !client.includes(item.categoryOrClass)) {
+        client += ` (${item.categoryOrClass})`;
+      }
+    } else if (clean.toLowerCase().startsWith("frais")) {
+      client = item.categoryOrClass || "Élève / Adhérent";
+      description = clean;
+    } else if (clean.toLowerCase().startsWith("fournitures") || clean.toLowerCase().startsWith("achat")) {
+      client = "Fournisseur Bureau";
+      description = clean;
+    } else if (clean.toLowerCase().startsWith("réparation") || clean.toLowerCase().startsWith("maintenance")) {
+      client = "Prestataire Maintenance";
+      description = clean;
+    } else {
+      client = item.categoryOrClass || (item.type === "IN" ? "Client / Parent" : "Fournisseur");
+      description = clean;
+    }
+
+    return { client, description };
+  };
+
+  // 2. Merge and chronologically sort all transactions
+  type UnifiedTx = {
+    time: string;
+    type: "IN" | "OUT";
+    client: string;
+    description: string;
+    method: string;
+    amount: number;
+    runningBalance: number;
+  };
+
+  const rawTxList = [
+    ...data.inflowItems.map((item) => {
+      const parsed = parseTransactionLabel({ label: item.label, categoryOrClass: item.categoryOrClass, type: "IN" });
+      const methodStr = item.checkDetails ? `Chq ${item.checkDetails}` : (item.method || "Espèces");
+      return {
+        time: item.time || "",
+        type: "IN" as const,
+        client: parsed.client,
+        description: parsed.description,
+        method: methodStr,
+        amount: item.amount,
+      };
+    }),
+    ...data.outflowItems.map((item) => {
+      const parsed = parseTransactionLabel({ label: item.label, categoryOrClass: item.categoryOrClass, type: "OUT" });
+      return {
+        time: item.time || "",
+        type: "OUT" as const,
+        client: parsed.client,
+        description: parsed.description,
+        method: item.method || "Espèces",
+        amount: item.amount,
+      };
+    }),
+  ].sort((a, b) => a.time.localeCompare(b.time));
+
+  let running = 0;
+  const allTransactions: UnifiedTx[] = rawTxList.map((item) => {
+    if (item.type === "IN") {
+      running += item.amount;
+    } else {
+      running -= item.amount;
+    }
+    return {
+      ...item,
+      runningBalance: running,
+    };
+  });
+
+  const drawHeader = (pageNum: number, totalPages: number) => {
+    // Top brand stripe (Slate 900)
+    doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 210, 4, "F");
 
-    // School header
+    // Left: School & Subtitle
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text(school.toUpperCase(), 15, 12);
+    doc.setFontSize(13);
+    doc.setTextColor(0, 0, 0);
+    doc.text(school.toUpperCase(), 15, 12.5);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text("Direction Financière & Comptabilité • Bordereau Journalier de Caisse", 15, 17);
+    doc.setTextColor(75, 85, 99);
+    doc.text("Établissement Scolaire Privé • Direction & Comptabilité", 15, 17.5);
 
-    // Top Right Meta Box
+    // Right: Date & Meta Box
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(15, 23, 42);
-    doc.text("CLÔTURE JOURNALIÈRE DE CAISSE", 195, 12, { align: "right" });
+    doc.setFontSize(8.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`DATE : ${dateFormatted.toUpperCase()}`, 195, 12.5, { align: "right" });
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Journée du ${dateFormatted} • Page ${pageNum}`, 195, 17, { align: "right" });
+    doc.setTextColor(75, 85, 99);
+    doc.text(`Caisse Principale • Page ${pageNum}/${totalPages}`, 195, 17.5, { align: "right" });
+    doc.text(`Responsable : ${data.adminName || "Direction"}`, 195, 22, { align: "right" });
 
-    // Divider
-    doc.setDrawColor(226, 232, 240);
+    // Center Title Banner (Dedicated, no collision)
+    doc.setFillColor(245, 245, 245);
+    doc.setDrawColor(156, 163, 175);
     doc.setLineWidth(0.5);
-    doc.line(15, 20, 195, 20);
+    doc.rect(15, 24.5, 180, 8, "DF");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text("LIVRE DE CAISSE  —  JOURNAL DES ENTRÉES ET SORTIES", 105, 29.8, { align: "center" });
+
+    // Sub-Banner: Instruction on left + Solde on right
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(17, 24, 39);
+    doc.text("Entrez les montants dans l'ordre chronologique :", 15, 36.5);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(0, 0, 0);
+    const netSign = data.netBalance >= 0 ? "+" : "";
+    doc.text(`SOLDE DE CAISSE : ${netSign}${data.netBalance.toFixed(2)} DT`, 195, 36.5, { align: "right" });
   };
+
+  // Table Column geometry matching media_1789452942313.png + Solde:
+  // 1. Date (16mm) [15 -> 31]
+  // 2. Client ou Fournisseur (38mm) [31 -> 69]
+  // 3. Description (44mm) [69 -> 113]
+  // 4. Sortie de caisse (20mm) [113 -> 133]
+  // 5. Entrée de caisse (20mm) [133 -> 153]
+  // 6. Type (21mm) [153 -> 174]
+  // 7. Solde (21mm) [174 -> 195]
+  // Total = 16 + 38 + 44 + 20 + 20 + 21 + 21 = 180mm.
+  const COL_X = [15, 31, 69, 113, 133, 153, 174, 195];
+  const ROW_HEIGHT = 6.4;
+  const ROWS_PER_PAGE = 22;
+
+  const totalPages = Math.max(1, Math.ceil(Math.max(allTransactions.length, 1) / ROWS_PER_PAGE));
 
   let pageNum = 1;
-  drawHeader(pageNum);
+  drawHeader(pageNum, totalPages);
 
-  // Document Title Banner
-  doc.setFillColor(245, 245, 245);
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(15, 23, 180, 7.5, 1.5, 1.5, "DF");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(0, 0, 0);
-  doc.text(
-    `ÉTAT DE CAISSE & SITUATION FINANCIÈRE DU ${dateFormatted.toUpperCase()}`,
-    105,
-    27.8,
-    { align: "center" }
-  );
+  let tableStartY = 39.5;
+  const HEADER_HEIGHT = 8.5;
 
-  // 3 KPI Cards (Y = 33, height 18mm)
-  const cardY = 33;
-  const cardW = 57;
-  const cardH = 18;
+  const drawTableHeader = (startY: number) => {
+    // Header background: Charcoal Slate
+    doc.setFillColor(31, 41, 55);
+    doc.rect(15, startY, 180, HEADER_HEIGHT, "F");
 
-  // Card 1: Total Recettes (Inflows)
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(156, 163, 175);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(15, cardY, cardW, cardH, 2, 2, "DF");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(75, 85, 99);
-  doc.text("TOTAL RECETTES (+)", 19, cardY + 5.5);
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`+${data.totalIncomes.toFixed(2)} DT`, 19, cardY + 12);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`${data.inflowItems.length} encaissement(s)`, 19, cardY + 16);
-
-  // Card 2: Total Dépenses (Outflows)
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(156, 163, 175);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(76.5, cardY, cardW, cardH, 2, 2, "DF");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(75, 85, 99);
-  doc.text("TOTAL DÉPENSES (-)", 80.5, cardY + 5.5);
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`-${data.totalExpenses.toFixed(2)} DT`, 80.5, cardY + 12);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(107, 114, 128);
-  doc.text(`${data.outflowItems.length} décaissement(s)`, 80.5, cardY + 16);
-
-  // Card 3: Solde Net (Net Balance) — Prominent card with high contrast border
-  const isNetPositive = data.netBalance >= 0;
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(17, 24, 39);
-  doc.setLineWidth(1.2);
-  doc.roundedRect(138, cardY, cardW, cardH, 2, 2, "DF");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(0, 0, 0);
-  doc.text("SOLDE NET DU JOUR (=)", 142, cardY + 5.5);
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`${isNetPositive ? "+" : ""}${data.netBalance.toFixed(2)} DT`, 142, cardY + 12);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(55, 65, 81);
-  doc.text(isNetPositive ? "Excédent de caisse" : "Déficit journalier", 142, cardY + 16);
-
-  // Payment Breakdown Bar (Cash vs Checks)
-  const breakY = 54;
-  doc.setFillColor(250, 250, 250);
-  doc.setDrawColor(209, 213, 219);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(15, breakY, 180, 11, 2, 2, "DF");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(0, 0, 0);
-  doc.text("VENTILATION PAR MODE DE PAIEMENT :", 19, breakY + 4.5);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(75, 85, 99);
-  doc.text("Espèces :", 20, breakY + 8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text(`${data.totalCash.toFixed(2)} DT`, 35, breakY + 8.5);
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(75, 85, 99);
-  doc.text("Chèques au classeur :", 75, breakY + 8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text(`${data.totalChecks.toFixed(2)} DT (${data.checkCount} chq)`, 108, breakY + 8.5);
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(75, 85, 99);
-  doc.text("Virements :", 155, breakY + 8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text(`${(data.totalTransfers ?? 0).toFixed(2)} DT`, 172, breakY + 8.5);
-
-  let currentY = 70;
-
-  const checkAddPage = (neededHeight: number) => {
-    if (currentY + neededHeight > 248) {
-      doc.addPage();
-      pageNum++;
-      drawHeader(pageNum);
-      currentY = 28;
+    // Header grid borders
+    doc.setDrawColor(17, 24, 39);
+    doc.setLineWidth(0.5);
+    doc.rect(15, startY, 180, HEADER_HEIGHT, "S");
+    for (let i = 1; i < COL_X.length - 1; i++) {
+      doc.line(COL_X[i], startY, COL_X[i], startY + HEADER_HEIGHT);
     }
+
+    // Header titles in white bold (stacked matching media_1789452942313.png)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(255, 255, 255);
+    doc.text("Date", 23, startY + 5.4, { align: "center" });
+    doc.text("Client ou Fournisseur", 50, startY + 5.4, { align: "center" });
+    doc.text("Description", 91, startY + 5.4, { align: "center" });
+
+    // Stacked Sortie de caisse (-)
+    doc.setFontSize(6.8);
+    doc.text("Sortie de", 123, startY + 3.6, { align: "center" });
+    doc.text("caisse (-)", 123, startY + 7.0, { align: "center" });
+
+    // Stacked Entrée de caisse (+)
+    doc.text("Entrée de", 143, startY + 3.6, { align: "center" });
+    doc.text("caisse (+)", 143, startY + 7.0, { align: "center" });
+
+    doc.setFontSize(7.2);
+    doc.text("Type", 163.5, startY + 5.4, { align: "center" });
+    doc.text("Solde", 184.5, startY + 5.4, { align: "center" });
   };
 
-  // Section 1: Inflow Table
-  checkAddPage(20);
+  drawTableHeader(tableStartY);
+
+  let currentY = tableStartY + HEADER_HEIGHT;
+  let txIndex = 0;
+
+  for (let r = 0; r < ROWS_PER_PAGE; r++) {
+    const hasTx = txIndex < allTransactions.length;
+    const item = hasTx ? allTransactions[txIndex] : null;
+
+    // Alternating subtle background fill
+    const isEven = r % 2 === 0;
+    doc.setFillColor(isEven ? 255 : 250, isEven ? 255 : 250, isEven ? 255 : 250);
+    doc.rect(15, currentY, 180, ROW_HEIGHT, "F");
+
+    // Grid cell lines (exact accounting book grid)
+    doc.setDrawColor(180, 185, 195);
+    doc.setLineWidth(0.35);
+    doc.rect(15, currentY, 180, ROW_HEIGHT, "S");
+    for (let i = 1; i < COL_X.length - 1; i++) {
+      doc.line(COL_X[i], currentY, COL_X[i], currentY + ROW_HEIGHT);
+    }
+
+    if (item) {
+      // 1. Date / Heure
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(75, 85, 99);
+      doc.text(item.time || "—", 23, currentY + 4.4, { align: "center" });
+
+      // 2. Client ou Fournisseur
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(0, 0, 0);
+      const cleanClient = item.client.length > 25 ? item.client.slice(0, 23) + "..." : item.client;
+      doc.text(cleanClient, 33, currentY + 4.4);
+
+      // 3. Description
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(55, 65, 81);
+      const cleanDesc = item.description.length > 32 ? item.description.slice(0, 30) + "..." : item.description;
+      doc.text(cleanDesc, 71, currentY + 4.4);
+
+      // 4. Sortie de caisse
+      if (item.type === "OUT") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.5);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${item.amount.toFixed(2)} DT`, 131, currentY + 4.4, { align: "right" });
+      }
+
+      // 5. Entrée de caisse
+      if (item.type === "IN") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.5);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${item.amount.toFixed(2)} DT`, 151, currentY + 4.4, { align: "right" });
+      }
+
+      // 6. Type (Espèces, Chèque...)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(75, 85, 99);
+      const cleanMethod = item.method.length > 14 ? item.method.slice(0, 12) + ".." : item.method;
+      doc.text(cleanMethod, 163.5, currentY + 4.4, { align: "center" });
+
+      // 7. Solde
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.2);
+      doc.setTextColor(0, 0, 0);
+      const soldePrefix = item.runningBalance >= 0 ? "" : "-";
+      doc.text(`${soldePrefix}${Math.abs(item.runningBalance).toFixed(2)} DT`, 193, currentY + 4.4, {
+        align: "right",
+      });
+
+      txIndex++;
+    }
+
+    currentY += ROW_HEIGHT;
+  }
+
+  // ═════════════════════════════════════════════════════════════
+  // BOTTOM SECTION : RÉCAPITULATIF & CADRE DE TOTALISATION (IMAGE RÉFÉRENCE 2)
+  // ═════════════════════════════════════════════════════════════
+  const bottomY = currentY + 4;
+
+  // 1. Right side: The exact 3-row Summary Table from media_1789452880108.png
+  // Total des entrées | Total des sorties | Solde total
+  const sumBoxX = 110;
+  const sumBoxW = 85;
+  const sumRowH = 7;
+
+  // Outer border & background
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(17, 24, 39);
+  doc.setLineWidth(0.8);
+  doc.rect(sumBoxX, bottomY, sumBoxW, sumRowH * 3, "DF");
+
+  // Middle horizontal lines
+  doc.setLineWidth(0.4);
+  doc.line(sumBoxX, bottomY + sumRowH, sumBoxX + sumBoxW, bottomY + sumRowH);
+  doc.line(sumBoxX, bottomY + sumRowH * 2, sumBoxX + sumBoxW, bottomY + sumRowH * 2);
+
+  // Vertical separator between label and amount
+  doc.line(sumBoxX + 48, bottomY, sumBoxX + 48, bottomY + sumRowH * 3);
+
+  // Row 1: Total des entrées
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
+  doc.text("Total des entrées", sumBoxX + 3, bottomY + 4.8);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.text(`+${data.totalIncomes.toFixed(2)} DT`, sumBoxX + sumBoxW - 3, bottomY + 4.8, { align: "right" });
+
+  // Row 2: Total des sorties
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
+  doc.text("Total des sorties", sumBoxX + 3, bottomY + sumRowH + 4.8);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.text(`-${data.totalExpenses.toFixed(2)} DT`, sumBoxX + sumBoxW - 3, bottomY + sumRowH + 4.8, {
+    align: "right",
+  });
+
+  // Row 3: Solde total (Prominent high contrast row)
+  doc.setFillColor(245, 245, 245);
+  doc.rect(sumBoxX, bottomY + sumRowH * 2, sumBoxW, sumRowH, "F");
+  doc.setLineWidth(0.8);
+  doc.rect(sumBoxX, bottomY + sumRowH * 2, sumBoxW, sumRowH, "S");
+  doc.line(sumBoxX + 48, bottomY + sumRowH * 2, sumBoxX + 48, bottomY + sumRowH * 3);
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(`1. RECETTES DU JOUR — ENTRÉES EN CAISSE (${data.inflowItems.length})`, 15, currentY);
-  currentY += 3.5;
+  doc.text("Solde total", sumBoxX + 3, bottomY + sumRowH * 2 + 5);
 
-  // Table header
-  doc.setFillColor(31, 41, 55);
-  doc.rect(15, currentY, 180, 6, "F");
+  doc.setFontSize(10);
+  const netPrefix = data.netBalance >= 0 ? "+" : "";
+  doc.text(`${netPrefix}${data.netBalance.toFixed(2)} DT`, sumBoxX + sumBoxW - 3, bottomY + sumRowH * 2 + 5, {
+    align: "right",
+  });
+
+  // 2. Left side: Situation des Espèces et Chèques physiques
+  const sitBoxX = 15;
+  const sitBoxW = 90;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(156, 163, 175);
+  doc.setLineWidth(0.5);
+  doc.rect(sitBoxX, bottomY, sitBoxW, sumRowH * 3, "DF");
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(255, 255, 255);
-  doc.text("HEURE", 18, currentY + 4.2);
-  doc.text("LIBELLÉ / ÉLÈVE", 35, currentY + 4.2);
-  doc.text("CLASSE / CATÉGORIE", 95, currentY + 4.2);
-  doc.text("MODE & DÉTAILS", 140, currentY + 4.2);
-  doc.text("MONTANT", 192, currentY + 4.2, { align: "right" });
-  currentY += 6;
-
-  if (data.inflowItems.length === 0) {
-    doc.setFillColor(255, 255, 255);
-    doc.rect(15, currentY, 180, 7, "F");
-    doc.setDrawColor(226, 232, 240);
-    doc.line(15, currentY + 7, 195, currentY + 7);
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184);
-    doc.text("Aucune recette enregistrée pour cette journée.", 105, currentY + 4.8, { align: "center" });
-    currentY += 7;
-  } else {
-    data.inflowItems.forEach((item, index) => {
-      checkAddPage(7);
-      const isEven = index % 2 === 0;
-      doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
-      doc.rect(15, currentY, 180, 6.5, "F");
-      doc.setDrawColor(241, 245, 249);
-      doc.line(15, currentY + 6.5, 195, currentY + 6.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(item.time || "—", 18, currentY + 4.5);
-
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      const cleanLabel = item.label.length > 34 ? item.label.slice(0, 32) + "..." : item.label;
-      doc.text(cleanLabel, 35, currentY + 4.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      const cleanCat = (item.categoryOrClass || "Scolarité").slice(0, 24);
-      doc.text(cleanCat, 95, currentY + 4.5);
-
-      const modeStr = item.checkDetails ? `Chq ${item.checkDetails}` : (item.method || "Espèces");
-      doc.text(modeStr.slice(0, 24), 140, currentY + 4.5);
-
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`+${item.amount.toFixed(2)} DT`, 192, currentY + 4.5, { align: "right" });
-
-      currentY += 6.5;
-    });
-  }
-
-  currentY += 4;
-
-  // Section 2: Outflow Table
-  checkAddPage(20);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
+  doc.setFontSize(7.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(`2. DÉPENSES DU JOUR — SORTIES DE CAISSE (${data.outflowItems.length})`, 15, currentY);
-  currentY += 3.5;
+  doc.text("SITUATION DES ESPÈCES & CHÈQUES :", sitBoxX + 3, bottomY + 4.8);
 
-  // Table header
-  doc.setFillColor(31, 41, 55);
-  doc.rect(15, currentY, 180, 6, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(255, 255, 255);
-  doc.text("HEURE", 18, currentY + 4.2);
-  doc.text("LIBELLÉ / MOTIF", 35, currentY + 4.2);
-  doc.text("CATÉGORIE", 95, currentY + 4.2);
-  doc.text("BÉNÉFICIAIRE / MODE", 140, currentY + 4.2);
-  doc.text("MONTANT", 192, currentY + 4.2, { align: "right" });
-  currentY += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.2);
+  doc.setTextColor(55, 65, 81);
+  doc.text(`• Espèces en caisse physique : ${data.totalCash.toFixed(2)} DT`, sitBoxX + 3, bottomY + 10.5);
+  doc.text(
+    `• Chèques physiques au classeur : ${data.totalChecks.toFixed(2)} DT (${data.checkCount} chèque(s))`,
+    sitBoxX + 3,
+    bottomY + 15.5
+  );
+  doc.text(
+    `• Virements / Dépôts bancaires : ${(data.totalTransfers ?? 0).toFixed(2)} DT`,
+    sitBoxX + 3,
+    bottomY + 19.5
+  );
 
-  if (data.outflowItems.length === 0) {
-    doc.setFillColor(255, 255, 255);
-    doc.rect(15, currentY, 180, 7, "F");
-    doc.setDrawColor(226, 232, 240);
-    doc.line(15, currentY + 7, 195, currentY + 7);
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184);
-    doc.text("Aucune dépense enregistrée pour cette journée.", 105, currentY + 4.8, { align: "center" });
-    currentY += 7;
-  } else {
-    data.outflowItems.forEach((item, index) => {
-      checkAddPage(7);
-      const isEven = index % 2 === 0;
-      doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
-      doc.rect(15, currentY, 180, 6.5, "F");
-      doc.setDrawColor(241, 245, 249);
-      doc.line(15, currentY + 6.5, 195, currentY + 6.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text(item.time || "—", 18, currentY + 4.5);
-
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      const cleanLabel = item.label.length > 34 ? item.label.slice(0, 32) + "..." : item.label;
-      doc.text(cleanLabel, 35, currentY + 4.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      const cleanCat = (item.categoryOrClass || "Général").slice(0, 24);
-      doc.text(cleanCat, 95, currentY + 4.5);
-
-      const modeStr = item.method || "Espèces";
-      doc.text(modeStr.slice(0, 24), 140, currentY + 4.5);
-
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`-${item.amount.toFixed(2)} DT`, 192, currentY + 4.5, { align: "right" });
-
-      currentY += 6.5;
-    });
-  }
-
-  // Signatures & Clôture box
-  checkAddPage(38);
-  const sigY = Math.max(currentY + 6, 238);
+  // ═════════════════════════════════════════════════════════════
+  // SIGNATURES & ARRETÉ OFFICIEL DE CAISSE
+  // ═════════════════════════════════════════════════════════════
+  const sigY = bottomY + sumRowH * 3 + 4;
+  const sigH = 25;
 
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(156, 163, 175);
-  doc.setLineWidth(0.6);
-  doc.roundedRect(15, sigY, 180, 28, 2, 2, "DF");
+  doc.setLineWidth(0.5);
+  doc.rect(15, sigY, 180, sigH, "DF");
+
+  // Vertical line separating Caissier and Direction
+  doc.line(105, sigY, 105, sigY + sigH);
 
   // Left signature: Caissier
   doc.setFont("helvetica", "bold");
@@ -1003,30 +1092,31 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   doc.setFontSize(6.5);
   doc.setTextColor(75, 85, 99);
   doc.text(`Établi par : ${data.adminName || "Responsable Caisse"}`, 20, sigY + 9.5);
-  doc.text("Certifie l'exactitude des espèces et chèques en caisse physique.", 20, sigY + 13.5);
+  doc.text("Certifie la régularité et l'exactitude des opérations.", 20, sigY + 13);
   doc.setDrawColor(156, 163, 175);
-  doc.line(20, sigY + 23, 85, sigY + 23);
+  doc.line(20, sigY + 21, 95, sigY + 21);
 
   // Right signature: Direction
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(0, 0, 0);
-  doc.text("Validation & Visa Direction Générale :", 115, sigY + 5.5);
+  doc.text("Validation & Visa Direction Générale :", 110, sigY + 5.5);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
   doc.setTextColor(75, 85, 99);
-  doc.text(`Contrôle journalier arrêté le ${dateFormatted}`, 115, sigY + 9.5);
-  doc.text("Signature et cachet officiel de l'établissement.", 115, sigY + 13.5);
-  doc.line(115, sigY + 23, 185, sigY + 23);
+  doc.text(`Contrôle journalier arrêté le ${dateFormatted}`, 110, sigY + 9.5);
+  doc.text("Signature et cachet officiel de l'établissement.", 110, sigY + 13);
+  doc.line(110, sigY + 21, 185, sigY + 21);
 
   // Bottom footer
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(107, 114, 128);
   doc.text(
-    `Bordereau journalier officiel de caisse • Établissement : ${school} • Édité via SnapSchool Finance`,
-    15,
-    273
+    `Livre de caisse officiel • Document comptable de référence • Établissement : ${school} • SnapSchool Finance`,
+    105,
+    278,
+    { align: "center" }
   );
 
   const cleanSchool = school.replace(/[^a-zA-Z0-9]/g, "_");

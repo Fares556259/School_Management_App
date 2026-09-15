@@ -298,7 +298,11 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     if (!dailyRegister.buffer || dailyRegister.buffer.length < 5000) {
       throw new Error(`Buffer PDF bordereau invalide ou trop petit (${dailyRegister.buffer?.length} bytes)`);
     }
-    if (!dailyRegister.filename.startsWith("Bordereau_Caisse_") || !dailyRegister.filename.endsWith(".pdf")) {
+    if (
+      (!dailyRegister.filename.startsWith("Bordereau_Caisse_") &&
+        !dailyRegister.filename.startsWith("Livre_Caisse_")) ||
+      !dailyRegister.filename.endsWith(".pdf")
+    ) {
       throw new Error(`Nom de fichier bordereau inattendu : ${dailyRegister.filename}`);
     }
   });
