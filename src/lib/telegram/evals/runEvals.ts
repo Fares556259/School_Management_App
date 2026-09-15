@@ -1,12 +1,15 @@
 import { runAllEvals } from "./evalSuite";
+import { runExternalPortalEvals } from "./externalPortalEvals";
 
 async function main() {
   console.log("=================================================");
-  console.log("🚀  HNIA AGENT - SUITE D'ÉVALUATION DE NON-RÉGRESSION");
+  console.log("🚀  HNIA AGENT - SUITE D'ÉVALUATION COMPLÈTE");
   console.log("=================================================");
 
   const startTime = Date.now();
-  const results = await runAllEvals();
+  const regressionResults = await runAllEvals();
+  const portalResults = await runExternalPortalEvals();
+  const results = [...regressionResults, ...portalResults];
   const totalDuration = Date.now() - startTime;
 
   let passedCount = 0;

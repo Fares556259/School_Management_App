@@ -118,6 +118,14 @@ import {
   getDailyCashPdfTool,
 } from "./documentTools";
 
+// Suite 11: External School / Government Portals (Browser Automation)
+import {
+  searchExternalStudentTool,
+  getExternalStudentTool,
+  listExternalDocumentsTool,
+  downloadExternalDocumentTool,
+} from "./externalPortalTools";
+
 
 export interface ToolDefinition {
   name: string;
@@ -1968,6 +1976,146 @@ Confirmer l'enregistrement de cette dépense ?`;
       },
     },
     execute: getDailyCashPdfTool,
+  },
+
+  // ── EXTERNAL PORTAL SUITE (BROWSER AUTOMATION) ───────────────────────────
+  search_external_student: {
+    name: "search_external_student",
+    description:
+      "Rechercher un élève sur le portail externe de l'établissement (ex: ministère / plateforme centrale) par nom, prénom, identifiant ou classe via automatisation navigateur. À utiliser dès que l'administrateur demande des informations ou documents depuis la plateforme / portail externe (ex: 'جيبلي معلومات أحمد بن علي من المنصة', 'cherche Ahmed sur le portail').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "search_external_student",
+      description:
+        "Rechercher un élève sur le portail externe via automatisation de navigateur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          studentName: {
+            type: SchemaType.STRING,
+            description: "Nom ou prénom de l'élève à rechercher (ex: 'Ahmed Ben Ali').",
+          },
+          studentIdentifier: {
+            type: SchemaType.STRING,
+            description: "Identifiant ou code élève (ex: 'STU-001').",
+          },
+          className: {
+            type: SchemaType.STRING,
+            description: "Classe de l'élève (optionnel, ex: '8ème B').",
+          },
+          portalId: {
+            type: SchemaType.STRING,
+            description: "Identifiant du portail (optionnel, défaut: 'mock-school-portal').",
+          },
+        },
+      },
+    },
+    execute: searchExternalStudentTool,
+  },
+
+  get_external_student: {
+    name: "get_external_student",
+    description:
+      "Consulter la fiche détaillée et le statut d'un élève sur le portail externe via son identifiant (ex: 'STU-001').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_external_student",
+      description:
+        "Consulter la fiche complète d'un élève sur le portail externe.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          externalStudentId: {
+            type: SchemaType.STRING,
+            description: "Identifiant externe de l'élève (ex: 'STU-001').",
+          },
+          portalId: {
+            type: SchemaType.STRING,
+            description: "Identifiant du portail (optionnel).",
+          },
+        },
+        required: ["externalStudentId"],
+      },
+    },
+    execute: getExternalStudentTool,
+  },
+
+  list_external_documents: {
+    name: "list_external_documents",
+    description:
+      "Lister les documents officiels disponibles sur le portail externe pour un élève (certificat de scolarité, inscription, relevé de notes).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "list_external_documents",
+      description:
+        "Lister les documents disponibles pour un élève sur le portail externe.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          externalStudentId: {
+            type: SchemaType.STRING,
+            description: "Identifiant externe de l'élève (ex: 'STU-001').",
+          },
+          portalId: {
+            type: SchemaType.STRING,
+            description: "Identifiant du portail (optionnel).",
+          },
+        },
+        required: ["externalStudentId"],
+      },
+    },
+    execute: listExternalDocumentsTool,
+  },
+
+  download_external_document: {
+    name: "download_external_document",
+    description:
+      "Télécharger un document officiel (PDF) depuis le portail externe pour un élève et le transmettre directement par Telegram. Action officielle requérant confirmation préalable de l'administrateur.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "download_external_document",
+      description:
+        "Télécharger et délivrer un document officiel (PDF) depuis le portail externe.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          externalStudentId: {
+            type: SchemaType.STRING,
+            description: "Identifiant externe de l'élève (ex: 'STU-001').",
+          },
+          documentType: {
+            type: SchemaType.STRING,
+            description:
+              "Type ou nom du document à télécharger (ex: 'Certificat de scolarité', 'Inscription', 'Relevé').",
+          },
+          studentName: {
+            type: SchemaType.STRING,
+            description: "Nom complet de l'élève pour le libellé et l'envoi.",
+          },
+          portalId: {
+            type: SchemaType.STRING,
+            description: "Identifiant du portail (optionnel).",
+          },
+        },
+        required: ["externalStudentId", "documentType"],
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      if (isArabic) {
+        return `📄 <b>طلب تحميل وثيقة رسمية من المنصة</b>\n\n👤 <b>التلميذ :</b> <b>${
+          args.studentName || args.externalStudentId
+        }</b>\n📑 <b>الوثيقة :</b> <code>${
+          args.documentType
+        }</code>\n\nهل ترغب في تأكيد تحميل هذه الوثيقة الرسمية من المنصة وإرسالها في المحادثة بصيغة PDF ؟`;
+      }
+      return `📄 <b>Demande de document officiel externe</b>\n\n👤 <b>Élève :</b> <b>${
+        args.studentName || args.externalStudentId
+      }</b>\n📑 <b>Document :</b> <code>${
+        args.documentType
+      }</code>\n\nSouhaitez-vous que je télécharge ce document officiel depuis le portail externe et que je vous l'envoie en pièce jointe PDF ici ?`;
+    },
+    execute: downloadExternalDocumentTool,
   },
 };
 

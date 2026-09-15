@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "test:evals": "tsx src/lib/telegram/evals/runEvals.ts"
+    "test:evals": "tsx src/lib/telegram/evals/runEvals.ts",
+    "test-portal": "tsx scripts/mockPortalServer.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"
@@ -41,6 +42,7 @@
     "moment": "^2.30.1",
     "next": "14.2.5",
     "nextjs-toploader": "^3.9.17",
+    "playwright": "^1.63.0",
     "prisma": "^6.19.3",
     "qrcode.react": "^4.2.0",
     "react": "^18",

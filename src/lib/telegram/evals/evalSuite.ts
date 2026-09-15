@@ -42,7 +42,10 @@ export async function runAllEvals(): Promise<EvalResult[]> {
   let dbAvailable = false;
   let schoolId = "default_school";
   try {
-    const school = await prisma.school.findFirst();
+    const school = await Promise.race([
+      prisma.school.findFirst(),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error("DB_TIMEOUT")), 1500)),
+    ]);
     if (school) {
       schoolId = school.id;
       dbAvailable = true;
@@ -381,7 +384,7 @@ export async function runAllEvals(): Promise<EvalResult[]> {
     // 1. Guide containing "souhaitez-vous publier cette recette de pizza" must NOT trigger announcement buttons
     const guideText = `Guide SnapSchool : Ajouter un cours ou une ressource pédagogique\nPour quelle classe souhaitez-vous publier cette recette de pizza ?`;
     const buttonsGuide = getQuickActionButtons(undefined, guideText);
-    if (buttonsGuide?.inline_keyboard?.some((row) => row.some((b) => b.callback_data.includes("announce")))) {
+    if (buttonsGuide?.inline_keyboard?.some((row) => row.some((b) => b.callback_data?.includes("announce")))) {
       throw new Error("Échec : Les boutons d'annonce ont été faussement affichés sur un guide de recette de pizza !");
     }
 
