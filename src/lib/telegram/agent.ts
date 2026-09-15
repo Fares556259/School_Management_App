@@ -816,13 +816,12 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
             2. Propose ou exécute 'pay_teacher_salary' pour ce montant exact avec isAdvance: false !
           * Le statut passe en PAID, la dépense est enregistrée en catégorie "Salary" et le mois est soldé !`;
 
-  // Candidate models — fastest first (gemini-3.5-flash-lite ~700ms), followed by solid fallbacks
+  // Candidate models — fastest and most capable first, followed by solid fallbacks
   const CANDIDATE_MODELS = [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
     "gemini-3.7-flash",
-    "gemini-3.5-flash",
-    "gemini-3.6-flash",
-    "gemini-3.8-flash",
   ];
 
   // Helper to format friendly error message without raw API dumps
