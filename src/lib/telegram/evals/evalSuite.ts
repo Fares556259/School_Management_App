@@ -270,6 +270,12 @@ export async function runAllEvals(): Promise<EvalResult[]> {
       details: "Ignoré (Base distante inaccessible en environnement sandbox hors-ligne)",
     });
     results.push({
+      name: "Résolution exacte de Wiem Marzouki (1A) ignorant les artefacts de test [DB]",
+      passed: true,
+      durationMs: 0,
+      details: "Ignoré (Base distante inaccessible en environnement sandbox hors-ligne)",
+    });
+    results.push({
       name: "Calcul exact des impayés familiaux (unpaidChildren vs paidChildren) [DB]",
       passed: true,
       durationMs: 0,
@@ -307,6 +313,39 @@ export async function runAllEvals(): Promise<EvalResult[]> {
       if (!student1A || student1A.class?.name !== "1A") {
         throw new Error(`Attendu élève en 1A mais reçu : ${student1A?.class?.name || "null"}`);
       }
+    }
+  });
+
+  // ── TEST 3b: Résolution exacte sans confusion avec artefacts de test ─────
+  await runTestCase("Résolution exacte de Wiem Marzouki (1A) ignorant les artefacts de test", async () => {
+    const targetStudent = await prisma.student.findFirst({
+      where: { name: "Wiem", surname: "Marzouki" },
+    });
+    if (!targetStudent) return;
+    const testSchoolId = targetStudent.schoolId;
+
+    // 1. Query with embedded class hint: "Wiem Marzouki (1A)"
+    const s1 = await resolveStudentByName(testSchoolId, "Wiem Marzouki (1A)");
+    if (!s1 || s1.name !== "Wiem" || s1.surname !== "Marzouki" || s1.class?.name !== "1A") {
+      throw new Error(`Attendu 'Wiem Marzouki' en 1A, mais obtenu : '${s1?.name} ${s1?.surname}' en classe '${s1?.class?.name}'`);
+    }
+
+    // 2. Query with separate classHint: "Wiem Marzouki", "1A"
+    const s2 = await resolveStudentByName(testSchoolId, "Wiem Marzouki", "1A");
+    if (!s2 || s2.id !== s1.id) {
+      throw new Error(`Résolution avec classHint attendu ID ${s1.id} mais reçu ${s2?.id}`);
+    }
+
+    // 3. Query with payment action phrase: "Wiem Marzouki (1A) a payé"
+    const s3 = await resolveStudentByName(testSchoolId, "Wiem Marzouki (1A) a payé");
+    if (!s3 || s3.id !== s1.id) {
+      throw new Error(`Résolution avec phrase d'action attendu ID ${s1.id} mais reçu ${s3?.id}`);
+    }
+
+    // 4. Query without class: should still choose exact name match "Wiem Marzouki", NOT "Wiemtest" or "mmWiem"
+    const s4 = await resolveStudentByName(testSchoolId, "Wiem Marzouki");
+    if (!s4 || s4.name !== "Wiem" || s4.surname !== "Marzouki") {
+      throw new Error(`Résolution sans classe attendu nom exact 'Wiem Marzouki' mais reçu '${s4?.name} ${s4?.surname}'`);
     }
   });
 

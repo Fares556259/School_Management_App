@@ -116,10 +116,18 @@ export async function resolveTeacherByName(schoolId: string, rawQuery?: string |
   // 2. Prisma name search conditions
   const nameConds = buildNameSearchConditions(clean);
   if (nameConds.length > 0) {
-    const direct = await prisma.teacher.findFirst({
+    const matches = await prisma.teacher.findMany({
       where: { schoolId, OR: nameConds },
+      take: 15,
     });
-    if (direct) return direct;
+    if (matches.length === 1) return matches[0];
+    if (matches.length > 1) {
+      const words = clean.split(/\s+/).filter(Boolean);
+      const ranked = matches
+        .map((t) => ({ teacher: t, score: scorePersonMatch(t, words) }))
+        .sort((a, b) => b.score - a.score);
+      if (ranked.length > 0 && ranked[0].score > 0) return ranked[0].teacher;
+    }
   }
 
   // 3. In-memory candidate search across school teachers
@@ -134,6 +142,114 @@ export async function resolveTeacherByName(schoolId: string, rawQuery?: string |
   return prisma.teacher.findUnique({
     where: { id: matched.id },
   });
+}
+
+// ── STUDENT RANKING & SCORING ALGORITHM ──────────────────────────────────────
+/**
+ * Comprehensive Student Matching & Ranking Algorithm:
+ * - Prioritizes exact full name match (+1000)
+ * - Strictly respects class match (+2000) and heavily penalizes wrong class (-5000)
+ * - Rewards parent match (+1000)
+ * - Deprioritizes substring/prefix matches and test artifacts (e.g. mmWiem, Wiemmmm, Wiemtest)
+ */
+export function rankStudentMatch(
+  student: {
+    id: string;
+    name: string;
+    surname: string;
+    class?: { name?: string | null } | null;
+    parent?: { name?: string | null; surname?: string | null; phone?: string | null; id?: string } | null;
+  },
+  queryClean: string,
+  targetClass?: string | null,
+  targetParent?: string | null
+): number {
+  const cName = (student.name || "").toLowerCase().trim();
+  const cSurname = (student.surname || "").toLowerCase().trim();
+  const full1 = `${cName} ${cSurname}`.trim();
+  const full2 = `${cSurname} ${cName}`.trim();
+
+  function scoreText(qText: string): number {
+    const q = qText.toLowerCase().trim();
+    if (!q) return 0;
+    const qWords = q.split(/\s+/).filter(Boolean);
+
+    // 1. Exact full name match
+    if (full1 === q || full2 === q) return 1000;
+    if (full1.replace(/\s+/g, "") === q.replace(/\s+/g, "")) return 980;
+
+    // 2. Exact token-level match (e.g. name is "Wiem" and surname is "Marzouki")
+    if (qWords.length >= 2) {
+      const w1 = qWords[0];
+      const wRest = qWords.slice(1).join(" ");
+      if ((cName === w1 && cSurname === wRest) || (cSurname === w1 && cName === wRest)) {
+        return 950;
+      }
+      // Word prefix match (e.g. "Wiem" prefix of "Wiemtest")
+      if ((cName.startsWith(w1) && cSurname.startsWith(wRest)) || (cSurname.startsWith(w1) && cName.startsWith(wRest))) {
+        const excess = Math.abs(cName.length - w1.length) + Math.abs(cSurname.length - wRest.length);
+        return Math.max(100, 600 - excess * 25);
+      }
+      // Substring match (e.g. "Wiem" inside "mmWiem" or "Wiemmmm")
+      if ((cName.includes(w1) && cSurname.includes(wRest)) || (cSurname.includes(w1) && cName.includes(wRest))) {
+        const excess = Math.abs(cName.length - w1.length) + Math.abs(cSurname.length - wRest.length);
+        return Math.max(50, 400 - excess * 25);
+      }
+      if (qWords.every((w) => cName.includes(w) || cSurname.includes(w))) {
+        return 300;
+      }
+    } else if (qWords.length === 1) {
+      const single = qWords[0];
+      if (cName === single || cSurname === single) {
+        return 850;
+      }
+      if (cName.startsWith(single) || cSurname.startsWith(single)) {
+        const excess = Math.min(Math.abs(cName.length - single.length), Math.abs(cSurname.length - single.length));
+        return Math.max(100, 500 - excess * 20);
+      }
+      if (cName.includes(single) || cSurname.includes(single)) {
+        return 250;
+      }
+    }
+    return 0;
+  }
+
+  let baseScore = scoreText(queryClean);
+  if (/[\u0600-\u06FF]/.test(queryClean)) {
+    const transliteratedVariants = transliterateArabicQuery(queryClean);
+    for (const variant of transliteratedVariants) {
+      const s = scoreText(variant);
+      if (s > baseScore) baseScore = s;
+    }
+  }
+
+  if (baseScore === 0) return 0;
+  let totalScore = baseScore;
+
+  if (targetClass && targetClass.trim()) {
+    const normTarget = targetClass.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const candClass = (student.class?.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (candClass) {
+      if (candClass === normTarget || candClass.includes(normTarget) || normTarget.includes(candClass)) {
+        totalScore += 2000;
+      } else {
+        totalScore -= 5000; // Penalize wrong class heavily
+      }
+    } else {
+      totalScore -= 200;
+    }
+  }
+
+  if (targetParent && targetParent.trim()) {
+    const normParent = targetParent.toLowerCase().replace(/\s+/g, "");
+    const pFull = `${student.parent?.name || ""} ${student.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
+    const pPhone = (student.parent?.phone || "").replace(/[\s\-\.]/g, "");
+    if (pFull.includes(normParent) || pPhone.includes(normParent) || student.parent?.id === targetParent) {
+      totalScore += 1000;
+    }
+  }
+
+  return totalScore;
 }
 
 // ── STUDENT RESOLVER ─────────────────────────────────────────────────────────
@@ -158,17 +274,27 @@ export async function resolveStudentByName(
   let targetClass = classHint?.trim();
   let targetParent = parentHint?.trim();
 
+  // Strip common payment action words if full sentence was passed
+  queryText = queryText
+    .replace(/(?:^|\s+)(?:a\s+pay[eé]|pay[eé]|a\s+vers[eé]|vers[eé]|a\s+donn[eé]|donn[eé]|خلص|خلصت|خالص|دفعت?)(?:\s+|$)/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   // Class clue in query: e.g. "Bringa bring 3A", "Bringa bring (3A)", "Bringa bring de 3A"
   const classMatch = queryText.match(/\b(?:en\s+|classe\s+|de\s+)?([1-9][A-Za-z]|[1-9]ème\s*[A-Za-z]?)\b/i);
-  if (classMatch && !targetClass) {
-    targetClass = classMatch[1];
+  if (classMatch) {
+    if (!targetClass) {
+      targetClass = classMatch[1];
+    }
     queryText = queryText.replace(classMatch[0], " ").trim();
   }
 
   // Parent clue in query: e.g. "(Parent moune saoud)", "wled moune saoud", "fils de moune saoud"
   const parentMatch = queryText.match(/(?:\(?(?:parent|tuteur|père|mère|wled|weldet|bent|fils de|fille de)[:\s]+([^)]+)\)?)/i);
-  if (parentMatch && !targetParent) {
-    targetParent = parentMatch[1].trim();
+  if (parentMatch) {
+    if (!targetParent) {
+      targetParent = parentMatch[1].trim();
+    }
     queryText = queryText.replace(parentMatch[0], " ").trim();
   }
 
@@ -181,64 +307,37 @@ export async function resolveStudentByName(
     const matchingStudents = await prisma.student.findMany({
       where: { schoolId, OR: nameConds },
       include: { class: true, parent: true, level: true },
-      take: 10,
+      take: 25,
     });
 
-    if (matchingStudents.length === 1) {
-      return matchingStudents[0];
-    }
+    if (matchingStudents.length > 0) {
+      const ranked = matchingStudents
+        .map((s) => ({ student: s, score: rankStudentMatch(s, clean, targetClass, targetParent) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score);
 
-    if (matchingStudents.length > 1) {
-      // Multiple candidates found (Homonyms!)
-      // Filter by targetClass if available
-      if (targetClass) {
-        const normClass = targetClass.toLowerCase().replace(/\s+/g, "");
-        const classMatched = matchingStudents.filter((s) =>
-          s.class?.name?.toLowerCase().replace(/\s+/g, "").includes(normClass)
-        );
-        if (classMatched.length === 1) return classMatched[0];
-        if (classMatched.length > 1) {
-          if (targetParent) {
-            const normParent = targetParent.toLowerCase().replace(/\s+/g, "");
-            const parentMatched = classMatched.filter((s) => {
-              const pName = `${s.parent?.name || ""} ${s.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
-              const pPhone = (s.parent?.phone || "").replace(/\s+/g, "");
-              return pName.includes(normParent) || s.parent?.id === targetParent || pPhone.includes(normParent);
-            });
-            if (parentMatched.length >= 1) return parentMatched[0];
-          }
-          return classMatched[0];
-        }
+      if (ranked.length > 0) {
+        return ranked[0].student;
       }
-
-      // Filter by targetParent if available
-      if (targetParent) {
-        const normParent = targetParent.toLowerCase().replace(/\s+/g, "");
-        const parentMatched = matchingStudents.filter((s) => {
-          const pName = `${s.parent?.name || ""} ${s.parent?.surname || ""}`.toLowerCase().replace(/\s+/g, "");
-          const pPhone = (s.parent?.phone || "").replace(/\s+/g, "");
-          return pName.includes(normParent) || s.parent?.id === targetParent || pPhone.includes(normParent);
-        });
-        if (parentMatched.length >= 1) return parentMatched[0];
-      }
-
-      return matchingStudents[0];
     }
   }
 
-  // 4. In-memory candidate search
+  // 4. In-memory candidate search fallback
   const allStudents = await prisma.student.findMany({
     where: { schoolId },
-    select: { id: true, name: true, surname: true, phone: true, classId: true },
-  });
-
-  const matched = matchPersonCandidates(allStudents, clean);
-  if (!matched) return null;
-
-  return prisma.student.findUnique({
-    where: { id: matched.id },
     include: { class: true, parent: true, level: true },
   });
+
+  const rankedAll = allStudents
+    .map((s) => ({ student: s, score: rankStudentMatch(s, clean, targetClass, targetParent) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (rankedAll.length > 0) {
+    return rankedAll[0].student;
+  }
+
+  return null;
 }
 
 // ── STAFF RESOLVER ───────────────────────────────────────────────────────────
@@ -256,10 +355,18 @@ export async function resolveStaffByName(schoolId: string, rawQuery?: string | n
   // 2. Prisma search
   const nameConds = buildNameSearchConditions(clean);
   if (nameConds.length > 0) {
-    const direct = await prisma.staff.findFirst({
+    const matches = await prisma.staff.findMany({
       where: { schoolId, OR: nameConds },
+      take: 15,
     });
-    if (direct) return direct;
+    if (matches.length === 1) return matches[0];
+    if (matches.length > 1) {
+      const words = clean.split(/\s+/).filter(Boolean);
+      const ranked = matches
+        .map((s) => ({ staff: s, score: scorePersonMatch(s, words) }))
+        .sort((a, b) => b.score - a.score);
+      if (ranked.length > 0 && ranked[0].score > 0) return ranked[0].staff;
+    }
   }
 
   // 3. In-memory candidate search

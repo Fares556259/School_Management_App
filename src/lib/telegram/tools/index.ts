@@ -836,6 +836,7 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
           amount: { type: SchemaType.NUMBER, description: "Montant encaissé en DT (optionnel, solde tout le reliquat par défaut)." },
+          className: { type: SchemaType.STRING, description: "Classe de l'élève si mentionnée (ex: '1A', '6B', '3ème A')." },
           month: { type: SchemaType.NUMBER, description: "Mois ciblé (1 à 12, optionnel)." },
           year: { type: SchemaType.NUMBER, description: "Année (optionnel)." },
         },
@@ -843,17 +844,7 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
     },
     formatConfirmationMessage: async (args, context) => {
       const q = (args.studentNameOrId || "").trim();
-      const student = await prisma.student.findFirst({
-        where: {
-          schoolId: context.schoolId,
-          OR: [
-            { id: q },
-            { name: { contains: q, mode: "insensitive" } },
-            { surname: { contains: q, mode: "insensitive" } },
-          ],
-        },
-        include: { class: true },
-      });
+      const student = await resolveStudentByName(context.schoolId, q, args.className);
 
       const now = new Date();
       const targetMonth = args.month || now.getMonth() + 1;
@@ -863,29 +854,30 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
       const studentDisplay = student ? `${student.name} ${student.surname} (Classe : ${student.class?.name || "N/A"})` : args.studentNameOrId;
       const amountStr = args.amount ? `<code>${args.amount} DT</code>` : "<b>la totalité du reliquat restant</b>";
 
-      return `❓ <b>Confirmation de Recouvrement</b>
+      return `❓ <b>Recouvrement de Reliquat</b>
 ━━━━━━━━━━━━━━━━━━━━━━
-👤 <b>Élève :</b> <b>${studentDisplay}</b>
-📅 <b>Mois concerné :</b> <code>${monthLabel}</code>
-💰 <b>Montant :</b> ${amountStr}
+👤 Élève : <b>${studentDisplay}</b>
+📅 Mois ciblé : <code>${monthLabel}</code>
+💰 Montant à encaisser : ${amountStr}
 
-Souhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisplay}</b> (${monthLabel}) ?`;
+Confirmer l'encaissement du reliquat pour cet élève ?`;
     },
     execute: recoverPartialPaymentTool,
   },
 
   schedule_recovery_date: {
     name: "schedule_recovery_date",
-    description: "Fixer ou mettre à jour la date d'échéance promise pour le recouvrement d'un reliquat partiel.",
+    description: "Fixer la date limite de paiement promise pour un dossier partiel.",
     requiresConfirmation: true,
     declaration: {
       name: "schedule_recovery_date",
-      description: "Fixer la date limite de paiement promise (deferredUntil) pour un dossier partiel.",
+      description: "Fixer la date limite de paiement promise pour un dossier partiel.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["studentNameOrId", "date"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
+          className: { type: SchemaType.STRING, description: "Classe de l'élève si mentionnée (ex: '1A')." },
           date: { type: SchemaType.STRING, description: "Date promise au format AAAA-MM-JJ (ex: '2026-09-25')." },
           month: { type: SchemaType.NUMBER, description: "Mois concerné (optionnel)." },
           year: { type: SchemaType.NUMBER, description: "Année concernée (optionnel)." },
@@ -893,7 +885,8 @@ Souhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisp
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ <b>Planification d'Échéance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nFixer la date limite de recouvrement pour <b>${args.studentNameOrId}</b> au <code>${args.date}</code> ?`;
+      const classStr = args.className ? ` (${args.className})` : "";
+      return `❓ <b>Planification d'Échéance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nFixer la date limite de recouvrement pour <b>${args.studentNameOrId}</b>${classStr} au <code>${args.date}</code> ?`;
     },
     execute: scheduleRecoveryDateTool,
   },
@@ -908,8 +901,8 @@ Souhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisp
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
-          month: { type: SchemaType.NUMBER, description: "Mois numérique (1 à 12)." },
-          year: { type: SchemaType.NUMBER, description: "Année." },
+          month: { type: SchemaType.NUMBER, description: "Mois (1 à 12, optionnel)." },
+          year: { type: SchemaType.NUMBER, description: "Année (optionnel)." },
         },
       },
     },
@@ -947,6 +940,7 @@ Souhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisp
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
           amount: { type: SchemaType.NUMBER, description: "Montant reçu en DT (ex: 450, 1000, 200)." },
+          className: { type: SchemaType.STRING, description: "Classe de l'élève si mentionnée (ex: '1A', '6B', '3ème A') pour cibler directement le bon élève." },
           month: { type: SchemaType.NUMBER, description: "Mois de début ou mois ciblé (1 à 12, optionnel : commence au 1er impayé par défaut)." },
           year: { type: SchemaType.NUMBER, description: "Année (ex: 2026, optionnel)." },
         },
@@ -954,7 +948,7 @@ Souhaitez-vous enregistrer le recouvrement de ${amountStr} pour <b>${studentDisp
     },
     formatConfirmationMessage: async (args, context) => {
       const query = (args.studentNameOrId || "").trim();
-      const student = await resolveStudentByName(context.schoolId, query);
+      const student = await resolveStudentByName(context.schoolId, query, args.className);
 
       const now = new Date();
       const targetMonth = args.month || now.getMonth() + 1;

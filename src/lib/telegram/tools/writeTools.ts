@@ -155,13 +155,14 @@ export async function recordPaymentTool(
   args: {
     studentNameOrId: string;
     amount: number;
+    className?: string;
     month?: number;
     year?: number;
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
   // 1. Locate the student
-  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId, args.className);
   if (!student) {
     return {
       success: false,

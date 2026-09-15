@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
+import { rankStudentMatch } from "./entityResolvers";
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 
 export interface ToolContext {
@@ -80,10 +81,32 @@ export async function getStudentsTool(
     }),
   ]);
 
+  const sortedStudents = args.query
+    ? [...students].sort((a, b) => {
+        const scoreA = rankStudentMatch(a, args.query!, args.className);
+        const scoreB = rankStudentMatch(b, args.query!, args.className);
+        return scoreB - scoreA;
+      })
+    : students;
+
+  const topCandidate = sortedStudents.length > 0 ? sortedStudents[0] : null;
+  const topScore = topCandidate && args.query ? rankStudentMatch(topCandidate, args.query, args.className) : 0;
+  const secondScore = sortedStudents.length > 1 && args.query ? rankStudentMatch(sortedStudents[1], args.query, args.className) : 0;
+
+  const exactMatch = topCandidate && topScore >= 900 && (sortedStudents.length === 1 || topScore > secondScore)
+    ? {
+        fullName: `${topCandidate.name} ${topCandidate.surname}`,
+        class: topCandidate.class?.name || "Sans classe",
+        parent: topCandidate.parent ? `${topCandidate.parent.name} ${topCandidate.parent.surname} (${topCandidate.parent.phone})` : null,
+        tuitionFee: `${topCandidate.level.tuitionFee} DT`,
+      }
+    : null;
+
   return {
     total: totalCount,
-    returned: students.length,
-    students: students.map((s) => ({
+    returned: sortedStudents.length,
+    exactMatch,
+    students: sortedStudents.map((s) => ({
       fullName: `${s.name} ${s.surname}`,
       class: s.class?.name || "Sans classe",
       tuitionFee: `${s.level.tuitionFee} DT`,
