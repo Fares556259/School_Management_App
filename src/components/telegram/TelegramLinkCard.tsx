@@ -194,7 +194,10 @@ export default function TelegramLinkCard() {
                 Compte Telegram
               </span>
               <span className="text-[14px] font-semibold text-[#181d26]">
-                {status.telegramUsername ? `@${status.telegramUsername}` : `ID: ${status.telegramId}`}
+                {status.telegramUsername ? `@${status.telegramUsername}` : `Utilisateur #${status.telegramId}`}
+              </span>
+              <span className="text-[10px] text-emerald-600 font-medium">
+                ✓ Déjà associé (aucun code requis)
               </span>
             </div>
 
@@ -271,7 +274,7 @@ export default function TelegramLinkCard() {
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[12px] font-bold text-slate-800">Ouvrez Telegram</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Touchez le lien pour ouvrir la conversation avec <strong className="text-slate-700">@HniaSnapSchoolBot</strong>.
+                      Touchez le lien pour ouvrir <strong className="text-slate-700">@HniaSnapSchoolBot</strong> (aucun code requis, votre compte est déjà reconnu !).
                     </span>
                   </div>
                 </div>
