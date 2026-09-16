@@ -49,8 +49,16 @@ export default async function DashboardAppendage({
 }: DashboardAppendageProps) {
   const t = translations[locale];
   const now = new Date();
-  const currentMonth = startDate.getMonth() + 1;
-  const currentYear = startDate.getFullYear();
+
+  const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+  const isAllTime = durationDays > 365 || startDate.getFullYear() <= 2024;
+
+  // Active month & year for ActionCenter (Unpaid students & Unpaid employees):
+  // When in All-Time / default view, ALWAYS target the CURRENT MONTH WE ARE IN (e.g. Sept 2026).
+  // When user filtered on a specific range/month, target that specific month.
+  const midDate = new Date((startDate.getTime() + endDate.getTime()) / 2);
+  const activeMonth = isAllTime ? (now.getMonth() + 1) : (midDate.getMonth() + 1);
+  const activeYear = isAllTime ? now.getFullYear() : midDate.getFullYear();
 
   // HEAVY DATA FETCHING CONSOLIDATION (Phase 6 Restoration)
   const safeFetch = async <T extends unknown>(promise: Promise<T>, fallback: T): Promise<T> => {
@@ -65,8 +73,6 @@ export default async function DashboardAppendage({
 
   // 1. MEGA-CONSOLIDATED TRENDS & BREAKDOWNS
   const getSecondaryStats = async () => {
-    const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const isAllTime = durationDays > 365 || startDate.getFullYear() <= 2024;
     const useDays = durationDays <= 60 && !isAllTime;
     const formatStr = useDays ? 'YYYY-MM-DD' : 'YYYY-MM';
 
@@ -121,16 +127,16 @@ export default async function DashboardAppendage({
       prisma.$queryRaw`
         SELECT 
           s.id, s.name, s.surname, p.phone as "parentPhone",
-          COALESCE(s."customTuition", l."tuitionFee") as "tuitionFee",
+          COALESCE(s."customTuition", l."tuitionFee", 450) as "tuitionFee",
           c.name as "className",
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
         FROM "Student" s
-        JOIN "Level" l ON s."levelId" = l.id
+        LEFT JOIN "Level" l ON s."levelId" = l.id
         LEFT JOIN "Class" c ON s."classId" = c.id
-        JOIN "Parent" p ON s."parentId" = p.id
+        LEFT JOIN "Parent" p ON s."parentId" = p.id
         LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
-          AND pay.month = ${currentMonth} 
-          AND pay.year = ${currentYear}
+          AND pay.month = ${activeMonth} 
+          AND pay.year = ${activeYear}
         WHERE s."schoolId" = ${schoolId}
           AND (pay.status IS NULL OR pay.status != 'PAID')
         ORDER BY 
@@ -144,8 +150,8 @@ export default async function DashboardAppendage({
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
-          AND pay.month = ${currentMonth} 
-          AND pay.year = ${currentYear}
+          AND pay.month = ${activeMonth} 
+          AND pay.year = ${activeYear}
         WHERE t."schoolId" = ${schoolId} 
           AND (pay.status IS NULL OR pay.status != 'PAID')
         ORDER BY 
@@ -159,8 +165,8 @@ export default async function DashboardAppendage({
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours"
         FROM "Staff" s
         LEFT JOIN "Payment" pay ON s.id = pay."staffId" 
-          AND pay.month = ${currentMonth} 
-          AND pay.year = ${currentYear}
+          AND pay.month = ${activeMonth} 
+          AND pay.year = ${activeYear}
         WHERE s."schoolId" = ${schoolId} 
           AND (pay.status IS NULL OR pay.status != 'PAID')
         ORDER BY 
@@ -183,9 +189,9 @@ export default async function DashboardAppendage({
       safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
       60
     ),
-    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', startDate.toISOString(), endDate.toISOString()], () => 
+    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', String(activeMonth), String(activeYear)], () => 
       safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
-      180
+      120
     ),
   ]);
 
@@ -279,8 +285,6 @@ export default async function DashboardAppendage({
 
   // Calculate trends
   const trendData = [];
-  const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-  const isAllTime = durationDays > 365 || startDate.getFullYear() <= 2024;
   const useDays = durationDays <= 60 && !isAllTime;
 
   const shortMonths = locale === 'fr' 
@@ -373,8 +377,8 @@ export default async function DashboardAppendage({
         <ActionCenter 
           unpaidFees={unpaidFees}
           unpaidEmployees={unpaidEmployees}
-          monthLabel={`${t.months[startDate.getMonth()]} ${startDate.getFullYear()}`}
-          englishMonthYear={`${MONTHS[startDate.getMonth()]} ${startDate.getFullYear()}`}
+          monthLabel={`${t.months[activeMonth - 1]} ${activeYear}`}
+          englishMonthYear={`${MONTHS[activeMonth - 1]} ${activeYear}`}
         />
       </section>
     </>
