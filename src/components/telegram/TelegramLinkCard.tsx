@@ -13,7 +13,9 @@ import {
   MessageSquare,
   Sparkles,
   Clock,
-  ShieldCheck,
+  QrCode,
+  Smartphone,
+  School,
 } from "lucide-react";
 import {
   getTelegramLinkStatus,
@@ -35,10 +37,15 @@ export default function TelegramLinkCard() {
     const res = await getTelegramLinkStatus();
     if (res.success) {
       setStatus(res);
-      if (!res.isLinked && res.linkCode) {
-        // Check if existing code is not expired
-        if (res.linkCodeExpiry && new Date(res.linkCodeExpiry) > new Date()) {
+      if (!res.isLinked) {
+        if (res.linkCode && res.linkCodeExpiry && new Date(res.linkCodeExpiry) > new Date()) {
           setActiveCode(res.linkCode);
+        } else {
+          // Automatically prepare an active code and QR so onboarding is immediate
+          const codeRes = await requestTelegramLinkCode();
+          if (codeRes.success && codeRes.code) {
+            setActiveCode(codeRes.code);
+          }
         }
       }
     }
@@ -57,7 +64,7 @@ export default function TelegramLinkCard() {
       setActiveCode(res.code);
       setMsg({
         type: "success",
-        text: "Code généré avec succès ! Cliquez sur le lien ou envoyez-le au bot.",
+        text: "Nouveau code généré ! Scannez le QR code ci-dessous avec votre smartphone.",
       });
     } else {
       setMsg({
@@ -99,36 +106,36 @@ export default function TelegramLinkCard() {
   }
 
   return (
-    <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
+    <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc] shadow-xs">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl overflow-hidden shadow-xs shrink-0 ring-2 ring-[#2AABEE]/25 bg-white">
+          <div className="w-12 h-12 rounded-xl overflow-hidden shadow-xs shrink-0 ring-2 ring-[#2AABEE]/25 bg-white flex items-center justify-center">
             <Image
               src="/hnia_mascot_icon.png"
               alt="Hnia AI"
-              width={44}
-              height={44}
+              width={48}
+              height={48}
               className="w-full h-full object-cover"
             />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[16px] font-medium text-[#181d26]">
+              <h2 className="text-[16px] font-semibold text-[#181d26]">
                 Assistant Telegram (Hnia)
               </h2>
               {status?.isLinked ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 size={12} /> Connecté
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                   Non lié
                 </span>
               )}
             </div>
             <p className="text-[13px] text-[#5a5a5a]">
-              Gérez votre école en parlant ou par message vocal avec @HniaSnapSchoolBot
+              Pilotez votre école par message texte ou note vocale avec <strong className="text-[#2AABEE]">@HniaSnapSchoolBot</strong>
             </p>
           </div>
         </div>
@@ -154,37 +161,153 @@ export default function TelegramLinkCard() {
         </div>
       )}
 
-      {/* Linked State */}
+      {/* ========================================================================= */}
+      {/* 1. LINKED / CONNECTED STATE                                               */}
+      {/* ========================================================================= */}
       {status?.isLinked ? (
-        <div className="flex flex-col gap-4 bg-white p-5 rounded-[10px] border border-[#dddddd]">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="flex flex-col gap-6 bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-2xs">
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-5 border-b border-slate-100">
+            <div className="flex flex-col gap-1 p-3 bg-slate-50/70 rounded-xl border border-slate-100">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Smartphone size={13} className="text-slate-400" />
                 Compte Telegram
               </span>
-              <span className="text-[14px] font-medium text-[#181d26]">
+              <span className="text-[14px] font-semibold text-[#181d26]">
                 {status.telegramUsername ? `@${status.telegramUsername}` : `ID: ${status.telegramId}`}
               </span>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+
+            <div className="flex flex-col gap-1 p-3 bg-slate-50/70 rounded-xl border border-slate-100">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <School size={13} className="text-slate-400" />
                 École associée
               </span>
-              <span className="text-[14px] font-medium text-[#181d26]">
+              <span className="text-[14px] font-semibold text-[#181d26] truncate">
                 {status.schoolName}
               </span>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+
+            <div className="flex flex-col gap-1 p-3 bg-slate-50/70 rounded-xl border border-slate-100">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock size={13} className="text-emerald-500" />
                 Briefing matinal
               </span>
-              <span className="text-[14px] font-medium text-emerald-600 flex items-center gap-1">
-                <Clock size={13} /> Actif à 7h30
+              <span className="text-[14px] font-semibold text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 size={13} /> Actif à 7h30
               </span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-[#eeeeee] flex flex-wrap items-center justify-between gap-3">
+          {/* QR Code & Mobile Walkthrough Section */}
+          <div className="p-5 rounded-xl bg-gradient-to-br from-[#2AABEE]/5 via-indigo-50/40 to-slate-50 border border-[#2AABEE]/25 flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Left: QR Code Box */}
+            <div className="flex flex-col items-center gap-2 p-3.5 bg-white rounded-2xl border border-[#2AABEE]/30 shadow-xs shrink-0">
+              <div className="p-2 bg-white rounded-xl">
+                <QRCodeSVG
+                  value="https://t.me/HniaSnapSchoolBot"
+                  size={136}
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#2AABEE] uppercase tracking-wider">
+                <QrCode size={13} />
+                <span>Scanner au mobile</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">
+                iPhone & Android
+              </span>
+            </div>
+
+            {/* Right: Steps 1, 2, 3, 4 */}
+            <div className="flex flex-col gap-3.5 flex-1 w-full">
+              <div className="flex items-center gap-2">
+                <Smartphone size={16} className="text-[#2AABEE]" />
+                <h3 className="text-[14px] font-bold text-[#181d26]">
+                  Comment ouvrir et utiliser Hnia sur votre téléphone :
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Step 1 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-[#2AABEE] text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    1
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Scannez le QR Code</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Pointez l&apos;appareil photo de votre smartphone vers le code QR ci-contre.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-[#2AABEE] text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    2
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Ouvrez Telegram</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Touchez le lien pour ouvrir la conversation avec <strong className="text-slate-700">@HniaSnapSchoolBot</strong>.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-[#2AABEE] text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    3
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Parlez ou écrivez 🇹🇳 🇫🇷</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Posez vos questions par texte ou vocal : élèves, caisse, reçus, impayés, classes...
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-[#2AABEE] text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    4
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Reçus PDF & Briefings</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Téléchargez vos reçus officiels, bordereaux de caisse, et briefing chaque matin à 7h30.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sample Voice/Text Prompts */}
+              <div className="p-2.5 rounded-lg bg-white/70 border border-slate-200/70 text-[11px] text-slate-600 flex flex-wrap items-center gap-1.5">
+                <Sparkles size={13} className="text-amber-500 shrink-0" />
+                <span className="font-semibold text-slate-700">Exemples à tester :</span>
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
+                  « فما تلامذة موش مفرّقين في أقسام؟ »
+                </code>
+                <span>•</span>
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
+                  « حط أحمد في 4ème B »
+                </code>
+                <span>•</span>
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
+                  « Reçu de paiement de Sarah »
+                </code>
+                <span>•</span>
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
+                  « Recette de caisse du jour »
+                </code>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
             <a
               href="https://t.me/HniaSnapSchoolBot"
               target="_blank"
@@ -192,7 +315,7 @@ export default function TelegramLinkCard() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#2AABEE] hover:bg-[#229ED9] text-white text-[13px] font-medium rounded-[6px] transition-colors shadow-sm"
             >
               <MessageSquare size={15} />
-              <span>Ouvrir la conversation</span>
+              <span>Ouvrir sur cet ordinateur</span>
               <ExternalLink size={13} />
             </a>
 
@@ -207,13 +330,16 @@ export default function TelegramLinkCard() {
           </div>
         </div>
       ) : (
-        /* Not Linked State */
-        <div className="flex flex-col gap-5 bg-white p-5 rounded-[10px] border border-[#dddddd]">
+        /* ========================================================================= */
+        /* 2. NOT LINKED / ONBOARDING STATE                                         */
+        /* ========================================================================= */
+        <div className="flex flex-col gap-5 bg-white p-6 rounded-[12px] border border-[#dddddd] shadow-2xs">
+          {/* Header Info */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-indigo-600">
               <Sparkles size={16} />
               <span className="text-[13px] font-semibold uppercase tracking-wider">
-                Fonctionnalités disponibles sur Telegram
+                Associez Hnia à votre école en quelques secondes
               </span>
             </div>
             <p className="text-[13px] text-[#444444] leading-relaxed">
@@ -223,68 +349,134 @@ export default function TelegramLinkCard() {
             </p>
           </div>
 
-          {activeCode ? (
-            <div className="flex flex-col md:flex-row items-center gap-6 p-5 bg-gradient-to-br from-indigo-50/70 to-blue-50/40 rounded-xl border border-indigo-100 shadow-sm">
-              {/* QR Code for instant smartphone camera scanning */}
-              <div className="flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-indigo-100 shadow-sm shrink-0">
+          {/* QR Code + 1-2-3-4 Steps Container */}
+          <div className="p-5 rounded-xl bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-slate-50 border border-indigo-100 flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Left: QR Code Box */}
+            <div className="flex flex-col items-center gap-2.5 p-4 bg-white rounded-2xl border border-indigo-100 shadow-sm shrink-0">
+              <div className="p-2 bg-white rounded-xl">
                 <QRCodeSVG
-                  value={`https://t.me/HniaSnapSchoolBot?start=${activeCode}`}
-                  size={120}
+                  value={
+                    activeCode
+                      ? `https://t.me/HniaSnapSchoolBot?start=${activeCode}`
+                      : "https://t.me/HniaSnapSchoolBot"
+                  }
+                  size={140}
                   level="M"
+                  includeMargin={false}
                 />
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Scanner au mobile
-                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+                <QrCode size={13} />
+                <span>Scanner au mobile</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">
+                iPhone & Android
+              </span>
+            </div>
+
+            {/* Right: Steps 1, 2, 3, 4 */}
+            <div className="flex flex-col gap-3.5 flex-1 w-full">
+              <div className="flex items-center gap-2">
+                <Smartphone size={16} className="text-indigo-600" />
+                <h3 className="text-[14px] font-bold text-indigo-950">
+                  Comment connecter votre téléphone en 4 étapes simples :
+                </h3>
               </div>
 
-              {/* Code + 1-Click Action */}
-              <div className="flex flex-col gap-3 flex-1">
-                <span className="text-[12px] font-medium text-indigo-900">
-                  Code d&apos;association unique (valide 15 minutes) :
-                </span>
-                <div className="flex items-center gap-3">
-                  <div className="text-[28px] font-mono font-bold text-indigo-700 tracking-[0.25em] bg-white px-4 py-1.5 rounded-lg border border-indigo-200 shadow-sm">
-                    {activeCode}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Step 1 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-indigo-100 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    1
                   </div>
-                  <button
-                    onClick={handleCopyCode}
-                    className="p-2.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors shadow-sm"
-                    title="Copier le code"
-                  >
-                    {copied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
-                  </button>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Scannez le QR Code</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Pointez l&apos;appareil photo de votre smartphone vers le code QR ci-contre.
+                    </span>
+                  </div>
                 </div>
 
+                {/* Step 2 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-indigo-100 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    2
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Appuyez sur Démarrer</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Dans Telegram, touchez le bouton <strong>Démarrer</strong> (<code className="text-indigo-600">/start</code>).
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-indigo-100 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    3
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Liaison instantanée</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Hnia reconnaît automatiquement votre école et associe votre compte en 1 seconde.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-indigo-100 shadow-2xs">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[12px] shrink-0">
+                    4
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[12px] font-bold text-slate-800">Prenez le contrôle !</span>
+                    <span className="text-[11px] text-slate-500 leading-snug">
+                      Pilotez vos élèves, finances et cours par texte ou note vocale de n&apos;importe où.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code display + Copy button */}
+              {activeCode && (
                 <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-slate-500 font-medium">Ou code manuel :</span>
+                    <div className="text-[16px] font-mono font-bold text-indigo-700 tracking-wider bg-white px-3 py-1 rounded-lg border border-indigo-200 shadow-xs">
+                      {activeCode}
+                    </div>
+                    <button
+                      onClick={handleCopyCode}
+                      className="p-1.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors shadow-xs"
+                      title="Copier le code"
+                    >
+                      {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                    </button>
+                  </div>
+
                   <a
                     href={`https://t.me/HniaSnapSchoolBot?start=${activeCode}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#2AABEE] hover:bg-[#229ED9] text-white text-[13px] font-medium rounded-[6px] transition-colors shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2AABEE] hover:bg-[#229ED9] text-white text-[12px] font-medium rounded-[6px] transition-colors shadow-xs ml-auto"
                   >
-                    <Send size={14} />
-                    <span>Ouvrir dans Telegram</span>
-                    <ExternalLink size={13} />
+                    <Send size={13} />
+                    <span>Lier sur cet ordinateur</span>
+                    <ExternalLink size={12} />
                   </a>
 
-                  <span className="text-[12px] text-slate-500">
-                    ou envoyez le code au bot <strong className="text-slate-700">@HniaSnapSchoolBot</strong>
-                  </span>
+                  <button
+                    onClick={handleGenerateCode}
+                    disabled={actionLoading}
+                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
+                    title="Régénérer un nouveau code"
+                  >
+                    <RefreshCw size={14} className={actionLoading ? "animate-spin" : ""} />
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
-          ) : (
-            <div>
-              <button
-                onClick={handleGenerateCode}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-medium rounded-[6px] transition-colors shadow-sm disabled:opacity-50"
-              >
-                <ShieldCheck size={16} />
-                <span>{actionLoading ? "Génération..." : "Lier mon compte Telegram"}</span>
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>
