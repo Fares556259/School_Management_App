@@ -12,7 +12,7 @@
  * - Session expiration & human verification detection
  */
 
-import { Page } from "playwright";
+import type { Page } from "playwright";
 import { browserService } from "@/lib/browser/browserService";
 import {
   ExternalPortalAdapter,

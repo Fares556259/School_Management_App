@@ -27,23 +27,44 @@ import { deliverDailyCashReport } from "@/lib/telegram/tools/documentTools";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/**
+ * Health check & diagnostic endpoint for Telegram webhook
+ */
+export async function GET(req: NextRequest) {
+  return NextResponse.json({
+    ok: true,
+    status: "Telegram webhook endpoint active",
+    timestamp: new Date().toISOString(),
+  });
+}
+
 export async function POST(req: NextRequest) {
-  // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
-  const secretHeader = req.headers.get("x-telegram-bot-api-secret-token");
-  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-
-  if (expectedSecret && secretHeader !== expectedSecret) {
-    console.warn("[Telegram Webhook] Unauthorized request rejected (invalid secret).");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Opportunistic reminder check: flush any due reminders in the background
-  dispatchPendingReminders().catch((e) =>
-    console.warn("[Telegram Webhook] dispatchPendingReminders warning:", e)
-  );
-
   try {
-    const update = await req.json();
+    // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
+    const secretHeader = req.headers.get("x-telegram-bot-api-secret-token");
+    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+    if (expectedSecret && secretHeader && secretHeader !== expectedSecret) {
+      console.warn("[Telegram Webhook] Unauthorized request rejected (invalid secret).");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Opportunistic reminder check: flush any due reminders in the background
+    try {
+      dispatchPendingReminders().catch((e) =>
+        console.warn("[Telegram Webhook] dispatchPendingReminders warning:", e)
+      );
+    } catch (e) {
+      console.warn("[Telegram Webhook] dispatchPendingReminders scheduling warning:", e);
+    }
+
+    let update: any;
+    try {
+      update = await req.json();
+    } catch (jsonErr) {
+      console.warn("[Telegram Webhook] Malformed JSON payload received:", jsonErr);
+      return NextResponse.json({ ok: true });
+    }
 
     // 2. Handle Inline Keyboard Button Clicks (Confirmation/Cancellation)
     if (update.callback_query) {

@@ -8,24 +8,31 @@
  * 4. Safe Downloads: File size limits, MIME type verification, and automated cleanup.
  */
 
-import { chromium, Browser, BrowserContext, Page, Download } from "playwright";
+import type { Browser, BrowserContext, Page, Download } from "playwright";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { DownloadedDocument } from "../externalPortals/types";
 
 // Security: Domain allowlist per portal configuration
 const DEFAULT_ALLOWED_DOMAINS = ["localhost:3001", "127.0.0.1:3001"];
 
-// Paths
-const BASE_TMP_DIR = path.join(process.cwd(), "tmp");
+// Paths: Use os.tmpdir() to ensure compatibility with serverless environments (e.g. AWS Lambda / Vercel)
+const BASE_TMP_DIR = path.join(os.tmpdir(), "snapschool-browser");
 const SESSIONS_DIR = path.join(BASE_TMP_DIR, "browser-sessions");
 const SCREENSHOTS_DIR = path.join(BASE_TMP_DIR, "browser-artifacts", "screenshots");
 const DOWNLOADS_DIR = path.join(BASE_TMP_DIR, "browser-downloads");
 
-// Ensure directories exist
-for (const dir of [SESSIONS_DIR, SCREENSHOTS_DIR, DOWNLOADS_DIR]) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// Lazy directory creation helper
+function ensureDirectoriesExist(): void {
+  try {
+    for (const dir of [SESSIONS_DIR, SCREENSHOTS_DIR, DOWNLOADS_DIR]) {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    }
+  } catch (err) {
+    console.warn("[BrowserService] Directory creation warning:", err);
   }
 }
 
@@ -53,16 +60,23 @@ export class BrowserService {
    * Lazily launch or retrieve the shared Chromium browser instance.
    */
   public async getBrowser(): Promise<Browser> {
+    ensureDirectoriesExist();
     if (!this.browser || !this.browser.isConnected()) {
-      this.browser = await chromium.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-        ],
-      });
+      try {
+        const { chromium } = await import("playwright");
+        this.browser = await chromium.launch({
+          headless: true,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+          ],
+        });
+      } catch (err: any) {
+        console.error("[BrowserService] Failed to launch Playwright browser:", err);
+        throw new Error(`Browser automation is unavailable in this environment: ${err.message}`);
+      }
     }
     return this.browser;
   }
