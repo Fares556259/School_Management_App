@@ -10,6 +10,11 @@ import {
   generateDailyCashRegisterPdf,
 } from "@/lib/pdf/receipts";
 import { TOOLS, getGeminiFunctionDeclarations } from "@/lib/telegram/tools";
+import {
+  parseSchedulingConstraints,
+  getTimetableConflictsTool,
+  suggestBestTimetableSlotTool,
+} from "@/lib/telegram/tools/timetableTools";
 
 export interface EvalResult {
   name: string;
@@ -610,6 +615,104 @@ export async function runAllEvals(): Promise<EvalResult[]> {
 
     // Clean up
     await prisma.aIKnowledge.delete({ where: { id: created.id } });
+  });
+
+  // ── TEST 6: Moteur de contraintes d'emploi du temps ─────────────────────
+  await runTestCase("Validation du moteur de contraintes d'emploi du temps (Interdictions & Créneaux)", async () => {
+    // 1. Check day exclusion and preferred day parsing
+    const parsed1 = parseSchedulingConstraints("pas le mercredi matin ni vendredi après-midi", "mardi");
+    if (!parsed1.forbiddenDays.has("WEDNESDAY")) {
+      throw new Error("Le mercredi devrait être classé comme jour interdit !");
+    }
+    if (!parsed1.forbiddenDays.has("FRIDAY")) {
+      throw new Error("Le vendredi devrait être classé comme jour interdit !");
+    }
+    if (!parsed1.preferredDays.has("TUESDAY")) {
+      throw new Error("Le mardi devrait être dans preferredDays !");
+    }
+
+    // 2. Check time window detection
+    const parsedMorning = parseSchedulingConstraints("cours avant midi seulement");
+    if (parsedMorning.timeWindow !== "morning") {
+      throw new Error(`Attendu timeWindow: 'morning', reçu : ${parsedMorning.timeWindow}`);
+    }
+
+    const parsedAfternoon = parseSchedulingConstraints("l'après-midi uniquement");
+    if (parsedAfternoon.timeWindow !== "afternoon") {
+      throw new Error(`Attendu timeWindow: 'afternoon', reçu : ${parsedAfternoon.timeWindow}`);
+    }
+  });
+
+  // ── TEST 7: Contrat & enregistrement des outils Timetable dans Hnia ───────
+  await runTestCase("Disponibilité & contrat des outils d'emploi du temps dans Hnia", async () => {
+    const requiredTimetableTools = [
+      "get_class_timetable",
+      "get_teacher_timetable",
+      "get_timetable_conflicts",
+      "find_available_teachers",
+      "suggest_best_timetable_slot",
+      "add_timetable_slot",
+      "reschedule_timetable_slot",
+      "swap_timetable_slots",
+      "update_timetable_slot",
+      "delete_timetable_slot",
+    ];
+
+    for (const toolName of requiredTimetableTools) {
+      const def = TOOLS[toolName];
+      if (!def) {
+        throw new Error(`L'outil requis '${toolName}' n'est pas enregistré dans TOOLS !`);
+      }
+      if (!def.declaration || !def.declaration.name || !def.execute) {
+        throw new Error(`Déclaration ou exécuteur incomplet pour l'outil '${toolName}'.`);
+      }
+    }
+
+    // Check that write operations have confirmation enabled
+    const writeTools = [
+      "add_timetable_slot",
+      "reschedule_timetable_slot",
+      "swap_timetable_slots",
+      "update_timetable_slot",
+      "delete_timetable_slot",
+    ];
+    for (const wt of writeTools) {
+      if (!TOOLS[wt].requiresConfirmation) {
+        throw new Error(`L'outil d'écriture '${wt}' DOIT avoir requiresConfirmation: true pour la sécurité de l'emploi du temps !`);
+      }
+    }
+  });
+
+  // ── TEST 8: Audit des conflits et moteur de recommandation ───────────────
+  await runTestCase("Audit des conflits et recommandation d'emploi du temps sans chevauchement", async () => {
+    // Audit conflicts
+    const conflictReport = await getTimetableConflictsTool({}, context);
+    if (conflictReport === undefined || typeof conflictReport.totalConflicts !== "number") {
+      throw new Error("L'outil getTimetableConflictsTool n'a pas retourné le format attendu.");
+    }
+
+    // If classes exist in DB, verify that suggestBestTimetableSlotTool respects constraints
+    const sampleClass = await prisma.class.findFirst({ where: { schoolId } });
+    const sampleSubject = await prisma.subject.findFirst({ where: { schoolId } });
+
+    if (sampleClass && sampleSubject) {
+      const suggestion = await suggestBestTimetableSlotTool(
+        {
+          className: sampleClass.name,
+          subjectName: sampleSubject.name,
+          constraints: "pas le mercredi",
+        },
+        context
+      );
+
+      if (suggestion.found && suggestion.topSuggestions) {
+        for (const opt of suggestion.topSuggestions) {
+          if (opt.day === "Mercredi") {
+            throw new Error(`Violation de contrainte : l'option proposée est un Mercredi alors que 'pas le mercredi' a été demandé !`);
+          }
+        }
+      }
+    }
   });
 
   return results;

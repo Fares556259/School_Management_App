@@ -86,8 +86,15 @@ import {
 // Suite 6: Timetable & Substitution
 import {
   getClassTimetableTool,
+  getTeacherTimetableTool,
+  getTimetableConflictsTool,
   findAvailableTeachersTool,
   addTimetableSlotTool,
+  rescheduleTimetableSlotTool,
+  swapTimetableSlotsTool,
+  updateTimetableSlotTool,
+  deleteTimetableSlotTool,
+  suggestBestTimetableSlotTool,
 } from "./timetableTools";
 
 // Suite 7: Tasks, Homework & Course Resources
@@ -1431,6 +1438,171 @@ Confirmer l'enregistrement de cette dépense ?`;
       return `❓ <b>Ajout de Séance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nAjouter <b>${args.subjectName}</b> pour <code>${args.className}</code> avec <b>${args.teacherName}</b> le <b>${args.day}</b> (<code>${args.startTime} - ${args.endTime}</code>) ?`;
     },
     execute: addTimetableSlotTool,
+  },
+
+  get_teacher_timetable: {
+    name: "get_teacher_timetable",
+    description: "Consulter l'emploi du temps d'un enseignant sur toute la semaine ou pour un jour précis.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_teacher_timetable",
+      description: "Consulter les cours programmés d'un enseignant dans l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["teacherName"],
+        properties: {
+          teacherName: { type: SchemaType.STRING, description: "Nom ou prénom de l'enseignant." },
+          day: { type: SchemaType.STRING, description: "Jour spécifique optionnel (ex: 'lundi', 'mardi')." },
+        },
+      },
+    },
+    execute: getTeacherTimetableTool,
+  },
+
+  get_timetable_conflicts: {
+    name: "get_timetable_conflicts",
+    description: "Auditer l'emploi du temps de l'école pour détecter les doublons et conflits horaires (enseignants en double séance, salles occupées deux fois, ou classes superposées).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_timetable_conflicts",
+      description: "Vérifier la présence de conflits ou de superpositions dans l'emploi du temps de l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          className: { type: SchemaType.STRING, description: "Classe spécifique optionnelle à vérifier." },
+        },
+      },
+    },
+    execute: getTimetableConflictsTool,
+  },
+
+  suggest_best_timetable_slot: {
+    name: "suggest_best_timetable_slot",
+    description: "Assistant intelligent de planification : analyse l'emploi du temps de la classe, les disponibilités de l'enseignant dans toute l'école, et les contraintes exprimées par l'administrateur pour recommander les 3 meilleurs créneaux sans conflit.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "suggest_best_timetable_slot",
+      description: "Recommander les meilleurs créneaux sans conflit selon les contraintes de l'administrateur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className", "subjectName"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A', '8ème B')." },
+          subjectName: { type: SchemaType.STRING, description: "Matière à programmer (ex: 'Mathématiques', 'Anglais')." },
+          teacherName: { type: SchemaType.STRING, description: "Nom de l'enseignant pressenti (optionnel)." },
+          durationMinutes: { type: SchemaType.NUMBER, description: "Durée en minutes (ex: 60, 90, 120 - défaut: 120)." },
+          constraints: { type: SchemaType.STRING, description: "Contraintes en langage naturel (ex: 'pas le mercredi matin', 'uniquement le matin', 'éviter vendredi après-midi', 'le prof n'est pas dispo jeudi')." },
+          preferredDay: { type: SchemaType.STRING, description: "Jour préféré optionnel (ex: 'mardi')." },
+        },
+      },
+    },
+    execute: suggestBestTimetableSlotTool,
+  },
+
+  reschedule_timetable_slot: {
+    name: "reschedule_timetable_slot",
+    description: "Déplacer une séance de cours existante vers un nouveau jour et/ou horaire avec vérification préalable des conflits.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "reschedule_timetable_slot",
+      description: "Déplacer une séance de cours existante vers un autre créneau.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className", "subjectName", "currentDay", "targetDay", "newStartTime"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe." },
+          subjectName: { type: SchemaType.STRING, description: "Matière de la séance à déplacer." },
+          currentDay: { type: SchemaType.STRING, description: "Jour actuel de la séance (ex: 'mardi')." },
+          targetDay: { type: SchemaType.STRING, description: "Nouveau jour de destination (ex: 'jeudi')." },
+          newStartTime: { type: SchemaType.STRING, description: "Nouvelle heure de début (ex: '10:00')." },
+          newEndTime: { type: SchemaType.STRING, description: "Nouvelle heure de fin optionnelle (ex: '12:00')." },
+          newRoom: { type: SchemaType.STRING, description: "Nouvelle salle de classe optionnelle." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Déplacement de Séance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nDéplacer la séance de <b>${args.subjectName}</b> (${args.className})\nDu <b>${args.currentDay}</b> vers le <b>${args.targetDay}</b> à <code>${args.newStartTime}</code> ?`;
+    },
+    execute: rescheduleTimetableSlotTool,
+  },
+
+  swap_timetable_slots: {
+    name: "swap_timetable_slots",
+    description: "Permuter / échanger deux séances de cours d'une même classe en vérifiant qu'aucun enseignant n'entre en conflit.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "swap_timetable_slots",
+      description: "Échanger deux séances de cours dans l'emploi du temps d'une classe.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className", "day1", "time1", "day2", "time2"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe." },
+          day1: { type: SchemaType.STRING, description: "Jour de la première séance (ex: 'mardi')." },
+          time1: { type: SchemaType.STRING, description: "Heure de la première séance (ex: '08:00')." },
+          day2: { type: SchemaType.STRING, description: "Jour de la deuxième séance (ex: 'jeudi')." },
+          time2: { type: SchemaType.STRING, description: "Heure de la deuxième séance (ex: '10:00')." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Échange de Séances</b>\n━━━━━━━━━━━━━━━━━━━━━━\nÉchanger les cours de <code>${args.className}</code> entre le <b>${args.day1} ${args.time1}</b> et le <b>${args.day2} ${args.time2}</b> ?`;
+    },
+    execute: swapTimetableSlotsTool,
+  },
+
+  update_timetable_slot: {
+    name: "update_timetable_slot",
+    description: "Modifier l'enseignant, la matière ou la salle d'une séance existante dans l'emploi du temps.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_timetable_slot",
+      description: "Modifier les caractéristiques d'une séance de cours existante.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className", "day", "time"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe." },
+          day: { type: SchemaType.STRING, description: "Jour de la séance (ex: 'lundi')." },
+          time: { type: SchemaType.STRING, description: "Heure de début (ex: '08:00')." },
+          newTeacherName: { type: SchemaType.STRING, description: "Nouvel enseignant à assigner." },
+          newSubjectName: { type: SchemaType.STRING, description: "Nouvelle matière." },
+          newRoom: { type: SchemaType.STRING, description: "Nouvelle salle de classe." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const details = [
+        args.newTeacherName ? `Prof: <b>${args.newTeacherName}</b>` : "",
+        args.newSubjectName ? `Matière: <b>${args.newSubjectName}</b>` : "",
+        args.newRoom ? `Salle: <b>${args.newRoom}</b>` : "",
+      ].filter(Boolean).join(" | ");
+      return `❓ <b>Modification de Séance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nModifier la séance de <code>${args.className}</code> le <b>${args.day} à ${args.time}</b> ?\n${details}`;
+    },
+    execute: updateTimetableSlotTool,
+  },
+
+  delete_timetable_slot: {
+    name: "delete_timetable_slot",
+    description: "Supprimer / annuler une séance de cours dans l'emploi du temps d'une classe.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_timetable_slot",
+      description: "Supprimer une séance de cours de l'emploi du temps.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className", "day", "timeOrSubject"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe." },
+          day: { type: SchemaType.STRING, description: "Jour de la séance (ex: 'mardi')." },
+          timeOrSubject: { type: SchemaType.STRING, description: "Heure de la séance (ex: '08:00') ou nom de la matière (ex: 'Physique')." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      return `❓ <b>Suppression de Séance</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSupprimer la séance de <b>${args.timeOrSubject}</b> pour <code>${args.className}</code> le <b>${args.day}</b> ?\n⚠️ Cette action retirera le cours du planning.`;
+    },
+    execute: deleteTimetableSlotTool,
   },
 
   // ── COMMUNICATION SUITE (/list/announcements) ─────────────────────────────
