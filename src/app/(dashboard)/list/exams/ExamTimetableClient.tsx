@@ -575,50 +575,48 @@ const ExamTimetableClient = ({
         />
       )}
 
-      {/* WARNING MODAL */}
+      {/* CLEAN & SIMPLE CONFIRMATION MODAL */}
       {showEditWarningModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-            <div className="p-6">
-              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle size={24} />
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 animate-in fade-in"
+          onClick={() => setShowEditWarningModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[12px] border border-[#e2e8f0] w-full max-w-sm shadow-xl p-5 transition-all duration-200 animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-[6px] bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                <Edit2 size={15} />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">{t.timetable.liveEditWarning?.title}</h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">
-                {t.timetable.liveEditWarning?.examDesc}
-                <br /><br />
-                {t.timetable.liveEditWarning?.aiRecommend}
-              </p>
-              
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    setShowEditWarningModal(false);
-                    const params = new URLSearchParams(searchParams);
-                    if (selectedClass?.id) params.set("classId", selectedClass.id.toString());
-                    router.push(`/admin/timetable/ai?type=exam&${params.toString()}`);
-                  }}
-                  className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-                >
-                  <Sparkles size={18} />
-                  {t.timetable.liveEditWarning?.goToAi}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEditWarningModal(false);
-                    setIsEditMode(true);
-                  }}
-                  className="w-full py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-all"
-                >
-                  {t.timetable.liveEditWarning?.continueEdit}
-                </button>
-                <button
-                  onClick={() => setShowEditWarningModal(false)}
-                  className="w-full py-2 px-4 text-slate-500 hover:text-slate-700 font-medium transition-all"
-                >
-                  {t.timetable.liveEditWarning?.cancel}
-                </button>
-              </div>
+              <h3 className="text-[15px] font-semibold text-[#181d26]">
+                {t.timetable.liveEditWarning?.title || t.timetable.editSchedule}
+              </h3>
+            </div>
+            
+            <p className="text-[13px] text-[#5a5a5a] leading-relaxed mb-5">
+              {t.timetable.liveEditWarning?.examDesc}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowEditWarningModal(false)}
+                className="px-3.5 py-2 rounded-[6px] border border-[#dddddd] bg-white hover:bg-[#f8fafc] text-[13px] font-medium text-[#41454d] transition-all active:scale-[0.98]"
+              >
+                {t.timetable.liveEditWarning?.cancel || "Annuler"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditWarningModal(false);
+                  setIsEditMode(true);
+                }}
+                className="px-4 py-2 rounded-[6px] bg-[#181d26] hover:bg-[#0d1218] text-white text-[13px] font-medium transition-all shadow-sm active:scale-[0.98] flex items-center gap-1.5"
+              >
+                <Edit2 size={13} />
+                {t.timetable.liveEditWarning?.continueEdit || t.timetable.editSchedule}
+              </button>
             </div>
           </div>
         </div>

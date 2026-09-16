@@ -396,12 +396,10 @@ export const fr = {
     "freeBreak": "☕ Pause / Temps Libre",
     "tba": "À définir",
     "liveEditWarning": {
-      "title": "Avertissement de Modification en Direct",
-      "timetableDesc": "Vous êtes sur le point de modifier l'emploi du temps en direct. Toute modification sera immédiatement visible pour les enseignants, élèves et parents.",
-      "examDesc": "Vous êtes sur le point de modifier le calendrier des examens en direct. Toute modification sera immédiatement visible pour les enseignants, élèves et parents.",
-      "aiRecommend": "Si vous souhaitez simplement expérimenter ou planifier en toute sécurité sans affecter l'horaire actuel, nous vous recommandons fortement d'utiliser le Planificateur IA.",
-      "goToAi": "Aller au Planificateur IA (Brouillon Sûr)",
-      "continueEdit": "Continuer la Modification en Direct",
+      "title": "Modifier l'emploi du temps",
+      "timetableDesc": "Toute modification sera immédiatement enregistrée et visible pour les enseignants, élèves et parents.",
+      "examDesc": "Toute modification sera immédiatement enregistrée et visible pour les enseignants, élèves et parents.",
+      "continueEdit": "Activer la modification",
       "cancel": "Annuler"
     }
   },

@@ -77,11 +77,14 @@ const ScheduleSlot = ({
     if (!rawName) return "";
     if (!rawName.includes("|")) return rawName;
     const parts = rawName.split("|").map((p: string) => p.trim());
-    if (isRtl) {
+    if (locale === "ar") {
       const arPart = parts.find((p: string) => /[\u0600-\u06FF]/.test(p));
-      return arPart || parts[1] || parts[0];
+      return arPart || parts[0];
     }
-    return parts[0];
+    if (locale === "fr") {
+      return parts[1] || parts[0];
+    }
+    return parts[2] || parts[1] || parts[0];
   };
   
   // Form State

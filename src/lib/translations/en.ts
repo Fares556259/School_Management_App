@@ -396,12 +396,10 @@ export const en = {
     "freeBreak": "☕ Break / Free Time",
     "tba": "TBA",
     "liveEditWarning": {
-      "title": "Live Edit Warning",
-      "timetableDesc": "You are about to edit the live timetable. Any changes you make will instantly go live and be visible to teachers, students, and parents.",
-      "examDesc": "You are about to edit the live exam schedule. Any changes you make will instantly go live and be visible to teachers, students, and parents.",
-      "aiRecommend": "If you just want to experiment or plan safely without affecting the current schedule, we strongly recommend using the AI Scheduler.",
-      "goToAi": "Go to AI Scheduler (Safe Draft)",
-      "continueEdit": "Continue Live Edit",
+      "title": "Edit Timetable",
+      "timetableDesc": "Any changes made will be immediately saved and visible to teachers, students, and parents.",
+      "examDesc": "Any changes made will be immediately saved and visible to teachers, students, and parents.",
+      "continueEdit": "Enable Editing",
       "cancel": "Cancel"
     }
   },
