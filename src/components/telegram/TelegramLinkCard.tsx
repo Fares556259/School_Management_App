@@ -16,6 +16,11 @@ import {
   QrCode,
   Smartphone,
   School,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  Share2,
+  Search,
 } from "lucide-react";
 import {
   getTelegramLinkStatus,
@@ -30,6 +35,9 @@ export default function TelegramLinkCard() {
   const [status, setStatus] = useState<any>(null);
   const [activeCode, setActiveCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedUsername, setCopiedUsername] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fetchStatus = async () => {
@@ -94,6 +102,18 @@ export default function TelegramLinkCard() {
     navigator.clipboard.writeText(activeCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyUsername = () => {
+    navigator.clipboard.writeText("@HniaSnapSchoolBot");
+    setCopiedUsername(true);
+    setTimeout(() => setCopiedUsername(false), 2000);
+  };
+
+  const handleCopyDirectLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   if (loading) {
@@ -306,6 +326,93 @@ export default function TelegramLinkCard() {
             </div>
           </div>
 
+          {/* Fallback Option: If user cannot scan */}
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFallback(!showFallback)}
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-[#2AABEE] transition-colors self-start"
+            >
+              <HelpCircle size={14} className="text-[#2AABEE]" />
+              <span className="underline underline-offset-2">
+                {showFallback
+                  ? "Masquer l'alternative sans QR code"
+                  : "Impossible de scanner le QR code ? Cliquez ici pour les options manuelles"}
+              </span>
+              {showFallback ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {showFallback && (
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-3 text-[12px] animate-in fade-in duration-200">
+                <span className="font-semibold text-slate-800 flex items-center gap-2">
+                  <Search size={14} className="text-[#2AABEE]" />
+                  Deux façons simples d&apos;ouvrir Hnia sans utiliser l&apos;appareil photo :
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Option 1: Direct Search */}
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex flex-col justify-between gap-2.5 shadow-2xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-800 text-[12px]">
+                        Option 1 : Cherchez le bot dans Telegram
+                      </span>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Ouvrez votre application Telegram sur téléphone, tapez dans la barre de recherche :{" "}
+                        <strong className="text-slate-800">@HniaSnapSchoolBot</strong> et envoyez n&apos;importe quel message.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyUsername}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-medium transition-colors"
+                    >
+                      {copiedUsername ? (
+                        <>
+                          <Check size={13} className="text-emerald-600" />
+                          <span className="text-emerald-700 font-semibold">@HniaSnapSchoolBot copié !</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} />
+                          <span>Copier @HniaSnapSchoolBot</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Option 2: Copy direct link */}
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex flex-col justify-between gap-2.5 shadow-2xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-800 text-[12px]">
+                        Option 2 : S&apos;envoyer le lien direct
+                      </span>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Copiez le lien direct vers le bot et envoyez-le vous par WhatsApp, SMS ou email pour l&apos;ouvrir d&apos;un simple clic sur mobile.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyDirectLink("https://t.me/HniaSnapSchoolBot")}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-medium transition-colors"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check size={13} className="text-emerald-600" />
+                          <span className="text-emerald-700 font-semibold">Lien direct copié !</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 size={13} />
+                          <span>Copier le lien (t.me/HniaSnapSchoolBot)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Action Row */}
           <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
             <a
@@ -476,6 +583,99 @@ export default function TelegramLinkCard() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Fallback Option: If user cannot scan during onboarding */}
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFallback(!showFallback)}
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-indigo-600 transition-colors self-start"
+            >
+              <HelpCircle size={14} className="text-indigo-600" />
+              <span className="underline underline-offset-2">
+                {showFallback
+                  ? "Masquer l'alternative sans QR code"
+                  : "Impossible de scanner le QR code ? Connectez-vous manuellement"}
+              </span>
+              {showFallback ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {showFallback && (
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-3 text-[12px] animate-in fade-in duration-200 shadow-2xs">
+                <span className="font-semibold text-indigo-950 flex items-center gap-2">
+                  <Search size={14} className="text-indigo-600" />
+                  Comment associer votre école sans scanner le code :
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex flex-col justify-between gap-2.5">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-800 text-[12px]">
+                        1. Recherche + Code dans Telegram
+                      </span>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Sur votre téléphone, ouvrez Telegram, cherchez <strong className="text-slate-800">@HniaSnapSchoolBot</strong>, puis envoyez simplement le code :{" "}
+                        <code className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-indigo-700 border border-slate-200">
+                          {activeCode || "..."}
+                        </code>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-medium transition-colors"
+                    >
+                      {copied ? (
+                        <>
+                          <Check size={13} className="text-emerald-600" />
+                          <span className="text-emerald-700 font-semibold">Code copié !</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} />
+                          <span>Copier le code ({activeCode})</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex flex-col justify-between gap-2.5">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-800 text-[12px]">
+                        2. S&apos;envoyer le lien d&apos;invitation direct
+                      </span>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Copiez le lien direct avec code intégré et collez-le dans WhatsApp pour l&apos;ouvrir directement sur votre smartphone.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopyDirectLink(
+                          activeCode
+                            ? `https://t.me/HniaSnapSchoolBot?start=${activeCode}`
+                            : "https://t.me/HniaSnapSchoolBot"
+                        )
+                      }
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-medium transition-colors"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check size={13} className="text-emerald-600" />
+                          <span className="text-emerald-700 font-semibold">Lien d&apos;invitation copié !</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 size={13} />
+                          <span>Copier le lien d&apos;invitation</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
