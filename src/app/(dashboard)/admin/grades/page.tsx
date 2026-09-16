@@ -15,7 +15,7 @@ export default async function GradesPage({
   searchParams?: { classId?: string; term?: string };
 }) {
   const role = await getRole();
-  if (role !== "admin") return <div>Unauthorized</div>;
+  if (role !== "admin" && role !== "superuser") return <div>Unauthorized</div>;
 
   const schoolId = await getSchoolId();
 

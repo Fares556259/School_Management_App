@@ -412,3 +412,268 @@ export async function scheduleExamTool(
     data: { examId: exam.id },
   };
 }
+
+/**
+ * Tool: record_class_grades
+ * Bulk records or updates grades for an entire class in a specific subject and term.
+ * Supports scores from Vision OCR or admin manual entry.
+ */
+export async function recordClassGradesTool(
+  args: {
+    className: string;
+    subjectName: string;
+    term?: number; // 1, 2, or 3
+    grades: Array<{
+      studentName: string;
+      score: number;
+    }>;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const className = (args.className || "").trim();
+  const subjectName = (args.subjectName || "").trim();
+  const term = args.term || 1;
+
+  if (!className) {
+    return {
+      success: false,
+      message: "Veuillez spécifier le nom de la classe (ex: '1A', '3B').",
+      summary: "Classe non spécifiée",
+    };
+  }
+
+  if (!subjectName) {
+    return {
+      success: false,
+      message: "Veuillez spécifier la matière concernée (ex: 'Mathématiques', 'Français').",
+      summary: "Matière non spécifiée",
+    };
+  }
+
+  if (!Array.isArray(args.grades) || args.grades.length === 0) {
+    return {
+      success: false,
+      message: "Aucune note à enregistrer. Veuillez fournir la liste des élèves et leurs notes.",
+      summary: "Liste de notes vide",
+    };
+  }
+
+  const targetClass = await resolveClassByName(context.schoolId, className);
+  if (!targetClass) {
+    return {
+      success: false,
+      message: `Classe "${className}" introuvable dans l'école.`,
+      summary: `Classe introuvable : ${className}`,
+    };
+  }
+
+  const subject = await resolveSubjectByName(context.schoolId, subjectName);
+  if (!subject) {
+    return {
+      success: false,
+      message: `Matière "${subjectName}" introuvable dans l'école.`,
+      summary: `Matière introuvable : ${subjectName}`,
+    };
+  }
+
+  // Load all students in this class for reliable local matching
+  const classStudents = await prisma.student.findMany({
+    where: {
+      classId: targetClass.id,
+      schoolId: context.schoolId,
+    },
+    select: {
+      id: true,
+      name: true,
+      surname: true,
+    },
+  });
+
+  if (classStudents.length === 0) {
+    return {
+      success: false,
+      message: `La classe <b>${targetClass.name}</b> ne contient aucun élève inscrit actuellement.`,
+      summary: `Classe ${targetClass.name} sans élèves`,
+    };
+  }
+
+  // Match each grade to an enrolled student
+  const matchedEntries: Array<{
+    studentId: string;
+    studentName: string;
+    score: number;
+  }> = [];
+  const unmatchedNames: string[] = [];
+  const invalidScores: string[] = [];
+
+  for (const item of args.grades) {
+    const rawName = (item.studentName || "").trim();
+    const score = Number(item.score);
+
+    if (isNaN(score) || score < 0 || score > 20) {
+      invalidScores.push(`${rawName}: ${item.score}`);
+      continue;
+    }
+
+    const cleanQuery = rawName.toLowerCase().replace(/[^a-z\u0600-\u06FF0-9\s]/g, "").trim();
+    const queryTokens = cleanQuery.split(/\s+/).filter(Boolean);
+
+    // Score candidates from classStudents
+    let bestMatch: (typeof classStudents)[0] | null = null;
+    let bestScore = 0;
+
+    for (const student of classStudents) {
+      const sName = (student.name || "").toLowerCase();
+      const sSurname = (student.surname || "").toLowerCase();
+      const fullName1 = `${sName} ${sSurname}`.trim();
+      const fullName2 = `${sSurname} ${sName}`.trim();
+
+      if (fullName1 === cleanQuery || fullName2 === cleanQuery) {
+        bestMatch = student;
+        bestScore = 1.0;
+        break;
+      }
+
+      let tokensMatched = 0;
+      for (const t of queryTokens) {
+        if (sName.includes(t) || sSurname.includes(t)) {
+          tokensMatched++;
+        }
+      }
+
+      const matchRatio = tokensMatched / Math.max(queryTokens.length, 1);
+      if (matchRatio > bestScore && matchRatio >= 0.5) {
+        bestScore = matchRatio;
+        bestMatch = student;
+      }
+    }
+
+    if (bestMatch && bestScore >= 0.5) {
+      // Prevent duplicates in same batch
+      const alreadyIn = matchedEntries.find((m) => m.studentId === bestMatch!.id);
+      if (alreadyIn) {
+        alreadyIn.score = score;
+      } else {
+        matchedEntries.push({
+          studentId: bestMatch.id,
+          studentName: `${bestMatch.name} ${bestMatch.surname}`,
+          score,
+        });
+      }
+    } else {
+      unmatchedNames.push(rawName);
+    }
+  }
+
+  if (matchedEntries.length === 0) {
+    return {
+      success: false,
+      message: `Aucun élève de la classe <b>${targetClass.name}</b> n'a pu être associé aux noms fournis.\n` +
+        `Noms non reconnus : ${unmatchedNames.join(", ")}`,
+      summary: "Aucune correspondance d'élèves",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Ensure GradeSheet exists
+    let sheet = await tx.gradeSheet.findFirst({
+      where: {
+        classId: targetClass.id,
+        subjectId: subject.id,
+        term,
+        schoolId: context.schoolId,
+      },
+    });
+
+    if (!sheet) {
+      sheet = await tx.gradeSheet.create({
+        data: {
+          classId: targetClass.id,
+          subjectId: subject.id,
+          term,
+          proofUrl: "telegram-ocr",
+          schoolId: context.schoolId,
+        },
+      });
+    }
+
+    // 2. Upsert grades
+    for (const entry of matchedEntries) {
+      const existingGrade = await tx.grade.findFirst({
+        where: {
+          studentId: entry.studentId,
+          subjectId: subject.id,
+          term,
+        },
+      });
+
+      if (existingGrade) {
+        await tx.grade.update({
+          where: { id: existingGrade.id },
+          data: {
+            score: entry.score,
+            sheetId: sheet.id,
+          },
+        });
+      } else {
+        await tx.grade.create({
+          data: {
+            studentId: entry.studentId,
+            subjectId: subject.id,
+            term,
+            score: entry.score,
+            sheetId: sheet.id,
+            schoolId: context.schoolId,
+          },
+        });
+      }
+    }
+
+    // 3. Write AuditLog
+    await tx.auditLog.create({
+      data: {
+        action: "RECORD_GRADE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Grade",
+        entityId: targetClass.id.toString(),
+        description: `[Hnia AI Telegram] Saisie groupée de notes : ${targetClass.name} en ${subject.name} (Trimestre ${term}) : ${matchedEntries.length} notes enregistrées`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "exams", "dashboard");
+
+  const average =
+    Math.round((matchedEntries.reduce((acc, e) => acc + e.score, 0) / matchedEntries.length) * 100) / 100;
+
+  let msg = `✅ <b>${matchedEntries.length} note(s) enregistrée(s) pour la classe ${targetClass.name}</b>\n`;
+  msg += `📚 Matière : <b>${subject.name}</b> (Trimestre ${term})\n`;
+  msg += `📊 Moyenne de classe : <b>${average} / 20</b>\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+  matchedEntries.slice(0, 15).forEach((e) => {
+    msg += `• ${e.studentName} : <b>${e.score} / 20</b>\n`;
+  });
+  if (matchedEntries.length > 15) {
+    msg += `<i>... et ${matchedEntries.length - 15} autre(s) élève(s).</i>\n`;
+  }
+
+  if (unmatchedNames.length > 0) {
+    msg += `\n⚠️ <b>Non trouvés dans la classe (${unmatchedNames.length}) :</b> ${unmatchedNames.join(", ")}`;
+  }
+  if (invalidScores.length > 0) {
+    msg += `\n⚠️ <b>Notes invalides ignorées :</b> ${invalidScores.join(", ")}`;
+  }
+
+  return {
+    success: true,
+    message: msg,
+    summary: `${matchedEntries.length} notes enregistrées (${targetClass.name} - ${subject.name})`,
+    data: {
+      recordedCount: matchedEntries.length,
+      average,
+      unmatchedCount: unmatchedNames.length,
+    },
+  };
+}
+

@@ -12,6 +12,7 @@ import {
   TrendingUp, 
   Activity, 
   GraduationCap, 
+  Percent, 
   Calendar, 
   UserRound, 
   Contact, 
@@ -97,7 +98,7 @@ const menuItems: MenuSection[] = [
     items: [
       { icon: Calendar, label: "Timetable", href: "/admin/timetable", visible: ["admin", "teacher", "student", "parent"] },
       { icon: DoorOpen, label: "Classes", href: "/list/classes", visible: ["admin", "teacher", "superuser"] },
-      { icon: GraduationCap, label: "Results", href: "/list/results", visible: ["admin", "teacher", "student", "parent"] },
+      { icon: Percent, label: "Grades", href: "/admin/grades", visible: ["admin", "superuser"] },
     ],
   },
   {
@@ -219,7 +220,7 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
             "/list/classes",
             "/admin/finance",
             "/list/expenses",
-            "/list/results",
+            "/admin/grades",
             "/admin/timetable",
             "/list/attendance",
           ]
@@ -228,7 +229,6 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
             "/list/classes",
             "/list/students",
             "/list/assignments",
-            "/list/results",
             "/admin/timetable",
           ]
         : [];

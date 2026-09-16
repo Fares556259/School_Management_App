@@ -859,13 +859,45 @@ ${analysis.subjectName ? `- Matière identifiée : "${analysis.subjectName}"` : 
 
 Instructions :
 Propose de créer ce devoir scolaire avec l'outil 'create_assignment' en pré-remplissant title: "${analysis.title || "Devoir"}", img: "${photoUrl}", description: "${analysis.summary}"${analysis.className ? `, className: "${analysis.className}"` : ""}${analysis.subjectName ? `, subjectName: "${analysis.subjectName}"` : ""}.`;
+          } else if (analysis.documentType === "GRADES_SHEET") {
+            const gradesCount = analysis.gradesList ? analysis.gradesList.length : 0;
+            const gradesSample = (analysis.gradesList || [])
+              .slice(0, 10)
+              .map((g) => `${g.studentName}: ${g.score}/20`)
+              .join(", ");
+
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé la photo d'une feuille de notes / relevé de notes d'examen.
+- Classe identifiée : "${analysis.className || "Non spécifiée"}"
+- Matière identifiée : "${analysis.subjectName || "Non spécifiée"}"
+- Trimestre : ${analysis.term || 1}
+- Nombre de notes extraites : ${gradesCount}
+- Extraits de notes : ${gradesSample}${gradesCount > 10 ? "..." : ""}
+
+Instructions :
+${
+  analysis.className && analysis.subjectName && analysis.gradesList && analysis.gradesList.length > 0
+    ? `Appelle immédiatement l'outil 'record_class_grades' avec :
+- className: "${analysis.className}"
+- subjectName: "${analysis.subjectName}"
+- term: ${analysis.term || 1}
+- grades: ${JSON.stringify(analysis.gradesList)}
+(Cela générera directement la carte interactive de confirmation avec le récapitulatif pour que l'administrateur valide d'un simple clic).`
+    : `Affiche la synthèse des notes détectées (${gradesCount} notes extraites) et demande en UNE phrase directe de confirmer la classe et/ou la matière pour enregistrer les notes dans les bulletins.`
+}`;
           } else {
             userPrompt = `${docDescriptor}
 
 L'administrateur a envoyé ce document / cette image : "${analysis.summary}".
-Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (ressource de cours, devoir, dépense, justificatif ou annonce).`;
+Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (notes d'examen, ressource de cours, devoir, dépense, justificatif ou annonce).`;
           }
         } else {
+          let extraGradeInstructions = "";
+          if (analysis.documentType === "GRADES_SHEET" && analysis.gradesList && analysis.gradesList.length > 0) {
+            extraGradeInstructions = `\n- Document identifié comme FEUILLE DE NOTES (${analysis.gradesList.length} notes extraites). Si l'administrateur demande d'enregistrer ces notes, appelle 'record_class_grades' avec className: "${analysis.className || ""}", subjectName: "${analysis.subjectName || ""}", term: ${analysis.term || 1}, grades: ${JSON.stringify(analysis.gradesList)}.`;
+          }
+
           userPrompt = `${docDescriptor}
 
 Message / Consigne de l'administrateur : "${userPrompt}"
@@ -874,7 +906,7 @@ Instructions :
 - Applique directement la consigne de l'administrateur en utilisant les informations déjà extraites du document (montant: ${
             analysis.amount || 0
           } DT, date, enseigne: "${analysis.merchant || analysis.title || "Dépense"}", justificatif URL: ${photoUrl}).
-- Si l'administrateur demande d'enregistrer cette dépense ou ce reçu ("ماركيها", "ajoute cette dépense", "garde le reçu"), appelle directement 'add_expense' avec le montant et l'intitulé extraits sans lui redemander les détails visibles sur la photo !`;
+- Si l'administrateur demande d'enregistrer cette dépense ou ce reçu ("ماركيها", "ajoute cette dépense", "garde le reçu"), appelle directement 'add_expense' avec le montant et l'intitulé extraits sans lui redemander les détails visibles sur la photo !${extraGradeInstructions}`;
         }
       } else {
         const photoDescriptor = photoUrl
@@ -898,8 +930,7 @@ Instructions :
 
       try {
         const fileInfo = await getTelegramFile(docFile.file_id);
-        const botToken =
-          process.env.TELEGRAM_BOT_TOKEN || "8740615331:AAEa9Xzx_WJnlw-XEgkhoO5Vcbb9KEWl7HU";
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
         docUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.file_path}`;
         docBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
       } catch (err) {

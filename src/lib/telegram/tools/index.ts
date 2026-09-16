@@ -38,6 +38,9 @@ import {
   linkStudentToParentTool,
   updateParentPhoneTool,
   updateStudentTool,
+  updateClassTool,
+  assignTeacherToClassTool,
+  removeTeacherFromClassTool,
 } from "./academicTools";
 
 import {
@@ -64,6 +67,7 @@ import {
   getClassGradeSheetTool,
   getExamsTool,
   recordGradeTool,
+  recordClassGradesTool,
   scheduleExamTool,
 } from "./gradeExamTools";
 
@@ -297,6 +301,87 @@ export const TOOLS: Record<string, ToolDefinition> = {
       return `❓ <b>Création de Classe</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous créer la classe <code>${args.name}</code> (Capacité : <code>${args.capacity || 25} élèves</code>) ?`;
     },
     execute: createClassTool,
+  },
+
+  update_class: {
+    name: "update_class",
+    description: "Modifier les paramètres d'une classe existante : renommer la classe, modifier sa capacité maximale, affecter ou changer son professeur principal / titulaire (supervisor), ou modifier son niveau.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_class",
+      description: "Modifier une classe existante (renommer, capacité, professeur principal, niveau).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom actuel de la classe à modifier (ex: '1A', '8ème B')." },
+          newName: { type: SchemaType.STRING, description: "Nouveau nom souhaité pour la classe (ex: '1A-Excellence')." },
+          capacity: { type: SchemaType.NUMBER, description: "Nouvelle capacité maximale d'élèves (ex: 30)." },
+          supervisorNameOrId: { type: SchemaType.STRING, description: "Nom ou ID de l'enseignant à désigner comme professeur principal/titulaire, ou 'aucun' pour retirer le titulaire actuel." },
+          levelNumber: { type: SchemaType.NUMBER, description: "Numéro de niveau académique (ex: 1, 2, 8)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const parts: string[] = [];
+      if (args.newName) parts.push(`Nouveau nom : <code>${args.newName}</code>`);
+      if (args.capacity) parts.push(`Capacité : <code>${args.capacity} élèves</code>`);
+      if (args.supervisorNameOrId) parts.push(`Professeur principal : <b>${args.supervisorNameOrId}</b>`);
+      if (args.levelNumber) parts.push(`Niveau : <code>${args.levelNumber}</code>`);
+      return `❓ <b>Modification de la Classe <code>${args.className}</code></b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous appliquer ces changements ?\n${parts.length > 0 ? parts.map((p) => `• ${p}`).join("\n") : "• Mise à jour de la classe"}`;
+    },
+    execute: updateClassTool,
+  },
+
+  assign_teacher_to_class: {
+    name: "assign_teacher_to_class",
+    description: "Affecter un nouvel enseignant à une classe en tant que professeur principal (titulaire) ou pour enseigner une matière spécifique (cours/séance).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "assign_teacher_to_class",
+      description: "Affecter un enseignant à une classe (comme professeur principal ou pour une matière).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["teacherNameOrId", "className"],
+        properties: {
+          teacherNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'enseignant." },
+          className: { type: SchemaType.STRING, description: "Nom de la classe cible (ex: '1A', '2B')." },
+          role: { type: SchemaType.STRING, description: "'supervisor' pour professeur principal/titulaire, ou 'subject_teacher' pour professeur de matière." },
+          subjectName: { type: SchemaType.STRING, description: "Nom de la matière enseignée dans cette classe (ex: 'Mathématiques', 'Français', 'Histoire')." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const roleText = args.subjectName
+        ? `professeur de <b>${args.subjectName}</b>`
+        : `professeur principal / titulaire`;
+      return `❓ <b>Affectation Enseignant</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous affecter <b>${args.teacherNameOrId}</b> comme ${roleText} à la classe <code>${args.className}</code> ?`;
+    },
+    execute: assignTeacherToClassTool,
+  },
+
+  remove_teacher_from_class: {
+    name: "remove_teacher_from_class",
+    description: "Retirer un enseignant d'une classe (retirer la fonction de professeur principal ou supprimer ses séances de cours pour une matière).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "remove_teacher_from_class",
+      description: "Retirer un enseignant d'une classe (titulaire ou cours).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["teacherNameOrId", "className"],
+        properties: {
+          teacherNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'enseignant à retirer." },
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A')." },
+          subjectName: { type: SchemaType.STRING, description: "Matière spécifique à retirer (optionnel)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const detail = args.subjectName ? `pour la matière <b>${args.subjectName}</b>` : `(titulaire et cours)`;
+      return `❓ <b>Retrait d'un Enseignant</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous retirer <b>${args.teacherNameOrId}</b> de la classe <code>${args.className}</code> ${detail} ?`;
+    },
+    execute: removeTeacherFromClassTool,
   },
 
   assign_student_to_class: {
@@ -817,6 +902,47 @@ Confirmer l'enregistrement et le versement de ce montant ?`;
       return `❓ <b>Saisie de Note</b>\n━━━━━━━━━━━━━━━━━━━━━━\nEnregistrer la note <code>${args.score} / 20</code> en <b>${args.subjectName}</b> pour <b>${args.studentNameOrId}</b> (Trimestre <code>${args.term || 1}</code>) ?`;
     },
     execute: recordGradeTool,
+  },
+
+  record_class_grades: {
+    name: "record_class_grades",
+    description: "Enregistrer ou mettre à jour en masse les notes d'une classe entière pour une matière et un trimestre (depuis la saisie directe de l'admin ou suite à la numérisation OCR d'une feuille de notes).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "record_class_grades",
+      description: "Enregistrer en masse les notes de toute une classe pour une matière et un trimestre.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["className", "subjectName", "grades"],
+        properties: {
+          className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '1A', '3B')." },
+          subjectName: { type: SchemaType.STRING, description: "Nom de la matière (ex: 'Mathématiques', 'Français')." },
+          term: { type: SchemaType.NUMBER, description: "Trimestre (1, 2 ou 3, défaut: 1)." },
+          grades: {
+            type: SchemaType.ARRAY,
+            description: "Liste des notes par élève : [{ studentName: 'Nom Prénom', score: 16.5 }].",
+            items: {
+              type: SchemaType.OBJECT,
+              required: ["studentName", "score"],
+              properties: {
+                studentName: { type: SchemaType.STRING, description: "Nom complet de l'élève." },
+                score: { type: SchemaType.NUMBER, description: "Note sur 20 (entre 0 et 20)." },
+              },
+            },
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const count = Array.isArray(args.grades) ? args.grades.length : 0;
+      const sample = (args.grades || [])
+        .slice(0, 5)
+        .map((g: any) => `• ${g.studentName} : <b>${g.score} / 20</b>`)
+        .join("\n");
+      const more = count > 5 ? `\n<i>... et ${count - 5} autre(s) élève(s)</i>` : "";
+      return `❓ <b>Saisie Groupée de Notes (${count} élèves)</b>\n━━━━━━━━━━━━━━━━━━━━━━\nClasse : <code>${args.className}</code>\nMatière : <b>${args.subjectName}</b> (Trimestre <code>${args.term || 1}</code>)\n\n${sample}${more}\n\nSouhaitez-vous confirmer l'enregistrement de ces notes dans les bulletins ?`;
+    },
+    execute: recordClassGradesTool,
   },
 
   schedule_exam: {

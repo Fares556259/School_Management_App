@@ -11,6 +11,7 @@ export interface DocumentAnalysisResult {
     | "ANNOUNCEMENT_FLYER"
     | "COURSE_RESOURCE"
     | "HOMEWORK_ASSIGNMENT"
+    | "GRADES_SHEET"
     | "OTHER";
   title: string;
   summary: string;
@@ -27,6 +28,8 @@ export interface DocumentAnalysisResult {
   absentStudents?: string[];
   lateStudents?: string[];
   sessionName?: string;
+  term?: number;
+  gradesList?: Array<{ studentName: string; score: number }>;
   suggestedAction?:
     | "add_expense"
     | "record_payment"
@@ -35,14 +38,15 @@ export interface DocumentAnalysisResult {
     | "post_announcement"
     | "add_resource"
     | "create_assignment"
+    | "record_class_grades"
     | "none";
   publicUrl?: string;
 }
 
 const VISION_MODELS = [
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
 ];
 
 /**
@@ -173,18 +177,26 @@ IDENTIFIE LA NATURE EXACTE DU DOCUMENT :
    - title : Titre de la tâche ou des exercices.
    - className : Classe ciblée.
    - subjectName : Matière.
-   - date : Date limite de rendu si mentionnée.
-   - summary : Consignes ou description des exercices.
-   - suggestedAction : "create_assignment"
+    - date : Date limite de rendu si mentionnée.
+    - summary : Consignes ou description des exercices.
+    - suggestedAction : "create_assignment"
 
-9. "OTHER" : Autre type d'image ou document ne rentrant pas dans les catégories ci-dessus.
-   - title : Titre descriptif.
-   - summary : Ce que l'on voit dans l'image.
-   - suggestedAction : "none"
+9. "GRADES_SHEET" : Une feuille de notes, relevé de notes manuscrit ou imprimé, liste de classe avec des notes d'examen/contrôle (sur 20) attribuées aux élèves.
+    - className : Nom de la classe mentionnée (ex: "1A", "3B", "8ème B").
+    - subjectName : Matière indiquée en en-tête (ex: "Mathématiques", "Français", "Anglais", "Physique", "Sciences").
+    - term : Trimestre concerné (1, 2 ou 3). Par défaut 1 si non précisé.
+    - gradesList : Tableau d'objets [{"studentName": "Nom complet de l'élève", "score": 15.5}, ...] avec pour chaque ligne de la feuille le nom complet et sa note sur 20 (nombre entre 0 et 20).
+    - summary : Brève description (ex: "Feuille de notes de Mathématiques pour la classe 1A : 22 élèves notés").
+    - suggestedAction : "record_class_grades"
+
+10. "OTHER" : Autre type d'image ou document ne rentrant pas dans les catégories ci-dessus.
+    - title : Titre descriptif.
+    - summary : Ce que l'on voit dans l'image.
+    - suggestedAction : "none"
 
 RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans balises markdown extra, sans explications) :
 {
-  "documentType": "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "BANK_CHEQUE" | "ATTENDANCE_SHEET" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "COURSE_RESOURCE" | "HOMEWORK_ASSIGNMENT" | "OTHER",
+  "documentType": "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "BANK_CHEQUE" | "ATTENDANCE_SHEET" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "COURSE_RESOURCE" | "HOMEWORK_ASSIGNMENT" | "GRADES_SHEET" | "OTHER",
   "title": "...",
   "summary": "...",
   "amount": 33.5,
@@ -200,6 +212,8 @@ RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans b
   "parentName": null,
   "className": null,
   "subjectName": null,
+  "term": 1,
+  "gradesList": [{"studentName": "Prénom Nom", "score": 15}],
   "suggestedAction": "add_expense"
 }`;
 
@@ -243,6 +257,15 @@ RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans b
         parentName: parsed.parentName || undefined,
         className: parsed.className || undefined,
         subjectName: parsed.subjectName || undefined,
+        term: typeof parsed.term === "number" ? parsed.term : undefined,
+        gradesList: Array.isArray(parsed.gradesList)
+          ? parsed.gradesList
+              .map((g: any) => ({
+                studentName: String(g.studentName || "").trim(),
+                score: Number(g.score),
+              }))
+              .filter((g: any) => g.studentName && !isNaN(g.score))
+          : undefined,
         suggestedAction: parsed.suggestedAction || "none",
       };
     } catch (err: any) {

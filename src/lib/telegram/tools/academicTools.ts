@@ -5,7 +5,7 @@ import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
-import { resolveStudentByName, resolveParentByName } from "./entityResolvers";
+import { resolveStudentByName, resolveParentByName, resolveTeacherByName, resolveSubjectByName } from "./entityResolvers";
 
 /**
  * Tool: get_student_profile
@@ -1250,4 +1250,397 @@ export async function updateStudentTool(
     data: { studentId: student.id, updates: updateData },
   };
 }
+
+/**
+ * Tool: update_class
+ * Modifies an existing class (name, capacity, supervisor teacher, level).
+ */
+export async function updateClassTool(
+  args: {
+    className: string;
+    newName?: string;
+    capacity?: number;
+    supervisorNameOrId?: string;
+    levelNumber?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const className = (args.className || "").trim();
+  const targetClass = await resolveClassByName(context.schoolId, className);
+
+  if (!targetClass) {
+    return {
+      success: false,
+      message: `La classe "${className}" n'existe pas dans l'école.`,
+      summary: `Classe "${className}" introuvable`,
+    };
+  }
+
+  const updates: any = {};
+  const changesSummary: string[] = [];
+
+  // 1. Rename class
+  if (args.newName && args.newName.trim() !== targetClass.name) {
+    const newName = args.newName.trim();
+    const existing = await prisma.class.findFirst({
+      where: { schoolId: context.schoolId, name: newName, NOT: { id: targetClass.id } },
+    });
+    if (existing) {
+      return {
+        success: false,
+        message: `Une classe nommée "${newName}" existe déjà dans l'école.`,
+        summary: `Nom de classe en doublon : ${newName}`,
+      };
+    }
+    updates.name = newName;
+    changesSummary.push(`Nom : <b>${targetClass.name}</b> ➔ <b>${newName}</b>`);
+  }
+
+  // 2. Capacity
+  if (args.capacity !== undefined && args.capacity > 0 && args.capacity !== targetClass.capacity) {
+    updates.capacity = Number(args.capacity);
+    changesSummary.push(`Capacité : <b>${targetClass.capacity}</b> ➔ <b>${args.capacity}</b> élèves`);
+  }
+
+  // 3. Supervisor / Titulaire
+  if (args.supervisorNameOrId !== undefined) {
+    const supQuery = args.supervisorNameOrId.trim();
+    if (!supQuery || /^(aucun|none|null|supprimer|retirer|sans)$/i.test(supQuery)) {
+      if (targetClass.supervisorId) {
+        updates.supervisorId = null;
+        changesSummary.push(`Professeur principal retiré`);
+      }
+    } else {
+      const teacher = await resolveTeacherByName(context.schoolId, supQuery);
+      if (!teacher) {
+        return {
+          success: false,
+          message: `Professeur "${supQuery}" introuvable pour la supervision de la classe.`,
+          summary: `Enseignant introuvable : ${supQuery}`,
+        };
+      }
+      updates.supervisorId = teacher.id;
+      changesSummary.push(`Professeur principal : <b>${teacher.name} ${teacher.surname}</b>`);
+    }
+  }
+
+  // 4. Level
+  if (args.levelNumber !== undefined && args.levelNumber > 0) {
+    let level = await prisma.level.findFirst({
+      where: { schoolId: context.schoolId, level: args.levelNumber },
+    });
+    if (!level) {
+      level = await prisma.level.create({
+        data: {
+          level: args.levelNumber,
+          tuitionFee: 450,
+          schoolId: context.schoolId,
+        },
+      });
+    }
+    if (level.id !== targetClass.levelId) {
+      updates.levelId = level.id;
+      changesSummary.push(`Niveau : <b>${args.levelNumber}</b>`);
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return {
+      success: true,
+      message: `Aucune modification requise pour la classe <b>${targetClass.name}</b> (les valeurs fournies sont identiques aux données actuelles).`,
+      summary: `Aucune modification pour ${targetClass.name}`,
+    };
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const cls = await tx.class.update({
+      where: { id: targetClass.id },
+      data: updates,
+      include: {
+        supervisor: true,
+        level: true,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Class",
+        entityId: cls.id.toString(),
+        description: `[Hnia AI Telegram] Mise à jour classe ${targetClass.name} : ${changesSummary.join(", ")}`,
+        schoolId: context.schoolId,
+      },
+    });
+
+    return cls;
+  });
+
+  invalidateTenantTags(context.schoolId, "classes", "students", "institution", "dashboard");
+
+  return {
+    success: true,
+    message: `✅ <b>Classe ${updated.name} mise à jour avec succès :</b>\n` +
+      changesSummary.map((c) => `• ${c}`).join("\n"),
+    summary: `Mise à jour de la classe ${updated.name}`,
+    data: { classId: updated.id, name: updated.name },
+  };
+}
+
+/**
+ * Tool: assign_teacher_to_class
+ * Assigns a teacher to a class as supervisor (titulaire) or subject teacher (through lessons).
+ */
+export async function assignTeacherToClassTool(
+  args: {
+    teacherNameOrId: string;
+    className: string;
+    role?: "supervisor" | "subject_teacher";
+    subjectName?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherNameOrId);
+  if (!teacher) {
+    return {
+      success: false,
+      message: `Enseignant "${args.teacherNameOrId}" introuvable.`,
+      summary: "Enseignant introuvable",
+    };
+  }
+
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
+  if (!targetClass) {
+    return {
+      success: false,
+      message: `Classe "${args.className}" introuvable.`,
+      summary: "Classe introuvable",
+    };
+  }
+
+  const teacherFullName = `${teacher.name} ${teacher.surname}`;
+  const isSupervisorRole =
+    args.role === "supervisor" ||
+    (!args.subjectName && args.role !== "subject_teacher");
+
+  if (isSupervisorRole && !args.subjectName) {
+    // Set as class supervisor
+    await prisma.$transaction(async (tx) => {
+      await tx.class.update({
+        where: { id: targetClass.id },
+        data: { supervisorId: teacher.id },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: "UPDATE",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Class",
+          entityId: targetClass.id.toString(),
+          description: `[Hnia AI Telegram] Affectation titulaire/superviseur : ${teacherFullName} pour la classe ${targetClass.name}`,
+          schoolId: context.schoolId,
+        },
+      });
+    });
+
+    invalidateTenantTags(context.schoolId, "classes", "teachers", "dashboard");
+
+    return {
+      success: true,
+      message: `✅ <b>${teacherFullName}</b> a été nommé(e) <b>professeur principal / titulaire</b> de la classe <b>${targetClass.name}</b>.`,
+      summary: `${teacherFullName} ➔ Titulaire de ${targetClass.name}`,
+    };
+  }
+
+  // Assign as subject teacher
+  if (!args.subjectName) {
+    return {
+      success: false,
+      message: `Veuillez spécifier la matière enseignée par ${teacherFullName} pour la classe ${targetClass.name} (ex: Mathématiques, Français, etc.).`,
+      summary: "Matière non spécifiée",
+    };
+  }
+
+  const subject = await resolveSubjectByName(context.schoolId, args.subjectName);
+  if (!subject) {
+    return {
+      success: false,
+      message: `Matière "${args.subjectName}" introuvable dans l'école.`,
+      summary: "Matière introuvable",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Connect teacher to subject relation if not already connected
+    await tx.subject.update({
+      where: { id: subject.id },
+      data: {
+        teachers: {
+          connect: { id: teacher.id },
+        },
+      },
+    });
+
+    // Check if an active lesson exists for this class & subject
+    const existingLesson = await tx.lesson.findFirst({
+      where: {
+        classId: targetClass.id,
+        subjectId: subject.id,
+        schoolId: context.schoolId,
+      },
+    });
+
+    if (existingLesson) {
+      await tx.lesson.update({
+        where: { id: existingLesson.id },
+        data: { teacherId: teacher.id },
+      });
+    } else {
+      // Create baseline lesson for this subject in the class
+      const now = new Date();
+      const startTime = new Date(now);
+      startTime.setHours(8, 0, 0, 0);
+      const endTime = new Date(now);
+      endTime.setHours(10, 0, 0, 0);
+
+      await tx.lesson.create({
+        data: {
+          name: `${subject.name} - ${targetClass.name}`,
+          day: "MONDAY",
+          startTime,
+          endTime,
+          subjectId: subject.id,
+          classId: targetClass.id,
+          teacherId: teacher.id,
+          schoolId: context.schoolId,
+        },
+      });
+    }
+
+    if (args.role === "supervisor") {
+      await tx.class.update({
+        where: { id: targetClass.id },
+        data: { supervisorId: teacher.id },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Class",
+        entityId: targetClass.id.toString(),
+        description: `[Hnia AI Telegram] Affectation prof matière : ${teacherFullName} en ${subject.name} pour la classe ${targetClass.name}`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "classes", "teachers", "subjects", "dashboard");
+
+  return {
+    success: true,
+    message: `✅ <b>${teacherFullName}</b> a été affecté(e) comme professeur de <b>${subject.name}</b> pour la classe <b>${targetClass.name}</b>.`,
+    summary: `${teacherFullName} ➔ ${subject.name} (${targetClass.name})`,
+  };
+}
+
+/**
+ * Tool: remove_teacher_from_class
+ * Removes a teacher from a class (as supervisor or from teaching lessons in that class).
+ */
+export async function removeTeacherFromClassTool(
+  args: {
+    teacherNameOrId: string;
+    className: string;
+    subjectName?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherNameOrId);
+  if (!teacher) {
+    return {
+      success: false,
+      message: `Enseignant "${args.teacherNameOrId}" introuvable.`,
+      summary: "Enseignant introuvable",
+    };
+  }
+
+  const targetClass = await resolveClassByName(context.schoolId, args.className);
+  if (!targetClass) {
+    return {
+      success: false,
+      message: `Classe "${args.className}" introuvable.`,
+      summary: "Classe introuvable",
+    };
+  }
+
+  const teacherFullName = `${teacher.name} ${teacher.surname}`;
+  const actionsTaken: string[] = [];
+
+  await prisma.$transaction(async (tx) => {
+    // 1. If teacher is supervisor, remove supervision
+    if (targetClass.supervisorId === teacher.id && (!args.subjectName || /^(principal|titulaire|superviseur)$/i.test(args.subjectName))) {
+      await tx.class.update({
+        where: { id: targetClass.id },
+        data: { supervisorId: null },
+      });
+      actionsTaken.push(`Retiré de la fonction de professeur principal / titulaire`);
+    }
+
+    // 2. If subjectName specified or general removal, update/remove lessons
+    let subjectId: number | undefined;
+    if (args.subjectName && !/^(principal|titulaire|superviseur)$/i.test(args.subjectName)) {
+      const subject = await resolveSubjectByName(context.schoolId, args.subjectName);
+      if (subject) subjectId = subject.id;
+    }
+
+    const lessonsQuery: any = {
+      classId: targetClass.id,
+      teacherId: teacher.id,
+      schoolId: context.schoolId,
+    };
+    if (subjectId) {
+      lessonsQuery.subjectId = subjectId;
+    }
+
+    const matchedLessons = await tx.lesson.findMany({ where: lessonsQuery, include: { subject: true } });
+    if (matchedLessons.length > 0) {
+      await tx.lesson.deleteMany({ where: { id: { in: matchedLessons.map((l) => l.id) } } });
+      const subjNames = Array.from(new Set(matchedLessons.map((l) => l.subject.name))).join(", ");
+      actionsTaken.push(`Séances de cours retirées (${subjNames})`);
+    }
+
+    if (actionsTaken.length > 0) {
+      await tx.auditLog.create({
+        data: {
+          action: "DELETE",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Class",
+          entityId: targetClass.id.toString(),
+          description: `[Hnia AI Telegram] Retrait enseignant ${teacherFullName} de la classe ${targetClass.name} : ${actionsTaken.join(", ")}`,
+          schoolId: context.schoolId,
+        },
+      });
+    }
+  });
+
+  if (actionsTaken.length === 0) {
+    return {
+      success: true,
+      message: `L'enseignant <b>${teacherFullName}</b> n'est actuellement ni titulaire ni affecté à une matière dans la classe <b>${targetClass.name}</b>.`,
+      summary: `Aucune affectation trouvée pour ${teacherFullName} en ${targetClass.name}`,
+    };
+  }
+
+  invalidateTenantTags(context.schoolId, "classes", "teachers", "subjects", "dashboard");
+
+  return {
+    success: true,
+    message: `✅ <b>${teacherFullName}</b> a été retiré(e) de la classe <b>${targetClass.name}</b> :\n` +
+      actionsTaken.map((a) => `• ${a}`).join("\n"),
+    summary: `Retrait de ${teacherFullName} de ${targetClass.name}`,
+  };
+}
+
 
