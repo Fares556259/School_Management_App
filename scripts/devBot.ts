@@ -147,9 +147,14 @@ async function start() {
     if (!isRunning) return;
     isRunning = false;
     console.log("\n🛑 Stopping local runner...");
-    console.log("🔄 Restoring remote webhook to www.snapschool.academy...");
-    await apiCall("setWebhook", { url: ORIGINAL_WEBHOOK });
-    console.log("✅ Remote webhook restored.");
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    await apiCall("setWebhook", {
+      url: ORIGINAL_WEBHOOK,
+      ...(secret ? { secret_token: secret } : {}),
+      allowed_updates: ["message", "callback_query"],
+      drop_pending_updates: false,
+    });
+    console.log("✅ Remote webhook restored with proper security configuration.");
     if (mockServer) {
       mockServer.close();
     }
