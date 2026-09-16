@@ -38,6 +38,10 @@ import {
   linkStudentToParentTool,
   updateParentPhoneTool,
   updateStudentTool,
+  deleteStudentTool,
+  updateParentTool,
+  deleteParentTool,
+  updatePersonPhotoTool,
   updateClassTool,
   assignTeacherToClassTool,
   removeTeacherFromClassTool,
@@ -46,7 +50,11 @@ import {
 import {
   getStaffTool,
   createTeacherTool,
+  updateTeacherTool,
+  deleteTeacherTool,
   createStaffTool,
+  updateStaffTool,
+  deleteStaffTool,
   payTeacherSalaryTool,
   payStaffSalaryTool,
   getSalaryDetailsTool,
@@ -2246,29 +2254,343 @@ Confirmer l'enregistrement de cette dépense ?`;
 
   update_student: {
     name: "update_student",
-    description: "Mettre à jour les informations d'un élève : transfert de classe, tarif mensuel personnalisé ou téléphone.",
+    description:
+      "Mettre à jour les informations d'un élève : prénom, nom, classe, tarif mensuel de scolarité, téléphone, adresse, groupe sanguin, date de naissance, sexe, photo de profil, ou parent rattaché.",
     requiresConfirmation: true,
     declaration: {
       name: "update_student",
-      description: "Modifier la classe, le tarif ou les coordonnées d'un élève.",
+      description: "Modifier la fiche complète d'un élève existant.",
       parameters: {
         type: SchemaType.OBJECT,
         required: ["studentNameOrId"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
-          newClassName: { type: SchemaType.STRING, description: "Nouvelle classe d'affectation (ex: '2B')." },
+          className: { type: SchemaType.STRING, description: "Classe actuelle de l'élève (optionnel pour lever toute ambiguïté)." },
+          name: { type: SchemaType.STRING, description: "Nouveau prénom de l'élève." },
+          surname: { type: SchemaType.STRING, description: "Nouveau nom de famille de l'élève." },
+          newClassName: { type: SchemaType.STRING, description: "Nouvelle classe d'affectation / transfert (ex: '2B')." },
           customTuition: { type: SchemaType.NUMBER, description: "Nouveau tarif mensuel personnalisé en DT (ex: 420)." },
           phone: { type: SchemaType.STRING, description: "Nouveau téléphone personnel de l'élève." },
+          address: { type: SchemaType.STRING, description: "Nouvelle adresse de domicile." },
+          bloodType: { type: SchemaType.STRING, description: "Groupe sanguin (ex: 'A+', 'O+')." },
+          birthday: { type: SchemaType.STRING, description: "Date de naissance (AAAA-MM-JJ)." },
+          sex: { type: SchemaType.STRING, description: "Sexe ('MALE' ou 'FEMALE')." },
+          img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
+          parentNameOrPhone: { type: SchemaType.STRING, description: "Nom ou numéro de téléphone du parent à associer." },
         },
       },
     },
-    formatConfirmationMessage: (args) => {
-      const cls = args.newClassName ? `\n🏫 Nouvelle classe : <code>${args.newClassName}</code>` : "";
-      const tui = args.customTuition ? `\n💰 Nouveau tarif : <code>${args.customTuition} DT/mois</code>` : "";
-      const ph = args.phone ? `\n📞 Tél : <code>${args.phone}</code>` : "";
-      return `❓ <b>Confirmation : Modification Fiche Élève</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Élève : <b>${args.studentNameOrId}</b>${cls}${tui}${ph}\n\nAppliquer ces changements immédiatement ?`;
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const parts: string[] = [];
+      if (args.name) parts.push(`Prénom : <b>${args.name}</b>`);
+      if (args.surname) parts.push(`Nom : <b>${args.surname}</b>`);
+      if (args.newClassName) parts.push(`Nouvelle classe : <code>${args.newClassName}</code>`);
+      if (args.customTuition !== undefined) parts.push(`Tarif mensuel : <code>${args.customTuition} DT/mois</code>`);
+      if (args.phone) parts.push(`Téléphone : <code>${args.phone}</code>`);
+      if (args.address) parts.push(`Adresse : <code>${args.address}</code>`);
+      if (args.bloodType) parts.push(`Groupe sanguin : <code>${args.bloodType}</code>`);
+      if (args.birthday) parts.push(`Date de naissance : <code>${args.birthday}</code>`);
+      if (args.sex) parts.push(`Sexe : <code>${args.sex}</code>`);
+      if (args.img) parts.push(`Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
+      if (args.parentNameOrPhone) parts.push(`Parent / Tuteur : <b>${args.parentNameOrPhone}</b>`);
+
+      if (isArabic) {
+        return `✏️ <b>تأكيد تعديل ملف التلميذ</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>التلميذ :</b> <b>${args.studentNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nهل ترغب في تطبيق هذه التعديلات ؟`;
+      }
+      return `✏️ <b>Confirmation : Modification Fiche Élève</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Élève :</b> <b>${args.studentNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nSouhaitez-vous appliquer ces changements immédiatement ?`;
     },
     execute: updateStudentTool,
+  },
+
+  delete_student: {
+    name: "delete_student",
+    description:
+      "Supprimer définitivement un élève du registre scolaire avec suppression sécurisée en cascade de son historique (notes, présences, résultats, paiements, notifications). Action irréversible protégée par confirmation.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_student",
+      description: "Supprimer définitivement un élève de l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["studentNameOrId"],
+        properties: {
+          studentNameOrId: { type: SchemaType.STRING, description: "Nom complet ou identifiant de l'élève à supprimer." },
+          className: { type: SchemaType.STRING, description: "Classe de l'élève (optionnel pour lever toute ambiguïté)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      if (isArabic) {
+        return `⚠️ <b>تحذير هام : حذف تلميذ نهائياً</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>التلميذ :</b> <b>${args.studentNameOrId}</b>${args.className ? `\n🏫 <b>القسم :</b> <code>${args.className}</code>` : ""}\n\n⚠️ <i>سيتم حذف هذا التلميذ نهائياً مع كافة الأعداد، الغيابات وسجلات الخلاص المرتبطة به.</i>\n\nهل أنت متأكد من تأكيد الحذف ؟`;
+      }
+      return `⚠️ <b>Avertissement : Suppression Définitive d'Élève</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Élève :</b> <b>${args.studentNameOrId}</b>${args.className ? `\n🏫 <b>Classe :</b> <code>${args.className}</code>` : ""}\n\n⚠️ <i>Cette action supprimera irréversiblement l'élève ainsi que son historique de notes, présences et paiements.</i>\n\nSouhaitez-vous confirmer la suppression ?`;
+    },
+    execute: deleteStudentTool,
+  },
+
+  update_parent: {
+    name: "update_parent",
+    description:
+      "Modifier la fiche d'un parent ou tuteur : prénom, nom, téléphone de contact, adresse de domicile, ou photo de profil.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_parent",
+      description: "Mettre à jour les coordonnées et informations d'un parent ou tuteur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["parentNameOrId"],
+        properties: {
+          parentNameOrId: { type: SchemaType.STRING, description: "Nom complet, identifiant ou téléphone du parent à modifier." },
+          name: { type: SchemaType.STRING, description: "Nouveau prénom du parent." },
+          surname: { type: SchemaType.STRING, description: "Nouveau nom de famille du parent." },
+          phone: { type: SchemaType.STRING, description: "Nouveau numéro de téléphone (8 chiffres)." },
+          address: { type: SchemaType.STRING, description: "Nouvelle adresse de domicile." },
+          img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const parts: string[] = [];
+      if (args.name) parts.push(`Prénom : <b>${args.name}</b>`);
+      if (args.surname) parts.push(`Nom : <b>${args.surname}</b>`);
+      if (args.phone) parts.push(`Téléphone : <code>${args.phone}</code>`);
+      if (args.address) parts.push(`Adresse : <code>${args.address}</code>`);
+      if (args.img) parts.push(`Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
+
+      if (isArabic) {
+        return `👨‍👩‍👧 <b>تأكيد تعديل ملف الولي</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الولي :</b> <b>${args.parentNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nهل ترغب في حفظ هذه التعديلات ؟`;
+      }
+      return `👨‍👩‍👧 <b>Confirmation : Modification Fiche Parent</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Parent :</b> <b>${args.parentNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nSouhaitez-vous confirmer ces modifications ?`;
+    },
+    execute: updateParentTool,
+  },
+
+  delete_parent: {
+    name: "delete_parent",
+    description:
+      "Supprimer un parent ou tuteur du registre scolaire en détachant en toute sécurité ses enfants inscrits pour préserver leurs dossiers scolaires. Action irréversible.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_parent",
+      description: "Supprimer un parent du registre de l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["parentNameOrId"],
+        properties: {
+          parentNameOrId: { type: SchemaType.STRING, description: "Nom complet, identifiant ou téléphone du parent à supprimer." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      if (isArabic) {
+        return `⚠️ <b>تحذير : حذف حساب ولي أمر</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الولي :</b> <b>${args.parentNameOrId}</b>\n\nℹ️ <i>سيتم حذف حساب الولي مع الاحتفاظ بملفات أبنائه في المدرسة مع فصلهم عنه.</i>\n\nهل تؤكد حذف هذا الولي ؟`;
+      }
+      return `⚠️ <b>Avertissement : Suppression de Fiche Parent</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Parent :</b> <b>${args.parentNameOrId}</b>\n\nℹ️ <i>Les dossiers scolaires des enfants seront préservés mais détachés de ce parent.</i>\n\nSouhaitez-vous confirmer la suppression de ce parent ?`;
+    },
+    execute: deleteParentTool,
+  },
+
+  update_teacher: {
+    name: "update_teacher",
+    description:
+      "Modifier la fiche d'un enseignant : prénom, nom, téléphone, adresse, salaire de base, taux horaire, volume d'heures mensuelles, matières enseignées, groupe sanguin, date de naissance, sexe, ou photo de profil.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_teacher",
+      description: "Modifier la fiche et les paramètres d'un enseignant.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["teacherNameOrId"],
+        properties: {
+          teacherNameOrId: { type: SchemaType.STRING, description: "Nom complet ou identifiant de l'enseignant." },
+          name: { type: SchemaType.STRING, description: "Nouveau prénom de l'enseignant." },
+          surname: { type: SchemaType.STRING, description: "Nouveau nom de famille de l'enseignant." },
+          phone: { type: SchemaType.STRING, description: "Nouveau numéro de téléphone." },
+          address: { type: SchemaType.STRING, description: "Nouvelle adresse de domicile." },
+          salary: { type: SchemaType.NUMBER, description: "Nouveau salaire de base en DT/mois." },
+          hourlyRate: { type: SchemaType.NUMBER, description: "Nouveau taux horaire en DT/h." },
+          hoursPerMonth: { type: SchemaType.NUMBER, description: "Nouveau volume horaire mensuel prévu (ex: 120)." },
+          bloodType: { type: SchemaType.STRING, description: "Groupe sanguin (ex: 'O+', 'A-')." },
+          birthday: { type: SchemaType.STRING, description: "Date de naissance (AAAA-MM-JJ)." },
+          sex: { type: SchemaType.STRING, description: "Sexe ('MALE' ou 'FEMALE')." },
+          img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
+          subjectNames: {
+            type: SchemaType.ARRAY,
+            description: "Liste des noms des matières enseignées par ce professeur.",
+            items: { type: SchemaType.STRING },
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const parts: string[] = [];
+      if (args.name) parts.push(`Prénom : <b>${args.name}</b>`);
+      if (args.surname) parts.push(`Nom : <b>${args.surname}</b>`);
+      if (args.phone) parts.push(`Téléphone : <code>${args.phone}</code>`);
+      if (args.address) parts.push(`Adresse : <code>${args.address}</code>`);
+      if (args.salary !== undefined) parts.push(`Salaire : <code>${args.salary} DT/mois</code>`);
+      if (args.hourlyRate !== undefined) parts.push(`Taux horaire : <code>${args.hourlyRate} DT/h</code>`);
+      if (args.hoursPerMonth !== undefined) parts.push(`Volume horaire : <code>${args.hoursPerMonth}h</code>`);
+      if (args.subjectNames && args.subjectNames.length > 0) parts.push(`Matières : <b>${args.subjectNames.join(", ")}</b>`);
+      if (args.img) parts.push(`Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
+
+      if (isArabic) {
+        return `👨‍🏫 <b>تأكيد تعديل ملف الأستاذ</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الأستاذ :</b> <b>${args.teacherNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nهل ترغب في حفظ هذه التعديلات ؟`;
+      }
+      return `👨‍🏫 <b>Confirmation : Modification Fiche Enseignant</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Enseignant :</b> <b>${args.teacherNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nSouhaitez-vous enregistrer ces modifications ?`;
+    },
+    execute: updateTeacherTool,
+  },
+
+  delete_teacher: {
+    name: "delete_teacher",
+    description:
+      "Supprimer définitivement un enseignant du corps professoral en libérant automatiquement ses classes supervisées, cours et séances d'emploi du temps.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_teacher",
+      description: "Supprimer définitivement un enseignant de l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["teacherNameOrId"],
+        properties: {
+          teacherNameOrId: { type: SchemaType.STRING, description: "Nom complet ou identifiant de l'enseignant à supprimer." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      if (isArabic) {
+        return `⚠️ <b>تحذير : حذف أستاذ من الإطار التربوي</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الأستاذ :</b> <b>${args.teacherNameOrId}</b>\n\n⚠️ <i>سيتم تحرير الأقسام التي يشرف عليها وتفريغ حصصه من جدول الأوقات.</i>\n\nهل ترغب في تأكيد حذف هذا الأستاذ نهائياً ؟`;
+      }
+      return `⚠️ <b>Avertissement : Suppression d'Enseignant</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Enseignant :</b> <b>${args.teacherNameOrId}</b>\n\n⚠️ <i>Les classes sous sa supervision et ses séances d'emploi du temps seront automatiquement libérées.</i>\n\nSouhaitez-vous confirmer la suppression définitive de cet enseignant ?`;
+    },
+    execute: deleteTeacherTool,
+  },
+
+  update_staff: {
+    name: "update_staff",
+    description:
+      "Modifier la fiche d'un membre du personnel non enseignant : prénom, nom, téléphone, adresse, salaire mensuel, poste/rôle, groupe sanguin, date de naissance, ou photo de profil.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_staff",
+      description: "Modifier la fiche d'un collaborateur non enseignant.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["staffNameOrId"],
+        properties: {
+          staffNameOrId: { type: SchemaType.STRING, description: "Nom complet ou identifiant du collaborateur." },
+          name: { type: SchemaType.STRING, description: "Nouveau prénom du collaborateur." },
+          surname: { type: SchemaType.STRING, description: "Nouveau nom de famille." },
+          phone: { type: SchemaType.STRING, description: "Nouveau numéro de téléphone." },
+          address: { type: SchemaType.STRING, description: "Nouvelle adresse de domicile." },
+          salary: { type: SchemaType.NUMBER, description: "Nouveau salaire mensuel en DT." },
+          role: { type: SchemaType.STRING, description: "Nouveau poste ou rôle (ex: 'Administration', 'Chauffeur', 'Surveillant')." },
+          bloodType: { type: SchemaType.STRING, description: "Groupe sanguin." },
+          birthday: { type: SchemaType.STRING, description: "Date de naissance (AAAA-MM-JJ)." },
+          img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const parts: string[] = [];
+      if (args.name) parts.push(`Prénom : <b>${args.name}</b>`);
+      if (args.surname) parts.push(`Nom : <b>${args.surname}</b>`);
+      if (args.phone) parts.push(`Téléphone : <code>${args.phone}</code>`);
+      if (args.address) parts.push(`Adresse : <code>${args.address}</code>`);
+      if (args.role) parts.push(`Rôle : <b>${args.role}</b>`);
+      if (args.salary !== undefined) parts.push(`Salaire : <code>${args.salary} DT</code>`);
+      if (args.img) parts.push(`Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
+
+      if (isArabic) {
+        return `💼 <b>تأكيد تعديل ملف الموظف</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الموظف :</b> <b>${args.staffNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nهل ترغب في حفظ هذه التعديلات ؟`;
+      }
+      return `💼 <b>Confirmation : Modification Fiche Personnel</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Collaborateur :</b> <b>${args.staffNameOrId}</b>\n${parts.map((p) => `• ${p}`).join("\n")}\n\nSouhaitez-vous enregistrer ces modifications ?`;
+    },
+    execute: updateStaffTool,
+  },
+
+  delete_staff: {
+    name: "delete_staff",
+    description:
+      "Supprimer définitivement un collaborateur du personnel non enseignant et archiver ses écritures de paie.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_staff",
+      description: "Supprimer définitivement un membre du personnel.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["staffNameOrId"],
+        properties: {
+          staffNameOrId: { type: SchemaType.STRING, description: "Nom complet ou identifiant du collaborateur à supprimer." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      if (isArabic) {
+        return `⚠️ <b>تحذير : حذف موظف نهائياً</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الموظف :</b> <b>${args.staffNameOrId}</b>\n\nهل ترغب في تأكيد حذف هذا الموظف من قائمة العمل بالمؤسسة ؟`;
+      }
+      return `⚠️ <b>Avertissement : Suppression de Membre du Personnel</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Collaborateur :</b> <b>${args.staffNameOrId}</b>\n\nSouhaitez-vous confirmer la suppression définitive de ce collaborateur ?`;
+    },
+    execute: deleteStaffTool,
+  },
+
+  update_person_photo: {
+    name: "update_person_photo",
+    description:
+      "Attribuer ou mettre à jour la photo de profil / avatar d'une personne de l'école (élève, enseignant, membre du personnel ou parent) à partir d'une photo reçue ou d'une URL d'image.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_person_photo",
+      description: "Mettre à jour la photo de profil d'un élève, enseignant, personnel ou parent.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["personType", "nameOrId", "photoUrl"],
+        properties: {
+          personType: {
+            type: SchemaType.STRING,
+            description: "Type de personne : 'student' (élève), 'teacher' (enseignant), 'staff' (personnel), ou 'parent' (parent/tuteur).",
+          },
+          nameOrId: {
+            type: SchemaType.STRING,
+            description: "Nom complet ou identifiant de la personne.",
+          },
+          photoUrl: {
+            type: SchemaType.STRING,
+            description: "URL de la photo ou du portrait numérisé.",
+          },
+          className: {
+            type: SchemaType.STRING,
+            description: "Classe de l'élève si personType = 'student' (optionnel).",
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const pLabel =
+        args.personType === "student"
+          ? (isArabic ? "تلميذ" : "Élève")
+          : args.personType === "teacher"
+          ? (isArabic ? "أستاذ" : "Enseignant")
+          : args.personType === "staff"
+          ? (isArabic ? "موظف" : "Personnel")
+          : (isArabic ? "ولي أمر" : "Parent");
+
+      if (isArabic) {
+        return `📸 <b>تأكيد تحديث الصورة الشخصية</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>الشخص :</b> <b>${args.nameOrId}</b> (<i>${pLabel}</i>)${args.className ? `\n🏫 <b>القسم :</b> <code>${args.className}</code>` : ""}\n\nهل ترغب في تعيين هذه الصورة كصورة رسمية للملف الشخصي ؟`;
+      }
+      return `📸 <b>Confirmation : Mise à Jour Photo de Profil</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Personne :</b> <b>${args.nameOrId}</b> (<i>${pLabel}</i>)${args.className ? `\n🏫 <b>Classe :</b> <code>${args.className}</code>` : ""}\n\nSouhaitez-vous enregistrer cette nouvelle photo comme photo de profil officielle ?`;
+    },
+    execute: updatePersonPhotoTool,
   },
 
   // ── SUITE 8: SCHOOL KNOWLEDGE & ADMIN TEACHING ────────────────────────────

@@ -12,6 +12,7 @@ export interface DocumentAnalysisResult {
     | "COURSE_RESOURCE"
     | "HOMEWORK_ASSIGNMENT"
     | "GRADES_SHEET"
+    | "PROFILE_PHOTO"
     | "OTHER";
   title: string;
   summary: string;
@@ -20,6 +21,8 @@ export interface DocumentAnalysisResult {
   category?: string;
   studentName?: string;
   parentName?: string;
+  personType?: "student" | "teacher" | "staff" | "parent";
+  personName?: string;
   className?: string;
   subjectName?: string;
   merchant?: string;
@@ -39,6 +42,7 @@ export interface DocumentAnalysisResult {
     | "add_resource"
     | "create_assignment"
     | "record_class_grades"
+    | "update_person_photo"
     | "none";
   publicUrl?: string;
 }
@@ -190,14 +194,21 @@ IDENTIFIE LA NATURE EXACTE DU DOCUMENT :
     - summary : Brève description (ex: "Feuille de notes de Mathématiques pour la classe 1A : 22 élèves notés").
     - suggestedAction : "record_class_grades"
 
-10. "OTHER" : Autre type d'image ou document ne rentrant pas dans les catégories ci-dessus.
+10. "PROFILE_PHOTO" : Une photo d'identité, portrait, photo de visage, selfie formel ou photo individuelle d'une personne (élève, enseignant, membre du personnel ou parent).
+    - personType : Type de personne ("student", "teacher", "staff", "parent") selon le contexte/légende ou "student" par défaut.
+    - personName : Nom ou prénom de la personne si mentionné dans le message joint.
+    - className : Classe de l'élève si mentionnée.
+    - summary : Brève description (ex: "Photo d'identité pour Karim Ben Salah").
+    - suggestedAction : "update_person_photo"
+
+11. "OTHER" : Autre type d'image ou document ne rentrant pas dans les catégories ci-dessus.
     - title : Titre descriptif.
     - summary : Ce que l'on voit dans l'image.
     - suggestedAction : "none"
 
 RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans balises markdown extra, sans explications) :
 {
-  "documentType": "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "BANK_CHEQUE" | "ATTENDANCE_SHEET" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "COURSE_RESOURCE" | "HOMEWORK_ASSIGNMENT" | "GRADES_SHEET" | "OTHER",
+  "documentType": "EXPENSE_RECEIPT" | "PAYMENT_RECEIPT" | "BANK_CHEQUE" | "ATTENDANCE_SHEET" | "ABSENCE_CERTIFICATE" | "ANNOUNCEMENT_FLYER" | "COURSE_RESOURCE" | "HOMEWORK_ASSIGNMENT" | "GRADES_SHEET" | "PROFILE_PHOTO" | "OTHER",
   "title": "...",
   "summary": "...",
   "amount": 33.5,
@@ -211,6 +222,8 @@ RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans b
   "sessionName": null,
   "studentName": null,
   "parentName": null,
+  "personType": "student",
+  "personName": null,
   "className": null,
   "subjectName": null,
   "term": 1,
@@ -256,6 +269,8 @@ RÉPONDS UNIQUEMENT AVEC UN OBJET JSON STRICT respectant cette structure (sans b
         sessionName: parsed.sessionName || undefined,
         studentName: parsed.studentName || undefined,
         parentName: parsed.parentName || undefined,
+        personType: parsed.personType || undefined,
+        personName: parsed.personName || parsed.studentName || undefined,
         className: parsed.className || undefined,
         subjectName: parsed.subjectName || undefined,
         term: typeof parsed.term === "number" ? parsed.term : undefined,

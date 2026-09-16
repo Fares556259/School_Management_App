@@ -886,16 +886,34 @@ ${
 (Cela générera directement la carte interactive de confirmation avec le récapitulatif pour que l'administrateur valide d'un simple clic).`
     : `Affiche la synthèse des notes détectées (${gradesCount} notes extraites) et demande en UNE phrase directe de confirmer la classe et/ou la matière pour enregistrer les notes dans les bulletins.`
 }`;
+          } else if (analysis.documentType === "PROFILE_PHOTO") {
+            userPrompt = `${docDescriptor}
+
+L'administrateur a envoyé une photo de profil / portrait officiel sans texte d'accompagnement.
+${analysis.personName ? `- Personne identifiée : "${analysis.personName}"` : "- Personne : non spécifiée"}
+${analysis.personType ? `- Type : "${analysis.personType}"` : ""}
+${analysis.className ? `- Classe : "${analysis.className}"` : ""}
+
+Instructions :
+${
+  analysis.personName
+    ? `Propose directement de définir cette photo comme photo de profil officielle pour "${analysis.personName}" via 'update_person_photo' avec personType: "${analysis.personType || "student"}", nameOrId: "${analysis.personName}", photoUrl: "${photoUrl}"${analysis.className ? `, className: "${analysis.className}"` : ""}.`
+    : `Affiche une confirmation bienveillante et demande simplement en UNE courte phrase : "À quel élève, enseignant ou collaborateur souhaitez-vous attribuer cette photo de profil ?"`
+}`;
           } else {
             userPrompt = `${docDescriptor}
 
 L'administrateur a envoyé ce document / cette image : "${analysis.summary}".
-Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (notes d'examen, ressource de cours, devoir, dépense, justificatif ou annonce).`;
+Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire (notes d'examen, photo de profil, ressource de cours, devoir, dépense, justificatif ou annonce).`;
           }
         } else {
           let extraGradeInstructions = "";
           if (analysis.documentType === "GRADES_SHEET" && analysis.gradesList && analysis.gradesList.length > 0) {
             extraGradeInstructions = `\n- Document identifié comme FEUILLE DE NOTES (${analysis.gradesList.length} notes extraites). Si l'administrateur demande d'enregistrer ces notes, appelle 'record_class_grades' avec className: "${analysis.className || ""}", subjectName: "${analysis.subjectName || ""}", term: ${analysis.term || 1}, grades: ${JSON.stringify(analysis.gradesList)}.`;
+          }
+          let extraPhotoInstructions = "";
+          if (analysis.documentType === "PROFILE_PHOTO" || /photo|avatar|profil|صورة|تصويرة/i.test(userPrompt)) {
+            extraPhotoInstructions = `\n- Image identifiée comme PHOTO DE PROFIL. Si l'administrateur demande d'attribuer ou modifier la photo d'un élève, prof, personnel ou parent ("voici la photo de...", "mets la photo à...", "photo de..."), appelle DIRECTEMENT l'outil 'update_person_photo' avec personType ("student" | "teacher" | "staff" | "parent"), nameOrId (nom de la personne), et photoUrl: "${photoUrl}".`;
           }
 
           userPrompt = `${docDescriptor}
@@ -906,7 +924,7 @@ Instructions :
 - Applique directement la consigne de l'administrateur en utilisant les informations déjà extraites du document (montant: ${
             analysis.amount || 0
           } DT, date, enseigne: "${analysis.merchant || analysis.title || "Dépense"}", justificatif URL: ${photoUrl}).
-- Si l'administrateur demande d'enregistrer cette dépense ou ce reçu ("ماركيها", "ajoute cette dépense", "garde le reçu"), appelle directement 'add_expense' avec le montant et l'intitulé extraits sans lui redemander les détails visibles sur la photo !${extraGradeInstructions}`;
+- Si l'administrateur demande d'enregistrer cette dépense ou ce reçu ("ماركيها", "ajoute cette dépense", "garde le reçu"), appelle directement 'add_expense' avec le montant et l'intitulé extraits sans lui redemander les détails visibles sur la photo !${extraGradeInstructions}${extraPhotoInstructions}`;
         }
       } else {
         const photoDescriptor = photoUrl

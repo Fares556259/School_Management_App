@@ -4,7 +4,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { buildNameSearchConditions } from "./nameSearch";
-import { resolveTeacherByName, resolveStaffByName } from "./entityResolvers";
+import { resolveTeacherByName, resolveStaffByName, resolveSubjectByName } from "./entityResolvers";
 
 /**
  * Tool: get_staff
@@ -900,5 +900,453 @@ export async function payStaffSalaryTool(
       baseSalary,
       totalPaid: result.newTotal,
     },
+  };
+}
+
+/**
+ * Tool: update_teacher
+ * Modifies an existing teacher's profile: name, surname, phone, address, salary, hourly rate, hours per month, blood type, birthday, sex, photo, subjects taught.
+ */
+export async function updateTeacherTool(
+  args: {
+    teacherNameOrId: string;
+    name?: string;
+    surname?: string;
+    phone?: string;
+    address?: string;
+    salary?: number;
+    hourlyRate?: number;
+    hoursPerMonth?: number;
+    bloodType?: string;
+    birthday?: string;
+    sex?: "MALE" | "FEMALE";
+    img?: string;
+    subjectNames?: string[];
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherNameOrId);
+  if (!teacher) {
+    return {
+      success: false,
+      message: `Enseignant "${args.teacherNameOrId}" introuvable.`,
+      summary: "Enseignant introuvable",
+    };
+  }
+
+  const updateData: any = {};
+  const changeDescriptions: string[] = [];
+
+  if (args.name && args.name.trim() !== teacher.name) {
+    updateData.name = args.name.trim();
+    changeDescriptions.push(`Prénom : <b>${args.name.trim()}</b>`);
+  }
+
+  if (args.surname && args.surname.trim() !== teacher.surname) {
+    updateData.surname = args.surname.trim();
+    changeDescriptions.push(`Nom : <b>${args.surname.trim()}</b>`);
+  }
+
+  if (args.phone) {
+    const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
+    if (cleanPhone !== teacher.phone) {
+      updateData.phone = cleanPhone;
+      changeDescriptions.push(`Téléphone : <code>${cleanPhone}</code>`);
+    }
+  }
+
+  if (args.address && args.address.trim() !== teacher.address) {
+    updateData.address = args.address.trim();
+    changeDescriptions.push(`Adresse : <code>${args.address.trim()}</code>`);
+  }
+
+  if (args.bloodType && args.bloodType.trim() !== teacher.bloodType) {
+    updateData.bloodType = args.bloodType.trim();
+    changeDescriptions.push(`Groupe sanguin : <code>${args.bloodType.trim()}</code>`);
+  }
+
+  if (args.birthday) {
+    const bDate = new Date(args.birthday);
+    if (!isNaN(bDate.getTime())) {
+      updateData.birthday = bDate;
+      changeDescriptions.push(`Date de naissance : <code>${bDate.toISOString().slice(0, 10)}</code>`);
+    }
+  }
+
+  if (args.sex && args.sex !== teacher.sex) {
+    updateData.sex = args.sex;
+    changeDescriptions.push(`Sexe : <code>${args.sex === "MALE" ? "Homme (M)" : "Femme (F)"}</code>`);
+  }
+
+  if (args.img !== undefined) {
+    updateData.img = args.img || null;
+    changeDescriptions.push(`Photo de profil mise à jour 🖼️`);
+  }
+
+  if (args.hourlyRate !== undefined) {
+    const hr = Number(args.hourlyRate);
+    updateData.hourlyRate = hr;
+    changeDescriptions.push(`Taux horaire : <code>${hr} DT/h</code>`);
+  }
+
+  if (args.hoursPerMonth !== undefined) {
+    const hm = Number(args.hoursPerMonth);
+    updateData.hoursPerMonth = hm;
+    changeDescriptions.push(`Volume horaire mensuel : <code>${hm}h</code>`);
+  }
+
+  // Auto-recalculate salary if hourlyRate or hoursPerMonth were updated and no explicit salary was provided
+  if (args.salary !== undefined) {
+    const sal = Number(args.salary);
+    updateData.salary = sal;
+    changeDescriptions.push(`Salaire de base : <code>${sal} DT/mois</code>`);
+  } else if (args.hourlyRate !== undefined || args.hoursPerMonth !== undefined) {
+    const finalRate = args.hourlyRate !== undefined ? Number(args.hourlyRate) : (teacher.hourlyRate || 0);
+    const finalHours = args.hoursPerMonth !== undefined ? Number(args.hoursPerMonth) : (teacher.hoursPerMonth || 0);
+    if (finalRate > 0 && finalHours > 0) {
+      const calculatedSalary = finalRate * finalHours;
+      updateData.salary = calculatedSalary;
+      changeDescriptions.push(`Salaire calculé (${finalRate} DT × ${finalHours}h) : <code>${calculatedSalary} DT/mois</code>`);
+    }
+  }
+
+  // Handle subjects taught
+  if (args.subjectNames && args.subjectNames.length > 0) {
+    const resolvedSubjectIds: number[] = [];
+    const resolvedSubjectNames: string[] = [];
+    for (const subName of args.subjectNames) {
+      const subj = await resolveSubjectByName(context.schoolId, subName);
+      if (subj) {
+        resolvedSubjectIds.push(subj.id);
+        resolvedSubjectNames.push(subj.name);
+      }
+    }
+    if (resolvedSubjectIds.length > 0) {
+      updateData.subjects = {
+        set: resolvedSubjectIds.map((id) => ({ id })),
+      };
+      changeDescriptions.push(`Matières enseignées : <b>${resolvedSubjectNames.join(", ")}</b>`);
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: false,
+      message: "Aucune modification spécifiée pour cet enseignant.",
+      summary: "Aucune modification",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.teacher.update({
+      where: { id: teacher.id },
+      data: updateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Teacher",
+        entityId: teacher.id,
+        description: `[Hnia AI Telegram] Mise à jour enseignant ${teacher.name} ${teacher.surname} : ${changeDescriptions.join(", ")}`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "teachers", "classes", "dashboard");
+
+  return {
+    success: true,
+    message: `👨‍🏫 <b>Fiche Enseignant Mise à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Enseignant :</b> <b>${teacher.name} ${teacher.surname}</b>
+• ${changeDescriptions.join("\n• ")}
+
+<blockquote>💡 <b>Hnia :</b> Les informations de l'enseignant ont été actualisées avec succès.</blockquote>`,
+    summary: `Mise à jour enseignant ${teacher.name} ${teacher.surname}`,
+    data: { teacherId: teacher.id, updates: updateData },
+  };
+}
+
+/**
+ * Tool: delete_teacher
+ * Safely removes a teacher from the school with full cascading relation cleanup:
+ * unlinks class supervision, timetable slots, grade sheets, removes associated lessons and salary payments.
+ */
+export async function deleteTeacherTool(
+  args: {
+    teacherNameOrId: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const teacher = await resolveTeacherByName(context.schoolId, args.teacherNameOrId);
+  if (!teacher) {
+    return {
+      success: false,
+      message: `Enseignant "${args.teacherNameOrId}" introuvable.`,
+      summary: "Enseignant introuvable",
+    };
+  }
+
+  const teacherFullName = `${teacher.name} ${teacher.surname}`;
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Unlink supervisor role from any classes
+    await tx.class.updateMany({
+      where: { supervisorId: teacher.id },
+      data: { supervisorId: null },
+    });
+
+    // 2. Unlink from timetable slots
+    await tx.timetableSlot.updateMany({
+      where: { teacherId: teacher.id },
+      data: { teacherId: null },
+    });
+
+    // 3. Unlink from grade sheets
+    await tx.gradeSheet.updateMany({
+      where: { teacherId: teacher.id },
+      data: { teacherId: null },
+    });
+
+    // 4. Handle lessons taught by this teacher
+    const lessons = await tx.lesson.findMany({
+      where: { teacherId: teacher.id },
+      select: { id: true },
+    });
+    if (lessons.length > 0) {
+      const lessonIds = lessons.map((l) => l.id);
+      await tx.attendance.deleteMany({ where: { lessonId: { in: lessonIds } } });
+      await tx.assignment.deleteMany({ where: { lessonId: { in: lessonIds } } });
+      await tx.exam.deleteMany({ where: { lessonId: { in: lessonIds } } });
+      await tx.resource.deleteMany({ where: { lessonId: { in: lessonIds } } });
+      await tx.lesson.deleteMany({ where: { id: { in: lessonIds } } });
+    }
+
+    // 5. Delete salary payments
+    await tx.payment.deleteMany({
+      where: { teacherId: teacher.id },
+    });
+
+    // 6. Delete teacher record
+    await tx.teacher.delete({
+      where: { id: teacher.id },
+    });
+
+    // 7. Audit log
+    await tx.auditLog.create({
+      data: {
+        action: "DELETE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Teacher",
+        entityId: teacher.id,
+        description: `[Hnia AI Telegram] Suppression définitive enseignant : ${teacherFullName} (Tél: ${teacher.phone || "N/A"}, ID: ${teacher.id})`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "teachers", "classes", "dashboard", "exams");
+
+  return {
+    success: true,
+    message: `🗑️ <b>Enseignant Supprimé Définitivement</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Enseignant :</b> <b>${teacherFullName}</b>
+📞 <b>Téléphone :</b> <code>${teacher.phone || "Non renseigné"}</code>
+🆔 <b>Identifiant :</b> <code>${teacher.id}</code>
+
+<blockquote>💡 <b>Hnia :</b> L'enseignant a été retiré de l'école. Les classes et créneaux horaires associés ont été libérés.</blockquote>`,
+    summary: `Suppression enseignant ${teacherFullName}`,
+    data: { teacherId: teacher.id, teacherFullName },
+  };
+}
+
+/**
+ * Tool: update_staff
+ * Modifies an existing non-teaching staff member (name, surname, phone, address, salary, role, blood type, birthday, photo).
+ */
+export async function updateStaffTool(
+  args: {
+    staffNameOrId: string;
+    name?: string;
+    surname?: string;
+    phone?: string;
+    address?: string;
+    salary?: number;
+    role?: string;
+    bloodType?: string;
+    birthday?: string;
+    img?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const staff = await resolveStaffByName(context.schoolId, args.staffNameOrId);
+  if (!staff) {
+    return {
+      success: false,
+      message: `Membre du personnel "${args.staffNameOrId}" introuvable.`,
+      summary: "Personnel introuvable",
+    };
+  }
+
+  const updateData: any = {};
+  const changeDescriptions: string[] = [];
+
+  if (args.name && args.name.trim() !== staff.name) {
+    updateData.name = args.name.trim();
+    changeDescriptions.push(`Prénom : <b>${args.name.trim()}</b>`);
+  }
+
+  if (args.surname && args.surname.trim() !== staff.surname) {
+    updateData.surname = args.surname.trim();
+    changeDescriptions.push(`Nom : <b>${args.surname.trim()}</b>`);
+  }
+
+  if (args.phone) {
+    const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
+    if (cleanPhone !== staff.phone) {
+      updateData.phone = cleanPhone;
+      changeDescriptions.push(`Téléphone : <code>${cleanPhone}</code>`);
+    }
+  }
+
+  if (args.address && args.address.trim() !== staff.address) {
+    updateData.address = args.address.trim();
+    changeDescriptions.push(`Adresse : <code>${args.address.trim()}</code>`);
+  }
+
+  if (args.role && args.role.trim() !== staff.role) {
+    updateData.role = args.role.trim();
+    changeDescriptions.push(`Rôle / Poste : <b>${args.role.trim()}</b>`);
+  }
+
+  if (args.salary !== undefined) {
+    const sal = Number(args.salary);
+    if (sal !== staff.salary) {
+      updateData.salary = sal;
+      changeDescriptions.push(`Salaire mensuel : <code>${sal} DT</code>`);
+    }
+  }
+
+  if (args.bloodType && args.bloodType.trim() !== staff.bloodType) {
+    updateData.bloodType = args.bloodType.trim();
+    changeDescriptions.push(`Groupe sanguin : <code>${args.bloodType.trim()}</code>`);
+  }
+
+  if (args.birthday) {
+    const bDate = new Date(args.birthday);
+    if (!isNaN(bDate.getTime())) {
+      updateData.birthday = bDate;
+      changeDescriptions.push(`Date de naissance : <code>${bDate.toISOString().slice(0, 10)}</code>`);
+    }
+  }
+
+  if (args.img !== undefined) {
+    updateData.img = args.img || null;
+    changeDescriptions.push(`Photo de profil mise à jour 🖼️`);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: false,
+      message: "Aucune modification spécifiée pour ce membre du personnel.",
+      summary: "Aucune modification",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.staff.update({
+      where: { id: staff.id },
+      data: updateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Staff",
+        entityId: staff.id,
+        description: `[Hnia AI Telegram] Mise à jour personnel ${staff.name} ${staff.surname} : ${changeDescriptions.join(", ")}`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "staff", "dashboard");
+
+  return {
+    success: true,
+    message: `💼 <b>Fiche Personnel Mise à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Collaborateur :</b> <b>${staff.name} ${staff.surname}</b>
+• ${changeDescriptions.join("\n• ")}
+
+<blockquote>💡 <b>Hnia :</b> Les informations du membre du personnel ont été actualisées avec succès.</blockquote>`,
+    summary: `Mise à jour staff ${staff.name} ${staff.surname}`,
+    data: { staffId: staff.id, updates: updateData },
+  };
+}
+
+/**
+ * Tool: delete_staff
+ * Safely removes a staff member and cleans up associated salary records.
+ */
+export async function deleteStaffTool(
+  args: {
+    staffNameOrId: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const staff = await resolveStaffByName(context.schoolId, args.staffNameOrId);
+  if (!staff) {
+    return {
+      success: false,
+      message: `Membre du personnel "${args.staffNameOrId}" introuvable.`,
+      summary: "Personnel introuvable",
+    };
+  }
+
+  const staffFullName = `${staff.name} ${staff.surname}`;
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete salary payments
+    await tx.payment.deleteMany({
+      where: { staffId: staff.id },
+    });
+
+    // 2. Delete staff member
+    await tx.staff.delete({
+      where: { id: staff.id },
+    });
+
+    // 3. Audit log
+    await tx.auditLog.create({
+      data: {
+        action: "DELETE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Staff",
+        entityId: staff.id,
+        description: `[Hnia AI Telegram] Suppression définitive personnel : ${staffFullName} (Rôle: ${staff.role}, ID: ${staff.id})`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "staff", "dashboard", "finance");
+
+  return {
+    success: true,
+    message: `🗑️ <b>Membre du Personnel Supprimé Définitivement</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Collaborateur :</b> <b>${staffFullName}</b>
+💼 <b>Poste :</b> <code>${staff.role || "Général"}</code>
+🆔 <b>Identifiant :</b> <code>${staff.id}</code>
+
+<blockquote>💡 <b>Hnia :</b> Le collaborateur a été retiré de la base de données du personnel de l'établissement.</blockquote>`,
+    summary: `Suppression staff ${staffFullName}`,
+    data: { staffId: staff.id, staffFullName },
   };
 }

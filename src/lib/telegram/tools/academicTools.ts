@@ -5,7 +5,7 @@ import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
-import { resolveStudentByName, resolveParentByName, resolveTeacherByName, resolveSubjectByName } from "./entityResolvers";
+import { resolveStudentByName, resolveParentByName, resolveTeacherByName, resolveStaffByName, resolveSubjectByName } from "./entityResolvers";
 
 /**
  * Tool: get_student_profile
@@ -1162,18 +1162,27 @@ export async function updateParentPhoneTool(
 
 /**
  * Tool: update_student
- * Updates student attributes (custom tuition fee, class transfer, or personal phone).
+ * Updates student attributes (name, surname, class transfer, tuition fee, phone, address, bloodType, birthday, sex, photo, parent).
  */
 export async function updateStudentTool(
   args: {
     studentNameOrId: string;
+    className?: string;
+    name?: string;
+    surname?: string;
     newClassName?: string;
     customTuition?: number;
     phone?: string;
+    address?: string;
+    bloodType?: string;
+    birthday?: string;
+    sex?: "MALE" | "FEMALE";
+    img?: string;
+    parentNameOrPhone?: string;
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
-  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId);
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId, args.className);
   if (!student) {
     return {
       success: false,
@@ -1185,15 +1194,58 @@ export async function updateStudentTool(
   const updateData: any = {};
   const changeDescriptions: string[] = [];
 
-  if (args.customTuition !== undefined) {
-    updateData.customTuition = args.customTuition;
-    changeDescriptions.push(`Tarif mensuel : <code>${args.customTuition} DT/mois</code>`);
+  if (args.name && args.name.trim() !== student.name) {
+    updateData.name = args.name.trim();
+    changeDescriptions.push(`Prénom : <b>${args.name.trim()}</b>`);
+  }
+
+  if (args.surname && args.surname.trim() !== student.surname) {
+    updateData.surname = args.surname.trim();
+    changeDescriptions.push(`Nom : <b>${args.surname.trim()}</b>`);
   }
 
   if (args.phone) {
     const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
-    updateData.phone = cleanPhone;
-    changeDescriptions.push(`Tél élève : <code>${cleanPhone}</code>`);
+    if (cleanPhone !== student.phone) {
+      updateData.phone = cleanPhone;
+      changeDescriptions.push(`Tél élève : <code>${cleanPhone}</code>`);
+    }
+  }
+
+  if (args.address && args.address.trim() !== student.address) {
+    updateData.address = args.address.trim();
+    changeDescriptions.push(`Adresse : <code>${args.address.trim()}</code>`);
+  }
+
+  if (args.bloodType && args.bloodType.trim() !== student.bloodType) {
+    updateData.bloodType = args.bloodType.trim();
+    changeDescriptions.push(`Groupe sanguin : <code>${args.bloodType.trim()}</code>`);
+  }
+
+  if (args.birthday) {
+    const bDate = new Date(args.birthday);
+    if (!isNaN(bDate.getTime())) {
+      updateData.birthday = bDate;
+      changeDescriptions.push(`Date de naissance : <code>${bDate.toISOString().slice(0, 10)}</code>`);
+    }
+  }
+
+  if (args.sex && args.sex !== student.sex) {
+    updateData.sex = args.sex;
+    changeDescriptions.push(`Sexe : <code>${args.sex === "MALE" ? "Garçon (M)" : "Fille (F)"}</code>`);
+  }
+
+  if (args.img !== undefined) {
+    updateData.img = args.img || null;
+    changeDescriptions.push(`Photo de profil mise à jour 🖼️`);
+  }
+
+  if (args.customTuition !== undefined) {
+    const newFee = Number(args.customTuition);
+    if (newFee !== student.customTuition) {
+      updateData.customTuition = newFee;
+      changeDescriptions.push(`Tarif mensuel : <code>${newFee} DT/mois</code>`);
+    }
   }
 
   if (args.newClassName) {
@@ -1205,15 +1257,32 @@ export async function updateStudentTool(
         summary: "Classe introuvable",
       };
     }
-    updateData.classId = targetClass.id;
-    updateData.levelId = targetClass.levelId;
-    changeDescriptions.push(`Classe : <code>${targetClass.name}</code>`);
+    if (targetClass.id !== student.classId) {
+      updateData.classId = targetClass.id;
+      updateData.levelId = targetClass.levelId;
+      changeDescriptions.push(`Classe : <code>${targetClass.name}</code>`);
+    }
+  }
+
+  if (args.parentNameOrPhone) {
+    const parent = await resolveParentByName(context.schoolId, args.parentNameOrPhone);
+    if (!parent) {
+      return {
+        success: false,
+        message: `Tuteur / Parent "${args.parentNameOrPhone}" introuvable.`,
+        summary: "Parent introuvable",
+      };
+    }
+    if (parent.id !== student.parentId) {
+      updateData.parentId = parent.id;
+      changeDescriptions.push(`Parent / Tuteur : <b>${parent.name} ${parent.surname}</b> (${parent.phone})`);
+    }
   }
 
   if (Object.keys(updateData).length === 0) {
     return {
       success: false,
-      message: "Aucune modification spécifiée (veuillez indiquer un nouveau tarif, une classe ou un numéro).",
+      message: "Aucune modification spécifiée pour cet élève.",
       summary: "Aucune modification",
     };
   }
@@ -1245,9 +1314,383 @@ export async function updateStudentTool(
 👤 <b>Élève :</b> <b>${student.name} ${student.surname}</b>
 • ${changeDescriptions.join("\n• ")}
 
-<blockquote>💡 <b>Hnia :</b> Les modifications ont été appliquées immédiatement dans le dossier de l'élève.</blockquote>`,
-    summary: `Mise à jour élève ${student.name}`,
+<blockquote>💡 <b>Hnia :</b> Les informations ont été actualisées avec succès dans le dossier de l'élève.</blockquote>`,
+    summary: `Mise à jour élève ${student.name} ${student.surname}`,
     data: { studentId: student.id, updates: updateData },
+  };
+}
+
+/**
+ * Tool: delete_student
+ * Safely deletes a student from the school registry, removing related grades, attendances, results, payments and notifications.
+ */
+export async function deleteStudentTool(
+  args: {
+    studentNameOrId: string;
+    className?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const student = await resolveStudentByName(context.schoolId, args.studentNameOrId, args.className);
+  if (!student) {
+    return {
+      success: false,
+      message: `Élève "${args.studentNameOrId}" introuvable.`,
+      summary: "Élève introuvable",
+    };
+  }
+
+  const studentFullName = `${student.name} ${student.surname}`;
+  const studentClassName = (student as any).class?.name || "Non classé";
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete associated attendances
+    await tx.attendance.deleteMany({ where: { studentId: student.id } });
+    // 2. Delete associated grades
+    await tx.grade.deleteMany({ where: { studentId: student.id } });
+    // 3. Delete exam results
+    await tx.result.deleteMany({ where: { studentId: student.id } });
+    // 4. Delete payments
+    await tx.payment.deleteMany({ where: { studentId: student.id } });
+    // 5. Delete notifications
+    await tx.notification.deleteMany({ where: { studentId: student.id } });
+    // 6. Unlink target notices
+    await tx.notice.updateMany({
+      where: { targetStudentId: student.id },
+      data: { targetStudentId: null },
+    });
+    // 7. Delete student record
+    await tx.student.delete({ where: { id: student.id } });
+
+    // 8. Log Audit
+    await tx.auditLog.create({
+      data: {
+        action: "DELETE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Student",
+        entityId: student.id,
+        description: `[Hnia AI Telegram] Suppression définitive élève : ${studentFullName} (Classe: ${studentClassName}, ID: ${student.id})`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "students", "classes", "dashboard", "finance", "attendance", "exams");
+
+  return {
+    success: true,
+    message: `🗑️ <b>Élève Supprimé Définitivement</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Élève :</b> <b>${studentFullName}</b>
+🏫 <b>Classe :</b> <code>${studentClassName}</code>
+🆔 <b>Identifiant :</b> <code>${student.id}</code>
+
+<blockquote>💡 <b>Hnia :</b> L'élève ainsi que son historique associé (notes, présences, paiements) ont été retirés de la base de données de l'école.</blockquote>`,
+    summary: `Suppression élève ${studentFullName}`,
+    data: { studentId: student.id, studentFullName, className: studentClassName },
+  };
+}
+
+/**
+ * Tool: update_parent
+ * Updates parent/guardian information (name, surname, phone, address, photo).
+ */
+export async function updateParentTool(
+  args: {
+    parentNameOrId: string;
+    name?: string;
+    surname?: string;
+    phone?: string;
+    address?: string;
+    img?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const parent = await resolveParentByName(context.schoolId, args.parentNameOrId);
+  if (!parent) {
+    return {
+      success: false,
+      message: `Parent / Tuteur "${args.parentNameOrId}" introuvable.`,
+      summary: "Parent introuvable",
+    };
+  }
+
+  const updateData: any = {};
+  const changeDescriptions: string[] = [];
+
+  if (args.name && args.name.trim() !== parent.name) {
+    updateData.name = args.name.trim();
+    changeDescriptions.push(`Prénom : <b>${args.name.trim()}</b>`);
+  }
+
+  if (args.surname && args.surname.trim() !== parent.surname) {
+    updateData.surname = args.surname.trim();
+    changeDescriptions.push(`Nom : <b>${args.surname.trim()}</b>`);
+  }
+
+  if (args.phone) {
+    const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
+    if (cleanPhone !== parent.phone) {
+      updateData.phone = cleanPhone;
+      changeDescriptions.push(`Téléphone : <code>${cleanPhone}</code>`);
+    }
+  }
+
+  if (args.address && args.address.trim() !== parent.address) {
+    updateData.address = args.address.trim();
+    changeDescriptions.push(`Adresse : <code>${args.address.trim()}</code>`);
+  }
+
+  if (args.img !== undefined) {
+    updateData.img = args.img || null;
+    changeDescriptions.push(`Photo de profil mise à jour 🖼️`);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: false,
+      message: "Aucune modification spécifiée pour ce parent.",
+      summary: "Aucune modification",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.parent.update({
+      where: { id: parent.id },
+      data: updateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Parent",
+        entityId: parent.id,
+        description: `[Hnia AI Telegram] Mise à jour parent ${parent.name} ${parent.surname} : ${changeDescriptions.join(", ")}`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "parents", "students", "dashboard");
+
+  return {
+    success: true,
+    message: `👨‍👩‍👧 <b>Fiche Parent Mise à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Parent :</b> <b>${parent.name} ${parent.surname}</b>
+• ${changeDescriptions.join("\n• ")}
+
+<blockquote>💡 <b>Hnia :</b> Les coordonnées du parent ont été mises à jour avec succès.</blockquote>`,
+    summary: `Mise à jour parent ${parent.name} ${parent.surname}`,
+    data: { parentId: parent.id, updates: updateData },
+  };
+}
+
+/**
+ * Tool: delete_parent
+ * Safely deletes a parent/guardian from the school, unlinking any enrolled children so student records remain preserved.
+ */
+export async function deleteParentTool(
+  args: {
+    parentNameOrId: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const parent = await resolveParentByName(context.schoolId, args.parentNameOrId);
+  if (!parent) {
+    return {
+      success: false,
+      message: `Parent / Tuteur "${args.parentNameOrId}" introuvable.`,
+      summary: "Parent introuvable",
+    };
+  }
+
+  const parentFullName = `${parent.name} ${parent.surname}`;
+
+  const childrenCount = await prisma.student.count({
+    where: { schoolId: context.schoolId, parentId: parent.id },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Safely unlink enrolled children (preserve student accounts)
+    await tx.student.updateMany({
+      where: { parentId: parent.id },
+      data: { parentId: null },
+    });
+
+    // 2. Delete notifications sent to this parent
+    await tx.notification.deleteMany({
+      where: { parentId: parent.id },
+    });
+
+    // 3. Delete parent record
+    await tx.parent.delete({
+      where: { id: parent.id },
+    });
+
+    // 4. Audit log
+    await tx.auditLog.create({
+      data: {
+        action: "DELETE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Parent",
+        entityId: parent.id,
+        description: `[Hnia AI Telegram] Suppression parent ${parentFullName} (Tél: ${parent.phone}, ID: ${parent.id}, ${childrenCount} enfants détachés)`,
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "parents", "students", "dashboard");
+
+  return {
+    success: true,
+    message: `🗑️ <b>Parent Supprimé Définitivement</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Parent :</b> <b>${parentFullName}</b>
+📞 <b>Téléphone :</b> <code>${parent.phone}</code>
+👶 <b>Enfants détachés :</b> <code>${childrenCount} élève(s)</code>
+
+<blockquote>💡 <b>Hnia :</b> La fiche parent a été supprimée. Les dossiers scolaires de ses enfants ont été préservés (ils apparaissent désormais comme "sans tuteur").</blockquote>`,
+    summary: `Suppression parent ${parentFullName}`,
+    data: { parentId: parent.id, parentFullName, childrenCount },
+  };
+}
+
+/**
+ * Tool: update_person_photo
+ * Unified tool to assign or update the profile picture / avatar of any person in the school
+ * (Student, Teacher, Staff, or Parent).
+ */
+export async function updatePersonPhotoTool(
+  args: {
+    personType: "student" | "teacher" | "staff" | "parent";
+    nameOrId: string;
+    photoUrl: string;
+    className?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const pType = args.personType.toLowerCase();
+  const photo = args.photoUrl.trim();
+
+  let resolvedId: string | null = null;
+  let resolvedName = "";
+  let entityType = "";
+
+  if (pType === "student") {
+    const student = await resolveStudentByName(context.schoolId, args.nameOrId, args.className);
+    if (!student) {
+      return { success: false, message: `Élève "${args.nameOrId}" introuvable.`, summary: "Élève introuvable" };
+    }
+    resolvedId = student.id;
+    resolvedName = `${student.name} ${student.surname}`;
+    entityType = "Student";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.student.update({ where: { id: student.id }, data: { img: photo } });
+      await tx.auditLog.create({
+        data: {
+          action: "UPDATE_PHOTO",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Student",
+          entityId: student.id,
+          description: `[Hnia AI Telegram] Mise à jour photo de profil élève : ${resolvedName}`,
+          schoolId: context.schoolId,
+        },
+      });
+    });
+    invalidateTenantTags(context.schoolId, "students", "dashboard");
+  } else if (pType === "teacher") {
+    const teacher = await resolveTeacherByName(context.schoolId, args.nameOrId);
+    if (!teacher) {
+      return { success: false, message: `Enseignant "${args.nameOrId}" introuvable.`, summary: "Enseignant introuvable" };
+    }
+    resolvedId = teacher.id;
+    resolvedName = `${teacher.name} ${teacher.surname}`;
+    entityType = "Teacher";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.teacher.update({ where: { id: teacher.id }, data: { img: photo } });
+      await tx.auditLog.create({
+        data: {
+          action: "UPDATE_PHOTO",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Teacher",
+          entityId: teacher.id,
+          description: `[Hnia AI Telegram] Mise à jour photo de profil enseignant : ${resolvedName}`,
+          schoolId: context.schoolId,
+        },
+      });
+    });
+    invalidateTenantTags(context.schoolId, "teachers", "dashboard");
+  } else if (pType === "staff") {
+    const staff = await resolveStaffByName(context.schoolId, args.nameOrId);
+    if (!staff) {
+      return { success: false, message: `Membre du personnel "${args.nameOrId}" introuvable.`, summary: "Personnel introuvable" };
+    }
+    resolvedId = staff.id;
+    resolvedName = `${staff.name} ${staff.surname}`;
+    entityType = "Staff";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.staff.update({ where: { id: staff.id }, data: { img: photo } });
+      await tx.auditLog.create({
+        data: {
+          action: "UPDATE_PHOTO",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Staff",
+          entityId: staff.id,
+          description: `[Hnia AI Telegram] Mise à jour photo de profil personnel : ${resolvedName}`,
+          schoolId: context.schoolId,
+        },
+      });
+    });
+    invalidateTenantTags(context.schoolId, "staff", "dashboard");
+  } else if (pType === "parent") {
+    const parent = await resolveParentByName(context.schoolId, args.nameOrId);
+    if (!parent) {
+      return { success: false, message: `Parent "${args.nameOrId}" introuvable.`, summary: "Parent introuvable" };
+    }
+    resolvedId = parent.id;
+    resolvedName = `${parent.name} ${parent.surname}`;
+    entityType = "Parent";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.parent.update({ where: { id: parent.id }, data: { img: photo } });
+      await tx.auditLog.create({
+        data: {
+          action: "UPDATE_PHOTO",
+          performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+          entityType: "Parent",
+          entityId: parent.id,
+          description: `[Hnia AI Telegram] Mise à jour photo de profil parent : ${resolvedName}`,
+          schoolId: context.schoolId,
+        },
+      });
+    });
+    invalidateTenantTags(context.schoolId, "parents", "dashboard");
+  } else {
+    return {
+      success: false,
+      message: `Type de personne "${args.personType}" non reconnu (valeurs acceptées : student, teacher, staff, parent).`,
+      summary: "Type invalide",
+    };
+  }
+
+  const roleEmoji = pType === "student" ? "🎒" : pType === "teacher" ? "👨‍🏫" : pType === "staff" ? "💼" : "👨‍👩‍👧";
+
+  return {
+    success: true,
+    message: `${roleEmoji} <b>Photo de Profil Enregistrée</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 <b>Personne :</b> <b>${resolvedName}</b> (<i>${entityType}</i>)
+🖼️ <b>Statut :</b> <code>Photo officielle actualisée</code>
+
+<blockquote>💡 <b>Hnia :</b> La photo de profil a été rattachée et est désormais visible dans la fiche et sur l'application mobile.</blockquote>`,
+    summary: `Photo profil actualisée pour ${resolvedName}`,
+    data: { personType: entityType, personId: resolvedId, photoUrl: photo },
   };
 }
 
