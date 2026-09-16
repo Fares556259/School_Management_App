@@ -12,7 +12,6 @@ import {
   TrendingUp, 
   Activity, 
   GraduationCap, 
-  Percent, 
   Calendar, 
   UserRound, 
   Contact, 
@@ -21,7 +20,6 @@ import {
   UsersRound, 
   BookOpen, 
   DoorOpen, 
-  FileText, 
   ClipboardList, 
   Megaphone, 
   User, 
@@ -33,7 +31,6 @@ import {
   Calculator,
   Smartphone,
   Library,
-  Sparkles,
   CircleHelp,
   MoreVertical,
   ChevronDown,
@@ -99,11 +96,8 @@ const menuItems: MenuSection[] = [
     icon: GraduationCap,
     items: [
       { icon: Calendar, label: "Timetable", href: "/admin/timetable", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: FileText, label: "Exams", href: "/list/exams", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: Sparkles, label: "AI Scheduler", href: "/admin/timetable/ai", visible: ["admin"] },
       { icon: DoorOpen, label: "Classes", href: "/list/classes", visible: ["admin", "teacher", "superuser"] },
       { icon: GraduationCap, label: "Results", href: "/list/results", visible: ["admin", "teacher", "student", "parent"] },
-      { icon: Percent, label: "Grades", href: "/admin/grades", visible: ["admin", "superuser"] },
     ],
   },
   {
@@ -225,7 +219,7 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
             "/list/classes",
             "/admin/finance",
             "/list/expenses",
-            "/admin/grades",
+            "/list/results",
             "/admin/timetable",
             "/list/attendance",
           ]
@@ -234,7 +228,7 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
             "/list/classes",
             "/list/students",
             "/list/assignments",
-            "/list/exams",
+            "/list/results",
             "/admin/timetable",
           ]
         : [];
