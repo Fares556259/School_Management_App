@@ -144,6 +144,15 @@ import {
   downloadExternalDocumentTool,
 } from "./externalPortalTools";
 
+// Suite 12: System, Profile & School Settings (/profile, /settings)
+import {
+  getAdminProfileTool,
+  updateAdminProfileTool,
+  getSchoolSettingsTool,
+  updateSchoolSettingsTool,
+  updateLevelTuitionFeeTool,
+} from "./systemTools";
+
 
 export interface ToolDefinition {
   name: string;
@@ -2607,6 +2616,208 @@ Confirmer l'enregistrement de cette dépense ?`;
       }</code>\n\nSouhaitez-vous que je télécharge ce document officiel depuis le portail externe et que je vous l'envoie en pièce jointe PDF ici ?`;
     },
     execute: downloadExternalDocumentTool,
+  },
+
+  // ── SUITE 12: SYSTEM, PROFILE & SCHOOL SETTINGS ───────────────────────────
+  get_admin_profile: {
+    name: "get_admin_profile",
+    description:
+      "Consulter le profil personnel, les coordonnées et les préférences de l'administrateur connecté (/profile) : nom, prénom, email, téléphone, avatar, langue de l'agent Hnia, et état du briefing matinal.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_admin_profile",
+      description:
+        "Consulter les informations personnelles et préférences de l'administrateur connecté (/profile).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {},
+      },
+    },
+    execute: getAdminProfileTool,
+  },
+
+  update_admin_profile: {
+    name: "update_admin_profile",
+    description:
+      "Modifier le profil de l'administrateur connecté (/profile) : prénom, nom, numéro de téléphone, email, photo/avatar, langue de communication ('fr', 'ar', 'en'), ou activer/désactiver le briefing matinal automatique.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_admin_profile",
+      description:
+        "Modifier les coordonnées, la photo ou les préférences de l'administrateur connecté (/profile).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          firstName: {
+            type: SchemaType.STRING,
+            description: "Nouveau prénom de l'administrateur.",
+          },
+          lastName: {
+            type: SchemaType.STRING,
+            description: "Nouveau nom de famille de l'administrateur.",
+          },
+          phone: {
+            type: SchemaType.STRING,
+            description: "Nouveau numéro de téléphone de l'administrateur (ex: '20123456' ou '+216 20 123 456').",
+          },
+          email: {
+            type: SchemaType.STRING,
+            description: "Nouvelle adresse email de l'administrateur.",
+          },
+          img: {
+            type: SchemaType.STRING,
+            description: "URL de la nouvelle photo de profil / avatar.",
+          },
+          language: {
+            type: SchemaType.STRING,
+            description: "Langue préférée pour les échanges avec Hnia ('fr' pour Français, 'ar' pour Arabe, 'en' pour Anglais).",
+          },
+          dailyBriefing: {
+            type: SchemaType.BOOLEAN,
+            description: "Activer (true) ou désactiver (false) le briefing matinal automatique sur Telegram.",
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const parts: string[] = [];
+      if (args.firstName) parts.push(isArabic ? `الاسم : <b>${args.firstName}</b>` : `Prénom : <b>${args.firstName}</b>`);
+      if (args.lastName) parts.push(isArabic ? `اللقب : <b>${args.lastName}</b>` : `Nom : <b>${args.lastName}</b>`);
+      if (args.phone) parts.push(isArabic ? `الهاتف : <code>${args.phone}</code>` : `Téléphone : <code>${args.phone}</code>`);
+      if (args.email) parts.push(isArabic ? `البريد الإلكتروني : <code>${args.email}</code>` : `Email : <code>${args.email}</code>`);
+      if (args.img) parts.push(isArabic ? `الصورة الشخصية : <i>تحديث الصورة</i> 🖼️` : `Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
+      if (args.language) parts.push(isArabic ? `لغة التواصل : <code>${args.language.toUpperCase()}</code>` : `Langue préférée : <code>${args.language.toUpperCase()}</code>`);
+      if (args.dailyBriefing !== undefined) {
+        const stateStr = args.dailyBriefing ? (isArabic ? "مفعّل ✅" : "Activé ✅") : (isArabic ? "معطّل ❌" : "Désactivé ❌");
+        parts.push(isArabic ? `التقرير الصباحي اليومي : <code>${stateStr}</code>` : `Briefing quotidien : <code>${stateStr}</code>`);
+      }
+
+      if (isArabic) {
+        return `👤 <b>تحديث الملف الشخصي للمدير</b>\n━━━━━━━━━━━━━━━━━━━━━━\nهل ترغب في تأكيد حفظ هذه التعديلات على حسابك ؟\n${parts.map((p) => `• ${p}`).join("\n")}`;
+      }
+      return `👤 <b>Mise à Jour de Votre Profil Administrateur</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous appliquer ces modifications à votre profil ?\n${parts.map((p) => `• ${p}`).join("\n")}`;
+    },
+    execute: updateAdminProfileTool,
+  },
+
+  get_school_settings: {
+    name: "get_school_settings",
+    description:
+      "Consulter les paramètres officiels de l'établissement scolaire (/settings) : nom de l'école, téléphone officiel, adresse physique, logo, année scolaire active, trimestre en cours, horaires d'ouverture et tarifs de scolarité de référence par niveau.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_school_settings",
+      description:
+        "Consulter les informations et paramètres généraux de l'école (/settings).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {},
+      },
+    },
+    execute: getSchoolSettingsTool,
+  },
+
+  update_school_settings: {
+    name: "update_school_settings",
+    description:
+      "Modifier les paramètres généraux de l'établissement scolaire (/settings) : nom de l'établissement, téléphone officiel, adresse physique, logo officiel, année scolaire (ex: '2026-2027'), trimestre en cours (1, 2, ou 3), heure d'ouverture (ex: '08:00') et heure de fermeture (ex: '14:00' ou '17:00').",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_school_settings",
+      description:
+        "Modifier les paramètres généraux et coordonnées de l'établissement scolaire (/settings).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          schoolName: {
+            type: SchemaType.STRING,
+            description: "Nouveau nom officiel de l'école / établissement.",
+          },
+          phone: {
+            type: SchemaType.STRING,
+            description: "Numéro de téléphone officiel de l'établissement.",
+          },
+          address: {
+            type: SchemaType.STRING,
+            description: "Adresse physique officielle de l'école.",
+          },
+          schoolLogo: {
+            type: SchemaType.STRING,
+            description: "URL du nouveau logo officiel de l'établissement.",
+          },
+          academicYear: {
+            type: SchemaType.STRING,
+            description: "Année scolaire active (ex: '2026-2027').",
+          },
+          currentSemester: {
+            type: SchemaType.NUMBER,
+            description: "Trimestre ou semestre en cours (1, 2, ou 3).",
+          },
+          dayStartTime: {
+            type: SchemaType.STRING,
+            description: "Heure d'ouverture des cours (ex: '08:00').",
+          },
+          dayEndTime: {
+            type: SchemaType.STRING,
+            description: "Heure de fermeture des cours (ex: '14:00' ou '17:00').",
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const parts: string[] = [];
+      if (args.schoolName) parts.push(isArabic ? `اسم المؤسسة : <b>${args.schoolName}</b>` : `Nom de l'école : <b>${args.schoolName}</b>`);
+      if (args.phone) parts.push(isArabic ? `الهاتف الرسمي : <code>${args.phone}</code>` : `Téléphone officiel : <code>${args.phone}</code>`);
+      if (args.address) parts.push(isArabic ? `العنوان : <code>${args.address}</code>` : `Adresse officielle : <code>${args.address}</code>`);
+      if (args.schoolLogo) parts.push(isArabic ? `شعار المدرسة : <i>تحديث الشعار</i> 🏫` : `Logo de l'école : <i>Mise à jour du logo</i> 🏫`);
+      if (args.academicYear) parts.push(isArabic ? `السنة الدراسية : <code>${args.academicYear}</code>` : `Année scolaire : <code>${args.academicYear}</code>`);
+      if (args.currentSemester) parts.push(isArabic ? `الثلاثي الجاري : <code>الثلاثي ${args.currentSemester}</code>` : `Trimestre en cours : <code>Trimestre ${args.currentSemester}</code>`);
+      if (args.dayStartTime) parts.push(isArabic ? `توقيت فتح الأبواب : <code>${args.dayStartTime}</code>` : `Heure d'ouverture : <code>${args.dayStartTime}</code>`);
+      if (args.dayEndTime) parts.push(isArabic ? `توقيت انتهاء الدروس : <code>${args.dayEndTime}</code>` : `Heure de fermeture : <code>${args.dayEndTime}</code>`);
+
+      if (isArabic) {
+        return `⚙️ <b>تعديل إعدادات المؤسسة التعليمية</b>\n━━━━━━━━━━━━━━━━━━━━━━\nهل ترغب في تطبيق هذه الإعدادات على المؤسسة ؟\n${parts.map((p) => `• ${p}`).join("\n")}`;
+      }
+      return `⚙️ <b>Modification des Paramètres de l'Établissement</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer ces nouveaux paramètres pour l'école ?\n${parts.map((p) => `• ${p}`).join("\n")}`;
+    },
+    execute: updateSchoolSettingsTool,
+  },
+
+  update_level_tuition_fee: {
+    name: "update_level_tuition_fee",
+    description:
+      "Modifier le montant standard mensuel des frais de scolarité pour un niveau académique donné (ex: niveau 0 pour Préparatoire, 1 pour 1ère année, 7, 8, etc.).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_level_tuition_fee",
+      description:
+        "Modifier le tarif mensuel des frais de scolarité d'un niveau d'études.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["levelNumber", "tuitionFee"],
+        properties: {
+          levelNumber: {
+            type: SchemaType.NUMBER,
+            description: "Numéro du niveau d'études (ex: 0 pour Préparatoire, 1, 2, 7, 8, 9, etc.).",
+          },
+          tuitionFee: {
+            type: SchemaType.NUMBER,
+            description: "Nouveau tarif mensuel de base en Dinars Tunisiens (ex: 180, 220).",
+          },
+        },
+      },
+    },
+    formatConfirmationMessage: (args, context) => {
+      const isArabic = context.language === "ar";
+      const levelLabel = args.levelNumber === 0 ? (isArabic ? "التحضيري" : "Préparatoire") : (isArabic ? `السنة ${args.levelNumber}` : `${args.levelNumber}ème année`);
+      if (isArabic) {
+        return `🎓 <b>تعديل معلوم التمدرس الشهري</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>المستوى :</b> <b>${levelLabel}</b>\n💰 <b>المعلوم الجديد المقترح :</b> <code>${args.tuitionFee} د.ت/شهرياً</code>\n\nهل ترغب في تأكيد هذا التعديل وتطبيقه على المنظومة ؟`;
+      }
+      return `🎓 <b>Modification du Tarif de Scolarité</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📚 <b>Niveau :</b> <b>${levelLabel}</b>\n💰 <b>Nouveau tarif proposé :</b> <code>${args.tuitionFee} DT/mois</code>\n\nSouhaitez-vous confirmer cette mise à jour tarifaire ?`;
+    },
+    execute: updateLevelTuitionFeeTool,
   },
 };
 
