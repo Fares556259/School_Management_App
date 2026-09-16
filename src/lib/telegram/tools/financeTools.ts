@@ -1281,4 +1281,459 @@ export async function cancelPaymentTool(
   };
 }
 
+/**
+ * Tool: update_income
+ * Modifies an existing income/revenue record (title, amount, category, date, or proof photo).
+ */
+export async function updateIncomeTool(
+  args: {
+    incomeId?: number;
+    query?: string;
+    newTitle?: string;
+    newAmount?: number;
+    newCategory?: string;
+    newDate?: string;
+    newImg?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  let targetIncome: any = null;
+
+  if (args.incomeId) {
+    targetIncome = await prisma.income.findFirst({
+      where: { id: args.incomeId, schoolId: context.schoolId },
+    });
+  } else if (args.query) {
+    targetIncome = await prisma.income.findFirst({
+      where: {
+        schoolId: context.schoolId,
+        title: { contains: args.query.trim(), mode: "insensitive" },
+      },
+      orderBy: { date: "desc" },
+    });
+  }
+
+  if (!targetIncome) {
+    return {
+      success: false,
+      message: `Revenu introuvable dans le registre de l'école.`,
+      summary: "Revenu introuvable",
+    };
+  }
+
+  const updateData: any = {};
+  const changeDescriptions: string[] = [];
+
+  if (args.newTitle && args.newTitle.trim() !== targetIncome.title) {
+    updateData.title = args.newTitle.trim();
+    changeDescriptions.push(`Intitulé : "${targetIncome.title}" → <b>"${args.newTitle.trim()}"</b>`);
+  }
+
+  if (args.newAmount !== undefined && args.newAmount !== targetIncome.amount) {
+    const amt = Math.abs(Number(args.newAmount));
+    updateData.amount = amt;
+    changeDescriptions.push(`Montant : <code>${targetIncome.amount} DT</code> → <code>${amt} DT</code>`);
+  }
+
+  if (args.newCategory && args.newCategory.trim() !== targetIncome.category) {
+    updateData.category = args.newCategory.trim();
+    changeDescriptions.push(`Catégorie : <code>${targetIncome.category}</code> → <code>${args.newCategory.trim()}</code>`);
+  }
+
+  if (args.newDate) {
+    const d = new Date(args.newDate);
+    if (!isNaN(d.getTime())) {
+      updateData.date = d;
+      changeDescriptions.push(`Date : <code>${d.toISOString().split("T")[0]}</code>`);
+    }
+  }
+
+  if (args.newImg !== undefined) {
+    updateData.img = args.newImg || null;
+    changeDescriptions.push(`Pièce jointe mise à jour`);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: false,
+      message: "Aucune modification spécifiée pour ce revenu.",
+      summary: "Aucune modification",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.income.update({
+      where: { id: targetIncome.id },
+      data: updateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Income",
+        entityId: targetIncome.id.toString(),
+        description: `[Hnia AI Telegram] Modification revenu : ${changeDescriptions.join(", ")}`,
+        amount: updateData.amount ?? targetIncome.amount,
+        type: "income",
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "incomes", "finance", "dashboard");
+
+  return {
+    success: true,
+    message: `✏️ <b>Revenu Mis à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+🏷️ <b>Revenu :</b> <b>${updateData.title || targetIncome.title}</b>
+• ${changeDescriptions.join("\n• ")}
+
+<blockquote>💡 <b>Hnia :</b> Les modifications ont été appliquées immédiatement dans le registre financier.</blockquote>`,
+    summary: `Mise à jour revenu ${targetIncome.id}`,
+    data: { incomeId: targetIncome.id, updates: updateData },
+  };
+}
+
+/**
+ * Tool: delete_income
+ * Deletes or cancels a general revenue entry from the school register.
+ */
+export async function deleteIncomeTool(
+  args: {
+    incomeId?: number;
+    query?: string;
+    amount?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  let targetIncome: any = null;
+
+  if (args.incomeId) {
+    targetIncome = await prisma.income.findFirst({
+      where: { id: args.incomeId, schoolId: context.schoolId },
+    });
+  } else if (args.query || args.amount) {
+    const where: any = { schoolId: context.schoolId };
+    if (args.query) {
+      where.title = { contains: args.query.trim(), mode: "insensitive" };
+    }
+    if (args.amount) {
+      where.amount = args.amount;
+    }
+    targetIncome = await prisma.income.findFirst({
+      where,
+      orderBy: { date: "desc" },
+    });
+  }
+
+  if (!targetIncome) {
+    return {
+      success: false,
+      message: `⚠️ Revenu introuvable dans le registre de l'école.`,
+      summary: "Revenu introuvable",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.income.delete({
+      where: { id: targetIncome.id },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "DELETE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Income",
+        entityId: targetIncome.id.toString(),
+        description: `[Hnia AI Telegram] Suppression revenu : "${targetIncome.title}" de ${targetIncome.amount} DT (${targetIncome.category})`,
+        amount: targetIncome.amount,
+        type: "income",
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "incomes", "finance", "dashboard");
+
+  return {
+    success: true,
+    message: `🗑️ <b>Revenu Supprimé</b>
+━━━━━━━━━━━━━━━━━━━━━━
+🏷️ <b>Intitulé :</b> <b>${targetIncome.title}</b>
+💰 <b>Montant retiré :</b> <code>${targetIncome.amount} DT</code>
+📂 <b>Catégorie :</b> <code>${targetIncome.category}</code>
+
+<blockquote>💡 <b>Hnia :</b> Cette recette a été retirée du registre financier et les totaux de caisse ont été actualisés.</blockquote>`,
+    summary: `Suppression revenu ${targetIncome.amount} DT`,
+    data: { deletedIncomeId: targetIncome.id },
+  };
+}
+
+/**
+ * Tool: update_expense
+ * Modifies an existing expense record (title, amount, category, date, or receipt photo).
+ */
+export async function updateExpenseTool(
+  args: {
+    expenseId?: number;
+    query?: string;
+    newTitle?: string;
+    newAmount?: number;
+    newCategory?: string;
+    newDate?: string;
+    newImg?: string;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  let targetExpense: any = null;
+
+  if (args.expenseId) {
+    targetExpense = await prisma.expense.findFirst({
+      where: { id: args.expenseId, schoolId: context.schoolId },
+    });
+  } else if (args.query) {
+    targetExpense = await prisma.expense.findFirst({
+      where: {
+        schoolId: context.schoolId,
+        title: { contains: args.query.trim(), mode: "insensitive" },
+      },
+      orderBy: { date: "desc" },
+    });
+  }
+
+  if (!targetExpense) {
+    return {
+      success: false,
+      message: `Dépense introuvable dans le registre de l'école.`,
+      summary: "Dépense introuvable",
+    };
+  }
+
+  const updateData: any = {};
+  const changeDescriptions: string[] = [];
+
+  if (args.newTitle && args.newTitle.trim() !== targetExpense.title) {
+    updateData.title = args.newTitle.trim();
+    changeDescriptions.push(`Intitulé : "${targetExpense.title}" → <b>"${args.newTitle.trim()}"</b>`);
+  }
+
+  if (args.newAmount !== undefined && args.newAmount !== targetExpense.amount) {
+    const amt = Math.abs(Number(args.newAmount));
+    updateData.amount = amt;
+    changeDescriptions.push(`Montant : <code>${targetExpense.amount} DT</code> → <code>${amt} DT</code>`);
+  }
+
+  if (args.newCategory && args.newCategory.trim() !== targetExpense.category) {
+    updateData.category = args.newCategory.trim();
+    changeDescriptions.push(`Catégorie : <code>${targetExpense.category}</code> → <code>${args.newCategory.trim()}</code>`);
+  }
+
+  if (args.newDate) {
+    const d = new Date(args.newDate);
+    if (!isNaN(d.getTime())) {
+      updateData.date = d;
+      changeDescriptions.push(`Date : <code>${d.toISOString().split("T")[0]}</code>`);
+    }
+  }
+
+  if (args.newImg !== undefined) {
+    updateData.img = args.newImg || null;
+    changeDescriptions.push(`Reçu / justificatif mis à jour`);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: false,
+      message: "Aucune modification spécifiée pour cette dépense.",
+      summary: "Aucune modification",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.expense.update({
+      where: { id: targetExpense.id },
+      data: updateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        action: "UPDATE",
+        performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+        entityType: "Expense",
+        entityId: targetExpense.id.toString(),
+        description: `[Hnia AI Telegram] Modification dépense : ${changeDescriptions.join(", ")}`,
+        amount: updateData.amount ?? targetExpense.amount,
+        type: "expense",
+        schoolId: context.schoolId,
+      },
+    });
+  });
+
+  invalidateTenantTags(context.schoolId, "finance", "dashboard");
+
+  return {
+    success: true,
+    message: `✏️ <b>Dépense Mise à Jour</b>
+━━━━━━━━━━━━━━━━━━━━━━
+🏷️ <b>Dépense :</b> <b>${updateData.title || targetExpense.title}</b>
+• ${changeDescriptions.join("\n• ")}
+
+<blockquote>💡 <b>Hnia :</b> Les modifications ont été enregistrées immédiatement dans la comptabilité.</blockquote>`,
+    summary: `Mise à jour dépense ${targetExpense.id}`,
+    data: { expenseId: targetExpense.id, updates: updateData },
+  };
+}
+
+/**
+ * Tool: get_audit_log
+ * Consults and searches the school's official audit trail (/admin/audit).
+ */
+export async function getAuditLogTool(
+  args: {
+    query?: string;
+    action?: string;
+    entityType?: string;
+    performedBy?: string;
+    date?: string;
+    limit?: number;
+  },
+  context: ToolContext
+) {
+  const where: any = {
+    schoolId: context.schoolId,
+  };
+
+  if (args.action) {
+    where.action = { equals: args.action.trim(), mode: "insensitive" };
+  }
+
+  if (args.entityType) {
+    where.entityType = { equals: args.entityType.trim(), mode: "insensitive" };
+  }
+
+  if (args.performedBy) {
+    where.performedBy = { contains: args.performedBy.trim(), mode: "insensitive" };
+  }
+
+  if (args.query) {
+    const q = args.query.trim();
+    where.OR = [
+      { action: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { entityType: { contains: q, mode: "insensitive" } },
+      { performedBy: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  if (args.date) {
+    let target = new Date();
+    if (args.date === "yesterday") {
+      target.setDate(target.getDate() - 1);
+    } else if (args.date !== "today") {
+      const parsed = new Date(args.date);
+      if (!isNaN(parsed.getTime())) target = parsed;
+    }
+    const start = new Date(target);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(target);
+    end.setHours(23, 59, 59, 999);
+    where.timestamp = { gte: start, lte: end };
+  }
+
+  const limit = Math.min(args.limit || 20, 50);
+
+  const [totalCount, logs, actionCounts] = await Promise.all([
+    prisma.auditLog.count({ where }),
+    prisma.auditLog.findMany({
+      where,
+      take: limit,
+      orderBy: { timestamp: "desc" },
+    }),
+    prisma.auditLog.groupBy({
+      by: ["action"],
+      where: { schoolId: context.schoolId },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 5,
+    }),
+  ]);
+
+  return {
+    totalMatching: totalCount,
+    displayedCount: logs.length,
+    filters: {
+      action: args.action || null,
+      entityType: args.entityType || null,
+      performedBy: args.performedBy || null,
+      date: args.date || null,
+      query: args.query || null,
+    },
+    topActionsInSchool: actionCounts.map((a) => ({
+      action: a.action,
+      count: a._count.id,
+    })),
+    logs: logs.map((l) => {
+      const timeStr = l.timestamp.toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return {
+        id: l.id,
+        action: l.action,
+        entityType: l.entityType,
+        performer: l.performedBy,
+        description: l.description,
+        amount: l.amount ? `${l.amount} DT` : null,
+        timestamp: timeStr,
+      };
+    }),
+  };
+}
+
+/**
+ * Tool: add_audit_entry
+ * Records an official administrative note, inspection event, or incident in the audit log.
+ */
+export async function addAuditEntryTool(
+  args: {
+    description: string;
+    action?: string;
+    entityType?: string;
+    amount?: number;
+  },
+  context: ToolContext
+): Promise<WriteToolResult> {
+  const action = args.action?.trim().toUpperCase() || "ADMIN_NOTE";
+  const entityType = args.entityType?.trim() || "School";
+
+  const entry = await prisma.auditLog.create({
+    data: {
+      action,
+      performedBy: `Hnia AI (Telegram / ${context.adminName})`,
+      entityType,
+      description: `[Hnia AI Telegram] Note d'audit : ${args.description.trim()}`,
+      amount: args.amount ?? null,
+      schoolId: context.schoolId,
+    },
+  });
+
+  invalidateTenantTags(context.schoolId, "dashboard");
+
+  return {
+    success: true,
+    message: `📋 <b>Entrée Enregistrée dans le Journal d'Audit</b>
+━━━━━━━━━━━━━━━━━━━━━━
+🔖 <b>Action :</b> <code>${action}</code>
+📌 <b>Entité :</b> <code>${entityType}</code>
+📝 <b>Description :</b> <i>"${args.description.trim()}"</i>
+${args.amount ? `💰 <b>Montant :</b> <code>${args.amount} DT</code>\n` : ""}👤 <b>Par :</b> ${context.adminName}`,
+    summary: `Note audit : ${args.description.slice(0, 30)}...`,
+    data: { auditLogId: entry.id },
+  };
+}
+
 

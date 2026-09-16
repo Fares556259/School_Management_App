@@ -81,10 +81,15 @@ import {
   scheduleRecoveryDateTool,
   getIncomesTool,
   addIncomeTool,
+  updateIncomeTool,
+  deleteIncomeTool,
   getExpensesTool,
+  updateExpenseTool,
   getDailyCaisseTool,
   voidExpenseTool,
   cancelPaymentTool,
+  getAuditLogTool,
+  addAuditEntryTool,
 } from "./financeTools";
 
 // Suite 6: Timetable & Substitution
@@ -2093,6 +2098,141 @@ Confirmer l'enregistrement de cette dépense ?`;
       return `❓ <b>Confirmation : Annulation de Règlement</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👤 Élève : <b>${args.studentNameOrId}</b>\n📅 Mois : <code>Mois ${args.month} ${args.year || ""}</code>\n\nRemettre ce mois en statut ❌ NON PAYÉ ?`;
     },
     execute: cancelPaymentTool,
+  },
+
+  update_income: {
+    name: "update_income",
+    description: "Modifier une recette ou un revenu enregistré dans le registre financier (titre, montant, catégorie, date ou justificatif).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_income",
+      description: "Modifier un revenu ou une recette existante dans le registre.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          incomeId: { type: SchemaType.NUMBER, description: "Identifiant numérique du revenu si connu." },
+          query: { type: SchemaType.STRING, description: "Titre ou libellé du revenu à rechercher (ex: 'Donation', 'Cantine')." },
+          newTitle: { type: SchemaType.STRING, description: "Nouveau titre ou libellé." },
+          newAmount: { type: SchemaType.NUMBER, description: "Nouveau montant en Dinars Tunisiens (DT)." },
+          newCategory: { type: SchemaType.STRING, description: "Nouvelle catégorie (ex: 'Cantine', 'Transport', 'Tuition', 'Dons')." },
+          newDate: { type: SchemaType.STRING, description: "Nouvelle date (AAAA-MM-JJ)." },
+          newImg: { type: SchemaType.STRING, description: "Nouvelle URL de reçu ou justificatif." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const q = args.query ? ` "${args.query}"` : (args.incomeId ? ` N°${args.incomeId}` : "");
+      const details: string[] = [];
+      if (args.newTitle) details.push(`Nouveau titre : <b>${args.newTitle}</b>`);
+      if (args.newAmount !== undefined) details.push(`Nouveau montant : <code>${args.newAmount} DT</code>`);
+      if (args.newCategory) details.push(`Nouvelle catégorie : <code>${args.newCategory}</code>`);
+      if (args.newDate) details.push(`Nouvelle date : <code>${args.newDate}</code>`);
+      return `❓ <b>Confirmation : Modification de Revenu</b>\n━━━━━━━━━━━━━━━━━━━━━━\nRevenu ciblé : <b>${q}</b>\n• ${details.join("\n• ")}\n\nConfirmer la modification ?`;
+    },
+    execute: updateIncomeTool,
+  },
+
+  delete_income: {
+    name: "delete_income",
+    description: "Supprimer ou annuler un revenu / recette enregistré par erreur dans le registre financier.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "delete_income",
+      description: "Supprimer une recette ou un revenu enregistré par erreur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          incomeId: { type: SchemaType.NUMBER, description: "Identifiant numérique du revenu si connu." },
+          query: { type: SchemaType.STRING, description: "Titre ou libellé du revenu (ex: 'Donation', 'Cantine')." },
+          amount: { type: SchemaType.NUMBER, description: "Montant du revenu en Dinars Tunisiens (DT)." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const q = args.query ? ` "${args.query}"` : "";
+      const amt = args.amount ? ` de ${args.amount} DT` : "";
+      return `❓ <b>Confirmation : Suppression de Revenu</b>\n━━━━━━━━━━━━━━━━━━━━━━\n⚠️ Vous êtes sur le point de supprimer le revenu${q}${amt} du registre financier.\n\nConfirmer la suppression ?`;
+    },
+    execute: deleteIncomeTool,
+  },
+
+  update_expense: {
+    name: "update_expense",
+    description: "Modifier une dépense opérationnelle enregistrée (titre, montant, catégorie, date ou justificatif).",
+    requiresConfirmation: true,
+    declaration: {
+      name: "update_expense",
+      description: "Modifier une dépense existante dans la comptabilité.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          expenseId: { type: SchemaType.NUMBER, description: "Identifiant numérique de la dépense si connu." },
+          query: { type: SchemaType.STRING, description: "Titre ou libellé de la dépense à rechercher (ex: 'Facture STEG', 'Achat essence')." },
+          newTitle: { type: SchemaType.STRING, description: "Nouveau titre ou libellé de la dépense." },
+          newAmount: { type: SchemaType.NUMBER, description: "Nouveau montant en Dinars Tunisiens (DT)." },
+          newCategory: { type: SchemaType.STRING, description: "Nouvelle catégorie (ex: 'Factures', 'Fournitures', 'Transport', 'Maintenance')." },
+          newDate: { type: SchemaType.STRING, description: "Nouvelle date (AAAA-MM-JJ)." },
+          newImg: { type: SchemaType.STRING, description: "Nouvelle URL de facture ou reçu." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const q = args.query ? ` "${args.query}"` : (args.expenseId ? ` N°${args.expenseId}` : "");
+      const details: string[] = [];
+      if (args.newTitle) details.push(`Nouveau titre : <b>${args.newTitle}</b>`);
+      if (args.newAmount !== undefined) details.push(`Nouveau montant : <code>${args.newAmount} DT</code>`);
+      if (args.newCategory) details.push(`Nouvelle catégorie : <code>${args.newCategory}</code>`);
+      if (args.newDate) details.push(`Nouvelle date : <code>${args.newDate}</code>`);
+      return `❓ <b>Confirmation : Modification de Dépense</b>\n━━━━━━━━━━━━━━━━━━━━━━\nDépense ciblée : <b>${q}</b>\n• ${details.join("\n• ")}\n\nConfirmer la modification ?`;
+    },
+    execute: updateExpenseTool,
+  },
+
+  get_audit_log: {
+    name: "get_audit_log",
+    description: "Consulter et rechercher dans le journal d'audit officiel de l'école (/admin/audit) : historique des actions administratives (créations, modifications, suppressions, encaissements, salaires, heures d'absence, etc.), filtrable par date, utilisateur, type d'action ou mot-clé.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_audit_log",
+      description: "Rechercher et consulter les entrées du journal d'audit de l'école (/admin/audit).",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          query: { type: SchemaType.STRING, description: "Mot-clé de recherche (ex: 'suppression', 'salaire', nom d'un élève ou enseignant)." },
+          action: { type: SchemaType.STRING, description: "Type d'action (ex: 'CREATE', 'UPDATE', 'DELETE', 'PAY_SALARY', 'PAY_ADVANCE', 'RECORD_PAYMENT', 'ADD_EXPENSE', 'CANCEL_PAYMENT')." },
+          entityType: { type: SchemaType.STRING, description: "Entité concernée (ex: 'Student', 'Teacher', 'Staff', 'Parent', 'Class', 'Payment', 'Expense', 'Income')." },
+          performedBy: { type: SchemaType.STRING, description: "Nom ou identifiant de l'auteur de l'action (ex: 'Hnia AI', 'fares selmi')." },
+          date: { type: SchemaType.STRING, description: "Date cible au format AAAA-MM-JJ ou 'today' / 'yesterday'." },
+          limit: { type: SchemaType.NUMBER, description: "Nombre de résultats à afficher (défaut 20, max 50)." },
+        },
+      },
+    },
+    execute: getAuditLogTool,
+  },
+
+  add_audit_entry: {
+    name: "add_audit_entry",
+    description: "Ajouter une note administrative officielle, consigner un incident ou enregistrer une inspection dans le journal d'audit de l'école.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "add_audit_entry",
+      description: "Consigner une note administrative ou incident dans le journal d'audit officiel.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["description"],
+        properties: {
+          description: { type: SchemaType.STRING, description: "Description détaillée de l'événement, note administrative ou incident." },
+          action: { type: SchemaType.STRING, description: "Type d'action : 'ADMIN_NOTE', 'INCIDENT', 'INSPECTION', 'MEETING', 'COMPLIANCE' (défaut 'ADMIN_NOTE')." },
+          entityType: { type: SchemaType.STRING, description: "Entité concernée (ex: 'School', 'Administration', 'Student', 'Teacher')." },
+          amount: { type: SchemaType.NUMBER, description: "Montant financier éventuel lié à cet événement." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args) => {
+      const act = args.action || "ADMIN_NOTE";
+      return `❓ <b>Confirmation : Entrée Journal d'Audit</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🔖 Type : <code>${act}</code>\n📝 Description : <i>"${args.description}"</i>\n\nConfirmer l'enregistrement dans le journal officiel d'audit ?`;
+    },
+    execute: addAuditEntryTool,
   },
 
   update_student: {
