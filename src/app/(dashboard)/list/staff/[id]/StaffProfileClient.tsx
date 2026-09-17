@@ -467,18 +467,6 @@ export default function StaffProfileClient({
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-rose-500 border border-slate-100 shrink-0">
-                  <Droplet size={13} />
-                </div>
-                <div className="truncate">
-                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.staffProfile.identity.bloodType}</span>
-                  <span className="font-semibold text-slate-700 block">
-                    {staff.bloodType || t.staffProfile.identity.unknown}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-indigo-600 border border-slate-100 shrink-0">
                   <MapPin size={13} />
                 </div>
@@ -770,10 +758,6 @@ export default function StaffProfileClient({
                     <span className="font-semibold text-slate-700">
                       {staff.birthday ? new Date(staff.birthday).toLocaleDateString(locale === "ar" ? "ar-TN" : locale === "en" ? "en-US" : "fr-FR") : "-"}
                     </span>
-                  </div>
-                  <div className="py-2.5 flex justify-between">
-                    <span className="text-slate-400 font-medium">{t.staffProfile.identity.bloodType}</span>
-                    <span className="font-semibold text-slate-700">{staff.bloodType || "-"}</span>
                   </div>
                   <div className="py-2.5 flex justify-between">
                     <span className="text-slate-400 font-medium">{t.staffProfile.identity.address}</span>

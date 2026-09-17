@@ -110,6 +110,7 @@ export async function resolveTeacherByName(schoolId: string, rawQuery?: string |
   // 1. Direct ID lookup
   const byId = await prisma.teacher.findFirst({
     where: { schoolId, id: clean },
+    include: { subjects: true, classes: true },
   });
   if (byId) return byId;
 
@@ -118,6 +119,7 @@ export async function resolveTeacherByName(schoolId: string, rawQuery?: string |
   if (nameConds.length > 0) {
     const matches = await prisma.teacher.findMany({
       where: { schoolId, OR: nameConds },
+      include: { subjects: true, classes: true },
       take: 15,
     });
     if (matches.length === 1) return matches[0];
@@ -141,6 +143,7 @@ export async function resolveTeacherByName(schoolId: string, rawQuery?: string |
 
   return prisma.teacher.findUnique({
     where: { id: matched.id },
+    include: { subjects: true, classes: true },
   });
 }
 

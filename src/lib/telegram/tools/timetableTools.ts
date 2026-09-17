@@ -1013,7 +1013,7 @@ export async function suggestBestTimetableSlotTool(
     return { found: false, message: `Matière "${args.subjectName}" introuvable.` };
   }
 
-  let teacher = args.teacherName ? await resolveTeacherByName(context.schoolId, args.teacherName) : null;
+  let teacher: any = args.teacherName ? await resolveTeacherByName(context.schoolId, args.teacherName) : null;
 
   // Auto-detect teacher if not provided
   if (!teacher) {

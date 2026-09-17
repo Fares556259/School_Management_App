@@ -17,9 +17,9 @@ const schema = z.object({
   firstName: z.string().min(1, { message: "First name is required!" }),
   lastName: z.string().min(1, { message: "Last name is required!" }),
   phone: z.string().min(1, { message: "Phone is required!" }),
-  address: z.string().min(1, { message: "Address is required!" }),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.string().min(1, { message: "Birthday is required!" }),
+  address: z.string().optional(),
+  bloodType: z.string().optional(),
+  birthday: z.string().optional(),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   salary: z.coerce.number().optional(),
   hourlyRate: z.coerce.number().optional(),
@@ -120,13 +120,6 @@ const TeacherForm = ({
           defaultValue={data?.address}
           register={register}
           error={errors.address}
-        />
-        <InputField
-          label="Blood Type"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType}
         />
         <InputField
           label="Birthday"

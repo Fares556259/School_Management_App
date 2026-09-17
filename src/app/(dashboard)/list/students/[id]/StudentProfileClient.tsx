@@ -621,19 +621,6 @@ export default function StudentProfileClient({
             </div>
           </div>
 
-          {/* Blood Type */}
-          <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50/80 border border-slate-100">
-            <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-rose-500 border border-slate-100 shrink-0">
-              <Droplet size={13} />
-            </div>
-            <div className="truncate">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">{t.studentProfile.identity.bloodType}</span>
-              <span className="font-semibold text-slate-700 block">
-                {student.bloodType || t.studentProfile.identity.unknown}
-              </span>
-            </div>
-          </div>
-
           {/* Weekly Hours */}
           <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50/80 border border-slate-100">
             <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-indigo-600 border border-slate-100 shrink-0">

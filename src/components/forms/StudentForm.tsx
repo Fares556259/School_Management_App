@@ -16,12 +16,12 @@ const schema = z.object({
     .min(8, { message: "Password must be at least 8 characters long!" }),
   firstName: z.string().min(1, { message: "First name is required!" }),
   lastName: z.string().min(1, { message: "Last name is required!" }),
-  phone: z.string().min(1, { message: "Phone is required!" }),
-  address: z.string().min(1, { message: "Address is required!" }),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.date({ message: "Birthday is required!" }),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  bloodType: z.string().optional(),
+  birthday: z.coerce.date().optional(),
   sex: z.enum(["male", "female"], { message: "Sex is required!" }),
-  img: z.instanceof(File, { message: "Image is required" }),
+  img: z.instanceof(File, { message: "Image is required" }).optional(),
 });
 
 type Inputs = z.infer<typeof schema>;
@@ -100,13 +100,6 @@ const StudentForm = ({
           defaultValue={data?.address}
           register={register}
           error={errors.address}
-        />
-        <InputField
-          label="Blood Type"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType}
         />
         <InputField
           label="Birthday"

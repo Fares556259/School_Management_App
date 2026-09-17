@@ -17,9 +17,9 @@ export const createTeacher = async (data: {
   name: string;
   surname: string;
   phone?: string;
-  address: string;
+  address?: string;
   bloodType?: string;
-  birthday: string;
+  birthday?: string;
   sex: "MALE" | "FEMALE";
   salary?: number;
   hourlyRate?: number;
@@ -41,9 +41,9 @@ export const createTeacher = async (data: {
         name: data.name,
         surname: data.surname,
         phone: data.phone || null,
-        address: data.address,
+        address: data.address || "",
         bloodType: data.bloodType || "Inconnu",
-        birthday: new Date(data.birthday),
+        birthday: data.birthday ? new Date(data.birthday) : new Date("1990-01-01"),
         sex: data.sex,
         salary: (data.hourlyRate && data.hoursPerMonth) ? data.hourlyRate * data.hoursPerMonth : (data.salary ?? 3000),
         hourlyRate: data.hourlyRate || null,
@@ -192,9 +192,9 @@ export const createStudent = async (data: {
   name: string;
   surname: string;
   phone?: string;
-  address: string;
+  address?: string;
   bloodType?: string;
-  birthday: string;
+  birthday?: string;
   sex: "MALE" | "FEMALE";
   parentId?: string | null;
   classId?: number | null | string;
@@ -239,9 +239,9 @@ export const createStudent = async (data: {
         name: data.name,
         surname: data.surname,
         phone: data.phone || null,
-        address: data.address,
-        bloodType: data.bloodType || "O+",
-        birthday: new Date(data.birthday),
+        address: data.address || "",
+        bloodType: data.bloodType || "Inconnu",
+        birthday: data.birthday ? new Date(data.birthday) : new Date("2010-01-01"),
         sex: data.sex,
         parentId: finalParentId,
         classId: finalClassId,
@@ -395,7 +395,11 @@ export const updateStudent = async (
   try {
     const schoolId = await getSchoolId();
     const updateData: any = { ...data };
-    if (data.birthday) updateData.birthday = new Date(data.birthday);
+    if (data.birthday) {
+      updateData.birthday = new Date(data.birthday);
+    } else {
+      delete updateData.birthday;
+    }
 
     // Auto-update levelId if classId changed
     if ('classId' in data) {
@@ -446,9 +450,9 @@ export const createStaff = async (data: {
   name: string;
   surname: string;
   phone?: string;
-  address: string;
+  address?: string;
   bloodType?: string;
-  birthday: string;
+  birthday?: string;
   sex: "MALE" | "FEMALE";
   role: string;
   salary?: number;
@@ -463,9 +467,9 @@ export const createStaff = async (data: {
         name: data.name,
         surname: data.surname,
         phone: data.phone || null,
-        address: data.address,
+        address: data.address || "",
         bloodType: data.bloodType || "Inconnu",
-        birthday: new Date(data.birthday),
+        birthday: data.birthday ? new Date(data.birthday) : new Date("1990-01-01"),
         role: data.role,
         salary: data.salary ?? 1500,
       },
@@ -496,7 +500,11 @@ export const updateStaff = async (
   try {
     const schoolId = await getSchoolId();
     const updateData: any = { ...data };
-    if (data.birthday) updateData.birthday = new Date(data.birthday);
+    if (data.birthday) {
+      updateData.birthday = new Date(data.birthday);
+    } else {
+      delete updateData.birthday;
+    }
     await prisma.staff.update({ where: { id }, data: updateData });
     invalidateTenantTags(schoolId, 'staff', 'dashboard');
     revalidatePath("/list/staff");
@@ -532,7 +540,7 @@ export const createParent = async (data: {
   name: string;
   surname: string;
   phone: string;
-  address: string;
+  address?: string;
   sex?: string;
   img?: string | null;
 }) => {
@@ -551,7 +559,7 @@ export const createParent = async (data: {
         name: data.name,
         surname: data.surname,
         phone: data.phone,
-        address: data.address,
+        address: data.address || "",
         img: data.img || defaultImg,
       },
     });

@@ -532,7 +532,12 @@ export const TOOLS: Record<string, ToolDefinition> = {
           subjectNames: {
             type: SchemaType.ARRAY,
             items: { type: SchemaType.STRING },
-            description: "Liste des matières enseignées.",
+            description: "Liste des matières enseignées (ex: ['Mathématiques', 'Physique']).",
+          },
+          classNames: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+            description: "Liste des classes assignées à l'enseignant (ex: ['1A', '2B', '3C']).",
           },
           hourlyRate: { type: SchemaType.NUMBER, description: "Taux horaire en DT (défaut : 25 DT)." },
           hoursPerMonth: { type: SchemaType.NUMBER, description: "Volume horaire mensuel prévu." },
@@ -540,7 +545,11 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     formatConfirmationMessage: (args) => {
-      return `❓ <b>Nouveau Professeur</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer <b>${args.name} ${args.surname}</b> (📞 <code>${args.phone}</code>) ?`;
+      const parts = [`📞 Téléphone : <code>${args.phone}</code>`];
+      if (args.subjectNames && args.subjectNames.length > 0) parts.push(`📚 Matières : <b>${args.subjectNames.join(", ")}</b>`);
+      if (args.classNames && args.classNames.length > 0) parts.push(`🏫 Classes : <b>${args.classNames.join(", ")}</b>`);
+      if (args.hourlyRate) parts.push(`💰 Taux horaire : <code>${args.hourlyRate} DT/h</code>`);
+      return `❓ <b>Nouveau Professeur</b>\n━━━━━━━━━━━━━━━━━━━━━━\nSouhaitez-vous enregistrer <b>${args.name} ${args.surname}</b> ?\n${parts.map((p) => `• ${p}`).join("\n")}`;
     },
     execute: createTeacherTool,
   },
@@ -2255,7 +2264,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   update_student: {
     name: "update_student",
     description:
-      "Mettre à jour les informations d'un élève : prénom, nom, classe, tarif mensuel de scolarité, téléphone, adresse, groupe sanguin, date de naissance, sexe, photo de profil, ou parent rattaché.",
+      "Mettre à jour les informations d'un élève : prénom, nom, classe, tarif mensuel de scolarité, téléphone, adresse, date de naissance, sexe, photo de profil, ou parent rattaché.",
     requiresConfirmation: true,
     declaration: {
       name: "update_student",
@@ -2272,7 +2281,6 @@ Confirmer l'enregistrement de cette dépense ?`;
           customTuition: { type: SchemaType.NUMBER, description: "Nouveau tarif mensuel personnalisé en DT (ex: 420)." },
           phone: { type: SchemaType.STRING, description: "Nouveau téléphone personnel de l'élève." },
           address: { type: SchemaType.STRING, description: "Nouvelle adresse de domicile." },
-          bloodType: { type: SchemaType.STRING, description: "Groupe sanguin (ex: 'A+', 'O+')." },
           birthday: { type: SchemaType.STRING, description: "Date de naissance (AAAA-MM-JJ)." },
           sex: { type: SchemaType.STRING, description: "Sexe ('MALE' ou 'FEMALE')." },
           img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
@@ -2289,7 +2297,6 @@ Confirmer l'enregistrement de cette dépense ?`;
       if (args.customTuition !== undefined) parts.push(`Tarif mensuel : <code>${args.customTuition} DT/mois</code>`);
       if (args.phone) parts.push(`Téléphone : <code>${args.phone}</code>`);
       if (args.address) parts.push(`Adresse : <code>${args.address}</code>`);
-      if (args.bloodType) parts.push(`Groupe sanguin : <code>${args.bloodType}</code>`);
       if (args.birthday) parts.push(`Date de naissance : <code>${args.birthday}</code>`);
       if (args.sex) parts.push(`Sexe : <code>${args.sex}</code>`);
       if (args.img) parts.push(`Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
@@ -2397,7 +2404,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   update_teacher: {
     name: "update_teacher",
     description:
-      "Modifier la fiche d'un enseignant : prénom, nom, téléphone, adresse, salaire de base, taux horaire, volume d'heures mensuelles, matières enseignées, groupe sanguin, date de naissance, sexe, ou photo de profil.",
+      "Modifier la fiche d'un enseignant : prénom, nom, téléphone, adresse, salaire de base, taux horaire, volume d'heures mensuelles, matières enseignées, classes assignées, date de naissance, sexe, ou photo de profil.",
     requiresConfirmation: true,
     declaration: {
       name: "update_teacher",
@@ -2414,13 +2421,17 @@ Confirmer l'enregistrement de cette dépense ?`;
           salary: { type: SchemaType.NUMBER, description: "Nouveau salaire de base en DT/mois." },
           hourlyRate: { type: SchemaType.NUMBER, description: "Nouveau taux horaire en DT/h." },
           hoursPerMonth: { type: SchemaType.NUMBER, description: "Nouveau volume horaire mensuel prévu (ex: 120)." },
-          bloodType: { type: SchemaType.STRING, description: "Groupe sanguin (ex: 'O+', 'A-')." },
           birthday: { type: SchemaType.STRING, description: "Date de naissance (AAAA-MM-JJ)." },
           sex: { type: SchemaType.STRING, description: "Sexe ('MALE' ou 'FEMALE')." },
           img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
           subjectNames: {
             type: SchemaType.ARRAY,
             description: "Liste des noms des matières enseignées par ce professeur.",
+            items: { type: SchemaType.STRING },
+          },
+          classNames: {
+            type: SchemaType.ARRAY,
+            description: "Liste des noms des classes assignées à ce professeur (ex: ['1A', '2B']).",
             items: { type: SchemaType.STRING },
           },
         },
@@ -2437,6 +2448,7 @@ Confirmer l'enregistrement de cette dépense ?`;
       if (args.hourlyRate !== undefined) parts.push(`Taux horaire : <code>${args.hourlyRate} DT/h</code>`);
       if (args.hoursPerMonth !== undefined) parts.push(`Volume horaire : <code>${args.hoursPerMonth}h</code>`);
       if (args.subjectNames && args.subjectNames.length > 0) parts.push(`Matières : <b>${args.subjectNames.join(", ")}</b>`);
+      if (args.classNames && args.classNames.length > 0) parts.push(`Classes : <b>${args.classNames.join(", ")}</b>`);
       if (args.img) parts.push(`Photo de profil : <i>Mise à jour de l'image</i> 🖼️`);
 
       if (isArabic) {
@@ -2476,7 +2488,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   update_staff: {
     name: "update_staff",
     description:
-      "Modifier la fiche d'un membre du personnel non enseignant : prénom, nom, téléphone, adresse, salaire mensuel, poste/rôle, groupe sanguin, date de naissance, ou photo de profil.",
+      "Modifier la fiche d'un membre du personnel non enseignant : prénom, nom, téléphone, adresse, salaire mensuel, poste/rôle, date de naissance, ou photo de profil.",
     requiresConfirmation: true,
     declaration: {
       name: "update_staff",
@@ -2492,7 +2504,6 @@ Confirmer l'enregistrement de cette dépense ?`;
           address: { type: SchemaType.STRING, description: "Nouvelle adresse de domicile." },
           salary: { type: SchemaType.NUMBER, description: "Nouveau salaire mensuel en DT." },
           role: { type: SchemaType.STRING, description: "Nouveau poste ou rôle (ex: 'Administration', 'Chauffeur', 'Surveillant')." },
-          bloodType: { type: SchemaType.STRING, description: "Groupe sanguin." },
           birthday: { type: SchemaType.STRING, description: "Date de naissance (AAAA-MM-JJ)." },
           img: { type: SchemaType.STRING, description: "URL de la photo de profil / avatar." },
         },

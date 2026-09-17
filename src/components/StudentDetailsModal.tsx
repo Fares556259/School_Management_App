@@ -161,10 +161,6 @@ export default function StudentDetailsModal({
                         <span className="text-[14px] font-medium text-[#181d26]">{className}</span>
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[12px] font-medium text-[#41454d] mb-1">فصيلة الدم</span>
-                        <span className="text-[14px] font-medium text-[#181d26]" dir="ltr" style={{textAlign: "right"}}>{student.bloodType}</span>
-                      </div>
-                      <div className="flex flex-col">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">تاريخ التسجيل</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{formatDate(student.createdAt)}</span>
                       </div>

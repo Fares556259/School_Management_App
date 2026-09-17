@@ -4,7 +4,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { buildNameSearchConditions } from "./nameSearch";
-import { resolveTeacherByName, resolveStaffByName, resolveSubjectByName } from "./entityResolvers";
+import { resolveTeacherByName, resolveStaffByName, resolveSubjectByName, resolveClassByName } from "./entityResolvers";
 
 /**
  * Tool: get_staff
@@ -80,6 +80,7 @@ export async function createTeacherTool(
     surname: string;
     phone: string;
     subjectNames?: string[];
+    classNames?: string[];
     hourlyRate?: number;
     hoursPerMonth?: number;
     sex?: "MALE" | "FEMALE";
@@ -94,6 +95,7 @@ export async function createTeacherTool(
 
   // Resolve subjects
   const subjectIds: number[] = [];
+  const resolvedSubjectNames: string[] = [];
   if (args.subjectNames && args.subjectNames.length > 0) {
     for (const subName of args.subjectNames) {
       const subject = await prisma.subject.findFirst({
@@ -104,6 +106,20 @@ export async function createTeacherTool(
       });
       if (subject) {
         subjectIds.push(subject.id);
+        resolvedSubjectNames.push(subject.name);
+      }
+    }
+  }
+
+  // Resolve classes
+  const classIds: number[] = [];
+  const resolvedClassNames: string[] = [];
+  if (args.classNames && args.classNames.length > 0) {
+    for (const clsName of args.classNames) {
+      const cls = await resolveClassByName(context.schoolId, clsName);
+      if (cls) {
+        classIds.push(cls.id);
+        resolvedClassNames.push(cls.name);
       }
     }
   }
@@ -121,15 +137,16 @@ export async function createTeacherTool(
         phone,
         sex: args.sex || "MALE",
         address: "Tunis",
-        bloodType: "O+",
+        bloodType: "Inconnu",
         birthday: new Date(1990, 0, 1),
         hourlyRate: args.hourlyRate ?? null,
         hoursPerMonth: args.hoursPerMonth ?? null,
         salary: monthlySalary ?? 3000,
         schoolId: context.schoolId,
         subjects: subjectIds.length > 0 ? { connect: subjectIds.map((id) => ({ id })) } : undefined,
+        classes: classIds.length > 0 ? { connect: classIds.map((id) => ({ id })) } : undefined,
       },
-      include: { subjects: true },
+      include: { subjects: true, classes: true },
     });
 
     await tx.auditLog.create({
@@ -138,7 +155,7 @@ export async function createTeacherTool(
         performedBy: `Hnia AI (Telegram / ${context.adminName})`,
         entityType: "Teacher",
         entityId: newTeacher.id,
-        description: `[Hnia AI Telegram] Ajout enseignant : ${name} ${surname} (${phone})`,
+        description: `[Hnia AI Telegram] Ajout enseignant : ${name} ${surname} (${phone}) - Matières: ${resolvedSubjectNames.join(", ") || "Aucune"} - Classes: ${resolvedClassNames.join(", ") || "Aucune"}`,
         schoolId: context.schoolId,
       },
     });
@@ -146,13 +163,15 @@ export async function createTeacherTool(
     return newTeacher;
   });
 
-  invalidateTenantTags(context.schoolId, "teachers", "dashboard");
+  invalidateTenantTags(context.schoolId, "teachers", "classes", "dashboard");
 
   return {
     success: true,
-    message: `✅ L'enseignant(e) **${name} ${surname}** a été ajouté(e) avec succès.\n• Téléphone : ${phone}\n• Matières : ${
-      (teacher as any).subjects?.map((s: any) => s.name).join(", ") || "Aucune"
-    }\n• Salaire mensuel prévu : ${monthlySalary ? monthlySalary + " DT" : "Non fixé"}`,
+    message: `✅ L'enseignant(e) **${name} ${surname}** a été ajouté(e) avec succès.
+• 📞 **Téléphone :** <code>${phone}</code>
+• 📚 **Matières :** <b>${(teacher as any).subjects?.map((s: any) => s.name).join(", ") || "Aucune"}</b>
+• 🏫 **Classes :** <b>${(teacher as any).classes?.map((c: any) => c.name).join(", ") || "Aucune"}</b>
+• 💰 **Salaire prévu :** <code>${monthlySalary ? monthlySalary + " DT/mois" : "Non fixé"}</code>`,
     summary: `Ajout de l'enseignant ${name} ${surname}`,
     data: { teacherId: teacher.id },
   };
@@ -922,6 +941,7 @@ export async function updateTeacherTool(
     sex?: "MALE" | "FEMALE";
     img?: string;
     subjectNames?: string[];
+    classNames?: string[];
   },
   context: ToolContext
 ): Promise<WriteToolResult> {
@@ -1027,6 +1047,23 @@ export async function updateTeacherTool(
       };
       changeDescriptions.push(`Matières enseignées : <b>${resolvedSubjectNames.join(", ")}</b>`);
     }
+  }
+
+  // Handle classes taught
+  if (args.classNames !== undefined) {
+    const resolvedClassIds: number[] = [];
+    const resolvedClassNames: string[] = [];
+    for (const clsName of args.classNames) {
+      const cls = await resolveClassByName(context.schoolId, clsName);
+      if (cls) {
+        resolvedClassIds.push(cls.id);
+        resolvedClassNames.push(cls.name);
+      }
+    }
+    updateData.classes = {
+      set: resolvedClassIds.map((id) => ({ id })),
+    };
+    changeDescriptions.push(`Classes assignées : <b>${resolvedClassNames.length > 0 ? resolvedClassNames.join(", ") : "Aucune"}</b>`);
   }
 
   if (Object.keys(updateData).length === 0) {
