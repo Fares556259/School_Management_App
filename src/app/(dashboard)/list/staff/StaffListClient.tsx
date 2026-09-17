@@ -27,6 +27,24 @@ interface Props {
   partialThisMonth?: number;
 }
 
+function computeStaffPaymentStatus(
+  item: any,
+  monthIdx: number,
+  yearVal: number
+) {
+  const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
+  const actualStatus = payment?.status ? String(payment.status).toUpperCase() : "UNPAID";
+  const amountPaid = payment?.amount || 0;
+  const baseSalary = item.salary || 0;
+  const remaining = Math.max(0, baseSalary - amountPaid);
+
+  const isPaid = (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
+  const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
+  const isUnpaid = !isPaid && !isPartial;
+
+  return { isPaid, isPartial, isUnpaid, remaining, baseSalary, amountPaid, actualStatus, payment };
+}
+
 export default function StaffListClient({
   initialData,
   columns,
@@ -63,14 +81,7 @@ export default function StaffListClient({
       const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
       const monthIdx = MONTHS.indexOf(mName) !== -1 ? MONTHS.indexOf(mName) + 1 : (new Date().getMonth() + 1);
       const yearVal = parseInt(yStr) || new Date().getFullYear();
-      const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
-      const actualStatus = payment?.status ? String(payment.status).toUpperCase() : "UNPAID";
-      const amountPaid = payment?.amount || 0;
-      const baseSalary = item.salary || 0;
-
-      const isPaid = actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary);
-      const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && (baseSalary <= 0 || amountPaid < baseSalary)));
-      const isUnpaid = !isPaid && !isPartial;
+      const { isPaid, isPartial, isUnpaid } = computeStaffPaymentStatus(item, monthIdx, yearVal);
 
       if (clientStatus === "PAID" && !isPaid) return false;
       if (clientStatus === "PARTIAL" && !isPartial) return false;
@@ -97,21 +108,12 @@ export default function StaffListClient({
   const sumYearVal = parseInt(sumYStr) || new Date().getFullYear();
 
   const displayTotalCount = summaryBaseData.length;
-  const displayPaidCount = summaryBaseData.filter((t: any) => {
-    const payment = t.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
-    const actualStatus = payment?.status ? String(payment.status).toUpperCase() : "UNPAID";
-    const amountPaid = payment?.amount || 0;
-    const baseSalary = t.salary || 0;
-    return actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary);
-  }).length;
-  const displayPartialCount = summaryBaseData.filter((t: any) => {
-    const payment = t.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
-    const actualStatus = payment?.status ? String(payment.status).toUpperCase() : "UNPAID";
-    const amountPaid = payment?.amount || 0;
-    const baseSalary = t.salary || 0;
-    const isPaid = actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary);
-    return !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && (baseSalary <= 0 || amountPaid < baseSalary)));
-  }).length;
+  const displayPaidCount = summaryBaseData.filter((t: any) => 
+    computeStaffPaymentStatus(t, sumMonthIdx, sumYearVal).isPaid
+  ).length;
+  const displayPartialCount = summaryBaseData.filter((t: any) => 
+    computeStaffPaymentStatus(t, sumMonthIdx, sumYearVal).isPartial
+  ).length;
 
   const [currentPage, setCurrentPage] = useState<number>(() => {
     const p = Number(searchParams?.get("page") || page);
@@ -149,14 +151,11 @@ export default function StaffListClient({
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
 
-    const paymentThisMonth = item.payments.find(
-      (p) => p.month === monthIdx && p.year === yearVal
+    const { isPaid: isPaidThisMonth, isPartial: isPartialThisMonth } = computeStaffPaymentStatus(
+      item,
+      monthIdx,
+      yearVal
     );
-    const actualStatus = paymentThisMonth?.status ? String(paymentThisMonth.status).toUpperCase() : "UNPAID";
-    const amountPaid = paymentThisMonth?.amount || 0;
-    const baseSalary = item.salary || 0;
-    const isPaidThisMonth = actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary);
-    const isPartialThisMonth = !isPaidThisMonth && (actualStatus === "PARTIAL" || (amountPaid > 0 && (baseSalary <= 0 || amountPaid < baseSalary)));
 
     return (
       <tr

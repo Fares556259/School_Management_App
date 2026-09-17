@@ -242,7 +242,7 @@ export const payTeacherSalary = async (
 
     const newTotalAmount = (existing?.amount || 0) + amountPaidNow;
     const isFullyCovered = newTotalAmount >= netDue && newTotalAmount > 0;
-    const newStatus = isFullyCovered ? "PAID" : (isAdvance ? "PARTIAL" : "PAID");
+    const newStatus = isFullyCovered ? "PAID" : (newTotalAmount > 0 ? "PARTIAL" : "PENDING");
     const imgData = meta ? JSON.stringify(meta) : undefined;
 
     const payment = await prisma.$transaction(async (tx) => {

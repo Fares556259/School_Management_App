@@ -100,13 +100,24 @@ const StaffListPage = async ({
   const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
-  const paidThisMonth = safeStaff.filter((s) =>
-    Array.isArray(s.payments) && s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
-  ).length;
+  const paidThisMonth = safeStaff.filter((s) => {
+    const p = s.payments?.find((pm: any) => pm.month === monthIdx && pm.year === yearVal);
+    const amountPaid = p?.amount || 0;
+    const baseSalary = s.salary || 0;
+    const remaining = Math.max(0, baseSalary - amountPaid);
+    const actualStatus = p?.status ? String(p.status).toUpperCase() : "UNPAID";
+    return (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
+  }).length;
 
-  const partialThisMonth = safeStaff.filter((s) =>
-    Array.isArray(s.payments) && s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PARTIAL")
-  ).length;
+  const partialThisMonth = safeStaff.filter((s) => {
+    const p = s.payments?.find((pm: any) => pm.month === monthIdx && pm.year === yearVal);
+    const amountPaid = p?.amount || 0;
+    const baseSalary = s.salary || 0;
+    const remaining = Math.max(0, baseSalary - amountPaid);
+    const actualStatus = p?.status ? String(p.status).toUpperCase() : "UNPAID";
+    const isPaid = (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
+    return !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
+  }).length;
 
   return (
     <div className="bg-white rounded-[12px] flex-1 m-6 mt-0 shadow-sm border border-[#e2e8f0] p-6">
