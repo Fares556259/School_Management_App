@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
+import { computeStaffPaymentStatus } from "@/lib/payrollUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
@@ -47,7 +48,7 @@ export async function getStaffTool(
       role: true,
       payments: {
         where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "STAFF" },
-        select: { amount: true, status: true, paidAt: true },
+        select: { amount: true, status: true, paidAt: true, month: true, year: true },
       },
     },
   });
@@ -57,15 +58,8 @@ export async function getStaffTool(
   let unpaidCount = 0;
 
   const staffRows = staffList.map((s) => {
-    const currentP = s.payments[0];
-    const actualStatus = currentP?.status ? String(currentP.status).toUpperCase() : "UNPAID";
-    const amountPaid = currentP?.amount || 0;
-    const baseSalary = s.salary || 0;
-    const remaining = Math.max(0, baseSalary - amountPaid);
-
-    const isPaid = (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
-    const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-    const isUnpaid = !isPaid && !isPartial;
+    const calc = computeStaffPaymentStatus(s, targetMonth, targetYear);
+    const { isPaid, isPartial, isUnpaid, remaining, amountPaid } = calc;
 
     if (isPaid) paidCount++;
     else if (isPartial) partialCount++;

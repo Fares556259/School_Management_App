@@ -17,6 +17,7 @@ import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Teacher, Subject, Class, Payment } from "@prisma/client";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getUserAvatar } from "@/lib/avatar";
+import { computeTeacherPaymentStatus } from "@/lib/payrollUtils";
 
 interface Props {
   initialData: any[];
@@ -28,30 +29,6 @@ interface Props {
   paidThisMonth: number;
   partialThisMonth?: number;
   relatedData?: Record<string, { value: string; label: string }[]>;
-}
-
-function computeTeacherPaymentStatus(
-  item: any,
-  monthIdx: number,
-  yearVal: number
-) {
-  const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
-  const actualStatus = payment?.status ? String(payment.status).toUpperCase() : "UNPAID";
-  const amountPaid = payment?.amount || 0;
-
-  const rate = item.hourlyRate || 0;
-  const monthlyHours = item.hoursPerMonth || 0;
-  const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (item.salary || 0);
-  const missedHours = payment?.missedHours || 0;
-  const deduction = missedHours * (rate > 0 ? rate : 15);
-  const netDue = Math.max(0, baseSalary - deduction);
-  const remaining = Math.max(0, netDue - amountPaid);
-
-  const isPaid = (actualStatus === "PAID" || (netDue > 0 && amountPaid >= netDue)) && remaining <= 0;
-  const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-  const isUnpaid = !isPaid && !isPartial;
-
-  return { isPaid, isPartial, isUnpaid, remaining, netDue, amountPaid, actualStatus, payment };
 }
 
 export default function TeacherListClient({

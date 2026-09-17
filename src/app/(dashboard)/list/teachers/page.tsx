@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
+import { computeTeacherPaymentStatus } from "@/lib/payrollUtils";
 import TeacherListClient from "./TeacherListClient";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
@@ -161,34 +162,8 @@ const TeacherListPage = async ({
   const safeClasses = Array.isArray(classesData) ? classesData : [];
   const safeData = Array.isArray(data) ? data : [];
   const safeCount = typeof count === "number" ? count : safeData.length;
-  const safePaidThisMonth = safeData.filter((t: any) => {
-    const p = t.payments?.find((pm: any) => pm.month === monthIdx && pm.year === yearVal);
-    const rate = t.hourlyRate || 0;
-    const monthlyHours = t.hoursPerMonth || 0;
-    const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (t.salary || 0);
-    const missedHours = p?.missedHours || 0;
-    const deduction = missedHours * (rate > 0 ? rate : 15);
-    const netDue = Math.max(0, baseSalary - deduction);
-    const amountPaid = p?.amount || 0;
-    const remaining = Math.max(0, netDue - amountPaid);
-    const actualStatus = p?.status ? String(p.status).toUpperCase() : "UNPAID";
-    return (actualStatus === "PAID" || (netDue > 0 && amountPaid >= netDue)) && remaining <= 0;
-  }).length;
-
-  const safePartialThisMonth = safeData.filter((t: any) => {
-    const p = t.payments?.find((pm: any) => pm.month === monthIdx && pm.year === yearVal);
-    const rate = t.hourlyRate || 0;
-    const monthlyHours = t.hoursPerMonth || 0;
-    const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (t.salary || 0);
-    const missedHours = p?.missedHours || 0;
-    const deduction = missedHours * (rate > 0 ? rate : 15);
-    const netDue = Math.max(0, baseSalary - deduction);
-    const amountPaid = p?.amount || 0;
-    const remaining = Math.max(0, netDue - amountPaid);
-    const actualStatus = p?.status ? String(p.status).toUpperCase() : "UNPAID";
-    const isPaid = (actualStatus === "PAID" || (netDue > 0 && amountPaid >= netDue)) && remaining <= 0;
-    return !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-  }).length;
+  const safePaidThisMonth = safeData.filter((t: any) => computeTeacherPaymentStatus(t, monthIdx, yearVal).isPaid).length;
+  const safePartialThisMonth = safeData.filter((t: any) => computeTeacherPaymentStatus(t, monthIdx, yearVal).isPartial).length;
 
   const relatedData = {
     subjects: safeSubjects.map((s: any) => ({ value: (s.id || '').toString(), label: (s.name || '').split('|')[0].trim() })),

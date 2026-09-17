@@ -1,73 +1,125 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { payTeacherSalary } from "../actions";
 import { MONTHS } from "@/lib/dateUtils";
+import { computeTeacherPaymentStatus } from "@/lib/payrollUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
+
+interface PaymentRecord {
+  id?: number;
+  month: number;
+  year: number;
+  status: string;
+  amount: number;
+  paidAt?: Date | string | null;
+  missedHours?: number | null;
+  img?: string | null;
+}
 
 export default function TeacherSalaryTracker({
   teacherId,
   teacherName,
   salary,
-  payments,
+  hourlyRate,
+  hoursPerMonth,
+  payments: initialPayments = [],
   isAdmin,
 }: {
   teacherId: string;
   teacherName: string;
   salary: number;
+  hourlyRate?: number | null;
+  hoursPerMonth?: number | null;
   payments: any[];
   isAdmin: boolean;
 }) {
   const { t, locale } = useLanguage();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
+
+  useMemo(() => {
+    setPayments(initialPayments);
+  }, [initialPayments]);
+
+  const now = new Date();
+  const [currentMonth, setCurrentMonth] = useState({
+    month: now.getMonth() + 1, // 1-based
+    year: now.getFullYear(),
+  });
   const [isPending, startTransition] = useTransition();
 
-  // FIX Bug 1: proper template literals with $ signs
-  const [paidMonths, setPaidMonths] = useState<Map<string, string>>(() => {
-    const m = new Map<string, string>();
-    payments.forEach((p) => {
-      if (p.status === "PAID" || p.status === "PARTIAL") {
-        const key = `${MONTHS[p.month - 1]} ${p.year}`;
-        m.set(key, p.status);
-      }
-    });
-    return m;
-  });
-
   const handlePrevMonth = () => {
-    setCurrentDate((prev) => {
-      const d = new Date(prev);
-      d.setMonth(d.getMonth() - 1);
-      return d;
+    setCurrentMonth((prev) => {
+      let m = prev.month - 1;
+      let y = prev.year;
+      if (m < 1) {
+        m = 12;
+        y--;
+      }
+      return { month: m, year: y };
     });
   };
 
   const handleNextMonth = () => {
-    setCurrentDate((prev) => {
-      const d = new Date(prev);
-      d.setMonth(d.getMonth() + 1);
-      return d;
+    setCurrentMonth((prev) => {
+      let m = prev.month + 1;
+      let y = prev.year;
+      if (m > 12) {
+        m = 1;
+        y++;
+      }
+      return { month: m, year: y };
     });
   };
 
-  const monthStr = currentDate.toLocaleString(locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthDate = new Date(currentMonth.year, currentMonth.month - 1, 1);
+  const monthDisplayStr = monthDate.toLocaleString(
+    locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-FR" : "en-US",
+    { month: "long", year: "numeric" }
+  );
+  const canonicalMonthKey = `${MONTHS[currentMonth.month - 1]} ${currentMonth.year}`;
 
-  const status = paidMonths.get(monthStr); // "PAID" | "PARTIAL" | undefined
-  const isPaid = status === "PAID";
-  const isPartial = status === "PARTIAL";
+  const calc = useMemo(() => {
+    return computeTeacherPaymentStatus(
+      {
+        salary,
+        hourlyRate,
+        hoursPerMonth,
+        payments,
+      },
+      currentMonth.month,
+      currentMonth.year
+    );
+  }, [salary, hourlyRate, hoursPerMonth, payments, currentMonth]);
+
+  const { isPaid, isPartial, isUnpaid, remaining, netDue, amountPaid, deduction, baseSalary } = calc;
+
+  const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
   const handlePay = () => {
-    if (!isAdmin || isPending || isPaid) return;
+    if (!isAdmin || isPending || isPaid || remaining <= 0) return;
     startTransition(async () => {
-      // FIX Bug 3: proper template literal with $ signs
-      const result = await payTeacherSalary(teacherId, teacherName, salary, monthStr);
+      const result = await payTeacherSalary(
+        teacherId,
+        teacherName,
+        remaining,
+        canonicalMonthKey
+      );
       if (result.success) {
-        setPaidMonths((prev) => new Map(prev).set(monthStr, "PAID"));
-        toast.success(t.toasts.salaryValidated.replace("{name}", teacherName).replace("{amount}", String(salary)));
+        const updated: PaymentRecord[] = [
+          ...payments.filter((p) => !(p.month === currentMonth.month && p.year === currentMonth.year)),
+          {
+            id: calc.payment?.id || Date.now(),
+            month: currentMonth.month,
+            year: currentMonth.year,
+            status: "PAID",
+            amount: amountPaid + remaining,
+            paidAt: new Date(),
+          },
+        ];
+        setPayments(updated);
+        toast.success(t.toasts.salaryValidated.replace("{name}", teacherName).replace("{amount}", String(remaining)));
       } else {
         toast.error(result.error || t.teacherFinance.saveError);
       }
@@ -94,15 +146,17 @@ export default function TeacherSalaryTracker({
       {/* Month navigator */}
       <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg mb-4 border border-slate-100">
         <button
+          type="button"
           onClick={handlePrevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
         >
           <span className="text-slate-500 font-bold">{"<"}</span>
         </button>
-        <span className="font-semibold text-slate-700">{monthStr}</span>
+        <span className="font-semibold text-slate-700">{monthDisplayStr}</span>
         <button
+          type="button"
           onClick={handleNextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
         >
           <span className="text-slate-500 font-bold">{">"}</span>
         </button>
@@ -111,12 +165,30 @@ export default function TeacherSalaryTracker({
       <div className="flex flex-col items-center gap-3">
         <div className="flex w-full items-center justify-between px-2">
           <span className="text-sm font-medium text-slate-500">{t.teacherFinance.baseSalary}:</span>
-          <span className="text-sm font-bold text-slate-700">
-            {salary.toLocaleString("en-US").replace(/,/g, " ") + " DT"}
+          <span className="text-sm font-bold text-slate-700">{fmt(baseSalary)}</span>
+        </div>
+
+        {deduction > 0 && (
+          <div className="flex w-full items-center justify-between px-2">
+            <span className="text-sm font-medium text-rose-500">{(t.teacherFinance as any)?.deductions || "Retenues"}:</span>
+            <span className="text-sm font-bold text-rose-600">-{fmt(deduction)}</span>
+          </div>
+        )}
+
+        {amountPaid > 0 && (
+          <div className="flex w-full items-center justify-between px-2">
+            <span className="text-sm font-medium text-purple-600">{t.teacherFinance.advanceAmount}:</span>
+            <span className="text-sm font-bold text-purple-700">{fmt(amountPaid)}</span>
+          </div>
+        )}
+
+        <div className="flex w-full items-center justify-between px-2">
+          <span className="text-sm font-medium text-slate-500">{t.teacherFinance.remainingToPay}:</span>
+          <span className={`text-sm font-bold ${remaining > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+            {fmt(remaining)}
           </span>
         </div>
 
-        {/* FIX Bug 2: proper template literal with $ sign for className */}
         <div className="flex w-full items-center justify-between px-2 mt-1 mb-2 border-b border-slate-100 pb-4">
           <span className="text-sm font-medium text-slate-500">{(t.crud.fields as any)?.Status || t.staff.paidStatus}:</span>
           <span className={`px-3 py-1 text-xs font-bold rounded-full ${badgeClass}`}>
@@ -125,18 +197,18 @@ export default function TeacherSalaryTracker({
         </div>
 
         {/* Pay button — only for admins when not fully paid */}
-        {!isPaid && isAdmin && (
+        {!isPaid && isAdmin && remaining > 0 && (
           <button
+            type="button"
             onClick={handlePay}
             disabled={isPending}
-            className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 shadow-sm hover:shadow-md text-sm"
+            className="w-full mt-2 bg-lamaSky hover:bg-blue-400 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 shadow-sm hover:shadow-md text-sm cursor-pointer"
           >
-            {/* FIX Bug 3: proper template literal with $ sign */}
             {isPending
               ? t.studentTuition.processing
               : isPartial
-              ? t.teacherFinance.completeSalaryForMonth.replace("{month}", monthStr)
-              : t.teacherFinance.paySalaryForMonth.replace("{amount}", salary.toLocaleString("en-US").replace(/,/g, " ")).replace("{month}", monthStr)}
+              ? `${t.teacherFinance.completeSalaryForMonth.replace("{month}", monthDisplayStr)} (${fmt(remaining)})`
+              : `${t.teacherFinance.paySalaryForMonth.replace("{amount}", remaining.toLocaleString("en-US").replace(/,/g, " ")).replace("{month}", monthDisplayStr)}`}
           </button>
         )}
       </div>
@@ -149,7 +221,7 @@ export default function TeacherSalaryTracker({
             {[...payments]
               .sort((a, b) => b.year - a.year || b.month - a.month)
               .map((p: any) => (
-                <div key={p.id} className="flex justify-between items-center py-1.5 border-b border-slate-50 last:border-none">
+                <div key={p.id || `${p.month}-${p.year}`} className="flex justify-between items-center py-1.5 border-b border-slate-50 last:border-none">
                   <div>
                     <p className="text-xs font-semibold text-slate-700">
                       {MONTHS[p.month - 1]} {p.year}

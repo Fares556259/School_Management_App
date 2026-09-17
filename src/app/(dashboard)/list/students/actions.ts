@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
+import { parseMonthYear } from "@/lib/dateUtils";
 
 export const receiveStudentPayment = async (
   studentId: string,
@@ -12,19 +13,12 @@ export const receiveStudentPayment = async (
   paidAmount?: number,
   deferredUntil?: string
 ) => {
-  // Use a strictly controlled MONTHS array for server-side logic to avoid locale issues
-  const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const parsed = parseMonthYear(monthYear);
+  const monthIdx = parsed.month;
+  const yearVal = parsed.year;
+  const standardMonthYear = parsed.monthKey;
   
-  console.log(`📡 [PAYMENT_ACTION] Initiating for ${studentName} (${studentId}) - Period: ${monthYear}`);
-  
-  const [mName, yStr] = monthYear.split(" ");
-  const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
-  const yearVal = parseInt(yStr);
-
-  if (monthIdx === 0 || isNaN(yearVal)) {
-    console.error(`❌ [PAYMENT_ERROR] Invalid date parsing: month=${mName} year=${yStr}`);
-    return { success: false, error: "Date parsing failed. Check system locale." };
-  }
+  console.log(`📡 [PAYMENT_ACTION] Initiating for ${studentName} (${studentId}) - Period: ${standardMonthYear}`);
 
   const actualPaid = paidAmount !== undefined ? paidAmount : fullAmount;
   const isPartial = actualPaid < fullAmount;
@@ -160,8 +154,6 @@ export const receiveMultipleStudentPayments = async (
   studentName: string,
   paymentsToProcess: { monthYear: string; amount: number; isPartial: boolean; gap: number; isRecovery?: boolean }[]
 ) => {
-  const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  
   try {
     const { getSchoolId } = await import("@/lib/school");
     const adminSchoolId = await getSchoolId();
@@ -177,9 +169,9 @@ export const receiveMultipleStudentPayments = async (
 
     const result = await prisma.$transaction(async (tx) => {
       for (const pmt of paymentsToProcess) {
-        const [mName, yStr] = pmt.monthYear.split(" ");
-        const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
-        const yearVal = parseInt(yStr);
+        const parsed = parseMonthYear(pmt.monthYear);
+        const monthIdx = parsed.month;
+        const yearVal = parsed.year;
         const finalStatus = pmt.isPartial ? "PARTIAL" : "PAID";
 
         const existing = await tx.payment.findUnique({

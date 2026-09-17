@@ -3,6 +3,7 @@ import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
 import { rankStudentMatch } from "./entityResolvers";
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
+import { computeTeacherPaymentStatus } from "@/lib/payrollUtils";
 
 export interface ToolContext {
   schoolId: string;
@@ -722,7 +723,7 @@ export async function getTeachersTool(
       classes: { select: { id: true, name: true } },
       payments: {
         where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "TEACHER" },
-        select: { id: true, amount: true, status: true, missedHours: true, paidAt: true },
+        select: { id: true, amount: true, status: true, missedHours: true, paidAt: true, month: true, year: true },
       },
     },
   });
@@ -732,21 +733,8 @@ export async function getTeachersTool(
   let unpaidCount = 0;
 
   const teacherRows = teachers.map((t) => {
-    const currentP = t.payments[0];
-    const rate = t.hourlyRate || 15;
-    const missedHrs = currentP?.missedHours || 0;
-    const deduction = missedHrs * rate;
-    const baseSalary = (t.hourlyRate && t.hoursPerMonth && t.hourlyRate > 0 && t.hoursPerMonth > 0)
-      ? (t.hourlyRate * t.hoursPerMonth)
-      : (t.salary || 600);
-    const netDue = Math.max(0, baseSalary - deduction);
-    const amountPaid = currentP?.amount || 0;
-    const remaining = Math.max(0, netDue - amountPaid);
-    const actualStatus = currentP?.status ? String(currentP.status).toUpperCase() : "UNPAID";
-
-    const isPaid = (actualStatus === "PAID" || (netDue > 0 && amountPaid >= netDue)) && remaining <= 0;
-    const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-    const isUnpaid = !isPaid && !isPartial;
+    const calc = computeTeacherPaymentStatus(t, targetMonth, targetYear);
+    const { isPaid, isPartial, isUnpaid, remaining, netDue, amountPaid, baseSalary, effectiveRate: rate, missedHours, deduction } = calc;
 
     if (isPaid) paidCount++;
     else if (isPartial) partialCount++;
@@ -772,7 +760,7 @@ export async function getTeachersTool(
         targetMonth: `${targetMonthName} ${targetYear}`,
         status: monthlyStatus,
         baseSalary: `${baseSalary} DT`,
-        missedHours: missedHrs > 0 ? `${missedHrs}h (-${deduction} DT)` : "0h",
+        missedHours: missedHours > 0 ? `${missedHours}h (-${deduction} DT)` : "0h",
         amountPaid: `${amountPaid} DT`,
         netRemainingDue: `${remaining} DT`,
       },

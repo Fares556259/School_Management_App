@@ -15,6 +15,7 @@ import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Staff, Payment } from "@prisma/client";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getUserAvatar } from "@/lib/avatar";
+import { computeStaffPaymentStatus } from "@/lib/payrollUtils";
 
 interface Props {
   initialData: any[];
@@ -25,24 +26,6 @@ interface Props {
   selectedMonthKey: string;
   paidThisMonth: number;
   partialThisMonth?: number;
-}
-
-function computeStaffPaymentStatus(
-  item: any,
-  monthIdx: number,
-  yearVal: number
-) {
-  const payment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
-  const actualStatus = payment?.status ? String(payment.status).toUpperCase() : "UNPAID";
-  const amountPaid = payment?.amount || 0;
-  const baseSalary = item.salary || 0;
-  const remaining = Math.max(0, baseSalary - amountPaid);
-
-  const isPaid = (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
-  const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-  const isUnpaid = !isPaid && !isPartial;
-
-  return { isPaid, isPartial, isUnpaid, remaining, baseSalary, amountPaid, actualStatus, payment };
 }
 
 export default function StaffListClient({

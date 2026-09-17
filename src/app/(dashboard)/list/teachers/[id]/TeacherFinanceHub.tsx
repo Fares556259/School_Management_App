@@ -158,7 +158,9 @@ export default function TeacherFinanceHub({
 
   // Rates & Base Salary
   const effectiveHourlyRate = hourlyRate && hourlyRate > 0 ? hourlyRate : 15;
-  const baseMonthlySalary = salary;
+  const baseMonthlySalary = (hourlyRate && hourlyRate > 0 && hoursPerMonth && hoursPerMonth > 0)
+    ? (hourlyRate * hoursPerMonth)
+    : salary;
 
   // Calculate 10 Academic Months with live status
   const academicMonths = ACADEMIC_MONTHS_CONFIG.map((cfg) => {

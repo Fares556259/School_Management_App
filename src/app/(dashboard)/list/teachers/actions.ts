@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
-
-const SERVER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+import { parseMonthYear } from "@/lib/dateUtils";
 
 export const updateMissedHours = async (
   teacherId: string,
@@ -19,9 +18,9 @@ export const updateMissedHours = async (
     notes?: string;
   }
 ) => {
-  const [mName, yStr] = monthYear.split(" ");
-  const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
-  const yearVal = parseInt(yStr);
+  const parsed = parseMonthYear(monthYear);
+  const monthIdx = parsed.month;
+  const yearVal = parsed.year;
 
   try {
     const schoolId = await getSchoolId();
@@ -36,7 +35,7 @@ export const updateMissedHours = async (
       }),
       prisma.teacher.findUnique({
         where: { id: teacherId },
-        select: { salary: true, hourlyRate: true }
+        select: { salary: true, hourlyRate: true, hoursPerMonth: true }
       })
     ]);
 
@@ -47,7 +46,9 @@ export const updateMissedHours = async (
       };
     }
 
-    const baseSalary = teacher?.salary || 0;
+    const baseSalary = (teacher?.hourlyRate && teacher.hourlyRate > 0 && teacher?.hoursPerMonth && teacher.hoursPerMonth > 0)
+      ? (teacher.hourlyRate * teacher.hoursPerMonth)
+      : (teacher?.salary || 0);
     const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
     const deductedH = meta?.deductionStatus === "APPLIED" ? (meta.deductedHours !== undefined ? meta.deductedHours : missedHours) : 0;
     const deductionAmt = deductedH * effectiveRate;
@@ -96,13 +97,13 @@ export const carryOverMissedHours = async (
   toMonthYear: string,
   hoursToCarry: number
 ) => {
-  const [fromMName, fromYStr] = fromMonthYear.split(" ");
-  const fromMonthIdx = SERVER_MONTHS.indexOf(fromMName) + 1;
-  const fromYearVal = parseInt(fromYStr);
+  const fromParsed = parseMonthYear(fromMonthYear);
+  const fromMonthIdx = fromParsed.month;
+  const fromYearVal = fromParsed.year;
 
-  const [toMName, toYStr] = toMonthYear.split(" ");
-  const toMonthIdx = SERVER_MONTHS.indexOf(toMName) + 1;
-  const toYearVal = parseInt(toYStr);
+  const toParsed = parseMonthYear(toMonthYear);
+  const toMonthIdx = toParsed.month;
+  const toYearVal = toParsed.year;
 
   try {
     const schoolId = await getSchoolId();
@@ -207,9 +208,10 @@ export const payTeacherSalary = async (
     notes?: string;
   }
 ) => {
-  const [mName, yStr] = monthYear.split(" ");
-  const monthIdx = SERVER_MONTHS.indexOf(mName) + 1;
-  const yearVal = parseInt(yStr);
+  const parsed = parseMonthYear(monthYear);
+  const monthIdx = parsed.month;
+  const yearVal = parsed.year;
+  const standardMonthYear = parsed.monthKey;
 
   try {
     const [schoolId, existing, teacher] = await Promise.all([
@@ -225,7 +227,7 @@ export const payTeacherSalary = async (
       }),
       prisma.teacher.findUnique({
         where: { id: teacherId },
-        select: { salary: true, hourlyRate: true }
+        select: { salary: true, hourlyRate: true, hoursPerMonth: true }
       })
     ]);
 
@@ -233,7 +235,9 @@ export const payTeacherSalary = async (
       throw new Error("Ce mois est déjà entièrement payé et clôturé.");
     }
 
-    const baseSalary = teacher?.salary || 0;
+    const baseSalary = (teacher?.hourlyRate && teacher.hourlyRate > 0 && teacher?.hoursPerMonth && teacher.hoursPerMonth > 0)
+      ? (teacher.hourlyRate * teacher.hoursPerMonth)
+      : (teacher?.salary || 0);
     const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
     const metaObj = meta || (existing?.img ? (() => { try { return JSON.parse(existing.img); } catch { return null; } })() : null);
     const deductedH = metaObj?.deductionStatus === "APPLIED" ? (metaObj.deductedHours !== undefined ? metaObj.deductedHours : (existing?.missedHours || 0)) : (deduction ? (deduction / effectiveRate) : 0);
@@ -277,8 +281,8 @@ export const payTeacherSalary = async (
 
       // Build expense title with deduction info
       let expenseTitle = expenseTitleInput || (isAdvance 
-        ? `Advance: ${teacherName} (${monthYear})`
-        : `Salary: ${teacherName} (${monthYear})`);
+        ? `Advance: ${teacherName} (${standardMonthYear})`
+        : `Salary: ${teacherName} (${standardMonthYear})`);
         
       if (!expenseTitleInput && deduction && deduction > 0) {
         expenseTitle += ` - ${missedHours}h missed`;
@@ -308,8 +312,8 @@ export const payTeacherSalary = async (
       entityType: "Teacher",
       entityId: teacherId,
       description: auditDescriptionInput || (isAdvance
-        ? `Paid advance of ${amountPaidNow} DT to ${teacherName} for ${monthYear}`
-        : `Paid salary of ${amountPaidNow} DT to ${teacherName} for ${monthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`),
+        ? `Paid advance of ${amountPaidNow} DT to ${teacherName} for ${standardMonthYear}`
+        : `Paid salary of ${amountPaidNow} DT to ${teacherName} for ${standardMonthYear}${deduction ? ` (${missedHours}h missed, -${deduction} DT deduction)` : ''}`),
       amount: amountPaidNow,
       type: 'expense',
       effectiveDate,

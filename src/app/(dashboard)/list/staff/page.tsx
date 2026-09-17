@@ -4,6 +4,7 @@ import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
 import { getSchoolId } from "@/lib/school";
+import { computeStaffPaymentStatus } from "@/lib/payrollUtils";
 import StaffListClient from "./StaffListClient";
 
 const columns = [
@@ -73,8 +74,6 @@ const StaffListPage = async ({
           payments: { select: { month: true, year: true, status: true, paidAt: true, amount: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: ITEMS_PER_PAGE,
-        skip: ITEMS_PER_PAGE * (p - 1),
       }),
       prisma.staff.count({ where }),
     ]);
@@ -100,24 +99,8 @@ const StaffListPage = async ({
   const monthIdx = MONTHS.indexOf(mName) + 1;
   const yearVal = parseInt(yStr);
 
-  const paidThisMonth = safeStaff.filter((s) => {
-    const p = s.payments?.find((pm: any) => pm.month === monthIdx && pm.year === yearVal);
-    const amountPaid = p?.amount || 0;
-    const baseSalary = s.salary || 0;
-    const remaining = Math.max(0, baseSalary - amountPaid);
-    const actualStatus = p?.status ? String(p.status).toUpperCase() : "UNPAID";
-    return (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
-  }).length;
-
-  const partialThisMonth = safeStaff.filter((s) => {
-    const p = s.payments?.find((pm: any) => pm.month === monthIdx && pm.year === yearVal);
-    const amountPaid = p?.amount || 0;
-    const baseSalary = s.salary || 0;
-    const remaining = Math.max(0, baseSalary - amountPaid);
-    const actualStatus = p?.status ? String(p.status).toUpperCase() : "UNPAID";
-    const isPaid = (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
-    return !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-  }).length;
+  const paidThisMonth = safeStaff.filter((s) => computeStaffPaymentStatus(s, monthIdx, yearVal).isPaid).length;
+  const partialThisMonth = safeStaff.filter((s) => computeStaffPaymentStatus(s, monthIdx, yearVal).isPartial).length;
 
   return (
     <div className="bg-white rounded-[12px] flex-1 m-6 mt-0 shadow-sm border border-[#e2e8f0] p-6">

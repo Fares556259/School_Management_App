@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { getSchoolId } from "@/lib/school";
+import { parseMonthYear } from "@/lib/dateUtils";
 
 export const payStaffSalary = async (
   staffId: string,
@@ -12,13 +13,13 @@ export const payStaffSalary = async (
   monthYear: string,
   isAdvance: boolean = false
 ) => {
-  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const [mName, yStr] = monthYear.split(" ");
-  const monthIdx = MONTHS.indexOf(mName) + 1;
-  const yearVal = parseInt(yStr);
+  const parsed = parseMonthYear(monthYear);
+  const monthIdx = parsed.month;
+  const yearVal = parsed.year;
+  const standardMonthYear = parsed.monthKey;
 
   try {
-    const [schoolId, existing] = await Promise.all([
+    const [schoolId, existing, staff] = await Promise.all([
       getSchoolId(),
       prisma.payment.findUnique({
         where: {
@@ -28,6 +29,10 @@ export const payStaffSalary = async (
             year: yearVal
           }
         }
+      }),
+      prisma.staff.findUnique({
+        where: { id: staffId },
+        select: { salary: true }
       })
     ]);
 
@@ -35,8 +40,10 @@ export const payStaffSalary = async (
       throw new Error("Ce mois est déjà entièrement payé et clôturé.");
     }
 
+    const baseSalary = staff?.salary || 0;
     const newTotalAmount = (existing?.amount || 0) + amount;
-    const newStatus = isAdvance ? "PARTIAL" : "PAID";
+    const isFullyCovered = baseSalary > 0 ? newTotalAmount >= baseSalary : !isAdvance;
+    const newStatus = isFullyCovered ? "PAID" : (isAdvance ? "PARTIAL" : "PAID");
 
     const payment = await prisma.$transaction(async (tx) => {
       const p = await tx.payment.upsert({
@@ -66,8 +73,8 @@ export const payStaffSalary = async (
 
       // Also add to Expense table for central reporting
       const expenseTitle = isAdvance 
-        ? `Advance: ${staffName} (${monthYear})`
-        : `Salary: ${staffName} (${monthYear})`;
+        ? `Advance: ${staffName} (${standardMonthYear})`
+        : `Salary: ${staffName} (${standardMonthYear})`;
 
       await tx.expense.create({
         data: {
@@ -91,7 +98,7 @@ export const payStaffSalary = async (
       action: isAdvance ? "PAY_ADVANCE" : "PAY_SALARY",
       entityType: "Staff",
       entityId: staffId,
-      description: isAdvance ? `Paid advance of ${amount} DT to ${staffName} for ${monthYear}` : `Paid staff salary of ${amount} DT to ${staffName} for ${monthYear}`,
+      description: isAdvance ? `Paid advance of ${amount} DT to ${staffName} for ${standardMonthYear}` : `Paid staff salary of ${amount} DT to ${staffName} for ${standardMonthYear}`,
       amount,
       type: 'expense',
       effectiveDate,
