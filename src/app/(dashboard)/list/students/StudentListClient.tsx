@@ -4,7 +4,6 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
-import BulkStudentImport from "./BulkStudentImport";
 import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
@@ -95,7 +94,6 @@ export default function StudentListClient({
   useEffect(() => {
     setOptimisticData(initialData || []);
   }, [initialData]);
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
@@ -447,9 +445,6 @@ export default function StudentListClient({
       />
 
       {/* MODALS */}
-      {isBulkOpen && (
-        <BulkStudentImport onClose={() => setIsBulkOpen(false)} />
-      )}
       <ShareParentLinkModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}

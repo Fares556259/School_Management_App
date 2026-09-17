@@ -4,14 +4,13 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
-import BulkTeacherImport from "./BulkTeacherImport";
 import PaySalaryModal from "./PaySalaryModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
-import { Sparkles, ChevronDown, BookOpen, Layers, ExternalLink } from "lucide-react";
+import { ChevronDown, BookOpen, Layers, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
@@ -52,7 +51,6 @@ export default function TeacherListClient({
   useEffect(() => {
     setOptimisticData(initialData);
   }, [initialData]);
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
   const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
@@ -367,20 +365,6 @@ export default function TeacherListClient({
           <div className="flex items-center gap-2 self-end md:self-auto">
             {role === "admin" && (
               <div className="flex items-center gap-2 ml-1">
-                <button 
-                  onClick={() => setIsBulkOpen(true)}
-                  className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] text-[#181d26] border border-[#dddddd] text-[13px] font-medium rounded-[6px] hover:bg-[#f8fafc] transition-all shadow-sm group shrink-0"
-                >
-                  <Sparkles size={16} className="text-[#41454d] group-hover:rotate-12 transition-transform" />
-                  {t.teachers.bulkEnroll}
-                </button>
-                <button 
-                  onClick={() => setIsBulkOpen(true)}
-                  className="lg:hidden w-10 h-10 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-all text-[#41454d]"
-                  title={t.teachers.bulkEnroll}
-                >
-                  <Sparkles size={16} />
-                </button>
                 <CrudFormModal entity="teacher" mode="create" relatedData={relatedData} />
               </div>
             )}
@@ -394,10 +378,6 @@ export default function TeacherListClient({
       </div>
       <Pagination page={page} count={displayCount} />
 
-      {/* MODALS */}
-      {isBulkOpen && (
-        <BulkTeacherImport onClose={() => setIsBulkOpen(false)} />
-      )}
     </>
   );
 }
