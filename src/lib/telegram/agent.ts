@@ -957,9 +957,10 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 
   // Candidate models — fastest and most capable first, followed by solid fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
+    "gemini-3.6-flash",
     "gemini-3.7-flash",
   ];
 

@@ -10,6 +10,10 @@
     "test": "tsx src/__tests__/payroll-tracking.test.ts",
     "test:payroll": "tsx src/__tests__/payroll-tracking.test.ts",
     "test:evals": "tsx src/lib/telegram/evals/runEvals.ts",
+    "test:audit": "tsx scripts/auditDatabaseIntegrity.ts",
+    "test:business": "tsx scripts/testBusinessCases.ts",
+    "test:scenarios": "tsx scripts/simulateHniaScenarios.ts",
+    "test:all": "npm test && npm run test:evals && npm run test:audit && npm run test:business",
     "test-portal": "tsx scripts/mockPortalServer.ts"
   },
   "prisma": {
