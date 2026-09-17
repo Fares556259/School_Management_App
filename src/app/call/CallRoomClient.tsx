@@ -2,7 +2,14 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { CallTokenPayload } from "@/lib/call/token";
-import { Mic, MicOff, PhoneOff, Sparkles, ShieldCheck, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  Room,
+  RoomEvent,
+  Track,
+  RemoteTrack,
+  ConnectionState,
+} from "livekit-client";
+import { Mic, MicOff, PhoneOff, Sparkles, ShieldCheck, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 
 interface CallRoomClientProps {
   token: string;
@@ -25,8 +32,11 @@ interface TranscriptTurn {
 
 export default function CallRoomClient({ token, initialPayload }: CallRoomClientProps) {
   // Connection & Call State
-  const [callState, setCallState] = useState<"connecting" | "active" | "speaking" | "executing" | "ending" | "ended">("connecting");
-  const [statusText, setStatusText] = useState("Connexion à Hnia...");
+  const [callState, setCallState] = useState<
+    "connecting" | "active" | "speaking" | "executing" | "ending" | "ended" | "error"
+  >("connecting");
+  const [statusText, setStatusText] = useState("Connexion au salon vocal sécurisé...");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [actionsTaken, setActionsTaken] = useState<ActionLog[]>([]);
@@ -35,21 +45,17 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
   const [audioVolume, setAudioVolume] = useState(0);
 
   // References
-  const wsRef = useRef<WebSocket | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
-  const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
-  const nextPlayTimeRef = useRef<number>(0);
+  const roomRef = useRef<Room | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptRef = useRef<TranscriptTurn[]>([]);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
   // Telegram WebApp detection
   const tg = typeof window !== "undefined" ? (window as any).Telegram?.WebApp : null;
 
-  // Trigger Telegram Haptic Feedback
   const triggerHaptic = (type: "light" | "medium" | "heavy" | "success" | "error" = "medium") => {
     try {
       if (tg?.HapticFeedback) {
@@ -60,428 +66,186 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
         }
       }
     } catch (e) {
-      // Ignore if not in Telegram
+      // Ignore outside Telegram
     }
   };
 
-  // Resample from any input sample rate (e.g. 48000Hz or 44100Hz on iPhone/Safari) to exactly 16000Hz for Gemini
-  const downsampleTo16kHz = (inputData: Float32Array, inputSampleRate: number): Int16Array => {
-    if (inputSampleRate === 16000) {
-      const output = new Int16Array(inputData.length);
-      for (let i = 0; i < inputData.length; i++) {
-        const s = Math.max(-1, Math.min(1, inputData[i]));
-        output[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      }
-      return output;
-    }
-
-    const sampleRateRatio = inputSampleRate / 16000;
-    const newLength = Math.round(inputData.length / sampleRateRatio);
-    const result = new Int16Array(newLength);
-    let offsetResult = 0;
-    let offsetBuffer = 0;
-
-    while (offsetResult < result.length) {
-      const nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
-      let accum = 0;
-      let count = 0;
-      for (let i = offsetBuffer; i < nextOffsetBuffer && i < inputData.length; i++) {
-        accum += inputData[i];
-        count++;
-      }
-      const sample = count > 0 ? accum / count : 0;
-      const clamped = Math.max(-1, Math.min(1, sample));
-      result[offsetResult] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
-      offsetResult++;
-      offsetBuffer = nextOffsetBuffer;
-    }
-
-    return result;
-  };
-
-  // Convert Int16Array to Base64 safely in chunks
-  const pcm16ToBase64 = (int16Array: Int16Array): string => {
-    let binary = "";
-    const bytes = new Uint8Array(
-      int16Array.buffer,
-      int16Array.byteOffset,
-      int16Array.byteLength
-    );
-    const len = bytes.byteLength;
-    const chunkSize = 0x8000;
-    for (let i = 0; i < len; i += chunkSize) {
-      const sub = bytes.subarray(i, Math.min(i + chunkSize, len));
-      binary += String.fromCharCode.apply(null, sub as unknown as number[]);
-    }
-    return window.btoa(binary);
-  };
-
-  // Convert Base64 from Gemini (24kHz little-endian PCM) to AudioBuffer safely with DataView
-  const base64ToAudioBuffer = async (audioCtx: AudioContext, base64: string): Promise<AudioBuffer> => {
-    const binary = window.atob(base64);
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-
-    const sampleCount = Math.floor(len / 2);
-    const float32Array = new Float32Array(sampleCount);
-    const dataView = new DataView(bytes.buffer, bytes.byteOffset, len);
-    for (let i = 0; i < sampleCount; i++) {
-      const int16 = dataView.getInt16(i * 2, true); // true = little-endian PCM
-      float32Array[i] = int16 / 32768.0;
-    }
-
-    // Gemini Live audio is 24kHz mono PCM
-    const buffer = audioCtx.createBuffer(1, float32Array.length, 24000);
-    buffer.getChannelData(0).set(float32Array);
-    return buffer;
-  };
-
-  // Stop currently playing model audio immediately (on interruption)
-  const stopAllModelAudio = useCallback(() => {
-    activeSourcesRef.current.forEach((source) => {
-      try {
-        source.stop();
-        source.disconnect();
-      } catch (e) {
-        // Source might already be stopped
-      }
-    });
-    activeSourcesRef.current = [];
-    if (audioCtxRef.current) {
-      nextPlayTimeRef.current = audioCtxRef.current.currentTime;
-    }
-    setCallState((prev) => (prev === "speaking" ? "active" : prev));
-    setStatusText("À votre écoute...");
-  }, []);
-
-  // Handle Tool Call from Gemini Live
-  const handleServerToolCall = async (toolCall: { name: string; args: any; id: string }) => {
-    setCallState("executing");
-    setStatusText(`Exécution : ${toolCall.name}...`);
-    setCurrentActionNotice(`⚡ Exécution : ${toolCall.name}`);
-    triggerHaptic("medium");
-
+  // Setup local audio analyser for orb pulse animation
+  const setupAudioAnalyser = (stream: MediaStream) => {
     try {
-      const res = await fetch("/api/call/tools", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          toolCall,
-        }),
-      });
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
 
-      const data = await res.json();
-      const output = data.output || { success: true };
-
-      // Record action log
-      const logEntry: ActionLog = {
-        id: toolCall.id,
-        name: toolCall.name,
-        args: toolCall.args,
-        summary: typeof output === "object" ? JSON.stringify(output).slice(0, 80) : String(output),
-        time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const updateVolume = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / dataArray.length;
+        setAudioVolume(Math.min(1, avg / 100));
+        animFrameRef.current = requestAnimationFrame(updateVolume);
       };
-      setActionsTaken((prev) => [logEntry, ...prev]);
-      setCurrentActionNotice(`✅ Réalisé : ${toolCall.name}`);
-      setTimeout(() => setCurrentActionNotice(null), 4000);
-      triggerHaptic("success");
-
-      // Send tool response back to Gemini Live WebSocket
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const toolResponseMsg = {
-          toolResponse: {
-            functionResponses: [
-              {
-                response: { output },
-                id: toolCall.id,
-              },
-            ],
-          },
-        };
-        wsRef.current.send(JSON.stringify(toolResponseMsg));
-      }
-    } catch (err: any) {
-      console.error("[Call Tool Error]:", err);
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            toolResponse: {
-              functionResponses: [
-                {
-                  response: { error: err.message || "Échec de l'exécution de l'outil" },
-                  id: toolCall.id,
-                },
-              ],
-            },
-          })
-        );
-      }
+      updateVolume();
+    } catch (e) {
+      console.warn("[CallRoom] Visualizer init warning:", e);
     }
   };
 
-  // Initialize Call Session & Gemini Live WebSocket
+  // Initialize Call Session with LiveKit WebRTC
   const startCall = useCallback(async () => {
     try {
-      setStatusText("Initialisation du canal audio sécurisé...");
+      console.log("[Hnia Voice] Requesting LiveKit token...");
+      setStatusText("Négociation du jeton LiveKit...");
 
-      // 1. Fetch Gemini session config from our backend
-      const sessionRes = await fetch("/api/call/session", {
+      // 1. Request short-lived LiveKit token from our secure server endpoint
+      const tokenRes = await fetch("/api/call/livekit-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
 
-      if (!sessionRes.ok) {
-        const errData = await sessionRes.json();
-        throw new Error(errData.error || "Impossible d'obtenir la session");
+      if (!tokenRes.ok) {
+        const errData = await tokenRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Impossible d'obtenir la session LiveKit");
       }
 
-      const sessionConfig = await sessionRes.json();
+      const { livekitUrl, token: livekitToken, roomName } = await tokenRes.json();
+      console.log("[Hnia Voice] LiveKit token received. Room:", roomName);
 
-      // 2. Setup Web Audio Context
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-      const audioCtx = new AudioCtxClass({ sampleRate: 16000 });
-      audioCtxRef.current = audioCtx;
-      if (audioCtx.state === "suspended") {
-        await audioCtx.resume();
-      }
-      nextPlayTimeRef.current = audioCtx.currentTime;
+      setStatusText("Connexion au salon vocal...");
 
-      // 3. Request Microphone Access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
+      // 2. Initialize LiveKit Room
+      const room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+        audioCaptureDefaults: {
+          autoGainControl: true,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
         },
       });
-      micStreamRef.current = stream;
+      roomRef.current = room;
 
-      // 4. Connect to Gemini Multimodal Live WebSocket
-      const ws = new WebSocket(sessionConfig.wsUrl);
-      wsRef.current = ws;
+      // 3. Register Room Event Listeners
+      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant) => {
+        if (track.kind === Track.Kind.Audio) {
+          console.log("[Hnia Voice UI] Remote audio track received from", participant.identity);
+          const el = track.attach();
+          el.autoplay = true;
+          audioElRef.current = el;
+          el.play().catch((playErr) => {
+            console.warn("[Hnia Voice UI] Autoplay blocked, attempting user interaction play:", playErr);
+          });
+          console.log("[Hnia Voice UI] Remote audio attached and playback started");
+          setCallState("speaking");
+          setStatusText("Hnia vous répond...");
+        }
+      });
 
-      ws.onopen = () => {
-        console.log("[CallRoom] Connected to Gemini Live WebSocket");
-        // Send initial setup message with tools and prompt
-        const setupMessage = {
-          setup: {
-            model: sessionConfig.model,
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              thinkingConfig: {
-                thinkingBudget: 0,
-              },
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: "Aoede", // Warm, clear multilingual voice
-                  },
-                },
-              },
-            },
-            systemInstruction: {
-              parts: [{ text: sessionConfig.systemInstruction }],
-            },
-            tools: sessionConfig.tools,
-          },
-        };
-        ws.send(JSON.stringify(setupMessage));
-      };
+      room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        track.detach();
+      });
 
-      ws.onmessage = async (event) => {
+      room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+        const isHniaSpeaking = speakers.some(
+          (s) => s.identity.includes("agent") || s.identity.includes("hnia")
+        );
+        const isUserSpeaking = speakers.some(
+          (s) => s.identity.includes("admin") || s === room.localParticipant
+        );
+
+        if (isHniaSpeaking) {
+          setCallState("speaking");
+          setStatusText("Hnia vous répond...");
+        } else if (isUserSpeaking) {
+          setCallState("active");
+          setStatusText("À votre écoute...");
+        }
+      });
+
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
         try {
-          const rawText = typeof event.data === "string" ? event.data : await event.data.text();
-          const response = JSON.parse(rawText);
-
-          // A. Setup Complete
-          if (response.setupComplete) {
-            setCallState("active");
-            setStatusText("À votre écoute...");
+          const text = new TextDecoder().decode(payload);
+          const data = JSON.parse(text);
+          if (data.type === "action" && data.action) {
+            setActionsTaken((prev) => [data.action, ...prev]);
+            setCurrentActionNotice(`✅ ${data.action.summary || data.action.name}`);
+            setTimeout(() => setCurrentActionNotice(null), 4500);
             triggerHaptic("success");
-
-            // Start call duration timer
-            timerIntervalRef.current = setInterval(() => {
-              setDurationSeconds((sec) => sec + 1);
-            }, 1000);
-
-            // Send initial voice greeting trigger in authentic Tunisian Arabic
-            const initGreeting = {
-              clientContent: {
-                turns: [
-                  {
-                    role: "user",
-                    parts: [
-                      {
-                        text: `عسلامة، أنا ${sessionConfig.adminName} مدير ${sessionConfig.schoolName}. رحب بيا بكلمتين تونسي في التليفون وقلي تفضل نسمع فيك.`,
-                      },
-                    ],
-                  },
-                ],
-                turnComplete: true,
-              },
-            };
-            ws.send(JSON.stringify(initGreeting));
           }
-
-          // B. Server Content (Incoming Audio or Interruption)
-          if (response.serverContent) {
-            const serverContent = response.serverContent;
-
-            // Handle Interruption
-            if (serverContent.interrupted) {
-              console.log("[CallRoom] User interrupted Hnia");
-              stopAllModelAudio();
-            }
-
-            // Handle Model Turn (Audio Stream or Tool Call)
-            if (serverContent.modelTurn?.parts) {
-              for (const part of serverContent.modelTurn.parts) {
-                // Incoming Audio Chunk
-                if (part.inlineData?.data) {
-                  setCallState("speaking");
-                  setStatusText("Hnia vous répond...");
-
-                  const audioBuffer = await base64ToAudioBuffer(audioCtx, part.inlineData.data);
-                  const source = audioCtx.createBufferSource();
-                  source.buffer = audioBuffer;
-                  source.connect(audioCtx.destination);
-
-                  const startTime = Math.max(audioCtx.currentTime, nextPlayTimeRef.current);
-                  source.start(startTime);
-                  nextPlayTimeRef.current = startTime + audioBuffer.duration;
-
-                  activeSourcesRef.current.push(source);
-                  source.onended = () => {
-                    activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== source);
-                    if (activeSourcesRef.current.length === 0) {
-                      setCallState("active");
-                      setStatusText("À votre écoute...");
-                    }
-                  };
-                }
-
-                // Incoming Tool Call
-                if (part.functionCall) {
-                  await handleServerToolCall(part.functionCall);
-                }
-
-                // Model Text Transcript (Filter out internal thinking markers)
-                if (part.text && !part.text.startsWith("**")) {
-                  transcriptRef.current.push({
-                    role: "hnia",
-                    text: part.text,
-                    time: Date.now(),
-                  });
-                }
-              }
-            }
+          if (data.type === "transcript" && data.turn) {
+            transcriptRef.current.push(data.turn);
           }
-        } catch (msgErr) {
-          console.warn("[CallRoom] WebSocket message parsing issue:", msgErr);
+        } catch (e) {
+          // Ignore non-json data
         }
-      };
+      });
 
-      ws.onerror = (err) => {
-        console.error("[CallRoom] WebSocket error:", err);
-        setStatusText("Erreur de connexion audio");
-      };
+      room.on(RoomEvent.Disconnected, () => {
+        console.log("[Hnia Voice] Room disconnected");
+        setCallState("ended");
+        setStatusText("Appel terminé");
+      });
 
-      ws.onclose = (event) => {
-        console.log("[CallRoom] WebSocket closed:", event.code, event.reason);
-      };
+      // 4. Connect to LiveKit Room
+      console.log(`[Hnia Voice] Connecting to ${livekitUrl}...`);
+      await room.connect(livekitUrl, livekitToken);
+      console.log("[Hnia Voice] Room connection established");
 
-      // 5. Audio Input Processor (Stream 16kHz PCM to WebSocket)
-      const micSource = audioCtx.createMediaStreamSource(stream);
-      const scriptProcessor = audioCtx.createScriptProcessor(2048, 1, 1);
-      scriptProcessorRef.current = scriptProcessor;
+      // 5. Request and Publish Microphone Track
+      setStatusText("Activation du microphone...");
+      await room.localParticipant.setMicrophoneEnabled(true);
+      console.log("[Hnia Voice] Local microphone published successfully");
 
-      scriptProcessor.onaudioprocess = (e) => {
-        if (isMuted) return;
+      // Setup audio visualizer on local microphone
+      const micTrack = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+      if (micTrack?.mediaStream) {
+        setupAudioAnalyser(micTrack.mediaStream);
+      }
 
-        const inputData = e.inputBuffer.getChannelData(0);
+      setCallState("active");
+      setStatusText("À votre écoute...");
+      triggerHaptic("success");
 
-        // Calculate volume for visualizer and voice activity
-        let sum = 0;
-        for (let i = 0; i < inputData.length; i++) {
-          sum += inputData[i] * inputData[i];
-        }
-        const rms = Math.sqrt(sum / inputData.length);
-        setAudioVolume(Math.min(1, rms * 5));
-
-        // When Hnia is speaking, filter faint background noise to prevent false interruptions
-        const isHniaSpeaking = activeSourcesRef.current.length > 0;
-        if (isHniaSpeaking && rms < 0.02) {
-          return;
-        }
-
-        // Send audio chunk if WebSocket is ready (downsampled to exact 16000Hz)
-        if (ws.readyState === WebSocket.OPEN) {
-          const pcm16 = downsampleTo16kHz(inputData, audioCtx.sampleRate);
-          const base64Audio = pcm16ToBase64(pcm16);
-
-          const audioChunkMsg = {
-            realtimeInput: {
-              mediaChunks: [
-                {
-                  mimeType: "audio/pcm;rate=16000",
-                  data: base64Audio,
-                },
-              ],
-            },
-          };
-          ws.send(JSON.stringify(audioChunkMsg));
-        }
-      };
-
-      // Prevent microphone feedback into device speaker
-      const muteGain = audioCtx.createGain();
-      muteGain.gain.value = 0;
-      micSource.connect(scriptProcessor);
-      scriptProcessor.connect(muteGain);
-      muteGain.connect(audioCtx.destination);
+      // Start duration timer
+      timerIntervalRef.current = setInterval(() => {
+        setDurationSeconds((sec) => sec + 1);
+      }, 1000);
     } catch (err: any) {
       console.error("[CallRoom Error]:", err);
-      setStatusText(`Erreur : ${err.message || "Microphone non accessible"}`);
-      setCallState("ended");
+      setCallState("error");
+      const friendlyErr = err.message || "Impossible de connecter Hnia pour le moment. Réessaie dans quelques secondes.";
+      setErrorMessage(friendlyErr);
+      setStatusText("Erreur de connexion");
+      triggerHaptic("error");
     }
-  }, [token, isMuted, stopAllModelAudio]);
+  }, [token]);
 
-  // End Call & Generate Telegram Summary
+  // End Call & Post Details
   const endCall = async () => {
-    triggerHaptic("heavy");
-    setCallState("ending");
-    setStatusText("Génération du compte-rendu d'appel...");
-
-    // Stop timer
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-    }
-
-    // Stop mic
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach((track) => track.stop());
-    }
-
-    // Disconnect audio processors
-    if (scriptProcessorRef.current) {
-      scriptProcessorRef.current.disconnect();
-    }
-    stopAllModelAudio();
-
-    // Close WebSocket cleanly
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close(1000, "User ended call");
-    }
-
-    // Post call details to /api/call/end
     try {
+      triggerHaptic("heavy");
+      setCallState("ending");
+      setStatusText("Clôture de l'appel...");
+
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+      }
+
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+
+      // Post call details to /api/call/end
       const res = await fetch("/api/call/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -494,12 +258,12 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
       });
 
       const data = await res.json();
-      setEndSummary(data.summary || "Compte-rendu envoyé avec succès sur Telegram !");
+      setEndSummary(data.summary || "Appel clôturé avec succès.");
       setCallState("ended");
-      setStatusText("Appel terminé • Compte-rendu envoyé sur Telegram");
+      setStatusText("Appel terminé");
       triggerHaptic("success");
 
-      // Auto-close Telegram WebApp after 3 seconds
+      // Auto-close Telegram WebApp after 3.5 seconds
       setTimeout(() => {
         if (tg?.close) {
           tg.close();
@@ -515,10 +279,14 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
   // Toggle Mute
   const toggleMute = () => {
     triggerHaptic("light");
-    setIsMuted((prev) => !prev);
+    const nextMute = !isMuted;
+    setIsMuted(nextMute);
+    if (roomRef.current?.localParticipant) {
+      roomRef.current.localParticipant.setMicrophoneEnabled(!nextMute);
+    }
   };
 
-  // Initialize Telegram WebApp & Start Call on Mount
+  // Initialize on mount
   useEffect(() => {
     if (tg) {
       tg.ready();
@@ -533,12 +301,11 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      if (micStreamRef.current) micStreamRef.current.getTracks().forEach((t) => t.stop());
-      if (wsRef.current) wsRef.current.close();
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+      if (roomRef.current) roomRef.current.disconnect();
     };
   }, [tg, startCall]);
 
-  // Format Duration (MM:SS)
   const formatTimer = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
@@ -557,7 +324,7 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
             <h2 className="text-sm font-semibold text-slate-200">{initialPayload.schoolName}</h2>
             <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
               <ShieldCheck className="w-3 h-3" />
-              <span>Canal Vocal Chiffré</span>
+              <span>LiveKit WebRTC Chiffré</span>
             </div>
           </div>
         </div>
@@ -589,15 +356,17 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
               ? "border-amber-400 shadow-amber-500/40 animate-pulse bg-gradient-to-tr from-amber-900 to-orange-800"
               : callState === "active"
               ? "border-emerald-400 shadow-emerald-500/30 bg-gradient-to-tr from-slate-900 via-emerald-950 to-slate-900"
+              : callState === "error"
+              ? "border-red-500 shadow-red-500/30 bg-red-950/50"
               : "border-slate-700 shadow-none bg-slate-900"
           }`}
           style={{
-            transform: callState === "active" ? `scale(${1 + audioVolume * 0.15})` : undefined,
+            transform: callState === "active" ? `scale(${1 + audioVolume * 0.2})` : undefined,
           }}
         >
           {/* Avatar Icon */}
           <div className="text-4xl select-none">
-            {callState === "executing" ? "⚡" : "🧕"}
+            {callState === "executing" ? "⚡" : callState === "error" ? "⚠️" : "🧕"}
           </div>
         </div>
 
@@ -618,6 +387,8 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
               ? "bg-amber-950/80 border-amber-500/50 text-amber-200 animate-pulse"
               : callState === "active"
               ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-300"
+              : callState === "error"
+              ? "bg-red-950/80 border-red-500/50 text-red-300"
               : "bg-slate-900/80 border-slate-700 text-slate-400"
           }`}
         >
@@ -625,8 +396,16 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
           {callState === "active" && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
           {callState === "speaking" && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />}
           {callState === "executing" && <span className="w-2 h-2 rounded-full bg-amber-400" />}
+          {callState === "error" && <AlertCircle className="w-3.5 h-3.5 text-red-400" />}
           <span>{statusText}</span>
         </div>
+
+        {/* Error message detail */}
+        {errorMessage && callState === "error" && (
+          <div className="mt-4 p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-xs text-red-200 max-w-sm text-center">
+            {errorMessage}
+          </div>
+        )}
 
         {/* Live Action Notification Toast */}
         {currentActionNotice && (
@@ -652,7 +431,7 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
 
       {/* ── Bottom Call Controls ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-6 pb-6 pt-2">
-        {callState !== "ended" && callState !== "ending" && (
+        {callState !== "ended" && callState !== "ending" && callState !== "error" && (
           <>
             {/* Mute Button */}
             <button
@@ -675,6 +454,19 @@ export default function CallRoomClient({ token, initialPayload }: CallRoomClient
               <span className="text-sm tracking-wide">Raccrocher</span>
             </button>
           </>
+        )}
+
+        {callState === "error" && (
+          <button
+            onClick={() => {
+              setCallState("connecting");
+              setErrorMessage(null);
+              startCall();
+            }}
+            className="px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition shadow-lg active:scale-95"
+          >
+            Réessayer
+          </button>
         )}
 
         {(callState === "ended" || callState === "ending") && (

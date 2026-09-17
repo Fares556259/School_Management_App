@@ -40,3 +40,4 @@ next-env.d.ts
 
 # temporary browser sessions, downloads, artifacts
 tmp/
+voice-agent

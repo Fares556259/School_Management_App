@@ -636,8 +636,14 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
             inline_keyboard: [
               [
                 {
-                  text: "📞 Décrocher l'Appel avec Hnia",
+                  text: "📞 Décrocher dans Telegram",
                   web_app: { url: callUrl },
+                },
+              ],
+              [
+                {
+                  text: "🌐 Décrocher dans le Navigateur (Chrome / Safari)",
+                  url: callUrl,
                 },
               ],
             ],

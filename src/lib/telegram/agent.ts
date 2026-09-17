@@ -16,7 +16,7 @@ import { isCorrectionMessage, flagConversationForLearning } from "./feedback";
 const _knowledgeCache = new Map<string, { data: any[]; expiresAt: number }>();
 const KNOWLEDGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function getCachedKnowledge(schoolId: string): any[] | null {
+export function getCachedKnowledge(schoolId: string): any[] | null {
   const entry = _knowledgeCache.get(schoolId);
   if (entry && Date.now() < entry.expiresAt) {
     return entry.data;
@@ -1035,11 +1035,10 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
 
   // Candidate models — fastest and most capable first, followed by solid fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash",
+    "gemini-flash-latest",
     "gemini-flash-lite-latest",
-    "gemini-3.6-flash",
-    "gemini-3.7-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
   ];
 
   // Helper to format friendly error message without raw API dumps
