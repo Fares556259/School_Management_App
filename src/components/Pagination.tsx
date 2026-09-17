@@ -9,21 +9,24 @@ const Pagination = ({
   page = 1,
   count = 0,
   onPageChange,
+  itemPerPage,
 }: {
   page?: number;
   count?: number;
   onPageChange?: (newPage: number) => void;
+  itemPerPage?: number;
 }) => {
   const router = useRouter();
   const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [pendingPage, setPendingPage] = useState<number | null>(null);
 
-  const totalPages = Math.ceil(count / ITEM_PER_PAGE);
+  const pageSize = itemPerPage && itemPerPage > 0 ? itemPerPage : ITEM_PER_PAGE;
+  const totalPages = Math.ceil(count / pageSize);
   const rawPage = (page && !isNaN(page) && page > 0) ? page : 1;
   const safePage = Math.max(1, Math.min(rawPage, Math.max(1, totalPages)));
-  const hasPrev = ITEM_PER_PAGE * (safePage - 1) > 0;
-  const hasNext = ITEM_PER_PAGE * (safePage - 1) + ITEM_PER_PAGE < count;
+  const hasPrev = pageSize * (safePage - 1) > 0;
+  const hasNext = pageSize * (safePage - 1) + pageSize < count;
 
   const getUrl = (newPage: number) => {
     if (typeof window === "undefined") return "";
@@ -72,7 +75,6 @@ const Pagination = ({
       </button>
       <div className="flex items-center gap-1.5 text-[13px]">
         {(() => {
-          const totalPages = Math.ceil(count / ITEM_PER_PAGE);
           const pages = [];
           const range = 2; // Pages to show on either side of current page
 

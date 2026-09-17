@@ -7,17 +7,20 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 export default function MonthPaymentSummary({
   total = 0,
   paidCount = 0,
+  partialCount = 0,
   monthLabel,
   entityName,
 }: {
   total?: number;
   paidCount?: number;
+  partialCount?: number;
   monthLabel: string;
   entityName: string;
 }) {
   const safeTotal = typeof total === "number" && !isNaN(total) ? total : 0;
   const safePaidCount = typeof paidCount === "number" && !isNaN(paidCount) ? paidCount : 0;
-  const unpaidCount = Math.max(0, safeTotal - safePaidCount);
+  const safePartialCount = typeof partialCount === "number" && !isNaN(partialCount) ? partialCount : 0;
+  const unpaidCount = Math.max(0, safeTotal - safePaidCount - safePartialCount);
   const { t } = useLanguage();
 
   const entityDict = (t[entityName as keyof typeof t] as any) || t.students;
@@ -25,6 +28,10 @@ export default function MonthPaymentSummary({
     safePaidCount > 1
       ? entityDict?.paidPlural || entityDict?.paid || t.students?.paid || "paid"
       : entityDict?.paid || t.students?.paid || "paid";
+  const partialText =
+    safePartialCount > 1
+      ? entityDict?.partialPlural || entityDict?.partial || "Partiels"
+      : entityDict?.partial || "Partiel";
   const unpaidText =
     unpaidCount > 1
       ? entityDict?.unpaidPlural || entityDict?.unpaid || t.students?.unpaid || "unpaid"
@@ -44,6 +51,14 @@ export default function MonthPaymentSummary({
           {safePaidCount} {paidText}
         </span>
       </div>
+      {safePartialCount > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-amber-400" />
+          <span className="text-sm font-medium text-slate-600">
+            {safePartialCount} {partialText}
+          </span>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <div className="w-3 h-3 rounded-full bg-rose-400" />
         <span className="text-sm font-medium text-slate-600">

@@ -744,7 +744,8 @@ export const ar = {
       "startExtraction": "بدء الاستخراج"
     },
     "paidPlural": "تم السداد",
-    "unpaidPlural": "غير مسدد"
+    "unpaidPlural": "غير مسدد",
+    "partialPlural": "دفع جزئي"
   },
   "teachers": {
     "title": "الأساتذة",

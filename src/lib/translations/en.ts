@@ -744,7 +744,8 @@ export const en = {
       "startExtraction": "Start Extraction"
     },
     "paidPlural": "Paid",
-    "unpaidPlural": "Unpaid"
+    "unpaidPlural": "Unpaid",
+    "partialPlural": "Partials"
   },
   "teachers": {
     "title": "Teachers",

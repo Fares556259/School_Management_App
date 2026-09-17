@@ -111,6 +111,7 @@ const StudentListPage = async ({
   let school: any = null;
   let summaryTotal = 0;
   let summaryPaid = 0;
+  let summaryPartial = 0;
 
   // 1. Static reference data for modals & forms (TTL: 1 hour / 3600s)
   const fetchStaticReferences = () =>
@@ -163,6 +164,18 @@ const StudentListPage = async ({
           },
         },
       }),
+      prisma.student.count({
+        where: {
+          ...summaryQuery,
+          payments: {
+            some: {
+              month: monthIdx,
+              year: yearVal,
+              status: "PARTIAL",
+            },
+          },
+        },
+      }),
     ]);
 
   try {
@@ -185,11 +198,11 @@ const StudentListPage = async ({
       [parents, classes, levels, admin, school] = freshStatic;
     }
 
-    if (Array.isArray(dynamicRes) && dynamicRes.length >= 4) {
-      [data, count, summaryTotal, summaryPaid] = dynamicRes;
+    if (Array.isArray(dynamicRes) && dynamicRes.length >= 5) {
+      [data, count, summaryTotal, summaryPaid, summaryPartial] = dynamicRes;
     } else {
       const freshDynamic = await fetchDynamicData();
-      [data, count, summaryTotal, summaryPaid] = freshDynamic;
+      [data, count, summaryTotal, summaryPaid, summaryPartial] = freshDynamic;
     }
   } catch (err) {
     console.error("[StudentListPage] Data fetch error, running direct fallbacks:", err);
@@ -199,7 +212,7 @@ const StudentListPage = async ({
         fetchDynamicData(),
       ]);
       [parents, classes, levels, admin, school] = fallbackStatic;
-      [data, count, summaryTotal, summaryPaid] = fallbackDynamic;
+      [data, count, summaryTotal, summaryPaid, summaryPartial] = fallbackDynamic;
     } catch (dbErr) {
       console.error("[StudentListPage] Direct DB fallback also failed:", dbErr);
     }
@@ -212,6 +225,7 @@ const StudentListPage = async ({
   const safeLevels = Array.isArray(levels) ? levels : [];
   const safeTotal = typeof summaryTotal === "number" ? summaryTotal : safeData.length;
   const safePaid = typeof summaryPaid === "number" ? summaryPaid : 0;
+  const safePartial = typeof summaryPartial === "number" ? summaryPartial : 0;
 
   // Safe client-side class ordering: Level 0 (Préscolaire) first, then level ascending, then class name ascending
   safeClasses.sort((a, b) => {
@@ -252,6 +266,7 @@ const StudentListPage = async ({
         role={role}
         selectedMonthKey={selectedMonthKey}
         paidThisMonth={safePaid}
+        partialThisMonth={safePartial}
         totalThisMonth={safeTotal}
         relatedData={studentRelatedData}
       />

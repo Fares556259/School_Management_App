@@ -30,6 +30,7 @@ interface Props {
   role: string | undefined;
   selectedMonthKey: string;
   paidThisMonth: number;
+  partialThisMonth?: number;
   totalThisMonth: number;
   relatedData: any;
 }
@@ -42,6 +43,7 @@ export default function StudentListClient({
   role,
   selectedMonthKey,
   paidThisMonth,
+  partialThisMonth = 0,
   totalThisMonth,
   relatedData,
 }: Props) {
@@ -158,8 +160,14 @@ export default function StudentListClient({
       return p.month === sumMonthIdx && p.year === sumYearVal && st === "PAID";
     });
   }).length;
+  const displayPartialThisMonth = summaryBaseData.filter(item => {
+    return item.payments?.some((p: any) => {
+      const st = p.status ? String(p.status).toUpperCase() : "";
+      return p.month === sumMonthIdx && p.year === sumYearVal && st === "PARTIAL";
+    });
+  }).length;
 
-  const ITEM_PER_PAGE = 10;
+  const ITEM_PER_PAGE = 25;
   const totalPages = Math.max(1, Math.ceil(displayedData.length / ITEM_PER_PAGE));
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
   const paginatedData = displayedData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
@@ -326,6 +334,7 @@ export default function StudentListClient({
         <MonthPaymentSummary
           total={displayTotalThisMonth}
           paidCount={displayPaidThisMonth}
+          partialCount={displayPartialThisMonth}
           monthLabel={clientMonthKey}
           entityName="students"
         />
@@ -424,12 +433,34 @@ export default function StudentListClient({
             </p>
           </div>
         ) : (
-          <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
+          <>
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-2 px-1 font-medium">
+              <span>
+                {displayCount} {displayCount > 1 
+                  ? (locale === "ar" ? "تلاميذ" : locale === "fr" ? "élèves" : "students") 
+                  : (locale === "ar" ? "تلميذ" : locale === "fr" ? "élève" : "student")}
+                {clientStatus === "UNPAID" 
+                  ? ` (${locale === "ar" ? "غير مدفوع" : locale === "fr" ? "Non payé" : "Unpaid"})`
+                  : clientStatus === "PARTIAL" 
+                  ? ` (${locale === "ar" ? "جزئي" : locale === "fr" ? "Partiel" : "Partial"})`
+                  : clientStatus === "PAID" 
+                  ? ` (${locale === "ar" ? "مدفوع" : locale === "fr" ? "Payé" : "Paid"})`
+                  : ""}
+              </span>
+              {totalPages > 1 && (
+                <span>
+                  Page {safePage} / {totalPages}
+                </span>
+              )}
+            </div>
+            <Table columns={translatedColumns} renderRow={renderRow} data={paginatedData} />
+          </>
         )}
       </div>
       <Pagination 
         page={safePage} 
         count={displayCount} 
+        itemPerPage={ITEM_PER_PAGE}
         onPageChange={(newPage) => {
           setCurrentPage(newPage);
           if (typeof window !== "undefined") {
