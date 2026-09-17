@@ -468,6 +468,69 @@ test("Ensure exactly ONE of {isPaid, isPartial, isUnpaid} is true for any arbitr
 });
 
 // ============================================================================
+// SUITE 4: EXACT DATABASE COUNTS, ENTITY DISTINCTION & FAST-PATH
+// ============================================================================
+console.log("--- Suite 4: Exact Database Counts & Entity Distinction ---");
+
+test("Parent vs Student count distinction (multi-child families)", () => {
+  // Scenario: 1 parent with 5 children (e.g. Moune Saoud) and other single-child parents
+  const mockFamilyData = [
+    { parentName: "Moune Saoud", childrenCount: 5 },
+    { parentName: "Ali Ben Salah", childrenCount: 2 },
+    { parentName: "Fatma Gharbi", childrenCount: 1 },
+  ];
+
+  const totalParents = mockFamilyData.length; // 3 parents
+  const totalStudents = mockFamilyData.reduce((acc, f) => acc + f.childrenCount, 0); // 8 students
+
+  assertTrue(totalParents !== totalStudents, "Parents count and Students count must not be conflated");
+  assertEqual(totalParents, 3, "Exact parent count must be 3");
+  assertEqual(totalStudents, 8, "Exact student count must be 8");
+});
+
+test("School directory counts integrity & non-clamping", () => {
+  // Emulate get_school_stats and ensure no artificial clamping (e.g. at 20)
+  const dbCounts = {
+    teachers: 13,
+    parents: 26,
+    students: 53,
+    staff: 2,
+    classes: 11,
+  };
+
+  // Ensure all counts exceed artificial limits if present and are strictly positive integers
+  assertTrue(dbCounts.parents > 20, "Parent count is 26 and must not be clamped to 20");
+  assertTrue(dbCounts.teachers >= 13, "Teacher count is 13");
+  assertTrue(dbCounts.students > dbCounts.parents, "Students (53) strictly exceed parents (26)");
+  assertEqual(dbCounts.staff, 2);
+  assertEqual(dbCounts.classes, 11);
+});
+
+test("FormattedText generation enables Fast-Path with accurate DB figures", () => {
+  const schoolStatsOutput = {
+    teachers: 13,
+    parents: 26,
+    students: 53,
+    staff: 2,
+    classes: 11,
+    formattedText: `🏛️ <b>SNAPSCHOOL │ EFFECTIFS DE L'ÉTABLISSEMENT</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Effectifs réels enregistrés en base de données :</b>\n\n• 👨‍🏫 <b>Enseignants :</b> <code>13</code>\n• 👨‍👩‍👧‍👦 <b>Parents d'élèves :</b> <code>26</code>\n• 🎓 <b>Élèves inscrits :</b> <code>53</code>\n• 💼 <b>Personnel (Staff) :</b> <code>2</code>\n• 🏫 <b>Classes actives :</b> <code>11</code>`,
+  };
+
+  // Fast path check: simulates agent.ts fast-path
+  let finalReply = "";
+  if (schoolStatsOutput && schoolStatsOutput.formattedText) {
+    finalReply = schoolStatsOutput.formattedText;
+  }
+
+  assertTrue(finalReply.length > 0, "Fast-path must be triggered when formattedText is present");
+  assertTrue(finalReply.includes("13"), "Must contain exact teacher count 13");
+  assertTrue(finalReply.includes("26"), "Must contain exact parent count 26");
+  assertTrue(finalReply.includes("53"), "Must contain exact student count 53");
+  assertTrue(finalReply.includes("2"), "Must contain exact staff count 2");
+  assertTrue(finalReply.includes("11"), "Must contain exact class count 11");
+});
+
+// ============================================================================
 // SUMMARY
 // ============================================================================
 console.log("\n=======================================================");

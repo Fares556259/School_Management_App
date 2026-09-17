@@ -374,143 +374,180 @@ export async function getParentsTool(
     }
   }
 
-  const parents = await prisma.parent.findMany({
-    where,
-    take: 20,
-    orderBy: { name: "asc" },
-    include: {
-      students: {
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          customTuition: true,
-          class: { select: { id: true, name: true } },
-          level: { select: { id: true, tuitionFee: true } },
-          payments: {
-            where: { schoolId: context.schoolId, userType: "STUDENT" },
-            select: { id: true, amount: true, status: true, month: true, year: true, deferredAmount: true },
+  const [totalCount, parents] = await Promise.all([
+    prisma.parent.count({ where }),
+    prisma.parent.findMany({
+      where,
+      take: args.query ? 25 : 100,
+      orderBy: { name: "asc" },
+      include: {
+        students: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            customTuition: true,
+            class: { select: { id: true, name: true } },
+            level: { select: { id: true, tuitionFee: true } },
+            payments: {
+              where: { schoolId: context.schoolId, userType: "STUDENT" },
+              select: { id: true, amount: true, status: true, month: true, year: true, deferredAmount: true },
+            },
           },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   const now = new Date();
   const targetMonth = args.month || now.getMonth() + 1;
   const targetYear = args.year || now.getFullYear();
+  const targetMonthLabel = `${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`;
+  const targetMonthLabelFrench = formatMonthFrench(targetMonthLabel);
+
+  const mappedParents = parents.map((p) => {
+    let familyTotalMonthlyFees = 0;
+    let familyTotalPaid = 0;
+    let familyTotalRemaining = 0;
+
+    const unpaidChildren: any[] = [];
+    const paidChildren: any[] = [];
+
+    const childrenInfo = p.students.map((s) => {
+      const fee = s.customTuition || s.level?.tuitionFee || 450;
+      familyTotalMonthlyFees += fee;
+
+      const currentMonthPayment = s.payments.find(
+        (pay) => pay.month === targetMonth && pay.year === targetYear
+      );
+
+      const currentPaid = currentMonthPayment?.amount || 0;
+      const isCurrentPaid = currentMonthPayment?.status === "PAID" || (currentPaid >= fee && currentPaid > 0);
+
+      let remainingForCurrentMonth = 0;
+      if (!isCurrentPaid) {
+        if (currentMonthPayment?.deferredAmount != null) {
+          remainingForCurrentMonth = currentMonthPayment.deferredAmount;
+        } else {
+          remainingForCurrentMonth = Math.max(0, fee - currentPaid);
+        }
+      }
+
+      // Past uncollected debt from other months (excluding targetMonth)
+      const pastDeferredGap = s.payments
+        .filter(
+          (pay) =>
+            !(pay.month === targetMonth && pay.year === targetYear) &&
+            pay.status !== "PAID"
+        )
+        .reduce((acc, pay) => acc + (pay.deferredAmount || 0), 0);
+
+      const childTotalUnpaid = remainingForCurrentMonth + pastDeferredGap;
+      familyTotalPaid += currentPaid;
+      familyTotalRemaining += childTotalUnpaid;
+
+      const childStatus = isCurrentPaid
+        ? "SOLDÉ"
+        : currentPaid > 0
+        ? "PARTIEL"
+        : "NON_PAYÉ";
+
+      const childSummary = {
+        id: s.id,
+        name: `${s.name} ${s.surname}`.trim(),
+        class: s.class?.name || "Sans classe",
+        monthlyFee: fee,
+        paidAmount: currentPaid,
+        remainingDue: childTotalUnpaid,
+        remainingForMonth: remainingForCurrentMonth,
+        pastDebt: pastDeferredGap,
+        status: childStatus,
+        details: isCurrentPaid
+          ? `Soldé ✅ (${currentPaid} DT versés)`
+          : currentPaid > 0
+          ? `Partiel ⚠️ (${currentPaid} DT versés, reste ${remainingForCurrentMonth} DT)`
+          : `Non payé ❌ (0 DT versé sur ${fee} DT dus)`,
+      };
+
+      if (childTotalUnpaid > 0) {
+        unpaidChildren.push(childSummary);
+      } else {
+        paidChildren.push(childSummary);
+      }
+
+      return childSummary;
+    });
+
+    const hasDebt = familyTotalRemaining > 0;
+    const familyStatus = !hasDebt
+      ? "SOLDÉ ✅"
+      : familyTotalPaid > 0
+      ? "PARTIEL ⚠️"
+      : "NON PAYÉ ❌";
+
+    return {
+      id: p.id,
+      fullName: `${p.name} ${p.surname}`.trim(),
+      phone: p.phone,
+      address: p.address || "Non renseignée",
+      childrenCount: p.students.length,
+      financialSummary: {
+        totalTuitionDue: familyTotalMonthlyFees,
+        totalPaid: familyTotalPaid,
+        totalRemainingDue: familyTotalRemaining,
+        status: familyStatus,
+        explanation: hasDebt
+          ? `Total dû pour ${p.students.length} enfant(s) : ${familyTotalMonthlyFees} DT. Total versé : ${familyTotalPaid} DT. Reste à payer pour la famille : ${familyTotalRemaining} DT.`
+          : `Scolarité familiale 100% à jour (${familyTotalPaid} DT versés sur ${familyTotalMonthlyFees} DT).`,
+      },
+      familyTuitionBalance: hasDebt
+        ? `⚠️ Reste à payer : ${familyTotalRemaining} DT (${familyTotalPaid} DT versés sur ${familyTotalMonthlyFees} DT dus)`
+        : "✅ Scolarité familiale à jour",
+      unpaidChildrenCount: unpaidChildren.length,
+      paidChildrenCount: paidChildren.length,
+      unpaidChildren,
+      paidChildren,
+      children: childrenInfo,
+    };
+  });
+
+  let formattedText: string;
+  if (mappedParents.length === 1 && args.query) {
+    const p = mappedParents[0];
+    const phoneFormatted = p.phone ? ` (📞 +216 ${p.phone.replace(/^\+?216\s*/, "")})` : "";
+    const childrenList = p.children
+      .map((c) => `  • <b>${c.name}</b> (<code>${c.class}</code>) : ${c.details}`)
+      .join("\n");
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ FICHE PARENT</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👨‍👩‍👧‍👦 <b>${p.fullName}</b>${phoneFormatted}\n📍 Adresse : <i>${p.address}</i>\n• 🎓 Nombre d'enfants : <code>${p.childrenCount}</code>\n\n📅 <b>Situation financière (${targetMonthLabel}) :</b>\n${childrenList}\n\n📊 <b>Total famille :</b>\n• Frais totaux : <code>${p.financialSummary.totalTuitionDue} DT</code>\n• Montant versé : <code>${p.financialSummary.totalPaid} DT</code>\n• Reste net dû : <code>${p.financialSummary.totalRemainingDue} DT</code> (${p.financialSummary.status})\n\n<blockquote>💡 <b>Hnia :</b> Pour enregistrer un paiement pour cette famille, dites : <i>"enregistre ${p.financialSummary.totalRemainingDue > 0 ? p.financialSummary.totalRemainingDue : 100} DT pour ${p.fullName}"</i>.</blockquote>`;
+  } else if (mappedParents.length === 0) {
+    formattedText = `🏛️ <b>SNAPSCHOOL │ PARENTS D'ÉLÈVES</b>\n━━━━━━━━━━━━━━━━━━━━━━\n<i>Aucun parent trouvé pour cette recherche.</i>`;
+  } else {
+    const list = mappedParents
+      .slice(0, 25)
+      .map((p) => {
+        const phoneFormatted = p.phone ? ` (📞 +216 ${p.phone.replace(/^\+?216\s*/, "")})` : "";
+        const childrenNames = p.children.map((c) => c.name).join(", ");
+        return `• <b>${p.fullName}</b>${phoneFormatted} — <code>${p.childrenCount} enfant(s)</code>${childrenNames ? ` <i>(${childrenNames})</i>` : ""}`;
+      })
+      .join("\n");
+
+    const truncationNotice = totalCount > mappedParents.length
+      ? `\n<i>(Affichage des ${mappedParents.length} premiers parents sur ${totalCount} au total)</i>\n`
+      : "\n";
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ RÉPERTOIRE DES PARENTS</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>${totalCount}</b> parents d'élèves enregistrés en base de données\n\n${list}${truncationNotice}\n━━━━━━━━━━━━━━━━━━━━━━\n<blockquote>💡 <b>Hnia :</b> Données certifiées issues de la base PostgreSQL. Donnez-moi un nom ou un numéro pour voir la fiche détaillée et les paiements d'une famille.</blockquote>`;
+  }
 
   return {
-    total: parents.length,
+    total: totalCount,
+    returned: mappedParents.length,
     month: targetMonth,
     year: targetYear,
-    monthLabel: `${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`,
-    monthLabelFrench: formatMonthFrench(`${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`),
-    parents: parents.map((p) => {
-      let familyTotalMonthlyFees = 0;
-      let familyTotalPaid = 0;
-      let familyTotalRemaining = 0;
-
-      const unpaidChildren: any[] = [];
-      const paidChildren: any[] = [];
-
-      const childrenInfo = p.students.map((s) => {
-        const fee = s.customTuition || s.level?.tuitionFee || 450;
-        familyTotalMonthlyFees += fee;
-
-        const currentMonthPayment = s.payments.find(
-          (pay) => pay.month === targetMonth && pay.year === targetYear
-        );
-
-        const currentPaid = currentMonthPayment?.amount || 0;
-        const isCurrentPaid = currentMonthPayment?.status === "PAID" || (currentPaid >= fee && currentPaid > 0);
-
-        let remainingForCurrentMonth = 0;
-        if (!isCurrentPaid) {
-          if (currentMonthPayment?.deferredAmount != null) {
-            remainingForCurrentMonth = currentMonthPayment.deferredAmount;
-          } else {
-            remainingForCurrentMonth = Math.max(0, fee - currentPaid);
-          }
-        }
-
-        // Past uncollected debt from other months (excluding targetMonth)
-        const pastDeferredGap = s.payments
-          .filter(
-            (pay) =>
-              !(pay.month === targetMonth && pay.year === targetYear) &&
-              pay.status !== "PAID"
-          )
-          .reduce((acc, pay) => acc + (pay.deferredAmount || 0), 0);
-
-        const childTotalUnpaid = remainingForCurrentMonth + pastDeferredGap;
-        familyTotalPaid += currentPaid;
-        familyTotalRemaining += childTotalUnpaid;
-
-        const childStatus = isCurrentPaid
-          ? "SOLDÉ"
-          : currentPaid > 0
-          ? "PARTIEL"
-          : "NON_PAYÉ";
-
-        const childSummary = {
-          id: s.id,
-          name: `${s.name} ${s.surname}`.trim(),
-          class: s.class?.name || "Sans classe",
-          monthlyFee: fee,
-          paidAmount: currentPaid,
-          remainingDue: childTotalUnpaid,
-          remainingForMonth: remainingForCurrentMonth,
-          pastDebt: pastDeferredGap,
-          status: childStatus,
-          details: isCurrentPaid
-            ? `Soldé ✅ (${currentPaid} DT versés)`
-            : currentPaid > 0
-            ? `Partiel ⚠️ (${currentPaid} DT versés, reste ${remainingForCurrentMonth} DT)`
-            : `Non payé ❌ (0 DT versé sur ${fee} DT dus)`,
-        };
-
-        if (childTotalUnpaid > 0) {
-          unpaidChildren.push(childSummary);
-        } else {
-          paidChildren.push(childSummary);
-        }
-
-        return childSummary;
-      });
-
-      const hasDebt = familyTotalRemaining > 0;
-      const familyStatus = !hasDebt
-        ? "SOLDÉ ✅"
-        : familyTotalPaid > 0
-        ? "PARTIEL ⚠️"
-        : "NON PAYÉ ❌";
-
-      return {
-        id: p.id,
-        fullName: `${p.name} ${p.surname}`.trim(),
-        phone: p.phone,
-        address: p.address || "Non renseignée",
-        childrenCount: p.students.length,
-        financialSummary: {
-          totalTuitionDue: familyTotalMonthlyFees,
-          totalPaid: familyTotalPaid,
-          totalRemainingDue: familyTotalRemaining,
-          status: familyStatus,
-          explanation: hasDebt
-            ? `Total dû pour ${p.students.length} enfant(s) : ${familyTotalMonthlyFees} DT. Total versé : ${familyTotalPaid} DT. Reste à payer pour la famille : ${familyTotalRemaining} DT.`
-            : `Scolarité familiale 100% à jour (${familyTotalPaid} DT versés sur ${familyTotalMonthlyFees} DT).`,
-        },
-        familyTuitionBalance: hasDebt
-          ? `⚠️ Reste à payer : ${familyTotalRemaining} DT (${familyTotalPaid} DT versés sur ${familyTotalMonthlyFees} DT dus)`
-          : "✅ Scolarité familiale à jour",
-        unpaidChildrenCount: unpaidChildren.length,
-        paidChildrenCount: paidChildren.length,
-        unpaidChildren,
-        paidChildren,
-        children: childrenInfo,
-      };
-    }),
+    monthLabel: targetMonthLabel,
+    monthLabelFrench: targetMonthLabelFrench,
+    parents: mappedParents,
+    formattedText,
   };
 }
 

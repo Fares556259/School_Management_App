@@ -8,6 +8,7 @@ import {
   getAttendanceTool,
   getPaymentsTool,
   getFinancialSummaryTool,
+  getSchoolStatsTool,
   getTeachersTool,
   getMorningBriefingTool,
 } from "./readTools";
@@ -498,6 +499,21 @@ export const TOOLS: Record<string, ToolDefinition> = {
       },
     },
     execute: getTeachersTool,
+  },
+
+  get_school_stats: {
+    name: "get_school_stats",
+    description: "Obtenir les effectifs exacts et réels de l'établissement (nombre total d'enseignants, de parents d'élèves, d'élèves inscrits, de personnel/staff et de classes) directement depuis PostgreSQL.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "get_school_stats",
+      description: "Retourne les effectifs totaux réels et certifiés de l'école (enseignants, parents, élèves, staff, classes) directement comptabilisés dans la base de données.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {},
+      },
+    },
+    execute: getSchoolStatsTool,
   },
 
   get_staff: {

@@ -673,8 +673,37 @@ export async function getFinancialSummaryTool(
 }
 
 /**
+ * Tool: get_school_stats
+ * Returns the exact, live entity counts for the school directory directly from PostgreSQL:
+ * teachers, parents, students, staff, and classes.
+ */
+export async function getSchoolStatsTool(
+  _args: Record<string, any>,
+  context: ToolContext
+) {
+  const [teachers, parents, students, staff, classes] = await Promise.all([
+    prisma.teacher.count({ where: { schoolId: context.schoolId } }),
+    prisma.parent.count({ where: { schoolId: context.schoolId } }),
+    prisma.student.count({ where: { schoolId: context.schoolId } }),
+    prisma.staff.count({ where: { schoolId: context.schoolId } }),
+    prisma.class.count({ where: { schoolId: context.schoolId } }),
+  ]);
+
+  const formattedText = `🏛️ <b>SNAPSCHOOL │ EFFECTIFS DE L'ÉTABLISSEMENT</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Effectifs réels enregistrés en base de données :</b>\n\n• 👨‍🏫 <b>Enseignants :</b> <code>${teachers}</code>\n• 👨‍👩‍👧‍👦 <b>Parents d'élèves :</b> <code>${parents}</code>\n• 🎓 <b>Élèves inscrits :</b> <code>${students}</code>\n• 💼 <b>Personnel (Staff) :</b> <code>${staff}</code>\n• 🏫 <b>Classes actives :</b> <code>${classes}</code>\n\n━━━━━━━━━━━━━━━━━━━━━━\n<blockquote>💡 <b>Hnia :</b> Chiffres 100% synchronisés avec la base de données de l'école.</blockquote>`;
+
+  return {
+    teachers,
+    parents,
+    students,
+    staff,
+    classes,
+    formattedText,
+  };
+}
+
+/**
  * Tool: get_teachers
- * List teachers, their subjects, and assigned classes.
+ * List teachers, their subjects, and assigned classes with strict database accuracy.
  */
 export async function getTeachersTool(
   args: {
@@ -707,26 +736,29 @@ export async function getTeachersTool(
   const targetYear = args.year ? Number(args.year) : now.getFullYear();
   const targetMonthName = MONTHS[targetMonth - 1] || `Mois ${targetMonth}`;
 
-  const teachers = await prisma.teacher.findMany({
-    where,
-    take: 50,
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      surname: true,
-      phone: true,
-      salary: true,
-      hourlyRate: true,
-      hoursPerMonth: true,
-      subjects: { select: { id: true, name: true } },
-      classes: { select: { id: true, name: true } },
-      payments: {
-        where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "TEACHER" },
-        select: { id: true, amount: true, status: true, missedHours: true, paidAt: true, month: true, year: true },
+  const [totalCount, teachers] = await Promise.all([
+    prisma.teacher.count({ where }),
+    prisma.teacher.findMany({
+      where,
+      take: 100,
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        phone: true,
+        salary: true,
+        hourlyRate: true,
+        hoursPerMonth: true,
+        subjects: { select: { id: true, name: true } },
+        classes: { select: { id: true, name: true } },
+        payments: {
+          where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "TEACHER" },
+          select: { id: true, amount: true, status: true, missedHours: true, paidAt: true, month: true, year: true },
+        },
       },
-    },
-  });
+    }),
+  ]);
 
   let paidCount = 0;
   let partialCount = 0;
@@ -767,17 +799,59 @@ export async function getTeachersTool(
     };
   });
 
+  let formattedText: string;
+  if (teacherRows.length === 1 && args.query) {
+    const t = teacherRows[0];
+    const phoneFormatted = t.phone && t.phone !== "Non renseigné" ? `\n  └ 📞 +216 ${t.phone.replace(/^\+?216\s*/, "")}` : "";
+    formattedText = `🏛️ <b>SNAPSCHOOL │ FICHE ENSEIGNANT</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👨‍🏫 <b>${t.name}</b>${phoneFormatted}\n• 📚 Matières : <code>${t.subjects}</code>\n• 🏫 Classes : <code>${t.supervisedClasses}</code>\n• 💰 Salaire de base : <code>${t.salary}</code> (Taux : <code>${t.hourlyRate}</code>, Volume : <code>${t.hoursPerMonth}</code>)\n\n📅 <b>Situation paie (${targetMonthName} ${targetYear}) :</b>\n• Statut : ${t.currentMonthPayroll.status}\n• Heures d'absence : <code>${t.currentMonthPayroll.missedHours}</code>\n• Montant versé : <code>${t.currentMonthPayroll.amountPaid}</code>\n• Reste net dû : <code>${t.currentMonthPayroll.netRemainingDue}</code>\n\n<blockquote>💡 <b>Hnia :</b> Pour verser un acompte ou solder le salaire, dites : <i>"verse une avance de 100 DT à ${t.name}"</i>.</blockquote>`;
+  } else if (teacherRows.length === 0) {
+    formattedText = `🏛️ <b>SNAPSCHOOL │ ENSEIGNANTS</b>\n━━━━━━━━━━━━━━━━━━━━━━\n<i>Aucun enseignant trouvé pour cette recherche.</i>`;
+  } else {
+    const paidTeachers = teacherRows.filter((r) => r.paymentStatus === "PAID");
+    const partialTeachers = teacherRows.filter((r) => r.paymentStatus === "PARTIAL");
+    const unpaidTeachers = teacherRows.filter((r) => r.paymentStatus === "UNPAID");
+
+    const sections: string[] = [];
+
+    if (unpaidTeachers.length > 0) {
+      const list = unpaidTeachers
+        .map((t) => `• <b>${t.name}</b> — <code>${t.salary}</code>${t.phone !== "Non renseigné" ? ` (📞 +216 ${t.phone.replace(/^\+?216\s*/, "")})` : ""}`)
+        .join("\n");
+      sections.push(`🔴 <b>Non payés (0 DT versés) — ${unpaidTeachers.length} enseignant(s) :</b>\n${list}`);
+    }
+
+    if (partialTeachers.length > 0) {
+      const list = partialTeachers
+        .map(
+          (t) =>
+            `• <b>${t.name}</b> — Avance : <code>${t.currentMonthPayroll.amountPaid}</code> (Reste dû : <code>${t.currentMonthPayroll.netRemainingDue}</code>)`
+        )
+        .join("\n");
+      sections.push(`🟡 <b>Avances en cours — ${partialTeachers.length} enseignant(s) :</b>\n${list}`);
+    }
+
+    if (paidTeachers.length > 0) {
+      const list = paidTeachers
+        .map((t) => `• <b>${t.name}</b> — <code>${t.currentMonthPayroll.amountPaid}</code> (Soldé ✅)`)
+        .join("\n");
+      sections.push(`🟢 <b>Soldés — ${paidTeachers.length} enseignant(s) :</b>\n${list}`);
+    }
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ PAIE ENSEIGNANTS</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${targetMonthName} ${targetYear}</b>\n\n🟢 <b>${paidCount}</b> Payés │ 🟡 <b>${partialCount}</b> Avances │ 🔴 <b>${unpaidCount}</b> Non payés\n📊 <b>${totalCount}</b> enseignants au total en base\n\n${sections.join("\n\n")}\n\n<blockquote>💡 <b>Hnia :</b> Données issues directement de la base. Pour enregistrer une avance ou solder un enseignant, donnez-moi simplement son nom et le montant.</blockquote>`;
+  }
+
   return {
     targetMonth: `${targetMonthName} ${targetYear}`,
-    total: teachers.length,
+    total: totalCount,
     summary: {
-      total: teachers.length,
+      total: totalCount,
       paidCount,
       partialCount,
       unpaidCount,
-      breakdown: `${paidCount} Payés │ ${partialCount} Avances │ ${unpaidCount} Non payés sur ${teachers.length} enseignants`,
+      breakdown: `${paidCount} Payés │ ${partialCount} Avances │ ${unpaidCount} Non payés sur ${totalCount} enseignants`,
     },
     teachers: teacherRows,
+    formattedText,
   };
 }
 

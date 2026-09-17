@@ -36,22 +36,25 @@ export async function getStaffTool(
   const targetYear = args.year ? Number(args.year) : now.getFullYear();
   const targetMonthName = MONTHS[targetMonth - 1] || `Mois ${targetMonth}`;
 
-  const staffList = await prisma.staff.findMany({
-    where,
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      surname: true,
-      phone: true,
-      salary: true,
-      role: true,
-      payments: {
-        where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "STAFF" },
-        select: { amount: true, status: true, paidAt: true, month: true, year: true },
+  const [totalCount, staffList] = await Promise.all([
+    prisma.staff.count({ where }),
+    prisma.staff.findMany({
+      where,
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        phone: true,
+        salary: true,
+        role: true,
+        payments: {
+          where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "STAFF" },
+          select: { amount: true, status: true, paidAt: true, month: true, year: true },
+        },
       },
-    },
-  });
+    }),
+  ]);
 
   let paidCount = 0;
   let partialCount = 0;
@@ -83,17 +86,37 @@ export async function getStaffTool(
     };
   });
 
+  let formattedText: string;
+  if (staffRows.length === 1 && args.query) {
+    const s = staffRows[0];
+    const phoneFormatted = s.phone && s.phone !== "Non renseigné" ? `\n  └ 📞 +216 ${s.phone.replace(/^\+?216\s*/, "")}` : "";
+    formattedText = `🏛️ <b>SNAPSCHOOL │ FICHE PERSONNEL (STAFF)</b>\n━━━━━━━━━━━━━━━━━━━━━━\n💼 <b>${s.fullName}</b>${phoneFormatted}\n• 🏷️ Rôle : <code>${s.role}</code>\n• 💰 Salaire de base : <code>${s.salary}</code>\n\n📅 <b>Situation paie (${targetMonthName} ${targetYear}) :</b>\n• Statut : ${s.currentMonthStatus}\n• Montant versé : <code>${s.amountPaid}</code>\n• Reste à payer : <code>${s.remainingDue}</code>\n\n<blockquote>💡 <b>Hnia :</b> Pour verser un acompte ou payer le salaire, dites : <i>"verse une avance de 100 DT à ${s.fullName}"</i>.</blockquote>`;
+  } else if (staffRows.length === 0) {
+    formattedText = `🏛️ <b>SNAPSCHOOL │ PERSONNEL (STAFF)</b>\n━━━━━━━━━━━━━━━━━━━━━━\n<i>Aucun membre du personnel trouvé pour cette recherche.</i>`;
+  } else {
+    const list = staffRows
+      .map((s) => {
+        const phone = s.phone !== "Non renseigné" ? ` (📞 +216 ${s.phone.replace(/^\+?216\s*/, "")})` : "";
+        return `• <b>${s.fullName}</b> — <i>${s.role}</i> : ${s.currentMonthStatus} (Salaire : <code>${s.salary}</code>)${phone}`;
+      })
+      .join("\n");
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ PERSONNEL ADMINISTRATIF & OPÉRATIONNEL</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${targetMonthName} ${targetYear}</b>\n\n🟢 <b>${paidCount}</b> Payés │ 🟡 <b>${partialCount}</b> Avances │ 🔴 <b>${unpaidCount}</b> Non payés\n📊 <b>${totalCount}</b> membres du personnel au total en base\n\n${list}\n\n<blockquote>💡 <b>Hnia :</b> Données synchronisées avec la base PostgreSQL. Pour enregistrer une avance ou un salaire de staff, donnez-moi simplement le nom et le montant.</blockquote>`;
+  }
+
   return {
     targetMonth: `${targetMonthName} ${targetYear}`,
-    total: staffList.length,
+    total: totalCount,
+    returned: staffRows.length,
     summary: {
-      total: staffList.length,
+      total: totalCount,
       paidCount,
       partialCount,
       unpaidCount,
-      breakdown: `${paidCount} Payés │ ${partialCount} Avances │ ${unpaidCount} Non payés sur ${staffList.length} employés`,
+      breakdown: `${paidCount} Payés │ ${partialCount} Avances │ ${unpaidCount} Non payés sur ${totalCount} employés`,
     },
     staff: staffRows,
+    formattedText,
   };
 }
 
