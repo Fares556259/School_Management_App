@@ -431,6 +431,86 @@ export async function getPaymentsTool(
     returnRecords = [...unpaidStudents, ...partialStudents];
   }
 
+  const feePeriodStr = `${MONTHS[month - 1] || month} ${year}`;
+  const feePeriodFr = formatMonthFrench(feePeriodStr);
+  const unpaidTotal = unpaidStudents.reduce((acc, u) => acc + u.dueAmount, 0);
+  const partialRemaining = partialStudents.reduce((acc, p) => acc + p.dueAmount, 0);
+  const totalOwingCount = unpaidStudents.length + partialStudents.length;
+
+  let formattedText: string;
+
+  if (args.studentName) {
+    if (students.length === 0) {
+      formattedText = `🔍 <b>SNAPSCHOOL │ RECHERCHE ÉLÈVE</b>\n━━━━━━━━━━━━━━━━━━━━━━\nAucun élève trouvé correspondant à "<b>${args.studentName}</b>" pour le mois de <b>${feePeriodFr}</b>.`;
+    } else {
+      const studentCards = students.map((s) => {
+        const payment = s.payments?.[0];
+        const fee = s.customTuition || s.level?.tuitionFee || 450;
+        let statusBadge = "🔴 NON PAYÉ (0 DT)";
+        let paidAmt = 0;
+        let dueAmt = fee;
+        if (payment?.status === "PAID") {
+          statusBadge = "🟢 PAYÉ (Soldé)";
+          paidAmt = payment.amount;
+          dueAmt = 0;
+        } else if (payment?.status === "PARTIAL") {
+          paidAmt = payment.amount;
+          dueAmt = payment.deferredAmount || Math.max(0, fee - payment.amount);
+          statusBadge = `🟡 PARTIEL (Reste ${dueAmt} DT)`;
+        }
+        const parentPhoneFormatted = s.parent?.phone ? `\n  └ 📞 +216 ${s.parent.phone.replace(/^\+?216\s*/, "")}` : "";
+        const parentInfo = s.parent ? `👤 ${s.parent.name} ${s.parent.surname}${parentPhoneFormatted}` : "Non renseigné";
+
+        return `👤 <b>${s.name} ${s.surname}</b> • Classe <code>${s.class?.name || "Sans classe"}</code>\n• Statut : ${statusBadge}\n• Versé : <code>${paidAmt} DT</code> / Tarif : <code>${fee} DT</code>\n• Reste dû : <code>${dueAmt} DT</code>\n• Tuteur : ${parentInfo}`;
+      }).join("\n\n");
+
+      formattedText = `🏛️ <b>SNAPSCHOOL │ SCOLARITÉ ÉLÈVE</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${feePeriodFr}</b>\n\n${studentCards}\n\n<blockquote>💡 <b>Hnia :</b> Pour enregistrer un paiement, dites par exemple : <i>"enregistre paiement de ${students[0].name} ${students[0].surname}"</i>.</blockquote>`;
+    }
+  } else if (requestedStatus === "PAID") {
+    const paidList = paidStudents.length === 0
+      ? "<i>Aucun élève n'a encore payé pour ce mois.</i>"
+      : paidStudents.map((p) => {
+          const parentPhone = p.parentPhone ? ` • 📞 +216 ${p.parentPhone.replace(/^\+?216\s*/, "")}` : "";
+          return `• 🟢 <b>${p.studentName}</b> (<code>${p.class}</code>) — <code>${p.paidAmount} DT</code>\n  👤 Tuteur : ${p.parentName}${parentPhone}`;
+        }).join("\n");
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ ÉLÈVES AYANT PAYÉ</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${feePeriodFr}</b>${args.className ? ` • Classe : <code>${args.className}</code>` : ""}\n\n🟢 <b>${paidStudents.length}</b> élève(s) à jour sur <b>${students.length}</b>\n💰 Total encaissé : <code>+${totalCollected} DT</code>\n\n${paidList}\n\n<blockquote>💡 <b>Hnia :</b> ${paidStudents.length} élèves sont en règle pour ${feePeriodFr}. Il reste ${totalOwingCount} élève(s) avec un solde dû (${totalOutstanding} DT).</blockquote>`;
+  } else if (requestedStatus === "PARTIAL") {
+    const partialList = partialStudents.length === 0
+      ? "<i>Aucun paiement partiel (reliquat) pour ce mois.</i>"
+      : partialStudents.map((p) => {
+          const parentPhone = p.parentPhone ? ` • 📞 +216 ${p.parentPhone.replace(/^\+?216\s*/, "")}` : "";
+          return `• 🟡 <b>${p.studentName}</b> (<code>${p.class}</code>) — Reste <code>${p.dueAmount} DT</code> (Payé <code>${p.paidAmount} DT</code> / <code>${p.tuitionFee} DT</code>)\n  👤 Tuteur : ${p.parentName}${parentPhone}`;
+        }).join("\n");
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ PAIEMENTS PARTIELS (RELIQUATS)</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${feePeriodFr}</b>${args.className ? ` • Classe : <code>${args.className}</code>` : ""}\n\n🟡 <b>${partialStudents.length}</b> élève(s) avec reliquat sur <b>${students.length}</b>\n💰 Total reliquats à recouvrer : <code>${partialRemaining} DT</code>\n\n${partialList}\n\n<blockquote>💡 <b>Hnia :</b> Pour solder l'un de ces reliquats, dites simplement : <i>"enregistre le solde restant de [nom de l'élève]"</i>.</blockquote>`;
+  } else {
+    // UNPAID, PENDING, OVERDUE or general inquiry (e.g. "qui n'a pas payé ce mois")
+    const sections: string[] = [];
+
+    if (totalOwingCount === 0) {
+      sections.push(`✅ <b>Excellente nouvelle !</b> Tous les ${students.length} élèves sont 100% à jour de paiement pour <b>${feePeriodFr}</b>.`);
+    } else {
+      if (unpaidStudents.length > 0) {
+        const listUnpaid = unpaidStudents.map((u) => {
+          const parentPhone = u.parentPhone ? ` • 📞 +216 ${u.parentPhone.replace(/^\+?216\s*/, "")}` : "";
+          return `• <b>${u.studentName}</b> (<code>${u.class}</code>) — <code>${u.dueAmount} DT</code>\n  👤 Tuteur : ${u.parentName}${parentPhone}`;
+        }).join("\n");
+        sections.push(`🔴 <b>Totalement impayés (0 DT versés) — ${unpaidStudents.length} élève(s) :</b>\n${listUnpaid}`);
+      }
+
+      if (partialStudents.length > 0) {
+        const listPartial = partialStudents.map((p) => {
+          const parentPhone = p.parentPhone ? ` • 📞 +216 ${p.parentPhone.replace(/^\+?216\s*/, "")}` : "";
+          return `• <b>${p.studentName}</b> (<code>${p.class}</code>) — Reste <code>${p.dueAmount} DT</code> (Payé <code>${p.paidAmount} DT</code> / <code>${p.tuitionFee} DT</code>)\n  👤 Tuteur : ${p.parentName}${parentPhone}`;
+        }).join("\n");
+        sections.push(`🟡 <b>Paiements partiels (reliquats restants) — ${partialStudents.length} élève(s) :</b>\n${listPartial}`);
+      }
+    }
+
+    formattedText = `🏛️ <b>SNAPSCHOOL │ IMPAYÉS DU MOIS</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${feePeriodFr}</b>${args.className ? ` • Classe : <code>${args.className}</code>` : ""}\n\n🟢 <b>${paidStudents.length}</b> Payés │ 🔴 <b>${unpaidStudents.length}</b> Impayés │ 🟡 <b>${partialStudents.length}</b> Partiels\n📊 <b>${totalOwingCount}</b> élèves avec solde dû sur <b>${students.length}</b>\n\n${sections.join("\n\n")}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 <b>Total restant dû :</b> <code>${totalOutstanding} DT</code> (dont <code>${unpaidTotal} DT</code> d'impayés et <code>${partialRemaining} DT</code> de reliquats)\n\n<blockquote>💡 <b>Hnia :</b> ${totalOwingCount} élève(s) ont un solde débiteur ce mois-ci. Vous pouvez relancer leurs tuteurs ou enregistrer un règlement directement par message.</blockquote>`;
+  }
+
   return {
     month,
     year,
@@ -475,6 +555,7 @@ export async function getPaymentsTool(
       })),
     },
     records: returnRecords,
+    formattedText,
   };
 }
 
@@ -564,19 +645,29 @@ export async function getFinancialSummaryTool(
     take: 5,
   });
 
+  const periodFrench = formatMonthFrench(`${MONTHS[month - 1]} ${year}`);
+  const marginPercentage = totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0;
+
+  const topExpensesFormatted = expenseCategories.length > 0
+    ? `\n\n📊 <b>Principales dépenses :</b>\n` + expenseCategories.map((c) => `• ${c.category} : <code>${c._sum.amount || 0} DT</code>`).join("\n")
+    : "";
+
+  const formattedText = `🏛️ <b>SNAPSCHOOL │ BILAN FINANCIER GLOBAL</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📅 Mois : <b>${periodFrench}</b>\n\n💰 <b>Recettes encaissées :</b> <code>+${totalIncome} DT</code>\n💸 <b>Dépenses décaissées :</b> <code>-${totalExpense} DT</code>\n📈 <b>Bénéfice Net :</b> <code>${netProfit >= 0 ? "+" : ""}${netProfit} DT</code> (Marge : <code>${marginPercentage}%</code>)\n⏳ <b>Impayés de scolarité :</b> <code>${unpaidTuition} DT</code> (${unpaidStudentsCount} élève(s))${topExpensesFormatted}\n\n<blockquote>💡 <b>Hnia :</b> ${netProfit >= 0 ? `La trésorerie du mois est positive (+${netProfit} DT). Poursuivez le recouvrement des ${unpaidTuition} DT d'impayés.` : `Attention : les dépenses dépassent les recettes ce mois-ci. Priorité au recouvrement des ${unpaidTuition} DT d'impayés.`}</blockquote>`;
+
   return {
     period: `${month}/${year}`,
-    periodFrench: formatMonthFrench(`${MONTHS[month - 1]} ${year}`),
+    periodFrench,
     totalIncome,
     totalExpense,
     netProfit,
-    marginPercentage: totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0,
+    marginPercentage,
     unpaidTuition,
     unpaidStudentsCount,
     topExpenses: expenseCategories.map((c) => ({
       category: c.category,
       amount: c._sum.amount || 0,
     })),
+    formattedText,
   };
 }
 

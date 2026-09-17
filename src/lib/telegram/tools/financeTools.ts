@@ -440,6 +440,25 @@ export async function getPartialPaymentsTool(
     }
   }
 
+  let itemsText = "";
+  if (filtered.length === 0) {
+    itemsText = "<i>Aucun dossier de reliquat en attente.</i>";
+  } else {
+    itemsText = filtered.slice(0, 30).map((item) => {
+      const parentPhone = item.parentPhone ? ` • 📞 +216 ${item.parentPhone.replace(/^\+?216\s*/, "")}` : "";
+      return `• 🟡 <b>${item.studentName}</b> (<code>${item.className}</code>) — Reste <code>${item.remainingGap} DT</code> (Payé <code>${item.paidAmount} DT</code> / <code>${item.totalTuition} DT</code>)\n  📅 ${item.feeMonth} │ ${item.statusBadge}${item.deferredUntil ? ` (Échéance : <code>${item.deferredUntil}</code>)` : ""}\n  👤 Tuteur : ${item.parentName || "N/A"}${parentPhone}`;
+    }).join("\n\n");
+  }
+
+  const formattedText = `🏛️ <b>SNAPSCHOOL │ DOSSIERS DE RECOUVREMENT (RELIQUATS)</b>
+━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>Total à recouvrer :</b> <code>${totalPending} DT</code> (<b>${filtered.length}</b> dossier(s))
+${overdueCount > 0 ? `❌ <b>Échus en retard :</b> <code>${overdueAmount} DT</code> (${overdueCount} dossier(s))\n` : ""}${thisMonthCount > 0 ? `⏳ <b>Échéance ce mois :</b> <code>${thisMonthAmount} DT</code> (${thisMonthCount} dossier(s))\n` : ""}${statusNote ? `\nℹ️ <i>${statusNote}</i>\n` : ""}
+${itemsText}
+
+━━━━━━━━━━━━━━━━━━━━━━
+<blockquote>💡 <b>Hnia :</b> Pour solder un reliquat, dites simplement par exemple : <i>"enregistre le solde restant de ${filtered[0]?.studentName || "l'élève"}"</i>.</blockquote>`;
+
   return {
     kpis: {
       totalToRecover: `${totalPending} DT`,
@@ -452,6 +471,7 @@ export async function getPartialPaymentsTool(
     count: filtered.length,
     statusNote,
     items: filtered.slice(0, 30),
+    formattedText,
   };
 }
 
