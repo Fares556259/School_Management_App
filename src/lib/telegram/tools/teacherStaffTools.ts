@@ -13,6 +13,8 @@ import { resolveTeacherByName, resolveStaffByName, resolveSubjectByName, resolve
 export async function getStaffTool(
   args: {
     query?: string;
+    month?: number;
+    year?: number;
   },
   context: ToolContext
 ) {
@@ -29,8 +31,9 @@ export async function getStaffTool(
   }
 
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const targetMonth = args.month ? Number(args.month) : (now.getMonth() + 1);
+  const targetYear = args.year ? Number(args.year) : now.getFullYear();
+  const targetMonthName = MONTHS[targetMonth - 1] || `Mois ${targetMonth}`;
 
   const staffList = await prisma.staff.findMany({
     where,
@@ -43,30 +46,60 @@ export async function getStaffTool(
       salary: true,
       role: true,
       payments: {
-        where: { schoolId: context.schoolId, month: currentMonth, year: currentYear, userType: "STAFF" },
+        where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "STAFF" },
         select: { amount: true, status: true, paidAt: true },
       },
     },
   });
 
-  return {
-    total: staffList.length,
-    staff: staffList.map((s) => {
-      const currentP = s.payments[0];
-      const statusLabel = currentP?.status === "PAID"
-        ? "Payé ce mois ✅"
-        : currentP?.status === "PARTIAL"
-        ? `Avance perçue : ${currentP.amount} DT ⚠️`
-        : "Non payé ce mois ⏳";
+  let paidCount = 0;
+  let partialCount = 0;
+  let unpaidCount = 0;
 
-      return {
-        fullName: `${s.name} ${s.surname}`,
-        role: s.role || "Général",
-        phone: s.phone || "Non renseigné",
-        salary: s.salary ? `${s.salary} DT` : "Non fixé",
-        currentMonthStatus: statusLabel,
-      };
-    }),
+  const staffRows = staffList.map((s) => {
+    const currentP = s.payments[0];
+    const actualStatus = currentP?.status ? String(currentP.status).toUpperCase() : "UNPAID";
+    const amountPaid = currentP?.amount || 0;
+    const baseSalary = s.salary || 0;
+    const remaining = Math.max(0, baseSalary - amountPaid);
+
+    const isPaid = (actualStatus === "PAID" || (baseSalary > 0 && amountPaid >= baseSalary)) && remaining <= 0;
+    const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
+    const isUnpaid = !isPaid && !isPartial;
+
+    if (isPaid) paidCount++;
+    else if (isPartial) partialCount++;
+    else unpaidCount++;
+
+    const statusLabel = isPaid
+      ? `Soldé (${amountPaid} DT) ✅`
+      : isPartial
+      ? `Avance : ${amountPaid} DT (Reste : ${remaining} DT) 🟡`
+      : "Non payé ce mois 🔴";
+
+    return {
+      fullName: `${s.name} ${s.surname}`,
+      role: s.role || "Général",
+      phone: s.phone || "Non renseigné",
+      salary: s.salary ? `${s.salary} DT` : "Non fixé",
+      paymentStatus: isPaid ? "PAID" : isPartial ? "PARTIAL" : "UNPAID",
+      currentMonthStatus: statusLabel,
+      amountPaid: `${amountPaid} DT`,
+      remainingDue: `${remaining} DT`,
+    };
+  });
+
+  return {
+    targetMonth: `${targetMonthName} ${targetYear}`,
+    total: staffList.length,
+    summary: {
+      total: staffList.length,
+      paidCount,
+      partialCount,
+      unpaidCount,
+      breakdown: `${paidCount} Payés │ ${partialCount} Avances │ ${unpaidCount} Non payés sur ${staffList.length} employés`,
+    },
+    staff: staffRows,
   };
 }
 

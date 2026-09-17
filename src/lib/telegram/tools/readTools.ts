@@ -679,6 +679,8 @@ export async function getTeachersTool(
   args: {
     query?: string;
     subjectName?: string;
+    month?: number;
+    year?: number;
   },
   context: ToolContext
 ) {
@@ -700,12 +702,13 @@ export async function getTeachersTool(
   }
 
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const targetMonth = args.month ? Number(args.month) : (now.getMonth() + 1);
+  const targetYear = args.year ? Number(args.year) : now.getFullYear();
+  const targetMonthName = MONTHS[targetMonth - 1] || `Mois ${targetMonth}`;
 
   const teachers = await prisma.teacher.findMany({
     where,
-    take: 25,
+    take: 50,
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -718,45 +721,75 @@ export async function getTeachersTool(
       subjects: { select: { id: true, name: true } },
       classes: { select: { id: true, name: true } },
       payments: {
-        where: { schoolId: context.schoolId, month: currentMonth, year: currentYear, userType: "TEACHER" },
+        where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "TEACHER" },
         select: { id: true, amount: true, status: true, missedHours: true, paidAt: true },
       },
     },
   });
 
+  let paidCount = 0;
+  let partialCount = 0;
+  let unpaidCount = 0;
+
+  const teacherRows = teachers.map((t) => {
+    const currentP = t.payments[0];
+    const rate = t.hourlyRate || 15;
+    const missedHrs = currentP?.missedHours || 0;
+    const deduction = missedHrs * rate;
+    const baseSalary = (t.hourlyRate && t.hoursPerMonth && t.hourlyRate > 0 && t.hoursPerMonth > 0)
+      ? (t.hourlyRate * t.hoursPerMonth)
+      : (t.salary || 600);
+    const netDue = Math.max(0, baseSalary - deduction);
+    const amountPaid = currentP?.amount || 0;
+    const remaining = Math.max(0, netDue - amountPaid);
+    const actualStatus = currentP?.status ? String(currentP.status).toUpperCase() : "UNPAID";
+
+    const isPaid = (actualStatus === "PAID" || (netDue > 0 && amountPaid >= netDue)) && remaining <= 0;
+    const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
+    const isUnpaid = !isPaid && !isPartial;
+
+    if (isPaid) paidCount++;
+    else if (isPartial) partialCount++;
+    else unpaidCount++;
+
+    let monthlyStatus = "Non payé 🔴";
+    if (isPaid) {
+      monthlyStatus = `Soldé (${amountPaid} DT) ✅`;
+    } else if (isPartial) {
+      monthlyStatus = `Avance : ${amountPaid} DT (Reste net : ${remaining} DT) 🟡`;
+    }
+
+    return {
+      name: `${t.name} ${t.surname}`,
+      phone: t.phone || "Non renseigné",
+      subjects: t.subjects.map((s) => s.name).join(", ") || "Aucune",
+      supervisedClasses: t.classes.map((c) => c.name).join(", ") || "Aucune",
+      salary: `${baseSalary} DT`,
+      hourlyRate: `${rate} DT/h`,
+      hoursPerMonth: t.hoursPerMonth ? `${t.hoursPerMonth}h` : "Non fixé",
+      paymentStatus: isPaid ? "PAID" : isPartial ? "PARTIAL" : "UNPAID",
+      currentMonthPayroll: {
+        targetMonth: `${targetMonthName} ${targetYear}`,
+        status: monthlyStatus,
+        baseSalary: `${baseSalary} DT`,
+        missedHours: missedHrs > 0 ? `${missedHrs}h (-${deduction} DT)` : "0h",
+        amountPaid: `${amountPaid} DT`,
+        netRemainingDue: `${remaining} DT`,
+      },
+    };
+  });
+
   return {
+    targetMonth: `${targetMonthName} ${targetYear}`,
     total: teachers.length,
-    teachers: teachers.map((t) => {
-      const currentP = t.payments[0];
-      const rate = t.hourlyRate || 15;
-      const missedHrs = currentP?.missedHours || 0;
-      const deduction = missedHrs * rate;
-      const advancePaid = currentP?.status === "PARTIAL" ? currentP.amount : 0;
-      const baseSalary = t.salary || 600;
-      const netDue = Math.max(0, baseSalary - deduction - (currentP?.amount || 0));
-
-      let monthlyStatus = "En attente ⏳";
-      if (currentP?.status === "PAID") {
-        monthlyStatus = `Soldé (${currentP.amount} DT) ✅`;
-      } else if (currentP?.status === "PARTIAL") {
-        monthlyStatus = `Avance : ${currentP.amount} DT (Reste net : ${netDue} DT) ⚠️`;
-      }
-
-      return {
-        name: `${t.name} ${t.surname}`,
-        phone: t.phone || "Non renseigné",
-        subjects: t.subjects.map((s) => s.name).join(", ") || "Aucune",
-        supervisedClasses: t.classes.map((c) => c.name).join(", ") || "Aucune",
-        salary: `${baseSalary} DT`,
-        hourlyRate: `${rate} DT/h`,
-        hoursPerMonth: t.hoursPerMonth ? `${t.hoursPerMonth}h` : "Non fixé",
-        currentMonthPayroll: {
-          status: monthlyStatus,
-          missedHours: missedHrs > 0 ? `${missedHrs}h (-${deduction} DT)` : "0h",
-          netRemainingDue: `${netDue} DT`,
-        },
-      };
-    }),
+    summary: {
+      total: teachers.length,
+      paidCount,
+      partialCount,
+      unpaidCount,
+      breakdown: `${paidCount} Payés │ ${partialCount} Avances │ ${unpaidCount} Non payés sur ${teachers.length} enseignants`,
+    },
+    teachers: teacherRows,
   };
 }
 

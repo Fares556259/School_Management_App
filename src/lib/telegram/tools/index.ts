@@ -482,16 +482,18 @@ export const TOOLS: Record<string, ToolDefinition> = {
   // ── TEACHERS & STAFF SUITE ────────────────────────────────────────────────
   get_teachers: {
     name: "get_teachers",
-    description: "Lister les enseignants, leurs matières et leurs classes assignées.",
+    description: "Lister les enseignants, leurs matières, classes assignées et état de paie (Soldé, Avance, Non payé) pour un mois donné.",
     requiresConfirmation: false,
     declaration: {
       name: "get_teachers",
-      description: "Lister les enseignants de l'école ou chercher qui enseigne une matière.",
+      description: "Lister les enseignants de l'école ou chercher qui enseigne une matière, avec leur situation de paie pour un mois donné.",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
           query: { type: SchemaType.STRING, description: "Nom ou numéro de l'enseignant." },
           subjectName: { type: SchemaType.STRING, description: "Matière enseignée." },
+          month: { type: SchemaType.INTEGER, description: "Mois cible (1-12). Ex: 10 pour octobre, 9 pour septembre." },
+          year: { type: SchemaType.INTEGER, description: "Année cible (ex: 2026)." },
         },
       },
     },
@@ -500,15 +502,17 @@ export const TOOLS: Record<string, ToolDefinition> = {
 
   get_staff: {
     name: "get_staff",
-    description: "Lister le personnel non-enseignant (administration, maintenance, chauffeurs).",
+    description: "Lister le personnel non-enseignant et leur état de paie pour un mois donné.",
     requiresConfirmation: false,
     declaration: {
       name: "get_staff",
-      description: "Lister le personnel administratif et opérationnel.",
+      description: "Lister le personnel administratif et opérationnel avec leur état de paie pour un mois donné.",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
           query: { type: SchemaType.STRING, description: "Nom ou téléphone." },
+          month: { type: SchemaType.INTEGER, description: "Mois cible (1-12). Ex: 10 pour octobre." },
+          year: { type: SchemaType.INTEGER, description: "Année cible (ex: 2026)." },
         },
       },
     },
