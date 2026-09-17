@@ -589,10 +589,25 @@ export async function createStudentTool(
   // Handle parent
   let parentId: string;
   if (args.parentPhone) {
-    const cleanPhone = args.parentPhone.replace(/\s+/g, "");
+    const cleanPhone = args.parentPhone.replace(/[\s\-\.\+]/g, "").trim();
     let parent = await prisma.parent.findFirst({
-      where: { schoolId: context.schoolId, phone: cleanPhone },
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+          ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+        ],
+      },
     });
+
+    if (parent && parent.schoolId !== context.schoolId) {
+      return {
+        success: false,
+        message: `⚠️ Le numéro de téléphone <code>${cleanPhone}</code> existe déjà dans le système. Impossible de créer ou lier ce parent.`,
+        summary: "Téléphone déjà utilisé dans le système",
+        data: null,
+      };
+    }
 
     if (!parent) {
       const pName = args.parentName || `Parent de ${studentName}`;
@@ -690,16 +705,30 @@ export async function createParentTool(
   const pSurname = args.surname.trim();
   const address = args.address?.trim() || "Tunis";
 
-  // Check if parent already exists with this phone in this school
+  // Check if parent already exists with this phone globally
   const existing = await prisma.parent.findFirst({
-    where: { schoolId: context.schoolId, phone: cleanPhone },
+    where: {
+      OR: [
+        { phone: cleanPhone },
+        ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+        ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+      ],
+    },
+    select: { id: true, name: true, surname: true, schoolId: true },
   });
 
   if (existing) {
+    if (existing.schoolId === context.schoolId) {
+      return {
+        success: false,
+        message: `Un parent avec le numéro <code>${cleanPhone}</code> existe déjà dans cette école (${existing.name} ${existing.surname}).`,
+        summary: `Parent déjà existant: ${cleanPhone}`,
+      };
+    }
     return {
       success: false,
-      message: `Un parent avec le numéro <code>${cleanPhone}</code> existe déjà (${existing.name} ${existing.surname}).`,
-      summary: `Parent déjà existant: ${cleanPhone}`,
+      message: `Le numéro de téléphone <code>${cleanPhone}</code> existe déjà dans le système.`,
+      summary: `Téléphone déjà existant: ${cleanPhone}`,
     };
   }
 
@@ -1122,6 +1151,34 @@ export async function updateParentPhoneTool(
       success: false,
       message: `Parent / Élève "${args.studentNameOrParentName}" introuvable.`,
       summary: "Parent introuvable",
+    };
+  }
+
+  // Check global uniqueness across all schools
+  const existingWithPhone = await prisma.parent.findFirst({
+    where: {
+      OR: [
+        { phone: cleanPhone },
+        ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+        ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+      ],
+      id: { not: targetParent.id },
+    },
+    select: { id: true, name: true, surname: true, schoolId: true },
+  });
+
+  if (existingWithPhone) {
+    if (existingWithPhone.schoolId === context.schoolId) {
+      return {
+        success: false,
+        message: `⚠️ Le numéro <code>${cleanPhone}</code> est déjà attribué à <b>${existingWithPhone.name} ${existingWithPhone.surname}</b> dans cette école.`,
+        summary: "Numéro déjà utilisé dans cette école",
+      };
+    }
+    return {
+      success: false,
+      message: `⚠️ Le numéro de téléphone <code>${cleanPhone}</code> existe déjà dans le système.`,
+      summary: "Numéro déjà utilisé",
     };
   }
 

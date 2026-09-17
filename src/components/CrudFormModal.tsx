@@ -16,7 +16,7 @@ import {
   createSubject, updateSubject, deleteSubject,
   createExpense, updateExpense, deleteExpense,
   createIncome, updateIncome, deleteIncome,
-  enrollFamily, checkParentPhoneExists,
+  enrollFamily, checkParentPhoneExists, checkTeacherPhoneExists, checkStaffPhoneExists, type PhoneCheckResult,
 } from "@/lib/crudActions";
 import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2, Eye, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -210,26 +210,44 @@ export default function CrudFormModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { t, locale } = useLanguage();
 
-  // Phone duplicate detection (parent create mode only)
-  const [phoneExists, setPhoneExists] = useState<{ exists: boolean; parentName?: string }>({ exists: false });
+  // Phone duplicate detection (global uniqueness for parent and teacher)
+  const [phoneExists, setPhoneExists] = useState<PhoneCheckResult>({ exists: false });
   const [checkingPhone, setCheckingPhone] = useState(false);
   const phoneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handlePhoneChange = useCallback((value: string) => {
+  const handlePhoneChange = useCallback((value: string, ent: EntityType, m: "create" | "update", currentRecordId?: string | number) => {
     if (phoneDebounceRef.current) clearTimeout(phoneDebounceRef.current);
-    if (!value || value.trim().length < 6) {
+    const trimmed = value?.trim();
+    if (!trimmed || trimmed.length < 6) {
       setPhoneExists({ exists: false });
       setCheckingPhone(false);
       return;
     }
+
+    // In update mode, if the phone hasn't changed from original data, skip duplicate check
+    if (m === "update" && data?.phone && String(data.phone).replace(/[\s\-\.\+]/g, "").trim() === trimmed.replace(/[\s\-\.\+]/g, "").trim()) {
+      setPhoneExists({ exists: false });
+      setCheckingPhone(false);
+      return;
+    }
+
     setCheckingPhone(true);
     phoneDebounceRef.current = setTimeout(async () => {
-      const result = await checkParentPhoneExists(value.trim());
+      const excludeId = m === "update" && currentRecordId ? String(currentRecordId) : undefined;
+      let result: PhoneCheckResult = { exists: false };
+      
+      if (ent === "parent") {
+        result = await checkParentPhoneExists(trimmed, excludeId);
+      } else if (ent === "teacher") {
+        result = await checkTeacherPhoneExists(trimmed, excludeId);
+      } else if (ent === "staff") {
+        result = await checkStaffPhoneExists(trimmed, excludeId);
+      }
+      
       setPhoneExists(result);
       setCheckingPhone(false);
-    }, 500);
-  }, []);
-
+    }, 400);
+  }, [data]);
 
   // Unified Enrollment State (Optional children for parent)
   const [students, setStudents] = useState<any[]>([]);
@@ -249,6 +267,8 @@ export default function CrudFormModal({
       setStudents([]);
     } else {
       setImgs(parseImgs(data?.img));
+      setPhoneExists({ exists: false });
+      setCheckingPhone(false);
     }
   }, [open, mode, data]);
 
@@ -315,6 +335,12 @@ export default function CrudFormModal({
     });
 
     if (hasValidationError) return;
+
+    // Guard against duplicate phone numbers
+    if ((entity === "parent" || entity === "teacher" || entity === "staff") && (phoneExists.exists || checkingPhone)) {
+      setError(phoneExists.message || "Ce numéro de téléphone existe déjà.");
+      return;
+    }
 
     // Handle image state: ensure null is sent if photo was explicitly removed
     values.img = imgs.length > 0 ? imgs.join(",") : null;
@@ -855,9 +881,13 @@ export default function CrudFormModal({
                                 return t.crud.fields[f.placeholder as keyof typeof t.crud.fields] || f.placeholder;
                               })()}
                               step={f.type === "number" ? "0.01" : undefined}
-                              onChange={entity === "parent" && mode === "create" && f.name === "phone" ? (e) => handlePhoneChange(e.target.value) : undefined}
+                              onChange={
+                                (entity === "parent" || entity === "teacher" || entity === "staff") && f.name === "phone"
+                                  ? (e) => handlePhoneChange(e.target.value, entity, mode, id)
+                                  : undefined
+                              }
                               className={`w-full border ${
-                                entity === "parent" && mode === "create" && f.name === "phone" && phoneExists.exists
+                                (entity === "parent" || entity === "teacher" || entity === "staff") && f.name === "phone" && phoneExists.exists
                                   ? "border-rose-500 focus:border-rose-500 focus:ring-rose-200 bg-rose-50"
                                   : error && f.name === error.split(" ")[0].toLowerCase()
                                   ? "border-rose-500 focus:ring-rose-500"
@@ -871,16 +901,27 @@ export default function CrudFormModal({
                               }}
                             />
                             {/* Phone duplicate warning */}
-                            {entity === "parent" && mode === "create" && f.name === "phone" && (
+                            {(entity === "parent" || entity === "teacher" || entity === "staff") && f.name === "phone" && (
                               <div className="mt-1.5 min-h-[20px]">
                                 {checkingPhone && (
                                   <p className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium">
-                                    <Loader2 size={11} className="animate-spin" /> Vérification...
+                                    <Loader2 size={11} className="animate-spin" /> {locale === "ar" ? "جاري التحقق..." : locale === "en" ? "Checking..." : "Vérification..."}
                                   </p>
                                 )}
                                 {!checkingPhone && phoneExists.exists && (
                                   <p className="flex items-center gap-1.5 text-[12px] text-rose-600 font-semibold">
-                                    ⚠️ Ce numéro appartient déjà à {phoneExists.parentName}. Changez le numéro pour continuer.
+                                    ⚠️ {phoneExists.isCurrentSchool
+                                      ? (locale === "ar"
+                                          ? `هذا الرقم مسجل بالفعل في هذه المدرسة (${phoneExists.parentName}).`
+                                          : locale === "en"
+                                          ? `This number is already registered in this school (${phoneExists.parentName}).`
+                                          : `Ce numéro est déjà enregistré dans cette école (${phoneExists.parentName}).`)
+                                      : (locale === "ar"
+                                          ? "رقم الهاتف هذا موجود بالفعل في النظام."
+                                          : locale === "en"
+                                          ? "This phone number already exists in the system."
+                                          : "Ce numéro de téléphone existe déjà dans le système.")
+                                    }
                                   </p>
                                 )}
                               </div>
@@ -994,7 +1035,7 @@ export default function CrudFormModal({
                     </button>
                     <button
                       type="submit"
-                      disabled={isPending || uploadingImg || (entity === "parent" && mode === "create" && (phoneExists.exists || checkingPhone))}
+                      disabled={isPending || uploadingImg || ((entity === "parent" || entity === "teacher" || entity === "staff") && (phoneExists.exists || checkingPhone))}
                       className="px-6 py-2.5 text-[16px] font-medium text-white bg-[#181d26] hover:bg-[#0d1218] rounded-[12px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isPending ? t.crud.saving : uploadingImg ? t.crud.uploading : mode === "create" ? t.crud.create : t.crud.saveChanges}

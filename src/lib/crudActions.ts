@@ -32,6 +32,32 @@ export const createTeacher = async (data: {
     const schoolId = await getSchoolId();
     const id = crypto.randomUUID();
 
+    if (data.phone) {
+      const cleanPhone = data.phone.replace(/[\s\-\.\+]/g, "").trim();
+      const existingTeacher = await prisma.teacher.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+      if (existingTeacher) {
+        if (existingTeacher.schoolId === schoolId) {
+          return {
+            success: false,
+            error: `Ce numéro de téléphone est déjà enregistré dans cette école (${existingTeacher.name} ${existingTeacher.surname}).`,
+          };
+        }
+        return {
+          success: false,
+          error: "Ce numéro de téléphone existe déjà dans le système.",
+        };
+      }
+    }
+
     // 2. Create Prisma Record
     await prisma.teacher.create({
       data: {
@@ -40,7 +66,7 @@ export const createTeacher = async (data: {
         username: data.username || (data.name.toLowerCase() + data.surname.toLowerCase()).replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 1000),
         name: data.name,
         surname: data.surname,
-        phone: data.phone || null,
+        phone: data.phone ? data.phone.replace(/[\s\-\.\+]/g, "").trim() : null,
         address: data.address || "",
         bloodType: data.bloodType || "Inconnu",
         birthday: data.birthday ? new Date(data.birthday) : new Date("1990-01-01"),
@@ -63,6 +89,9 @@ export const createTeacher = async (data: {
     revalidatePath("/list/teachers");
     return { success: true };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     console.error("createTeacher error:", err);
     return { success: false, error: err?.message || "Failed to create teacher." };
   }
@@ -130,8 +159,37 @@ export const updateTeacher = async (
 ) => {
   try {
     const schoolId = await getSchoolId();
+    const cleanPhone = data.phone ? data.phone.replace(/[\s\-\.\+]/g, "").trim() : undefined;
+
+    if (cleanPhone) {
+      const existingTeacher = await prisma.teacher.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+          id: { not: id },
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+      if (existingTeacher) {
+        if (existingTeacher.schoolId === schoolId) {
+          return {
+            success: false,
+            error: `Ce numéro de téléphone est déjà enregistré dans cette école (${existingTeacher.name} ${existingTeacher.surname}).`,
+          };
+        }
+        return {
+          success: false,
+          error: "Ce numéro de téléphone existe déjà dans le système.",
+        };
+      }
+    }
+
     const updateData: any = {
       ...data,
+      phone: cleanPhone !== undefined ? cleanPhone : data.phone,
       birthday: data.birthday ? new Date(data.birthday) : undefined,
     };
 
@@ -162,6 +220,9 @@ export const updateTeacher = async (
     revalidatePath(`/list/teachers/${id}`);
     return { success: true };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     console.error("updateTeacher error:", err);
     return { success: false, error: err?.message || "Failed to update teacher." };
   }
@@ -459,6 +520,33 @@ export const createStaff = async (data: {
 }) => {
   try {
     const schoolId = await getSchoolId();
+
+    if (data.phone) {
+      const cleanPhone = data.phone.replace(/[\s\-\.\+]/g, "").trim();
+      const existingStaff = await prisma.staff.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+      if (existingStaff) {
+        if (existingStaff.schoolId === schoolId) {
+          return {
+            success: false,
+            error: `Ce numéro de téléphone est déjà enregistré dans cette école (${existingStaff.name} ${existingStaff.surname}).`,
+          };
+        }
+        return {
+          success: false,
+          error: "Ce numéro de téléphone existe déjà dans le système.",
+        };
+      }
+    }
+
     await prisma.staff.create({
       data: {
         schoolId,
@@ -466,7 +554,7 @@ export const createStaff = async (data: {
         username: data.username,
         name: data.name,
         surname: data.surname,
-        phone: data.phone || null,
+        phone: data.phone ? data.phone.replace(/[\s\-\.\+]/g, "").trim() : null,
         address: data.address || "",
         bloodType: data.bloodType || "Inconnu",
         birthday: data.birthday ? new Date(data.birthday) : new Date("1990-01-01"),
@@ -478,6 +566,9 @@ export const createStaff = async (data: {
     revalidatePath("/list/staff");
     return { success: true };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     return { success: false, error: err?.message || "Failed to create staff." };
   }
 };
@@ -499,7 +590,38 @@ export const updateStaff = async (
 ) => {
   try {
     const schoolId = await getSchoolId();
+    const cleanPhone = data.phone ? data.phone.replace(/[\s\-\.\+]/g, "").trim() : undefined;
+
+    if (cleanPhone) {
+      const existingStaff = await prisma.staff.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+          id: { not: id },
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+      if (existingStaff) {
+        if (existingStaff.schoolId === schoolId) {
+          return {
+            success: false,
+            error: `Ce numéro de téléphone est déjà enregistré dans cette école (${existingStaff.name} ${existingStaff.surname}).`,
+          };
+        }
+        return {
+          success: false,
+          error: "Ce numéro de téléphone existe déjà dans le système.",
+        };
+      }
+    }
+
     const updateData: any = { ...data };
+    if (cleanPhone !== undefined) {
+      updateData.phone = cleanPhone;
+    }
     if (data.birthday) {
       updateData.birthday = new Date(data.birthday);
     } else {
@@ -511,6 +633,9 @@ export const updateStaff = async (
     revalidatePath(`/list/staff/${id}`);
     return { success: true };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     return { success: false, error: err?.message || "Failed to update staff." };
   }
 };
@@ -545,10 +670,38 @@ export const createParent = async (data: {
   img?: string | null;
 }) => {
   try {
-    const finalUsername = data.username || 
-      `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${data.phone.slice(-4)}`;
-
     const schoolId = await getSchoolId();
+    const cleanPhone = data.phone.replace(/[\s\-\.\+]/g, "").trim();
+
+    // 1. Global uniqueness check across ALL schools in database
+    const existing = await prisma.parent.findFirst({
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+          ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+        ],
+      },
+      select: { id: true, name: true, surname: true, schoolId: true },
+    });
+
+    if (existing) {
+      if (existing.schoolId === schoolId) {
+        return {
+          success: false,
+          error: `Ce numéro de téléphone est déjà enregistré dans cette école (${existing.name} ${existing.surname}).`,
+        };
+      }
+      // Privacy protection: do not leak name or school from another institution
+      return {
+        success: false,
+        error: "Ce numéro de téléphone existe déjà dans le système.",
+      };
+    }
+
+    const finalUsername = data.username || 
+      `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${cleanPhone.slice(-4)}`;
+
     const defaultImg = data.sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
 
     await prisma.parent.create({
@@ -558,7 +711,7 @@ export const createParent = async (data: {
         username: finalUsername,
         name: data.name,
         surname: data.surname,
-        phone: data.phone,
+        phone: cleanPhone,
         address: data.address || "",
         img: data.img || defaultImg,
       },
@@ -567,6 +720,9 @@ export const createParent = async (data: {
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     console.error("[createParent] Error:", err);
     return { success: false, error: err?.message || "Failed to create parent." };
   }
@@ -588,6 +744,35 @@ export const updateParent = async (
     const schoolId = await getSchoolId();
     const { sex, ...restData } = data as any;
 
+    if (data.phone) {
+      const cleanPhone = data.phone.replace(/[\s\-\.\+]/g, "").trim();
+      const existing = await prisma.parent.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+          id: { not: id },
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+
+      if (existing) {
+        if (existing.schoolId === schoolId) {
+          return {
+            success: false,
+            error: `Ce numéro de téléphone est déjà enregistré dans cette école (${existing.name} ${existing.surname}).`,
+          };
+        }
+        return {
+          success: false,
+          error: "Ce numéro de téléphone existe déjà dans le système.",
+        };
+      }
+      restData.phone = cleanPhone;
+    }
+
     if (sex && (!restData.img || restData.img.startsWith("/avatars/parent_"))) {
       restData.img = sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
     }
@@ -597,6 +782,9 @@ export const updateParent = async (
     revalidatePath("/list/parents");
     return { success: true };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     return { success: false, error: err?.message || "Failed to update parent." };
   }
 };
@@ -1313,23 +1501,34 @@ export const resetTeacherPassword = async (teacherId: string) => {
 export const enrollFamily = async (parentData: any, children: any[]) => {
   try {
     const schoolId = await getSchoolId();
+    const cleanPhone = parentData.phone ? parentData.phone.replace(/[\s\-\.\+]/g, "").trim() : "";
+
     const result = await prisma.$transaction(async (tx) => {
       // 1. Find or Create Parent (Smart lookup by phone OR username)
       let parent = await tx.parent.findFirst({
         where: { 
           OR: [
-            { phone: parentData.phone },
-            { username: parentData.username }
+            ...(cleanPhone ? [
+              { phone: cleanPhone },
+              ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+              ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+            ] : []),
+            ...(parentData.username ? [{ username: parentData.username }] : []),
           ]
         },
       });
+
+      // Prevent attaching to a parent from another school (enforce global uniqueness & privacy)
+      if (parent && parent.schoolId !== schoolId) {
+        throw new Error("Ce numéro de téléphone existe déjà dans le système.");
+      }
 
       const parentDefaultImg = parentData.sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
 
       if (!parent) {
         // Generate a clean username if not provided
         const genUsername = parentData.username || 
-          `${parentData.name.toLowerCase()}.${parentData.surname.toLowerCase()}.${parentData.phone.slice(-4)}`;
+          `${parentData.name.toLowerCase()}.${parentData.surname.toLowerCase()}.${cleanPhone.slice(-4)}`;
           
         parent = await tx.parent.create({
           data: {
@@ -1338,13 +1537,13 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
             username: genUsername,
             name: parentData.name,
             surname: parentData.surname,
-            phone: parentData.phone,
+            phone: cleanPhone,
             address: parentData.address,
             img: parentData.img || parentDefaultImg,
           }
         });
       } else {
-        // If parent already exists but doesn't have an img, or has a default avatar
+        // If parent already exists in this school but doesn't have an img, or has a default avatar
         if (!parent.img || parent.img.startsWith("/avatars/parent_")) {
           await tx.parent.update({
             where: { id: parent.id },
@@ -1418,6 +1617,9 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
     revalidatePath("/list/students");
     return { success: true, parentId: result.id };
   } catch (err: any) {
+    if (err?.code === "P2002" || err?.message?.includes("Unique constraint")) {
+      return { success: false, error: "Ce numéro de téléphone existe déjà dans le système." };
+    }
     console.error("enrollFamily error:", err);
     return { success: false, error: err?.message || "Failed to enroll family." };
   }
@@ -1584,23 +1786,189 @@ export const deleteResource = async (id: number) => {
 
 // ===================== PHONE DUPLICATE CHECK =====================
 
+export interface PhoneCheckResult {
+  exists: boolean;
+  isCurrentSchool?: boolean;
+  parentName?: string;
+  message?: string;
+}
+
 /**
- * Checks if a phone number already exists for another parent in the same school.
- * Used in the Add New Parent form for real-time duplicate detection.
+ * Checks if a phone number already exists for another parent across ALL schools in the entire database.
+ * 
+ * Rules:
+ * 1. If it does not exist anywhere -> returns { exists: false }
+ * 2. If it already exists in the current school -> returns { exists: true, isCurrentSchool: true, parentName, message }
+ * 3. If it exists but belongs to a parent from another school -> returns { exists: true, isCurrentSchool: false, message }
+ *    (Privacy protection: NEVER exposes which school or parent it belongs to!)
+ * 
+ * Used in the Parent form for real-time duplicate detection as the user types.
  */
-export const checkParentPhoneExists = async (phone: string): Promise<{ exists: boolean; parentName?: string }> => {
+export const checkParentPhoneExists = async (
+  phone: string,
+  excludeParentId?: string
+): Promise<PhoneCheckResult> => {
   try {
-    if (!phone || phone.trim().length < 6) return { exists: false };
+    if (!phone) return { exists: false };
+    const cleanPhone = phone.replace(/[\s\-\.\+]/g, "").trim();
+    if (cleanPhone.length < 6) return { exists: false };
+
     const schoolId = await getSchoolId();
+
+    // Global lookup across the ENTIRE database (all schools)
     const existing = await prisma.parent.findFirst({
-      where: { schoolId, phone: phone.trim() },
-      select: { name: true, surname: true },
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+          ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+        ],
+        ...(excludeParentId ? { id: { not: excludeParentId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        schoolId: true,
+      },
     });
-    if (existing) {
-      return { exists: true, parentName: `${existing.name} ${existing.surname}` };
+
+    if (!existing) {
+      return { exists: false };
     }
+
+    if (existing.schoolId === schoolId) {
+      const parentName = `${existing.name} ${existing.surname}`.trim();
+      return {
+        exists: true,
+        isCurrentSchool: true,
+        parentName,
+        message: `Ce numéro est déjà enregistré dans cette école (${parentName}).`,
+      };
+    }
+
+    // Belongs to another school: strictly conceal identity and school name
+    return {
+      exists: true,
+      isCurrentSchool: false,
+      message: "Ce numéro de téléphone existe déjà dans le système.",
+    };
+  } catch (error) {
+    console.error("[checkParentPhoneExists] Error:", error);
     return { exists: false };
-  } catch {
+  }
+};
+
+/**
+ * Checks if a teacher's phone number already exists across ALL schools in the entire database.
+ * Used for real-time duplicate detection when adding or editing teachers.
+ */
+export const checkTeacherPhoneExists = async (
+  phone: string,
+  excludeTeacherId?: string
+): Promise<PhoneCheckResult> => {
+  try {
+    if (!phone) return { exists: false };
+    const cleanPhone = phone.replace(/[\s\-\.\+]/g, "").trim();
+    if (cleanPhone.length < 6) return { exists: false };
+
+    const schoolId = await getSchoolId();
+
+    const existing = await prisma.teacher.findFirst({
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+          ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+        ],
+        ...(excludeTeacherId ? { id: { not: excludeTeacherId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        schoolId: true,
+      },
+    });
+
+    if (!existing) {
+      return { exists: false };
+    }
+
+    if (existing.schoolId === schoolId) {
+      const teacherName = `${existing.name} ${existing.surname}`.trim();
+      return {
+        exists: true,
+        isCurrentSchool: true,
+        parentName: teacherName,
+        message: `Ce numéro est déjà enregistré dans cette école (${teacherName}).`,
+      };
+    }
+
+    return {
+      exists: true,
+      isCurrentSchool: false,
+      message: "Ce numéro de téléphone existe déjà dans le système.",
+    };
+  } catch (error) {
+    console.error("[checkTeacherPhoneExists] Error:", error);
+    return { exists: false };
+  }
+};
+
+/**
+ * Checks if a staff member's phone number already exists across ALL schools in the entire database.
+ * Used for real-time duplicate detection when adding or editing staff.
+ */
+export const checkStaffPhoneExists = async (
+  phone: string,
+  excludeStaffId?: string
+): Promise<PhoneCheckResult> => {
+  try {
+    if (!phone) return { exists: false };
+    const cleanPhone = phone.replace(/[\s\-\.\+]/g, "").trim();
+    if (cleanPhone.length < 6) return { exists: false };
+
+    const schoolId = await getSchoolId();
+
+    const existing = await prisma.staff.findFirst({
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+          ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+        ],
+        ...(excludeStaffId ? { id: { not: excludeStaffId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        schoolId: true,
+      },
+    });
+
+    if (!existing) {
+      return { exists: false };
+    }
+
+    if (existing.schoolId === schoolId) {
+      const staffName = `${existing.name} ${existing.surname}`.trim();
+      return {
+        exists: true,
+        isCurrentSchool: true,
+        parentName: staffName,
+        message: `Ce numéro est déjà enregistré dans cette école (${staffName}).`,
+      };
+    }
+
+    return {
+      exists: true,
+      isCurrentSchool: false,
+      message: "Ce numéro de téléphone existe déjà dans le système.",
+    };
+  } catch (error) {
+    console.error("[checkStaffPhoneExists] Error:", error);
     return { exists: false };
   }
 };

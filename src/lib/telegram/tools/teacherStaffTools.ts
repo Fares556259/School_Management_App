@@ -89,7 +89,34 @@ export async function createTeacherTool(
 ): Promise<WriteToolResult> {
   const name = args.name.trim();
   const surname = args.surname.trim();
-  const phone = args.phone.replace(/\s+/g, "");
+  const phone = args.phone.replace(/[\s\-\.\+]/g, "").trim();
+
+  // Check global phone uniqueness across all schools
+  const existing = await prisma.teacher.findFirst({
+    where: {
+      OR: [
+        { phone },
+        ...(phone.startsWith("216") && phone.length === 11 ? [{ phone: phone.slice(3) }] : []),
+        ...(!phone.startsWith("216") && phone.length === 8 ? [{ phone: `216${phone}` }] : []),
+      ],
+    },
+    select: { id: true, name: true, surname: true, schoolId: true },
+  });
+
+  if (existing) {
+    if (existing.schoolId === context.schoolId) {
+      return {
+        success: false,
+        message: `⚠️ Un enseignant avec le numéro <code>${phone}</code> existe déjà dans cette école (${existing.name} ${existing.surname}).`,
+        summary: `Enseignant déjà existant: ${phone}`,
+      };
+    }
+    return {
+      success: false,
+      message: `⚠️ Le numéro de téléphone <code>${phone}</code> existe déjà dans le système.`,
+      summary: `Téléphone déjà existant`,
+    };
+  }
 
   const username = `prof.${name.toLowerCase().replace(/[^a-z]/g, "")}.${Date.now().toString().slice(-4)}`;
 
@@ -193,7 +220,34 @@ export async function createStaffTool(
 ): Promise<WriteToolResult> {
   const name = args.name.trim();
   const surname = args.surname.trim();
-  const phone = args.phone.replace(/\s+/g, "");
+  const phone = args.phone.replace(/[\s\-\.\+]/g, "").trim();
+
+  // Check global phone uniqueness across all schools
+  const existing = await prisma.staff.findFirst({
+    where: {
+      OR: [
+        { phone },
+        ...(phone.startsWith("216") && phone.length === 11 ? [{ phone: phone.slice(3) }] : []),
+        ...(!phone.startsWith("216") && phone.length === 8 ? [{ phone: `216${phone}` }] : []),
+      ],
+    },
+    select: { id: true, name: true, surname: true, schoolId: true },
+  });
+
+  if (existing) {
+    if (existing.schoolId === context.schoolId) {
+      return {
+        success: false,
+        message: `⚠️ Un membre du personnel avec le numéro <code>${phone}</code> existe déjà dans cette école (${existing.name} ${existing.surname}).`,
+        summary: `Personnel déjà existant: ${phone}`,
+      };
+    }
+    return {
+      success: false,
+      message: `⚠️ Le numéro de téléphone <code>${phone}</code> existe déjà dans le système.`,
+      summary: `Téléphone déjà existant`,
+    };
+  }
 
   const username = `staff.${name.toLowerCase().replace(/[^a-z]/g, "")}.${Date.now().toString().slice(-4)}`;
 
@@ -968,8 +1022,33 @@ export async function updateTeacherTool(
   }
 
   if (args.phone) {
-    const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
+    const cleanPhone = args.phone.replace(/[\s\-\.\+]/g, "").trim();
     if (cleanPhone !== teacher.phone) {
+      const existing = await prisma.teacher.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+          id: { not: teacher.id },
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+      if (existing) {
+        if (existing.schoolId === context.schoolId) {
+          return {
+            success: false,
+            message: `⚠️ Le numéro <code>${cleanPhone}</code> est déjà attribué à l'enseignant(e) <b>${existing.name} ${existing.surname}</b> dans cette école.`,
+            summary: "Numéro déjà utilisé dans cette école",
+          };
+        }
+        return {
+          success: false,
+          message: `⚠️ Le numéro de téléphone <code>${cleanPhone}</code> existe déjà dans le système.`,
+          summary: "Numéro déjà utilisé",
+        };
+      }
       updateData.phone = cleanPhone;
       changeDescriptions.push(`Téléphone : <code>${cleanPhone}</code>`);
     }
@@ -1243,8 +1322,33 @@ export async function updateStaffTool(
   }
 
   if (args.phone) {
-    const cleanPhone = args.phone.replace(/[\s\-\+]/g, "").slice(-8);
+    const cleanPhone = args.phone.replace(/[\s\-\.\+]/g, "").trim();
     if (cleanPhone !== staff.phone) {
+      const existing = await prisma.staff.findFirst({
+        where: {
+          OR: [
+            { phone: cleanPhone },
+            ...(cleanPhone.startsWith("216") && cleanPhone.length === 11 ? [{ phone: cleanPhone.slice(3) }] : []),
+            ...(!cleanPhone.startsWith("216") && cleanPhone.length === 8 ? [{ phone: `216${cleanPhone}` }] : []),
+          ],
+          id: { not: staff.id },
+        },
+        select: { id: true, name: true, surname: true, schoolId: true },
+      });
+      if (existing) {
+        if (existing.schoolId === context.schoolId) {
+          return {
+            success: false,
+            message: `⚠️ Le numéro <code>${cleanPhone}</code> est déjà attribué au membre du personnel <b>${existing.name} ${existing.surname}</b> dans cette école.`,
+            summary: "Numéro déjà utilisé dans cette école",
+          };
+        }
+        return {
+          success: false,
+          message: `⚠️ Le numéro de téléphone <code>${cleanPhone}</code> existe déjà dans le système.`,
+          summary: "Numéro déjà utilisé",
+        };
+      }
       updateData.phone = cleanPhone;
       changeDescriptions.push(`Téléphone : <code>${cleanPhone}</code>`);
     }
