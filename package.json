@@ -13,7 +13,8 @@
     "test:audit": "tsx scripts/auditDatabaseIntegrity.ts",
     "test:business": "tsx scripts/testBusinessCases.ts",
     "test:scenarios": "tsx scripts/simulateHniaScenarios.ts",
-    "test:all": "npm test && npm run test:evals && npm run test:audit && npm run test:business",
+    "test:deep": "tsx scripts/testVisionVoiceDeep.ts && tsx scripts/testPartialPaymentCycle.ts && tsx scripts/testAttendanceWorkflow.ts && tsx scripts/testCronPipelines.ts && tsx scripts/testSecurityAndAudit.ts",
+    "test:all": "npm test && npm run test:audit && npm run test:business && npm run test:deep",
     "test-portal": "tsx scripts/mockPortalServer.ts"
   },
   "prisma": {

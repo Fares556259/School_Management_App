@@ -1046,7 +1046,20 @@ export async function getDailyCaisseTool(
   args: { date?: string },
   context: ToolContext
 ) {
-  const targetDate = args.date ? new Date(args.date) : new Date();
+  let targetDate = new Date();
+  if (args.date) {
+    const dLower = args.date.toLowerCase().trim();
+    if (dLower === "today" || dLower === "aujourd'hui" || dLower === "lyoum") {
+      targetDate = new Date();
+    } else if (dLower === "yesterday" || dLower === "hier" || dLower === "bareh") {
+      targetDate = new Date(Date.now() - 86400000);
+    } else {
+      const parsed = new Date(args.date);
+      if (!isNaN(parsed.getTime())) {
+        targetDate = parsed;
+      }
+    }
+  }
   const startOfDay = new Date(targetDate);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(targetDate);
