@@ -728,7 +728,8 @@ export const ar = {
     "bulkEnroll": "تسجيل ذكي شامل",
     "paid": "مدفوع",
     "unpaid": "غير مدفوع",
-    "partial": "جزئي",
+    "partial": "تسبيق",
+    "partialPlural": "تسبيقات",
     "noClass": "بدون قسم",
     "notProvided": "غير متوفر",
     "outOfStudents": "من أصل {count} طالب",
@@ -744,8 +745,7 @@ export const ar = {
       "startExtraction": "بدء الاستخراج"
     },
     "paidPlural": "تم السداد",
-    "unpaidPlural": "غير مسدد",
-    "partialPlural": "دفع جزئي"
+    "unpaidPlural": "غير مسدد"
   },
   "teachers": {
     "title": "الأساتذة",
@@ -766,7 +766,8 @@ export const ar = {
     "noSubjects": "لا توجد مواد",
     "noClasses": "لا توجد أقسام",
     "notProvided": "غير متوفر",
-    "partial": "سلفة",
+    "partial": "تسبيق",
+    "partialPlural": "تسبيقات",
     "outOfTeachers": "من أصل {count} أستاذ",
     "paidPlural": "تم السداد",
     "unpaidPlural": "غير مسدد"
@@ -781,6 +782,8 @@ export const ar = {
     "actions": "إجراءات",
     "paid": "مدفوع",
     "unpaid": "غير مدفوع",
+    "partial": "تسبيق",
+    "partialPlural": "تسبيقات",
     "notProvided": "غير متوفر",
     "outOfStaff": "من أصل {count} موظف",
     "paidPlural": "تم السداد",

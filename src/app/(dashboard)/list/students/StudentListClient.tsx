@@ -123,12 +123,21 @@ export default function StudentListClient({
       const yearVal = parseInt(yStr) || new Date().getFullYear();
       const currentPayment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
       const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-      const isPaid = statusUpper === "PAID";
-      const isPartial = statusUpper === "PARTIAL";
+
+      const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
+      const amountPaid = currentPayment?.amount || 0;
+      const deferred = currentPayment?.deferredAmount;
+      const remaining = (deferred !== undefined && deferred !== null)
+        ? deferred
+        : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
+
+      const isPaid = (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+      const isPartial = !isPaid && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
+      const isUnpaid = !isPaid && !isPartial;
 
       if (clientStatus === "PAID" && !isPaid) return false;
       if (clientStatus === "PARTIAL" && !isPartial) return false;
-      if (clientStatus === "UNPAID" && (isPaid || isPartial)) return false;
+      if (clientStatus === "UNPAID" && !isUnpaid) return false;
     }
     return true;
   });
@@ -155,16 +164,27 @@ export default function StudentListClient({
 
   const displayTotalThisMonth = summaryBaseData.length;
   const displayPaidThisMonth = summaryBaseData.filter(item => {
-    return item.payments?.some((p: any) => {
-      const st = p.status ? String(p.status).toUpperCase() : "";
-      return p.month === sumMonthIdx && p.year === sumYearVal && st === "PAID";
-    });
+    const currentPayment = item.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
+    const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
+    const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
+    const amountPaid = currentPayment?.amount || 0;
+    const deferred = currentPayment?.deferredAmount;
+    const remaining = (deferred !== undefined && deferred !== null)
+      ? deferred
+      : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
+    return (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
   }).length;
   const displayPartialThisMonth = summaryBaseData.filter(item => {
-    return item.payments?.some((p: any) => {
-      const st = p.status ? String(p.status).toUpperCase() : "";
-      return p.month === sumMonthIdx && p.year === sumYearVal && st === "PARTIAL";
-    });
+    const currentPayment = item.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
+    const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
+    const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
+    const amountPaid = currentPayment?.amount || 0;
+    const deferred = currentPayment?.deferredAmount;
+    const remaining = (deferred !== undefined && deferred !== null)
+      ? deferred
+      : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
+    const isPaid = (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+    return !isPaid && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
   }).length;
 
   const ITEM_PER_PAGE = 25;
@@ -199,8 +219,15 @@ export default function StudentListClient({
     );
 
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const isPaidThisMonth = statusUpper === "PAID";
-    const isPartialThisMonth = statusUpper === "PARTIAL";
+    const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
+    const amountPaid = currentPayment?.amount || 0;
+    const deferred = currentPayment?.deferredAmount;
+    const remaining = (deferred !== undefined && deferred !== null)
+      ? deferred
+      : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
+
+    const isPaidThisMonth = (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+    const isPartialThisMonth = !isPaidThisMonth && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
 
     return (
       <tr
@@ -398,7 +425,7 @@ export default function StudentListClient({
             >
               <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
               <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
-              <option value="PARTIAL">{locale === 'ar' ? 'جزئي' : locale === 'fr' ? 'Partiel' : 'Partial'}</option>
+              <option value="PARTIAL">{locale === 'ar' ? 'تسبيق' : locale === 'fr' ? 'Avance' : 'Advance'}</option>
               <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
             </select>
           </div>
@@ -442,7 +469,7 @@ export default function StudentListClient({
                 {clientStatus === "UNPAID" 
                   ? ` (${locale === "ar" ? "غير مدفوع" : locale === "fr" ? "Non payé" : "Unpaid"})`
                   : clientStatus === "PARTIAL" 
-                  ? ` (${locale === "ar" ? "جزئي" : locale === "fr" ? "Partiel" : "Partial"})`
+                  ? ` (${locale === "ar" ? "تسبيق" : locale === "fr" ? "Avance" : "Advance"})`
                   : clientStatus === "PAID" 
                   ? ` (${locale === "ar" ? "مدفوع" : locale === "fr" ? "Payé" : "Paid"})`
                   : ""}

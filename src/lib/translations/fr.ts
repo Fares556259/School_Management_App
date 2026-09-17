@@ -730,8 +730,8 @@ export const fr = {
     "unpaid": "Non payé",
     "paidPlural": "Payés",
     "unpaidPlural": "Non payés",
-    "partial": "Partiel",
-    "partialPlural": "Partiels",
+    "partial": "Avance",
+    "partialPlural": "Avances",
     "noClass": "Aucune classe",
     "notProvided": "Non renseigné",
     "outOfStudents": "sur {count} étudiants",
@@ -769,6 +769,7 @@ export const fr = {
     "noClasses": "Aucune classe",
     "notProvided": "Non renseigné",
     "partial": "Avance",
+    "partialPlural": "Avances",
     "outOfTeachers": "sur {count} enseignants"
   },
   "staff": {
@@ -783,6 +784,8 @@ export const fr = {
     "unpaid": "Non payé",
     "paidPlural": "Payés",
     "unpaidPlural": "Non payés",
+    "partial": "Avance",
+    "partialPlural": "Avances",
     "notProvided": "Non renseigné",
     "outOfStaff": "sur {count} employés"
   },

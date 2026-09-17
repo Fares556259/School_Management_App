@@ -104,6 +104,10 @@ const StaffListPage = async ({
     Array.isArray(s.payments) && s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PAID")
   ).length;
 
+  const partialThisMonth = safeStaff.filter((s) =>
+    Array.isArray(s.payments) && s.payments.some((p: any) => p.month === monthIdx && p.year === yearVal && p.status === "PARTIAL")
+  ).length;
+
   return (
     <div className="bg-white rounded-[12px] flex-1 m-6 mt-0 shadow-sm border border-[#e2e8f0] p-6">
       <StaffListClient
@@ -114,6 +118,7 @@ const StaffListPage = async ({
         role={role}
         selectedMonthKey={selectedMonthKey}
         paidThisMonth={paidThisMonth}
+        partialThisMonth={partialThisMonth}
       />
     </div>
   );

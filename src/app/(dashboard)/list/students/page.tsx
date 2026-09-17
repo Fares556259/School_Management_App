@@ -146,7 +146,7 @@ const StudentListPage = async ({
           level: true,
           parent: true,
           payments: {
-            select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true },
+            select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true, deferredAmount: true },
           },
         },
       }),

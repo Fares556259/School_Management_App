@@ -728,7 +728,8 @@ export const en = {
     "bulkEnroll": "AI Bulk Enroll",
     "paid": "Paid",
     "unpaid": "Unpaid",
-    "partial": "Partial",
+    "partial": "Advance",
+    "partialPlural": "Advances",
     "noClass": "No class assigned",
     "notProvided": "Not provided",
     "outOfStudents": "out of {count} students",
@@ -744,8 +745,7 @@ export const en = {
       "startExtraction": "Start Extraction"
     },
     "paidPlural": "Paid",
-    "unpaidPlural": "Unpaid",
-    "partialPlural": "Partials"
+    "unpaidPlural": "Unpaid"
   },
   "teachers": {
     "title": "Teachers",
@@ -767,6 +767,7 @@ export const en = {
     "noClasses": "No classes",
     "notProvided": "Not provided",
     "partial": "Advance",
+    "partialPlural": "Advances",
     "outOfTeachers": "out of {count} teachers",
     "paidPlural": "Paid",
     "unpaidPlural": "Unpaid"
@@ -781,6 +782,8 @@ export const en = {
     "actions": "Actions",
     "paid": "Paid",
     "unpaid": "Unpaid",
+    "partial": "Advance",
+    "partialPlural": "Advances",
     "notProvided": "Not provided",
     "outOfStaff": "out of {count} staff",
     "paidPlural": "Paid",

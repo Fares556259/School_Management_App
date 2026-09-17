@@ -100,6 +100,15 @@ const TeacherListPage = async ({
           status: "PAID",
         },
       }),
+      prisma.payment.count({
+        where: {
+          schoolId,
+          userType: "TEACHER",
+          month: monthIdx,
+          year: yearVal,
+          status: "PARTIAL",
+        },
+      }),
     ]);
 
   let subjectsData: any[] = [];
@@ -107,6 +116,7 @@ const TeacherListPage = async ({
   let data: any[] = [];
   let count: number = 0;
   let paidThisMonth: number = 0;
+  let partialThisMonth: number = 0;
 
   try {
     const staticRefPromise = getCachedTenantData(
@@ -128,10 +138,10 @@ const TeacherListPage = async ({
       [subjectsData, classesData] = await fetchStaticReferences();
     }
 
-    if (Array.isArray(dynamicRes) && dynamicRes.length >= 3) {
-      [data, count, paidThisMonth] = dynamicRes;
+    if (Array.isArray(dynamicRes) && dynamicRes.length >= 4) {
+      [data, count, paidThisMonth, partialThisMonth] = dynamicRes;
     } else {
-      [data, count, paidThisMonth] = await fetchDynamicData();
+      [data, count, paidThisMonth, partialThisMonth] = await fetchDynamicData();
     }
   } catch (err) {
     console.error("[TeacherListPage] Error fetching teachers data, falling back:", err);
@@ -141,7 +151,7 @@ const TeacherListPage = async ({
         fetchDynamicData(),
       ]);
       [subjectsData, classesData] = staticRes;
-      [data, count, paidThisMonth] = dynamicRes;
+      [data, count, paidThisMonth, partialThisMonth] = dynamicRes;
     } catch (dbErr) {
       console.error("[TeacherListPage] Direct DB fallback failed:", dbErr);
     }
@@ -152,6 +162,7 @@ const TeacherListPage = async ({
   const safeData = Array.isArray(data) ? data : [];
   const safeCount = typeof count === "number" ? count : safeData.length;
   const safePaidThisMonth = typeof paidThisMonth === "number" ? paidThisMonth : 0;
+  const safePartialThisMonth = typeof partialThisMonth === "number" ? partialThisMonth : 0;
 
   const relatedData = {
     subjects: safeSubjects.map((s: any) => ({ value: (s.id || '').toString(), label: (s.name || '').split('|')[0].trim() })),
@@ -169,6 +180,7 @@ const TeacherListPage = async ({
         role={role}
         selectedMonthKey={selectedMonthKey}
         paidThisMonth={safePaidThisMonth}
+        partialThisMonth={safePartialThisMonth}
         relatedData={relatedData}
       />
     </div>
