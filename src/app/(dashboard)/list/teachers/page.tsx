@@ -130,7 +130,13 @@ const TeacherListPage = async ({
 
     const [staticRes, dynamicRes] = await Promise.all([
       staticRefPromise.catch(() => fetchStaticReferences()),
-      fetchDynamicData(),
+      getCachedTenantData(
+        schoolId,
+        "teachers",
+        [String(p), JSON.stringify(queryParams), String(monthIdx), String(yearVal)],
+        fetchDynamicData,
+        60
+      ).catch(() => fetchDynamicData()),
     ]);
 
     if (Array.isArray(staticRes) && staticRes.length >= 2) {

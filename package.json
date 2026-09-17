@@ -15,7 +15,10 @@
     "test:scenarios": "tsx scripts/simulateHniaScenarios.ts",
     "test:deep": "tsx scripts/testVisionVoiceDeep.ts && tsx scripts/testPartialPaymentCycle.ts && tsx scripts/testAttendanceWorkflow.ts && tsx scripts/testCronPipelines.ts && tsx scripts/testSecurityAndAudit.ts",
     "test:all": "npm test && npm run test:audit && npm run test:business && npm run test:deep",
-    "test-portal": "tsx scripts/mockPortalServer.ts"
+    "test-portal": "tsx scripts/mockPortalServer.ts",
+    "benchmark:hnia": "tsx scripts/benchmarkHniaSpeed.ts",
+    "benchmark:web": "tsx scripts/benchmarkWebSpeed.ts",
+    "benchmark:all": "npm run benchmark:hnia && npm run benchmark:web"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"

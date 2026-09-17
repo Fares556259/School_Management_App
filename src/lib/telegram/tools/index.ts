@@ -3174,9 +3174,137 @@ Confirmer l'enregistrement de cette dépense ?`;
   },
 };
 
+// ── Memoized tool declarations (computed once at module load, reused forever) ──
+let _cachedDeclarations: FunctionDeclaration[] | null = null;
+
 /**
- * Returns array of Gemini Function Declarations for model initialization
+ * Returns the full array of Gemini Function Declarations.
+ * Result is memoized — Object.values(TOOLS).map() runs only once.
  */
 export function getGeminiFunctionDeclarations(): FunctionDeclaration[] {
-  return Object.values(TOOLS).map((t) => t.declaration);
+  if (!_cachedDeclarations) {
+    _cachedDeclarations = Object.values(TOOLS).map((t) => t.declaration);
+  }
+  return _cachedDeclarations;
 }
+
+// ── Intent keyword sets for domain-based pruning ──────────────────────────────
+
+const FINANCE_KEYS = /paiement|payé|impayé|solde|caisse|dépense|recette|budget|facture|frais|montant|règlement|dette|owe|paid|payment|income|expense|cash|receipt|salary|salaire|avance|acompte|partiel|partial|anomalie|financial|finance|argent|money|dinar|dt\b|payslip|fiche de paie|payroll/i;
+const ATTENDANCE_KEYS = /absence|présent|absent|appel|assiduité|attendance|justif|retard|late|mark attendance|appel fait|signer|séance/i;
+const GRADE_KEYS = /note|devoir|examen|exam|billet|bulletin|résultat|grade|score|moyenne|trimestre|evaluation|contrôle|controle|assessment|matière|subject/i;
+const TIMETABLE_KEYS = /emploi du temps|horaire|créneau|slot|timetable|schedule|cours|session|substitut|disponible|conflict|permuter/i;
+const TEACHER_STAFF_KEYS = /enseignant|professeur|teacher|staff|personnel|encadrant|hire|embauche|salaire enseignant|absent heures|absent hours|payroll teacher/i;
+const ACADEMIC_ADMIN_KEYS = /élève|student|parent|classe|class|niveau|level|inscrire|enroll|affecter|assign|créer élève|créer parent|créer classe|fiche élève|profil élève|dossier/i;
+const DOCUMENT_KEYS = /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download/i;
+const REMINDER_KEYS = /rappel|reminder|alarme|alarm|notif|alert|planifier|schedule reminder/i;
+const KNOWLEDGE_KEYS = /enseigne|teach hnia|connaissance|knowledge|oublie|forget|teachings|règle personnalisée/i;
+const ANNOUNCEMENT_KEYS = /annonce|announcement|communiqué|message parent|broadcast|publie|post announcement/i;
+const TASK_KEYS = /devoir maison|homework|assignment|ressource|resource|fichier cours|support de cours/i;
+const EXTERNAL_KEYS = /portail|portal|ministère|government|externe|external|scolarité\.tn|educ\.tn/i;
+const SETTINGS_KEYS = /profil|paramètre|settings|école|school settings|tarif scolarité|tuition fee|niveau tarif|level tuition/i;
+
+// Universal tools always included regardless of intent
+const UNIVERSAL_TOOL_NAMES = new Set([
+  "get_school_stats",
+  "get_daily_caisse",
+  "get_morning_briefing",
+  "record_parent_payment",
+  "add_expense",
+]);
+
+// Domain → tool name arrays
+const DOMAIN_TOOLS: Record<string, string[]> = {
+  finance: [
+    "get_payments", "get_partial_payments", "record_payment", "record_parent_payment",
+    "recover_partial_payment", "schedule_recovery_date", "get_financial_summary",
+    "get_financial_anomalies", "get_incomes", "add_income", "update_income", "delete_income",
+    "get_expenses", "add_expense", "update_expense", "void_expense", "cancel_payment",
+    "get_daily_caisse", "send_payment_reminders", "get_audit_log", "add_audit_entry",
+    "get_payment_receipt", "get_daily_cash_pdf",
+  ],
+  attendance: [
+    "get_attendance", "get_student_attendance_history", "mark_attendance",
+    "mark_class_attendance", "justify_attendance",
+    "get_students", "get_student_profile", "get_classes",
+  ],
+  grade: [
+    "get_student_grades", "get_class_grade_sheet", "get_exams",
+    "record_grade", "record_class_grades", "schedule_exam",
+    "get_students", "get_student_profile", "get_classes",
+  ],
+  timetable: [
+    "get_class_timetable", "get_teacher_timetable", "get_timetable_conflicts",
+    "find_available_teachers", "add_timetable_slot", "reschedule_timetable_slot",
+    "swap_timetable_slots", "update_timetable_slot", "delete_timetable_slot",
+    "suggest_best_timetable_slot", "get_teachers", "get_classes",
+  ],
+  teacher_staff: [
+    "get_teachers", "get_staff", "create_teacher", "update_teacher", "delete_teacher",
+    "create_staff", "update_staff", "delete_staff",
+    "pay_teacher_salary", "pay_staff_salary", "get_salary_details",
+    "track_teacher_absent_hours", "get_salary_payslip", "update_person_photo",
+    "assign_teacher_to_class", "remove_teacher_from_class",
+  ],
+  academic_admin: [
+    "get_students", "get_student_profile", "get_parents", "get_classes",
+    "create_student", "create_parent", "create_class", "update_class",
+    "update_student", "delete_student", "update_parent", "delete_parent",
+    "assign_student_to_class", "list_unassigned_students", "link_student_to_parent",
+    "update_parent_phone", "update_person_photo",
+  ],
+  document: [
+    "get_payment_receipt", "get_salary_payslip", "get_daily_cash_pdf",
+    "add_resource", "get_resources",
+  ],
+  reminder: ["schedule_reminder", "get_reminders", "cancel_reminder"],
+  knowledge: ["teach_hnia", "get_hnia_teachings", "forget_hnia_teaching"],
+  announcement: ["get_announcements", "post_announcement", "create_announcement", "delete_announcement", "send_parent_message"],
+  task: ["get_assignments", "create_assignment", "get_assignment_details", "add_resource", "get_resources"],
+  external: ["search_external_student", "get_external_student", "list_external_documents", "download_external_document"],
+  settings: ["get_admin_profile", "update_admin_profile", "get_school_settings", "update_school_settings", "update_level_tuition_fee"],
+};
+
+/**
+ * Returns a pruned list of Gemini Function Declarations based on detected intent.
+ * Falls back to the full list for ambiguous / multi-domain messages.
+ * Always includes the 5 universal tools.
+ */
+export function getPrunedGeminiDeclarations(userMessage: string): FunctionDeclaration[] {
+  const msg = userMessage;
+  const allDeclarations = getGeminiFunctionDeclarations();
+
+  // Detect active domains
+  const activeDomains: string[] = [];
+  if (FINANCE_KEYS.test(msg)) activeDomains.push("finance");
+  if (ATTENDANCE_KEYS.test(msg)) activeDomains.push("attendance");
+  if (GRADE_KEYS.test(msg)) activeDomains.push("grade");
+  if (TIMETABLE_KEYS.test(msg)) activeDomains.push("timetable");
+  if (TEACHER_STAFF_KEYS.test(msg)) activeDomains.push("teacher_staff");
+  if (ACADEMIC_ADMIN_KEYS.test(msg)) activeDomains.push("academic_admin");
+  if (DOCUMENT_KEYS.test(msg)) activeDomains.push("document");
+  if (REMINDER_KEYS.test(msg)) activeDomains.push("reminder");
+  if (KNOWLEDGE_KEYS.test(msg)) activeDomains.push("knowledge");
+  if (ANNOUNCEMENT_KEYS.test(msg)) activeDomains.push("announcement");
+  if (TASK_KEYS.test(msg)) activeDomains.push("task");
+  if (EXTERNAL_KEYS.test(msg)) activeDomains.push("external");
+  if (SETTINGS_KEYS.test(msg)) activeDomains.push("settings");
+
+  // If no domain detected OR more than 3 domains (complex request) → use all tools
+  if (activeDomains.length === 0 || activeDomains.length > 3) {
+    return allDeclarations;
+  }
+
+  // Build pruned set
+  const prunedNames = new Set<string>(UNIVERSAL_TOOL_NAMES);
+  for (const domain of activeDomains) {
+    for (const toolName of DOMAIN_TOOLS[domain] || []) {
+      prunedNames.add(toolName);
+    }
+  }
+
+  const pruned = allDeclarations.filter((d) => prunedNames.has(d.name));
+  // Safety: if pruned is very small (< 5), return all to be safe
+  return pruned.length >= 5 ? pruned : allDeclarations;
+}
+

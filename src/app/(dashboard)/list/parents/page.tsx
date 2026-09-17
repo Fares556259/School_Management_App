@@ -125,7 +125,13 @@ const ParentListPage = async ({
 
     const [staticRes, dynamicRes] = await Promise.all([
       staticRefPromise.catch(() => fetchStaticReferences()),
-      fetchDynamicData(),
+      getCachedTenantData(
+        schoolId,
+        "parents",
+        [String(p), JSON.stringify(queryParams)],
+        fetchDynamicData,
+        60
+      ).catch(() => fetchDynamicData()),
     ]);
 
     if (Array.isArray(staticRes) && staticRes.length >= 2) {

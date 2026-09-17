@@ -6,10 +6,28 @@ import {
   sendTelegramContact,
   getMainHubInlineKeyboard,
 } from "./telegram";
-import { TOOLS, getGeminiFunctionDeclarations } from "./tools";
+import { TOOLS, getGeminiFunctionDeclarations, getPrunedGeminiDeclarations } from "./tools";
 import { ToolContext } from "./tools/readTools";
 import { formatTelegramMessage, getQuickActionButtons } from "./formatter";
 import { isCorrectionMessage, flagConversationForLearning } from "./feedback";
+
+// ── Module-level aIKnowledge in-memory cache (avoids repeated DB round-trips per school) ──
+// TTL: 5 minutes. Each entry: { data: knowledge rows, expiresAt: Unix ms timestamp }
+const _knowledgeCache = new Map<string, { data: any[]; expiresAt: number }>();
+const KNOWLEDGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCachedKnowledge(schoolId: string): any[] | null {
+  const entry = _knowledgeCache.get(schoolId);
+  if (entry && Date.now() < entry.expiresAt) {
+    return entry.data;
+  }
+  _knowledgeCache.delete(schoolId);
+  return null;
+}
+
+function setCachedKnowledge(schoolId: string, data: any[]): void {
+  _knowledgeCache.set(schoolId, { data, expiresAt: Date.now() + KNOWLEDGE_CACHE_TTL_MS });
+}
 
 export interface AgentInput {
   userMessage: string;
@@ -72,8 +90,57 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
     effectiveUserMessage = `[En réponse au message : "${replyToText.trim().slice(0, 300)}"]\n\n${userMessage}`;
   }
 
+  // ── FAST-PATH: Instant responses for greetings and direct commands (< 150ms) ──
+  const msgLower = userMessage.trim().toLowerCase();
+  const GREETING_REGEX = /^(\/start|\/help|bonjour|bonsoir|salut|salam|ahla|wach|labas|cava|ça va|hello|hi\b|hey\b|menu|\/menu|كيفاش|كيف|صباح الخير|مرحبا|هلا)[\s!?.،]*$/i;
+  const STATS_REGEX = /^(\/stats|stats|statistique|effectif|effectifs|résumé école|résumé de l.école|aperçu)[\s!?.]*$/i;
+  const CAISSE_REGEX = /^(\/caisse|caisse|caisse du jour|clôture|clotûre|bilan du jour|daily cash)[\s!?.]*$/i;
+
+  if (GREETING_REGEX.test(msgLower)) {
+    // Return hub card immediately — no DB, no Gemini
+    const hubKeyboard = getMainHubInlineKeyboard(tgAccount.language);
+    const greetingText = `👋 <b>Bonjour ${adminName} !</b>\n\nJe suis <b>Hnia</b>, votre assistante SnapSchool 🎓\nComment puis-je vous aider aujourd'hui ?`;
+    await sendTelegramMessage(chatId, greetingText, {
+      parse_mode: "HTML",
+      reply_markup: hubKeyboard,
+    });
+    return;
+  }
+
+  if (STATS_REGEX.test(msgLower)) {
+    // Direct stats call — no Gemini needed
+    sendTelegramChatAction(chatId, "typing").catch(() => null);
+    try {
+      const { getSchoolStatsTool } = await import("./tools/readTools");
+      const statsOutput = await getSchoolStatsTool({}, context);
+      if (statsOutput?.formattedText) {
+        await sendTelegramMessage(chatId, statsOutput.formattedText, { parse_mode: "HTML" });
+        return;
+      }
+    } catch (fastPathErr) {
+      console.warn("[Agent] Fast-path /stats failed, falling through to Gemini:", fastPathErr);
+    }
+  }
+
+  if (CAISSE_REGEX.test(msgLower)) {
+    // Direct caisse call — no Gemini needed
+    sendTelegramChatAction(chatId, "typing").catch(() => null);
+    try {
+      const { getDailyCaisseTool } = await import("./tools/financeTools");
+      const caisseOutput = await getDailyCaisseTool({ date: "today" }, context) as any;
+      if (caisseOutput?.formattedText) {
+        await sendTelegramMessage(chatId, caisseOutput.formattedText as string, { parse_mode: "HTML" });
+        return;
+      }
+    } catch (fastPathErr) {
+      console.warn("[Agent] Fast-path /caisse failed, falling through to Gemini:", fastPathErr);
+    }
+  }
+
   // 2 & 3. Single-query parallel fetch: active conversation (with messages) + school custom teachings
-  let [conversation, schoolTeachings] = await Promise.all([
+  // aIKnowledge is served from in-memory cache (5-min TTL) to avoid repeated DB round-trips
+  const cachedKnowledge = getCachedKnowledge(tgAccount.schoolId);
+  let [conversation, freshKnowledge] = await Promise.all([
     prisma.aIConversation.findFirst({
       where: {
         telegramAccountId: tgAccount.id,
@@ -88,15 +155,26 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
         },
       },
     }),
-    prisma.aIKnowledge.findMany({
-      where: {
-        schoolId: tgAccount.schoolId,
-        isActive: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-    }),
+    cachedKnowledge
+      ? Promise.resolve(null) // Cache hit — skip DB query
+      : prisma.aIKnowledge.findMany({
+          where: {
+            schoolId: tgAccount.schoolId,
+            isActive: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 40,
+        }),
   ]);
+
+  // Resolve schoolTeachings from cache or fresh fetch, and update cache if fresh
+  let schoolTeachings: any[];
+  if (cachedKnowledge) {
+    schoolTeachings = cachedKnowledge;
+  } else {
+    schoolTeachings = freshKnowledge || [];
+    setCachedKnowledge(tgAccount.schoolId, schoolTeachings);
+  }
 
   let conversationId: string;
   let historyMessages: { role: string; content: string }[] = [];
@@ -1036,7 +1114,7 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         systemInstruction,
         tools: [
           {
-            functionDeclarations: getGeminiFunctionDeclarations(),
+            functionDeclarations: getPrunedGeminiDeclarations(effectiveUserMessage),
           },
         ],
         generationConfig: {

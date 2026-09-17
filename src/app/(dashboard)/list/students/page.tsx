@@ -188,7 +188,13 @@ const StudentListPage = async ({
     );
     const [staticRes, dynamicRes] = await Promise.all([
       staticRefPromise.catch(() => fetchStaticReferences()),
-      fetchDynamicData(),
+      getCachedTenantData(
+        schoolId,
+        "students",
+        [String(p), JSON.stringify(queryParams), String(monthIdx), String(yearVal)],
+        fetchDynamicData,
+        60
+      ).catch(() => fetchDynamicData()),
     ]);
 
     if (Array.isArray(staticRes) && staticRes.length >= 5) {

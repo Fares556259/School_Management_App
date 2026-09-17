@@ -576,7 +576,7 @@ export async function recoverPartialPaymentTool(
         schoolId: context.schoolId,
       },
     });
-  });
+  }, { timeout: 15000 }); // 15s timeout — 3 sequential writes on remote Supabase
 
   invalidateTenantTags(context.schoolId, "finance", "students", "incomes", "dashboard");
 
@@ -1302,7 +1302,7 @@ export async function cancelPaymentTool(
         schoolId: context.schoolId,
       },
     });
-  });
+  }, { timeout: 15000 }); // 15s — 3 writes on remote Supabase
 
   invalidateTenantTags(context.schoolId, "finance", "students", "dashboard");
 
