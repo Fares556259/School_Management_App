@@ -486,8 +486,23 @@ export async function sendTelegramDocument(
     const formData = new FormData();
     formData.append("chat_id", chatId.toString());
 
+    // Determine MIME type based on filename extension
+    const ext = filename.toLowerCase();
+    let mimeType = "application/pdf";
+    if (ext.endsWith(".xlsx")) {
+      mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    } else if (ext.endsWith(".xls")) {
+      mimeType = "application/vnd.ms-excel";
+    } else if (ext.endsWith(".csv")) {
+      mimeType = "text/csv";
+    } else if (ext.endsWith(".png")) {
+      mimeType = "image/png";
+    } else if (ext.endsWith(".jpg") || ext.endsWith(".jpeg")) {
+      mimeType = "image/jpeg";
+    }
+
     // Convert Node Buffer to a Blob
-    const blob = new Blob([new Uint8Array(fileBuffer)], { type: "application/pdf" });
+    const blob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType });
     formData.append("document", blob, filename);
 
     if (options?.caption) {

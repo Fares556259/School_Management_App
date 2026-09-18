@@ -145,6 +145,13 @@ import {
   getDailyCashPdfTool,
 } from "./documentTools";
 
+// Suite 10b: Excel Spreadsheets & Data Manipulation
+import {
+  exportExcelReportTool,
+  modifyExcelSpreadsheetTool,
+  importStudentsFromExcelTool,
+} from "./excelTools";
+
 // Suite 11: External School / Government Portals (Browser Automation)
 import {
   searchExternalStudentTool,
@@ -2831,6 +2838,157 @@ Confirmer l'enregistrement de cette dépense ?`;
     execute: getDailyCashPdfTool,
   },
 
+  // ── EXCEL SPREADSHEETS & DIRECT DATA PROCESSING SUITE ──────────────────────
+  export_excel_report: {
+    name: "export_excel_report",
+    description:
+      "Générer et envoyer directement en pièce jointe Excel (.xlsx) dans Telegram un tableau professionnel et stylisé (avec totaux, formats monétaires DT, et mise en page exécutive). Types supportés : 'unpaid_students' (liste des impayés avec téléphones parents et restes dus), 'students_list' (effectif complet ou par classe), 'daily_cash' (caisse du jour détaillée). À déclencher dès que l'administrateur demande un fichier Excel, un export Excel, ou un tableau des impayés en Excel ('génère le fichier excel des impayés', 'donne-moi la liste des élèves en excel', 'exporte la caisse en excel').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "export_excel_report",
+      description: "Générer et envoyer un document Excel (.xlsx) professionnel directement dans Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          reportType: {
+            type: SchemaType.STRING,
+            description: "Type de rapport Excel : 'unpaid_students' (les impayés), 'students_list' (liste des élèves), ou 'daily_cash' (caisse du jour).",
+          },
+          month: {
+            type: SchemaType.NUMBER,
+            description: "Numéro du mois (1 à 12, optionnel. Par défaut: mois en cours).",
+          },
+          year: {
+            type: SchemaType.NUMBER,
+            description: "Année (optionnel. Par défaut: année en cours).",
+          },
+          className: {
+            type: SchemaType.STRING,
+            description: "Nom de la classe pour filtrer la liste (optionnel, ex: '8ème B', '1A').",
+          },
+          dateStr: {
+            type: SchemaType.STRING,
+            description: "Date pour la caisse au format YYYY-MM-DD (optionnel, par défaut aujourd'hui).",
+          },
+        },
+        required: ["reportType"],
+      },
+    },
+    execute: exportExcelReportTool,
+  },
+
+  modify_excel_spreadsheet: {
+    name: "modify_excel_spreadsheet",
+    description:
+      "Modifier directement un fichier Excel (.xlsx / .csv) envoyé par l'administrateur dans le chat Telegram et lui renvoyer instantanément le fichier Excel modifié et reformaté en document Telegram ! Permet d'ajouter des colonnes (ex: remise, commission, statut), de calculer des formules ou des pourcentages (ex: 'ajoute 10% de remise sur le prix'), d'ajouter une ligne de total, de renommer ou supprimer des colonnes. À utiliser dès que l'administrateur partage un tableau Excel et donne une consigne de modification ou de calcul.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "modify_excel_spreadsheet",
+      description: "Appliquer des transformations, calculs ou ajouts de colonnes sur le fichier Excel partagé dans Telegram et renvoyer le fichier .xlsx modifié.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          operations: {
+            type: SchemaType.OBJECT,
+            description: "Détail des opérations à appliquer sur le tableau.",
+            properties: {
+              addColumns: {
+                type: SchemaType.ARRAY,
+                description: "Liste des colonnes à ajouter avec calculs, formules ou valeurs.",
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    header: { type: SchemaType.STRING, description: "Nom du nouvel en-tête de colonne (ex: 'Remise 10%', 'Prix Final')." },
+                    sourceColumn: { type: SchemaType.STRING, description: "Nom de la colonne source pour le calcul (ex: 'Prix', 'Montant')." },
+                    operation: {
+                      type: SchemaType.STRING,
+                      description: "Opération : 'discount_percent' (applique une réduction en %), 'markup_percent' (majoration en %), 'multiply', 'add', 'subtract', 'copy'.",
+                    },
+                    factor: { type: SchemaType.NUMBER, description: "Facteur ou pourcentage (ex: 10 pour 10%, 1.2, etc.)." },
+                    defaultValue: { type: SchemaType.STRING, description: "Valeur par défaut si colonne textuelle ou constante." },
+                    formula: { type: SchemaType.STRING, description: "Formule Excel personnalisée utilisant {row} (ex: '=D{row}*0.9')." },
+                  },
+                  required: ["header"],
+                },
+              },
+              modifyColumns: {
+                type: SchemaType.ARRAY,
+                description: "Colonnes existantes à modifier directement.",
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    header: { type: SchemaType.STRING, description: "Nom de la colonne existante à modifier." },
+                    operation: {
+                      type: SchemaType.STRING,
+                      description: "'discount_percent', 'markup_percent', 'multiply', 'add', 'subtract', 'set_value', 'uppercase', 'lowercase'.",
+                    },
+                    factor: { type: SchemaType.NUMBER, description: "Facteur ou pourcentage appliqué." },
+                    value: { type: SchemaType.STRING, description: "Nouvelle valeur fixe si applicable." },
+                  },
+                  required: ["header", "operation"],
+                },
+              },
+              renameColumns: {
+                type: SchemaType.ARRAY,
+                description: "Renommer des colonnes existantes.",
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    oldName: { type: SchemaType.STRING, description: "Nom actuel de l'en-tête." },
+                    newName: { type: SchemaType.STRING, description: "Nouveau nom de l'en-tête." },
+                  },
+                  required: ["oldName", "newName"],
+                },
+              },
+              deleteColumns: {
+                type: SchemaType.ARRAY,
+                description: "Noms des colonnes à supprimer.",
+                items: { type: SchemaType.STRING },
+              },
+              addTotalRow: {
+                type: SchemaType.BOOLEAN,
+                description: "Ajouter automatiquement une ligne TOTAL en bas du tableau avec la somme des colonnes numériques.",
+              },
+            },
+          },
+          outputFileName: {
+            type: SchemaType.STRING,
+            description: "Nom optionnel du fichier de sortie (ex: 'Factures_Apres_Remise.xlsx').",
+          },
+        },
+        required: ["operations"],
+      },
+    },
+    execute: modifyExcelSpreadsheetTool,
+  },
+
+  import_students_from_excel: {
+    name: "import_students_from_excel",
+    description:
+      "Lire le fichier Excel d'élèves envoyé par l'administrateur dans le chat Telegram et inscrire automatiquement en masse tous les élèves (avec leurs classes, téléphones parents et frais) dans la base de données SnapSchool. À utiliser quand l'administrateur envoie une liste d'inscriptions ou dit 'inscris ces élèves depuis ce fichier', 'importe ce fichier excel d'élèves'.",
+    requiresConfirmation: true,
+    formatConfirmationMessage: (args: any) =>
+      `⚠️ <b>Confirmation d'importation en masse</b>\n\nÊtes-vous sûr de vouloir importer et inscrire tous les élèves listés dans ce fichier Excel ?`,
+    declaration: {
+      name: "import_students_from_excel",
+      description: "Importer en masse des élèves depuis le fichier Excel envoyé par l'administrateur.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          defaultClass: {
+            type: SchemaType.STRING,
+            description: "Classe par défaut à attribuer si une ligne n'a pas de colonne classe renseignée.",
+          },
+          defaultMonthlyFee: {
+            type: SchemaType.NUMBER,
+            description: "Frais de scolarité mensuels par défaut en DT si non spécifiés dans le tableau.",
+          },
+        },
+      },
+    },
+    execute: importStudentsFromExcelTool,
+  },
+
   // ── EXTERNAL PORTAL SUITE (BROWSER AUTOMATION) ───────────────────────────
   search_external_student: {
     name: "search_external_student",
@@ -3196,7 +3354,7 @@ const GRADE_KEYS = /note|devoir|examen|exam|billet|bulletin|résultat|grade|scor
 const TIMETABLE_KEYS = /emploi du temps|horaire|créneau|slot|timetable|schedule|cours|session|substitut|disponible|conflict|permuter/i;
 const TEACHER_STAFF_KEYS = /enseignant|professeur|teacher|staff|personnel|encadrant|hire|embauche|salaire enseignant|absent heures|absent hours|payroll teacher/i;
 const ACADEMIC_ADMIN_KEYS = /élève|student|parent|classe|class|niveau|level|inscrire|enroll|affecter|assign|créer élève|créer parent|créer classe|fiche élève|profil élève|dossier/i;
-const DOCUMENT_KEYS = /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download/i;
+const DOCUMENT_KEYS = /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download|excel|xlsx|xls|tableur|csv|feuille de calcul|classeur|impayés excel|impayes excel|liste excel|effectif excel|export excel/i;
 const REMINDER_KEYS = /rappel|reminder|alarme|alarm|notif|alert|planifier|schedule reminder/i;
 const KNOWLEDGE_KEYS = /enseigne|teach hnia|connaissance|knowledge|oublie|forget|teachings|règle personnalisée/i;
 const ANNOUNCEMENT_KEYS = /annonce|announcement|communiqué|message parent|broadcast|publie|post announcement/i;
@@ -3222,7 +3380,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "get_financial_anomalies", "get_incomes", "add_income", "update_income", "delete_income",
     "get_expenses", "add_expense", "update_expense", "void_expense", "cancel_payment",
     "get_daily_caisse", "send_payment_reminders", "get_audit_log", "add_audit_entry",
-    "get_payment_receipt", "get_daily_cash_pdf",
+    "get_payment_receipt", "get_daily_cash_pdf", "export_excel_report",
   ],
   attendance: [
     "get_attendance", "get_student_attendance_history", "mark_attendance",
@@ -3252,10 +3410,11 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "create_student", "create_parent", "create_class", "update_class",
     "update_student", "delete_student", "update_parent", "delete_parent",
     "assign_student_to_class", "list_unassigned_students", "link_student_to_parent",
-    "update_parent_phone", "update_person_photo",
+    "update_parent_phone", "update_person_photo", "import_students_from_excel",
   ],
   document: [
     "get_payment_receipt", "get_salary_payslip", "get_daily_cash_pdf",
+    "export_excel_report", "modify_excel_spreadsheet", "import_students_from_excel",
     "add_resource", "get_resources",
   ],
   reminder: ["schedule_reminder", "get_reminders", "cancel_reminder"],

@@ -23,6 +23,7 @@ import { generateCallToken } from "@/lib/call/token";
 import { dispatchPendingReminders } from "@/lib/telegram/tools/reminderTools";
 import { flagConversationForLearning, markConversationPositive } from "@/lib/telegram/feedback";
 import { deliverDailyCashReport } from "@/lib/telegram/tools/documentTools";
+import { inspectExcelBuffer, storeUserExcelBuffer } from "@/lib/excel/excelEngine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -962,26 +963,73 @@ Instructions :
       }
 
       if (docBuffer) {
-        const safeName = (docFile.file_name || "document").replace(/[^a-zA-Z0-9_-]/g, "_");
-        const permanentUrl = await uploadTelegramPhotoToStorage(
-          docBuffer,
-          tgAccount.schoolId,
-          safeName,
-          docFile.mime_type || "application/pdf"
-        );
-        if (permanentUrl) {
-          docUrl = permanentUrl;
-        }
+        const isExcel =
+          /\.(xlsx|xls|csv)$/i.test(docFile.file_name || "") ||
+          /spreadsheet|excel|csv/i.test(docFile.mime_type || "");
 
-        const docTitle = docFile.file_name ? docFile.file_name.replace(/\.[^/.]+$/, "") : "Support de cours";
-        const docDescriptor = `[DOCUMENT / FICHIER REÇU PAR L'ADMINISTRATEUR]
+        if (isExcel) {
+          // Store in memory cache for immediate manipulation
+          storeUserExcelBuffer(chatId, docBuffer, docFile.file_name || "tableau.xlsx");
+          const inspection = await inspectExcelBuffer(docBuffer, docFile.file_name || "tableau.xlsx");
+
+          const firstSheet = inspection.sheets[0];
+          const sampleRowsJson = firstSheet?.sampleRows?.length
+            ? JSON.stringify(firstSheet.sampleRows.slice(0, 3), null, 2)
+            : "Aucune ligne de données détectée";
+
+          const excelDescriptor = `[FICHIER EXCEL / TABLEUR REÇU PAR L'ADMINISTRATEUR]
+- Nom du fichier : ${docFile.file_name || "classeur.xlsx"}
+- Feuilles détectées : ${inspection.sheets.map((s) => `${s.name} (${s.rowCount} lignes)`).join(", ")}
+- Colonnes (${firstSheet?.columnCount || 0}) : ${firstSheet?.headers.join(", ") || "Non détectées"}
+- Colonnes numériques : ${firstSheet?.numericColumns.join(", ") || "Aucune"}
+- Aperçu des premières données :
+${sampleRowsJson}
+${userPrompt ? `- Consigne de l'administrateur : "${userPrompt}"` : ""}`;
+
+          if (userPrompt && userPrompt.trim().length > 0) {
+            userPrompt = `${excelDescriptor}
+
+Instructions prioritaires pour Hnia :
+- L'administrateur a envoyé ce fichier Excel et a donné une consigne précise : "${userPrompt}".
+- Si la consigne demande de modifier, calculer, appliquer une remise/majoration, ajouter une colonne ou un total :
+  Appelle DIRECTEMENT l'outil 'modify_excel_spreadsheet' avec les opérations correspondantes. Le fichier Excel .xlsx modifié et stylisé sera automatiquement envoyé dans Telegram !
+- Si la consigne demande d'inscrire ou importer ces élèves dans SnapSchool :
+  Appelle l'outil 'import_students_from_excel'.
+- Si la consigne est une simple question sur les données (ex: 'qui a la meilleure note ?', 'combien de lignes ?') :
+  Réponds directement avec précision en analysant les données ci-dessus.`;
+          } else {
+            userPrompt = `${excelDescriptor}
+
+Instructions pour Hnia :
+- L'administrateur a partagé ce fichier Excel sans consigne écrite.
+- Accueille l'administrateur avec chaleur et professionnalisme (en Derja si la conversation est en Derja, sinon en Français).
+- Confirme la bonne réception du fichier <b>${docFile.file_name || "tableau.xlsx"}</b> (${firstSheet?.rowCount || 0} lignes, colonnes : ${firstSheet?.headers.slice(0, 6).join(", ")}...).
+- Propose-lui ce que tu peux faire avec ce fichier :
+  1. 📊 Appliquer des calculs, remises ou modifications et lui renvoyer le fichier Excel (.xlsx) restylisé
+  2. ➕ Ajouter une colonne ou une ligne de total
+  3. 📥 Importer et inscrire ces données directement dans SnapSchool`;
+          }
+        } else {
+          const safeName = (docFile.file_name || "document").replace(/[^a-zA-Z0-9_-]/g, "_");
+          const permanentUrl = await uploadTelegramPhotoToStorage(
+            docBuffer,
+            tgAccount.schoolId,
+            safeName,
+            docFile.mime_type || "application/pdf"
+          );
+          if (permanentUrl) {
+            docUrl = permanentUrl;
+          }
+
+          const docTitle = docFile.file_name ? docFile.file_name.replace(/\.[^/.]+$/, "") : "Support de cours";
+          const docDescriptor = `[DOCUMENT / FICHIER REÇU PAR L'ADMINISTRATEUR]
 - Nom du fichier : ${docFile.file_name || "Document joint"}
 - Type : ${docFile.mime_type || "application/octet-stream"}
 - URL permanente du document : ${docUrl}
 ${userPrompt ? `- Message de l'administrateur : "${userPrompt}"` : ""}`;
 
-        if (!userPrompt || userPrompt.trim().length === 0) {
-          userPrompt = `${docDescriptor}
+          if (!userPrompt || userPrompt.trim().length === 0) {
+            userPrompt = `${docDescriptor}
 
 L'administrateur a envoyé ce fichier / document (${docFile.file_name || "Document"}).
 Instructions :
@@ -989,12 +1037,13 @@ Instructions :
   Propose d'appeler 'add_resource' avec url: "${docUrl}", title: "${docTitle}", et demande si une description spécifique doit être ajoutée ou si tu dois générer un résumé.
 - Si ce fichier est un sujet de devoir : propose 'create_assignment' avec img: "${docUrl}".
 - S'il n'y a pas de consigne, demande à l'administrateur pour quelle classe et matière publier cette ressource.`;
-        } else {
-          userPrompt = `${docDescriptor}
+          } else {
+            userPrompt = `${docDescriptor}
 
 Instructions :
 - Traite la demande de l'administrateur en associant ce fichier comme pièce jointe (URL : ${docUrl}).
 - Si la demande concerne l'ajout d'un cours ou d'une ressource pédagogique, utilise l'outil 'add_resource' avec url: "${docUrl}" et title: "${docTitle}".`;
+          }
         }
       }
     }
