@@ -3201,6 +3201,7 @@ const REMINDER_KEYS = /rappel|reminder|alarme|alarm|notif|alert|planifier|schedu
 const KNOWLEDGE_KEYS = /enseigne|teach hnia|connaissance|knowledge|oublie|forget|teachings|règle personnalisée/i;
 const ANNOUNCEMENT_KEYS = /annonce|announcement|communiqué|message parent|broadcast|publie|post announcement/i;
 const TASK_KEYS = /devoir maison|homework|assignment|ressource|resource|fichier cours|support de cours/i;
+const BRIEFING_KEYS = /briefing|programme|khedma|khedmet|travail du jour|ordre du jour|ch3ana|chnowa 3ana|quoi de neuf|planning|journée|nhar/i;
 const EXTERNAL_KEYS = /portail|portal|ministère|government|externe|external|scolarité\.tn|educ\.tn/i;
 const SETTINGS_KEYS = /profil|paramètre|settings|école|school settings|tarif scolarité|tuition fee|niveau tarif|level tuition/i;
 
@@ -3287,6 +3288,10 @@ export function getPrunedGeminiDeclarations(userMessage: string): FunctionDeclar
   if (KNOWLEDGE_KEYS.test(msg)) activeDomains.push("knowledge");
   if (ANNOUNCEMENT_KEYS.test(msg)) activeDomains.push("announcement");
   if (TASK_KEYS.test(msg)) activeDomains.push("task");
+  if (BRIEFING_KEYS.test(msg)) {
+    activeDomains.push("attendance");
+    activeDomains.push("finance");
+  }
   if (EXTERNAL_KEYS.test(msg)) activeDomains.push("external");
   if (SETTINGS_KEYS.test(msg)) activeDomains.push("settings");
 
