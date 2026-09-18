@@ -495,6 +495,10 @@ export async function sendTelegramDocument(
       mimeType = "application/vnd.ms-excel";
     } else if (ext.endsWith(".csv")) {
       mimeType = "text/csv";
+    } else if (ext.endsWith(".docx")) {
+      mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    } else if (ext.endsWith(".doc")) {
+      mimeType = "application/msword";
     } else if (ext.endsWith(".png")) {
       mimeType = "image/png";
     } else if (ext.endsWith(".jpg") || ext.endsWith(".jpeg")) {

@@ -143,6 +143,8 @@ import {
   getPaymentReceiptTool,
   getSalaryPayslipTool,
   getDailyCashPdfTool,
+  generateSchoolWallNoticePdfTool,
+  generateWordDocumentTool,
 } from "./documentTools";
 
 // Suite 10b: Excel Spreadsheets & Data Manipulation
@@ -2838,6 +2840,102 @@ Confirmer l'enregistrement de cette dépense ?`;
     execute: getDailyCashPdfTool,
   },
 
+  generate_school_wall_notice_pdf: {
+    name: "generate_school_wall_notice_pdf",
+    description:
+      "Générer et envoyer directement en pièce jointe PDF A4 haute résolution dans Telegram une affiche officielle prête à imprimer pour le mur de l'école (affiche murale, panneau d'affichage, communiqué à coller à l'entrée ou dans les couloirs). Comporte l'en-tête de l'école, un cadre architectural double, un badge de catégorie, un grand titre lisible de loin (20pt), le corps du texte formaté, un encadré d'avertissement et le cachet/signature officiel. À déclencher dès que l'administrateur demande une affiche ou un document à accrocher/coller au mur de l'école ('génère une affiche pour le mur', 'avis à coller au mur', 'affiche réunion parents', 'tableau d'affichage', 'affiche murale pdf').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "generate_school_wall_notice_pdf",
+      description: "Générer et envoyer une affiche officielle A4 (PDF) prête à être imprimée et collée sur le mur ou le tableau d'affichage de l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: {
+            type: SchemaType.STRING,
+            description: "Titre principal de l'affiche en lettres capitales (ex: 'RÉUNION GÉNÉRALE DES PARENTS D'ÉLÈVES', 'CALENDRIER DES DEVOIRS').",
+          },
+          bodyText: {
+            type: SchemaType.STRING,
+            description: "Texte complet de l'affiche (paragraphes, puces avec '-', consignes, horaires).",
+          },
+          category: {
+            type: SchemaType.STRING,
+            description: "Catégorie : 'COMMUNIQUE', 'AVIS_PARENTS', 'NOTE_INTERNE', 'DISCIPLINE', 'EXAMENS', 'EVENEMENT', ou 'URGENT'.",
+          },
+          importantNotice: {
+            type: SchemaType.STRING,
+            description: "Message d'avertissement ou rappel important mis en valeur dans un encadré coloré (optionnel).",
+          },
+          targetAudience: {
+            type: SchemaType.STRING,
+            description: "Public concerné (optionnel, ex: 'Tous les parents d'élèves', 'Classes de 3ème Année').",
+          },
+          dateStr: {
+            type: SchemaType.STRING,
+            description: "Date d'affichage (optionnel, par défaut aujourd'hui).",
+          },
+          signatory: {
+            type: SchemaType.STRING,
+            description: "Signataire officiel (optionnel, défaut: 'La Direction de l'Établissement').",
+          },
+        },
+        required: ["title", "bodyText"],
+      },
+    },
+    execute: generateSchoolWallNoticePdfTool,
+  },
+
+  generate_word_document: {
+    name: "generate_word_document",
+    description:
+      "Générer et envoyer directement en pièce jointe Word (.docx) dans Telegram un document officiel modifiable avec en-tête d'établissement, pagination, typographie institutionnelle et signature. À déclencher quand l'administrateur demande un document Word, un fichier docx ou un texte éditable ('génère en Word', 'exporte en docx', 'lettre officielle Word').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "generate_word_document",
+      description: "Générer et envoyer un document Microsoft Word (.docx) officiel dans Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: {
+            type: SchemaType.STRING,
+            description: "Titre du document Word.",
+          },
+          sections: {
+            type: SchemaType.ARRAY,
+            description: "Sections du document avec titres, paragraphes ou puces.",
+            items: {
+              type: SchemaType.OBJECT,
+              properties: {
+                heading: { type: SchemaType.STRING, description: "Titre de section." },
+                text: { type: SchemaType.STRING, description: "Contenu textuel de la section." },
+                bullets: {
+                  type: SchemaType.ARRAY,
+                  description: "Liste à puces.",
+                  items: { type: SchemaType.STRING },
+                },
+              },
+            },
+          },
+          documentType: {
+            type: SchemaType.STRING,
+            description: "'administrative_letter', 'circular', 'internal_memo', 'meeting_minutes', ou 'custom'.",
+          },
+          recipient: {
+            type: SchemaType.STRING,
+            description: "Destinataire du document (optionnel).",
+          },
+          signatory: {
+            type: SchemaType.STRING,
+            description: "Signataire officiel (optionnel).",
+          },
+        },
+        required: ["title", "sections"],
+      },
+    },
+    execute: generateWordDocumentTool,
+  },
+
   // ── EXCEL SPREADSHEETS & DIRECT DATA PROCESSING SUITE ──────────────────────
   export_excel_report: {
     name: "export_excel_report",
@@ -3354,7 +3452,7 @@ const GRADE_KEYS = /note|devoir|examen|exam|billet|bulletin|résultat|grade|scor
 const TIMETABLE_KEYS = /emploi du temps|horaire|créneau|slot|timetable|schedule|cours|session|substitut|disponible|conflict|permuter/i;
 const TEACHER_STAFF_KEYS = /enseignant|professeur|teacher|staff|personnel|encadrant|hire|embauche|salaire enseignant|absent heures|absent hours|payroll teacher/i;
 const ACADEMIC_ADMIN_KEYS = /élève|student|parent|classe|class|niveau|level|inscrire|enroll|affecter|assign|créer élève|créer parent|créer classe|fiche élève|profil élève|dossier/i;
-const DOCUMENT_KEYS = /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download|excel|xlsx|xls|tableur|csv|feuille de calcul|classeur|impayés excel|impayes excel|liste excel|effectif excel|export excel/i;
+const DOCUMENT_KEYS = /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download|excel|xlsx|xls|tableur|csv|feuille de calcul|classeur|impayés excel|impayes excel|liste excel|effectif excel|export excel|affiche|affiche murale|wall|panneau d'affichage|poster|word|docx|doc|avis officiel|note de service/i;
 const REMINDER_KEYS = /rappel|reminder|alarme|alarm|notif|alert|planifier|schedule reminder/i;
 const KNOWLEDGE_KEYS = /enseigne|teach hnia|connaissance|knowledge|oublie|forget|teachings|règle personnalisée/i;
 const ANNOUNCEMENT_KEYS = /annonce|announcement|communiqué|message parent|broadcast|publie|post announcement/i;
@@ -3414,6 +3512,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
   ],
   document: [
     "get_payment_receipt", "get_salary_payslip", "get_daily_cash_pdf",
+    "generate_school_wall_notice_pdf", "generate_word_document",
     "export_excel_report", "modify_excel_spreadsheet", "import_students_from_excel",
     "add_resource", "get_resources",
   ],

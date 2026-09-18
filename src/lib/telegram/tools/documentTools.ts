@@ -5,6 +5,8 @@ import {
   generateSalaryPayslipPdf,
   generateDailyCashRegisterPdf,
 } from "@/lib/pdf/receipts";
+import { generateSchoolWallNoticePdf, NoticeCategory } from "@/lib/pdf/schoolWallNotice";
+import { generateSchoolWordDocument, WordSection } from "@/lib/word/wordEngine";
 import { sendTelegramDocument } from "../telegram";
 import { resolveStudentByName, resolveTeacherByName, resolveStaffByName } from "./entityResolvers";
 import { ToolContext } from "./readTools";
@@ -610,4 +612,149 @@ export async function getDailyCashPdfTool(
     data: { date: dateFormatted },
   };
 }
+
+/**
+ * Tool: generate_school_wall_notice_pdf
+ * Generates an executive, printable A4 PDF poster / wall notice (affiche murale / panneau d'affichage)
+ * ready to be printed and pinned to the school wall, entrance, or classrooms.
+ */
+export async function generateSchoolWallNoticePdfTool(
+  args: {
+    title: string;
+    bodyText: string;
+    category?: NoticeCategory | string;
+    importantNotice?: string;
+    targetAudience?: string;
+    dateStr?: string;
+    signatory?: string;
+    referenceNumber?: string;
+  },
+  context: ToolContext
+): Promise<DocumentToolResult> {
+  if (!context.chatId) {
+    return {
+      success: false,
+      message: "Identifiant de chat manquant pour l'envoi du document.",
+      summary: "Chat ID manquant",
+    };
+  }
+
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: context.schoolId },
+      select: { name: true },
+    });
+    const schoolName = school?.name || "SnapSchool Academy";
+
+    const { buffer, filename } = await generateSchoolWallNoticePdf({
+      schoolName,
+      title: args.title,
+      category: args.category || "COMMUNIQUE",
+      bodyText: args.bodyText,
+      importantNotice: args.importantNotice,
+      targetAudience: args.targetAudience,
+      dateStr: args.dateStr,
+      signatory: args.signatory || "La Direction de l'Établissement",
+      referenceNumber: args.referenceNumber,
+    });
+
+    const caption = `🏛️ <b>Affiche Murale Officielle (Format A4 Imprimable)</b>
+━━━━━━━━━━━━━━━━━━━━━━
+📌 Titre : <b>${args.title}</b>
+🏫 Établissement : <b>${schoolName}</b>
+${args.targetAudience ? `👥 Public concerné : <i>${args.targetAudience}</i>\n` : ""}📅 Date : <code>${args.dateStr || new Date().toLocaleDateString("fr-FR")}</code>
+
+<i>Prête à imprimer pour affichage au mur, tableau d'affichage ou entrée de l'école.</i>`;
+
+    await sendTelegramDocument(context.chatId, buffer, filename, {
+      caption,
+      parse_mode: "HTML",
+    });
+
+    return {
+      success: true,
+      message: `📄 <b>Affiche murale PDF générée et transmise !</b>\n\nLe document officiel <code>${filename}</code> (A4 haute résolution) a été envoyé dans le chat. Vous pouvez l'imprimer directement pour l'afficher sur le mur ou le tableau d'affichage de l'école.`,
+      summary: `Affiche murale générée : ${filename}`,
+      data: { filename },
+    };
+  } catch (err: any) {
+    console.error("[generateSchoolWallNoticePdfTool] Error:", err);
+    return {
+      success: false,
+      message: `Erreur lors de la génération de l'affiche PDF : ${err.message || String(err)}`,
+      summary: "Échec génération affiche PDF",
+    };
+  }
+}
+
+/**
+ * Tool: generate_word_document
+ * Generates an executive Microsoft Word (.docx) document (lettre officielle, PV, note de service).
+ */
+export async function generateWordDocumentTool(
+  args: {
+    title: string;
+    sections: WordSection[];
+    documentType?: "administrative_letter" | "circular" | "internal_memo" | "meeting_minutes" | "custom";
+    recipient?: string;
+    dateStr?: string;
+    signatory?: string;
+    referenceNumber?: string;
+  },
+  context: ToolContext
+): Promise<DocumentToolResult> {
+  if (!context.chatId) {
+    return {
+      success: false,
+      message: "Identifiant de chat manquant pour l'envoi du document.",
+      summary: "Chat ID manquant",
+    };
+  }
+
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: context.schoolId },
+      select: { name: true },
+    });
+    const schoolName = school?.name || "SnapSchool Academy";
+
+    const { buffer, filename } = await generateSchoolWordDocument({
+      schoolName,
+      title: args.title,
+      documentType: args.documentType || "administrative_letter",
+      recipient: args.recipient,
+      dateStr: args.dateStr,
+      referenceNumber: args.referenceNumber,
+      sections: args.sections,
+      signatory: args.signatory || "La Direction de l'Établissement",
+    });
+
+    const caption = `📝 <b>Document Word (.docx) Officiel</b>
+━━━━━━━━━━━━━━━━━━━━━━
+📄 Titre : <b>${args.title}</b>
+🏫 Établissement : <b>${schoolName}</b>
+${args.recipient ? `👤 Destinataire : <i>${args.recipient}</i>\n` : ""}
+<i>Fichier Word modifiable certifié SnapSchool</i>`;
+
+    await sendTelegramDocument(context.chatId, buffer, filename, {
+      caption,
+      parse_mode: "HTML",
+    });
+
+    return {
+      success: true,
+      message: `📝 <b>Document Word (.docx) généré et envoyé !</b>\n\nLe fichier <code>${filename}</code> est disponible au téléchargement dans ce chat. Vous pouvez l'ouvrir et l'éditer directement dans Microsoft Word ou Google Docs.`,
+      summary: `Document Word généré : ${filename}`,
+      data: { filename },
+    };
+  } catch (err: any) {
+    console.error("[generateWordDocumentTool] Error:", err);
+    return {
+      success: false,
+      message: `Erreur lors de la génération du document Word : ${err.message || String(err)}`,
+      summary: "Échec document Word",
+    };
+  }
+}
+
 
