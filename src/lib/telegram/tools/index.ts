@@ -2846,41 +2846,45 @@ Confirmer l'enregistrement de cette dépense ?`;
   generate_school_wall_notice_pdf: {
     name: "generate_school_wall_notice_pdf",
     description:
-      "Générer et envoyer directement en pièce jointe PDF A4 haute résolution dans Telegram une affiche officielle prête à imprimer pour le mur de l'école (affiche murale, panneau d'affichage, communiqué à coller à l'entrée ou dans les couloirs). Comporte l'en-tête de l'école, un cadre architectural double, un badge de catégorie, un grand titre lisible de loin (20pt), le corps du texte formaté, un encadré d'avertissement et le cachet/signature officiel. À déclencher dès que l'administrateur demande une affiche ou un document à accrocher/coller au mur de l'école ('génère une affiche pour le mur', 'avis à coller au mur', 'affiche réunion parents', 'tableau d'affichage', 'affiche murale pdf').",
+      "Générer et envoyer directement en pièce jointe PDF A4 haute résolution dans Telegram une affiche officielle prête à imprimer pour le mur de l'école (affiche murale, panneau d'affichage, communiqué à coller à l'entrée ou dans les couloirs). Par défaut, l'affiche est sobre et épurée : elle comporte l'en-tête de l'école, le Titre principal et le Texte descriptif complet, ainsi que la signature et le cachet officiel. Supporte le Français ('fr'), l'Arabe ('ar' avec calligraphie Amiri et alignement RTL) et l'Anglais ('en'). À déclencher dès que l'administrateur demande une affiche ou un document PDF à accrocher/coller au mur de l'école ('génère une affiche pour le mur', 'avis à coller au mur', 'affiche réunion parents', 'tableau d'affichage', 'affiche murale pdf', 'إعلان حائطي', 'wall notice pdf').",
     requiresConfirmation: false,
     declaration: {
       name: "generate_school_wall_notice_pdf",
-      description: "Générer et envoyer une affiche officielle A4 (PDF) prête à être imprimée et collée sur le mur ou le tableau d'affichage de l'école.",
+      description: "Générer et envoyer une affiche officielle A4 (PDF) prête à être imprimée et collée sur le mur ou le tableau d'affichage de l'école. Supporte Français, Arabe (Amiri RTL) et Anglais.",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
           title: {
             type: SchemaType.STRING,
-            description: "Titre principal de l'affiche en lettres capitales (ex: 'RÉUNION GÉNÉRALE DES PARENTS D'ÉLÈVES', 'CALENDRIER DES DEVOIRS').",
+            description: "Titre principal de l'affiche (ex: 'RÉUNION GÉNÉRALE DES PARENTS D'ÉLÈVES', 'CALENDRIER DES DEVOIRS', 'إعلام للأولياء').",
           },
           bodyText: {
             type: SchemaType.STRING,
-            description: "Texte complet de l'affiche (paragraphes, puces avec '-', consignes, horaires).",
+            description: "Texte descriptif complet de l'affiche (paragraphes, puces avec '-', consignes, horaires, détails).",
+          },
+          language: {
+            type: SchemaType.STRING,
+            description: "Langue du document : 'fr' (Français - par défaut), 'ar' (Arabe avec calligraphie Amiri et orientation RTL), ou 'en' (Anglais). Choisir selon la langue demandée par l'administrateur ou la langue du message.",
           },
           category: {
             type: SchemaType.STRING,
-            description: "Catégorie : 'COMMUNIQUE', 'AVIS_PARENTS', 'NOTE_INTERNE', 'DISCIPLINE', 'EXAMENS', 'EVENEMENT', ou 'URGENT'.",
+            description: "Catégorie optionnelle (UNIQUEMENT si demandée expressément par l'administrateur) : 'COMMUNIQUE', 'AVIS_PARENTS', 'NOTE_INTERNE', 'DISCIPLINE', 'EXAMENS', 'EVENEMENT', ou 'URGENT'.",
           },
           importantNotice: {
             type: SchemaType.STRING,
-            description: "Message d'avertissement ou rappel important mis en valeur dans un encadré coloré (optionnel).",
+            description: "Message d'avertissement ou rappel important distinct (optionnel, UNIQUEMENT si demandé expressément par l'administrateur - NE PAS DUPLIQUER le texte du corps).",
           },
           targetAudience: {
             type: SchemaType.STRING,
-            description: "Public concerné (optionnel, ex: 'Tous les parents d'élèves', 'Classes de 3ème Année').",
+            description: "Public concerné (optionnel, UNIQUEMENT si demandé expressément, ex: 'Tous les parents d'élèves', 'Classes de 3ème Année').",
           },
           dateStr: {
             type: SchemaType.STRING,
-            description: "Date d'affichage (optionnel, par défaut aujourd'hui).",
+            description: "Date d'affichage (optionnel, par défaut date actuelle formatée dans la langue choisie).",
           },
           signatory: {
             type: SchemaType.STRING,
-            description: "Signataire officiel (optionnel, défaut: 'La Direction de l'Établissement').",
+            description: "Signataire officiel (optionnel, adapté automatiquement à la langue choisie si omis).",
           },
         },
         required: ["title", "bodyText"],

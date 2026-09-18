@@ -5,7 +5,11 @@ import {
   generateSalaryPayslipPdf,
   generateDailyCashRegisterPdf,
 } from "@/lib/pdf/receipts";
-import { generateSchoolWallNoticePdf, NoticeCategory } from "@/lib/pdf/schoolWallNotice";
+import {
+  generateSchoolWallNoticePdf,
+  NoticeCategory,
+  containsArabic,
+} from "@/lib/pdf/schoolWallNotice";
 import { generateSchoolWordDocument, WordSection } from "@/lib/word/wordEngine";
 import { sendTelegramDocument } from "../telegram";
 import { resolveStudentByName, resolveTeacherByName, resolveStaffByName } from "./entityResolvers";
@@ -622,6 +626,7 @@ export async function generateSchoolWallNoticePdfTool(
   args: {
     title: string;
     bodyText: string;
+    language?: "fr" | "ar" | "en" | string;
     category?: NoticeCategory | string;
     importantNotice?: string;
     targetAudience?: string;
@@ -640,31 +645,77 @@ export async function generateSchoolWallNoticePdfTool(
   }
 
   try {
-    const school = await prisma.school.findUnique({
-      where: { id: context.schoolId },
-      select: { name: true },
-    });
-    const schoolName = school?.name || "SnapSchool Academy";
+    let schoolName = "SnapSchool Academy";
+    try {
+      if (context.schoolId) {
+        const school = await prisma.school.findUnique({
+          where: { id: context.schoolId },
+          select: { name: true },
+        });
+        if (school?.name) schoolName = school.name;
+      }
+    } catch (dbErr) {
+      console.warn("[generateSchoolWallNoticePdfTool] School lookup skipped:", dbErr);
+    }
+
+    const requestedLang = (args.language || "").toLowerCase().trim();
+    const isArabic =
+      requestedLang === "ar" ||
+      requestedLang.startsWith("ar") ||
+      containsArabic(args.title) ||
+      containsArabic(args.bodyText);
+    const isEnglish = !isArabic && (requestedLang === "en" || requestedLang.startsWith("en"));
 
     const { buffer, filename } = await generateSchoolWallNoticePdf({
       schoolName,
       title: args.title,
-      category: args.category || "COMMUNIQUE",
+      language: args.language,
+      category: args.category, // Do not default: keep clean Title + Description only
       bodyText: args.bodyText,
       importantNotice: args.importantNotice,
       targetAudience: args.targetAudience,
       dateStr: args.dateStr,
-      signatory: args.signatory || "La Direction de l'Établissement",
+      signatory: args.signatory,
       referenceNumber: args.referenceNumber,
     });
 
-    const caption = `🏛️ <b>Affiche Murale Officielle (Format A4 Imprimable)</b>
+    let caption: string;
+    let returnMessage: string;
+
+    if (isArabic) {
+      const displayDate = args.dateStr || new Intl.DateTimeFormat("ar-TN", { dateStyle: "long" }).format(new Date());
+      caption = `🏛️ <b>إشعار رسمي للتعليق الحائطي (صيغة A4 للطباعة)</b>
+━━━━━━━━━━━━━━━━━━━━━━
+📌 العنوان : <b>${args.title}</b>
+🏫 المؤسسة : <b>${schoolName}</b>
+${args.targetAudience ? `👥 المعنيون : <i>${args.targetAudience}</i>\n` : ""}📅 التاريخ : <code>${displayDate}</code>
+
+<i>جاهز للطباعة والتعليق على جدران المدرسة أو لوحة الإعلانات.</i>`;
+
+      returnMessage = `📄 <b>تم إنشاء الإشعار الحائطي PDF وإرساله بنجاح!</b>\n\nتم إرسال الملف الرسمي <code>${filename}</code> عالي الجودة إلى المحادثة. يمكنكم طباعته فوراً لتعليقه على جدران المدرسة أو لوحة الإعلانات.`;
+    } else if (isEnglish) {
+      const displayDate = args.dateStr || new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date());
+      caption = `🏛️ <b>Official Wall Notice (Printable A4 PDF)</b>
+━━━━━━━━━━━━━━━━━━━━━━
+📌 Title: <b>${args.title}</b>
+🏫 School: <b>${schoolName}</b>
+${args.targetAudience ? `👥 Target Audience: <i>${args.targetAudience}</i>\n` : ""}📅 Date: <code>${displayDate}</code>
+
+<i>Ready to print and display on school notice boards and walls.</i>`;
+
+      returnMessage = `📄 <b>Official wall notice PDF generated and sent!</b>\n\nThe printable document <code>${filename}</code> (high resolution A4) has been delivered to your chat. You can print it immediately for display on notice boards.`;
+    } else {
+      const displayDate = args.dateStr || new Date().toLocaleDateString("fr-FR");
+      caption = `🏛️ <b>Affiche Murale Officielle (Format A4 Imprimable)</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 📌 Titre : <b>${args.title}</b>
 🏫 Établissement : <b>${schoolName}</b>
-${args.targetAudience ? `👥 Public concerné : <i>${args.targetAudience}</i>\n` : ""}📅 Date : <code>${args.dateStr || new Date().toLocaleDateString("fr-FR")}</code>
+${args.targetAudience ? `👥 Public concerné : <i>${args.targetAudience}</i>\n` : ""}📅 Date : <code>${displayDate}</code>
 
 <i>Prête à imprimer pour affichage au mur, tableau d'affichage ou entrée de l'école.</i>`;
+
+      returnMessage = `📄 <b>Affiche murale PDF générée et transmise !</b>\n\nLe document officiel <code>${filename}</code> (A4 haute résolution) a été envoyé dans le chat. Vous pouvez l'imprimer directement pour l'afficher sur le mur ou le tableau d'affichage de l'école.`;
+    }
 
     await sendTelegramDocument(context.chatId, buffer, filename, {
       caption,
@@ -673,7 +724,7 @@ ${args.targetAudience ? `👥 Public concerné : <i>${args.targetAudience}</i>\n
 
     return {
       success: true,
-      message: `📄 <b>Affiche murale PDF générée et transmise !</b>\n\nLe document officiel <code>${filename}</code> (A4 haute résolution) a été envoyé dans le chat. Vous pouvez l'imprimer directement pour l'afficher sur le mur ou le tableau d'affichage de l'école.`,
+      message: returnMessage,
       summary: `Affiche murale générée : ${filename}`,
       data: { filename },
     };
