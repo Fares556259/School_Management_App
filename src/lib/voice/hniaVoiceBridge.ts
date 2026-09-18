@@ -44,9 +44,9 @@ export interface VoiceTurnResult {
 }
 
 const CANDIDATE_MODELS = [
+  "gemini-2.5-flash-lite",
   "gemini-flash-latest",
   "gemini-flash-lite-latest",
-  "gemini-2.5-flash-lite",
   "gemini-3-flash-preview",
 ];
 
@@ -105,10 +105,10 @@ export async function processHniaVoiceTurn(input: VoiceTurnInput): Promise<Voice
 
   // ── FAST-PATH 1: Greetings ────────────────────────────────────────────────
   if (GREETING_REGEX.test(msgLower)) {
-    const isArabic = /[\u0600-\u06FF]/.test(msgTrimmed);
+    const isArabic = /[\u0600-\u06FF]/.test(msgTrimmed) || /(ahla|aslema|salam|labas|cava)/i.test(msgLower);
     if (isArabic) {
       return {
-        text: `عسلامة سي ${vCtx.adminName}، مرحبا بيك. أنا هنية، تفضل نسمع فيك فاش نجم نعاونك اليوم؟`,
+        text: `Ahla si ${vCtx.adminName}, marhba bik ! Ena Hnia, tfadhel nsmak fash najem naawnek elyoum ?`,
       };
     }
     return {
@@ -116,7 +116,40 @@ export async function processHniaVoiceTurn(input: VoiceTurnInput): Promise<Voice
     };
   }
 
-  // ── FAST-PATH 2: School Overview / Stats ──────────────────────────────────
+  // ── FAST-PATH 2: Attendance & Absences (Instant DB query ~50ms) ─────────────
+  const ATTENDANCE_REGEX = /(présence|présences|absence|absences|absent|absents|retard|retards|qui est absent|fama ghyabat|chkoun ghyeb|chkoun ghaieb|fama absents|غياب|غيابات|حضور|شكون غايب)/i;
+  if (ATTENDANCE_REGEX.test(msgLower)) {
+    try {
+      const { getAttendanceTool } = await import("@/lib/telegram/tools/readTools");
+      const att = (await getAttendanceTool({ date: "today" }, toolContext)) as any;
+      if (att?.summary) {
+        const total = att.totalEnrolled || 53;
+        const absent = att.summary.absentCount ?? 0;
+        const late = att.summary.lateCount ?? 0;
+        const isTounsi = /[\u0600-\u06FF]/.test(msgTrimmed) || /(fama|chkoun|ghyeb|elyoum|ya hnia)/i.test(msgLower);
+
+        let text = "";
+        if (absent === 0 && late === 0) {
+          text = isTounsi
+            ? `Ahla si ${vCtx.adminName}, elyoum les ${total} élèves lkoll présent, mafamech ghyabat wela retards.`
+            : `Aujourd'hui, tous les ${total} élèves sont présents. Il n'y a aucun absent ni retardataire enregistré dans l'école.`;
+        } else {
+          text = isTounsi
+            ? `Elyoum fama ${absent} absent${absent > 1 ? 's' : ''} w ${late} retardataire${late > 1 ? 's' : ''} men ${total} élèves.`
+            : `Aujourd'hui, il y a ${absent} absent${absent > 1 ? 's' : ''} et ${late} retardataire${late > 1 ? 's' : ''} sur un total de ${total} élèves.`;
+        }
+
+        return {
+          text,
+          toolsExecuted: [{ toolName: "get_attendance", args: { date: "today" }, result: att }],
+        };
+      }
+    } catch (e) {
+      console.warn("[VoiceBridge] Fast-path attendance error:", e);
+    }
+  }
+
+  // ── FAST-PATH 3: School Overview / Stats ──────────────────────────────────
   if (STATS_REGEX.test(msgLower)) {
     try {
       const { getSchoolStatsTool } = await import("@/lib/telegram/tools/readTools");
@@ -133,14 +166,17 @@ export async function processHniaVoiceTurn(input: VoiceTurnInput): Promise<Voice
     }
   }
 
-  // ── FAST-PATH 3: Daily Caisse ────────────────────────────────────────────
+  // ── FAST-PATH 4: Daily Caisse ────────────────────────────────────────────
   if (CAISSE_REGEX.test(msgLower)) {
     try {
       const { getDailyCaisseTool } = await import("@/lib/telegram/tools/financeTools");
       const caisse = (await getDailyCaisseTool({ date: "today" }, toolContext)) as any;
       if (caisse?.summary) {
         const s = caisse.summary;
-        const text = `Pour aujourd'hui, les encaissements s'élèvent à ${s.totalIncomes} dinars, et les dépenses à ${s.totalExpenses} dinars. Le solde net est de ${s.netCashBalance} dinars.`;
+        const isTounsi = /[\u0600-\u06FF]/.test(msgTrimmed) || /(flous|elyoum|caisse)/i.test(msgLower);
+        const text = isTounsi
+          ? `Pour aujourd'hui les encaissements fehom ${s.totalIncomes} dinars, w les dépenses ${s.totalExpenses} dinars. Solde net houwa ${s.netCashBalance} dinars.`
+          : `Pour aujourd'hui, les encaissements s'élèvent à ${s.totalIncomes} dinars, et les dépenses à ${s.totalExpenses} dinars. Le solde net est de ${s.netCashBalance} dinars.`;
         return {
           text,
           toolsExecuted: [{ toolName: "get_daily_caisse", args: { date: "today" }, result: caisse }],
@@ -191,20 +227,19 @@ Mois en cours : ${currentMonthName} ${currentYearNum}.
 Devise : Dinars Tunisiens (DT).
 ${teachingsBlock}
 
-RÈGLES CAPITALES POUR L'APPEL VOCAL :
-1. PARLE EN DIALECTE TUNISIEN (Derja) OU EN FRANCO-TUNISIEN NATUREL selon la langue de l'administrateur.
-   - Si l'administrateur parle en tunisien, réponds en tunisien chaleureux.
-   - Si l'administrateur parle en français, réponds en français clair et professionnel.
-2. STYLE VOCAL ULTRA-CONCIS (1 à 2 phrases max). Ne lis jamais de longues listes de noms au téléphone.
-   - Donne directement les chiffres clés et le résumé.
-3. APPELLE IMMÉDIATEMENT LES OUTILS DISPONIBLES :
+RÈGLES CAPITALES POUR L'APPEL VOCAL ET LA SYNTHÈSE VOCALE :
+1. N'ÉCRIS JAMAIS EN CARACTÈRES ARABES (l'alphabet arabe fait planter la synthèse vocale).
+2. Si l'administrateur parle en tunisien ou dialecte, réponds TOUJOURS en FRANCO-TUNISIEN PHONÉTIQUE en lettres latines (ex: "Ahla si Fares, elyoum fama...", "mafamech retards", "kol chay mriguel").
+3. Si l'administrateur parle en français, réponds en français clair, chaleureux et professionnel.
+4. ULTRA-COURT : MAXIMUM UNE SEULE PHRASE DIRECTE (15 à 20 mots max). Donne le chiffre ou la réponse immédiatement.
+5. APPELLE IMMÉDIATEMENT LES OUTILS :
    - Impayés / paiements -> get_payments ou get_partial_payments
    - Absences du jour -> get_attendance
    - Notes / examens -> get_exams ou get_student_grades
    - Emploi du temps -> get_class_timetable
    - Salaires -> get_teachers
    - Dépenses -> get_expenses
-4. AUCUN SYMBOLE, AUCUN MARKDOWN, AUCUNE BALISE HTML. Texte brut uniquement pour la synthèse vocale.`;
+6. AUCUN SYMBOLE, AUCUN MARKDOWN, AUCUNE BALISE HTML. Texte brut uniquement.`;
 
   // History normalization
   const historyContents: any[] = [];
@@ -238,8 +273,8 @@ RÈGLES CAPITALES POUR L'APPEL VOCAL :
           },
         ],
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1024,
+          temperature: 0.1,
+          maxOutputTokens: 150,
         },
       });
 
@@ -291,7 +326,7 @@ RÈGLES CAPITALES POUR L'APPEL VOCAL :
           {
             text: `[RÉSULTAT DE L'OUTIL ${call.name.toUpperCase()}] :\n${JSON.stringify(
               output
-            )}\n\nRésume ce résultat vocalement à l'administrateur en 1 ou 2 phrases courtes naturelles (en dialecte tunisien ou français selon son message). Pas de markdown, pas de puces, pas de code.`,
+            )}\n\nRésume ce résultat vocalement en 1 SEULE phrase courte directe (en français ou franco-tunisien phonétique en lettres latines). Maximum 15 mots. Pas de caractères arabes, pas de markdown.`,
           },
         ]);
         candidate = response.response;
