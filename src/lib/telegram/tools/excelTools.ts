@@ -10,6 +10,8 @@ import {
   getUserExcelBuffer,
   storeUserExcelBuffer,
   inspectExcelBuffer,
+  loadWorkbookFromBuffer,
+  applyExecutiveThemeToWorksheet,
   ExcelTransformOptions,
   SchoolExcelReportType,
 } from "@/lib/excel/excelEngine";
@@ -21,13 +23,26 @@ export interface ExcelToolResult {
   data?: any;
 }
 
+function cleanSubj(name?: string | null): string {
+  if (!name) return "Matière";
+  const parts = name.split("|").map((p) => p.trim());
+  return parts[1] || parts[0] || name;
+}
+
 /**
  * Tool: export_excel_report
  * Generates an executive, styled .xlsx file from school data and delivers it to Telegram.
  */
 export async function exportExcelReportTool(
   args: {
-    reportType: "unpaid_students" | "students_list" | "daily_cash" | "teachers_salaries";
+    reportType:
+      | "unpaid_students"
+      | "students_list"
+      | "daily_cash"
+      | "teachers_salaries"
+      | "class_timetable"
+      | "timetable"
+      | "planning";
     month?: number;
     year?: number;
     className?: string;
@@ -297,6 +312,79 @@ export async function exportExcelReportTool(
       };
     }
 
+    if (
+      args.reportType === "class_timetable" ||
+      args.reportType === ("timetable" as any) ||
+      args.reportType === ("planning" as any)
+    ) {
+      const className = args.className || "1A";
+      const targetClass = await resolveClassByName(context.schoolId, className);
+      if (!targetClass) {
+        return {
+          success: false,
+          message: `Classe "${className}" introuvable.`,
+          summary: "Classe introuvable",
+        };
+      }
+
+      const slots = await prisma.timetableSlot.findMany({
+        where: {
+          classId: targetClass.id,
+          isDraft: false,
+        },
+        orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
+        include: {
+          subject: { select: { name: true } },
+          teacher: { select: { name: true, surname: true } },
+          room: { select: { name: true } },
+        },
+      });
+
+      const dayLabels: Record<string, string> = {
+        MONDAY: "Lundi",
+        TUESDAY: "Mardi",
+        WEDNESDAY: "Mercredi",
+        THURSDAY: "Jeudi",
+        FRIDAY: "Vendredi",
+        SATURDAY: "Samedi",
+      };
+
+      const formattedSlots = slots.map((s) => ({
+        day: dayLabels[s.day] || s.day,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        subject: cleanSubj(s.subject?.name),
+        teacher: s.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "Non assigné",
+        room: s.room?.name || "Sans salle",
+      }));
+
+      const { buffer, filename } = await generateSchoolExcelReport({
+        type: "CLASS_TIMETABLE",
+        schoolName,
+        data: formattedSlots,
+        options: {
+          className: targetClass.name,
+          month: targetMonth,
+          year: targetYear,
+        },
+      });
+
+      const caption = `📅 <b>Emploi du Temps Excel — Classe ${targetClass.name}</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🏫 École : <b>${schoolName}</b>\n📊 Total séances : <b>${formattedSlots.length}</b>\n📁 Fichier : <code>${filename}</code>\n\n<i>Deux feuilles incluses : Grille hebdomadaire & Liste détaillée</i>`;
+
+      await sendTelegramDocument(chatId, buffer, filename, {
+        caption,
+        parse_mode: "HTML",
+      });
+
+      storeUserExcelBuffer(chatId, buffer, filename);
+
+      return {
+        success: true,
+        message: `✅ Le fichier Excel de l'emploi du temps de la classe <b>${targetClass.name}</b> (<code>${filename}</code>) a été généré et envoyé directement dans ce chat Telegram !`,
+        summary: `Fichier Excel envoyé : ${filename} (${formattedSlots.length} séances)`,
+      };
+    }
+
     return {
       success: false,
       message: `Type de rapport "${args.reportType}" non supporté pour le moment.`,
@@ -523,6 +611,235 @@ export async function importStudentsFromExcelTool(
       success: false,
       message: `Erreur lors de l'importation du fichier Excel : ${err.message || String(err)}`,
       summary: "Erreur import Excel",
+    };
+  }
+}
+
+/**
+ * Tool: write_timetable_to_excel
+ * Writes / integrates a class timetable into an uploaded spreadsheet (e.g. Planning.xlsx)
+ * or creates a fresh planning spreadsheet for that class and sends it immediately to Telegram.
+ */
+export async function writeTimetableToExcelTool(
+  args: {
+    className?: string;
+    month?: number;
+    year?: number;
+    outputFileName?: string;
+  },
+  context: ToolContext
+): Promise<ExcelToolResult> {
+  if (!context.chatId) {
+    return {
+      success: false,
+      message: "Identifiant de chat Telegram manquant pour l'envoi du document.",
+      summary: "Chat ID manquant",
+    };
+  }
+  const chatId = context.chatId;
+
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: context.schoolId },
+      select: { name: true },
+    });
+    const schoolName = school?.name || "SnapSchool Academy";
+
+    const now = new Date();
+    const targetMonth = args.month || now.getMonth() + 1;
+    const targetYear = args.year || now.getFullYear();
+    const className = args.className || "1A";
+
+    const targetClass = await resolveClassByName(context.schoolId, className);
+    if (!targetClass) {
+      return {
+        success: false,
+        message: `Classe "${className}" introuvable.`,
+        summary: "Classe introuvable",
+      };
+    }
+
+    const slots = await prisma.timetableSlot.findMany({
+      where: {
+        classId: targetClass.id,
+        isDraft: false,
+      },
+      orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
+      include: {
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } },
+        room: { select: { name: true } },
+      },
+    });
+
+    const dayLabels: Record<string, string> = {
+      MONDAY: "Lundi",
+      TUESDAY: "Mardi",
+      WEDNESDAY: "Mercredi",
+      THURSDAY: "Jeudi",
+      FRIDAY: "Vendredi",
+      SATURDAY: "Samedi",
+    };
+
+    const formattedSlots = slots.map((s) => ({
+      day: dayLabels[s.day] || s.day,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      subject: cleanSubj(s.subject?.name),
+      teacher: s.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "Non assigné",
+      room: s.room?.name || "Sans salle",
+    }));
+
+    const cached = getUserExcelBuffer(chatId);
+    let buffer: Buffer;
+    let filename: string;
+
+    const monthNames = [
+      "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+      "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+    ];
+    const monthName = monthNames[targetMonth - 1] || "Septembre";
+    const defaultOutName = `Planning_${targetClass.name}_${monthName}_${targetYear}.xlsx`;
+
+    if (cached) {
+      // Load user's uploaded workbook and enrich with timetable
+      const wb = await loadWorkbookFromBuffer(cached.buffer, cached.fileName);
+
+      // Check if a timetable sheet already exists, or create a fresh one
+      const sheetName = `Emploi du Temps ${targetClass.name}`;
+      let ws = wb.getWorksheet(sheetName);
+      if (!ws) {
+        ws = wb.addWorksheet(sheetName, { views: [{ showGridLines: true }] });
+      }
+
+      // Title
+      ws.mergeCells("A1:F1");
+      const titleCell = ws.getCell("A1");
+      titleCell.value = `🎓 ${schoolName.toUpperCase()} — EMPLOI DU TEMPS • CLASSE ${targetClass.name}`;
+      titleCell.font = { name: "Segoe UI", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+      titleCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws.getRow(1).height = 34;
+
+      const headers = ["N°", "Jour", "Créneau Horaire", "Matière", "Enseignant", "Salle"];
+      const headerRow = ws.getRow(3);
+      headerRow.values = headers;
+      headerRow.height = 26;
+
+      formattedSlots.forEach((s, idx) => {
+        const r = ws.addRow([
+          idx + 1,
+          s.day,
+          `${s.startTime} - ${s.endTime}`,
+          s.subject,
+          s.teacher,
+          s.room,
+        ]);
+        r.height = 22;
+      });
+
+      applyExecutiveThemeToWorksheet(ws, 3);
+      buffer = Buffer.from(await wb.xlsx.writeBuffer());
+      filename = args.outputFileName || defaultOutName;
+    } else {
+      const generated = await generateSchoolExcelReport({
+        type: "CLASS_TIMETABLE",
+        schoolName,
+        data: formattedSlots,
+        options: {
+          className: targetClass.name,
+          month: targetMonth,
+          year: targetYear,
+        },
+      });
+      buffer = generated.buffer;
+      filename = args.outputFileName || defaultOutName;
+    }
+
+    const caption = `📊 <b>Fichier Excel Mis à Jour : Emploi du Temps ${targetClass.name}</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🏫 École : <b>${schoolName}</b>\n📅 Période : <code>${monthName} ${targetYear}</code>\n⚡ Intégration effectuée : <b>${formattedSlots.length} séances</b>\n📁 Fichier : <code>${filename}</code>\n\n<i>Prêt à être téléchargé et imprimé directement !</i>`;
+
+    await sendTelegramDocument(chatId, buffer, filename, {
+      caption,
+      parse_mode: "HTML",
+    });
+
+    storeUserExcelBuffer(chatId, buffer, filename);
+
+    return {
+      success: true,
+      message: `✅ <b>Fichier Excel envoyé avec succès !</b>\n\nLe fichier <code>${filename}</code> intégrant l'emploi du temps de la classe <b>${targetClass.name}</b> (${formattedSlots.length} séances pour ${monthName} ${targetYear}) a été transmis directement dans ce chat Telegram.`,
+      summary: `Fichier Excel envoyé : ${filename} (${formattedSlots.length} séances)`,
+      data: { filename, totalSlots: formattedSlots.length },
+    };
+  } catch (err: any) {
+    console.error("[writeTimetableToExcelTool] Error:", err);
+    return {
+      success: false,
+      message: `Erreur lors de l'intégration de l'emploi du temps dans le fichier Excel : ${err.message || String(err)}`,
+      summary: "Échec intégration emploi du temps Excel",
+    };
+  }
+}
+
+/**
+ * Tool: send_cached_excel
+ * Sends or re-sends the active / cached Excel spreadsheet to the Telegram chat.
+ * Trigger when the user asks: "where s the Planning.xlsx send it", "send it", "renvoie le fichier",
+ * "where can I download it", "télécharger", "donne-moi le fichier".
+ */
+export async function sendCachedExcelTool(
+  args: {
+    customFileName?: string;
+    className?: string;
+  },
+  context: ToolContext
+): Promise<ExcelToolResult> {
+  if (!context.chatId) {
+    return {
+      success: false,
+      message: "Identifiant de chat introuvable.",
+      summary: "Chat ID manquant",
+    };
+  }
+  const chatId = context.chatId;
+
+  try {
+    const cached = getUserExcelBuffer(chatId);
+    if (cached) {
+      const outName = args.customFileName || cached.fileName;
+      const caption = `📁 <b>Document Excel Téléchargeable</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📄 Fichier : <code>${outName}</code>\n\n<i>Cliquez sur le document ci-dessus pour le télécharger sur votre appareil.</i>`;
+
+      await sendTelegramDocument(chatId, cached.buffer, outName, {
+        caption,
+        parse_mode: "HTML",
+      });
+
+      return {
+        success: true,
+        message: `✅ Le fichier <code>${outName}</code> a été envoyé dans le chat en pièce jointe téléchargeable !`,
+        summary: `Fichier envoyé : ${outName}`,
+        data: { filename: outName },
+      };
+    }
+
+    // Fallback: If className is provided or inferred (e.g. 1A), generate and send on the fly!
+    if (args.className || /1[A-Z]|2[A-Z]|3[A-Z]|4[A-Z]|5[A-Z]|6[A-Z]/i.test(args.customFileName || "")) {
+      const detectedClass = args.className || "1A";
+      return await writeTimetableToExcelTool({ className: detectedClass }, context);
+    }
+
+    return {
+      success: false,
+      message:
+        "⚠️ Aucun fichier Excel n'est actuellement en mémoire dans notre conversation. Veuillez renvoyer le fichier .xlsx dans le chat pour que je puisse vous le renvoyer !",
+      summary: "Aucun fichier Excel en cache",
+    };
+  } catch (err: any) {
+    console.error("[sendCachedExcelTool] Error:", err);
+    return {
+      success: false,
+      message: `Erreur lors de l'envoi du fichier : ${err.message || String(err)}`,
+      summary: "Erreur envoi Excel",
     };
   }
 }

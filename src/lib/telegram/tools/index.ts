@@ -152,7 +152,10 @@ import {
   exportExcelReportTool,
   modifyExcelSpreadsheetTool,
   importStudentsFromExcelTool,
+  writeTimetableToExcelTool,
+  sendCachedExcelTool,
 } from "./excelTools";
+import { getUserExcelBuffer } from "@/lib/excel/excelEngine";
 
 // Suite 11: External School / Government Portals (Browser Automation)
 import {
@@ -2950,7 +2953,8 @@ Confirmer l'enregistrement de cette dépense ?`;
         properties: {
           reportType: {
             type: SchemaType.STRING,
-            description: "Type de rapport Excel : 'unpaid_students' (les impayés), 'students_list' (liste des élèves), ou 'daily_cash' (caisse du jour).",
+            description:
+              "Type de rapport Excel : 'unpaid_students' (les impayés), 'students_list' (liste des élèves), 'daily_cash' (caisse du jour), ou 'class_timetable' (emploi du temps de classe).",
           },
           month: {
             type: SchemaType.NUMBER,
@@ -3085,6 +3089,66 @@ Confirmer l'enregistrement de cette dépense ?`;
       },
     },
     execute: importStudentsFromExcelTool,
+  },
+
+  write_timetable_to_excel: {
+    name: "write_timetable_to_excel",
+    description:
+      "Générer ou intégrer l'emploi du temps complet d'une classe (séances, matières, profs, horaires, salles) dans un fichier Excel (.xlsx) et l'envoyer immédiatement en pièce jointe téléchargeable dans Telegram. À utiliser dès que l'administrateur demande de mettre un emploi du temps sur un fichier Excel (ex: 'put timetable 1 A on it', 'intègre l'emploi du temps 1A sur Excel', 'génère le planning 1A en Excel').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "write_timetable_to_excel",
+      description:
+        "Générer ou intégrer l'emploi du temps d'une classe dans un fichier Excel (.xlsx) et l'envoyer dans Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          className: {
+            type: SchemaType.STRING,
+            description: "Nom de la classe (ex: '1A', '8ème B').",
+          },
+          month: {
+            type: SchemaType.NUMBER,
+            description: "Mois ciblé (1 à 12, optionnel).",
+          },
+          year: {
+            type: SchemaType.NUMBER,
+            description: "Année ciblée (optionnel).",
+          },
+          outputFileName: {
+            type: SchemaType.STRING,
+            description: "Nom personnalisé du fichier Excel de sortie (optionnel).",
+          },
+        },
+        required: ["className"],
+      },
+    },
+    execute: writeTimetableToExcelTool,
+  },
+
+  send_cached_excel: {
+    name: "send_cached_excel",
+    description:
+      "Envoyer ou renvoyer immédiatement à l'administrateur le fichier Excel actuellement en mémoire ou en cours de travail dans la conversation Telegram (ex: 'where s the Planning.xlsx send it', 'send it', 'où est le fichier', 'renvoie-moi le fichier', 'where can I download it', 'télécharger', 'je ne le trouve pas').",
+    requiresConfirmation: false,
+    declaration: {
+      name: "send_cached_excel",
+      description: "Envoyer ou renvoyer le fichier Excel en mémoire dans le chat Telegram.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          customFileName: {
+            type: SchemaType.STRING,
+            description: "Nom du fichier à envoyer (ex: 'Planning.xlsx', 'Planning_1A_Septembre_2026.xlsx').",
+          },
+          className: {
+            type: SchemaType.STRING,
+            description: "Nom de la classe si le fichier concerne un emploi du temps (ex: '1A').",
+          },
+        },
+      },
+    },
+    execute: sendCachedExcelTool,
   },
 
   // ── EXTERNAL PORTAL SUITE (BROWSER AUTOMATION) ───────────────────────────
@@ -3452,7 +3516,8 @@ const GRADE_KEYS = /note|devoir|examen|exam|billet|bulletin|résultat|grade|scor
 const TIMETABLE_KEYS = /emploi du temps|horaire|créneau|slot|timetable|schedule|cours|session|substitut|disponible|conflict|permuter/i;
 const TEACHER_STAFF_KEYS = /enseignant|professeur|teacher|staff|personnel|encadrant|hire|embauche|salaire enseignant|absent heures|absent hours|payroll teacher/i;
 const ACADEMIC_ADMIN_KEYS = /élève|student|parent|classe|class|niveau|level|inscrire|enroll|affecter|assign|créer élève|créer parent|créer classe|fiche élève|profil élève|dossier/i;
-const DOCUMENT_KEYS = /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download|excel|xlsx|xls|tableur|csv|feuille de calcul|classeur|impayés excel|impayes excel|liste excel|effectif excel|export excel|affiche|affiche murale|wall|panneau d'affichage|poster|word|docx|doc|avis officiel|note de service/i;
+const DOCUMENT_KEYS =
+  /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download|excel|xlsx|xls|tableur|csv|feuille de calcul|classeur|impayés excel|impayes excel|liste excel|effectif excel|export excel|affiche|affiche murale|wall|panneau d'affichage|poster|word|docx|doc|avis officiel|note de service|planning|send it|where.*send|dowenlaod|télécharger|telecharger|renvoie|où est|ou est|fichier|file|put.*on it|ajoute.*dedans/i;
 const REMINDER_KEYS = /rappel|reminder|alarme|alarm|notif|alert|planifier|schedule reminder/i;
 const KNOWLEDGE_KEYS = /enseigne|teach hnia|connaissance|knowledge|oublie|forget|teachings|règle personnalisée/i;
 const ANNOUNCEMENT_KEYS = /annonce|announcement|communiqué|message parent|broadcast|publie|post announcement/i;
@@ -3495,6 +3560,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "find_available_teachers", "add_timetable_slot", "reschedule_timetable_slot",
     "swap_timetable_slots", "update_timetable_slot", "delete_timetable_slot",
     "suggest_best_timetable_slot", "get_teachers", "get_classes",
+    "write_timetable_to_excel",
   ],
   teacher_staff: [
     "get_teachers", "get_staff", "create_teacher", "update_teacher", "delete_teacher",
@@ -3514,6 +3580,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "get_payment_receipt", "get_salary_payslip", "get_daily_cash_pdf",
     "generate_school_wall_notice_pdf", "generate_word_document",
     "export_excel_report", "modify_excel_spreadsheet", "import_students_from_excel",
+    "write_timetable_to_excel", "send_cached_excel",
     "add_resource", "get_resources",
   ],
   reminder: ["schedule_reminder", "get_reminders", "cancel_reminder"],
@@ -3529,7 +3596,10 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
  * Falls back to the full list for ambiguous / multi-domain messages.
  * Always includes the 5 universal tools.
  */
-export function getPrunedGeminiDeclarations(userMessage: string): FunctionDeclaration[] {
+export function getPrunedGeminiDeclarations(
+  userMessage: string,
+  chatId?: string | number
+): FunctionDeclaration[] {
   const msg = userMessage;
   const allDeclarations = getGeminiFunctionDeclarations();
 
@@ -3552,6 +3622,11 @@ export function getPrunedGeminiDeclarations(userMessage: string): FunctionDeclar
   }
   if (EXTERNAL_KEYS.test(msg)) activeDomains.push("external");
   if (SETTINGS_KEYS.test(msg)) activeDomains.push("settings");
+
+  // If user has an active Excel buffer in cache, ALWAYS include document domain
+  if (chatId && getUserExcelBuffer(chatId) && !activeDomains.includes("document")) {
+    activeDomains.push("document");
+  }
 
   // If no domain detected OR more than 3 domains (complex request) → use all tools
   if (activeDomains.length === 0 || activeDomains.length > 3) {

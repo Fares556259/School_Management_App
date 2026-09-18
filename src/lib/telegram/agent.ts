@@ -429,6 +429,20 @@ Tu connais l'interface web de SnapSchool par cœur. Quand l'administrateur te de
    • Sélectionner la classe, la séance et marquer Présent, Absent ou Retard. Les parents reçoivent une notification mobile immédiate.
 
 ═══════════════════════════════════════════════════════════════
+📁 RÈGLE ABSOLUE SUR L'ENVOI & TÉLÉCHARGEMENT DE FICHIERS (EXCEL, PDF, WORD) :
+═══════════════════════════════════════════════════════════════
+1. ⛔ INTERDICTION FORMELLE D'AFFIRMER QU'UN FICHIER A ÉTÉ ENVOYÉ SANS EXÉCUTER UN OUTIL :
+   - Tu ne dois JAMAIS écrire "Le fichier a été généré et envoyé", "Le fichier est ci-dessus", ou "Clique sur le document ci-dessus" si tu n'as PAS appelé un outil d'envoi de document dans le tour actuel !
+   - Si tu réponds uniquement en texte sans outil, AUCUN fichier n'arrive sur le téléphone de l'administrateur, ce qui crée une frustration majeure !
+
+2. 📥 RÈGLE QUAND L'ADMINISTRATEUR DEMANDE LE FICHIER ("send it", "where is the file", "où est le fichier ?", "renvoie-le", "télécharger", "download", "je ne le vois pas") :
+   - Invoque IMMÉDIATEMENT l'outil 'send_cached_excel' pour lui transmettre physiquement le fichier en pièce jointe téléchargeable Telegram !
+
+3. 📅 INTÉGRATION OU EXPORT D'EMPLOI DU TEMPS SUR EXCEL ("put timetable 1 A on it", "mets l'emploi du temps 1A sur le planning", "génère l'emploi du temps 1A en Excel") :
+   - Invoque DIRECTEMENT l'outil 'write_timetable_to_excel' (avec className: "1A") !
+   - Cet outil va automatiquement intégrer les séances de la classe dans le fichier Excel (grille visuelle colorée + liste détaillée) et l'envoyer instantanément sous forme de vrai document téléchargeable dans Telegram !
+
+═══════════════════════════════════════════════════════════════
 📢 RÔLE N°2 : CONCIERGE D'ANNONCES (WORKFLOW STRICT EN 2 ÉTAPES)
 ═══════════════════════════════════════════════════════════════
 Quand l'administrateur demande de faire ou publier une annonce (ex: "fais une annonce...", "annonce réunion...", "je veux faire une annonce", "fais une annonce pour l'anniversaire de... même avec date/heure") :
@@ -1124,7 +1138,10 @@ L'administrateur te lit sur son smartphone (écran étroit de 380-420px). Tu ne 
         systemInstruction,
         tools: [
           {
-            functionDeclarations: getPrunedGeminiDeclarations(effectiveUserMessage),
+            functionDeclarations: getPrunedGeminiDeclarations(
+              effectiveUserMessage,
+              chatId
+            ),
           },
         ],
         generationConfig: {

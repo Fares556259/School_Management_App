@@ -451,7 +451,7 @@ export async function transformExcelWorkbook(
 /**
  * Applies dark-navy executive styling, clean borders, zebra striping, currency formats, and auto-column widths.
  */
-function applyExecutiveThemeToWorksheet(ws: Worksheet, headerRowIndex: number): void {
+export function applyExecutiveThemeToWorksheet(ws: Worksheet, headerRowIndex: number): void {
   const headerRow = ws.getRow(headerRowIndex);
   headerRow.height = 28;
 
@@ -543,7 +543,8 @@ export type SchoolExcelReportType =
   | "DAILY_CASH"
   | "TEACHERS_SALARIES"
   | "FINANCE_SUMMARY"
-  | "ATTENDANCE_REPORT";
+  | "ATTENDANCE_REPORT"
+  | "CLASS_TIMETABLE";
 
 export interface GenerateReportParams {
   type: SchoolExcelReportType;
@@ -803,6 +804,169 @@ export async function generateSchoolExcelReport(
       };
 
       applyExecutiveThemeToWorksheet(ws, 3);
+      break;
+    }
+
+    case "CLASS_TIMETABLE": {
+      const clsName = params.options?.className || "1A";
+      const month = params.options?.month || new Date().getMonth() + 1;
+      const year = params.options?.year || new Date().getFullYear();
+      const monthNames = [
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+      ];
+      const monthName = monthNames[month - 1] || "Septembre";
+      filename = `Planning_${clsName.replace(/[^a-zA-Z0-9_-]/g, "_")}_${monthName}_${year}.xlsx`;
+
+      const slots = (params.data || []) as Array<{
+        day: string;
+        startTime: string;
+        endTime: string;
+        subject: string;
+        teacher: string;
+        room?: string | null;
+      }>;
+      rowCount = slots.length;
+
+      // ── Sheet 1: Grille Hebdomadaire (Weekly Grid) ──
+      const wsGrid = wb.addWorksheet("Emploi du Temps (Grille)", {
+        views: [{ showGridLines: true }],
+      });
+
+      // Title Banner
+      wsGrid.mergeCells("A1:G1");
+      const titleCell = wsGrid.getCell("A1");
+      titleCell.value = `🎓 ${params.schoolName.toUpperCase()} — EMPLOI DU TEMPS • CLASSE ${clsName.toUpperCase()}`;
+      titleCell.font = { name: "Segoe UI", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+      titleCell.alignment = { vertical: "middle", horizontal: "center" };
+      wsGrid.getRow(1).height = 36;
+
+      // Subtitle
+      wsGrid.mergeCells("A2:G2");
+      const subCell = wsGrid.getCell("A2");
+      subCell.value = `Période : ${monthName} ${year} • Total : ${slots.length} séances programmées • Document officiel généré par Hnia`;
+      subCell.font = { name: "Segoe UI", size: 10, italic: true, color: { argb: "FF64748B" } };
+      subCell.alignment = { vertical: "middle", horizontal: "center" };
+      wsGrid.getRow(2).height = 20;
+
+      // Grid Headers: Créneau, Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi
+      const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+      const gridHeaders = ["Créneau Horaire", ...days];
+      const headerRow = wsGrid.getRow(4);
+      headerRow.values = gridHeaders;
+      headerRow.height = 28;
+      headerRow.eachCell((cell) => {
+        cell.font = { name: "Segoe UI", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      });
+
+      // Standard School Time Slots
+      const timeSlots = [
+        "08:00 - 09:00",
+        "09:00 - 10:00",
+        "10:00 - 11:00",
+        "11:00 - 12:00",
+        "12:00 - 13:00",
+        "13:00 - 14:00",
+        "14:00 - 15:00",
+        "15:00 - 16:00",
+        "16:00 - 17:00",
+        "17:00 - 18:00",
+      ];
+
+      // Populate Grid
+      timeSlots.forEach((slotRange, slotIdx) => {
+        const rowNum = 5 + slotIdx;
+        const row = wsGrid.getRow(rowNum);
+        row.height = 42;
+        const timeCell = row.getCell(1);
+        timeCell.value = slotRange;
+        timeCell.font = { name: "Segoe UI", bold: true, size: 10, color: { argb: "FF334155" } };
+        timeCell.alignment = { vertical: "middle", horizontal: "center" };
+        timeCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+        timeCell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
+
+        const [slotStartStr] = slotRange.split(" - ");
+        const slotStartHour = parseInt(slotStartStr.split(":")[0], 10);
+
+        days.forEach((dayName, dayIdx) => {
+          const colNum = 2 + dayIdx;
+          const cell = row.getCell(colNum);
+
+          // Find if there is a lesson spanning this slot
+          const matchingSlot = slots.find((s) => {
+            if (!s.day.toLowerCase().includes(dayName.toLowerCase().slice(0, 4))) return false;
+            const startH = parseInt(s.startTime.split(":")[0], 10);
+            const endH = parseInt(s.endTime.split(":")[0], 10);
+            return slotStartHour >= startH && slotStartHour < endH;
+          });
+
+          if (matchingSlot) {
+            const roomTxt = matchingSlot.room && matchingSlot.room !== "Sans salle" && matchingSlot.room !== "Non assignée" ? ` [${matchingSlot.room}]` : "";
+            const teacherTxt = matchingSlot.teacher && !matchingSlot.teacher.toLowerCase().includes("non assign") ? `\n(${matchingSlot.teacher})` : "";
+            cell.value = `${matchingSlot.subject}${teacherTxt}${roomTxt}`;
+            cell.font = { name: "Segoe UI", size: 9, bold: true, color: { argb: "FF0F172A" } };
+            cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0F2FE" } };
+          } else {
+            cell.value = "—";
+            cell.font = { name: "Segoe UI", size: 9, color: { argb: "FF94A3B8" } };
+            cell.alignment = { vertical: "middle", horizontal: "center" };
+          }
+
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+        });
+      });
+
+      wsGrid.getColumn(1).width = 18;
+      for (let c = 2; c <= 7; c++) {
+        wsGrid.getColumn(c).width = 24;
+      }
+
+      // ── Sheet 2: Liste Détaillée des Séances ──
+      const wsList = wb.addWorksheet("Liste des Séances", {
+        views: [{ showGridLines: true }],
+      });
+
+      // Title Banner Sheet 2
+      wsList.mergeCells("A1:F1");
+      const listTitle = wsList.getCell("A1");
+      listTitle.value = `🎓 ${params.schoolName.toUpperCase()} — DÉTAIL DES SÉANCES • CLASSE ${clsName.toUpperCase()}`;
+      listTitle.font = { name: "Segoe UI", size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+      listTitle.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F172A" } };
+      listTitle.alignment = { vertical: "middle", horizontal: "center" };
+      wsList.getRow(1).height = 36;
+
+      const listHeaders = ["N°", "Jour", "Horaire", "Matière", "Enseignant", "Salle"];
+      const listHeaderRow = wsList.getRow(3);
+      listHeaderRow.values = listHeaders;
+      listHeaderRow.height = 26;
+
+      slots.forEach((s, idx) => {
+        const r = wsList.addRow([
+          idx + 1,
+          s.day,
+          `${s.startTime} - ${s.endTime}`,
+          s.subject,
+          s.teacher,
+          s.room || "Non assignée",
+        ]);
+        r.height = 22;
+      });
+
+      applyExecutiveThemeToWorksheet(wsList, 3);
       break;
     }
 
