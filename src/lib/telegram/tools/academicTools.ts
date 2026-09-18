@@ -624,7 +624,7 @@ export async function createStudentTool(
   }
 
   // Handle parent
-  let parentId: string;
+  let parentId: string | null = null;
   if (args.parentPhone) {
     const cleanPhone = args.parentPhone.replace(/[\s\-\.\+]/g, "").trim();
     let parent = await prisma.parent.findFirst({
@@ -661,21 +661,6 @@ export async function createStudentTool(
       });
     }
     parentId = parent.id;
-  } else {
-    // No parent phone provided: create a dedicated placeholder parent for this student.
-    // IMPORTANT: Never assign to an existing unrelated parent from the school database.
-    const placeholderParent = await prisma.parent.create({
-      data: {
-        id: `p_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        username: `parent_${studentName.toLowerCase().replace(/[^a-z]/g, "")}.${Date.now().toString().slice(-4)}`,
-        name: "Parent",
-        surname: studentSurname,
-        phone: `20${Date.now().toString().slice(-6)}`,
-        address: "Tunis",
-        schoolId: context.schoolId,
-      },
-    });
-    parentId = placeholderParent.id;
   }
 
   const username = `${studentName.toLowerCase().replace(/[^a-z]/g, "")}.${Date.now().toString().slice(-4)}`;
