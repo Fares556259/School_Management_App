@@ -51,8 +51,8 @@ const CANDIDATE_MODELS = [
 ];
 
 const GREETING_REGEX = /^(\/start|\/help|bonjour|bonsoir|salut|salam|ahla|wach|labas|cava|ça va|hello|hi\b|hey\b|menu|\/menu|كيفاش|كيف|صباح الخير|مرحبا|هلا)([\s]+(hnia|هنية))?[\s!?.،]*$/i;
-const STATS_REGEX = /^(\/stats|stats|statistique|effectif|effectifs|résumé école|résumé de l.école|aperçu|وضع المدرسة|وضعية المدرسة)[\s!?.]*$/i;
-const CAISSE_REGEX = /^(\/caisse|caisse|caisse du jour|clôture|clotûre|bilan du jour|daily cash|الكاسة|كاسة اليوم)[\s!?.]*$/i;
+const STATS_REGEX = /(stats|statistique|effectif|effectifs|résumé école|résumé de l.école|résumé général|vue d.ensemble|combien d.élèves|combien d.eleves|nombre d.élèves|تلاميذ|وضع المدرسة|وضعية المدرسة|résumé 3al école)/i;
+const CAISSE_REGEX = /(caisse|caisse du jour|clôture|clotûre|bilan de caisse|bilan du jour|daily cash|solde|recettes|dépenses|flous|الكاسة|كاسة|flous fel caisse)/i;
 
 /**
  * Clean text for natural spoken delivery:
@@ -155,7 +155,10 @@ export async function processHniaVoiceTurn(input: VoiceTurnInput): Promise<Voice
       const { getSchoolStatsTool } = await import("@/lib/telegram/tools/readTools");
       const stats = (await getSchoolStatsTool({}, toolContext)) as any;
       if (stats?.students !== undefined) {
-        const text = `Actuellement à ${vCtx.schoolName}, nous comptons ${stats.students} élèves, ${stats.teachers} enseignants et ${stats.classes} classes.`;
+        const isTounsi = /[\u0600-\u06FF]/.test(msgTrimmed) || /(ecole|mte3i|fama|3al|lyoum)/i.test(msgLower);
+        const text = isTounsi
+          ? `Fel école ${vCtx.schoolName}, fama ${stats.students} élèves, ${stats.teachers} asettha w ${stats.classes} classes.`
+          : `Actuellement à ${vCtx.schoolName}, nous comptons ${stats.students} élèves, ${stats.teachers} enseignants et ${stats.classes} classes.`;
         return {
           text,
           toolsExecuted: [{ toolName: "get_school_stats", args: {}, result: stats }],
@@ -173,9 +176,9 @@ export async function processHniaVoiceTurn(input: VoiceTurnInput): Promise<Voice
       const caisse = (await getDailyCaisseTool({ date: "today" }, toolContext)) as any;
       if (caisse?.summary) {
         const s = caisse.summary;
-        const isTounsi = /[\u0600-\u06FF]/.test(msgTrimmed) || /(flous|elyoum|caisse)/i.test(msgLower);
+        const isTounsi = /[\u0600-\u06FF]/.test(msgTrimmed) || /(flous|elyoum|caisse|kassa|dinars)/i.test(msgLower);
         const text = isTounsi
-          ? `Pour aujourd'hui les encaissements fehom ${s.totalIncomes} dinars, w les dépenses ${s.totalExpenses} dinars. Solde net houwa ${s.netCashBalance} dinars.`
+          ? `Elyoum fama ${s.totalIncomes} dinars d5al, w ${s.totalExpenses} dinars masrouf. Solde net houwa ${s.netCashBalance} dinars.`
           : `Pour aujourd'hui, les encaissements s'élèvent à ${s.totalIncomes} dinars, et les dépenses à ${s.totalExpenses} dinars. Le solde net est de ${s.netCashBalance} dinars.`;
         return {
           text,
