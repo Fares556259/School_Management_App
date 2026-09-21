@@ -202,7 +202,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                       {locale === "ar" ? "، " : locale === "fr" ? " à " : " at "}
                       {new Date(log.timestamp).toLocaleTimeString(dateLocale, { hour: "numeric", minute: "2-digit", hour12: false })}
                     </span>
-                    <span className="text-[11px] font-semibold text-indigo-500">· {relativeTime(log.timestamp, locale)}</span>
+                    <span className="text-[11px] font-semibold text-blue-500">· {relativeTime(log.timestamp, locale)}</span>
                   </div>
                 </div>
               </div>
@@ -271,15 +271,15 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
             <div className="mx-5 mt-4">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{(t as any).auditLogPage?.details?.performedBy || "Performed by"}</p>
               {isAI ? (
-                <div className="flex items-center gap-3 p-3 bg-indigo-950 rounded-xl border border-indigo-900">
-                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-indigo-700/50 flex-shrink-0 bg-indigo-900 flex items-center justify-center">
+                <div className="flex items-center gap-3 p-3 bg-blue-950 rounded-xl border border-blue-900">
+                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-blue-700/50 flex-shrink-0 bg-blue-900 flex items-center justify-center">
                     <Image src="/hnia_mascot_icon.png" alt="Hnia AI" width={36} height={36} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white leading-none">Hnia AI (Telegram)</p>
-                    <p className="text-[10px] text-indigo-300 mt-0.5">Assistante IA Opérations • {log.performedBy}</p>
+                    <p className="text-[10px] text-blue-300 mt-0.5">Assistante IA Opérations • {log.performedBy}</p>
                   </div>
-                  <span className="ml-auto px-2 py-0.5 rounded text-[9px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">{(t as any).auditLogPage?.details?.ai || "AI"}</span>
+                  <span className="ml-auto px-2 py-0.5 rounded text-[9px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">{(t as any).auditLogPage?.details?.ai || "AI"}</span>
                 </div>
               ) : isSystem ? (
                 <div className="flex items-center gap-3 p-3 bg-slate-100 rounded-xl border border-slate-200">
@@ -337,7 +337,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                   }
                 </button>
                 {entityLink && (
-                  <Link href={entityLink} onClick={onClose} className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors flex-shrink-0 ml-1 pl-2 border-l border-slate-200">
+                  <Link href={entityLink} onClick={onClose} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors flex-shrink-0 ml-1 pl-2 border-l border-slate-200">
                     {(t as any).auditLogPage?.details?.open || "Open"} <ExternalLink size={10} />
                   </Link>
                 )}
@@ -353,7 +353,7 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
                 <p className="text-xs font-bold text-slate-700">
                   {new Date(log.timestamp).toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" })}
                 </p>
-                <p className="text-[10px] text-indigo-500 font-semibold mt-0.5">{relativeTime(log.timestamp, locale)}</p>
+                <p className="text-[10px] text-blue-500 font-semibold mt-0.5">{relativeTime(log.timestamp, locale)}</p>
               </div>
               <div className="p-3 bg-white rounded-xl border border-slate-200">
                 <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">

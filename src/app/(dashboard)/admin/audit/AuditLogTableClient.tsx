@@ -176,7 +176,7 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
             const adminName = performer?.adminName || "Administrateur";
             return (
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-200 flex items-center justify-center shrink-0 shadow-sm bg-purple-50">
+                <div className="w-7 h-7 rounded-full overflow-hidden border border-blue-200 flex items-center justify-center shrink-0 shadow-sm bg-blue-50">
                   <Image
                     src="/hnia_mascot_icon.png"
                     alt="Hnia"
@@ -187,10 +187,10 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-purple-900 text-xs truncate group-hover:text-purple-700 transition-colors">
+                    <span className="font-bold text-blue-900 text-xs truncate group-hover:text-blue-700 transition-colors">
                       Hnia (Telegram AI)
                     </span>
-                    <span className="bg-purple-100 text-purple-700 text-[8px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                    <span className="bg-blue-100 text-blue-700 text-[8px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-wider">
                       IA
                     </span>
                   </div>
@@ -240,7 +240,7 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
       </td>
       <td className="p-4 hidden sm:table-cell text-xs text-slate-600 max-w-xs truncate" title={item.description}>
         {(item.performedBy?.toLowerCase().includes("telegram") || item.performedBy?.toLowerCase().includes("hnia")) && (
-          <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5 mr-1.5 shrink-0">
+          <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 mr-1.5 shrink-0">
             <Image
               src="/hnia_mascot_icon.png"
               alt="Hnia"
