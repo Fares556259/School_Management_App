@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Table from "@/components/Table";
 import AuditLogDetails from "./AuditLogDetails";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -175,8 +176,14 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
             const adminName = performer?.adminName || "Administrateur";
             return (
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border border-purple-300 flex items-center justify-center text-white text-xs shrink-0 shadow-sm">
-                  🤖
+                <div className="w-7 h-7 rounded-full overflow-hidden border border-purple-200 flex items-center justify-center shrink-0 shadow-sm bg-purple-50">
+                  <Image
+                    src="/hnia_mascot_icon.png"
+                    alt="Hnia"
+                    width={28}
+                    height={28}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -233,8 +240,15 @@ const AuditLogTableClient: React.FC<AuditLogTableClientProps> = ({ logs, perform
       </td>
       <td className="p-4 hidden sm:table-cell text-xs text-slate-600 max-w-xs truncate" title={item.description}>
         {(item.performedBy?.toLowerCase().includes("telegram") || item.performedBy?.toLowerCase().includes("hnia")) && (
-          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5 mr-1.5 shrink-0">
-            🤖 Telegram AI
+          <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5 mr-1.5 shrink-0">
+            <Image
+              src="/hnia_mascot_icon.png"
+              alt="Hnia"
+              width={12}
+              height={12}
+              className="w-3 h-3 rounded-full object-cover shrink-0"
+            />
+            Telegram AI
           </span>
         )}
         {translateDescription(item.description, t, locale)}

@@ -272,8 +272,8 @@ const AuditLogDetails: React.FC<AuditLogDetailsProps> = ({ log, onClose }) => {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{(t as any).auditLogPage?.details?.performedBy || "Performed by"}</p>
               {isAI ? (
                 <div className="flex items-center gap-3 p-3 bg-indigo-950 rounded-xl border border-indigo-900">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center flex-shrink-0">
-                    <Sparkles size={16} className="text-white" />
+                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-indigo-700/50 flex-shrink-0 bg-indigo-900 flex items-center justify-center">
+                    <Image src="/hnia_mascot_icon.png" alt="Hnia AI" width={36} height={36} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white leading-none">Hnia AI (Telegram)</p>

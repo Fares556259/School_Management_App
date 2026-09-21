@@ -119,7 +119,7 @@ const AuditPage = async ({
         name: "Hnia AI (Telegram)",
         email: adminName ? `Par ${adminName}` : "Assistant Telegram",
         role: "Assistant IA",
-        avatar: null,
+        avatar: "/hnia_mascot_icon.png",
         isAI: true,
         adminName,
       };
