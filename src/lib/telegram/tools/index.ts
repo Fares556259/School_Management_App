@@ -101,6 +101,12 @@ import {
   addAuditEntryTool,
 } from "./financeTools";
 
+// Suite 5b: Push Notifications
+import {
+  sendTestPushTool,
+  sendPushNotificationTool,
+} from "./notificationTools";
+
 // Suite 6: Timetable & Substitution
 import {
   getClassTimetableTool,
@@ -1560,6 +1566,66 @@ Confirmer l'enregistrement de cette dépense ?`;
       return `❓ <b>Envoi Notification Mobile aux Parents</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🎯 <b>Destinataire(s) :</b> ${targetLabel}\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${args?.message}"</i>\n\nConfirmer l'envoi de cette notification push mobile ?`;
     },
     execute: sendParentMessageTool,
+  },
+
+  // ── PUSH NOTIFICATIONS SUITE ──────────────────────────────────────────────
+  send_test_push: {
+    name: "send_test_push",
+    description: "Envoyer immédiatement une notification push de test sur le smartphone de l'administrateur (0-clic, direct).",
+    requiresConfirmation: false,
+    declaration: {
+      name: "send_test_push",
+      description: "Envoyer instantanément une notification push de test sur le smartphone de l'administrateur pour vérifier que les notifications fonctionnent.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING, description: "Titre de la notification de test (ex: '🔔 Test SnapSchool')." },
+          message: { type: SchemaType.STRING, description: "Contenu du message de test (ex: 'Les notifications push fonctionnent !')." },
+          urgent: { type: SchemaType.BOOLEAN, description: "Si true, déclenche le canal d'urgence avec le son de sirène alert.m4a." },
+        },
+      },
+    },
+    execute: sendTestPushTool,
+  },
+
+  send_push_notification: {
+    name: "send_push_notification",
+    description: "Envoyer une notification push mobile à une cible précise : un élève / ses parents, une classe, tous les enseignants, un enseignant spécifique, les impayés, ou toute l'école.",
+    requiresConfirmation: true,
+    declaration: {
+      name: "send_push_notification",
+      description: "Envoyer une notification push mobile aux enseignants, à une classe, aux parents d'un élève, aux impayés ou à toute l'école.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        required: ["message", "target"],
+        properties: {
+          target: {
+            type: SchemaType.STRING,
+            description: "Cible : 'me' (mon téléphone / test direct), 'teachers' (tous les profs), 'teacher' (un prof précis), 'student' (les parents d'un élève), 'class' (les parents d'une classe), 'parents' (tous les parents), 'unpaid' (familles avec impayés), ou 'all' (profs + parents).",
+          },
+          title: { type: SchemaType.STRING, description: "Titre percutant de la notification." },
+          message: { type: SchemaType.STRING, description: "Contenu du message à afficher dans la notification push." },
+          targetName: { type: SchemaType.STRING, description: "Nom de la cible si nécessaire : nom de l'élève, nom du professeur, ou nom de la classe (ex: 'Ahmed Ben Ali', 'Mme Monia', '8ème B')." },
+          urgent: { type: SchemaType.BOOLEAN, description: "Si true, utilise le canal d'urgence prioritaire avec son d'alerte." },
+        },
+      },
+    },
+    formatConfirmationMessage: (args: any) => {
+      let targetLabel = "toute l'école";
+      if (args?.target === "me") targetLabel = "votre smartphone (test direct)";
+      else if (args?.target === "teachers") targetLabel = "tous les enseignants de l'école";
+      else if (args?.target === "teacher") targetLabel = `l'enseignant <b>${args?.targetName || "spécifié"}</b>`;
+      else if (args?.target === "student") targetLabel = `les parents de <b>${args?.targetName || "l'élève"}</b>`;
+      else if (args?.target === "class") targetLabel = `les familles de la classe <b>${args?.targetName || "sélectionnée"}</b>`;
+      else if (args?.target === "parents") targetLabel = "toutes les familles de l'école";
+      else if (args?.target === "unpaid") targetLabel = "toutes les familles avec solde impayé";
+      else if (args?.target === "all") targetLabel = "l'ensemble des familles et des enseignants";
+
+      const urgentBadge = args?.urgent ? "\n🚨 <b>CANAL D'URGENCE (Sirène activée)</b>" : "";
+      const title = args?.title || "Information SnapSchool";
+      return `❓ <b>Confirmation d'Envoi Notification Push</b>\n━━━━━━━━━━━━━━━━━━━━━━\n🎯 <b>Destinataire(s) :</b> ${targetLabel}${urgentBadge}\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${args?.message}"</i>\n\nConfirmer l'envoi de cette notification push mobile ?`;
+    },
+    execute: sendPushNotificationTool,
   },
 
   // ── TIMETABLE & SUBSTITUTION SUITE ────────────────────────────────────────
@@ -3522,7 +3588,8 @@ const TEACHER_STAFF_KEYS = /enseignant|professeur|teacher|staff|personnel|encadr
 const ACADEMIC_ADMIN_KEYS = /élève|student|parent|classe|class|niveau|level|inscrire|enroll|affecter|assign|créer élève|créer parent|créer classe|fiche élève|profil élève|dossier/i;
 const DOCUMENT_KEYS =
   /reçu|pdf|document|quittance|receipt pdf|bulletin pdf|payslip pdf|cash pdf|download|excel|xlsx|xls|tableur|csv|feuille de calcul|classeur|impayés excel|impayes excel|liste excel|effectif excel|export excel|affiche|affiche murale|wall|panneau d'affichage|poster|word|docx|doc|avis officiel|note de service|planning|send it|where.*send|dowenlaod|télécharger|telecharger|renvoie|où est|ou est|fichier|file|put.*on it|ajoute.*dedans/i;
-const REMINDER_KEYS = /rappel|reminder|alarme|alarm|notif|alert|planifier|schedule reminder/i;
+const REMINDER_KEYS = /rappel|reminder|alarme|alarm|alert|planifier|schedule reminder/i;
+const NOTIFICATION_KEYS = /notif|push|alerte|broadcast|diffusion|préviens|previens|avertis|alerter|تنبيه|إشعار|اشعار|ابعثلي|ابعث.*notif/i;
 const KNOWLEDGE_KEYS = /enseigne|teach hnia|connaissance|knowledge|oublie|forget|teachings|règle personnalisée/i;
 const ANNOUNCEMENT_KEYS = /annonce|announcement|communiqué|message parent|broadcast|publie|post announcement/i;
 const TASK_KEYS = /devoir maison|homework|assignment|ressource|resource|fichier cours|support de cours/i;
@@ -3537,10 +3604,15 @@ const UNIVERSAL_TOOL_NAMES = new Set([
   "get_morning_briefing",
   "record_parent_payment",
   "add_expense",
+  "send_test_push",
 ]);
 
 // Domain → tool name arrays
 const DOMAIN_TOOLS: Record<string, string[]> = {
+  notification: [
+    "send_test_push", "send_push_notification", "send_parent_message",
+    "send_payment_reminders", "post_announcement", "get_announcements",
+  ],
   finance: [
     "get_payments", "get_partial_payments", "record_payment", "record_parent_payment",
     "recover_partial_payment", "schedule_recovery_date", "get_financial_summary",
@@ -3589,7 +3661,10 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
   ],
   reminder: ["schedule_reminder", "get_reminders", "cancel_reminder"],
   knowledge: ["teach_hnia", "get_hnia_teachings", "forget_hnia_teaching"],
-  announcement: ["get_announcements", "post_announcement", "create_announcement", "delete_announcement", "send_parent_message"],
+  announcement: [
+    "get_announcements", "post_announcement", "create_announcement",
+    "delete_announcement", "send_parent_message", "send_push_notification", "send_test_push"
+  ],
   task: ["get_assignments", "create_assignment", "get_assignment_details", "add_resource", "get_resources"],
   external: ["search_external_student", "get_external_student", "list_external_documents", "download_external_document"],
   settings: ["get_admin_profile", "update_admin_profile", "get_school_settings", "update_school_settings", "update_level_tuition_fee"],
@@ -3609,6 +3684,7 @@ export function getPrunedGeminiDeclarations(
 
   // Detect active domains
   const activeDomains: string[] = [];
+  if (NOTIFICATION_KEYS.test(msg)) activeDomains.push("notification");
   if (FINANCE_KEYS.test(msg)) activeDomains.push("finance");
   if (ATTENDANCE_KEYS.test(msg)) activeDomains.push("attendance");
   if (GRADE_KEYS.test(msg)) activeDomains.push("grade");

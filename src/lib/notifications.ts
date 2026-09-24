@@ -115,6 +115,84 @@ async function sendPushIndividualBatch(
 }
 
 /**
+ * Sends push notifications directly to raw Expo push tokens with chunking and error reporting.
+ */
+export async function sendDirectPushTokens(
+  tokens: string[],
+  title: string,
+  body: string,
+  options?: { channelId?: "default" | "emergency"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
+): Promise<{ success: boolean; sentCount: number; tickets: any[] }> {
+  const validTokens = Array.from(new Set(tokens)).filter((t) => t && Expo.isExpoPushToken(t));
+  if (validTokens.length === 0) {
+    return { success: false, sentCount: 0, tickets: [] };
+  }
+
+  const isEmergency = options?.channelId === "emergency";
+  const messages = validTokens.map((token) => ({
+    to: token,
+    sound: options?.sound || (isEmergency ? ("alert.m4a" as const) : ("notification.m4a" as const)),
+    title,
+    body,
+    data: options?.data || {},
+    channelId: options?.channelId || (isEmergency ? "emergency" : "default"),
+    priority: (options?.priority || "high") as "high",
+  }));
+
+  const chunks = expo.chunkPushNotifications(messages);
+  const tickets: any[] = [];
+  for (const chunk of chunks) {
+    try {
+      const res = await expo.sendPushNotificationsAsync(chunk);
+      tickets.push(...res);
+    } catch (err) {
+      console.error("[sendDirectPushTokens] Error sending chunk:", err);
+    }
+  }
+
+  const sentCount = tickets.filter((t) => t.status === "ok").length;
+  return { success: sentCount > 0, sentCount, tickets };
+}
+
+/**
+ * Sends push notifications to teachers in a school or specific teacher IDs.
+ */
+export async function sendPushToTeachers({
+  schoolId,
+  teacherIds,
+  title,
+  body,
+  options,
+}: {
+  schoolId: string;
+  teacherIds?: string[];
+  title: string;
+  body: string;
+  options?: { channelId?: "default" | "emergency"; data?: any; sound?: string };
+}): Promise<{ count: number; validTokensCount: number; success: boolean }> {
+  const where: any = { schoolId };
+  if (teacherIds && teacherIds.length > 0) {
+    where.id = { in: teacherIds };
+  }
+
+  const teachers = await prisma.teacher.findMany({
+    where,
+    select: { id: true, name: true, surname: true, expoPushToken: true },
+  });
+
+  const tokens = teachers
+    .map((t) => t.expoPushToken)
+    .filter((t): t is string => Boolean(t && Expo.isExpoPushToken(t)));
+
+  if (tokens.length > 0) {
+    const res = await sendDirectPushTokens(tokens, title, body, options);
+    return { count: teachers.length, validTokensCount: tokens.length, success: res.success };
+  }
+
+  return { count: teachers.length, validTokensCount: 0, success: false };
+}
+
+/**
  * Creates notifications for parents when a new notice is published.
  */
 export async function createAnnouncementNotifications(noticeId: number) {
