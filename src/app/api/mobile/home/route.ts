@@ -28,10 +28,20 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing studentId", { status: 400 });
     }
 
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      select: { classId: true, schoolId: true, parentId: true },
-    });
+    const [student, schoolConfig] = await Promise.all([
+      prisma.student.findUnique({
+        where: { id: studentId },
+        select: { classId: true, schoolId: true, parentId: true },
+      }),
+      prisma.institution.findFirst({
+        where: { schoolId },
+        select: {
+          schoolName: true, schoolLogo: true, ministryName: true, ministryLogo: true,
+          universityName: true, universityLogo: true, academicYear: true, currentSemester: true,
+          sessions: true, holidays: true, yearStart: true, yearEnd: true,
+        },
+      })
+    ]);
 
     if (!student) {
       return new NextResponse("Student not found", { status: 404 });
@@ -80,15 +90,6 @@ export async function GET(request: NextRequest) {
     const dayNum = now.getDay();
     const todayEnum = DAY_MAP[dayNum] || "MONDAY";
 
-    const schoolConfig = await prisma.institution.findFirst({
-      where: { schoolId },
-      select: {
-        schoolName: true, schoolLogo: true, ministryName: true, ministryLogo: true,
-        universityName: true, universityLogo: true, academicYear: true, currentSemester: true,
-        sessions: true, holidays: true, yearStart: true, yearEnd: true,
-      },
-    });
-
     let holidayName = null;
     if (schoolConfig?.holidays) {
       const holidays = typeof schoolConfig.holidays === "string"
@@ -111,58 +112,71 @@ export async function GET(request: NextRequest) {
     const todayEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1));
     const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const slots = await prisma.timetableSlot.findMany({
-      where: { classId: student.classId, day: todayEnum as any, isDraft: false },
-      include: { subject: true, teacher: true, room: true },
-      orderBy: { slotNumber: "asc" },
-    });
-    const attendance = await prisma.attendance.findMany({
-      where: { studentId, date: { gte: todayStart, lt: todayEnd } },
-      orderBy: { id: "desc" },
-      include: { lesson: { include: { subject: true, teacher: true } } },
-    });
-    const todayLessons = await prisma.lesson.findMany({
-      where: { classId: student.classId, day: todayEnum as any },
-      select: { id: true, subjectId: true, teacherId: true, name: true },
-    });
-    const examPeriods = await prisma.examPeriodConfig.findMany({
-      select: { period: true, startDate: true, endDate: true, pdfUrl: true },
-      orderBy: { period: "asc" },
-    });
-    const submissions = await prisma.result.findMany({
-      where: { studentId, assignmentId: { not: null } },
-      select: { assignmentId: true },
-    });
-    const tasksDue = await prisma.assignment.findMany({
-      where: { lesson: { classId: student.classId }, dueDate: { gte: todayStart, lt: todayEnd }, schoolId },
-      include: { lesson: { include: { subject: true, teacher: true } } },
-    });
-    const tasksGiven = await prisma.assignment.findMany({
-      where: { lesson: { classId: student.classId }, schoolId, startDate: { gte: todayStart, lt: todayEnd } },
-      include: { lesson: { include: { subject: true, teacher: true } } },
-      orderBy: { id: "desc" },
-      take: 20,
-    });
-    const upcomingExams = await prisma.exam.findMany({
-      where: { lesson: { classId: student.classId }, startTime: { gte: todayStart, lt: weekEnd }, schoolId },
-      include: { lesson: { include: { subject: true, teacher: true } } },
-      orderBy: { startTime: "asc" },
-    });
-    const gradeSheetRemarks = await prisma.gradeSheet.findMany({
-      where: { 
-        classId: student.classId, 
-        notes: { not: "" },
-        NOT: { notes: { contains: "AUTO_SYNCED" } },
-        updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } 
-      },
-      include: { subject: true, teacher: true },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-    });
-    const resources = await prisma.resource.findMany({
-      where: { lesson: { classId: student.classId }, createdAt: { gte: todayStart, lt: todayEnd }, schoolId },
-      include: { lesson: { include: { subject: true, teacher: true } } },
-    });
+    const [
+      slots,
+      attendance,
+      todayLessons,
+      examPeriods,
+      submissions,
+      tasksDue,
+      tasksGiven,
+      upcomingExams,
+      gradeSheetRemarks,
+      resources
+    ] = await Promise.all([
+      prisma.timetableSlot.findMany({
+        where: { classId: student.classId, day: todayEnum as any, isDraft: false },
+        include: { subject: true, teacher: true, room: true },
+        orderBy: { slotNumber: "asc" },
+      }),
+      prisma.attendance.findMany({
+        where: { studentId, date: { gte: todayStart, lt: todayEnd } },
+        orderBy: { id: "desc" },
+        include: { lesson: { include: { subject: true, teacher: true } } },
+      }),
+      prisma.lesson.findMany({
+        where: { classId: student.classId, day: todayEnum as any },
+        select: { id: true, subjectId: true, teacherId: true, name: true },
+      }),
+      prisma.examPeriodConfig.findMany({
+        select: { period: true, startDate: true, endDate: true, pdfUrl: true },
+        orderBy: { period: "asc" },
+      }),
+      prisma.result.findMany({
+        where: { studentId, assignmentId: { not: null } },
+        select: { assignmentId: true },
+      }),
+      prisma.assignment.findMany({
+        where: { lesson: { classId: student.classId }, dueDate: { gte: todayStart, lt: todayEnd }, schoolId },
+        include: { lesson: { include: { subject: true, teacher: true } } },
+      }),
+      prisma.assignment.findMany({
+        where: { lesson: { classId: student.classId }, schoolId, startDate: { gte: todayStart, lt: todayEnd } },
+        include: { lesson: { include: { subject: true, teacher: true } } },
+        orderBy: { id: "desc" },
+        take: 20,
+      }),
+      prisma.exam.findMany({
+        where: { lesson: { classId: student.classId }, startTime: { gte: todayStart, lt: weekEnd }, schoolId },
+        include: { lesson: { include: { subject: true, teacher: true } } },
+        orderBy: { startTime: "asc" },
+      }),
+      prisma.gradeSheet.findMany({
+        where: { 
+          classId: student.classId, 
+          notes: { not: "" },
+          NOT: { notes: { contains: "AUTO_SYNCED" } },
+          updatedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } 
+        },
+        include: { subject: true, teacher: true },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+      }),
+      prisma.resource.findMany({
+        where: { lesson: { classId: student.classId }, createdAt: { gte: todayStart, lt: todayEnd }, schoolId },
+        include: { lesson: { include: { subject: true, teacher: true } } },
+      })
+    ]);
 
     const attendanceRemarks: any[] = [];
     attendance.filter((a) => a.note && a.note.trim() !== "").forEach((a) => {
@@ -286,14 +300,18 @@ export async function GET(request: NextRequest) {
     const mapTask = (a: any) => ({ id: a.id, isCompleted: submittedIds.has(a.id), title: a.title, description: a.description, img: a.img, attachments: a.img ? a.img.split(",").map((url: string) => ({ type: url.toLowerCase().endsWith(".pdf") ? "PDF" : "IMAGE", url })) : [], subject: a.lesson.subject.name, teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`, dueDate: a.dueDate, startDate: a.startDate });
     const mapResource = (r: any) => ({ id: r.id, title: r.title, url: r.url, subject: r.lesson.subject.name, teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}` });
 
+    const mappedTasksDue = tasksDue.map(mapTask);
+    const mappedTasksGiven = tasksGiven.map(mapTask);
+    const mappedResources = resources.map(mapResource);
+
     return NextResponse.json({
       sessions, examPeriods, holidayName,
-      tasksDue: tasksDue.map(mapTask), homeworkDue: tasksDue.map(mapTask),
-      tasksGiven: tasksGiven.map(mapTask), homeworkGiven: tasksGiven.map(mapTask),
+      tasksDue: mappedTasksDue, homeworkDue: mappedTasksDue,
+      tasksGiven: mappedTasksGiven, homeworkGiven: mappedTasksGiven,
       upcomingExams: upcomingExams.map((e) => ({ id: e.id, title: e.title, subject: e.lesson.subject.name, teacher: `${e.lesson.teacher.name} ${e.lesson.teacher.surname}`, startTime: e.startTime, endTime: e.endTime })),
       teacherRemarks,
-      resources: resources.map(mapResource),
-      files: resources.map(mapResource),
+      resources: mappedResources,
+      files: mappedResources,
     });
   } catch (error: any) {
     console.error("[Mobile Home Error]", error);
