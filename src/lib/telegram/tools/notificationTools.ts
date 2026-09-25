@@ -138,8 +138,8 @@ export async function sendTestPushTool(
   const isUrgent = Boolean(args.urgent);
 
   const res = await sendDirectPushTokens(tokens, title, body, {
-    channelId: isUrgent ? "emergency" : "default",
-    sound: isUrgent ? "alert.m4a" : "notification.m4a",
+    channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
+    sound: "default",
     data: { test: true, timestamp: Date.now() },
   });
 
@@ -217,8 +217,8 @@ export async function sendPushNotificationTool(
       title,
       body,
       options: {
-        channelId: isUrgent ? "emergency" : "default",
-        sound: isUrgent ? "alert.m4a" : "notification.m4a",
+        channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
+        sound: "default",
         data: { type: "STAFF_NOTICE" },
       },
     });
@@ -288,8 +288,8 @@ export async function sendPushNotificationTool(
     }
 
     await sendDirectPushTokens([teacher.expoPushToken], title, body, {
-      channelId: isUrgent ? "emergency" : "default",
-      sound: isUrgent ? "alert.m4a" : "notification.m4a",
+      channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
+      sound: "default",
       data: { type: "TEACHER_ALERT" },
     });
 
@@ -377,8 +377,8 @@ export async function sendPushNotificationTool(
 
     // Send push
     await sendDirectPushTokens([parent.expoPushToken], title, body, {
-      channelId: isUrgent ? "emergency" : "default",
-      sound: isUrgent ? "alert.m4a" : "notification.m4a",
+      channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
+      sound: "default",
       data: { studentId: student.id, type: "STUDENT_UPDATE" },
     });
 

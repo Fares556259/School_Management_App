@@ -17,13 +17,16 @@ export async function sendPush(parentId: string, title: string, body: string, da
       return;
     }
 
+    const isEmergency = data.channelId === 'emergency' || data.channelId === 'snapschool_emergency_v1';
+    const channelId = isEmergency ? 'snapschool_emergency_v1' : (data.channelId || 'snapschool_alerts_v1');
+
     const messages = [{
       to: parent.expoPushToken,
-      sound: data.channelId === 'emergency' ? 'alert.m4a' : 'notification.m4a',
+      sound: 'default' as const,
       title,
       body,
-      data,
-      channelId: data.channelId || 'default',
+      data: { ...data, channelId },
+      channelId,
       priority: 'high' as const,
     }];
 
@@ -59,13 +62,16 @@ export async function sendPushBatch(
       return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
     }
 
-    const messages = validParents.map((p) => ({
+    const isEmergency = data.channelId === 'emergency' || data.channelId === 'snapschool_emergency_v1';
+    const channelId = isEmergency ? 'snapschool_emergency_v1' : (data.channelId || 'snapschool_alerts_v1');
+
+    const messages = validParents.map(p => ({
       to: p.expoPushToken!,
-      sound: data.channelId === 'emergency' ? 'alert.m4a' : 'notification.m4a',
+      sound: 'default' as const,
       title,
       body,
-      data,
-      channelId: data.channelId || 'default',
+      data: { ...data, channelId },
+      channelId,
       priority: 'high' as const,
     }));
 
@@ -105,15 +111,19 @@ async function sendPushIndividualBatch(
         const token = tokenMap.get(item.parentId);
         return token && Expo.isExpoPushToken(token);
       })
-      .map((item) => ({
-        to: tokenMap.get(item.parentId)!,
-        sound: item.data?.channelId === "emergency" ? ("alert.m4a" as const) : ("notification.m4a" as const),
-        title: item.title,
-        body: item.body,
-        data: item.data,
-        channelId: item.data?.channelId || "default",
-        priority: "high" as const,
-      }));
+      .map((item) => {
+        const isEmergency = item.data?.channelId === "emergency" || item.data?.channelId === "snapschool_emergency_v1";
+        const channelId = isEmergency ? "snapschool_emergency_v1" : (item.data?.channelId || "snapschool_alerts_v1");
+        return {
+          to: tokenMap.get(item.parentId)!,
+          sound: "default" as const,
+          title: item.title,
+          body: item.body,
+          data: { ...item.data, channelId },
+          channelId,
+          priority: "high" as const,
+        };
+      });
 
     if (messages.length === 0) return;
 
@@ -134,21 +144,22 @@ export async function sendDirectPushTokens(
   tokens: string[],
   title: string,
   body: string,
-  options?: { channelId?: "default" | "emergency"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
+  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
 ): Promise<{ success: boolean; sentCount: number; tickets: any[] }> {
   const validTokens = Array.from(new Set(tokens)).filter((t) => t && Expo.isExpoPushToken(t));
   if (validTokens.length === 0) {
     return { success: false, sentCount: 0, tickets: [] };
   }
 
-  const isEmergency = options?.channelId === "emergency";
+  const isEmergency = options?.channelId === "emergency" || options?.channelId === "snapschool_emergency_v1";
+  const channelId = isEmergency ? "snapschool_emergency_v1" : (options?.channelId || "snapschool_alerts_v1");
   const messages = validTokens.map((token) => ({
     to: token,
-    sound: options?.sound || (isEmergency ? ("alert.m4a" as const) : ("notification.m4a" as const)),
+    sound: (options?.sound === "none" ? null : "default") as any,
     title,
     body,
-    data: options?.data || {},
-    channelId: options?.channelId || (isEmergency ? "emergency" : "default"),
+    data: { ...(options?.data || {}), channelId },
+    channelId,
     priority: (options?.priority || "high") as "high",
   }));
 
@@ -181,7 +192,7 @@ export async function sendPushToTeachers({
   teacherIds?: string[];
   title: string;
   body: string;
-  options?: { channelId?: "default" | "emergency"; data?: any; sound?: string };
+  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1"; data?: any; sound?: string };
 }): Promise<{ count: number; validTokensCount: number; success: boolean }> {
   const where: any = { schoolId };
   if (teacherIds && teacherIds.length > 0) {
