@@ -24,9 +24,26 @@ import { dispatchPendingReminders } from "@/lib/telegram/tools/reminderTools";
 import { flagConversationForLearning, markConversationPositive } from "@/lib/telegram/feedback";
 import { deliverDailyCashReport } from "@/lib/telegram/tools/documentTools";
 import { inspectExcelBuffer, storeUserExcelBuffer } from "@/lib/excel/excelEngine";
+import { waitUntil } from "@vercel/functions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/**
+ * Executes the Telegram Agent asynchronously in the background.
+ * Uses Vercel waitUntil to keep the serverless execution context alive,
+ * while allowing the webhook HTTP response to complete in <50ms.
+ */
+function executeAgentBackground(params: Parameters<typeof runTelegramAgent>[0]) {
+  const promise = runTelegramAgent(params).catch((err) => {
+    console.error("[runTelegramAgent background error]:", err);
+  });
+  try {
+    waitUntil(promise);
+  } catch {
+    // Fallback if environment doesn't provide waitUntil
+  }
+}
 
 /**
  * Health check & diagnostic endpoint for Telegram webhook
@@ -131,7 +148,7 @@ export async function POST(req: NextRequest) {
         const prompt = announcePrompts[actionType] || "Que souhaitez-vous faire avec cette annonce ?";
         const tgAccount = await getLinkedAccount(tgId);
         if (tgAccount) {
-          await runTelegramAgent({
+          executeAgentBackground({
             userMessage: prompt,
             chatId,
             telegramId: tgId,
@@ -175,7 +192,7 @@ export async function POST(req: NextRequest) {
         const prompt = actionPrompts[actionType] || "Comment puis-je vous aider ?";
         const tgAccount = await getLinkedAccount(tgId);
         if (tgAccount) {
-          await runTelegramAgent({
+          executeAgentBackground({
             userMessage: prompt,
             chatId,
             telegramId: tgId,
@@ -205,7 +222,7 @@ export async function POST(req: NextRequest) {
         const prompt = hubPrompts[hubType] || "Comment puis-je vous aider ?";
         const tgAccount = await getLinkedAccount(tgId);
         if (tgAccount) {
-          await runTelegramAgent({
+          executeAgentBackground({
             userMessage: prompt,
             chatId,
             telegramId: tgId,
@@ -468,7 +485,7 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
     if (lowerText === "/caisse" || lowerText === "caisse" || lowerText === "cloture de caisse" || lowerText === "كاسة") {
       const tgAccount = await getLinkedAccount(telegramId);
       if (tgAccount) {
-        await runTelegramAgent({
+        executeAgentBackground({
           userMessage: "Fais le bilan de clôture de caisse du jour (recettes, dépenses, solde net physique en caisse).",
           chatId,
           telegramId,
@@ -482,7 +499,7 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
     if (lowerText === "/briefing" || lowerText === "briefing" || lowerText === "صباح الخير" || lowerText === "bonjour") {
       const tgAccount = await getLinkedAccount(telegramId);
       if (tgAccount) {
-        await runTelegramAgent({
+        executeAgentBackground({
           userMessage: "Donne-moi le briefing exécutif du matin pour aujourd'hui (séances du jour, absences récentes à suivre, promesses de paiement et alertes).",
           chatId,
           telegramId,
@@ -573,7 +590,7 @@ Je suis votre assistante d'opérations scolaires. Vous pouvez me parler en langa
     if (hubPrompt) {
       const tgAccount = await getLinkedAccount(telegramId);
       if (tgAccount) {
-        await runTelegramAgent({
+        executeAgentBackground({
           userMessage: hubPrompt,
           chatId,
           telegramId,
@@ -1066,8 +1083,8 @@ Ne réponds JAMAIS par du texte sans exécuter 'schedule_reminder' !
 Demande de l'administrateur : ${userPrompt}`;
     }
 
-    // 14. Run the Core Agent with tool-calling and full conversation context
-    await runTelegramAgent({
+    // 14. Run the Core Agent with tool-calling and full conversation context in background
+    executeAgentBackground({
       userMessage: userPrompt,
       chatId,
       telegramId,
