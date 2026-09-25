@@ -4,6 +4,21 @@ import { Expo } from "expo-server-sdk";
 const expo = new Expo();
 
 /**
+ * Canonical notification channel resolver.
+ * Ensures notifications are routed to Android Notification Channels configured with MAX importance and system ringtones.
+ */
+export function resolveChannelId(rawChannel?: string): 'snapschool_emergency_v2' | 'snapschool_alerts_v2' {
+  if (
+    rawChannel === 'emergency' ||
+    rawChannel === 'snapschool_emergency_v1' ||
+    rawChannel === 'snapschool_emergency_v2'
+  ) {
+    return 'snapschool_emergency_v2';
+  }
+  return 'snapschool_alerts_v2';
+}
+
+/**
  * Sends a push notification to a parent via Expo.
  */
 export async function sendPush(parentId: string, title: string, body: string, data: any = {}) {
@@ -17,8 +32,7 @@ export async function sendPush(parentId: string, title: string, body: string, da
       return;
     }
 
-    const isEmergency = data.channelId === 'emergency' || data.channelId === 'snapschool_emergency_v1';
-    const channelId = isEmergency ? 'snapschool_emergency_v1' : (data.channelId || 'snapschool_alerts_v1');
+    const channelId = resolveChannelId(data.channelId);
 
     const messages = [{
       to: parent.expoPushToken,
@@ -62,8 +76,7 @@ export async function sendPushBatch(
       return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
     }
 
-    const isEmergency = data.channelId === 'emergency' || data.channelId === 'snapschool_emergency_v1';
-    const channelId = isEmergency ? 'snapschool_emergency_v1' : (data.channelId || 'snapschool_alerts_v1');
+    const channelId = resolveChannelId(data.channelId);
 
     const messages = validParents.map(p => ({
       to: p.expoPushToken!,
@@ -79,8 +92,18 @@ export async function sendPushBatch(
     const chunks = expo.chunkPushNotifications(messages);
     let sentCount = 0;
     for (const chunk of chunks) {
-      const tickets = await expo.sendPushNotificationsAsync(chunk);
-      sentCount += tickets.filter((t) => t.status === 'ok').length;
+      try {
+        const tickets = await expo.sendPushNotificationsAsync(chunk);
+        for (const t of tickets) {
+          if (t.status === 'ok') {
+            sentCount++;
+          } else {
+            console.error('[PUSH-BATCH-TICKET-ERROR]', t.message, (t as any).details);
+          }
+        }
+      } catch (chunkErr) {
+        console.error('[PUSH-BATCH-CHUNK-ERROR]', chunkErr);
+      }
     }
     console.log(`[PUSH-BATCH] Sent ${sentCount}/${messages.length} notifications: ${title}`);
     return { totalParents: parents.length, tokensCount: validParents.length, sentCount };
@@ -112,8 +135,7 @@ async function sendPushIndividualBatch(
         return token && Expo.isExpoPushToken(token);
       })
       .map((item) => {
-        const isEmergency = item.data?.channelId === "emergency" || item.data?.channelId === "snapschool_emergency_v1";
-        const channelId = isEmergency ? "snapschool_emergency_v1" : (item.data?.channelId || "snapschool_alerts_v1");
+        const channelId = resolveChannelId(item.data?.channelId);
         return {
           to: tokenMap.get(item.parentId)!,
           sound: "default" as const,
@@ -144,15 +166,14 @@ export async function sendDirectPushTokens(
   tokens: string[],
   title: string,
   body: string,
-  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
+  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1" | "snapschool_alerts_v2" | "snapschool_emergency_v2"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
 ): Promise<{ success: boolean; sentCount: number; tickets: any[] }> {
   const validTokens = Array.from(new Set(tokens)).filter((t) => t && Expo.isExpoPushToken(t));
   if (validTokens.length === 0) {
     return { success: false, sentCount: 0, tickets: [] };
   }
 
-  const isEmergency = options?.channelId === "emergency" || options?.channelId === "snapschool_emergency_v1";
-  const channelId = isEmergency ? "snapschool_emergency_v1" : (options?.channelId || "snapschool_alerts_v1");
+  const channelId = resolveChannelId(options?.channelId);
   const messages = validTokens.map((token) => ({
     to: token,
     sound: (options?.sound === "none" ? null : "default") as any,
@@ -192,7 +213,7 @@ export async function sendPushToTeachers({
   teacherIds?: string[];
   title: string;
   body: string;
-  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1"; data?: any; sound?: string };
+  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1" | "snapschool_alerts_v2" | "snapschool_emergency_v2"; data?: any; sound?: string };
 }): Promise<{ count: number; validTokensCount: number; success: boolean }> {
   const where: any = { schoolId };
   if (teacherIds && teacherIds.length > 0) {
@@ -882,11 +903,11 @@ export async function notifyTeacherTaskSubmitted(studentId: string, assignmentId
     if (Expo.isExpoPushToken(assignment.lesson.teacher.expoPushToken)) {
       const messages = [{
         to: assignment.lesson.teacher.expoPushToken,
-        sound: 'notification.m4a',
+        sound: 'default' as const,
         title: `📝 وظيفة مسلمة`,
         body: `قام ${student.name} ${student.surname} بتسليم ${assignment.title}.`,
-        data: { type: 'TASK_SUBMISSION', assignmentId, studentId },
-        channelId: 'default',
+        data: { type: 'TASK_SUBMISSION', assignmentId, studentId, channelId: 'snapschool_alerts_v2' },
+        channelId: 'snapschool_alerts_v2',
         priority: 'high' as const,
       }];
       await expo.sendPushNotificationsAsync(messages);
@@ -915,11 +936,11 @@ export async function notifyTeacherAbsenceJustified(attendanceId: number) {
     if (Expo.isExpoPushToken(record.lesson.teacher.expoPushToken)) {
       const messages = [{
         to: record.lesson.teacher.expoPushToken,
-        sound: 'notification.m4a',
+        sound: 'default' as const,
         title: `✅ تبرير غياب`,
         body: `قام ولي أمر ${record.student.name} ${record.student.surname} بتبرير غيابه.`,
-        data: { type: 'ATTENDANCE_JUSTIFICATION', attendanceId },
-        channelId: 'default',
+        data: { type: 'ATTENDANCE_JUSTIFICATION', attendanceId, channelId: 'snapschool_alerts_v2' },
+        channelId: 'snapschool_alerts_v2',
         priority: 'high' as const,
       }];
       await expo.sendPushNotificationsAsync(messages);

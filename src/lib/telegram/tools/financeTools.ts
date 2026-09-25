@@ -280,6 +280,7 @@ export async function sendParentMessageTool(
     title,
     message: args.message,
     type,
+    data: { channelId: "snapschool_alerts_v2" },
   });
 
   await prisma.auditLog.create({

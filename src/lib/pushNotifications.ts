@@ -8,7 +8,7 @@ export interface SendPushNotificationParams {
   title: string;
   body: string;
   data?: Record<string, any>;
-  channelId?: "default" | "emergency";
+  channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1" | "snapschool_alerts_v2" | "snapschool_emergency_v2" | string;
 }
 
 /**
@@ -30,13 +30,16 @@ export async function sendSystemPushNotification({
     return;
   }
 
+  const isEmergency = channelId === "emergency" || channelId === "snapschool_emergency_v1" || channelId === "snapschool_emergency_v2";
+  const resolvedChannelId = isEmergency ? "snapschool_emergency_v2" : "snapschool_alerts_v2";
+
   const messages: ExpoPushMessage[] = validTokens.map((token) => ({
     to: token,
     sound: "default",
     title,
     body,
-    data,
-    channelId,
+    data: { ...data, channelId: resolvedChannelId },
+    channelId: resolvedChannelId,
     priority: "high",
   }));
 

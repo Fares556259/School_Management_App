@@ -439,21 +439,22 @@ export async function sendPushNotificationTool(
       title,
       message: body,
       type: isUrgent ? "ANNOUNCEMENT" : "MESSAGE",
-      data: { channelId: isUrgent ? "emergency" : "default" },
+      data: { channelId: isUrgent ? "snapschool_emergency_v2" : "snapschool_alerts_v2" },
     });
 
-    const pushLine = pushTokensCount > 0
-      ? `📲 <b>Notifications Push :</b> délivrées sur <code>${pushTokensCount} smartphone(s)</code> actif(s).`
+    const safePushTokensCount = pushTokensCount ?? 0;
+    const pushLine = safePushTokensCount > 0
+      ? `📲 <b>Notifications Push :</b> délivrées sur <code>${safePushTokensCount} smartphone(s)</code> actif(s).`
       : `⚠️ <b>Notifications Push :</b> aucun smartphone connecté pour cette classe.`;
 
-    const pendingLine = count > pushTokensCount && pushTokensCount > 0
-      ? `\nℹ️ <i>${count - pushTokensCount} famille(s) sans smartphone connecté verront le message dès leur prochaine connexion.</i>`
+    const pendingLine = count > safePushTokensCount && safePushTokensCount > 0
+      ? `\nℹ️ <i>${count - safePushTokensCount} famille(s) sans smartphone connecté verront le message dès leur prochaine connexion.</i>`
       : "";
 
     return {
       success: true,
       message: `📢 <b>Notification transmise à la classe ${cls.name} !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Espace Mobile :</b> <code>${count} famille(s)</code> (in-app)\n${pushLine}${pendingLine}`,
-      summary: `Push envoyé classe ${cls.name} (${pushTokensCount} actifs / ${count} in-app)`,
+      summary: `Push envoyé classe ${cls.name} (${safePushTokensCount} actifs / ${count} in-app)`,
     };
   }
 
@@ -495,13 +496,14 @@ export async function sendPushNotificationTool(
       title: title || "💰 Rappel de Scolarité",
       message: body,
       type: "PAYMENT",
-      data: { channelId: isUrgent ? "emergency" : "default" },
+      data: { channelId: isUrgent ? "snapschool_emergency_v2" : "snapschool_alerts_v2" },
     });
 
+    const safePushTokensCount = pushTokensCount ?? 0;
     return {
       success: true,
-      message: `💰 <b>Rappels d'impayés envoyés !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Boîtes de réception in-app :</b> <code>${count} famille(s)</code>\n📲 <b>Smartphones notifiés :</b> <code>${pushTokensCount} appareil(s)</code> actif(s).`,
-      summary: `Rappels impayés (${pushTokensCount} push / ${count} in-app)`,
+      message: `💰 <b>Rappels d'impayés envoyés !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Boîtes de réception in-app :</b> <code>${count} famille(s)</code>\n📲 <b>Smartphones notifiés :</b> <code>${safePushTokensCount} appareil(s)</code> actif(s).`,
+      summary: `Rappels impayés (${safePushTokensCount} push / ${count} in-app)`,
     };
   }
 
@@ -519,13 +521,14 @@ export async function sendPushNotificationTool(
       title,
       message: body,
       type: isUrgent ? "ANNOUNCEMENT" : "MESSAGE",
-      data: { channelId: isUrgent ? "emergency" : "default" },
+      data: { channelId: isUrgent ? "snapschool_emergency_v2" : "snapschool_alerts_v2" },
     });
 
+    const safePushTokensCount = pushTokensCount ?? 0;
     return {
       success: true,
-      message: `📢 <b>Notification générale diffusée aux familles !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Portée globale :</b> <code>${count} parent(s)</code> (in-app)\n📲 <b>Smartphones notifiés :</b> <code>${pushTokensCount} appareil(s)</code> actif(s).`,
-      summary: `Notification (${pushTokensCount} push / ${count} in-app)`,
+      message: `📢 <b>Notification générale diffusée aux familles !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Portée globale :</b> <code>${count} parent(s)</code> (in-app)\n📲 <b>Smartphones notifiés :</b> <code>${safePushTokensCount} appareil(s)</code> actif(s).`,
+      summary: `Notification (${safePushTokensCount} push / ${count} in-app)`,
     };
   }
 
@@ -536,7 +539,7 @@ export async function sendPushNotificationTool(
       schoolId: context.schoolId,
       title,
       body,
-      options: { channelId: isUrgent ? "emergency" : "default" },
+      options: { channelId: isUrgent ? "snapschool_emergency_v2" : "snapschool_alerts_v2" },
     }),
   ]);
 
@@ -546,12 +549,13 @@ export async function sendPushNotificationTool(
     title,
     message: body,
     type: isUrgent ? "ANNOUNCEMENT" : "MESSAGE",
-    data: { channelId: isUrgent ? "emergency" : "default" },
+    data: { channelId: isUrgent ? "snapschool_emergency_v2" : "snapschool_alerts_v2" },
   });
 
+  const safePushTokensCount = pushTokensCount ?? 0;
   return {
     success: true,
-    message: `📢 <b>Diffusion Générale Réussie !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n👨‍👩‍👧 <b>Familles (in-app) :</b> <code>${parentCount}</code> (dont ${pushTokensCount} smartphone(s) actif(s))\n👨‍🏫 <b>Enseignants notifiés :</b> <code>${teacherRes.validTokensCount}</code>`,
+    message: `📢 <b>Diffusion Générale Réussie !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n👨‍👩‍👧 <b>Familles (in-app) :</b> <code>${parentCount}</code> (dont ${safePushTokensCount} smartphone(s) actif(s))\n👨‍🏫 <b>Enseignants notifiés :</b> <code>${teacherRes.validTokensCount}</code>`,
     summary: `Diffusion (${parentCount} parents, ${teacherRes.validTokensCount} profs)`,
   };
 }
