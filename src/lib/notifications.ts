@@ -38,36 +38,49 @@ export async function sendPush(parentId: string, title: string, body: string, da
  * Sends push notifications to multiple parents in a single batch.
  * Fetches all tokens in one query and uses Expo's batch API.
  */
-export async function sendPushBatch(parentIds: string[], title: string, body: string, data: any = {}) {
-  if (parentIds.length === 0) return;
+export async function sendPushBatch(
+  parentIds: string[],
+  title: string,
+  body: string,
+  data: any = {}
+): Promise<{ totalParents: number; tokensCount: number; sentCount: number }> {
+  if (parentIds.length === 0) return { totalParents: 0, tokensCount: 0, sentCount: 0 };
   try {
     const parents = await prisma.parent.findMany({
       where: { id: { in: parentIds } },
       select: { id: true, expoPushToken: true },
     });
 
-    const messages = parents
-      .filter(p => p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken))
-      .map(p => ({
-        to: p.expoPushToken!,
-        sound: data.channelId === 'emergency' ? 'alert.m4a' : 'notification.m4a',
-        title,
-        body,
-        data,
-        channelId: data.channelId || 'default',
-        priority: 'high' as const,
-      }));
+    const validParents = parents.filter(
+      (p) => p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken)
+    );
 
-    if (messages.length === 0) return;
+    if (validParents.length === 0) {
+      return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
+    }
+
+    const messages = validParents.map((p) => ({
+      to: p.expoPushToken!,
+      sound: data.channelId === 'emergency' ? 'alert.m4a' : 'notification.m4a',
+      title,
+      body,
+      data,
+      channelId: data.channelId || 'default',
+      priority: 'high' as const,
+    }));
 
     // Expo recommends sending in chunks of up to 100
     const chunks = expo.chunkPushNotifications(messages);
+    let sentCount = 0;
     for (const chunk of chunks) {
-      await expo.sendPushNotificationsAsync(chunk);
+      const tickets = await expo.sendPushNotificationsAsync(chunk);
+      sentCount += tickets.filter((t) => t.status === 'ok').length;
     }
-    console.log(`[PUSH-BATCH] Sent ${messages.length} notifications: ${title}`);
+    console.log(`[PUSH-BATCH] Sent ${sentCount}/${messages.length} notifications: ${title}`);
+    return { totalParents: parents.length, tokensCount: validParents.length, sentCount };
   } catch (error) {
     console.error("[PUSH-BATCH-ERROR]", error);
+    return { totalParents: parentIds.length, tokensCount: 0, sentCount: 0 };
   }
 }
 
@@ -400,8 +413,8 @@ export async function sendMobileMessageToParents({
   message: string;
   type?: "MESSAGE" | "PAYMENT" | "REMINDER" | "ANNOUNCEMENT" | "ATTENDANCE" | "GRADE";
   data?: any;
-}) {
-  if (!parentIds || parentIds.length === 0) return { count: 0 };
+}): Promise<{ count: number; pushTokensCount: number; pushSentCount: number }> {
+  if (!parentIds || parentIds.length === 0) return { count: 0, pushTokensCount: 0, pushSentCount: 0 };
 
   const uniqueParentIds = Array.from(new Set(parentIds));
 
@@ -418,7 +431,7 @@ export async function sendMobileMessageToParents({
   });
 
   // 2. Dispatch push notifications via Expo
-  await sendPushBatch(
+  const pushRes = await sendPushBatch(
     uniqueParentIds,
     title,
     message.substring(0, 140) + (message.length > 140 ? "..." : ""),
@@ -429,7 +442,11 @@ export async function sendMobileMessageToParents({
     }
   );
 
-  return { count: uniqueParentIds.length };
+  return {
+    count: uniqueParentIds.length,
+    pushTokensCount: pushRes.tokensCount,
+    pushSentCount: pushRes.sentCount,
+  };
 }
 
 /**

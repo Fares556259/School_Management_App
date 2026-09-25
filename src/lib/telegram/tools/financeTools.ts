@@ -273,7 +273,7 @@ export async function sendParentMessageTool(
     };
   }
 
-  const { count } = await sendMobileMessageToParents({
+  const { count, pushTokensCount } = await sendMobileMessageToParents({
     schoolId: context.schoolId,
     parentIds,
     studentId: studentIdRef,
@@ -287,16 +287,24 @@ export async function sendParentMessageTool(
       action: "SEND_NOTIFICATION",
       performedBy: `Hnia AI (Telegram / ${context.adminName})`,
       entityType: "Notification",
-      description: `[Hnia AI Telegram] Message mobile envoyé à ${targetDescription} : "${title}" (${count} destinataires).`,
+      description: `[Hnia AI Telegram] Message mobile envoyé à ${targetDescription} : "${title}" (${count} in-app, ${pushTokensCount} push).`,
       schoolId: context.schoolId,
     },
   });
 
+  const pushDetail = pushTokensCount > 0
+    ? `📲 **Smartphones notifiés (Push) :** <code>${pushTokensCount} appareil(s)</code> actif(s).`
+    : `⚠️ **Push :** aucun appareil actif détecté (les parents doivent se connecter à l'app pour recevoir les alertes push).`;
+
+  const pendingDetail = count > pushTokensCount && pushTokensCount > 0
+    ? `\nℹ️ <i>${count - pushTokensCount} compte(s) n'ont pas encore connecté l'application mobile (le message les attend dans leur boîte de réception in-app).</i>`
+    : "";
+
   return {
     success: true,
-    message: `📢 **Notification mobile transmise avec succès !**\n\n🎯 **Destinataires :** ${targetDescription}\n📌 **Titre :** ${title}\n💬 **Message :** <i>"${args.message}"</i>\n\n📱 <i>${count} famille(s) ont reçu la notification push et peuvent la consulter dans leur espace mobile.</i>`,
-    summary: `Message mobile envoyé (${count} familles)`,
-    data: { count, target: targetDescription },
+    message: `📢 **Notification mobile transmise avec succès !**\n\n🎯 **Destinataires :** ${targetDescription}\n📌 **Titre :** ${title}\n💬 **Message :** <i>"${args.message}"</i>\n\n📥 **Espace Mobile :** <code>${count} famille(s)</code> (enregistré in-app)\n${pushDetail}${pendingDetail}`,
+    summary: `Message envoyé (${count} in-app, ${pushTokensCount} push)`,
+    data: { count, pushTokensCount, target: targetDescription },
   };
 }
 

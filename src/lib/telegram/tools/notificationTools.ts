@@ -433,7 +433,7 @@ export async function sendPushNotificationTool(
       };
     }
 
-    const { count } = await sendMobileMessageToParents({
+    const { count, pushTokensCount } = await sendMobileMessageToParents({
       schoolId: context.schoolId,
       parentIds,
       title,
@@ -442,10 +442,18 @@ export async function sendPushNotificationTool(
       data: { channelId: isUrgent ? "emergency" : "default" },
     });
 
+    const pushLine = pushTokensCount > 0
+      ? `📲 <b>Notifications Push :</b> délivrées sur <code>${pushTokensCount} smartphone(s)</code> actif(s).`
+      : `⚠️ <b>Notifications Push :</b> aucun smartphone connecté pour cette classe.`;
+
+    const pendingLine = count > pushTokensCount && pushTokensCount > 0
+      ? `\nℹ️ <i>${count - pushTokensCount} famille(s) sans smartphone connecté verront le message dès leur prochaine connexion.</i>`
+      : "";
+
     return {
       success: true,
-      message: `📢 <b>Notification transmise à la classe ${cls.name} !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n🎯 <b>Destinataires :</b> <code>${count} famille(s)</code>\n\n📱 <i>Alertes push et messages in-app délivrés.</i>`,
-      summary: `Push envoyé à la classe ${cls.name} (${count} familles)`,
+      message: `📢 <b>Notification transmise à la classe ${cls.name} !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Espace Mobile :</b> <code>${count} famille(s)</code> (in-app)\n${pushLine}${pendingLine}`,
+      summary: `Push envoyé classe ${cls.name} (${pushTokensCount} actifs / ${count} in-app)`,
     };
   }
 
@@ -481,7 +489,7 @@ export async function sendPushNotificationTool(
       };
     }
 
-    const { count } = await sendMobileMessageToParents({
+    const { count, pushTokensCount } = await sendMobileMessageToParents({
       schoolId: context.schoolId,
       parentIds,
       title: title || "💰 Rappel de Scolarité",
@@ -492,8 +500,8 @@ export async function sendPushNotificationTool(
 
     return {
       success: true,
-      message: `💰 <b>Rappels d'impayés envoyés par notification push !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n🎯 <b>Destinataires :</b> <code>${count} famille(s)</code> avec scolarité en attente.`,
-      summary: `Rappels d'impayés envoyés (${count} familles)`,
+      message: `💰 <b>Rappels d'impayés envoyés !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Boîtes de réception in-app :</b> <code>${count} famille(s)</code>\n📲 <b>Smartphones notifiés :</b> <code>${pushTokensCount} appareil(s)</code> actif(s).`,
+      summary: `Rappels impayés (${pushTokensCount} push / ${count} in-app)`,
     };
   }
 
@@ -505,7 +513,7 @@ export async function sendPushNotificationTool(
     });
     const parentIds = allParents.map((p) => p.id);
 
-    const { count } = await sendMobileMessageToParents({
+    const { count, pushTokensCount } = await sendMobileMessageToParents({
       schoolId: context.schoolId,
       parentIds,
       title,
@@ -516,8 +524,8 @@ export async function sendPushNotificationTool(
 
     return {
       success: true,
-      message: `📢 <b>Notification générale diffusée à toutes les familles !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n🎯 <b>Portée :</b> <code>${count} parent(s)</code>`,
-      summary: `Notification envoyée à ${count} familles`,
+      message: `📢 <b>Notification générale diffusée aux familles !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n📥 <b>Portée globale :</b> <code>${count} parent(s)</code> (in-app)\n📲 <b>Smartphones notifiés :</b> <code>${pushTokensCount} appareil(s)</code> actif(s).`,
+      summary: `Notification (${pushTokensCount} push / ${count} in-app)`,
     };
   }
 
@@ -532,7 +540,7 @@ export async function sendPushNotificationTool(
     }),
   ]);
 
-  const { count: parentCount } = await sendMobileMessageToParents({
+  const { count: parentCount, pushTokensCount } = await sendMobileMessageToParents({
     schoolId: context.schoolId,
     parentIds: allParents.map((p) => p.id),
     title,
@@ -543,7 +551,7 @@ export async function sendPushNotificationTool(
 
   return {
     success: true,
-    message: `📢 <b>Diffusion Générale (Parents & Enseignants) Réussie !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n👨‍👩‍👧 <b>Familles notifiées :</b> <code>${parentCount}</code>\n👨‍🏫 <b>Enseignants notifiés :</b> <code>${teacherRes.validTokensCount}</code>`,
-    summary: `Diffusion globale (${parentCount} parents, ${teacherRes.validTokensCount} enseignants)`,
+    message: `📢 <b>Diffusion Générale Réussie !</b>\n━━━━━━━━━━━━━━━━━━━━━━\n📌 <b>Titre :</b> ${title}\n💬 <b>Message :</b> <i>"${body}"</i>\n👨‍👩‍👧 <b>Familles (in-app) :</b> <code>${parentCount}</code> (dont ${pushTokensCount} smartphone(s) actif(s))\n👨‍🏫 <b>Enseignants notifiés :</b> <code>${teacherRes.validTokensCount}</code>`,
+    summary: `Diffusion (${parentCount} parents, ${teacherRes.validTokensCount} profs)`,
   };
 }
