@@ -130,7 +130,7 @@ export async function sendPushBatch(
       sound: 'default' as const,
       title,
       body,
-      data: { ...data, channelId },
+      data: { ...data, channelId, title, body, message: body },
       channelId,
       priority: 'high' as const,
     }));
@@ -226,7 +226,7 @@ export async function sendDirectPushTokens(
     sound: (options?.sound === "none" ? null : "default") as any,
     title,
     body,
-    data: { ...(options?.data || {}), channelId },
+    data: { ...(options?.data || {}), channelId, title, body, message: body },
     channelId,
     priority: (options?.priority || "high") as "high",
   }));

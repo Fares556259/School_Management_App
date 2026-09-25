@@ -6,38 +6,69 @@ import { authenticateMobileRequest } from "@/lib/mobileAuth";
 export async function POST(request: NextRequest) {
   const auth = authenticateMobileRequest(request);
   if (auth.error) return auth.error;
-  const { userId, userType } = auth.payload;
+  const { userId } = auth.payload;
 
   try {
     const body = await request.json();
-    const { parentId, pushToken } = body;
+    const targetId = body.parentId || body.teacherId || userId;
+    const pushToken = body.pushToken || null;
 
-    if (!parentId) {
-      return NextResponse.json({ success: false, error: "Missing parentId" }, { status: 400 });
+    if (!targetId) {
+      return NextResponse.json({ success: false, error: "Missing ID" }, { status: 400 });
     }
 
-    // Enforce ownership
-    if (userType !== "parent" || userId !== parentId) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    // Try finding parent or teacher
+    let phone: string | null = null;
+    let schoolId: string | null = null;
 
-    const updatedParent = await prisma.parent.update({
-      where: { id: parentId },
-      data: { expoPushToken: pushToken || null },
-      select: { phone: true, schoolId: true },
+    const parent = await prisma.parent.findUnique({
+      where: { id: targetId },
+      select: { id: true, phone: true, schoolId: true },
     });
 
-    if (updatedParent.phone) {
-      await prisma.parent.updateMany({
-        where: {
-          phone: updatedParent.phone,
-          schoolId: updatedParent.schoolId,
-        },
-        data: { expoPushToken: pushToken || null },
+    if (parent) {
+      phone = parent.phone;
+      schoolId = parent.schoolId;
+      await prisma.parent.update({
+        where: { id: parent.id },
+        data: { expoPushToken: pushToken },
       });
+    } else {
+      const teacher = await prisma.teacher.findUnique({
+        where: { id: targetId },
+        select: { id: true, phone: true, schoolId: true },
+      });
+      if (teacher) {
+        phone = teacher.phone;
+        schoolId = teacher.schoolId;
+        await prisma.teacher.update({
+          where: { id: teacher.id },
+          data: { expoPushToken: pushToken },
+        });
+      }
     }
 
-    console.log(`[PUSH-TOKEN] Saved token for parent ${parentId} (phone: ${updatedParent.phone || 'none'})`);
+    // Cross-sync: If user has a phone, ensure ALL parent & teacher records with that phone get the token
+    if (phone) {
+      await Promise.all([
+        prisma.parent.updateMany({
+          where: {
+            phone,
+            ...(schoolId ? { schoolId } : {}),
+          },
+          data: { expoPushToken: pushToken },
+        }),
+        prisma.teacher.updateMany({
+          where: {
+            phone,
+            ...(schoolId ? { schoolId } : {}),
+          },
+          data: { expoPushToken: pushToken },
+        }),
+      ]);
+    }
+
+    console.log(`[PUSH-TOKEN] Synchronized token for target ${targetId} (phone: ${phone || 'none'}) -> ${pushToken ? pushToken.slice(0, 22) + '...' : 'null'}`);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[PUSH-TOKEN-ERROR]", error);
