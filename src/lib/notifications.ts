@@ -63,6 +63,7 @@ export async function sendPushBatch(
 ): Promise<{ totalParents: number; tokensCount: number; sentCount: number }> {
   if (parentIds.length === 0) return { totalParents: 0, tokensCount: 0, sentCount: 0 };
   try {
+    console.log(`[PUSH-BATCH-START] title="${title}", parentIds=${parentIds.length}`);
     const parents = await prisma.parent.findMany({
       where: { id: { in: parentIds } },
       select: { id: true, expoPushToken: true, phone: true },
@@ -71,6 +72,7 @@ export async function sendPushBatch(
     const validParents = parents.filter(
       (p) => p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken)
     );
+    console.log(`[PUSH-BATCH] Found ${parents.length} parents, ${validParents.length} with valid tokens`);
 
     // Fallback: If some parents have null tokens, check if any account with the same phone has an active push token
     const missingParents = parents.filter(
@@ -114,45 +116,82 @@ export async function sendPushBatch(
             }).catch((err) => console.warn("[PUSH-BACKFILL-FAIL]", err));
           }
         }
+        console.log(`[PUSH-BATCH] After fallback: ${validParents.length} valid tokens`);
       } catch (fbErr) {
         console.warn("[PUSH-FALLBACK-LOOKUP-WARN]", fbErr);
       }
     }
 
     if (validParents.length === 0) {
+      console.log(`[PUSH-BATCH] No valid tokens found, skipping push`);
       return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
     }
 
     const channelId = resolveChannelId(data.channelId);
 
-    const messages = validParents.map(p => ({
-      to: p.expoPushToken!,
-      sound: 'default' as const,
-      title,
-      body,
-      data: { ...data, channelId, title, body, message: body },
-      channelId,
-      priority: 'high' as const,
-    }));
+    // Deduplicate tokens to avoid sending the same push multiple times to the same device
+    const seenTokens = new Set<string>();
+    const uniqueMessages = validParents
+      .filter(p => {
+        if (seenTokens.has(p.expoPushToken!)) return false;
+        seenTokens.add(p.expoPushToken!);
+        return true;
+      })
+      .map(p => ({
+        to: p.expoPushToken!,
+        sound: 'default' as const,
+        title,
+        body,
+        data: { ...data, channelId, title, body, message: body },
+        channelId,
+        priority: 'high' as const,
+      }));
 
-    // Expo recommends sending in chunks of up to 100
-    const chunks = expo.chunkPushNotifications(messages);
+    console.log(`[PUSH-BATCH] Sending ${uniqueMessages.length} unique push(es) via direct HTTP to Expo API`);
+
+    // Use direct HTTP fetch to Expo Push API instead of SDK for reliability on serverless
     let sentCount = 0;
-    for (const chunk of chunks) {
-      try {
-        const tickets = await expo.sendPushNotificationsAsync(chunk);
+    try {
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(uniqueMessages),
+      });
+      const result = await response.json();
+      console.log(`[PUSH-BATCH] Expo API response:`, JSON.stringify(result));
+
+      if (result.data) {
+        const tickets = Array.isArray(result.data) ? result.data : [result.data];
         for (const t of tickets) {
           if (t.status === 'ok') {
             sentCount++;
           } else {
-            console.error('[PUSH-BATCH-TICKET-ERROR]', t.message, (t as any).details);
+            console.error('[PUSH-BATCH-TICKET-ERROR]', t.message, t.details);
           }
         }
-      } catch (chunkErr) {
-        console.error('[PUSH-BATCH-CHUNK-ERROR]', chunkErr);
+      }
+    } catch (fetchErr) {
+      console.error('[PUSH-BATCH-FETCH-ERROR] Direct HTTP to Expo failed:', fetchErr);
+      // Fallback to Expo SDK if direct HTTP fails
+      try {
+        console.log('[PUSH-BATCH] Falling back to Expo SDK...');
+        const chunks = expo.chunkPushNotifications(uniqueMessages);
+        for (const chunk of chunks) {
+          const tickets = await expo.sendPushNotificationsAsync(chunk);
+          for (const t of tickets) {
+            if (t.status === 'ok') sentCount++;
+            else console.error('[PUSH-BATCH-TICKET-ERROR]', t.message, (t as any).details);
+          }
+        }
+      } catch (sdkErr) {
+        console.error('[PUSH-BATCH-SDK-ERROR]', sdkErr);
       }
     }
-    console.log(`[PUSH-BATCH] Sent ${sentCount}/${messages.length} notifications: ${title}`);
+
+    console.log(`[PUSH-BATCH] Sent ${sentCount}/${uniqueMessages.length} notifications: ${title}`);
     return { totalParents: parents.length, tokensCount: validParents.length, sentCount };
   } catch (error) {
     console.error("[PUSH-BATCH-ERROR]", error);
@@ -235,14 +274,31 @@ export async function sendDirectPushTokens(
   const tickets: any[] = [];
   for (const chunk of chunks) {
     try {
-      const res = await expo.sendPushNotificationsAsync(chunk);
-      tickets.push(...res);
+      // Use direct HTTP for reliability on Vercel serverless
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(chunk),
+      });
+      const result = await response.json();
+      if (result.data) {
+        const data = Array.isArray(result.data) ? result.data : [result.data];
+        tickets.push(...data);
+      }
+      console.log(`[sendDirectPushTokens] Expo API response: ${JSON.stringify(result)}`);
     } catch (err) {
-      console.error("[sendDirectPushTokens] Error sending chunk:", err);
+      console.error("[sendDirectPushTokens] Direct HTTP failed, trying SDK:", err);
+      try {
+        const res = await expo.sendPushNotificationsAsync(chunk);
+        tickets.push(...res);
+      } catch (sdkErr) {
+        console.error("[sendDirectPushTokens] SDK also failed:", sdkErr);
+      }
     }
   }
 
   const sentCount = tickets.filter((t) => t.status === "ok").length;
+  console.log(`[sendDirectPushTokens] Sent ${sentCount}/${validTokens.length}: "${title}"`);
   return { success: sentCount > 0, sentCount, tickets };
 }
 
