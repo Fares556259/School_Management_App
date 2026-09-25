@@ -21,12 +21,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.parent.update({
+    const updatedParent = await prisma.parent.update({
       where: { id: parentId },
       data: { expoPushToken: pushToken || null },
+      select: { phone: true, schoolId: true },
     });
 
-    console.log(`[PUSH-TOKEN] Saved token for parent ${parentId}`);
+    if (updatedParent.phone) {
+      await prisma.parent.updateMany({
+        where: {
+          phone: updatedParent.phone,
+          schoolId: updatedParent.schoolId,
+        },
+        data: { expoPushToken: pushToken || null },
+      });
+    }
+
+    console.log(`[PUSH-TOKEN] Saved token for parent ${parentId} (phone: ${updatedParent.phone || 'none'})`);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[PUSH-TOKEN-ERROR]", error);

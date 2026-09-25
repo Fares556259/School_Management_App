@@ -37,11 +37,17 @@ export async function GET(request: NextRequest) {
       if (n.type === "PAYMENT" || n.type === "REMINDER") { iconName = "AlertTriangle"; iconColor = "#ef4444"; }
       else if (n.type === "ANNOUNCEMENT") { iconName = "GraduationCap"; iconColor = "#0055d4"; }
       return {
-        id: n.id, type: n.type,
+        id: n.id, 
+        type: n.type,
+        title: n.title || "Notification",
         student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
         className: n.student?.class?.name || "School",
-        message: n.message, time: formatRelativeTime(n.createdAt), rawDate: n.createdAt,
-        iconName, iconColor, isNew: !n.isRead,
+        message: n.message, 
+        time: formatRelativeTime(n.createdAt), 
+        rawDate: n.createdAt,
+        iconName, 
+        iconColor, 
+        isNew: !n.isRead,
       };
     });
 

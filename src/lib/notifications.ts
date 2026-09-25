@@ -65,12 +65,59 @@ export async function sendPushBatch(
   try {
     const parents = await prisma.parent.findMany({
       where: { id: { in: parentIds } },
-      select: { id: true, expoPushToken: true },
+      select: { id: true, expoPushToken: true, phone: true },
     });
 
     const validParents = parents.filter(
       (p) => p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken)
     );
+
+    // Fallback: If some parents have null tokens, check if any account with the same phone has an active push token
+    const missingParents = parents.filter(
+      (p) => (!p.expoPushToken || !Expo.isExpoPushToken(p.expoPushToken)) && p.phone
+    );
+
+    if (missingParents.length > 0) {
+      const phones = Array.from(new Set(missingParents.map((p) => p.phone).filter(Boolean)));
+      try {
+        const [altParents, altTeachers] = await Promise.all([
+          prisma.parent.findMany({
+            where: { phone: { in: phones }, expoPushToken: { not: null } },
+            select: { id: true, phone: true, expoPushToken: true },
+          }),
+          prisma.teacher.findMany({
+            where: { phone: { in: phones }, expoPushToken: { not: null } },
+            select: { id: true, phone: true, expoPushToken: true },
+          }),
+        ]);
+
+        const phoneToToken = new Map<string, string>();
+        for (const p of altParents) {
+          if (p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken)) {
+            phoneToToken.set(p.phone, p.expoPushToken);
+          }
+        }
+        for (const t of altTeachers) {
+          if (t.phone && t.expoPushToken && Expo.isExpoPushToken(t.expoPushToken) && !phoneToToken.has(t.phone)) {
+            phoneToToken.set(t.phone, t.expoPushToken);
+          }
+        }
+
+        for (const p of missingParents) {
+          if (p.phone && phoneToToken.has(p.phone)) {
+            const fallbackToken = phoneToToken.get(p.phone)!;
+            validParents.push({ id: p.id, expoPushToken: fallbackToken, phone: p.phone });
+            // Auto-backfill to DB
+            prisma.parent.update({
+              where: { id: p.id },
+              data: { expoPushToken: fallbackToken },
+            }).catch((err) => console.warn("[PUSH-BACKFILL-FAIL]", err));
+          }
+        }
+      } catch (fbErr) {
+        console.warn("[PUSH-FALLBACK-LOOKUP-WARN]", fbErr);
+      }
+    }
 
     if (validParents.length === 0) {
       return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
