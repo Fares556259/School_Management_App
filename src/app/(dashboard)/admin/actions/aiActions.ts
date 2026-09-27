@@ -158,7 +158,7 @@ async function unifiedAIRouter(params: {
       console.log("🛰️ [ROUTER] Using Google Native SDK...");
       const genAI = new GoogleGenerativeAI(key);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-2.0-flash",
         generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
       });
       

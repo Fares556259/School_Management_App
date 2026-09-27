@@ -35,9 +35,9 @@ export interface MobileAgentResponse {
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-3.6-flash",
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
 ];
 
 /**
@@ -472,7 +472,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
             arguments: toolArgs,
           };
 
-          finalReply = confirmText;
+          finalReply = "Veuillez vérifier et confirmer l'action ci-dessous :";
 
           // Save assistant message with confirmation request
           await prisma.aIMessage.create({
@@ -491,7 +491,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
             analyzedDocument: analyzedDoc,
             pendingConfirmation,
             executedTool: toolName,
-            followUpSuggestions: ["Confirmer ✅", "Annuler ❌"],
+            followUpSuggestions: [],
           };
         }
 

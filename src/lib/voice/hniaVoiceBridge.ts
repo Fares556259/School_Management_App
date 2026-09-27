@@ -47,7 +47,7 @@ const CANDIDATE_MODELS = [
   "gemini-2.5-flash-lite",
   "gemini-flash-latest",
   "gemini-flash-lite-latest",
-  "gemini-3-flash-preview",
+  "gemini-2.0-flash",
 ];
 
 const GREETING_REGEX = /^(\/start|\/help|bonjour|bonsoir|salut|salam|ahla|wach|labas|cava|ça va|hello|hi\b|hey\b|menu|\/menu|كيفاش|كيف|صباح الخير|مرحبا|هلا)([\s]+(hnia|هنية))?[\s!?.،]*$/i;
