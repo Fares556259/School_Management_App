@@ -35,9 +35,10 @@ export interface MobileAgentResponse {
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash",
+  "gemini-flash-latest",
+  "gemini-3.8-flash",
 ];
 
 /**
@@ -178,11 +179,76 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
         analyzedDoc.publicUrl = publicUrl;
       }
 
-      // Prepend document analysis to effective message
-      const docSummary = `[DOCUMENT ANALYSÉ] Type: ${analyzedDoc.documentType}, Montant: ${analyzedDoc.amount || "N/A"} DT, Commerçant/Bénéficiaire: ${analyzedDoc.merchant || analyzedDoc.studentName || analyzedDoc.parentName || "N/A"}, Date: ${analyzedDoc.date || "N/A"}, Action suggérée: ${analyzedDoc.suggestedAction || "none"}, Résumé: ${analyzedDoc.summary}`;
-      effectiveUserMessage = effectiveUserMessage
-        ? `${docSummary}\n\nMessage de l'administrateur : ${effectiveUserMessage}`
-        : `${docSummary}\n\nQue dois-je faire avec ce document ?`;
+      if (analyzedDoc) {
+        const photoUrl = publicUrl || "";
+        const docDescriptor = `[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]
+- Type détecté : ${analyzedDoc.documentType}
+- Titre / Enseigne : ${analyzedDoc.title || analyzedDoc.merchant || "Non spécifié"}
+- Montant extrait : ${analyzedDoc.amount !== undefined ? `${analyzedDoc.amount} DT` : "Non spécifié"}
+- Date du document : ${analyzedDoc.date || "Non spécifiée"}
+- Catégorie : ${analyzedDoc.category || "Général"}
+- Personne concernée : ${analyzedDoc.studentName || analyzedDoc.parentName || analyzedDoc.personName || "Non spécifié"}
+${analyzedDoc.bankName ? `- Banque : ${analyzedDoc.bankName}\n` : ""}${analyzedDoc.chequeNumber ? `- N° Chèque : ${analyzedDoc.chequeNumber}\n` : ""}${analyzedDoc.className ? `- Classe : ${analyzedDoc.className}\n` : ""}${analyzedDoc.sessionName ? `- Séance : ${analyzedDoc.sessionName}\n` : ""}- Résumé visuel : ${analyzedDoc.summary}
+${photoUrl ? `- Justificatif (URL image) : ${photoUrl}` : ""}`;
+
+        if (!effectiveUserMessage || effectiveUserMessage.trim().length === 0) {
+          if (analyzedDoc.documentType === "EXPENSE_RECEIPT") {
+            effectiveUserMessage = `${docDescriptor}
+
+L'administrateur a envoyé la photo de ce ticket de caisse / reçu sans texte d'accompagnement.
+Agis directement :
+Appelle immédiatement l'outil 'add_expense' avec :
+- title: "${analyzedDoc.merchant || analyzedDoc.title || "Dépense"}"
+- amount: ${analyzedDoc.amount || 0}
+- category: "${analyzedDoc.category || "Général"}"
+- date: "${analyzedDoc.date || new Date().toISOString().split("T")[0]}"
+- img: "${photoUrl}"
+(Cela générera directement la carte interactive de confirmation d'enregistrement de la dépense).`;
+          } else if (analyzedDoc.documentType === "PAYMENT_RECEIPT") {
+            effectiveUserMessage = `${docDescriptor}
+
+L'administrateur a envoyé un reçu de paiement / virement bancaire pour des frais scolaires.
+${analyzedDoc.studentName ? `Élève identifié : ${analyzedDoc.studentName}.` : "Élève à identifier."}
+${analyzedDoc.amount ? `Montant : ${analyzedDoc.amount} DT.` : ""}
+Propose d'enregistrer le paiement de scolarité via 'record_payment' avec ce justificatif.`;
+          } else if (analyzedDoc.documentType === "BANK_CHEQUE") {
+            effectiveUserMessage = `${docDescriptor}
+
+L'administrateur a envoyé la photo d'un chèque bancaire pour le règlement de frais scolaires.
+- Banque : ${analyzedDoc.bankName || "Banque"}
+- Numéro de chèque : ${analyzedDoc.chequeNumber || "Non spécifié"}
+- Montant : ${analyzedDoc.amount ? `${analyzedDoc.amount} DT` : "À préciser"}
+${analyzedDoc.studentName ? `- Élève annoté : ${analyzedDoc.studentName}` : ""}
+${analyzedDoc.parentName ? `- Émetteur / Parent : ${analyzedDoc.parentName}` : ""}
+Propose d'enregistrer le paiement via 'record_payment'.`;
+          } else if (analyzedDoc.documentType === "ATTENDANCE_SHEET") {
+            effectiveUserMessage = `${docDescriptor}
+
+L'administrateur a envoyé la photo d'une feuille d'appel papier de classe.
+- Classe : "${analyzedDoc.className || "À préciser"}"
+- Séance : "${analyzedDoc.sessionName || "Séance du jour"}"
+Propose d'enregistrer l'appel via 'mark_class_attendance'.`;
+          } else if (analyzedDoc.documentType === "PROFILE_PHOTO") {
+            effectiveUserMessage = `${docDescriptor}
+
+L'administrateur a envoyé une photo de profil / identité.
+${analyzedDoc.personName ? `Propose d'attribuer cette photo à "${analyzedDoc.personName}" via 'update_person_photo'.` : `Demande à qui attribuer cette photo de profil.`}`;
+          } else {
+            effectiveUserMessage = `${docDescriptor}
+
+L'administrateur a envoyé cette photo : "${analyzedDoc.summary}".
+Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire.`;
+          }
+        } else {
+          effectiveUserMessage = `${docDescriptor}
+
+Message / Consigne de l'administrateur : "${effectiveUserMessage}"
+
+Instructions :
+- Applique directement la consigne de l'administrateur en utilisant les informations extraites de l'image (montant: ${analyzedDoc.amount || 0} DT, date: "${analyzedDoc.date || ""}", enseigne: "${analyzedDoc.merchant || analyzedDoc.title || ""}", justificatif: "${photoUrl}").
+- Si l'administrateur mentionne un achat, une dépense ou un reçu ("chrina", "acheté", "dépense", "reçu", "ajoute"), appelle directement 'add_expense' avec le montant et l'intitulé extraits !`;
+        }
+      }
     } catch (imgErr) {
       console.error("[MobileAgent] Image analysis error:", imgErr);
     }

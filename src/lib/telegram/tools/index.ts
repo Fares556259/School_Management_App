@@ -3580,7 +3580,7 @@ export function getGeminiFunctionDeclarations(): FunctionDeclaration[] {
 
 // ── Intent keyword sets for domain-based pruning ──────────────────────────────
 
-const FINANCE_KEYS = /paiement|payé|impayé|solde|caisse|dépense|recette|budget|facture|frais|montant|règlement|dette|owe|paid|payment|income|expense|cash|receipt|salary|salaire|avance|acompte|partiel|partial|anomalie|financial|finance|argent|money|dinar|dt\b|payslip|fiche de paie|payroll/i;
+const FINANCE_KEYS = /paiement|payé|impayé|solde|caisse|dépense|recette|budget|facture|frais|montant|règlement|dette|owe|paid|payment|income|expense|cash|receipt|salary|salaire|avance|acompte|partiel|partial|anomalie|financial|finance|argent|money|dinar|dt\b|payslip|fiche de paie|payroll|chrina|chrit|chrét|chraw|achats?|acheté|acheter|fournisseur|matériel|materiel|equipement|équipement|pc\b|ordinateur/i;
 const ATTENDANCE_KEYS = /absence|présent|absent|appel|assiduité|attendance|justif|retard|late|mark attendance|appel fait|signer|séance/i;
 const GRADE_KEYS = /note|devoir|examen|exam|billet|bulletin|résultat|grade|score|moyenne|trimestre|evaluation|contrôle|controle|assessment|matière|subject/i;
 const TIMETABLE_KEYS = /emploi du temps|horaire|créneau|slot|timetable|schedule|cours|session|substitut|disponible|conflict|permuter/i;
