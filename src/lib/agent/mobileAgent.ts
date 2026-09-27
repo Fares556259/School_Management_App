@@ -36,7 +36,8 @@ export interface MobileAgentResponse {
 
 const CANDIDATE_MODELS = [
   "gemini-3.6-flash",
-  "gemini-3.5-flash-lite",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
 ];
 
 /**
@@ -251,6 +252,104 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       analyzedDocument: analyzedDoc,
       followUpSuggestions: ["Caisse du jour 💰", "Absences 📋", "Emploi du temps ⏰"],
     };
+  }
+
+  // ── FAST-PATHS for instant response (< 100ms) on common school operations ──
+  const IMPAYES_REGEX = /(impayés?|non payé|reliquat|qui n'a pas payé|شكون ما خلصش|dettes?)/i;
+  const CAISSE_REGEX = /(caisse du jour|clôture de caisse|bilan de caisse|كاسة اليوم|point de caisse)/i;
+  const ABSENCES_REGEX = /(absences? du jour|qui est absent|absents? aujourd'hui|شكون غايب|appel du jour)/i;
+  const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
+
+  if (IMPAYES_REGEX.test(msgLower)) {
+    try {
+      const { getPaymentsTool } = await import("@/lib/telegram/tools/readTools");
+      const out = (await getPaymentsTool({ status: "UNPAID" }, context)) as any;
+      if (out?.formattedText) {
+        await prisma.aIMessage.create({
+          data: { conversationId, role: "assistant", content: out.formattedText },
+        });
+        return {
+          success: true,
+          conversationId,
+          message: out.formattedText,
+          transcription,
+          analyzedDocument: analyzedDoc,
+          executedTool: "get_payments",
+          followUpSuggestions: ["Caisse du jour 💰", "Absences 📋", "Planning ⏰"],
+        };
+      }
+    } catch (e) {
+      console.warn("[MobileAgent] Fast-path impayes error:", e);
+    }
+  }
+
+  if (CAISSE_REGEX.test(msgLower)) {
+    try {
+      const { getDailyCaisseTool } = await import("@/lib/telegram/tools/financeTools");
+      const out = (await getDailyCaisseTool({ date: "today" }, context)) as any;
+      if (out?.formattedText) {
+        await prisma.aIMessage.create({
+          data: { conversationId, role: "assistant", content: out.formattedText },
+        });
+        return {
+          success: true,
+          conversationId,
+          message: out.formattedText,
+          transcription,
+          analyzedDocument: analyzedDoc,
+          executedTool: "get_daily_caisse",
+          followUpSuggestions: ["Impayés du mois 💳", "Absences 📋", "Dépenses 💸"],
+        };
+      }
+    } catch (e) {
+      console.warn("[MobileAgent] Fast-path caisse error:", e);
+    }
+  }
+
+  if (ABSENCES_REGEX.test(msgLower)) {
+    try {
+      const { getAttendanceTool } = await import("@/lib/telegram/tools/readTools");
+      const out = (await getAttendanceTool({}, context)) as any;
+      if (out?.formattedText) {
+        await prisma.aIMessage.create({
+          data: { conversationId, role: "assistant", content: out.formattedText },
+        });
+        return {
+          success: true,
+          conversationId,
+          message: out.formattedText,
+          transcription,
+          analyzedDocument: analyzedDoc,
+          executedTool: "get_attendance",
+          followUpSuggestions: ["Notifier les parents 📢", "Caisse du jour 💰", "Emploi du temps ⏰"],
+        };
+      }
+    } catch (e) {
+      console.warn("[MobileAgent] Fast-path absences error:", e);
+    }
+  }
+
+  if (STATS_REGEX.test(msgLower)) {
+    try {
+      const { getSchoolStatsTool } = await import("@/lib/telegram/tools/readTools");
+      const out = (await getSchoolStatsTool({}, context)) as any;
+      if (out?.formattedText) {
+        await prisma.aIMessage.create({
+          data: { conversationId, role: "assistant", content: out.formattedText },
+        });
+        return {
+          success: true,
+          conversationId,
+          message: out.formattedText,
+          transcription,
+          analyzedDocument: analyzedDoc,
+          executedTool: "get_school_stats",
+          followUpSuggestions: ["Caisse du jour 💰", "Absences 📋"],
+        };
+      }
+    } catch (e) {
+      console.warn("[MobileAgent] Fast-path stats error:", e);
+    }
   }
 
   // 7. Resolve school knowledge / teachings

@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
+        message: error.message || "Erreur interne du serveur",
         error: error.message || "Erreur interne du serveur",
       },
       { status: 500 }
