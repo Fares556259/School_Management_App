@@ -158,6 +158,13 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   }
 
   if (!effectiveUserMessage) {
+    if (input.audioBase64) {
+      return {
+        success: true,
+        conversationId: input.conversationId || "",
+        message: "🎙️ Je n'ai pas entendu de voix ou le son était trop faible. Veuillez réessayer de parler un peu plus fort près du micro.",
+      };
+    }
     return {
       success: false,
       conversationId: input.conversationId || "",
