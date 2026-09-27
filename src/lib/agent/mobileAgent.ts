@@ -41,6 +41,37 @@ const CANDIDATE_MODELS = [
 ];
 
 /**
+ * Strip Telegram-specific formatting (HTML tags, custom separators, code tags)
+ * and convert to clean, mobile-optimized markdown.
+ */
+export function cleanTelegramFormattingForMobile(text: string): string {
+  if (!text) return "";
+  let clean = text;
+  // Replace HTML entities
+  clean = clean
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+  // Strip separator bars
+  clean = clean.replace(/[━─═-]{4,}/g, "");
+  // Convert HTML bold to markdown bold
+  clean = clean.replace(/<\/?(?:b|strong)>/gi, "**");
+  // Convert HTML italic to markdown italic
+  clean = clean.replace(/<\/?(?:i|em)>/gi, "*");
+  // Strip HTML code tag wrapper
+  clean = clean.replace(/<\/?code>/gi, "");
+  // Convert blockquote to markdown blockquote
+  clean = clean.replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, "> $1\n");
+  // Strip remaining HTML tags
+  clean = clean.replace(/<[^>]+>/g, "");
+  // Clean redundant whitespace
+  clean = clean.replace(/\n{3,}/g, "\n\n").trim();
+  return clean;
+}
+
+/**
  * Transcribe mobile audio recording (m4a, aac, wav, ogg) using Gemini multimodal audio.
  */
 async function transcribeMobileAudio(
@@ -272,13 +303,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       const { getPaymentsTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getPaymentsTool({ status: "UNPAID" }, context)) as any;
       if (out?.formattedText) {
+        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
         await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: out.formattedText },
+          data: { conversationId, role: "assistant", content: cleanMsg },
         });
         return {
           success: true,
           conversationId,
-          message: out.formattedText,
+          message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
           executedTool: "get_payments",
@@ -295,13 +327,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       const { getDailyCaisseTool } = await import("@/lib/telegram/tools/financeTools");
       const out = (await getDailyCaisseTool({ date: "today" }, context)) as any;
       if (out?.formattedText) {
+        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
         await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: out.formattedText },
+          data: { conversationId, role: "assistant", content: cleanMsg },
         });
         return {
           success: true,
           conversationId,
-          message: out.formattedText,
+          message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
           executedTool: "get_daily_caisse",
@@ -318,13 +351,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       const { getAttendanceTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getAttendanceTool({}, context)) as any;
       if (out?.formattedText) {
+        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
         await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: out.formattedText },
+          data: { conversationId, role: "assistant", content: cleanMsg },
         });
         return {
           success: true,
           conversationId,
-          message: out.formattedText,
+          message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
           executedTool: "get_attendance",
@@ -341,13 +375,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       const { getSchoolStatsTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getSchoolStatsTool({}, context)) as any;
       if (out?.formattedText) {
+        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
         await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: out.formattedText },
+          data: { conversationId, role: "assistant", content: cleanMsg },
         });
         return {
           success: true,
           conversationId,
-          message: out.formattedText,
+          message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
           executedTool: "get_school_stats",
@@ -468,9 +503,10 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
             },
           });
 
-          const confirmText = toolDef.formatConfirmationMessage
+          const rawConfirmText = toolDef.formatConfirmationMessage
             ? await Promise.resolve(toolDef.formatConfirmationMessage(toolArgs, context))
             : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
+          const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
           pendingConfirmation = {
             toolCallId: toolCallRecord.id,
@@ -524,7 +560,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
         // Fast path: if formattedText exists
         if (toolOutput?.formattedText) {
-          finalReply = toolOutput.formattedText;
+          finalReply = cleanTelegramFormattingForMobile(toolOutput.formattedText);
           break;
         }
 
@@ -546,7 +582,8 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
       if (!finalReply) {
         try {
-          finalReply = candidate.text() || "C'est noté ! Avez-vous besoin d'autre chose ?";
+          const rawText = candidate.text() || "C'est noté ! Avez-vous besoin d'autre chose ?";
+          finalReply = cleanTelegramFormattingForMobile(rawText);
         } catch {
           finalReply = "C'est noté ! Avez-vous besoin d'autre chose ?";
         }
@@ -701,8 +738,9 @@ export async function confirmMobileAction(params: {
       },
     });
 
-    const successMsg =
+    const rawSuccessMsg =
       executionResult?.message || `✅ Action **${toolCall.toolName}** exécutée avec succès !`;
+    const successMsg = cleanTelegramFormattingForMobile(rawSuccessMsg);
 
     if (toolCall.conversationId) {
       await prisma.aIMessage.create({
@@ -726,7 +764,8 @@ export async function confirmMobileAction(params: {
       data: { status: "FAILED", result: { error: err.message } },
     });
 
-    const errorMsg = `⚠️ Erreur lors de l'exécution de **${toolCall.toolName}** : ${err.message || "Erreur inconnue"}`;
+    const rawErrorMsg = `⚠️ Erreur lors de l'exécution de **${toolCall.toolName}** : ${err.message || "Erreur inconnue"}`;
+    const errorMsg = cleanTelegramFormattingForMobile(rawErrorMsg);
     if (toolCall.conversationId) {
       await prisma.aIMessage.create({
         data: {
