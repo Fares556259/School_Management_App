@@ -25,6 +25,7 @@ model Admin {
   status            String   @default("pending")
   telegramAccount   TelegramAccount?
   School            School   @relation(fields: [schoolId], references: [id])
+  conversations     AIConversation[]
 
   @@index([schoolId])
 }
@@ -707,18 +708,22 @@ model TelegramAccount {
 
 model AIConversation {
   id                String          @id @default(cuid())
-  telegramAccountId String
-  telegramChatId    String
+  telegramAccountId String?
+  telegramChatId    String?
+  adminId           String?
+  source            String          @default("telegram")
   title             String          @default("New conversation")
   status            String          @default("ACTIVE")
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
-  telegramAccount   TelegramAccount @relation(fields: [telegramAccountId], references: [id], onDelete: Cascade)
+  telegramAccount   TelegramAccount? @relation(fields: [telegramAccountId], references: [id], onDelete: Cascade)
+  admin             Admin?          @relation(fields: [adminId], references: [id])
   messages          AIMessage[]
   toolCalls         AIToolCall[]
 
   @@index([telegramAccountId])
   @@index([telegramChatId])
+  @@index([adminId])
 }
 
 model AIMessage {

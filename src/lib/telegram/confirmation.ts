@@ -78,7 +78,7 @@ export async function handleConfirmationCallback(
   }
 
   // 3. Multi-tenant security guard: Verify this tool call belongs to this user's school
-  if (toolCall.conversation.telegramAccount.schoolId !== tgAccount.schoolId) {
+  if (toolCall.conversation.telegramAccount && toolCall.conversation.telegramAccount.schoolId !== tgAccount.schoolId) {
     await answerTelegramCallbackQuery(queryId, "Accès non autorisé", true);
     return;
   }

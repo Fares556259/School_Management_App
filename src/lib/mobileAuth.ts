@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "snapschool_mobile_jwt_super_secret
 
 export interface MobileJWTPayload {
   userId: string;
-  userType: "parent" | "teacher";
+  userType: "parent" | "teacher" | "admin";
   schoolId: string;
   iat?: number;
   exp?: number;

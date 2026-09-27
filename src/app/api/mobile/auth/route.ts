@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import { 
   generateToken, 
   checkRateLimit, 
@@ -31,8 +32,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // === ADMIN AUTHENTICATION (via Supabase Auth) ===
+    if (role === "admin") {
+      if (!phone || !password) {
+        return NextResponse.json({ success: false, error: "Email and password required" }, { status: 400 });
+      }
+      
+      if (action && action !== "signin") {
+        return NextResponse.json({ success: false, error: "Only signin action is supported for admin" }, { status: 400 });
+      }
+      
+      // Authenticate via Supabase Auth (admins use email + password)
+      const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+        email: phone, // 'phone' field is reused for email input from mobile
+        password,
+      });
+      
+      if (authError || !authData.user) {
+        console.error("[Admin Auth] Supabase error:", authError?.message);
+        return NextResponse.json({ success: false, error: "Identifiants invalides" }, { status: 401 });
+      }
+      
+      // Fetch admin record from Prisma
+      const admin = await prisma.admin.findUnique({
+        where: { id: authData.user.id },
+        include: { School: true },
+      });
+      
+      if (!admin) {
+        return NextResponse.json({ success: false, error: "Compte administrateur introuvable" }, { status: 404 });
+      }
+      
+      if (admin.status !== "active") {
+        return NextResponse.json({ success: false, error: "Compte non activé" }, { status: 403 });
+      }
+      
+      // Generate mobile JWT token for admin
+      const token = generateToken({
+        userId: admin.id,
+        userType: "admin" as const,
+        schoolId: admin.schoolId,
+      });
+      
+      const fullName = [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username;
+      
+      return NextResponse.json({
+        success: true,
+        token,
+        userId: admin.id,
+        userType: "admin",
+        schoolId: admin.schoolId,
+        name: fullName,
+        img: admin.img || null,
+        schoolName: admin.School?.name || "SnapSchool",
+      });
+    }
+
     let user: any = null;
-    let userType: "parent" | "teacher" = role === "teacher" ? "teacher" : "parent";
+    let userType: "parent" | "teacher" | "admin" = role === "teacher" ? "teacher" : role === "admin" ? "admin" : "parent";
 
     if (userType === "parent") {
       user = await prisma.parent.findFirst({

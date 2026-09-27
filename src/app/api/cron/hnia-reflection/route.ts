@@ -88,6 +88,10 @@ async function handleReflection(req: NextRequest) {
   let learnedCount = 0;
 
   for (const conv of candidateConvs) {
+    // Skip mobile-sourced conversations (no Telegram account linked)
+    if (!conv.telegramAccount) {
+      continue;
+    }
     const schoolName = conv.telegramAccount.School.name;
     const adminName =
       [conv.telegramAccount.admin.name, conv.telegramAccount.admin.surname].filter(Boolean).join(" ") ||
@@ -217,6 +221,7 @@ Réponds STRICTEMENT par un JSON valide (sans code markdown supplémentaire) :
     // Send Telegram Notification to the admin about the new learned rule
     try {
       const chatId = conv.telegramChatId;
+      if (!chatId) continue; // Skip notification for mobile-sourced conversations
       const categoryBadges: Record<string, string> = {
         GENERAL: "📌 Général",
         FINANCE: "💰 Finance & Tarifs",
