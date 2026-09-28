@@ -387,7 +387,7 @@ Instructions :
 
   // ── FAST-PATHS for instant response (< 100ms) on common school operations ──
   const IMPAYES_REGEX = /(impayés?|non payé|reliquat|qui n'a pas payé|qui doit|شكون ما خلصش|dettes?)/i;
-  const CAISSE_REGEX = /(caiss[ez]?|caisse du jour|clôture de caisse|bilan de caisse|كاسة|point de caisse)/i;
+  const CAISSE_REGEX = /(caiss[ez]?|caisse du jour|clôture de caisse|bilan de caisse|كاسة|point de caisse|bordereau.*caisse|journal de caisse|bordereau)/i;
   const RECEIPT_REGEX = /(reçu|quittance|bulletin de paie|facture de scolarité|reçu de paiement)/i;
   const ABSENCES_REGEX = /(absences? du jour|qui est absent|absents? aujourd'hui|شكون غايب|appel du jour)/i;
   const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
@@ -448,9 +448,7 @@ Instructions :
         const numExpenses = typeof out.summary?.totalExpenses === "number" ? out.summary.totalExpenses : parseFloat(String(out.summary?.totalExpenses || 0).replace(/[^0-9.-]/g, "")) || 0;
         const numNet = typeof out.summary?.netCashBalance === "number" ? out.summary.netCashBalance : parseFloat(String(out.summary?.netCashBalance || 0).replace(/[^0-9.-]/g, "")) || 0;
 
-        const cleanMsg = out?.formattedText
-          ? cleanTelegramFormattingForMobile(out.formattedText)
-          : `📊 **Point de caisse du jour :**\n🟢 **Recettes :** + ${numIncomes.toLocaleString()} DT (${out.summary?.paymentsCount || 0} encaissements)\n🔴 **Dépenses :** - ${numExpenses.toLocaleString()} DT (${out.summary?.expensesCount || 0} sorties)\n💼 **Solde net physique :** ${numNet >= 0 ? '+' : ''}${numNet.toLocaleString()} DT`;
+        const cleanMsg = "Point de caisse d'aujourd'hui :";
 
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
