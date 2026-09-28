@@ -69,12 +69,41 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       conversationId: conversation.id,
-      messages: conversation.messages.map((m: any) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        createdAt: m.createdAt,
-      })),
+      messages: conversation.messages.map((m: any) => {
+        let content = m.content || "";
+        let imageUri: string | undefined = undefined;
+
+        // Check if content contains image tag or raw document prompt
+        const imgMatch = content.match(/\[IMAGE:(https?:\/\/[^\]]+)\]/);
+        if (imgMatch) {
+          imageUri = imgMatch[1];
+          content = content.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/, "").trim();
+        } else if (content.includes("[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]")) {
+          const urlMatch = content.match(/Justificatif \(URL image\) :\s*(https?:\/\/[^\s\n]+)/) ||
+                           content.match(/img:\s*["\x27](https?:\/\/[^"\x27]+)["\x27]/);
+          if (urlMatch) {
+            imageUri = urlMatch[1];
+          }
+          const titleMatch = content.match(/Titre \/ Enseigne :\s*([^\n]+)/);
+          const amountMatch = content.match(/Montant extrait :\s*([^\n]+)/);
+          const merchant = titleMatch && !titleMatch[1].includes("Non spécifié") ? titleMatch[1].trim() : "";
+          const amount = amountMatch && !amountMatch[1].includes("Non spécifié") ? amountMatch[1].trim() : "";
+          
+          if (merchant) {
+            content = `📷 ${merchant}${amount ? ` (${amount})` : ""}`;
+          } else {
+            content = "📷 Justificatif / Reçu envoyé";
+          }
+        }
+
+        return {
+          id: m.id,
+          role: m.role,
+          content,
+          imageUri,
+          createdAt: m.createdAt,
+        };
+      }),
       pendingConfirmations: conversation.toolCalls.map((tc: any) => ({
         toolCallId: tc.id,
         toolName: tc.toolName,

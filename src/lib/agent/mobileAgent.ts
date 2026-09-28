@@ -23,6 +23,7 @@ export interface MobileAgentResponse {
   message: string;
   transcription?: string;
   analyzedDocument?: any;
+  imageUrl?: string;
   pendingConfirmation?: {
     toolCallId: string;
     toolName: string;
@@ -150,7 +151,9 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
   // 2. Handle Audio input if provided
   let transcription: string | undefined;
-  let effectiveUserMessage = (input.userMessage || "").trim();
+  const originalUserText = (input.userMessage || "").trim();
+  let effectiveUserMessage = originalUserText;
+  let uploadedImageUrl: string | undefined;
 
   if (input.audioBase64) {
     try {
@@ -178,6 +181,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       // Analyze document using Gemini Vision
       analyzedDoc = await analyzeTelegramImage(buffer, effectiveUserMessage);
       if (publicUrl) {
+        uploadedImageUrl = publicUrl;
         analyzedDoc.publicUrl = publicUrl;
       }
 
@@ -306,6 +310,22 @@ Instructions :
   let conversationId: string;
   let historyMessages: { role: string; content: string }[] = [];
 
+  // Format clean user message for DB storage
+  let userMessageForDB = originalUserText;
+  if (input.imageBase64) {
+    if (!userMessageForDB) {
+      if (analyzedDoc?.merchant || analyzedDoc?.title) {
+        userMessageForDB = `📷 ${analyzedDoc.merchant || analyzedDoc.title}${analyzedDoc.amount ? ` (${analyzedDoc.amount} DT)` : ""}`;
+      } else {
+        userMessageForDB = "📷 Justificatif / Document envoyé";
+      }
+    }
+  }
+
+  const savedUserContent = uploadedImageUrl
+    ? `[IMAGE:${uploadedImageUrl}]\n${userMessageForDB}`
+    : (userMessageForDB || effectiveUserMessage);
+
   if (conversation) {
     conversationId = conversation.id;
     historyMessages = [...conversation.messages].reverse();
@@ -315,7 +335,7 @@ Instructions :
         adminId: input.adminId,
         source: "mobile",
         status: "ACTIVE",
-        title: (transcription || effectiveUserMessage).slice(0, 40),
+        title: (transcription || userMessageForDB || "Nouvelle conversation").slice(0, 40),
       },
     });
     conversationId = newConv.id;
@@ -326,7 +346,7 @@ Instructions :
     data: {
       conversationId,
       role: "user",
-      content: effectiveUserMessage,
+      content: savedUserContent,
     },
   }).catch((e) => console.warn("[MobileAgent] aIMessage user save failed:", e));
 
@@ -356,6 +376,7 @@ Instructions :
       message: greeting,
       transcription,
       analyzedDocument: analyzedDoc,
+      imageUrl: uploadedImageUrl,
       followUpSuggestions: ["Caisse du jour 💰", "Absences 📋", "Emploi du temps ⏰"],
     };
   }
@@ -381,6 +402,7 @@ Instructions :
           message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
+          imageUrl: uploadedImageUrl,
           executedTool: "get_payments",
           followUpSuggestions: ["Caisse du jour 💰", "Absences 📋", "Planning ⏰"],
         };
@@ -405,6 +427,7 @@ Instructions :
           message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
+          imageUrl: uploadedImageUrl,
           executedTool: "get_daily_caisse",
           followUpSuggestions: ["Impayés du mois 💳", "Absences 📋", "Dépenses 💸"],
         };
@@ -429,6 +452,7 @@ Instructions :
           message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
+          imageUrl: uploadedImageUrl,
           executedTool: "get_attendance",
           followUpSuggestions: ["Notifier les parents 📢", "Caisse du jour 💰", "Emploi du temps ⏰"],
         };
@@ -453,6 +477,7 @@ Instructions :
           message: cleanMsg,
           transcription,
           analyzedDocument: analyzedDoc,
+          imageUrl: uploadedImageUrl,
           executedTool: "get_school_stats",
           followUpSuggestions: ["Caisse du jour 💰", "Absences 📋"],
         };
@@ -600,6 +625,7 @@ Instructions :
             message: finalReply,
             transcription,
             analyzedDocument: analyzedDoc,
+            imageUrl: uploadedImageUrl,
             pendingConfirmation,
             executedTool: toolName,
             followUpSuggestions: [],
@@ -682,6 +708,7 @@ Instructions :
         message: finalReply,
         transcription,
         analyzedDocument: analyzedDoc,
+        imageUrl: uploadedImageUrl,
         pendingConfirmation: null,
         executedTool: lastExecutedTool,
         followUpSuggestions: suggestions,
