@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { generateDailyCashRegisterPdf } from "@/lib/pdf/receipts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get("date");
     const tokenParam = searchParams.get("token") || "";
+    const formatParam = searchParams.get("format");
 
     const targetDate = dateParam ? new Date(dateParam) : new Date();
     const startOfDay = new Date(targetDate);
@@ -149,47 +151,206 @@ export async function GET(request: NextRequest) {
 
     const totalCash = Math.max(0, totalIncomes - totalChecks - totalTransfers);
 
+    // If PDF format requested directly
+    if (formatParam === "pdf") {
+      const { buffer, filename } = await generateDailyCashRegisterPdf({
+        schoolName,
+        date: targetDate,
+        adminName: "Direction",
+        totalIncomes,
+        totalExpenses,
+        netBalance,
+        totalCash,
+        totalChecks,
+        checkCount,
+        totalTransfers,
+        inflowItems,
+        outflowItems,
+      });
+
+      return new NextResponse(buffer as any, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${filename}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    // Exact label parser matching receipts.ts
+    const parseTransactionLabel = (item: {
+      label: string;
+      categoryOrClass?: string;
+      type: "IN" | "OUT";
+    }): { client: string; description: string } => {
+      let client = "";
+      let description = "";
+
+      const clean = item.label.trim();
+      if (clean.toLowerCase().startsWith("scolarité")) {
+        const parts = clean.replace(/^scolarit[ée]\s*[:\-]?\s*/i, "").trim();
+        const parenMatch = parts.match(/^(.*?)\s*\((.*?)\)$/);
+        if (parenMatch) {
+          client = parenMatch[1].trim();
+          description = parenMatch[2].trim();
+        } else {
+          client = parts;
+          description = "Scolarité mensuelle";
+        }
+        if (item.categoryOrClass && !client.includes(item.categoryOrClass)) {
+          client += ` (${item.categoryOrClass})`;
+        }
+      } else if (clean.toLowerCase().startsWith("frais")) {
+        client = item.categoryOrClass || "Élève / Adhérent";
+        description = clean;
+      } else if (clean.toLowerCase().startsWith("fournitures") || clean.toLowerCase().startsWith("achat")) {
+        client = "Fournisseur Bureau";
+        description = clean;
+      } else if (clean.toLowerCase().startsWith("réparation") || clean.toLowerCase().startsWith("maintenance")) {
+        client = "Prestataire Maintenance";
+        description = clean;
+      } else {
+        client = item.categoryOrClass || (item.type === "IN" ? "Client / Parent" : "Fournisseur");
+        description = clean;
+      }
+
+      return { client, description };
+    };
+
+    // Unified Chronological Transactions (Matching Screen 2)
+    type UnifiedTx = {
+      time: string;
+      type: "IN" | "OUT";
+      client: string;
+      description: string;
+      method: string;
+      amount: number;
+      runningBalance: number;
+    };
+
+    const rawTxList = [
+      ...inflowItems.map((item) => {
+        const parsed = parseTransactionLabel({ label: item.label, categoryOrClass: item.categoryOrClass, type: "IN" });
+        const methodStr = item.checkDetails ? `Chq ${item.checkDetails}` : (item.method || "Espèces");
+        return {
+          time: item.time || "",
+          type: "IN" as const,
+          client: parsed.client,
+          description: parsed.description,
+          method: methodStr,
+          amount: item.amount,
+        };
+      }),
+      ...outflowItems.map((item) => {
+        const parsed = parseTransactionLabel({ label: item.label, categoryOrClass: item.categoryOrClass, type: "OUT" });
+        return {
+          time: item.time || "",
+          type: "OUT" as const,
+          client: parsed.client,
+          description: parsed.description,
+          method: item.method || "Espèces",
+          amount: item.amount,
+        };
+      }),
+    ].sort((a, b) => a.time.localeCompare(b.time));
+
+    let running = 0;
+    const allTransactions: UnifiedTx[] = rawTxList.map((item) => {
+      if (item.type === "IN") {
+        running += item.amount;
+      } else {
+        running -= item.amount;
+      }
+      return {
+        ...item,
+        runningBalance: running,
+      };
+    });
+
     const formattedDate = targetDate.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
+      day: "2-digit",
+      month: "2-digit",
       year: "numeric",
     });
 
-    const editionTime = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const netSign = netBalance >= 0 ? "+" : "";
+
+    // Generate table rows + empty ledger rows (to fill page identically to Screen 2)
+    const targetRowCount = Math.max(18, allTransactions.length + 3);
+    const tableRowsHtml: string[] = [];
+
+    for (let i = 0; i < targetRowCount; i++) {
+      if (i < allTransactions.length) {
+        const tx = allTransactions[i];
+        const isOut = tx.type === "OUT";
+        const isIn = tx.type === "IN";
+        const soldeSign = tx.runningBalance >= 0 ? "" : "-";
+
+        tableRowsHtml.push(`
+          <tr>
+            <td class="col-date">${tx.time || "—"}</td>
+            <td class="col-client"><strong>${tx.client}</strong></td>
+            <td class="col-desc">${tx.description}</td>
+            <td class="col-out">${isOut ? `${tx.amount.toFixed(2)} DT` : ""}</td>
+            <td class="col-in">${isIn ? `${tx.amount.toFixed(2)} DT` : ""}</td>
+            <td class="col-type">${tx.method}</td>
+            <td class="col-solde">${soldeSign}${Math.abs(tx.runningBalance).toFixed(2)} DT</td>
+          </tr>
+        `);
+      } else {
+        // Blank ruled ledger line matching standard accounting book
+        tableRowsHtml.push(`
+          <tr class="blank-row">
+            <td class="col-date">&nbsp;</td>
+            <td class="col-client">&nbsp;</td>
+            <td class="col-desc">&nbsp;</td>
+            <td class="col-out">&nbsp;</td>
+            <td class="col-in">&nbsp;</td>
+            <td class="col-type">&nbsp;</td>
+            <td class="col-solde">&nbsp;</td>
+          </tr>
+        `);
+      }
+    }
+
+    const pdfDownloadUrl = `/api/mobile/admin/caisse/print?token=${encodeURIComponent(tokenParam)}&format=pdf${dateParam ? `&date=${encodeURIComponent(dateParam)}` : ""}`;
 
     const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bordereau de Caisse - ${formattedDate}</title>
+  <title>Livre de Caisse - ${formattedDate}</title>
   <style>
     @page {
       size: A4 portrait;
-      margin: 10mm;
+      margin: 8mm 10mm;
     }
     * {
       box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 16px;
-      color: #0f172a;
-      background: #f1f5f9;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 12px;
+      color: #000000;
+      background: #f1f5f9;
+      font-size: 11px;
+    }
+
+    /* Top Sticky Action Bar (Hidden when printed) */
     .top-actions {
       display: flex;
       gap: 12px;
       max-width: 820px;
-      margin: 0 auto 16px auto;
+      margin: 0 auto 12px auto;
       position: sticky;
       top: 0;
       background: #f1f5f9;
-      padding: 8px 0;
+      padding: 6px 0;
       z-index: 100;
     }
     .btn-print {
@@ -197,35 +358,32 @@ export async function GET(request: NextRequest) {
       background: #059669;
       color: #ffffff;
       border: none;
-      padding: 14px 20px;
-      border-radius: 12px;
-      font-size: 16px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
-      transition: background 0.15s;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
     }
-    .btn-print:active {
-      background: #047857;
-    }
-    .btn-close {
+    .btn-pdf {
       background: #ffffff;
-      color: #334155;
+      color: #0f172a;
       border: 1px solid #cbd5e1;
-      padding: 14px 18px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
       text-decoration: none;
       display: flex;
       align-items: center;
       gap: 6px;
     }
+
     @media print {
       body {
         background: #ffffff !important;
@@ -234,323 +392,330 @@ export async function GET(request: NextRequest) {
       .top-actions {
         display: none !important;
       }
-      .page-container {
+      .ledger-page {
         box-shadow: none !important;
         border: none !important;
         padding: 0 !important;
+        margin: 0 !important;
         max-width: 100% !important;
       }
     }
-    .page-container {
+
+    /* Formal Accounting Ledger Sheet (1:1 with Screen 2) */
+    .ledger-page {
       max-width: 820px;
       margin: 0 auto;
       background: #ffffff;
-      border-radius: 12px;
-      padding: 28px 32px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-      border: 1px solid #e2e8f0;
+      padding: 20px 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      border: 1px solid #cbd5e1;
     }
-    .header-bar {
-      border-bottom: 2px solid #0f172a;
-      padding-bottom: 12px;
-      margin-bottom: 18px;
+
+    .top-brand-stripe {
+      height: 3px;
+      background: #0f172a;
+      margin-bottom: 12px;
+    }
+
+    .header-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
+      align-items: flex-start;
+      margin-bottom: 10px;
     }
     .school-name {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 800;
-      color: #0f172a;
+      color: #000000;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .doc-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #059669;
-      margin-top: 3px;
+    .school-sub {
+      font-size: 9.5px;
+      color: #4b5563;
+      margin-top: 2px;
     }
     .header-meta {
       text-align: right;
-      font-size: 11px;
-      color: #64748b;
+      font-size: 9.5px;
+      color: #374151;
+      line-height: 1.4;
     }
     .header-meta strong {
-      color: #0f172a;
+      font-size: 10.5px;
+      color: #000000;
     }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .summary-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 12px 14px;
+
+    /* Centered Title Banner (Clean gray frame) */
+    .title-banner {
+      background: #f3f4f6;
+      border: 1px solid #9ca3af;
+      padding: 6px 12px;
       text-align: center;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #000000;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
     }
-    .summary-label {
+
+    /* Sub-Banner */
+    .sub-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 10px;
       font-weight: 700;
-      text-transform: uppercase;
-      color: #64748b;
-      letter-spacing: 0.4px;
+      color: #111827;
+      margin-bottom: 6px;
+      padding: 0 2px;
     }
-    .summary-value {
-      font-size: 20px;
-      font-weight: 800;
-      margin-top: 4px;
-    }
-    .summary-sub {
-      font-size: 10px;
-      color: #94a3b8;
-      margin-top: 2px;
-    }
-    .val-green { color: #059669; }
-    .val-red { color: #dc2626; }
-    .val-navy { color: #0f172a; }
-    .payment-methods-strip {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 8px 14px;
+    .sub-solde {
       font-size: 11px;
-      color: #334155;
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 20px;
-    }
-    .payment-methods-strip strong {
-      color: #0f172a;
-    }
-    .section-title {
-      font-size: 12px;
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      margin-top: 18px;
-      margin-bottom: 8px;
+      color: #000000;
     }
-    .sec-green {
-      background: #ecfdf5;
-      color: #065f46;
-      border-left: 4px solid #059669;
-    }
-    .sec-red {
-      background: #fef2f2;
-      color: #991b1b;
-      border-left: 4px solid #dc2626;
-    }
-    table {
+
+    /* Accounting Grid Table */
+    .ledger-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11px;
+      font-size: 9.5px;
+      border: 1px solid #111827;
       margin-bottom: 8px;
     }
-    th {
-      background: #f8fafc;
-      color: #475569;
+    .ledger-table th {
+      background: #1f2937;
+      color: #ffffff;
       font-weight: 700;
-      text-align: left;
-      padding: 7px 8px;
-      border-bottom: 1.5px solid #cbd5e1;
+      padding: 5px 4px;
+      text-align: center;
+      border: 1px solid #111827;
+      font-size: 9.5px;
+      line-height: 1.15;
     }
-    td {
-      padding: 6px 8px;
-      border-bottom: 1px solid #f1f5f9;
-      color: #1e293b;
+    .ledger-table td {
+      border: 0.5px solid #9ca3af;
+      padding: 4px 6px;
+      height: 20px;
+      color: #000000;
+      vertical-align: middle;
     }
-    tr:nth-child(even) td {
+    .ledger-table tr:nth-child(even) td {
       background: #fafafa;
     }
-    .td-amount {
-      text-align: right;
-      font-weight: 700;
+
+    .col-date { width: 9%; text-align: center; font-size: 9px; color: #4b5563; }
+    .col-client { width: 23%; }
+    .col-desc { width: 27%; color: #374151; font-size: 9px; }
+    .col-out { width: 12%; text-align: right; font-weight: 700; }
+    .col-in { width: 12%; text-align: right; font-weight: 700; }
+    .col-type { width: 8%; text-align: center; font-size: 8.5px; color: #4b5563; }
+    .col-solde { width: 9%; text-align: right; font-weight: 700; }
+
+    .blank-row td {
+      background: #ffffff !important;
+      border: 0.5px solid #d1d5db;
     }
-    .empty-row {
-      text-align: center;
-      color: #94a3b8;
-      font-style: italic;
-      padding: 12px !important;
+
+    /* Bottom Section */
+    .bottom-section {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+      margin-bottom: 6px;
     }
-    .signatures-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      margin-top: 28px;
-      padding-top: 16px;
-      border-top: 1.5px dashed #cbd5e1;
+    .sit-box {
+      flex: 1.1;
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      line-height: 1.5;
     }
-    .sign-box {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 10px 14px;
-      min-height: 85px;
-      background: #fafafa;
+    .sit-title {
+      font-weight: 800;
+      margin-bottom: 3px;
+      color: #000000;
     }
-    .sign-title {
-      font-size: 10px;
-      font-weight: 700;
-      color: #64748b;
-      text-transform: uppercase;
-    }
-    .footer-note {
-      text-align: center;
+    .sit-item {
+      color: #374151;
       font-size: 9px;
-      color: #94a3b8;
-      margin-top: 20px;
+    }
+
+    .sum-box {
+      flex: 0.9;
+      border: 1px solid #111827;
+      background: #ffffff;
+    }
+    .sum-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 9.5px;
+    }
+    .sum-row-net {
+      background: #f3f4f6;
+      border-bottom: none;
+      font-weight: 800;
+      font-size: 11px;
+    }
+
+    /* Signatures Section */
+    .signatures-box {
+      border: 1px solid #9ca3af;
+      background: #ffffff;
+      display: flex;
+      margin-bottom: 8px;
+    }
+    .sig-col {
+      flex: 1;
+      padding: 8px 12px;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sig-col-left {
+      border-right: 1px solid #9ca3af;
+    }
+    .sig-title {
+      font-weight: 800;
+      font-size: 9.5px;
+      color: #000000;
+    }
+    .sig-meta {
+      font-size: 8.5px;
+      color: #4b5563;
+      margin-top: 2px;
+    }
+    .sig-line {
+      border-bottom: 1px solid #9ca3af;
+      margin-top: 26px;
+      width: 90%;
+    }
+
+    .doc-footer {
+      text-align: center;
+      font-size: 8.5px;
+      color: #6b7280;
+      margin-top: 8px;
     }
   </style>
   <script>
     window.addEventListener('load', function() {
-      // Auto-trigger native print dialog after rendering
+      // Automatically trigger native print dialog
       setTimeout(function() {
         try {
           window.print();
         } catch(e) {
           console.error(e);
         }
-      }, 450);
+      }, 400);
     });
   </script>
 </head>
 <body>
 
-  <!-- Top bar (only on screen, hidden when printing) -->
+  <!-- Top bar (screen only, hidden on print) -->
   <div class="top-actions">
     <button class="btn-print" onclick="window.print()">
       🖨️ Lancer l'impression
     </button>
+    <a href="${pdfDownloadUrl}" class="btn-pdf">
+      📄 Télécharger le PDF officiel
+    </a>
   </div>
 
-  <div class="page-container">
-    <!-- Header -->
-    <div class="header-bar">
+  <div class="ledger-page">
+    <div class="top-brand-stripe"></div>
+
+    <!-- Header Row -->
+    <div class="header-row">
       <div>
         <div class="school-name">${schoolName}</div>
-        <div class="doc-title">Bordereau Journalier de Clôture de Caisse</div>
+        <div class="school-sub">Établissement Scolaire Privé • Direction & Comptabilité</div>
       </div>
       <div class="header-meta">
-        <div><strong>Date de caisse :</strong> ${formattedDate}</div>
-        <div>Édité le ${editionTime} • SnapSchool Caisse</div>
+        <div><strong>DATE : ${formattedDate}</strong></div>
+        <div>Caisse Principale • Page 1/1</div>
+        <div>Responsable : Direction</div>
       </div>
     </div>
 
-    <!-- KPI Summary Grid -->
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="summary-label">Total Recettes (+)</div>
-        <div class="summary-value val-green">+ ${totalIncomes.toLocaleString("fr-FR")} DT</div>
-        <div class="summary-sub">${inflowItems.length} encaissement(s)</div>
+    <!-- Banner (Identical to Screen 2) -->
+    <div class="title-banner">
+      LIVRE DE CAISSE — JOURNAL DES ENTRÉES ET SORTIES
+    </div>
+
+    <!-- Sub-Banner -->
+    <div class="sub-banner">
+      <span>Entrer les montants dans l'ordre chronologique :</span>
+      <span class="sub-solde">SOLDE DE CAISSE : ${netSign}${netBalance.toFixed(2)} DT</span>
+    </div>
+
+    <!-- The Accounting Table -->
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th style="width: 9%;">Date</th>
+          <th style="width: 23%;">Client ou Fournisseur</th>
+          <th style="width: 27%;">Description</th>
+          <th style="width: 12%;">Sortie de<br>caisse (-)</th>
+          <th style="width: 12%;">Entrée de<br>caisse (+)</th>
+          <th style="width: 8%;">Type</th>
+          <th style="width: 9%;">Solde</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRowsHtml.join("")}
+      </tbody>
+    </table>
+
+    <!-- Bottom Section: Situation + Totals -->
+    <div class="bottom-section">
+      <div class="sit-box">
+        <div class="sit-title">SITUATION DES ESPÈCES & CHÈQUES :</div>
+        <div class="sit-item">• Espèces en caisse physique : ${totalCash.toFixed(2)} DT</div>
+        <div class="sit-item">• Chèques physiques au classeur : ${totalChecks.toFixed(2)} DT (${checkCount} chèque(s))</div>
+        <div class="sit-item">• Virements / Dépôts bancaires : ${totalTransfers.toFixed(2)} DT</div>
       </div>
-      <div class="summary-card">
-        <div class="summary-label">Total Dépenses (-)</div>
-        <div class="summary-value val-red">- ${totalExpenses.toLocaleString("fr-FR")} DT</div>
-        <div class="summary-sub">${outflowItems.length} sortie(s)</div>
-      </div>
-      <div class="summary-card" style="border-color: #0f172a; background: #f8fafc;">
-        <div class="summary-label">Solde Net Physique</div>
-        <div class="summary-value ${netBalance >= 0 ? "val-green" : "val-red"}">
-          ${netBalance >= 0 ? "+ " : ""}${netBalance.toLocaleString("fr-FR")} DT
+
+      <div class="sum-box">
+        <div class="sum-row">
+          <span>Total des entrées</span>
+          <span><strong>+${totalIncomes.toFixed(2)} DT</strong></span>
         </div>
-        <div class="summary-sub">Espèces en coffre : ${totalCash.toLocaleString("fr-FR")} DT</div>
+        <div class="sum-row">
+          <span>Total des sorties</span>
+          <span><strong>-${totalExpenses.toFixed(2)} DT</strong></span>
+        </div>
+        <div class="sum-row sum-row-net">
+          <span>Solde total</span>
+          <span>${netSign}${netBalance.toFixed(2)} DT</span>
+        </div>
       </div>
     </div>
-
-    <!-- Payment Methods Breakdown Strip -->
-    <div class="payment-methods-strip">
-      <div>💵 <strong>Espèces :</strong> ${totalCash.toLocaleString("fr-FR")} DT</div>
-      <div>📑 <strong>Chèques :</strong> ${totalChecks.toLocaleString("fr-FR")} DT (${checkCount})</div>
-      <div>🏦 <strong>Virements :</strong> ${totalTransfers.toLocaleString("fr-FR")} DT</div>
-    </div>
-
-    <!-- Inflow Table -->
-    <div class="section-title sec-green">
-      1. Détail des Recettes & Encaissements (${inflowItems.length})
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 55px;">Heure</th>
-          <th>Intitulé / Élève</th>
-          <th>Classe / Réf</th>
-          <th style="width: 90px;">Mode</th>
-          <th style="width: 110px; text-align: right;">Montant</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          inflowItems.length > 0
-            ? inflowItems
-                .map(
-                  (item) => `
-              <tr>
-                <td>${item.time}</td>
-                <td><strong>${item.label}</strong></td>
-                <td>${item.categoryOrClass || "—"}</td>
-                <td>${item.method}${item.checkDetails ? ` (${item.checkDetails})` : ""}</td>
-                <td class="td-amount val-green">+ ${item.amount.toLocaleString("fr-FR")} DT</td>
-              </tr>
-            `
-                )
-                .join("")
-            : `<tr><td colspan="5" class="empty-row">Aucun encaissement enregistré ce jour.</td></tr>`
-        }
-      </tbody>
-    </table>
-
-    <!-- Outflow Table -->
-    <div class="section-title sec-red">
-      2. Détail des Dépenses & Décaissements (${outflowItems.length})
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 55px;">Heure</th>
-          <th>Motif / Fournisseur</th>
-          <th>Catégorie</th>
-          <th style="width: 90px;">Mode</th>
-          <th style="width: 110px; text-align: right;">Montant</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          outflowItems.length > 0
-            ? outflowItems
-                .map(
-                  (item) => `
-              <tr>
-                <td>${item.time}</td>
-                <td><strong>${item.label}</strong></td>
-                <td>${item.categoryOrClass || "Général"}</td>
-                <td>${item.method}</td>
-                <td class="td-amount val-red">- ${item.amount.toLocaleString("fr-FR")} DT</td>
-              </tr>
-            `
-                )
-                .join("")
-            : `<tr><td colspan="5" class="empty-row">Aucune dépense enregistrée ce jour.</td></tr>`
-        }
-      </tbody>
-    </table>
 
     <!-- Signatures -->
-    <div class="signatures-row">
-      <div class="sign-box">
-        <div class="sign-title">Visa Caissier / Secrétariat</div>
+    <div class="signatures-box">
+      <div class="sig-col sig-col-left">
+        <div class="sig-title">Arrêté de Caisse par le Caissier / Secrétaire :</div>
+        <div class="sig-meta">Établi par : Responsable Caisse</div>
+        <div class="sig-meta">Certifie la régularité et l'exactitude des opérations.</div>
+        <div class="sig-line"></div>
       </div>
-      <div class="sign-box">
-        <div class="sign-title">Visa & Cachet Direction Générale</div>
+      <div class="sig-col">
+        <div class="sig-title">Validation & Visa Direction Générale :</div>
+        <div class="sig-meta">Contrôle journalier arrêté le ${formattedDate}</div>
+        <div class="sig-meta">Signature et cachet officiel de l'établissement</div>
+        <div class="sig-line"></div>
       </div>
     </div>
 
-    <div class="footer-note">
-      Document comptable officiel généré par SnapSchool • Tous droits réservés
+    <div class="doc-footer">
+      Livre de caisse officiel • Document comptable de référence • Établissement : ${schoolName} • SnapSchool Finance
     </div>
   </div>
 
