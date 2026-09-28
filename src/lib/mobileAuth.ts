@@ -93,7 +93,15 @@ export function verifyOTP(phone: string, inputCode: string): boolean {
 export function authenticateMobileRequest(
   request: NextRequest | Request
 ): { payload: MobileJWTPayload; error: null } | { payload: null; error: NextResponse } {
-  const authHeader = request.headers.get("Authorization");
+  let authHeader = request.headers.get("Authorization");
+  if (!authHeader && "url" in request) {
+    try {
+      const url = new URL(request.url);
+      const queryToken = url.searchParams.get("token");
+      if (queryToken) authHeader = queryToken;
+    } catch {}
+  }
+
   if (!authHeader) {
     return {
       payload: null,
