@@ -40,9 +40,12 @@ export interface MobileAgentResponse {
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-flash-latest",
 ];
 
 /**
@@ -383,8 +386,8 @@ Instructions :
   }
 
   // ── FAST-PATHS for instant response (< 100ms) on common school operations ──
-  const IMPAYES_REGEX = /(impayés?|non payé|reliquat|qui n'a pas payé|شكون ما خلصش|dettes?)/i;
-  const CAISSE_REGEX = /(caisse du jour|clôture de caisse|bilan de caisse|كاسة اليوم|point de caisse)/i;
+  const IMPAYES_REGEX = /(impayés?|non payé|reliquat|qui n'a pas payé|qui doit|شكون ما خلصش|dettes?)/i;
+  const CAISSE_REGEX = /(caiss[ez]?|caisse du jour|clôture de caisse|bilan de caisse|كاسة|point de caisse)/i;
   const RECEIPT_REGEX = /(reçu|quittance|bulletin de paie|facture de scolarité|reçu de paiement)/i;
   const ABSENCES_REGEX = /(absences? du jour|qui est absent|absents? aujourd'hui|شكون غايب|appel du jour)/i;
   const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
@@ -393,8 +396,10 @@ Instructions :
     try {
       const { getPaymentsTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getPaymentsTool({ status: "UNPAID" }, context)) as any;
-      if (out?.formattedText) {
-        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
+      if (out?.formattedText || out?.records) {
+        const cleanMsg = out?.formattedText
+          ? cleanTelegramFormattingForMobile(out.formattedText)
+          : `💳 **Suivi des impayés :** ${out?.unpaidCount || (out.records ? out.records.length : 0)} élève(s) avec des frais en attente.`;
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
@@ -438,15 +443,18 @@ Instructions :
     try {
       const { getDailyCaisseTool } = await import("@/lib/telegram/tools/financeTools");
       const out = (await getDailyCaisseTool({ date: "today" }, context)) as any;
-      if (out?.formattedText) {
-        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
-        await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: cleanMsg },
-        });
-
+      if (out?.summary || out?.formattedText) {
         const numIncomes = typeof out.summary?.totalIncomes === "number" ? out.summary.totalIncomes : parseFloat(String(out.summary?.totalIncomes || 0).replace(/[^0-9.-]/g, "")) || 0;
         const numExpenses = typeof out.summary?.totalExpenses === "number" ? out.summary.totalExpenses : parseFloat(String(out.summary?.totalExpenses || 0).replace(/[^0-9.-]/g, "")) || 0;
         const numNet = typeof out.summary?.netCashBalance === "number" ? out.summary.netCashBalance : parseFloat(String(out.summary?.netCashBalance || 0).replace(/[^0-9.-]/g, "")) || 0;
+
+        const cleanMsg = out?.formattedText
+          ? cleanTelegramFormattingForMobile(out.formattedText)
+          : `📊 **Point de caisse du jour :**\n🟢 **Recettes :** + ${numIncomes.toLocaleString()} DT (${out.summary?.paymentsCount || 0} encaissements)\n🔴 **Dépenses :** - ${numExpenses.toLocaleString()} DT (${out.summary?.expensesCount || 0} sorties)\n💼 **Solde net physique :** ${numNet >= 0 ? '+' : ''}${numNet.toLocaleString()} DT`;
+
+        await prisma.aIMessage.create({
+          data: { conversationId, role: "assistant", content: cleanMsg },
+        });
 
         return {
           success: true,
