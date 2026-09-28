@@ -31,17 +31,18 @@ export interface MobileAgentResponse {
     arguments: Record<string, any>;
   } | null;
   executedTool?: string;
+  widget?: {
+    type: "caisse" | "unpaid_tuition" | "pdf_receipt";
+    data: any;
+  } | null;
   followUpSuggestions?: string[];
   error?: string;
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-3.6-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-flash-latest",
-  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
 ];
 
 /**
@@ -384,6 +385,7 @@ Instructions :
   // ── FAST-PATHS for instant response (< 100ms) on common school operations ──
   const IMPAYES_REGEX = /(impayés?|non payé|reliquat|qui n'a pas payé|شكون ما خلصش|dettes?)/i;
   const CAISSE_REGEX = /(caisse du jour|clôture de caisse|bilan de caisse|كاسة اليوم|point de caisse)/i;
+  const RECEIPT_REGEX = /(reçu|quittance|bulletin de paie|facture de scolarité|reçu de paiement)/i;
   const ABSENCES_REGEX = /(absences? du jour|qui est absent|absents? aujourd'hui|شكون غايب|appel du jour)/i;
   const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
 
@@ -396,6 +398,18 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        const students = (out.records || []).slice(0, 15).map((r: any) => ({
+          studentId: r.studentId,
+          studentName: r.studentName,
+          className: r.class,
+          dueAmount: r.dueAmount,
+          parentName: r.parentName,
+          parentPhone: r.parentPhone,
+          feePeriod: r.feePeriod,
+          status: r.status,
+        }));
+
         return {
           success: true,
           conversationId,
@@ -404,6 +418,14 @@ Instructions :
           analyzedDocument: analyzedDoc,
           imageUrl: uploadedImageUrl,
           executedTool: "get_payments",
+          widget: {
+            type: "unpaid_tuition",
+            data: {
+              totalOutstanding: out.totalOutstanding || 0,
+              unpaidCount: out.unpaidCount || (out.records ? out.records.length : 0),
+              students,
+            },
+          },
           followUpSuggestions: ["Caisse du jour 💰", "Absences 📋", "Planning ⏰"],
         };
       }
@@ -421,6 +443,11 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        const numIncomes = typeof out.summary?.totalIncomes === "number" ? out.summary.totalIncomes : parseFloat(String(out.summary?.totalIncomes || 0).replace(/[^0-9.-]/g, "")) || 0;
+        const numExpenses = typeof out.summary?.totalExpenses === "number" ? out.summary.totalExpenses : parseFloat(String(out.summary?.totalExpenses || 0).replace(/[^0-9.-]/g, "")) || 0;
+        const numNet = typeof out.summary?.netCashBalance === "number" ? out.summary.netCashBalance : parseFloat(String(out.summary?.netCashBalance || 0).replace(/[^0-9.-]/g, "")) || 0;
+
         return {
           success: true,
           conversationId,
@@ -429,11 +456,54 @@ Instructions :
           analyzedDocument: analyzedDoc,
           imageUrl: uploadedImageUrl,
           executedTool: "get_daily_caisse",
+          widget: {
+            type: "caisse",
+            data: {
+              date: out.date || new Date().toLocaleDateString("fr-FR"),
+              totalIncomes: numIncomes,
+              totalExpenses: numExpenses,
+              netCashBalance: numNet,
+              paymentsCount: out.summary?.paymentsCount || 0,
+              expensesCount: out.summary?.expensesCount || 0,
+            },
+          },
           followUpSuggestions: ["Impayés du mois 💳", "Absences 📋", "Dépenses 💸"],
         };
       }
     } catch (e) {
       console.warn("[MobileAgent] Fast-path caisse error:", e);
+    }
+  }
+
+  if (RECEIPT_REGEX.test(msgLower) && !msgLower.includes("dépense") && !msgLower.includes("depense")) {
+    try {
+      const { getPaymentReceiptTool } = await import("@/lib/telegram/tools/documentTools");
+      const cleanTarget = effectiveUserMessage
+        .replace(/(génère|donne|crée|imprime|télécharge|telecharge|le|reçu|quittance|facture|de|paiement|pour|svp|merci|\bDT\b|\d+)/gi, " ")
+        .trim();
+      const out = (await getPaymentReceiptTool({ studentNameOrId: cleanTarget || effectiveUserMessage }, context)) as any;
+      if (out?.success && out?.data) {
+        const cleanMsg = cleanTelegramFormattingForMobile(out.message);
+        await prisma.aIMessage.create({
+          data: { conversationId, role: "assistant", content: cleanMsg },
+        });
+        return {
+          success: true,
+          conversationId,
+          message: cleanMsg,
+          transcription,
+          analyzedDocument: analyzedDoc,
+          imageUrl: uploadedImageUrl,
+          executedTool: "get_payment_receipt",
+          widget: {
+            type: "pdf_receipt",
+            data: out.data,
+          },
+          followUpSuggestions: ["Caisse du jour 💰", "Impayés du mois 💳", "Absences 📋"],
+        };
+      }
+    } catch (e) {
+      console.warn("[MobileAgent] Fast-path receipt error:", e);
     }
   }
 
@@ -568,6 +638,7 @@ Instructions :
       let lastExecutedTool: string | undefined;
       let finalReply: string | undefined;
       let pendingConfirmation: MobileAgentResponse["pendingConfirmation"] = null;
+      let detectedWidget: MobileAgentResponse["widget"] = null;
 
       const MAX_TOOL_ITERATIONS = 5;
       let iterations = 0;
@@ -641,6 +712,51 @@ Instructions :
           toolOutput = { error: true, message: err.message || "Erreur d'exécution" };
         }
 
+        // Extract widget data if applicable
+        if (toolName === "get_daily_caisse" && toolOutput?.summary) {
+          const numIncomes = typeof toolOutput.summary?.totalIncomes === "number" ? toolOutput.summary.totalIncomes : parseFloat(String(toolOutput.summary?.totalIncomes || 0).replace(/[^0-9.-]/g, "")) || 0;
+          const numExpenses = typeof toolOutput.summary?.totalExpenses === "number" ? toolOutput.summary.totalExpenses : parseFloat(String(toolOutput.summary?.totalExpenses || 0).replace(/[^0-9.-]/g, "")) || 0;
+          const numNet = typeof toolOutput.summary?.netCashBalance === "number" ? toolOutput.summary.netCashBalance : parseFloat(String(toolOutput.summary?.netCashBalance || 0).replace(/[^0-9.-]/g, "")) || 0;
+
+          detectedWidget = {
+            type: "caisse",
+            data: {
+              date: toolOutput.date || new Date().toLocaleDateString("fr-FR"),
+              totalIncomes: numIncomes,
+              totalExpenses: numExpenses,
+              netCashBalance: numNet,
+              paymentsCount: toolOutput.summary?.paymentsCount || 0,
+              expensesCount: toolOutput.summary?.expensesCount || 0,
+            },
+          };
+        } else if ((toolName === "get_payments" || toolName === "get_financial_anomalies") && (toolOutput?.records || toolOutput?.unpaidStudents)) {
+          const records = toolOutput.records || toolOutput.unpaidStudents || [];
+          if (records.length > 0) {
+            detectedWidget = {
+              type: "unpaid_tuition",
+              data: {
+                totalOutstanding: toolOutput.totalOutstanding || 0,
+                unpaidCount: toolOutput.unpaidCount || records.length,
+                students: records.slice(0, 15).map((r: any) => ({
+                  studentId: r.studentId || r.id,
+                  studentName: r.studentName || `${r.name || ""} ${r.surname || ""}`.trim(),
+                  className: r.class || r.className,
+                  dueAmount: r.dueAmount || r.tuitionFee || 0,
+                  parentName: r.parentName,
+                  parentPhone: r.parentPhone,
+                  feePeriod: r.feePeriod,
+                  status: r.status || "UNPAID",
+                })),
+              },
+            };
+          }
+        } else if (toolName === "get_payment_receipt" && toolOutput?.data) {
+          detectedWidget = {
+            type: "pdf_receipt",
+            data: toolOutput.data,
+          };
+        }
+
         prisma.aIToolCall.create({
           data: {
             conversationId,
@@ -711,6 +827,7 @@ Instructions :
         imageUrl: uploadedImageUrl,
         pendingConfirmation: null,
         executedTool: lastExecutedTool,
+        widget: detectedWidget,
         followUpSuggestions: suggestions,
       };
     } catch (modelErr: any) {

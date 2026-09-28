@@ -271,11 +271,80 @@ export async function getPaymentReceiptTool(
   const schoolName = school?.name || "SnapSchool";
 
   if (!context.chatId) {
-    return {
-      success: false,
-      message: "Chat ID non disponible pour l'envoi du document.",
-      summary: "Chat ID manquant",
-    };
+    try {
+      const payment = await prisma.payment.findFirst({
+        where: {
+          studentId: student.id,
+          schoolId: context.schoolId,
+          userType: "STUDENT",
+          month: targetMonth,
+          year: targetYear,
+        },
+      });
+
+      const tuitionFee = student.customTuition || (student as any).level?.tuitionFee || 450;
+      const amountPaid = payment?.amount || tuitionFee;
+      const remainingDue = payment?.status === "PAID"
+        ? 0
+        : payment?.deferredAmount ?? Math.max(0, tuitionFee - amountPaid);
+      const receiptNumber = `REC-${targetYear}${String(targetMonth).padStart(2, "0")}-${String(
+        payment?.id || Math.floor(Math.random() * 89999 + 10000)
+      ).padStart(5, "0")}`;
+
+      const { buffer, filename } = await generateTuitionReceiptPdf({
+        schoolName,
+        receiptNumber,
+        paymentDate: payment?.paidAt || new Date(),
+        studentName: `${student.name} ${student.surname}`,
+        studentClass: (student as any).class?.name || "Non assignée",
+        parentName: (student as any).parent ? `${(student as any).parent.name} ${(student as any).parent.surname}` : "Parent / Tuteur",
+        parentPhone: (student as any).parent?.phone || undefined,
+        periodFrench: targetMonthLabel,
+        amountPaid,
+        tuitionFee,
+        remainingDue,
+        paymentMethod: (payment as any)?.method || (payment?.img ? "Virement / Chèque" : "Espèces"),
+        adminName: context.adminName,
+      });
+
+      let publicUrl: string | null = null;
+      try {
+        const { uploadTelegramPhotoToStorage } = await import("@/lib/telegram/vision");
+        publicUrl = await uploadTelegramPhotoToStorage(buffer, context.schoolId, "recu", "application/pdf");
+      } catch {}
+
+      return {
+        success: true,
+        message: `📄 <b>Reçu officiel généré avec succès</b>
+━━━━━━━━━━━━━━━━━━━━━━
+👤 Élève : <b>${student.name} ${student.surname}</b> (<code>${(student as any).class?.name || "Sans classe"}</code>)
+📅 Période : <code>${targetMonthLabel}</code>
+💰 Montant : <code>${amountPaid} DT</code> ${remainingDue === 0 ? "🟢 (Soldé)" : `⏳ (Reste: ${remainingDue} DT)`}
+🏢 Établissement : <b>${schoolName}</b>
+
+<blockquote>💡 <b>Hnia :</b> Le reçu PDF officiel est prêt au téléchargement.</blockquote>`,
+        summary: `Reçu PDF ${student.name} (${targetMonthLabel})`,
+        data: {
+          receiptNumber,
+          studentName: `${student.name} ${student.surname}`,
+          studentClass: (student as any).class?.name || "Sans classe",
+          periodFrench: targetMonthLabel,
+          amountPaid,
+          remainingDue,
+          pdfUrl: publicUrl || undefined,
+          pdfBase64: buffer.toString("base64"),
+          schoolName,
+          filename,
+          paymentDate: (payment?.paidAt || new Date()).toLocaleDateString("fr-FR"),
+        },
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `⚠️ Erreur lors de la génération du reçu : ${err.message}`,
+        summary: "Erreur génération reçu",
+      };
+    }
   }
 
   const delivered = await deliverTuitionReceipt({
