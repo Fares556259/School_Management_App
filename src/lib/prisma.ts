@@ -13,14 +13,29 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function getOptimizedDatabaseUrl(): string | undefined {
-  const url = process.env.DATABASE_URL;
+  let url = process.env.DATABASE_URL;
   if (!url) return undefined;
 
-  // Ensure PgBouncer pool has a healthy connection limit (10) for true concurrent Promise.all execution
-  if (url.includes("connection_limit=1&") || url.endsWith("connection_limit=1")) {
-    return url.replace("connection_limit=1", "connection_limit=10");
-  } else if (!url.includes("connection_limit=") && url.includes("pgbouncer=true")) {
-    return url + (url.includes("?") ? "&" : "?") + "connection_limit=10";
+  // Crucial for Serverless (Vercel) + Supabase Supavisor/PgBouncer:
+  // Forcing connection_limit=10 on serverless causes fast pool exhaustion on Supabase,
+  // triggering fatal ECHECKOUTTIMEOUT errors!
+  // A lean connection_limit (2-3) allows dozens of serverless instances to operate concurrently.
+  if (url.includes("connection_limit=10")) {
+    url = url.replace("connection_limit=10", "connection_limit=3");
+  } else if (url.includes("connection_limit=1&") || url.endsWith("connection_limit=1")) {
+    url = url.replace("connection_limit=1", "connection_limit=3");
+  } else if (!url.includes("connection_limit=")) {
+    url = url + (url.includes("?") ? "&" : "?") + "connection_limit=3";
+  }
+
+  // Ensure pool_timeout is bounded (20 seconds max wait instead of freezing for 60s)
+  if (!url.includes("pool_timeout=")) {
+    url = url + "&pool_timeout=20";
+  }
+
+  // Ensure pgbouncer flag is active for pooled transactions
+  if (url.includes(":6543") && !url.includes("pgbouncer=true")) {
+    url = url + "&pgbouncer=true";
   }
 
   return url;
@@ -51,12 +66,15 @@ const extendedPrisma = basePrisma.$extends({
             error?.message?.includes("Connection reset") ||
             error?.message?.includes("Kind: Closed") ||
             error?.message?.includes("Engine is not yet connected") ||
+            error?.message?.includes("ECHECKOUTTIMEOUT") ||
+            error?.message?.includes("unable to check out connection") ||
             error?.code === "P1001" ||
             error?.code === "P1017";
 
           if (isConnError) {
-            console.warn(`[Prisma] Connection drop detected on ${model}.${operation}. Reconnecting...`);
+            console.warn(`[Prisma] Connection drop or pool queue timeout detected on ${model}.${operation}. Reconnecting...`);
             await basePrisma.$disconnect().catch(() => {});
+            await new Promise((r) => setTimeout(r, 600));
             await basePrisma.$connect().catch(() => {});
             return await query(args);
           }
@@ -83,12 +101,15 @@ export async function safeDbQuery<T>(fn: () => Promise<T>, retries = 2): Promise
       error?.message?.includes("Connection reset") ||
       error?.message?.includes("Kind: Closed") ||
       error?.message?.includes("Engine is not yet connected") ||
+      error?.message?.includes("ECHECKOUTTIMEOUT") ||
+      error?.message?.includes("unable to check out connection") ||
       error?.code === "P1001" ||
       error?.code === "P1017";
 
     if (retries > 0 && isConnError) {
       console.warn("[Prisma] safeDbQuery retrying query after connection error...");
       await basePrisma.$disconnect().catch(() => {});
+      await new Promise((r) => setTimeout(r, 600));
       await basePrisma.$connect().catch(() => {});
       return safeDbQuery(fn, retries - 1);
     }

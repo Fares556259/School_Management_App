@@ -355,8 +355,10 @@ export const bulkCreateStudents = async (students: any[]) => {
     schoolLevels.forEach((l) => gradeToDbLevelId.set(l.level, l.id));
 
     // Ensure any requested grade exists in this school
-    for (const s of students) {
-      const g = s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1;
+    const uniqueGrades = Array.from(
+      new Set(students.map((s) => (s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1)))
+    );
+    for (const g of uniqueGrades) {
       if (!gradeToDbLevelId.has(g)) {
         const createdLvl = await prisma.level.create({
           data: {
@@ -476,27 +478,22 @@ export const bulkCreateStudents = async (students: any[]) => {
       };
     });
 
-    // 5. Execute creation atomically in transaction with chunking for large rosters
-    await prisma.$transaction(
-      async (tx) => {
-        if (parentsToCreate.length > 0) {
-          await tx.parent.createMany({
-            data: parentsToCreate,
-            skipDuplicates: true,
-          });
-        }
+    // 5. Execute creation directly without interactive transaction (avoids pool connection pinning)
+    if (parentsToCreate.length > 0) {
+      await prisma.parent.createMany({
+        data: parentsToCreate,
+        skipDuplicates: true,
+      });
+    }
 
-        const CHUNK_SIZE = 100;
-        for (let i = 0; i < studentsToCreate.length; i += CHUNK_SIZE) {
-          const chunk = studentsToCreate.slice(i, i + CHUNK_SIZE);
-          await tx.student.createMany({
-            data: chunk,
-            skipDuplicates: true,
-          });
-        }
-      },
-      { timeout: 45000 }
-    );
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < studentsToCreate.length; i += CHUNK_SIZE) {
+      const chunk = studentsToCreate.slice(i, i + CHUNK_SIZE);
+      await prisma.student.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+    }
 
     // 6. Single consolidated audit log
     await createAuditLog({
