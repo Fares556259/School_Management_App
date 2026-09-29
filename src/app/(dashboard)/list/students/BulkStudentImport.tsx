@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { parseStudentsFromText, parseStudentsFromImage } from "../../admin/actions/studentAiActions";
+import { parseStudentsFromText, parseStudentsFromImage, parseStudentsFromExcel } from "../../admin/actions/studentAiActions";
 import { bulkCreateStudents } from "@/lib/crudActions";
-import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud } from "lucide-react";
+import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud, FileSpreadsheet } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { compressImage } from "@/lib/imageCompression";
 
 export default function BulkStudentImport({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
-  const [importMode, setImportMode] = useState<"text" | "image">("text");
+  const [importMode, setImportMode] = useState<"excel" | "text" | "image">("excel");
   const [selectedLevel, setSelectedLevel] = useState<number>(1);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
   const [rawText, setRawText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
@@ -20,8 +21,25 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
   const { t } = useLanguage();
 
   const handleParse = async () => {
+    if (importMode === "excel" && !excelFile) return;
     if (importMode === "text" && !rawText.trim()) return;
     if (importMode === "image" && !imageUrl) return;
+
+    if (importMode === "excel" && excelFile) {
+      setStep("parsing");
+      setError(null);
+      const fd = new FormData();
+      fd.append("file", excelFile);
+      const res = await parseStudentsFromExcel(fd);
+      if (res.error) {
+        setError(res.error);
+        setStep("input");
+      } else if (res.data) {
+        setParsedData(res.data);
+        setStep("review");
+      }
+      return;
+    }
 
     // Fast path: if user pasted direct JSON (e.g. from the portal extraction script)
     const trimmed = rawText.trim();
@@ -105,74 +123,136 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
           {step === "input" && (
             <div className="flex flex-col gap-6">
               {/* MODE TOGGLE */}
-              <div className="flex p-1.5 bg-slate-100/80 rounded-[10px] w-fit border border-slate-200/60 shadow-inner">
+              <div className="flex p-1.5 bg-slate-100/80 rounded-[10px] w-fit border border-slate-200/60 shadow-inner flex-wrap gap-1">
+                <button
+                  onClick={() => setImportMode("excel")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${
+                    importMode === "excel" ? "bg-white text-emerald-700 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-emerald-600 border border-transparent"
+                  }`}
+                >
+                  <FileSpreadsheet size={16} className={importMode === "excel" ? "text-emerald-600" : ""} />
+                  <span>Fichier Excel (.xlsx)</span>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Recommandé</span>
+                </button>
                 <button
                   onClick={() => setImportMode("text")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-[8px] text-[13.5px] font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${
                     importMode === "text" ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-indigo-500 border border-transparent"
                   }`}
                 >
                   <Type size={16} />
-                  {t.students.modal.pasteText}
+                  <span>Coller Texte / JSON</span>
                 </button>
                 <button
                   onClick={() => setImportMode("image")}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-[8px] text-[13.5px] font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${
                     importMode === "image" ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50" : "text-slate-500 hover:text-indigo-500 border border-transparent"
                   }`}
                 >
                   <UploadCloud size={16} />
-                  {t.students.modal.uploadDocument}
+                  <span>Document / Image</span>
                 </button>
               </div>
 
-               <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
-                 <AlertCircle size={18} className="text-indigo-500 mt-0.5 shrink-0" />
-                 <p className="text-[13px] text-indigo-900/80 leading-relaxed font-medium">
-                   {importMode === "text" 
-                      ? t.students.modal.textInfo
-                      : t.students.modal.imageInfo}
-                 </p>
-              </div>
-              
-              {/* LEVEL SELECTOR */}
-              <div className="flex flex-col gap-2.5 bg-white p-4 rounded-[12px] border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <label className="text-[13px] font-bold text-slate-800">
-                    Niveau des élèves à importer (السنة الدراسية)
-                  </label>
-                  <span className="text-[11.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                    Non classés (affectation ultérieure)
-                  </span>
+              {importMode === "excel" ? (
+                <div className="flex flex-col gap-3">
+                  <div className="bg-emerald-50/80 border border-emerald-200 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
+                    <Check size={18} className="text-emerald-600 mt-0.5 shrink-0" />
+                    <p className="text-[13px] text-emerald-900 leading-relaxed font-medium">
+                      Déposez votre fichier <b>.xlsx</b> officiel. SnapSchool détecte automatiquement le <b>المعرف التربوي</b>, le <b>Nom</b>, le <b>Prénom</b>, le <b>Genre</b> et le <b>Niveau (1ère à 6ème)</b> de chaque élève sans risque d'erreur !
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => document.getElementById("excel-student-upload")?.click()}
+                    className={`w-full p-8 rounded-[12px] border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
+                      excelFile
+                        ? "border-emerald-500 bg-emerald-50/40"
+                        : "border-slate-300 hover:border-emerald-400 bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      id="excel-student-upload"
+                      className="hidden"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setExcelFile(file);
+                      }}
+                    />
+                    <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                      <FileSpreadsheet size={28} />
+                    </div>
+                    {excelFile ? (
+                      <div className="text-center">
+                        <p className="text-[15px] font-bold text-emerald-900">{excelFile.name}</p>
+                        <p className="text-[12px] text-emerald-700 font-medium mt-0.5">
+                          {(excelFile.size / 1024).toFixed(1)} Ko • Prêt pour l'importation
+                        </p>
+                        <span className="inline-block mt-2 text-xs font-semibold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
+                          ✓ Fichier sélectionné (Cliquez pour changer)
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-[14.5px] font-bold text-slate-800">Cliquez ou glissez votre fichier Excel (.xlsx)</p>
+                        <p className="text-[12.5px] text-slate-500 mt-1">Feuille officielle des inscriptions avec les niveaux</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                  {[
-                    { id: 0, label: "Préscolaire" },
-                    { id: 1, label: "1ère (Niv 1)" },
-                    { id: 2, label: "2ème (Niv 2)" },
-                    { id: 3, label: "3ème (Niv 3)" },
-                    { id: 4, label: "4ème (Niv 4)" },
-                    { id: 5, label: "5ème (Niv 5)" },
-                    { id: 6, label: "6ème (Niv 6)" },
-                  ].map((lvl) => {
-                    const isSel = selectedLevel === lvl.id;
-                    return (
-                      <button
-                        key={lvl.id}
-                        type="button"
-                        onClick={() => setSelectedLevel(lvl.id)}
-                        className={`py-2 px-1.5 rounded-lg text-xs font-bold border transition-all text-center ${
-                          isSel
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
-                      >
-                        {lvl.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
+                    <AlertCircle size={18} className="text-indigo-500 mt-0.5 shrink-0" />
+                    <p className="text-[13px] text-indigo-900/80 leading-relaxed font-medium">
+                      {importMode === "text" 
+                         ? t.students.modal.textInfo
+                         : t.students.modal.imageInfo}
+                    </p>
+                  </div>
+                  
+                  {/* LEVEL SELECTOR */}
+                  <div className="flex flex-col gap-2.5 bg-white p-4 rounded-[12px] border border-slate-200 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[13px] font-bold text-slate-800">
+                        Niveau des élèves à importer (السنة الدراسية)
+                      </label>
+                      <span className="text-[11.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                        Non classés (affectation ultérieure)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {[
+                        { id: 0, label: "Préscolaire" },
+                        { id: 1, label: "1ère (Niv 1)" },
+                        { id: 2, label: "2ème (Niv 2)" },
+                        { id: 3, label: "3ème (Niv 3)" },
+                        { id: 4, label: "4ème (Niv 4)" },
+                        { id: 5, label: "5ème (Niv 5)" },
+                        { id: 6, label: "6ème (Niv 6)" },
+                      ].map((lvl) => {
+                        const isSel = selectedLevel === lvl.id;
+                        return (
+                          <button
+                            key={lvl.id}
+                            type="button"
+                            onClick={() => setSelectedLevel(lvl.id)}
+                            className={`py-2 px-1.5 rounded-lg text-xs font-bold border transition-all text-center ${
+                              isSel
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                            }`}
+                          >
+                            {lvl.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {importMode === "text" ? (
                 <div className="flex flex-col gap-2.5">
@@ -274,11 +354,30 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
               <div className="flex justify-end pt-5 border-t border-slate-200 mt-2">
                 <button
                   onClick={handleParse}
-                  disabled={importMode === "text" ? !rawText.trim() : !imageUrl}
-                  className="px-7 py-3 bg-indigo-600 text-white text-[14.5px] font-semibold rounded-[10px] hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-50 transition-all flex items-center gap-2"
+                  disabled={
+                    importMode === "excel"
+                      ? !excelFile
+                      : importMode === "text"
+                      ? !rawText.trim()
+                      : !imageUrl
+                  }
+                  className={`px-7 py-3 text-white text-[14.5px] font-semibold rounded-[10px] hover:shadow-lg disabled:opacity-50 transition-all flex items-center gap-2 ${
+                    importMode === "excel"
+                      ? "bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-200"
+                      : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200"
+                  }`}
                 >
-                  <Sparkles size={18} />
-                  {t.students.modal.startExtraction}
+                  {importMode === "excel" ? (
+                    <>
+                      <FileSpreadsheet size={18} />
+                      <span>Analyser le fichier Excel (.xlsx)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      <span>{t.students.modal.startExtraction}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
