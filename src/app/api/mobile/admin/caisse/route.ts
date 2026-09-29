@@ -93,6 +93,8 @@ export async function GET(request: NextRequest) {
       unpaidStudentRows,
       unpaidTeacherRows,
       unpaidStaffRows,
+      existingExpenseCats,
+      existingIncomeCats,
     ] = await Promise.all([
       prisma.income.findMany({
         where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
@@ -179,6 +181,17 @@ export async function GET(request: NextRequest) {
           s.surname ASC
         LIMIT 100
       ` as Promise<any[]>,
+      // Fetch distinct categories for dynamic creatable category lists
+      prisma.expense.findMany({
+        where: { schoolId },
+        select: { category: true },
+        distinct: ["category"],
+      }),
+      prisma.income.findMany({
+        where: { schoolId },
+        select: { category: true },
+        distinct: ["category"],
+      }),
     ]);
 
     const todayIncome = todayIncomes.reduce((acc, curr) => acc + curr.amount, 0);
@@ -188,7 +201,16 @@ export async function GET(request: NextRequest) {
     const monthIncome = monthIncomeAgg._sum.amount || 0;
     const monthExpense = monthExpenseAgg._sum.amount || 0;
 
-    // 3. Merged chronological timeline for today
+    // Distinct Categories
+    const defaultExpenseCats = ["Fournitures", "Carburant", "Maintenance", "Énergie & Factures", "Transport", "Loyer", "Salaires", "Divers"];
+    const dbExpenseCats = (existingExpenseCats || []).map((c: any) => c.category).filter(Boolean);
+    const expenseCategories = Array.from(new Set([...defaultExpenseCats, ...dbExpenseCats]));
+
+    const defaultIncomeCats = ["Scolarité", "Inscription", "Cantine", "Transport", "Donation", "Événement", "Autre"];
+    const dbIncomeCats = (existingIncomeCats || []).map((c: any) => c.category).filter(Boolean);
+    const incomeCategories = Array.from(new Set([...defaultIncomeCats, ...dbIncomeCats]));
+
+    // 3. Merged chronological timeline for today (with image attachment support)
     const todayTransactions = [
       ...todayIncomes.map((inc) => ({
         id: `inc_${inc.id}`,
@@ -196,6 +218,7 @@ export async function GET(request: NextRequest) {
         title: inc.title,
         category: inc.category,
         amount: inc.amount,
+        img: inc.img || null,
         createdAt: inc.date.toISOString(),
       })),
       ...todayExpenses.map((exp) => ({
@@ -204,6 +227,7 @@ export async function GET(request: NextRequest) {
         title: exp.title,
         category: exp.category,
         amount: exp.amount,
+        img: exp.img || null,
         createdAt: exp.date.toISOString(),
       })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -343,6 +367,8 @@ export async function GET(request: NextRequest) {
       unpaidStaff,
       unpaidEmployees,
       allUnpaid,
+      expenseCategories,
+      incomeCategories,
     });
   } catch (error: any) {
     console.error("[Caisse API GET] Error:", error);
@@ -378,7 +404,7 @@ export async function POST(request: NextRequest) {
 
     // ── ACTION 1: Quick collect student payment ────────────────────────────────
     if (action === "collect_student") {
-      const { studentId, amount, paymentMethod = "Espèces" } = body;
+      const { studentId, amount, paymentMethod = "Espèces", category = "Scolarité", img } = body;
 
       if (!studentId || !amount || Number(amount) <= 0) {
         return NextResponse.json({ success: false, error: "Élève et montant valides requis." }, { status: 400 });
@@ -449,7 +475,8 @@ export async function POST(request: NextRequest) {
             title: `Scolarité : ${student.name} ${student.surname} (${monthStr} ${activeYear}) - ${paymentMethod}`,
             amount: numAmount,
             date: now,
-            category: "Tuition",
+            category: category || "Scolarité",
+            img: img || null,
             referenceType: "StudentPayment",
             referenceId: payment.id.toString(),
             schoolId,
@@ -468,7 +495,7 @@ export async function POST(request: NextRequest) {
 
     // ── ACTION 2: Quick cash expense out ──────────────────────────────────────
     if (action === "record_expense") {
-      const { title, amount, category = "Divers" } = body;
+      const { title, amount, category = "Divers", img } = body;
 
       if (!title || !amount || Number(amount) <= 0) {
         return NextResponse.json({ success: false, error: "Libellé et montant valides requis." }, { status: 400 });
@@ -481,6 +508,7 @@ export async function POST(request: NextRequest) {
           title: title.trim(),
           amount: numAmount,
           category: category.trim(),
+          img: img || null,
           date: now,
           schoolId,
         },
@@ -490,6 +518,34 @@ export async function POST(request: NextRequest) {
         success: true,
         message: `✓ Dépense de ${numAmount} DT enregistrée : "${title}".`,
         expenseId: expense.id,
+      });
+    }
+
+    // ── ACTION 2B: Quick general cash income (Autre recette) ──────────────────
+    if (action === "record_income") {
+      const { title, amount, category = "Autre", paymentMethod = "Espèces", img } = body;
+
+      if (!title || !amount || Number(amount) <= 0) {
+        return NextResponse.json({ success: false, error: "Libellé et montant valides requis." }, { status: 400 });
+      }
+
+      const numAmount = Number(amount);
+
+      const income = await prisma.income.create({
+        data: {
+          title: `${title.trim()} - ${paymentMethod}`,
+          amount: numAmount,
+          category: category.trim(),
+          img: img || null,
+          date: now,
+          schoolId,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `✓ Recette de ${numAmount} DT enregistrée : "${title}".`,
+        incomeId: income.id,
       });
     }
 
