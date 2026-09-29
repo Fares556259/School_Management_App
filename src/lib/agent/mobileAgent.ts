@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { TOOLS, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
 import { getCachedKnowledge, setCachedKnowledge } from "@/lib/telegram/agent";
-import { buildHniaSystemInstruction } from "./hniaPrompt";
+import { buildMobileHniaSystemInstruction } from "./hniaPrompt";
 import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegram/vision";
 
 export interface MobileAgentInput {
@@ -40,18 +40,54 @@ export interface MobileAgentResponse {
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-3.5-flash",
-  "gemini-flash-latest",
-  "gemini-3.6-flash",
-  "gemini-3.8-flash",
   "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-2.5-flash",
 ];
 
 const VOICE_CANDIDATE_MODELS = [
+  "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
   "gemini-3.6-flash",
-  "gemini-3.5-transcribe",
 ];
+
+/**
+ * Fast intent-based tool pruning dedicated for Mobile.
+ * - Pure chitchat / greetings / general advice → 0 tools (instant ~350ms text generation).
+ * - Focused school queries → 5-10 relevant tools.
+ * - Ambiguous queries → top 8 universal tools instead of all 80 tools.
+ */
+function getMobileDeclarations(userMessage: string): any[] {
+  const msg = (userMessage || "").trim();
+  const msgLower = msg.toLowerCase();
+
+  const CHITCHAT_REGEX = /^(bonjour|salut|ahla|salam|coucou|hello|hi|merci|chokran|merci beaucoup|qui es-tu|qui est hnia|tu peux faire quoi|présente-toi|aide-moi|tu sers à quoi|bye|au revoir|bonne soirée|bonne journée)[\s!?.]*$/i;
+  if (CHITCHAT_REGEX.test(msgLower)) {
+    return [];
+  }
+
+  const declarations = getPrunedGeminiDeclarations(msg);
+  if (declarations.length > 30) {
+    const HAS_SCHOOL_TERMS = /(élève|student|parent|prof|enseignant|classe|note|examen|absence|retard|caisse|payer|paiement|impayé|dépense|reçu|facture|dt|dinar|emploi|cours|horaire|appel)/i.test(msg);
+    if (!HAS_SCHOOL_TERMS) {
+      return [];
+    }
+    const UNIVERSAL_KEYS = new Set([
+      "get_school_stats",
+      "get_daily_caisse",
+      "get_payments",
+      "record_parent_payment",
+      "record_payment",
+      "add_expense",
+      "get_attendance",
+      "get_student_profile",
+    ]);
+    return declarations.filter((d: any) => UNIVERSAL_KEYS.has(d.name));
+  }
+
+  return declarations;
+}
 
 /**
  * Strip Telegram-specific formatting (HTML tags, custom separators, code tags)
@@ -151,11 +187,45 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     };
   }
 
-  // 1. Fetch admin and school
-  const admin = await prisma.admin.findUnique({
-    where: { id: input.adminId },
-    include: { School: true },
-  });
+  // 1. Parallel startup: fetch admin, transcribe audio (if provided), and load conversation
+  const originalUserText = (input.userMessage || "").trim();
+
+  const [admin, transcriptionResult, conversationLookup] = await Promise.all([
+    prisma.admin.findUnique({
+      where: { id: input.adminId },
+      include: { School: true },
+    }),
+    input.audioBase64
+      ? transcribeMobileAudio(input.audioBase64, input.audioMimeType).catch((audioErr) => {
+          console.error("[MobileAgent] Audio transcription error:", audioErr);
+          return "";
+        })
+      : Promise.resolve(""),
+    input.conversationId
+      ? prisma.aIConversation.findUnique({
+          where: { id: input.conversationId },
+          include: {
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 12,
+            },
+          },
+        })
+      : prisma.aIConversation.findFirst({
+          where: {
+            adminId: input.adminId,
+            source: "mobile",
+            status: "ACTIVE",
+          },
+          orderBy: { updatedAt: "desc" },
+          include: {
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 12,
+            },
+          },
+        }),
+  ]);
 
   if (!admin) {
     return {
@@ -169,24 +239,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   const adminName = [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username;
   const schoolName = admin.School?.name || "SnapSchool";
 
-  // 2. Handle Audio input if provided
-  let transcription: string | undefined;
-  const originalUserText = (input.userMessage || "").trim();
+  let transcription: string | undefined = transcriptionResult || undefined;
   let effectiveUserMessage = originalUserText;
-  let uploadedImageUrl: string | undefined;
-
-  if (input.audioBase64) {
-    try {
-      transcription = await transcribeMobileAudio(input.audioBase64, input.audioMimeType);
-      if (transcription) {
-        effectiveUserMessage = effectiveUserMessage
-          ? `${effectiveUserMessage}\n${transcription}`
-          : transcription;
-      }
-    } catch (audioErr) {
-      console.error("[MobileAgent] Audio transcription error:", audioErr);
-    }
+  if (transcription) {
+    effectiveUserMessage = effectiveUserMessage
+      ? `${effectiveUserMessage}\n${transcription}`
+      : transcription;
   }
+  let uploadedImageUrl: string | undefined;
 
   // 3. Handle Image input if provided
   let analyzedDoc: any = null;
@@ -296,36 +356,8 @@ Instructions :
     };
   }
 
-  // 4. Resolve conversation
-  let conversation: any = null;
-  if (input.conversationId) {
-    conversation = await prisma.aIConversation.findUnique({
-      where: { id: input.conversationId },
-      include: {
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 12,
-        },
-      },
-    });
-  }
-
-  if (!conversation) {
-    conversation = await prisma.aIConversation.findFirst({
-      where: {
-        adminId: input.adminId,
-        source: "mobile",
-        status: "ACTIVE",
-      },
-      orderBy: { updatedAt: "desc" },
-      include: {
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 12,
-        },
-      },
-    });
-  }
+  // 4. Resolve conversation (already fetched concurrently during parallel startup)
+  let conversation: any = conversationLookup;
 
   let conversationId: string;
   let historyMessages: { role: string; content: string }[] = [];
@@ -417,9 +449,13 @@ Instructions :
       const { getPaymentsTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getPaymentsTool({ status: "UNPAID" }, context)) as any;
       if (out?.formattedText || out?.records) {
-        const cleanMsg = out?.formattedText
-          ? cleanTelegramFormattingForMobile(out.formattedText)
-          : `💳 **Suivi des impayés :** ${out?.unpaidCount || (out.records ? out.records.length : 0)} élève(s) avec des frais en attente.`;
+        const count = out.unpaidCount || (out.records ? out.records.length : 0);
+        const total = out.totalOutstanding ? ` pour un total de **\`${out.totalOutstanding} DT\`**` : "";
+        const list = (out.records || []).slice(0, 8).map((r: any) =>
+          `• **${r.studentName}** (${r.class}) — \`${r.dueAmount} DT\` *(${r.feePeriod || ""})*`
+        ).join("\n");
+        const cleanMsg = `💳 **Suivi des impayés :** ${count} élève(s)${total} :\n\n${list}${count > 8 ? `\n\n*... et ${count - 8} autre(s) élève(s).*` : ""}`;
+
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
@@ -468,7 +504,11 @@ Instructions :
         const numExpenses = typeof out.summary?.totalExpenses === "number" ? out.summary.totalExpenses : parseFloat(String(out.summary?.totalExpenses || 0).replace(/[^0-9.-]/g, "")) || 0;
         const numNet = typeof out.summary?.netCashBalance === "number" ? out.summary.netCashBalance : parseFloat(String(out.summary?.netCashBalance || 0).replace(/[^0-9.-]/g, "")) || 0;
 
-        const cleanMsg = "Point de caisse d'aujourd'hui :";
+        const cleanMsg = `💰 **Point de caisse d'aujourd'hui (${out.date || "ce jour"}) :**\n\n` +
+          `• **Recettes :** \`${numIncomes} DT\` (${out.summary?.paymentsCount || 0} règlements)\n` +
+          `• **Dépenses :** \`${numExpenses} DT\` (${out.summary?.expensesCount || 0} sorties)\n` +
+          `• **Solde net en caisse :** **\`${numNet} DT\`**` +
+          (out.summary?.absencesCount !== undefined ? `\n\n📋 **Absences du jour :** ${out.summary.absencesCount} élève(s)` : "");
 
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
@@ -594,8 +634,8 @@ Instructions :
     setCachedKnowledge(input.schoolId, schoolTeachings);
   }
 
-  // 8. Build System Instruction
-  const systemInstruction = buildHniaSystemInstruction({
+  // 8. Build System Instruction (ultra-lean 2KB mobile version for sub-second responses)
+  const systemInstruction = buildMobileHniaSystemInstruction({
     schoolName,
     adminName,
     schoolTeachings,
@@ -639,17 +679,22 @@ Instructions :
   }));
 
   const genAI = new GoogleGenerativeAI(apiKey);
+  const declarations = getMobileDeclarations(effectiveUserMessage);
 
   for (const modelName of CANDIDATE_MODELS) {
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction,
-        tools: [
-          {
-            functionDeclarations: getPrunedGeminiDeclarations(effectiveUserMessage),
-          },
-        ],
+        ...(declarations.length > 0
+          ? {
+              tools: [
+                {
+                  functionDeclarations: declarations,
+                },
+              ],
+            }
+          : {}),
         generationConfig: {
           temperature: 0.15,
           maxOutputTokens: 2048,
@@ -794,13 +839,63 @@ Instructions :
           },
         }).catch(() => null);
 
-        // Fast path: if formattedText exists
+        // Fast direct synthesis for Mobile (ZERO 2nd LLM round-trip)
+        if (toolName === "get_daily_caisse" && toolOutput?.summary) {
+          const s = toolOutput.summary;
+          finalReply = `💰 **Point de caisse du ${toolOutput.date || "jour"}**\n\n` +
+            `• **Recettes encaissées :** \`${s.totalIncomes}\` (${s.paymentsCount} règlements)\n` +
+            `• **Dépenses sorties :** \`${s.totalExpenses}\` (${s.expensesCount} dépenses)\n` +
+            `• **Solde net en caisse :** **\`${s.netCashBalance}\`**` +
+            (s.absencesCount !== undefined ? `\n\n📋 **Absences du jour :** ${s.absencesCount} élève(s) (${s.unexcusedAbsencesCount || 0} non justifié(s)).` : "");
+          break;
+        }
+
+        if ((toolName === "get_payments" || toolName === "get_financial_anomalies") && (toolOutput?.records || toolOutput?.unpaidStudents)) {
+          const records = toolOutput.records || toolOutput.unpaidStudents || [];
+          const count = toolOutput.unpaidCount || records.length;
+          const totalStr = toolOutput.totalOutstanding ? ` pour un total de **\`${toolOutput.totalOutstanding} DT\`**` : "";
+          const list = records.slice(0, 8).map((r: any) =>
+            `• **${r.studentName || r.name}** (${r.class || r.className}) — \`${r.dueAmount || r.tuitionFee} DT\` *(${r.feePeriod || ""})*`
+          ).join("\n");
+          finalReply = `💳 **Suivi des impayés :** ${count} élève(s)${totalStr} :\n\n${list}${count > 8 ? `\n\n*... et ${count - 8} autre(s) élève(s).*` : ""}`;
+          break;
+        }
+
+        if (toolName === "get_attendance" && toolOutput) {
+          finalReply = toolOutput.formattedText
+            ? cleanTelegramFormattingForMobile(toolOutput.formattedText)
+            : `📋 **Présences du jour :**\n\n• **Taux de présence :** ${toolOutput.attendanceRate || "100%"}\n• **Total absents :** ${toolOutput.totalAbsents || 0} élève(s)\n• **Retards :** ${toolOutput.totalLate || 0} élève(s)`;
+          break;
+        }
+
+        if (toolName === "get_student_profile" && toolOutput?.student) {
+          const st = toolOutput.student;
+          finalReply = `👤 **Fiche Élève : ${st.name} ${st.surname}**\n\n` +
+            `• **Classe :** ${st.class?.name || "Non assignée"}\n` +
+            `• **Statut :** \`${st.paymentStatus || "À jour"}\`\n` +
+            `• **Parent :** ${st.parent ? `${st.parent.name} ${st.parent.surname} (📞 ${st.parent.phone})` : "Non renseigné"}\n` +
+            `• **Moyenne :** ${st.averageGrade !== undefined ? `${st.averageGrade}/20` : "Non calculée"}`;
+          break;
+        }
+
+        if (toolName === "get_school_stats" && toolOutput) {
+          finalReply = toolOutput.formattedText
+            ? cleanTelegramFormattingForMobile(toolOutput.formattedText)
+            : `📊 **Statistiques de l'établissement :**\n\n• **Élèves inscrits :** ${toolOutput.totalStudents || 0}\n• **Enseignants :** ${toolOutput.totalTeachers || 0}\n• **Classes :** ${toolOutput.totalClasses || 0}`;
+          break;
+        }
+
+        if (toolOutput?.message && !toolOutput?.error) {
+          finalReply = cleanTelegramFormattingForMobile(toolOutput.message);
+          break;
+        }
+
         if (toolOutput?.formattedText) {
           finalReply = cleanTelegramFormattingForMobile(toolOutput.formattedText);
           break;
         }
 
-        // Synthesize via Gemini
+        // Synthesize via Gemini (fallback only if unformatted custom tool output)
         response = await chat.sendMessage([
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
