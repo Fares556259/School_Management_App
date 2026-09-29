@@ -267,26 +267,40 @@ export const createStudent = async (data: {
   try {
     const id = crypto.randomUUID();
 
-    // Auto-fetch levelId from class if not provided
-    let finalLevelId = data.levelId;
+    // Auto-fetch levelId from class or resolve DB level PK
     let finalClassId = data.classId && data.classId !== "null" && data.classId !== "" ? parseInt(String(data.classId)) : null;
 
     const schoolId = await getSchoolId();
 
-    if (!finalLevelId || finalLevelId === 0) {
-      if (finalClassId) {
-        const targetClass = await prisma.class.findUnique({
-          where: { id: finalClassId },
-          select: { levelId: true }
-        });
-        finalLevelId = targetClass?.levelId;
-      }
-      
-      if (!finalLevelId) {
-        const firstLevel = await prisma.level.findFirst({ where: { schoolId } });
-        finalLevelId = firstLevel?.id || 1;
+    let dbLevel = data.levelId
+      ? await prisma.level.findFirst({ where: { id: data.levelId, schoolId } })
+      : null;
+
+    if (!dbLevel && data.levelId !== undefined && data.levelId !== null) {
+      dbLevel = await prisma.level.findFirst({ where: { level: Number(data.levelId), schoolId } });
+    }
+
+    if (!dbLevel && finalClassId) {
+      const targetClass = await prisma.class.findUnique({
+        where: { id: finalClassId },
+        select: { levelId: true }
+      });
+      if (targetClass?.levelId) {
+        dbLevel = await prisma.level.findFirst({ where: { id: targetClass.levelId, schoolId } });
       }
     }
+
+    if (!dbLevel) {
+      dbLevel = await prisma.level.findFirst({ where: { schoolId }, orderBy: { level: "asc" } });
+    }
+
+    if (!dbLevel) {
+      dbLevel = await prisma.level.create({
+        data: { schoolId, level: 1, tuitionFee: 450 },
+      });
+    }
+
+    const finalLevelId = dbLevel.id;
 
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
@@ -332,6 +346,37 @@ export const bulkCreateStudents = async (students: any[]) => {
   try {
     const schoolId = await getSchoolId();
     if (!students || students.length === 0) return { success: true };
+
+    // 0. Resolve school Level records: map pedagogical grade (0..6) to Level.id (DB primary key)
+    const schoolLevels = await prisma.level.findMany({
+      where: { schoolId },
+    });
+    const gradeToDbLevelId = new Map<number, number>();
+    schoolLevels.forEach((l) => gradeToDbLevelId.set(l.level, l.id));
+
+    // Ensure any requested grade exists in this school
+    for (const s of students) {
+      const g = s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1;
+      if (!gradeToDbLevelId.has(g)) {
+        const createdLvl = await prisma.level.create({
+          data: {
+            schoolId,
+            level: g,
+            tuitionFee: 450,
+          },
+        });
+        gradeToDbLevelId.set(g, createdLvl.id);
+      }
+    }
+
+    const fallbackDbLevelId =
+      gradeToDbLevelId.get(1) ||
+      Array.from(gradeToDbLevelId.values())[0] ||
+      (
+        await prisma.level.create({
+          data: { schoolId, level: 1, tuitionFee: 450 },
+        })
+      ).id;
 
     // 1. Collect unique parent phone numbers needing lookup
     const phoneToParentIdMap = new Map<string, string>();
@@ -380,50 +425,78 @@ export const bulkCreateStudents = async (students: any[]) => {
       }
     }
 
-    // 4. Validate and construct student records
-    const studentsToCreate = students.map((s) => {
+    // 4. Validate and construct student records with guaranteed uniqueness
+    const seenUsernames = new Set<string>();
+    const seenPhones = new Set<string>();
+
+    const studentsToCreate = students.map((s, idx) => {
       let parentId = s.parentId || null;
       if (!parentId && s.parentPhone) {
         const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
         parentId = phoneToParentIdMap.get(cleanPhone) || null;
       }
 
-      const baseUser = ((s.name || "student") + "." + (s.surname || "")).toLowerCase().replace(/[^a-z0-9]/g, "") || "student";
+      const rawNationalId = s.nationalId ? String(s.nationalId).trim() : null;
+
+      const baseUser =
+        ((s.name || "student") + "." + (s.surname || "")).toLowerCase().replace(/[^a-z0-9]/g, "") ||
+        "student";
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      const username = s.username || (s.nationalId ? `std_${s.nationalId}` : `${baseUser}_${randomSuffix}`);
+
+      let username = s.username || (rawNationalId ? `std_${rawNationalId}` : `${baseUser}_${randomSuffix}`);
+      if (seenUsernames.has(username)) {
+        username = `${username}_${idx}_${Math.floor(100 + Math.random() * 900)}`;
+      }
+      seenUsernames.add(username);
+
+      let cleanStudentPhone = s.phone && String(s.phone).trim() ? String(s.phone).trim() : null;
+      if (cleanStudentPhone && seenPhones.has(cleanStudentPhone)) {
+        cleanStudentPhone = null;
+      }
+      if (cleanStudentPhone) seenPhones.add(cleanStudentPhone);
+
+      const requestedGrade = s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1;
+      const finalLevelId = gradeToDbLevelId.get(requestedGrade) || fallbackDbLevelId;
 
       return {
         schoolId,
         id: crypto.randomUUID(),
         username,
-        name: s.name,
-        surname: s.surname,
-        phone: s.phone || null,
-        address: s.address || "Unknown",
+        name: s.name || "Élève",
+        surname: s.surname || "",
+        phone: cleanStudentPhone,
+        address: s.address || "Tunis",
         bloodType: s.bloodType || "O+",
         birthday: new Date(s.birthday || "2015-01-01"),
-        sex: (s.sex as UserSex) || UserSex.MALE,
+        sex: s.sex === "FEMALE" ? UserSex.FEMALE : UserSex.MALE,
         parentId,
         classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
-        levelId: s.levelId ? Number(s.levelId) : 1,
-        nationalId: s.nationalId ? String(s.nationalId).trim() : null,
+        levelId: finalLevelId,
+        nationalId: rawNationalId,
       };
     });
 
-    // 5. Execute creation atomically in transaction
-    await prisma.$transaction(async (tx) => {
-      if (parentsToCreate.length > 0) {
-        await tx.parent.createMany({
-          data: parentsToCreate,
-          skipDuplicates: true,
-        });
-      }
+    // 5. Execute creation atomically in transaction with chunking for large rosters
+    await prisma.$transaction(
+      async (tx) => {
+        if (parentsToCreate.length > 0) {
+          await tx.parent.createMany({
+            data: parentsToCreate,
+            skipDuplicates: true,
+          });
+        }
 
-      await tx.student.createMany({
-        data: studentsToCreate,
-        skipDuplicates: true,
-      });
-    });
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < studentsToCreate.length; i += CHUNK_SIZE) {
+          const chunk = studentsToCreate.slice(i, i + CHUNK_SIZE);
+          await tx.student.createMany({
+            data: chunk,
+            skipDuplicates: true,
+          });
+        }
+      },
+      { timeout: 45000 }
+    );
 
     // 6. Single consolidated audit log
     await createAuditLog({

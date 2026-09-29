@@ -86,13 +86,18 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
   };
 
   const handleSave = () => {
+    setError(null);
     startTransition(async () => {
-      const res = await bulkCreateStudents(parsedData);
-      if (res.success) {
-        setStep("success");
-        setTimeout(() => onClose(), 2000);
-      } else {
-        setError(res.error || "Failed to save students.");
+      try {
+        const res = await bulkCreateStudents(parsedData);
+        if (res.success) {
+          setStep("success");
+          setTimeout(() => onClose(), 2000);
+        } else {
+          setError(res.error || "Failed to save students.");
+        }
+      } catch (err: any) {
+        setError(err?.message || "Failed to save students.");
       }
     });
   };
@@ -458,6 +463,13 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   </table>
                 </div>
               </div>
+
+              {error && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-[10px] flex items-start gap-2.5 shadow-sm">
+                  <AlertCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-[13.5px] font-medium text-rose-700">{error}</p>
+                </div>
+              )}
 
               <div className="flex justify-between pt-5 border-t border-slate-200 mt-2">
                 <button
