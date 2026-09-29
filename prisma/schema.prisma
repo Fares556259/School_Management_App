@@ -67,6 +67,7 @@ model Student {
   birthday      DateTime
   levelId       Int
   customTuition Float?
+  nationalId    String?
 
   schoolId      String         @default("default_school")
   attendance    Attendance[]
@@ -85,6 +86,7 @@ model Student {
   @@index([parentId])
   @@index([levelId])
   @@index([schoolId, createdAt])
+  @@index([nationalId])
 }
 
 model Teacher {

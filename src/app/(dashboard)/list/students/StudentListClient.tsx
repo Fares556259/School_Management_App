@@ -20,6 +20,7 @@ import { Student, Class, Level, Payment } from "@prisma/client";
 import { getUserAvatar } from "@/lib/avatar";
 
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
+import BulkStudentImport from "./BulkStudentImport";
 import { Share2 } from "lucide-react";
 
 interface Props {
@@ -59,6 +60,7 @@ export default function StudentListClient({
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
   const [clientStatus, setClientStatus] = useState(searchParams.get("status") || "");
   const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(() => {
     const p = Number(searchParams.get("page") || page);
     return !isNaN(p) && p > 0 ? p : 1;
@@ -100,22 +102,33 @@ export default function StudentListClient({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
 
-  const classList = (relatedData?.classId || []).map((c: any) => ({
-    id: c.value === "null" ? "null" : parseInt(c.value, 10),
-    name: c.label,
-  }));
+  const classList = [
+    { id: "unassigned", name: locale === 'ar' ? 'غير موزع على قسم' : (t.students?.noClass || 'Non classé') },
+    ...(relatedData?.classId || []).map((c: any) => ({
+      id: c.value === "null" ? "null" : parseInt(c.value, 10),
+      name: c.label,
+    }))
+  ];
 
   const schoolYearMonths = getSchoolYearMonths();
 
   const filteredData = optimisticData.filter(item => {
     if (clientSearch) {
-      const match = item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
-                    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase());
+      const q = clientSearch.toLowerCase().trim();
+      const fullName = `${item.name} ${item.surname}`.toLowerCase();
+      const match = item.name.toLowerCase().includes(q) || 
+                    item.surname.toLowerCase().includes(q) ||
+                    fullName.includes(q) ||
+                    (item.nationalId && String(item.nationalId).includes(q)) ||
+                    (item.id && String(item.id).toLowerCase().includes(q));
       if (!match) return false;
     }
-    if (clientClassId && String(item.classId) !== clientClassId) {
-      return false;
+    if (clientClassId) {
+      if (clientClassId === "unassigned") {
+        if (item.classId !== null && item.classId !== undefined && item.classId !== 0) return false;
+      } else if (String(item.classId) !== clientClassId) {
+        return false;
+      }
     }
     if (clientStatus) {
       const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
@@ -250,18 +263,28 @@ export default function StudentListClient({
               <h3 className="text-[14px] font-medium text-[#181d26] group-hover/name:text-blue-600 group-hover/name:underline transition-colors">
                 {item.name} {item.surname}
               </h3>
-              {item.class?.name ? (
-                <p className="text-[12px] text-[#5a5a5a]">{item.class.name}</p>
-              ) : (
-                <span className="inline-block px-1.5 py-0.5 mt-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                  {t.students?.noClass || "Non classé"}
-                </span>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                {item.class?.name ? (
+                  <p className="text-[12px] text-[#5a5a5a] font-medium">{item.class.name}</p>
+                ) : (
+                  <span className="inline-block px-1.5 py-0.5 rounded text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    {locale === 'ar' ? 'غير موزع على قسم' : (t.students?.noClass || "Non classé")}
+                  </span>
+                )}
+                {item.nationalId && (
+                  <span
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200"
+                    title={locale === 'ar' ? 'المعرف التربوي' : 'Identifiant éducatif'}
+                  >
+                    🆔 {item.nationalId}
+                  </span>
+                )}
+              </div>
             </div>
           </Link>
         </td>
         <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">
-          {item.classId ? (item.level?.level === 0 ? (locale === 'ar' ? 'تحضيري' : 'Préscolaire') : `${t.systemSettings?.level || "Level"} ${item.level?.level ?? 0}`) : "-"}
+          {item.level ? (item.level.level === 0 ? (locale === 'ar' ? 'تحضيري' : 'Préscolaire') : `${locale === 'ar' ? 'السنة' : (t.systemSettings?.level || "Niveau")} ${item.level.level}`) : "-"}
         </td>
         <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
           {item.parent ? (
@@ -435,6 +458,14 @@ export default function StudentListClient({
           {role === "admin" && (
             <div className="flex items-center gap-2">
               <button 
+                onClick={() => setIsBulkImportOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[13px] font-semibold rounded-[6px] hover:bg-indigo-100 transition-all shadow-sm group shrink-0"
+                title={locale === 'ar' ? 'استيراد التلاميذ (نص، صورة أو معرف تربوي)' : 'Importer des élèves'}
+              >
+                <Sparkles size={15} className="text-indigo-600 group-hover:scale-110 transition-transform" />
+                <span>{locale === 'ar' ? 'استيراد' : 'Importer'}</span>
+              </button>
+              <button 
                 onClick={() => setIsShareModalOpen(true)}
                 className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
               >
@@ -503,6 +534,13 @@ export default function StudentListClient({
       />
 
       {/* MODALS */}
+      {isBulkImportOpen && (
+        <BulkStudentImport onClose={() => {
+          setIsBulkImportOpen(false);
+          router.refresh();
+        }} />
+      )}
+
       <ShareParentLinkModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}

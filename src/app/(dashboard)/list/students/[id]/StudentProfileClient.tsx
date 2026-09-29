@@ -337,8 +337,8 @@ export default function StudentProfileClient({
   const fmt = (n: number) => n.toLocaleString(locale === "ar" ? "ar-TN" : "fr-FR").replace(/,/g, " ") + (locale === "ar" ? " د.ت" : " DT");
 
   // Tuition & Grade Level metrics dynamically derived from active student
-  const currentLevelTuitionFee = student.class?.level?.tuitionFee ?? levelTuitionFee;
-  const currentGradeLevel = student.class?.level?.level ?? gradeLevel;
+  const currentLevelTuitionFee = student.class?.level?.tuitionFee ?? student.level?.tuitionFee ?? levelTuitionFee;
+  const currentGradeLevel = student.class?.level?.level ?? student.level?.level ?? gradeLevel;
   const monthlyRate = student.customTuition ?? currentLevelTuitionFee;
   const totalPaid = payments.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
 
@@ -492,8 +492,13 @@ export default function StudentProfileClient({
                   {studentFullName}
                 </h1>
               </div>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
-                {t.studentProfile.identity.student} · {t.studentProfile.identity.matricule} : <span className="font-mono text-slate-600 font-bold">{student.id}</span>
+              <p className="text-xs text-slate-400 font-medium mt-0.5 flex flex-wrap items-center gap-2">
+                <span>{t.studentProfile.identity.student} · {t.studentProfile.identity.matricule} : <span className="font-mono text-slate-600 font-bold">{student.id}</span></span>
+                {student.nationalId && (
+                  <span className="font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded font-mono text-[11px]">
+                    {locale === 'ar' ? 'المعرف التربوي' : 'ID Éducatif'} : {student.nationalId}
+                  </span>
+                )}
               </p>
 
               {/* Class & Level pills */}

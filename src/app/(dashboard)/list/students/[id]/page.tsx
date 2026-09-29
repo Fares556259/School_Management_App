@@ -21,6 +21,7 @@ export default async function SingleStudentPage({
     prisma.student.findUnique({
       where: { id },
       include: {
+        level: true,
         class: {
           include: {
             level: true,

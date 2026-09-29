@@ -11,6 +11,7 @@ import { compressImage } from "@/lib/imageCompression";
 export default function BulkStudentImport({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
   const [importMode, setImportMode] = useState<"text" | "image">("text");
+  const [selectedLevel, setSelectedLevel] = useState<number>(1);
   const [rawText, setRawText] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
@@ -21,6 +22,29 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
   const handleParse = async () => {
     if (importMode === "text" && !rawText.trim()) return;
     if (importMode === "image" && !imageUrl) return;
+
+    // Fast path: if user pasted direct JSON (e.g. from the portal extraction script)
+    const trimmed = rawText.trim();
+    if (importMode === "text" && (trimmed.startsWith("[") || trimmed.startsWith("{"))) {
+      try {
+        const json = JSON.parse(trimmed);
+        const list = Array.isArray(json) ? json : [json];
+        const normalized = list.map((s: any) => ({
+          ...s,
+          name: s.name || s.firstName || "",
+          surname: s.surname || s.lastName || "",
+          nationalId: s.nationalId || s["المعرف التربوي"] || null,
+          sex: s.sex === "FEMALE" || String(s.gender || "").includes("أنثى") ? "FEMALE" : "MALE",
+          levelId: Number(s.levelId || selectedLevel || 1),
+          classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
+        }));
+        setParsedData(normalized);
+        setStep("review");
+        return;
+      } catch (jsonErr) {
+        console.warn("Direct JSON parse failed, falling back to AI parse:", jsonErr);
+      }
+    }
 
     setStep("parsing");
     setError(null);
@@ -33,7 +57,12 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
       setError(result.error);
       setStep("input");
     } else if (result.data) {
-      setParsedData(result.data);
+      const enriched = (result.data || []).map((s: any) => ({
+        ...s,
+        levelId: Number(s.levelId || selectedLevel || 1),
+        classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
+      }));
+      setParsedData(enriched);
       setStep("review");
     }
   };
@@ -106,9 +135,50 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                  </p>
               </div>
               
+              {/* LEVEL SELECTOR */}
+              <div className="flex flex-col gap-2.5 bg-white p-4 rounded-[12px] border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <label className="text-[13px] font-bold text-slate-800">
+                    Niveau des élèves à importer (السنة الدراسية)
+                  </label>
+                  <span className="text-[11.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                    Non classés (affectation ultérieure)
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  {[
+                    { id: 0, label: "Préscolaire" },
+                    { id: 1, label: "1ère (Niv 1)" },
+                    { id: 2, label: "2ème (Niv 2)" },
+                    { id: 3, label: "3ème (Niv 3)" },
+                    { id: 4, label: "4ème (Niv 4)" },
+                    { id: 5, label: "5ème (Niv 5)" },
+                    { id: 6, label: "6ème (Niv 6)" },
+                  ].map((lvl) => {
+                    const isSel = selectedLevel === lvl.id;
+                    return (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setSelectedLevel(lvl.id)}
+                        className={`py-2 px-1.5 rounded-lg text-xs font-bold border transition-all text-center ${
+                          isSel
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        {lvl.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {importMode === "text" ? (
                 <div className="flex flex-col gap-2.5">
-                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">{t.students.modal.rawTextLabel}</label>
+                  <label className="text-[13.5px] font-semibold text-[#181d26] ml-1">
+                    {t.students.modal.rawTextLabel} / JSON ou Texte du portail
+                  </label>
                   <textarea
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
@@ -246,26 +316,43 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
                       <tr>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">المعرف التربوي</th>
                         <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.studentName}</th>
                         <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.gender}</th>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.parent}</th>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500 text-right">{t.bulkImport.classId}</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">Niveau</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500 text-right">Classe</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {parsedData.map((s, i) => (
                         <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-5 py-4 text-[13px] font-mono font-bold text-blue-700">
+                            {s.nationalId ? (
+                              <span className="bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
+                                🆔 {s.nationalId}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-normal">-</span>
+                            )}
+                          </td>
                           <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26]">{s.name} {s.surname || ""}</td>
                           <td className="px-5 py-4 text-[13px]">
                              <span className={`px-2.5 py-1 rounded-[6px] font-semibold text-[11px] uppercase tracking-wider ${s.sex === "MALE" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>
-                                {s.sex}
+                                {s.sex === "MALE" ? "ذكر" : "أنثى"}
                              </span>
                           </td>
-                          <td className="px-5 py-4">
-                            <div className="text-[13.5px] font-medium text-[#181d26]">{s.parentName} {s.parentSurname}</div>
-                            <div className="text-[12px] text-slate-400 mt-0.5">{s.parentPhone || t.bulkImport.noPhone}</div>
+                          <td className="px-5 py-4 text-[13px] font-semibold text-slate-700">
+                            Niveau {s.levelId || selectedLevel}
                           </td>
-                          <td className="px-5 py-4 text-[13.5px] font-semibold text-slate-600 text-right">#{s.classId || 1}</td>
+                          <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">
+                            {s.classId ? (
+                              `#${s.classId}`
+                            ) : (
+                              <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-200">
+                                Non classé
+                              </span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

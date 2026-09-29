@@ -260,7 +260,8 @@ export const createStudent = async (data: {
   parentId?: string | null;
   classId?: number | null | string;
   levelId?: number;
-    customTuition?: number | null;
+  customTuition?: number | null;
+  nationalId?: string | null;
   img?: string | null;
 }) => {
   try {
@@ -308,6 +309,7 @@ export const createStudent = async (data: {
         classId: finalClassId,
         levelId: finalLevelId,
         customTuition: data.customTuition || null,
+        nationalId: data.nationalId ? String(data.nationalId).trim() : null,
         img: data.img || (data.sex === "FEMALE" ? "/avatars/student_female.jpg" : "/avatars/student_male.jpg"),
       },
     });
@@ -386,10 +388,14 @@ export const bulkCreateStudents = async (students: any[]) => {
         parentId = phoneToParentIdMap.get(cleanPhone) || null;
       }
 
+      const baseUser = ((s.name || "student") + "." + (s.surname || "")).toLowerCase().replace(/[^a-z0-9]/g, "") || "student";
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const username = s.username || (s.nationalId ? `std_${s.nationalId}` : `${baseUser}_${randomSuffix}`);
+
       return {
         schoolId,
         id: crypto.randomUUID(),
-        username: s.username,
+        username,
         name: s.name,
         surname: s.surname,
         phone: s.phone || null,
@@ -400,6 +406,7 @@ export const bulkCreateStudents = async (students: any[]) => {
         parentId,
         classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
         levelId: s.levelId ? Number(s.levelId) : 1,
+        nationalId: s.nationalId ? String(s.nationalId).trim() : null,
       };
     });
 
@@ -450,6 +457,7 @@ export const updateStudent = async (
     classId: number | string | null;
     levelId?: number;
     customTuition?: number | null;
+    nationalId?: string | null;
     img: string | null;
   }>
 ) => {

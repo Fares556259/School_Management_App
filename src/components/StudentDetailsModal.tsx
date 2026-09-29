@@ -21,6 +21,7 @@ interface StudentDetailsModalProps {
     sex: "MALE" | "FEMALE";
     bloodType: string;
     createdAt: Date | string;
+    nationalId?: string | null;
     parent?: {
       name: string;
       surname: string;
@@ -164,6 +165,14 @@ export default function StudentDetailsModal({
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">تاريخ التسجيل</span>
                         <span className="text-[14px] font-medium text-[#181d26]">{formatDate(student.createdAt)}</span>
                       </div>
+                      {student.nationalId && (
+                        <div className="flex flex-col col-span-2 bg-blue-50/70 p-3 rounded-lg border border-blue-200">
+                          <span className="text-[12px] font-bold text-blue-800 mb-0.5">المعرف التربوي (الوطني)</span>
+                          <span className="text-[15px] font-mono font-bold text-blue-900 tracking-wider">
+                            🆔 {student.nationalId}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex flex-col">
                         <span className="text-[12px] font-medium text-[#41454d] mb-1">معرف الطالب</span>
                         <span className="text-[14px] font-medium text-[#181d26] truncate" title={student.id}>

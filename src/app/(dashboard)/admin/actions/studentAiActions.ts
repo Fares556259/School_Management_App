@@ -14,25 +14,28 @@ export async function parseStudentsFromText(text: string) {
     
     Each student object MUST follow this structure:
     {
-      "username": "string (lowercase, no spaces, e.g. jdoe)",
-      "name": "string (First name)",
-      "surname": "string (Last name)",
+      "username": "string (lowercase, no spaces, e.g. jdoe or std_269274689104)",
+      "name": "string (First name / الاسم)",
+      "surname": "string (Last name / اللقب)",
+      "nationalId": "string (10-12 digit educational ID / المعرف التربوي if available, else empty)",
       "email": "string (optional)",
       "phone": "string (optional)",
-      "address": "string (default to 'Unknown' if missing)",
+      "address": "string (default to 'Tunis' if missing)",
       "bloodType": "string (default to 'O+' if missing)",
       "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
-      "sex": "MALE | FEMALE",
-      "parentId": "string (leave empty, we will match later)",
+      "sex": "MALE | FEMALE (convert ذكر to MALE and أنثى to FEMALE)",
+      "parentId": "string (leave empty)",
       "parentName": "string (First name of parent)",
       "parentSurname": "string (Last name of parent)",
       "parentPhone": "string (Mobile number)",
-      "classId": number (default to 1 if unknown)
+      "levelId": number (1 to 6 if level is mentioned, e.g. Level 1 -> 1),
+      "classId": number or null (null if not yet assigned to a class like 1A/1B)
     }
 
     Notes:
-    - If a field is totally missing, use a reasonable educated guess or a sensible default.
-    - Username should be first initial + surname (e.g., John Doe -> jdoe). Unique in output.
+    - If a 10-12 digit ID is present (المعرف التربوي), extract it as "nationalId".
+    - If the student is unassigned to a section (غير موزع على قسم), set "classId": null.
+    - If a field is totally missing, use a reasonable educated guess or sensible default.
     
     TEXT TO PARSE:
     """
@@ -65,24 +68,27 @@ export async function parseStudentsFromImage(imageUrl: string) {
     
     Each student object MUST follow this structure:
     {
-      "username": "string (lowercase, no spaces, e.g. jdoe)",
-      "name": "string (First name)",
-      "surname": "string (Last name)",
+      "username": "string (lowercase, no spaces, e.g. jdoe or std_269274689104)",
+      "name": "string (First name / الاسم)",
+      "surname": "string (Last name / اللقب)",
+      "nationalId": "string (10-12 digit educational ID / المعرف التربوي if visible, else empty)",
       "email": "string (optional)",
       "phone": "string (optional)",
-      "address": "string (default to 'Unknown' if missing)",
+      "address": "string (default to 'Tunis' if missing)",
       "bloodType": "string (default to 'O+' if missing)",
       "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
-      "sex": "MALE | FEMALE",
+      "sex": "MALE | FEMALE (convert ذكر to MALE and أنثى to FEMALE)",
       "parentName": "string (First name of parent)",
       "parentSurname": "string (Last name of parent)",
       "parentPhone": "string (Mobile number)",
-      "classId": number (default to 1 if unknown)
+      "levelId": number (1 to 6 if level is known, default 1),
+      "classId": number or null (null if unassigned / غير موزع على قسم)
     }
 
     IMPORTANT: 
     - Return ONLY the JSON array. No markdown, no explanation.
-    - Username should be unique in your output (e.g., John Smith -> jsmith, jsmith2).
+    - If a 10-12 digit ID is present (المعرف التربوي), extract it into "nationalId".
+    - If no specific section like 1A or 1B is given, set "classId": null.
   `;
 
   try {
