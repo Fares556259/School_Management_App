@@ -40,12 +40,17 @@ export interface MobileAgentResponse {
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
   "gemini-flash-latest",
+  "gemini-3.6-flash",
+  "gemini-3.8-flash",
+  "gemini-3.5-flash-lite",
+];
+
+const VOICE_CANDIDATE_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-transcribe",
 ];
 
 /**
@@ -100,20 +105,31 @@ CRITICAL TRANSCRIBING RULES:
 4. SCHOOL VOCABULARY: Common terms include: élèves, profs, classes (1A, 2B...), matières, notes, absences, retards, paiements, reliquats, impayés, factures, STEG, SONEDE, Dinars / DT, cantine, مازوط, كاسة, شيك, تلامذة, معلمين, Appel.
 5. OUTPUT: Output ONLY the exact transcribed text. No quotes, no markdown explanations.`;
 
-  for (const modelName of CANDIDATE_MODELS) {
+  const normalizedMime = mimeType?.toLowerCase().includes("m4a")
+    ? "audio/mp4"
+    : mimeType?.toLowerCase().includes("aac")
+    ? "audio/aac"
+    : mimeType?.toLowerCase().includes("wav")
+    ? "audio/wav"
+    : "audio/mp4";
+
+  for (const modelName of VOICE_CANDIDATE_MODELS) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent([
         {
           inlineData: {
             data: base64Audio,
-            mimeType: mimeType.toLowerCase().includes("m4a") ? "audio/mp4" : mimeType,
+            mimeType: normalizedMime,
           },
         },
         { text: prompt },
       ]);
       const text = result.response.text().trim();
-      if (text) return text;
+      if (text) {
+        console.log(`[Mobile Voice] Successfully transcribed with ${modelName}: "${text.slice(0, 40)}"`);
+        return text;
+      }
     } catch (err: any) {
       console.warn(`[Mobile Voice] Failed with ${modelName}:`, err.message);
     }
@@ -345,19 +361,23 @@ Instructions :
     conversationId = newConv.id;
   }
 
-  // Save user message (fire-and-forget)
-  prisma.aIMessage.create({
-    data: {
-      conversationId,
-      role: "user",
-      content: savedUserContent,
-    },
-  }).catch((e) => console.warn("[MobileAgent] aIMessage user save failed:", e));
+  // Save user message (await to ensure persistence before function completes)
+  try {
+    await prisma.aIMessage.create({
+      data: {
+        conversationId,
+        role: "user",
+        content: savedUserContent,
+      },
+    });
 
-  prisma.aIConversation.update({
-    where: { id: conversationId },
-    data: { updatedAt: new Date() },
-  }).catch(() => null);
+    await prisma.aIConversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+  } catch (saveErr) {
+    console.warn("[MobileAgent] User message save failed:", saveErr);
+  }
 
   // 5. Tool Context
   const context: ToolContext = {

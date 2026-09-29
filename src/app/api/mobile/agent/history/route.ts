@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "40", 10);
+    const limit = parseInt(searchParams.get("limit") || "60", 10);
     const conversationIdParam = searchParams.get("conversationId");
 
     let conversation: any = null;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         where: { id: conversationIdParam },
         include: {
           messages: {
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: "desc" },
             take: limit,
           },
           toolCalls: {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         orderBy: { updatedAt: "desc" },
         include: {
           messages: {
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: "desc" },
             take: limit,
           },
           toolCalls: {
@@ -66,10 +66,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const sortedMessages = [...(conversation.messages || [])].reverse();
+
     return NextResponse.json({
       success: true,
       conversationId: conversation.id,
-      messages: conversation.messages.map((m: any) => {
+      messages: sortedMessages.map((m: any) => {
         let content = m.content || "";
         let imageUri: string | undefined = undefined;
 
