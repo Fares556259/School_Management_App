@@ -8,6 +8,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { LanguageProvider } from "@/lib/translations/LanguageContext";
 import QueryProvider from "@/providers/QueryProvider";
+import { PostHogProvider } from "@/providers/PostHogProvider";
 
 import AppToastContainer from "@/components/AppToastContainer";
 
@@ -35,17 +36,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jakarta.variable} ${montserrat.variable} ${jakarta.className} antialiased`}>
-        <QueryProvider>
-          <LanguageProvider>
-            <NextTopLoader color="#4f46e5" showSpinner={true} />
-            <Suspense fallback={null}>
-              <NavigationLoader />
-            </Suspense>
-            {children}
-            <AppToastContainer />
-            <SpeedInsights />
-          </LanguageProvider>
-        </QueryProvider>
+        <PostHogProvider>
+          <QueryProvider>
+            <LanguageProvider>
+              <NextTopLoader color="#4f46e5" showSpinner={true} />
+              <Suspense fallback={null}>
+                <NavigationLoader />
+              </Suspense>
+              {children}
+              <AppToastContainer />
+              <SpeedInsights />
+            </LanguageProvider>
+          </QueryProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

@@ -57,6 +57,7 @@
     "next": "14.2.5",
     "nextjs-toploader": "^3.9.17",
     "playwright": "^1.63.0",
+    "posthog-js": "^1.435.0",
     "prisma": "^6.19.3",
     "qrcode.react": "^4.2.0",
     "react": "^18",
