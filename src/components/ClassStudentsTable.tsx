@@ -244,9 +244,11 @@ export default function ClassStudentsTable({
           {role === "admin" && (
             <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
               <AssignStudentsModal
-                              classId={activeClass.id}
-                              className={activeClass.name}
-                            />
+                classId={activeClass.id}
+                className={activeClass.name}
+                levelNumber={activeClass.level?.level}
+                capacity={activeClass.capacity}
+              />
             </div>
           )}
         </div>
@@ -521,6 +523,8 @@ export default function ClassStudentsTable({
                             <AssignStudentsModal
                               classId={activeClass.id}
                               className={activeClass.name}
+                              levelNumber={activeClass.level?.level}
+                              capacity={activeClass.capacity}
                             />
                           </div>
                         )}

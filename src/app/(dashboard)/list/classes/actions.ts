@@ -84,19 +84,34 @@ export async function fetchClassTeachersAction(classId: number) {
   };
 }
 
-export async function fetchAllStudentsOptionAction() {
+export async function fetchAllStudentsOptionAction(levelNumber?: number) {
   const schoolId = await getSchoolId();
   if (!schoolId) return [];
   
   return prisma.student.findMany({
-    where: { schoolId },
+    where: {
+      schoolId,
+      ...(levelNumber !== undefined && levelNumber !== null && levelNumber !== -1
+        ? { level: { level: levelNumber } }
+        : {}),
+    },
     select: {
       id: true,
       name: true,
       surname: true,
+      nationalId: true,
+      classId: true,
       class: {
         select: {
+          id: true,
           name: true,
+        },
+      },
+      levelId: true,
+      level: {
+        select: {
+          id: true,
+          level: true,
         },
       },
     },

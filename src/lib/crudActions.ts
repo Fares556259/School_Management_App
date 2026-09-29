@@ -1034,34 +1034,40 @@ export const removeStudentFromClass = async (studentId: string) => {
 export const assignStudentsToClass = async (classId: number, studentIds: string[]) => {
   try {
     const schoolId = await getSchoolId();
-    
-    // We run this inside a transaction to ensure all student assignments are updated safely
-    await prisma.$transaction(async (tx) => {
-      // 1. Unassign all students currently in this class who are not in the new selection
-      await tx.student.updateMany({
-        where: {
-          classId,
-          schoolId,
-          id: { notIn: studentIds }
-        },
-        data: {
-          classId: null
-        }
-      });
 
-      // 2. Assign selected students to this class
-      await tx.student.updateMany({
+    const targetClass = await prisma.class.findFirst({
+      where: { id: classId, schoolId },
+      select: { levelId: true }
+    });
+    
+    // 1. Unassign all students currently in this class who are not in the new selection
+    await prisma.student.updateMany({
+      where: {
+        classId,
+        schoolId,
+        id: { notIn: studentIds }
+      },
+      data: {
+        classId: null
+      }
+    });
+
+    // 2. Assign selected students to this class (and keep levelId in sync with class)
+    if (studentIds.length > 0) {
+      await prisma.student.updateMany({
         where: {
           id: { in: studentIds },
           schoolId
         },
         data: {
-          classId
+          classId,
+          ...(targetClass?.levelId ? { levelId: targetClass.levelId } : {})
         }
       });
-    });
+    }
 
     revalidatePath("/list/classes");
+    revalidatePath(`/list/classes/${classId}`);
     revalidatePath("/list/students");
     if (schoolId) {
       invalidateTenantTags(schoolId, 'classes');
