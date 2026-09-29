@@ -159,7 +159,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <div className="bg-emerald-50/80 border border-emerald-200 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
                     <Check size={18} className="text-emerald-600 mt-0.5 shrink-0" />
                     <p className="text-[13px] text-emerald-900 leading-relaxed font-medium">
-                      Déposez votre fichier <b>.xlsx</b> officiel. SnapSchool détecte automatiquement le <b>المعرف التربوي</b>, le <b>Nom</b>, le <b>Prénom</b>, le <b>Genre</b> et le <b>Niveau (1ère à 6ème)</b> de chaque élève sans risque d'erreur !
+                      Déposez votre fichier <b>.xlsx</b> officiel. SnapSchool détecte automatiquement le <b>المعرف التربوي</b>, le <b>Nom</b>, le <b>Prénom</b>, le <b>Genre</b> et le <b>Niveau (1ère à 6ème)</b> de chaque élève sans risque d&apos;erreur !
                     </p>
                   </div>
 
@@ -188,7 +188,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                       <div className="text-center">
                         <p className="text-[15px] font-bold text-emerald-900">{excelFile.name}</p>
                         <p className="text-[12px] text-emerald-700 font-medium mt-0.5">
-                          {(excelFile.size / 1024).toFixed(1)} Ko • Prêt pour l'importation
+                          {(excelFile.size / 1024).toFixed(1)} Ko • Prêt pour l&apos;importation
                         </p>
                         <span className="inline-block mt-2 text-xs font-semibold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
                           ✓ Fichier sélectionné (Cliquez pour changer)
