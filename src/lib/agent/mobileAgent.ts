@@ -262,8 +262,13 @@ export function cleanTelegramFormattingForMobile(text: string): string {
     .replace(/&gt;/g, ">");
   // Strip separator bars
   clean = clean.replace(/[━─═-]{4,}/g, "");
+  // Move colons outside bold tags so key-value splitting does not break formatting:
+  // e.g. <b>Montant :</b> -> <b>Montant</b> :
+  clean = clean.replace(/<b(?: [^>]*)?>([^<:]+)\s*:\s*<\/b>/gi, "<b>$1</b> :");
   // Convert HTML bold to markdown bold
   clean = clean.replace(/<\/?(?:b|strong)>/gi, "**");
+  // Fix markdown bold containing colons: **Montant :** -> **Montant** :
+  clean = clean.replace(/\*\*([^*\n:]+)\s*:\s*\*\*/g, "**$1** :");
   // Convert HTML italic to markdown italic
   clean = clean.replace(/<\/?(?:i|em)>/gi, "*");
   // Convert <code>...</code> to markdown backticks `...`
