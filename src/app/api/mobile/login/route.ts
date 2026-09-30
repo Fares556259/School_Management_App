@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
-      return new NextResponse("No account found with that phone number.", { status: 404 });
+      return NextResponse.json(
+        { success: false, notFound: true, error: "No account found with that phone number." },
+        { status: 404 }
+      );
     }
 
     // New logic for multi-step auth - Strictly check for a valid hashed password

@@ -88,6 +88,133 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // === PARENT SIGNUP (Claim Student / Self-Registration) ===
+    if (action === "signup") {
+      const {
+        studentIds,
+        parentName,
+        parentSurname,
+        password: rawPassword,
+        relation,
+        address,
+        bloodType,
+        emergencyPhone,
+        medicalNotes,
+      } = body;
+
+      const pwd = rawPassword || password;
+
+      if (!phone || !pwd || !parentName || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Veuillez remplir votre nom, téléphone, mot de passe et sélectionner au moins un élève." },
+          { status: 400 }
+        );
+      }
+
+      if (pwd.length < 6) {
+        return NextResponse.json(
+          { success: false, error: "Le mot de passe doit comporter au moins 6 caractères." },
+          { status: 400 }
+        );
+      }
+
+      const cleanPhone = phone.trim().replace(/\s+/g, "");
+
+      // Verify selected students exist in DB
+      const students = await prisma.student.findMany({
+        where: { id: { in: studentIds } },
+        select: { id: true, schoolId: true, parentId: true },
+      });
+
+      if (students.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Élève introuvable dans l'établissement." },
+          { status: 404 }
+        );
+      }
+
+      const schoolId = students[0].schoolId || "default_school";
+      const hashedPassword = await bcrypt.hash(pwd, 10);
+      const parentFirstName = parentName.trim();
+      const parentLastName = (parentSurname || "").trim() || "Parent";
+
+      // Check if parent already exists with this phone
+      let parent = await prisma.parent.findFirst({
+        where: {
+          OR: [{ phone: cleanPhone }, { username: cleanPhone }],
+        },
+      });
+
+      if (!parent) {
+        const parentId = `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        const username = `p_${cleanPhone.slice(-8)}`;
+
+        parent = await prisma.parent.create({
+          data: {
+            id: parentId,
+            username,
+            name: parentFirstName,
+            surname: parentLastName,
+            phone: cleanPhone,
+            password: hashedPassword,
+            address: address ? address.trim() : "Tunis",
+            schoolId,
+          },
+        });
+      } else {
+        // Update existing parent record with credentials and full name
+        parent = await prisma.parent.update({
+          where: { id: parent.id },
+          data: {
+            name: parentFirstName,
+            surname: parentLastName,
+            password: hashedPassword,
+            address: address ? address.trim() : parent.address,
+            schoolId: parent.schoolId || schoolId,
+          },
+        });
+      }
+
+      // Link all selected students to this parent
+      await prisma.student.updateMany({
+        where: { id: { in: studentIds } },
+        data: {
+          parentId: parent.id,
+          bloodType: bloodType ? bloodType.trim() : undefined,
+          address: address ? address.trim() : undefined,
+        },
+      });
+
+      // Issue signed JWT token
+      const token = generateToken({
+        userId: parent.id,
+        userType: "parent",
+        schoolId: parent.schoolId || schoolId,
+      });
+
+      // Fetch newly linked students for the mobile session
+      const linkedStudents = await prisma.student.findMany({
+        where: { parentId: parent.id },
+        include: {
+          class: {
+            include: { level: true },
+          },
+          payments: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        token,
+        userId: parent.id,
+        userType: "parent",
+        schoolId: parent.schoolId || schoolId,
+        name: `${parent.name} ${parent.surname}`,
+        img: parent.img || null,
+        students: linkedStudents,
+      });
+    }
+
     let user: any = null;
     let userType: "parent" | "teacher" | "admin" = role === "teacher" ? "teacher" : role === "admin" ? "admin" : "parent";
 
