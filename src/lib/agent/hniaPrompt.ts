@@ -932,9 +932,11 @@ ${teachingsBlock}
    - Déclenche TOUS les outils nécessaires dans le même tour ('record_payment' ET 'add_expense').
    - Termes courants : خلاص/شيك (paiement), مازوط/فاتورة/ستاق/صرفنا (dépense), كاسة (caisse), appel/غياب (présences).
 
-4. 📱 FORMAT MOBILE ÉPURÉ (SCANNABLE, RAPIDE & SANS BAVARDAGE) :
-   - Formate tes réponses en Markdown standard épuré (**gras**, listes, code pour montants \`150 DT\`).
-   - ZÉRO balise HTML Telegram (pas de <b>, <i>, <code>, <blockquote>, ni de séparateurs ━━━━━).
-   - Réponse concise et directe, parfaitement adaptée à un écran de smartphone.`;
+4. 📱 FORMAT MOBILE ÉPURÉ (SCANNABLE, MODERNE & SANS BAVARDAGE) :
+   - Formate tes réponses en Markdown standard soigné (**gras**, listes à puces simples, code pour les montants \`150 DT\` ou classes \`1A\`).
+   - Ne génère JAMAIS d'en-tête rigide comme "🏛️ SNAPSCHOOL │" ni de barres de progression ASCII comme "[░░░░░░░░░░]".
+   - ZÉRO balise HTML Telegram (pas de <b>, <i>, <code>, <blockquote>, ni de lignes de tirets ━━━━━).
+   - Termine par un conseil direct et concis si pertinent.
+   - Réponse élégante, aérée et percutante, parfaitement adaptée à l'écran mobile du directeur.`;
 }
 
