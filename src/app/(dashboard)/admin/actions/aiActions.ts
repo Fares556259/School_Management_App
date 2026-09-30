@@ -152,28 +152,47 @@ async function unifiedAIRouter(params: {
 
   async function callProvider(key: string) {
     try {
-      const isGoogleNative = key.startsWith("AIza");
+      const isGoogleNative =
+        key.startsWith("AIza") ||
+        key.startsWith("AQ.") ||
+        (!key.startsWith("sk-or-") && !key.startsWith("sk-ant-"));
     
-    if (isGoogleNative) {
-      console.log("🛰️ [ROUTER] Using Google Native SDK...");
-      const genAI = new GoogleGenerativeAI(key);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
-      });
-      
-      const contents: any[] = [];
-      if (params.systemPrompt) contents.push({ role: "user", parts: [{ text: `SYSTEM_INSTRUCTION: ${params.systemPrompt}` }] });
-      if (params.history) contents.push(...params.history.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })));
-      const userParts: any[] = [{ text: params.userPrompt }];
-      if (params.fileBase64) {
-        userParts.push({ inlineData: { data: params.fileBase64, mimeType: params.fileMimeType || "image/jpeg" } });
-      }
-      contents.push({ role: "user", parts: userParts });
+      if (isGoogleNative) {
+        console.log("🛰️ [ROUTER] Using Google Native SDK...");
+        const genAI = new GoogleGenerativeAI(key);
+        const candidateModels = [
+          "gemini-3.6-flash",
+          "gemini-3.5-flash-lite",
+          "gemini-3.8-flash",
+          "gemini-flash-latest",
+        ];
 
-      const result = await model.generateContent({ contents });
-      return result.response.text();
-    } else {
+        let lastModelErr: any;
+        for (const mName of candidateModels) {
+          try {
+            const model = genAI.getGenerativeModel({ 
+              model: mName,
+              generationConfig: params.jsonMode ? { responseMimeType: "application/json" } : undefined
+            });
+            
+            const contents: any[] = [];
+            if (params.systemPrompt) contents.push({ role: "user", parts: [{ text: `SYSTEM_INSTRUCTION: ${params.systemPrompt}` }] });
+            if (params.history) contents.push(...params.history.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })));
+            const userParts: any[] = [{ text: params.userPrompt }];
+            if (params.fileBase64) {
+              userParts.push({ inlineData: { data: params.fileBase64, mimeType: params.fileMimeType || "image/jpeg" } });
+            }
+            contents.push({ role: "user", parts: userParts });
+
+            const result = await model.generateContent({ contents });
+            return result.response.text();
+          } catch (mErr: any) {
+            lastModelErr = mErr;
+            console.warn(`[ROUTER] Model ${mName} error:`, mErr?.message);
+          }
+        }
+        throw lastModelErr || new Error("All Google Gemini models failed.");
+      } else {
       console.log("🌐 [ROUTER] Using OpenRouter Fetch (Economy Mode)...");
       const messages = [];
       if (params.systemPrompt) messages.push({ role: "system", content: params.systemPrompt });
