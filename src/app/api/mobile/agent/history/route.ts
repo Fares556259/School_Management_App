@@ -21,6 +21,46 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "60", 10);
     const conversationIdParam = searchParams.get("conversationId");
 
+    // Return list of all active conversation threads for multi-thread drawer
+    if (searchParams.get("threads") === "true") {
+      const conversations = await prisma.aIConversation.findMany({
+        where: {
+          adminId: userId,
+          source: "mobile",
+          status: "ACTIVE",
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 50,
+        include: {
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+          _count: {
+            select: { messages: true },
+          },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        threads: conversations.map((c) => {
+          const lastMsg = c.messages[0];
+          let preview = lastMsg?.content || "";
+          preview = preview.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/g, "📷 Photo ").replace(/[#*`_]/g, "").trim();
+          if (preview.length > 70) preview = preview.slice(0, 67) + "...";
+          return {
+            id: c.id,
+            title: c.title || "Nouvelle discussion",
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+            messageCount: c._count.messages,
+            lastMessage: preview || null,
+          };
+        }),
+      });
+    }
+
     let conversation: any = null;
     if (conversationIdParam) {
       conversation = await prisma.aIConversation.findUnique({
@@ -115,6 +155,88 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("[Mobile Agent History API] Error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Erreur interne" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = authenticateMobileRequest(request);
+    if (auth.error) return auth.error;
+
+    const { userId, userType } = auth.payload;
+    if (userType !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Accès réservé à la direction / administrateur." },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const newConv = await prisma.aIConversation.create({
+      data: {
+        adminId: userId,
+        source: "mobile",
+        status: "ACTIVE",
+        title: (body.title || "Nouvelle discussion").slice(0, 40),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      conversationId: newConv.id,
+      title: newConv.title,
+    });
+  } catch (error: any) {
+    console.error("[Mobile Agent Create Thread API] Error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Erreur interne" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = authenticateMobileRequest(request);
+    if (auth.error) return auth.error;
+
+    const { userId, userType } = auth.payload;
+    if (userType !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Accès réservé à la direction / administrateur." },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const conversationId = searchParams.get("conversationId");
+    if (!conversationId) {
+      return NextResponse.json(
+        { success: false, error: "conversationId requis." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.aIConversation.updateMany({
+      where: {
+        id: conversationId,
+        adminId: userId,
+      },
+      data: {
+        status: "ARCHIVED",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Discussion archivée avec succès.",
+    });
+  } catch (error: any) {
+    console.error("[Mobile Agent Delete Thread API] Error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Erreur interne" },
       { status: 500 }

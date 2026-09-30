@@ -15,6 +15,8 @@ export interface MobileAgentInput {
   audioMimeType?: string;
   imageBase64?: string;
   imageMimeType?: string;
+  onStatusUpdate?: (status: { step: string; tool?: string }) => void | Promise<void>;
+  onTokenDelta?: (delta: string) => void | Promise<void>;
 }
 
 export interface MobileAgentResponse {
@@ -40,10 +42,11 @@ export interface MobileAgentResponse {
 }
 
 const CANDIDATE_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
   "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
-  "gemini-3.6-flash",
-  "gemini-2.5-flash",
 ];
 
 const VOICE_CANDIDATE_MODELS = [
@@ -193,6 +196,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
   // 1. Parallel startup: fetch admin, transcribe audio (if provided), and load conversation
   const originalUserText = (input.userMessage || "").trim();
+
+  if (input.audioBase64) {
+    await input.onStatusUpdate?.({ step: "Transcription de votre message vocal..." });
+  } else if (input.imageBase64) {
+    await input.onStatusUpdate?.({ step: "Analyse du document / photo..." });
+  } else {
+    await input.onStatusUpdate?.({ step: "Analyse de votre demande..." });
+  }
 
   const [admin, transcriptionResult, conversationLookup] = await Promise.all([
     prisma.admin.findUnique({
@@ -430,6 +441,8 @@ Instructions :
     await prisma.aIMessage.create({
       data: { conversationId, role: "assistant", content: greeting },
     });
+    await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+    await input.onTokenDelta?.(greeting);
     return {
       success: true,
       conversationId,
@@ -449,6 +462,7 @@ Instructions :
   const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
 
   if (IMPAYES_REGEX.test(msgLower)) {
+    await input.onStatusUpdate?.({ step: "Vérification des impayés...", tool: "get_payments" });
     try {
       const { getPaymentsTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getPaymentsTool({ status: "UNPAID" }, context)) as any;
@@ -463,6 +477,9 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+        await input.onTokenDelta?.(cleanMsg);
 
         const students = (out.records || []).slice(0, 15).map((r: any) => ({
           studentId: r.studentId,
@@ -500,6 +517,7 @@ Instructions :
   }
 
   if (CAISSE_REGEX.test(msgLower)) {
+    await input.onStatusUpdate?.({ step: "Calcul de la caisse du jour...", tool: "get_daily_caisse" });
     try {
       const { getDailyCaisseTool } = await import("@/lib/telegram/tools/financeTools");
       const out = (await getDailyCaisseTool({ date: "today" }, context)) as any;
@@ -517,6 +535,9 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+        await input.onTokenDelta?.(cleanMsg);
 
         return {
           success: true,
@@ -546,6 +567,7 @@ Instructions :
   }
 
   if (RECEIPT_REGEX.test(msgLower) && !msgLower.includes("dépense") && !msgLower.includes("depense")) {
+    await input.onStatusUpdate?.({ step: "Génération de la quittance PDF...", tool: "get_payment_receipt" });
     try {
       const { getPaymentReceiptTool } = await import("@/lib/telegram/tools/documentTools");
       const cleanTarget = effectiveUserMessage
@@ -557,6 +579,10 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+        await input.onTokenDelta?.(cleanMsg);
+
         return {
           success: true,
           conversationId,
@@ -578,6 +604,7 @@ Instructions :
   }
 
   if (ABSENCES_REGEX.test(msgLower)) {
+    await input.onStatusUpdate?.({ step: "Consultation des absences du jour...", tool: "get_attendance" });
     try {
       const { getAttendanceTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getAttendanceTool({}, context)) as any;
@@ -586,6 +613,10 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+        await input.onTokenDelta?.(cleanMsg);
+
         return {
           success: true,
           conversationId,
@@ -603,6 +634,7 @@ Instructions :
   }
 
   if (STATS_REGEX.test(msgLower)) {
+    await input.onStatusUpdate?.({ step: "Calcul des statistiques scolaires...", tool: "get_school_stats" });
     try {
       const { getSchoolStatsTool } = await import("@/lib/telegram/tools/readTools");
       const out = (await getSchoolStatsTool({}, context)) as any;
@@ -611,6 +643,10 @@ Instructions :
         await prisma.aIMessage.create({
           data: { conversationId, role: "assistant", content: cleanMsg },
         });
+
+        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+        await input.onTokenDelta?.(cleanMsg);
+
         return {
           success: true,
           conversationId,
@@ -706,6 +742,7 @@ Instructions :
       });
 
       const chat = model.startChat({ history: historyContents });
+      await input.onStatusUpdate?.({ step: "Recherche en cours..." });
       let response = await chat.sendMessage([{ text: effectiveUserMessage }]);
       let candidate = response.response;
 
@@ -729,6 +766,27 @@ Instructions :
           console.warn(`[MobileAgent] Unknown tool call: ${toolName}`);
           break;
         }
+
+        const toolLabels: Record<string, string> = {
+          get_daily_caisse: "Calcul de la caisse...",
+          get_payments: "Vérification des paiements...",
+          get_attendance: "Consultation des présences...",
+          get_student_profile: "Recherche de la fiche élève...",
+          get_teacher_profile: "Recherche de la fiche enseignant...",
+          get_class_timetable: "Consultation de l'emploi du temps...",
+          add_expense: "Préparation de la dépense...",
+          record_payment: "Préparation de l'encaissement...",
+          get_payment_receipt: "Génération de la quittance PDF...",
+          mark_class_attendance: "Enregistrement de l'appel...",
+          send_push_notification: "Préparation de la notification...",
+          search_wikipedia: "Recherche d'informations...",
+          teach_hnia: "Mémorisation de la consigne...",
+          get_hnia_teachings: "Consultation de la mémoire...",
+          get_financial_anomalies: "Analyse des finances...",
+          get_school_stats: "Calcul des statistiques...",
+        };
+        const stepLabel = toolLabels[toolName] || `Exécution : ${toolName}...`;
+        await input.onStatusUpdate?.({ step: stepLabel, tool: toolName });
 
         // Action requires confirmation
         if (toolDef.requiresConfirmation) {
@@ -900,6 +958,7 @@ Instructions :
         }
 
         // Synthesize via Gemini (fallback only if unformatted custom tool output)
+        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
         response = await chat.sendMessage([
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
@@ -923,6 +982,13 @@ Instructions :
           finalReply = "C'est noté ! Avez-vous besoin d'autre chose ?";
         }
       }
+
+      // Stream tokens to client if incremental callback provided
+      if (input.onTokenDelta && finalReply) {
+        await input.onTokenDelta(finalReply);
+      }
+
+      await input.onStatusUpdate?.({ step: "Terminé" });
 
       // Save assistant reply
       await prisma.aIMessage.create({
