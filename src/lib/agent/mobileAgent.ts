@@ -19,6 +19,25 @@ export interface MobileAgentInput {
   onTokenDelta?: (delta: string) => void | Promise<void>;
 }
 
+export interface ActionCardField {
+  label: string;
+  value: string;
+  icon?: string;
+}
+
+export interface ActionCardData {
+  toolCallId: string;
+  toolName: string;
+  actionTitle: string;
+  actionType: "expense" | "payment" | "student" | "class" | "attendance" | "announcement" | "generic";
+  confirmText: string;
+  fields: ActionCardField[];
+  status: "PENDING" | "EXECUTING" | "EXECUTED" | "REJECTED";
+  reference?: string;
+  resultMessage?: string;
+  arguments?: Record<string, any>;
+}
+
 export interface MobileAgentResponse {
   success: boolean;
   conversationId: string;
@@ -26,19 +45,146 @@ export interface MobileAgentResponse {
   transcription?: string;
   analyzedDocument?: any;
   imageUrl?: string;
-  pendingConfirmation?: {
-    toolCallId: string;
-    toolName: string;
-    confirmText: string;
-    arguments: Record<string, any>;
-  } | null;
+  pendingConfirmation?: ActionCardData | null;
   executedTool?: string;
   widget?: {
-    type: "caisse" | "unpaid_tuition" | "pdf_receipt";
+    type: "caisse" | "unpaid_tuition" | "pdf_receipt" | "finance_summary" | "student_card" | "attendance_card" | "action_card";
     data: any;
   } | null;
   followUpSuggestions?: string[];
   error?: string;
+}
+
+export function buildActionCardMetadata(
+  toolCallId: string,
+  toolName: string,
+  args: Record<string, any>,
+  confirmText: string
+): ActionCardData {
+  const today = new Date().toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  if (toolName === "add_expense") {
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Ajouter une dépense",
+      actionType: "expense",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Montant", value: `${args.amount || 0} DT` },
+        { label: "Catégorie", value: args.category || "Général" },
+        { label: "Description", value: args.title || args.description || "Facture / Dépense" },
+        { label: "Date", value: args.date || today },
+      ],
+    };
+  }
+
+  if (toolName === "record_payment" || toolName === "record_parent_payment") {
+    const studentOrParent = args.studentNameOrId || args.parentNameOrId || "Élève";
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Encaisser un paiement",
+      actionType: "payment",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Montant", value: `${args.amount || 0} DT` },
+        { label: "Bénéficiaire", value: studentOrParent },
+        { label: "Période", value: args.feePeriod || new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
+        { label: "Mode de règlement", value: args.paymentMethod || "Espèces" },
+      ],
+    };
+  }
+
+  if (toolName === "create_student") {
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Inscrire un nouvel élève",
+      actionType: "student",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Nom & Prénom", value: `${args.name || ""} ${args.surname || ""}`.trim() || "Nouvel élève" },
+        { label: "Classe", value: args.className || "Non assignée" },
+        { label: "Contact Parent", value: args.parentPhone || args.parentName || "Non renseigné" },
+        { label: "Frais mensuels", value: args.customTuition ? `${args.customTuition} DT` : "Standard" },
+      ],
+    };
+  }
+
+  if (toolName === "create_class") {
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Créer une nouvelle classe",
+      actionType: "class",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Nom de la classe", value: args.name || "Nouvelle classe" },
+        { label: "Niveau", value: args.levelNumber ? `Niveau ${args.levelNumber}` : "Standard" },
+        { label: "Capacité maximale", value: args.capacity ? `${args.capacity} élèves` : "30 élèves" },
+      ],
+    };
+  }
+
+  if (toolName === "mark_class_attendance") {
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Valider l'appel de classe",
+      actionType: "attendance",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Classe", value: args.className || "Classe" },
+        { label: "Date de l'appel", value: args.date || today },
+        { label: "Absents signalés", value: args.absentNames ? (Array.isArray(args.absentNames) ? args.absentNames.join(", ") : String(args.absentNames)) : "Aucun (Tous présents)" },
+      ],
+    };
+  }
+
+  if (toolName === "post_announcement" || toolName === "send_push_notification") {
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Diffuser une annonce aux parents",
+      actionType: "announcement",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Destinataires", value: args.className ? `Classe ${args.className}` : "Toute l'école" },
+        { label: "Titre de l'annonce", value: args.title || "Annonce" },
+        { label: "Contenu", value: args.message || args.content || "" },
+      ],
+    };
+  }
+
+  return {
+    toolCallId,
+    toolName,
+    actionTitle: `Confirmer l'action : ${toolName}`,
+    actionType: "generic",
+    confirmText,
+    status: "PENDING",
+    arguments: args,
+    fields: Object.entries(args)
+      .filter(([k]) => !k.startsWith("_") && k !== "schoolId" && k !== "adminId")
+      .map(([k, v]) => ({ label: k, value: String(v) })),
+  };
 }
 
 const CANDIDATE_MODELS = [
@@ -58,8 +204,8 @@ const VOICE_CANDIDATE_MODELS = [
 /**
  * Fast intent-based tool pruning dedicated for Mobile.
  * - Pure chitchat / greetings / general advice → 0 tools (instant ~350ms text generation).
- * - Focused school queries → 5-10 relevant tools.
- * - Ambiguous queries → top 8 universal tools instead of all 80 tools.
+ * - Focused school queries → relevant tools.
+ * - Ambiguous queries → top universal tools instead of all 80 tools.
  */
 function getMobileDeclarations(userMessage: string): any[] {
   const msg = (userMessage || "").trim();
@@ -71,20 +217,28 @@ function getMobileDeclarations(userMessage: string): any[] {
   }
 
   const declarations = getPrunedGeminiDeclarations(msg);
-  if (declarations.length > 30) {
-    const HAS_SCHOOL_TERMS = /(élève|student|parent|prof|enseignant|classe|note|examen|absence|retard|caisse|payer|paiement|impayé|dépense|reçu|facture|dt|dinar|emploi|cours|horaire|appel)/i.test(msg);
+  if (declarations.length > 25) {
+    const HAS_SCHOOL_TERMS = /(élève|student|parent|prof|enseignant|classe|note|examen|absence|retard|caisse|payer|paiement|impayé|dépense|reçu|facture|dt|dinar|emploi|cours|horaire|appel|annonce|revenu|inscrire|créer|ajouter)/i.test(msg);
     if (!HAS_SCHOOL_TERMS) {
       return [];
     }
     const UNIVERSAL_KEYS = new Set([
       "get_school_stats",
       "get_daily_caisse",
+      "get_financial_summary",
       "get_payments",
       "record_parent_payment",
       "record_payment",
       "add_expense",
       "get_attendance",
+      "mark_class_attendance",
       "get_student_profile",
+      "get_students",
+      "create_student",
+      "create_class",
+      "post_announcement",
+      "send_payment_reminders",
+      "get_class_timetable",
     ]);
     return declarations.filter((d: any) => UNIVERSAL_KEYS.has(d.name));
   }
@@ -460,6 +614,108 @@ Instructions :
   const RECEIPT_REGEX = /(reçu|quittance|bulletin de paie|facture de scolarité|reçu de paiement)/i;
   const ABSENCES_REGEX = /(absences? du jour|qui est absent|absents? aujourd'hui|شكون غايب|appel du jour)/i;
   const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
+  const REVENUE_REGEX = /(revenus?|chiffre d'affaires?|recettes? du mois|revenus? de ce mois|combien on a gagné|combien gagné|total des recettes|rentrées?)/i;
+
+  if (REVENUE_REGEX.test(msgLower)) {
+    await input.onStatusUpdate?.({ step: "Calcul des revenus du mois...", tool: "get_financial_summary" });
+    try {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+      const startOfCurrentMonth = new Date(currentYear, currentMonth - 1, 1);
+      const endOfCurrentMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+
+      const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+      const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+      const startOfPrevMonth = new Date(prevYear, prevMonth - 1, 1);
+      const endOfPrevMonth = new Date(prevYear, prevMonth, 0, 23, 59, 59);
+
+      const [currIncomes, prevIncomes, currExpenses] = await Promise.all([
+        prisma.payment.aggregate({
+          where: {
+            schoolId: context.schoolId,
+            month: currentMonth,
+            year: currentYear,
+            status: "PAID",
+            userType: "STUDENT",
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
+        }),
+        prisma.payment.aggregate({
+          where: {
+            schoolId: context.schoolId,
+            month: prevMonth,
+            year: prevYear,
+            status: "PAID",
+            userType: "STUDENT",
+          },
+          _sum: { amount: true },
+        }),
+        prisma.expense.aggregate({
+          where: {
+            schoolId: context.schoolId,
+            date: { gte: startOfCurrentMonth, lte: endOfCurrentMonth },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const totalRevenue = currIncomes?._sum?.amount || 0;
+      const prevRevenue = prevIncomes?._sum?.amount || 0;
+      const totalExpenses = currExpenses?._sum?.amount || 0;
+      const netProfit = totalRevenue - totalExpenses;
+      const paymentsCount = currIncomes?._count?._all || 0;
+
+      const trendPercent =
+        prevRevenue > 0
+          ? Math.round(((totalRevenue - prevRevenue) / prevRevenue) * 1000) / 10
+          : 0;
+      const trendSymbol = trendPercent >= 0 ? `↑ +${trendPercent}%` : `↓ ${trendPercent}%`;
+
+      const monthName = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      const prevMonthName = new Date(prevYear, prevMonth - 1, 1).toLocaleDateString("fr-FR", { month: "long" });
+
+      const cleanMsg =
+        `💰 **Revenus du mois (${monthName}) :**\n\n` +
+        `• **Recettes :** \`${totalRevenue} DT\` (${trendSymbol} vs ${prevMonthName})\n` +
+        `• **Dépenses :** \`${totalExpenses} DT\`\n` +
+        `• **Résultat net :** **\`${netProfit} DT\`**\n\n` +
+        `📊 *${paymentsCount} règlements enregistrés ce mois-ci.*`;
+
+      await prisma.aIMessage.create({
+        data: { conversationId, role: "assistant", content: cleanMsg },
+      });
+
+      await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
+      await input.onTokenDelta?.(cleanMsg);
+
+      return {
+        success: true,
+        conversationId,
+        message: cleanMsg,
+        transcription,
+        analyzedDocument: analyzedDoc,
+        imageUrl: uploadedImageUrl,
+        executedTool: "get_financial_summary",
+        widget: {
+          type: "finance_summary",
+          data: {
+            period: monthName,
+            totalRevenue,
+            totalExpenses,
+            netProfit,
+            trendPercent,
+            paymentsCount,
+            comparisonText: `vs ${prevMonthName}`,
+          },
+        },
+        followUpSuggestions: ["Caisse du jour 💰", "Impayés du mois 💳", "Dépenses 💸"],
+      };
+    } catch (e) {
+      console.warn("[MobileAgent] Fast-path revenue error:", e);
+    }
+  }
 
   if (IMPAYES_REGEX.test(msgLower)) {
     await input.onStatusUpdate?.({ step: "Vérification des impayés...", tool: "get_payments" });
@@ -805,11 +1061,11 @@ Instructions :
             : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
           const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
-          pendingConfirmation = {
-            toolCallId: toolCallRecord.id,
-            toolName,
-            confirmText,
-            arguments: toolArgs,
+          const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText);
+          pendingConfirmation = actionCard;
+          detectedWidget = {
+            type: "action_card",
+            data: actionCard,
           };
 
           finalReply = "Veuillez vérifier et confirmer l'action ci-dessous :";
@@ -832,6 +1088,7 @@ Instructions :
             imageUrl: uploadedImageUrl,
             pendingConfirmation,
             executedTool: toolName,
+            widget: detectedWidget,
             followUpSuggestions: [],
           };
         }
@@ -860,6 +1117,50 @@ Instructions :
               netCashBalance: numNet,
               paymentsCount: toolOutput.summary?.paymentsCount || 0,
               expensesCount: toolOutput.summary?.expensesCount || 0,
+            },
+          };
+        } else if (toolName === "get_financial_summary" && toolOutput) {
+          detectedWidget = {
+            type: "finance_summary",
+            data: {
+              period: toolOutput.periodFrench || toolOutput.period || "Mois en cours",
+              totalRevenue: toolOutput.totalIncome || 0,
+              totalExpenses: toolOutput.totalExpense || 0,
+              netProfit: toolOutput.netProfit || 0,
+              trendPercent: toolOutput.marginPercentage || 0,
+              unpaidTuition: toolOutput.unpaidTuition || 0,
+              unpaidStudentsCount: toolOutput.unpaidStudentsCount || 0,
+            },
+          };
+        } else if (toolName === "get_student_profile" && toolOutput?.student) {
+          const st = toolOutput.student;
+          detectedWidget = {
+            type: "student_card",
+            data: {
+              id: st.id,
+              name: `${st.name} ${st.surname}`.trim(),
+              className: st.class?.name || "Non assignée",
+              levelName: st.level?.name || "Standard",
+              parentName: st.parent ? `${st.parent.name} ${st.parent.surname}`.trim() : "Non renseigné",
+              parentPhone: st.parent?.phone || null,
+              attendanceRate: st.attendanceRate || "100%",
+              paymentStatus: st.paymentStatus || "PAID",
+              tuitionFee: st.tuitionFee || 0,
+              averageGrade: st.averageGrade,
+            },
+          };
+        } else if ((toolName === "get_attendance" || toolName === "mark_class_attendance") && toolOutput) {
+          detectedWidget = {
+            type: "attendance_card",
+            data: {
+              date: toolOutput.date || new Date().toISOString().split("T")[0],
+              className: toolOutput.className || "Toute l'école",
+              attendanceRate: toolOutput.summary?.attendanceRate || toolOutput.attendanceRate || "100%",
+              totalEnrolled: toolOutput.totalEnrolled || toolOutput.summary?.totalInscrits || 0,
+              presentCount: toolOutput.summary?.presentCount ?? toolOutput.presentCount ?? 0,
+              absentCount: toolOutput.summary?.absentCount ?? toolOutput.absentCount ?? 0,
+              lateCount: toolOutput.summary?.lateCount ?? toolOutput.lateCount ?? 0,
+              absentStudents: (toolOutput.absentStudents || []).slice(0, 10),
             },
           };
         } else if ((toolName === "get_payments" || toolName === "get_financial_anomalies") && (toolOutput?.records || toolOutput?.unpaidStudents)) {
@@ -1042,7 +1343,17 @@ export async function confirmMobileAction(params: {
   action: "confirm" | "cancel";
   adminId: string;
   schoolId: string;
-}): Promise<{ success: boolean; message: string; result?: any }> {
+}): Promise<{
+  success: boolean;
+  message: string;
+  result?: any;
+  actionResult?: {
+    reference: string;
+    summary: string;
+    timestamp: string;
+    status: "EXECUTED" | "REJECTED";
+  };
+}> {
   const { toolCallId, action, adminId, schoolId } = params;
 
   const toolCall = await prisma.aIToolCall.findUnique({
@@ -1102,7 +1413,17 @@ export async function confirmMobileAction(params: {
       });
     }
 
-    return { success: true, message: "Action annulée avec succès." };
+    const cancelRef = `ACT-${new Date().getFullYear()}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+    return {
+      success: true,
+      message: "Action annulée avec succès.",
+      actionResult: {
+        reference: cancelRef,
+        summary: `Action ${toolCall.toolName} annulée`,
+        timestamp: new Date().toISOString(),
+        status: "REJECTED",
+      },
+    };
   }
 
   // Confirm
@@ -1155,10 +1476,28 @@ export async function confirmMobileAction(params: {
       });
     }
 
+    const prefixMap: Record<string, string> = {
+      add_expense: "EXP",
+      record_payment: "REC",
+      record_parent_payment: "REC",
+      create_student: "ELE",
+      create_class: "CLS",
+      mark_class_attendance: "APP",
+      post_announcement: "ANN",
+    };
+    const prefix = prefixMap[toolCall.toolName] || "ACT";
+    const reference = `${prefix}-${new Date().getFullYear()}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+
     return {
       success: true,
       message: successMsg,
       result: executionResult,
+      actionResult: {
+        reference,
+        summary: executionResult?.summary || successMsg,
+        timestamp: new Date().toISOString(),
+        status: "EXECUTED",
+      },
     };
   } catch (err: any) {
     console.error("[MobileAgent] Tool execution error:", err);
