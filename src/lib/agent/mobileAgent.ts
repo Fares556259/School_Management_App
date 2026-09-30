@@ -191,21 +191,19 @@ const CANDIDATE_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3.5-flash",
 ];
 
 const VOICE_CANDIDATE_MODELS = [
-  "gemini-3.5-flash-lite",
-  "gemini-3.5-flash",
-  "gemini-3.6-flash",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
 ];
 
 /**
  * Fast intent-based tool pruning dedicated for Mobile.
  * - Pure chitchat / greetings / general advice → 0 tools (instant ~350ms text generation).
  * - Focused school queries → relevant tools.
- * - Ambiguous queries → top universal tools instead of all 80 tools.
+ * - Ambiguous queries / follow-ups (e.g. "Go", "Oui", "Fais-le") → top 16 universal tools so actions are never blocked.
  */
 function getMobileDeclarations(userMessage: string): any[] {
   const msg = (userMessage || "").trim();
@@ -218,10 +216,6 @@ function getMobileDeclarations(userMessage: string): any[] {
 
   const declarations = getPrunedGeminiDeclarations(msg);
   if (declarations.length > 25) {
-    const HAS_SCHOOL_TERMS = /(élève|student|parent|prof|enseignant|classe|note|examen|absence|retard|caisse|payer|paiement|impayé|dépense|reçu|facture|dt|dinar|emploi|cours|horaire|appel|annonce|revenu|inscrire|créer|ajouter)/i.test(msg);
-    if (!HAS_SCHOOL_TERMS) {
-      return [];
-    }
     const UNIVERSAL_KEYS = new Set([
       "get_school_stats",
       "get_daily_caisse",
@@ -742,7 +736,7 @@ Instructions :
         await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
         await input.onTokenDelta?.(cleanMsg);
 
-        const students = (out.records || []).slice(0, 15).map((r: any) => ({
+        const students = (out.records || []).map((r: any) => ({
           studentId: r.studentId,
           studentName: r.studentName,
           className: r.class,
@@ -1176,7 +1170,7 @@ Instructions :
               data: {
                 totalOutstanding: toolOutput.totalOutstanding || 0,
                 unpaidCount: toolOutput.unpaidCount || records.length,
-                students: records.slice(0, 15).map((r: any) => ({
+                students: records.map((r: any) => ({
                   studentId: r.studentId || r.id,
                   studentName: r.studentName || `${r.name || ""} ${r.surname || ""}`.trim(),
                   className: r.class || r.className,
@@ -1283,7 +1277,64 @@ Instructions :
       if (!finalReply) {
         try {
           const rawText = candidate.text() || "C'est noté ! Avez-vous besoin d'autre chose ?";
-          finalReply = cleanTelegramFormattingForMobile(rawText);
+
+          // Safety interceptor: If the model generated raw JSON for an action instead of calling a tool natively
+          const jsonActionMatch =
+            rawText.match(/```(?:json)?\s*(\{[\s\S]*?"action"\s*:\s*"([a-zA-Z0-9_]+)"[\s\S]*?\})\s*```/) ||
+            rawText.match(/(\{[\s\S]*?"action"\s*:\s*"([a-zA-Z0-9_]+)"\s*,\s*"payload"\s*:\s*\{[\s\S]*?\}\s*\})/);
+
+          if (jsonActionMatch) {
+            try {
+              const parsed = JSON.parse(jsonActionMatch[1]);
+              const toolName = parsed.action;
+              const payload = parsed.payload || {};
+
+              const toolArgs: Record<string, any> = { ...payload };
+              if (payload.first_name && !toolArgs.name) toolArgs.name = payload.first_name;
+              if (payload.last_name && !toolArgs.surname) toolArgs.surname = payload.last_name;
+              if (payload.class_name && !toolArgs.className) toolArgs.className = payload.class_name;
+              if (payload.parent_phone && !toolArgs.parentPhone) toolArgs.parentPhone = payload.parent_phone;
+              if (payload.parent_name && !toolArgs.parentName) toolArgs.parentName = payload.parent_name;
+
+              const toolDef = TOOLS[toolName];
+              if (toolDef && toolDef.requiresConfirmation) {
+                const toolCallRecord = await prisma.aIToolCall.create({
+                  data: {
+                    conversationId,
+                    toolName,
+                    arguments: toolArgs,
+                    status: "PENDING",
+                    requiresConfirm: true,
+                  },
+                });
+
+                const rawConfirmText = toolDef.formatConfirmationMessage
+                  ? await Promise.resolve(toolDef.formatConfirmationMessage(toolArgs, context))
+                  : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
+                const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
+
+                const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText);
+                pendingConfirmation = actionCard;
+                detectedWidget = {
+                  type: "action_card",
+                  data: actionCard,
+                };
+
+                // Strip the JSON block completely from the displayed message
+                const cleanedText = rawText.replace(jsonActionMatch[0], "").trim();
+                finalReply = cleanTelegramFormattingForMobile(
+                  cleanedText || `Veuillez vérifier et confirmer l'action ci-dessous :`
+                );
+              } else {
+                finalReply = cleanTelegramFormattingForMobile(rawText.replace(jsonActionMatch[0], "").trim() || rawText);
+              }
+            } catch (jsonErr) {
+              console.warn("[MobileAgent] JSON action parsing error:", jsonErr);
+              finalReply = cleanTelegramFormattingForMobile(rawText);
+            }
+          } else {
+            finalReply = cleanTelegramFormattingForMobile(rawText);
+          }
         } catch {
           finalReply = "C'est noté ! Avez-vous besoin d'autre chose ?";
         }
@@ -1322,7 +1373,7 @@ Instructions :
         transcription,
         analyzedDocument: analyzedDoc,
         imageUrl: uploadedImageUrl,
-        pendingConfirmation: null,
+        pendingConfirmation: pendingConfirmation || null,
         executedTool: lastExecutedTool,
         widget: detectedWidget,
         followUpSuggestions: suggestions,
