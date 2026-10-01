@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getRole } from "@/lib/role";
 import { createClient } from "@/utils/supabase/server";
 import { Prisma } from "@prisma/client";
@@ -149,6 +151,14 @@ const TeacherListPage = async ({
       [data, count, paidThisMonth, partialThisMonth] = dynamicRes;
     } else {
       [data, count, paidThisMonth, partialThisMonth] = await fetchDynamicData();
+    }
+
+    // Cache fallback: if cached data is empty, query database directly to ensure fresh data
+    if (data.length === 0 && !queryParams.search && !queryParams.classId) {
+      const freshDynamic = await fetchDynamicData();
+      if (freshDynamic && freshDynamic[0]?.length > 0) {
+        [data, count, paidThisMonth, partialThisMonth] = freshDynamic;
+      }
     }
   } catch (err) {
     console.error("[TeacherListPage] Error fetching teachers data, falling back:", err);
