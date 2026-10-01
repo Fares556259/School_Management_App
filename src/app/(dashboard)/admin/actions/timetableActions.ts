@@ -86,10 +86,14 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
         where: { classId: data.classId!, day: data.day!, isDraft },
         orderBy: { slotNumber: "asc" }
       });
-      const nextSlotNumber = data.slotNumber !== undefined ? Number(data.slotNumber) : (existingSlots.length + 1);
+      const existingSlotNumbers = new Set(existingSlots.map(s => s.slotNumber));
+      let safeSlotNumber = data.slotNumber !== undefined ? Number(data.slotNumber) : 1;
+      while (existingSlotNumbers.has(safeSlotNumber)) {
+        safeSlotNumber++;
+      }
       
       // Calculate next groupId to prevent constraint violations when adding to an existing slot block
-      const existingGroupSlots = existingSlots.filter(s => s.slotNumber === nextSlotNumber);
+      const existingGroupSlots = existingSlots.filter(s => s.slotNumber === safeSlotNumber);
       const nextGroupId = data.groupId !== undefined ? data.groupId : (existingGroupSlots.length > 0 ? Math.max(...existingGroupSlots.map(s => s.groupId || 1)) + 1 : 1);
       const duration = data.duration || 120;
 
@@ -101,23 +105,24 @@ export async function updateTimetableSlot(data: TimetableSlotUpdate & { classId?
       const dayStart = (institution as any)?.dayStartTime || "08:00";
       const dayEnd = (institution as any)?.dayEndTime || "14:00";
 
-      // Find the last slot in this day to cascade from
+      // If startTime was explicitly supplied (e.g. from clicking on an empty slot), use it
       const prevSlot = existingSlots[existingSlots.length - 1];
-      const slotStart = prevSlot ? prevSlot.endTime : dayStart;
-      const slotEnd = addMinutes(slotStart, duration);
+      const slotStart = data.startTime || (prevSlot ? prevSlot.endTime : dayStart);
+      const slotEnd = data.endTime || addMinutes(slotStart, duration);
 
       // Block if slot would exceed school day end
       const [eH, eM] = dayEnd.split(":").map(Number);
-      const actualSlotEnd = data.endTime || slotEnd;
+      const actualSlotEnd = slotEnd;
       const [sH, sM] = actualSlotEnd.split(":").map(Number);
       if (sH * 60 + sM > eH * 60 + eM) {
-        return { success: false, error: `Dépasse la fin de journée (${dayEnd}). Réduisez la durée ou supprimez d'autres créneaux.` };
+        // If the school is in 14:00 mode and slot extends beyond, allow expanding dayEndTime or return friendly error
+        return { success: false, error: `Dépasse la fin de journée (${dayEnd}). Réduisez la durée ou modifiez l'heure de fermeture dans les paramètres.` };
       }
 
       const created = await prisma.timetableSlot.create({
         data: {
           day: data.day!,
-          slotNumber: nextSlotNumber,
+          slotNumber: safeSlotNumber,
           startTime: data.startTime || slotStart,
           endTime: data.endTime || slotEnd,
           duration,

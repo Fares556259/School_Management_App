@@ -114,6 +114,14 @@ const ScheduleSlot = ({
     return pastelColors[subjectId % pastelColors.length];
   };
 
+  const [slotStartTime, setSlotStartTime] = useState<string>(startTime || "08:00");
+
+  useEffect(() => {
+    if (startTime) {
+      setSlotStartTime(startTime);
+    }
+  }, [startTime]);
+
   // Sync state when slot prop changes
   useEffect(() => {
     if (slotsArray.length > 0) {
@@ -130,11 +138,17 @@ const ScheduleSlot = ({
         };
       }));
       setDuration(slotsArray[0].duration || 120);
+      if (slotsArray[0].startTime) {
+        setSlotStartTime(slotsArray[0].startTime);
+      }
     } else {
       setSessions([{ id: -1, subjectId: "", teacherId: "", roomId: "" }]);
       setDuration(120);
+      if (startTime) {
+        setSlotStartTime(startTime);
+      }
     }
-  }, [slot, type]);
+  }, [slot, type, startTime]);
 
 
   const handleUpdate = async () => {
@@ -169,8 +183,8 @@ const ScheduleSlot = ({
           classId: classId,
           day: day,
           slotNumber: period,
-          startTime,
-          endTime: addMinutes(startTime, duration),
+          startTime: slotStartTime,
+          endTime: addMinutes(slotStartTime, duration),
           duration,
           roomId: isFree ? null : (parseInt(sess.roomId) || null),
           examPeriod: examPeriod,
@@ -233,10 +247,6 @@ const ScheduleSlot = ({
   const availableRooms = rooms.filter((r) => !occupiedRoomIds.includes(r.id));
   const occupiedRooms = rooms.filter((r) => occupiedRoomIds.includes(r.id));
 
-  if (!firstSlot && !isEditMode) return null;
-
-
-
   const handleDragStart = (e: React.DragEvent) => {
     if (firstSlot?.id) {
        e.dataTransfer.setData("slotId", firstSlot.id.toString());
@@ -248,17 +258,26 @@ const ScheduleSlot = ({
     <>
       {/* Background Cell Rendering */}
       {!firstSlot ? (
-        isEditMode && (
-          <button 
-              onClick={() => setIsEditing(true)}
-              className="w-full h-full border-none bg-transparent flex flex-col items-center justify-center text-[#9297a0] hover:text-[#181d26] transition-all group print:hidden"
-          >
-            <div className="w-8 h-8 rounded-full bg-[#ffffff] border border-[#dddddd] flex items-center justify-center transition-colors hover:shadow-sm">
-               <BookOpen size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
-            </div>
-            {!compactMode && <span className="text-[12px] font-medium mt-3 capitalize text-[#41454d]">{type === 'exam' ? t.timetable.addExam : t.timetable.addSession}</span>}
-          </button>
-        )
+        <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            className={`w-full h-full border-none bg-transparent flex flex-col items-center justify-center text-slate-400 hover:text-blue-600 transition-all group/btn print:hidden cursor-pointer p-1 ${
+              !isEditMode ? 'opacity-0 group-hover/empty:opacity-100 hover:opacity-100' : 'opacity-70 hover:opacity-100'
+            }`}
+            title={`${type === 'exam' ? t.timetable.addExam : (t.timetable.addSession || "Ajouter une séance")} (${slotStartTime})`}
+        >
+          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center transition-all group-hover/btn:scale-110 group-hover/btn:border-blue-500 group-hover/btn:bg-blue-50 group-hover/btn:text-blue-600">
+             <Plus size={16} strokeWidth={2.5} className="text-slate-400 group-hover/btn:text-blue-600 transition-colors" />
+          </div>
+          {!compactMode && (
+            <span className="text-[12px] font-medium mt-1.5 capitalize text-slate-500 group-hover/btn:text-blue-600">
+              {type === 'exam' ? t.timetable.addExam : (t.timetable.addSession || "Ajouter une séance")}
+            </span>
+          )}
+        </button>
       ) : (
         <div 
           draggable={isEditMode && !!firstSlot}
@@ -355,14 +374,14 @@ const ScheduleSlot = ({
             <div className="flex items-center justify-between pb-4 border-b border-[#dddddd]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-md bg-[#f8fafc] flex items-center justify-center text-[#181d26] border border-[#dddddd]">
-                  <BookOpen size={18} />
+                  {firstSlot?.id ? <Edit2 size={18} /> : <Plus size={18} strokeWidth={2.5} />}
                 </div>
                 <div>
                   <h3 className="text-[20px] font-medium text-[#181d26]">
-                    {slot?.id ? t.crud.edit : t.crud.add}
+                    {firstSlot?.id ? t.crud.edit : (t.timetable.addSession || t.crud.add)}
                   </h3>
                   <p className="text-sm text-[#41454d] mt-1">
-                    {(t.timetable as any)[day.toLowerCase()] || dayLabels[day] || String(day)} · {startTime ? `${startTime} - ${endTime}` : `${t.timetable.time} ${period}`}
+                    {(t.timetable as any)[day.toLowerCase()] || dayLabels[day] || String(day)} · {slotStartTime} - {addMinutes(slotStartTime, duration)}
                   </p>
                 </div>
               </div>
@@ -519,21 +538,40 @@ const ScheduleSlot = ({
                 {t.timetable.addGroup}
               </button>
 
-            {/* Duration Input */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.duration}</label>
-                <div className="relative">
-                  <select 
-                    className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                  >
-                    <option value={60}>{t.timetable.oneHour}</option>
-                    <option value={90}>{t.timetable.oneHourThirty}</option>
-                    <option value={120}>{t.timetable.twoHours}</option>
-                  </select>
-                  <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                    <Clock size={16} />
+              {/* Timing Controls (Start Time & Duration) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-[#181d26] ms-1">
+                    {(t.timetable as any).startTime || "Heure de début"}
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="time"
+                      className="text-sm h-11 ps-10 pe-3 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all"
+                      value={slotStartTime}
+                      onChange={(e) => setSlotStartTime(e.target.value)}
+                    />
+                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                      <Clock size={16} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.duration}</label>
+                  <div className="relative">
+                    <select 
+                      className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
+                      value={duration}
+                      onChange={(e) => setDuration(Number(e.target.value))}
+                    >
+                      <option value={60}>{t.timetable.oneHour}</option>
+                      <option value={90}>{t.timetable.oneHourThirty}</option>
+                      <option value={120}>{t.timetable.twoHours}</option>
+                    </select>
+                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
+                      <Clock size={16} />
+                    </div>
                   </div>
                 </div>
               </div>

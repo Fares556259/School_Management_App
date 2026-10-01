@@ -277,7 +277,11 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               if (!s.startTime) return false;
               const sDate = new Date(s.startTime);
               return dateObj ? sDate.toLocaleDateString('en-CA') === dateObj.toLocaleDateString('en-CA') : true;
-            }).sort((a, b) => (a.slotNumber || 0) - (b.slotNumber || 0));
+            }).sort((a, b) => {
+              const diff = parseTime(a.startTime || "00:00") - parseTime(b.startTime || "00:00");
+              if (diff !== 0) return diff;
+              return (a.slotNumber || 0) - (b.slotNumber || 0);
+            });
 
             // Group by slotNumber
             const groupedSlots = new Map<number, any[]>();
@@ -289,10 +293,36 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
             const maxSlotNum = rawDaySlots.length > 0 ? Math.max(...rawDaySlots.map(s => s.slotNumber)) : 0;
             const appendSlotNumber = maxSlotNum + 1;
-            
-            // Find the end time of the last slot to position the Add button
-            const lastSlot = rawDaySlots[rawDaySlots.length - 1];
-            const lastSlotEndTime = lastSlot ? lastSlot.endTime : dayStartTime;
+
+            // Compute empty hour slots for all free hours on this day
+            const formatHour = (hourNum: number) => {
+              const hh = Math.floor(hourNum);
+              const mm = Math.round((hourNum - hh) * 60);
+              return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+            };
+
+            const emptyHourSlots: { hour: number; startTime: string; endTime: string }[] = [];
+            const minH = Math.floor(startHour);
+            const maxH = Math.ceil(endHour);
+
+            for (let h = minH; h < maxH; h++) {
+              const hStart = h;
+              const hEnd = h + 1;
+              const isOccupied = rawDaySlots.some(s => {
+                if (!s.startTime) return false;
+                const sStart = parseTime(s.startTime);
+                const sEnd = s.endTime ? parseTime(s.endTime) : sStart + (s.duration || 120) / 60;
+                return sStart < (hEnd - 0.01) && sEnd > (hStart + 0.01);
+              });
+
+              if (!isOccupied) {
+                emptyHourSlots.push({
+                  hour: h,
+                  startTime: formatHour(h),
+                  endTime: formatHour(h + 1),
+                });
+              }
+            }
 
             return (
               <div key={d} className="flex h-[110px] border-b border-slate-200 last:border-b-0 group">
@@ -336,7 +366,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                       className="absolute top-1 bottom-1 p-0.5 transition-all"
                       style={{ 
                         ...getSlotPosition(slot.startTime, slot.duration || 120),
-                        zIndex: draggedOver === `slot-${slot.id}` ? 10 : 1
+                        zIndex: draggedOver === `slot-${slot.id}` ? 10 : 3
                       }}
                       onDragOver={(e) => handleDragOver(e, `slot-${slot.id}`)}
                       onDragLeave={() => setDraggedOver(null)}
@@ -366,23 +396,27 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         />
                       </div>
                     </div>
-                  )})}
+                  );})}
 
-                  {/* Add Slot Button / Dropzone at the end */}
-                  {isEditMode && parseTime(lastSlotEndTime) < endHour && (
-                    <div
-                      className="absolute top-1 bottom-1 p-0.5 transition-all"
+                  {/* Empty Slots (Add session buttons / dropzones across all free hours) */}
+                  {emptyHourSlots.map((emptySlot) => (
+                    <div 
+                      key={`empty-${d}-${emptySlot.hour}`}
+                      className="absolute top-1 bottom-1 p-0.5 transition-all group/empty"
                       style={{ 
-                        ...(isRtl ? { right: calcLeft(lastSlotEndTime) } : { left: calcLeft(lastSlotEndTime) }), 
-                        width: "80px",
-                        zIndex: 1
+                        ...getSlotPosition(emptySlot.startTime, 60),
+                        zIndex: draggedOver === `empty-${d}-${emptySlot.hour}` ? 10 : 2
                       }}
-                      onDragOver={(e) => handleDragOver(e, `empty-${d}`)}
+                      onDragOver={(e) => handleDragOver(e, `empty-${d}-${emptySlot.hour}`)}
                       onDragLeave={() => setDraggedOver(null)}
                       onDrop={(e) => handleDrop(e, d, appendSlotNumber)}
                     >
-                      <div className={`w-full h-full rounded-[8px] border-2 border-dashed transition-all flex items-center justify-center
-                        ${draggedOver === `empty-${d}` ? 'border-indigo-500 bg-indigo-50 text-indigo-600' : 'border-[#e2e8f0] bg-slate-50/50 text-slate-400 hover:bg-slate-100 hover:border-slate-300'}`}
+                      <div className={`w-full h-full rounded-[8px] transition-all flex items-center justify-center
+                        ${isEditMode 
+                          ? 'border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/40 hover:bg-blue-50/30' 
+                          : 'border border-dashed border-transparent hover:border-slate-300 hover:bg-slate-50/40'
+                        }
+                        ${draggedOver === `empty-${d}-${emptySlot.hour}` ? '!border-indigo-500 !bg-indigo-50/80 !scale-[1.02]' : ''}`}
                       >
                         <ScheduleSlot 
                           slot={undefined} 
@@ -390,8 +424,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           classNameStr={classNameStr}
                           day={d}
                           period={appendSlotNumber}
-                          startTime={lastSlotEndTime}
-                          endTime=""
+                          startTime={emptySlot.startTime}
+                          endTime={emptySlot.endTime}
                           subjects={subjects}
                           teachers={teachers}
                           rooms={rooms}
@@ -408,7 +442,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                         />
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             );
