@@ -337,6 +337,55 @@ CRITICAL TRANSCRIBING RULES:
   return "";
 }
 
+export function generateSmartConversationTitle(userText: string, doc?: any): string {
+  if (doc?.merchant || doc?.title) {
+    return `Reçu ${doc.merchant || doc.title}`.slice(0, 35);
+  }
+  const clean = (userText || "").trim();
+  const lower = clean.toLowerCase();
+
+  if (lower.includes("caisse") || lower.includes("recette") || lower.includes("bilan") || lower.includes("chiffre")) {
+    return "Point de caisse & recettes";
+  }
+  if (lower.includes("impayé") || lower.includes("retard") || lower.includes("non payé")) {
+    return "Suivi des impayés";
+  }
+  if (lower.includes("dépense") || lower.includes("facture") || lower.includes("achat")) {
+    return "Enregistrement dépense";
+  }
+  if (lower.includes("absence") || lower.includes("présence") || lower.includes("appel")) {
+    return "Suivi des présences";
+  }
+  if (lower.includes("emploi du temps") || lower.includes("planning") || lower.includes("séance") || lower.includes("cours")) {
+    return "Emploi du temps";
+  }
+  if (lower.includes("élève") || lower.includes("inscrit") || lower.includes("classe")) {
+    return "Gestion des élèves";
+  }
+  if (lower.includes("prof") || lower.includes("enseignant") || lower.includes("salaire")) {
+    return "Gestion du personnel";
+  }
+  if (lower.includes("annonce") || lower.includes("message aux parents") || lower.includes("notification")) {
+    return "Diffusion d'annonce";
+  }
+  if (lower.startsWith("🎙️") || lower.includes("note vocale")) {
+    return "Note vocale";
+  }
+  if (lower.startsWith("📷") || lower.includes("justificatif")) {
+    return "Analyse justificatif";
+  }
+
+  const simplified = clean
+    .replace(/^(donne[- ]moi|montre[- ]moi|combien|peux[- ]tu|est[- ]ce que|ajoute|enregistre|vérifie|calcule|trouve|affiche)\s+/i, "")
+    .replace(/[?!.:;]+$/g, "")
+    .trim();
+
+  if (simplified.length > 3) {
+    return (simplified.charAt(0).toUpperCase() + simplified.slice(1)).slice(0, 35);
+  }
+  return "Discussion Hnia";
+}
+
 /**
  * Main agent runner for SnapSchool Mobile app requests.
  */
@@ -553,13 +602,23 @@ Instructions :
   if (conversation) {
     conversationId = conversation.id;
     historyMessages = [...conversation.messages].reverse();
+
+    // If conversation has a default placeholder title, update it with smart generated title
+    if (!conversation.title || conversation.title === "Nouvelle discussion" || conversation.title === "Nouvelle conversation") {
+      const smartTitle = generateSmartConversationTitle(transcription || userMessageForDB || effectiveUserMessage, analyzedDoc);
+      await prisma.aIConversation.update({
+        where: { id: conversationId },
+        data: { title: smartTitle },
+      }).catch(() => null);
+    }
   } else {
+    const smartTitle = generateSmartConversationTitle(transcription || userMessageForDB || effectiveUserMessage, analyzedDoc);
     const newConv = await prisma.aIConversation.create({
       data: {
         adminId: input.adminId,
         source: "mobile",
         status: "ACTIVE",
-        title: (transcription || userMessageForDB || "Nouvelle conversation").slice(0, 40),
+        title: smartTitle,
       },
     });
     conversationId = newConv.id;

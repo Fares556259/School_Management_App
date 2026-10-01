@@ -243,3 +243,51 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = authenticateMobileRequest(request);
+    if (auth.error) return auth.error;
+
+    const { userId, userType } = auth.payload;
+    if (userType !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Accès réservé à la direction / administrateur." },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { conversationId, title } = body;
+    if (!conversationId || !title?.trim()) {
+      return NextResponse.json(
+        { success: false, error: "conversationId et titre requis." },
+        { status: 400 }
+      );
+    }
+
+    const newTitle = title.trim().slice(0, 60);
+    await prisma.aIConversation.updateMany({
+      where: {
+        id: conversationId,
+        adminId: userId,
+      },
+      data: {
+        title: newTitle,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      conversationId,
+      title: newTitle,
+    });
+  } catch (error: any) {
+    console.error("[Mobile Agent Rename Thread API] Error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Erreur interne" },
+      { status: 500 }
+    );
+  }
+}
+
