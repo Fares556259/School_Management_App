@@ -27,15 +27,12 @@ export const getSchoolId = cache(async (): Promise<string> => {
     }
 
     // 2. Check DB Admin record (allows manual overrides for admins)
-    const role = user?.user_metadata?.role as string | undefined;
-    if (role === "admin" || role === "superadmin") {
-      const admin = await prisma.admin.findUnique({
-        where: { id: userId },
-        select: { schoolId: true },
-      });
-      if (admin?.schoolId && admin.schoolId !== "default_school") {
-        return admin.schoolId;
-      }
+    const admin = await prisma.admin.findUnique({
+      where: { id: userId },
+      select: { schoolId: true },
+    });
+    if (admin?.schoolId && admin.schoolId !== "default_school") {
+      return admin.schoolId;
     }
 
     // 3. Try Supabase Admin API (in case session metadata is stale)

@@ -61,11 +61,18 @@ const TimetablePage = ({
 
   const urlClassId = searchParams.get("classId") ? parseInt(searchParams.get("classId")!) : undefined;
   const [clientClassId, setClientClassId] = useState<number | undefined>(urlClassId);
-  const selectedClass = clientClassId 
-    ? classes.find(c => c.id === clientClassId) 
-    : urlClassId 
-      ? classes.find(c => c.id === urlClassId) 
-      : classes.find(c => c.name === "1A") || classes[0];
+  const selectedClass = useMemo(() => {
+    if (!classes || classes.length === 0) return undefined;
+    if (clientClassId) {
+      const found = classes.find(c => c.id === clientClassId);
+      if (found) return found;
+    }
+    if (urlClassId) {
+      const found = classes.find(c => c.id === urlClassId);
+      if (found) return found;
+    }
+    return classes.find(c => c.name === "1A") || classes[0];
+  }, [classes, clientClassId, urlClassId]);
 
   useEffect(() => {
     isAIQuotaReached().then(setIsAiLocked);
@@ -171,7 +178,7 @@ const TimetablePage = ({
                     >
                       {classes.map(cls => (
                         <option key={cls.id} value={cls.id} className="bg-white text-[#181d26]">
-                          {cls.level.level === 0 ? cls.name : `${t.timetable.grade} ${cls.level.level} - ${cls.name}`}
+                          {cls.level?.level === 0 ? cls.name : cls.level ? `${t.timetable.grade} ${cls.level.level} - ${cls.name}` : cls.name}
                         </option>
                       ))}
                     </select>
@@ -263,7 +270,7 @@ const TimetablePage = ({
 
       </div>
 
-      {selectedClass && (
+      {selectedClass ? (
         <ScheduleGrid 
           ref={gridRef}
           classId={selectedClass.id} 
@@ -288,6 +295,18 @@ const TimetablePage = ({
           dayEndTime={dayEndTime}
           isDraft={isDraftView}
         />
+      ) : (
+        <div className="flex flex-col items-center justify-center p-12 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center my-6">
+          <CalendarDays size={40} className="text-slate-400 mb-3" />
+          <h3 className="text-base font-semibold text-slate-800">
+            {classes.length === 0 ? "Aucune classe trouvée" : "Sélectionnez une classe"}
+          </h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-sm">
+            {classes.length === 0 
+              ? "Veuillez d'abord créer des classes dans la section Académie > Classes."
+              : "Choisissez une classe dans le menu déroulant ci-dessus pour afficher et modifier son emploi du temps."}
+          </p>
+        </div>
       )}
 
       {isAiOpen && selectedClass && (

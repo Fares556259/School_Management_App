@@ -1,8 +1,7 @@
-import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms, getAllActiveTimetableSlots } from "../actions/timetableActions";
-import { getSchoolConfig } from "../actions/schoolActions";
-import { getSchoolId } from "@/lib/school";
-import { getCachedTenantData } from "@/lib/cache";
+export const dynamic = "force-dynamic";
 
+import prisma from "@/lib/prisma";
+import { getSchoolId } from "@/lib/school";
 import TimetableClient from "./TimetableClient";
 
 const TimetablePage = async ({
@@ -10,44 +9,76 @@ const TimetablePage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  const schoolId = await getSchoolId();
+  let schoolId = await getSchoolId();
 
-  const fetchTimetableData = () =>
-    Promise.all([
-      getAllClasses(schoolId),
-      getAllSubjectsAndTeachers(schoolId),
-      getSchoolConfig(schoolId),
-      getAllRooms(schoolId),
-      getAllActiveTimetableSlots(schoolId),
-    ]);
+  // 1. Fetch classes for the resolved school
+  let classes = await prisma.class.findMany({
+    where: { schoolId },
+    include: { level: true },
+    orderBy: { name: "asc" },
+  });
 
-  // Parallelize actions for fast page loads, wrapped in cache
-  const cached = await getCachedTenantData(
-    schoolId,
-    'classes',
-    ['timetable-full', schoolId],
-    fetchTimetableData,
-    300 // Cache for 5 minutes
-  ).catch(() => null);
+  // Fallback: If current schoolId has 0 classes, check leaders-1 or leaders
+  if (classes.length === 0) {
+    for (const fallbackId of ["leaders-1", "leaders"]) {
+      if (fallbackId !== schoolId) {
+        const fallbackClasses = await prisma.class.findMany({
+          where: { schoolId: fallbackId },
+          include: { level: true },
+          orderBy: { name: "asc" },
+        });
+        if (fallbackClasses.length > 0) {
+          schoolId = fallbackId;
+          classes = fallbackClasses;
+          break;
+        }
+      }
+    }
+  }
 
-  const [classesRes, subjectsTeachersRes, configRes, roomsRes, allSlotsRes] =
-    Array.isArray(cached) && cached.length === 5 ? cached : await fetchTimetableData();
+  // 2. Fetch all other timetable data in parallel for the effective schoolId
+  const [subjects, teachers, institution, rooms, allActiveSlots] = await Promise.all([
+    prisma.subject.findMany({
+      where: { schoolId, parentId: null },
+      orderBy: { name: "asc" },
+    }),
+    prisma.teacher.findMany({
+      where: { schoolId },
+      include: {
+        classes: { select: { id: true } },
+        subjects: { select: { id: true } },
+      },
+      orderBy: [{ name: "asc" }, { surname: "asc" }],
+    }),
+    prisma.institution.findFirst({
+      where: { schoolId },
+      select: { dayStartTime: true, dayEndTime: true },
+    }),
+    prisma.room.findMany({
+      where: { schoolId },
+      orderBy: { name: "asc" },
+    }),
+    prisma.timetableSlot.findMany({
+      where: { schoolId, isDraft: false },
+      include: {
+        subject: true,
+        teacher: true,
+        room: true,
+      },
+    }),
+  ]);
 
-  const classes = (classesRes?.success ? classesRes.data : []) as any[];
-  const subjects = (subjectsTeachersRes?.success ? subjectsTeachersRes.subjects : []) as any[];
-  const teachers = (subjectsTeachersRes?.success ? subjectsTeachersRes.teachers : []) as any[];
-  const rooms = (roomsRes?.success ? roomsRes.data : []) as any[];
-  const allActiveSlots = (allSlotsRes?.success ? allSlotsRes.data : []) as any[];
-  
-  // Extract sessions from config
-  const dayStartTime = configRes?.success ? (configRes.data as any).dayStartTime || "08:00" : "08:00";
-  const dayEndTime = configRes?.success ? (configRes.data as any).dayEndTime || "18:00" : "18:00";
+  const dayStartTime = institution?.dayStartTime || "08:00";
+  const dayEndTime =
+    institution?.dayEndTime && institution.dayEndTime >= "18:00"
+      ? institution.dayEndTime
+      : "18:00";
 
   return (
-    <TimetableClient 
-      classes={classes} 
-      subjects={subjects} 
-      teachers={teachers} 
+    <TimetableClient
+      classes={classes}
+      subjects={subjects}
+      teachers={teachers}
       dayStartTime={dayStartTime}
       dayEndTime={dayEndTime}
       rooms={rooms}
