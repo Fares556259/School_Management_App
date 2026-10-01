@@ -193,8 +193,13 @@ export default function TeacherListClient({
               className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd] group-hover/name:border-blue-400 transition-colors"
             />
             <div className="flex flex-col">
-              <h3 className="text-[14px] font-medium text-[#181d26] group-hover/name:text-blue-600 group-hover/name:underline transition-colors">
-                {item.name} {item.surname}
+              <h3 className="text-[14px] font-medium text-[#181d26] group-hover/name:text-blue-600 group-hover/name:underline transition-colors flex items-center gap-2">
+                <span>{item.name} {item.surname}</span>
+                {item.code && (
+                  <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold border border-slate-200">
+                    {item.code}
+                  </span>
+                )}
               </h3>
             </div>
           </Link>

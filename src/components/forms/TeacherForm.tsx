@@ -13,10 +13,10 @@ import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
 
 const schema = z.object({
-
+  code: z.string().optional(),
   firstName: z.string().min(1, { message: "First name is required!" }),
   lastName: z.string().min(1, { message: "Last name is required!" }),
-  phone: z.string().min(1, { message: "Phone is required!" }),
+  phone: z.string().optional(),
   address: z.string().optional(),
   bloodType: z.string().optional(),
   birthday: z.string().optional(),
@@ -46,7 +46,7 @@ const TeacherForm = ({
   } = useForm<Inputs>({
     resolver: zodResolver(schema),
     defaultValues: {
-
+      code: data?.code || "",
       firstName: data?.name || "",
       lastName: data?.surname || "",
       phone: data?.phone || "",
@@ -63,6 +63,7 @@ const TeacherForm = ({
   const onSubmit = handleSubmit((formData) => {
     startTransition(async () => {
       const payload = {
+        code: formData.code || undefined,
         username: data?.username || (formData.firstName + formData.lastName).toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 1000),
         name: formData.firstName,
         surname: formData.lastName,
@@ -93,6 +94,13 @@ const TeacherForm = ({
       <span className="text-xs text-gray-400 font-medium">Personal Information</span>
       <div className="flex justify-between flex-wrap gap-4">
 
+        <InputField
+          label="Code / Matricule"
+          name="code"
+          defaultValue={data?.code}
+          register={register}
+          error={errors.code}
+        />
         <InputField
           label="First Name"
           name="firstName"

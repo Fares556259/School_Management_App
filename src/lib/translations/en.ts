@@ -586,6 +586,7 @@ export const en = {
       "Proof Image": "Proof Image",
       "Source/Description": "Source/Description",
       "First Name": "First Name",
+      "Code": "Code / Identifier",
       "Last Name": "Last Name",
       "Phone": "Phone",
       "Address": "Address",

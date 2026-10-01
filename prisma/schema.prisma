@@ -91,6 +91,7 @@ model Student {
 
 model Teacher {
   id          String          @id
+  code        String?
   username    String          @unique
   name        String
   surname     String

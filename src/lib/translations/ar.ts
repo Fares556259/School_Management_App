@@ -586,6 +586,7 @@ export const ar = {
       "Proof Image": "صورة الإثبات",
       "Source/Description": "المصدر/الوصف",
       "First Name": "الاسم",
+      "Code": "الرمز / المعرف",
       "Last Name": "اللقب",
       "Phone": "الهاتف",
       "Address": "العنوان",

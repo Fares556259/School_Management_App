@@ -13,6 +13,7 @@ import { UserSex } from "@prisma/client";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
+  code?: string;
   username?: string;
   name: string;
   surname: string;
@@ -63,6 +64,7 @@ export const createTeacher = async (data: {
       data: {
         schoolId,
         id: id,
+        code: data.code || null,
         username: data.username || (data.name.toLowerCase() + data.surname.toLowerCase()).replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 1000),
         name: data.name,
         surname: data.surname,
@@ -141,6 +143,7 @@ export const bulkCreateTeachers = async (teachers: any[]) => {
 export const updateTeacher = async (
   id: string,
   data: Partial<{
+    code: string;
     username: string;
     name: string;
     surname: string;

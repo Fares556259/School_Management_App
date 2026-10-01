@@ -48,9 +48,10 @@ interface FieldDef {
 
 const entityFields: Record<EntityType, FieldDef[]> = {
   teacher: [
+    { name: "code", label: "Code", type: "text", required: false, placeholder: "e.g. ت, ب 1" },
     { name: "name", label: "First Name", type: "text", required: true },
     { name: "surname", label: "Last Name", type: "text", required: true },
-    { name: "phone", label: "Phone", type: "text", required: true },
+    { name: "phone", label: "Phone", type: "text", required: false },
     { name: "birthday", label: "Birthday", type: "date", required: false },
     { name: "address", label: "Address", type: "text", required: false },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male (Homme)" }, { value: "FEMALE", label: "Female (Femme)" }] },
