@@ -68,11 +68,22 @@ const TimetablePage = async ({
     }),
   ]);
 
-  const dayStartTime = institution?.dayStartTime || "08:00";
-  const dayEndTime =
-    institution?.dayEndTime && institution.dayEndTime >= "18:00"
-      ? institution.dayEndTime
-      : "18:00";
+  const configuredStartTime = institution?.dayStartTime || "08:00";
+  const configuredEndTime = institution?.dayEndTime || "14:00";
+
+  // Calculate earliest start and latest end from slots if any slot extends beyond configured bounds
+  const earliestSlotStartTime = allActiveSlots.reduce((earliest, s) => {
+    if (s.startTime && s.startTime < earliest) return s.startTime;
+    return earliest;
+  }, configuredStartTime);
+
+  const latestSlotEndTime = allActiveSlots.reduce((latest, s) => {
+    if (s.endTime && s.endTime > latest) return s.endTime;
+    return latest;
+  }, configuredEndTime);
+
+  const dayStartTime = earliestSlotStartTime < configuredStartTime ? earliestSlotStartTime : configuredStartTime;
+  const dayEndTime = latestSlotEndTime > configuredEndTime ? latestSlotEndTime : configuredEndTime;
 
   return (
     <TimetableClient
