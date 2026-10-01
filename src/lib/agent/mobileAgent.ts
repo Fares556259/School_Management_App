@@ -991,10 +991,23 @@ Instructions :
   }
 
   // 8. Build System Instruction (ultra-lean 2KB mobile version for sub-second responses)
+  // Fetch real class names to inject into system prompt (so Hnia uses real examples)
+  let realClassNames: string[] = [];
+  try {
+    const realClasses = await prisma.class.findMany({
+      where: { schoolId: input.schoolId },
+      select: { name: true },
+      orderBy: { name: 'asc' },
+      take: 15,
+    });
+    realClassNames = realClasses.map((c) => c.name);
+  } catch (_e) { /* non-critical */ }
+
   const systemInstruction = buildMobileHniaSystemInstruction({
     schoolName,
     adminName,
     schoolTeachings,
+    classNames: realClassNames,
   });
 
   // 9. Build History

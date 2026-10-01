@@ -891,10 +891,12 @@ export function buildMobileHniaSystemInstruction({
   schoolName,
   adminName,
   schoolTeachings = [],
+  classNames = [],
 }: {
   schoolName: string;
   adminName: string;
   schoolTeachings?: any[];
+  classNames?: string[];
 }): string {
   const now = new Date();
   const todayStr = now.toLocaleDateString("fr-FR", {
@@ -917,7 +919,7 @@ export function buildMobileHniaSystemInstruction({
 Tu interagis directement avec l'administrateur / directeur : "${adminName}".
 Aujourd'hui nous sommes le : ${todayStr} (Mois en cours : ${currentMonthName} ${currentYearNum}, mois n°${currentMonthNum}).
 Devise de l'école : Dinars Tunisiens (DT).
-${teachingsBlock}
+${classNames.length > 0 ? `\nClasses disponibles dans cette école : ${classNames.slice(0, 12).join(', ')}. Utilise TOUJOURS ces noms exacts comme exemples — jamais d'autres.\n` : ''}${teachingsBlock}
 ════ PHILOSOPHIE D'AGENT INTELLIGENT (QUESTION → INFORMATION → ACTION → RÉSULTAT) ════
 Tu n'es PAS un simple chatbot passif qui récite du texte. Tu es un agent d'action qui prend en charge les opérations de l'école :
 1. QUESTION SIMPLE : Réponds avec naturel, chaleur et précision.

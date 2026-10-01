@@ -119,27 +119,39 @@ export async function getClassTimetableTool(
     return { found: false, message: `Classe "${args.className}" introuvable.` };
   }
 
-  const where: any = {
+  const whereBase: any = {
     classId: targetClass.id,
-    isDraft: false,
   };
 
   if (args.day) {
     const { dayEnum } = resolveDayOfWeek(args.day);
     if (dayEnum) {
-      where.day = dayEnum;
+      whereBase.day = dayEnum;
     }
   }
 
-  const slots = await prisma.timetableSlot.findMany({
-    where,
-    orderBy: [{ day: "asc" }, { slotNumber: "asc" }],
+  // Try published slots first, then fall back to all (including drafts)
+  let slots = await prisma.timetableSlot.findMany({
+    where: { ...whereBase, isDraft: false },
+    orderBy: [{ day: 'asc' }, { slotNumber: 'asc' }],
     include: {
       subject: { select: { name: true } },
       teacher: { select: { name: true, surname: true } },
       room: { select: { name: true } },
     },
   });
+
+  if (slots.length === 0) {
+    slots = await prisma.timetableSlot.findMany({
+      where: whereBase,
+      orderBy: [{ day: 'asc' }, { slotNumber: 'asc' }],
+      include: {
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true } },
+        room: { select: { name: true } },
+      },
+    });
+  }
 
   const dayLabels: Record<string, string> = {
     MONDAY: "Lundi",
