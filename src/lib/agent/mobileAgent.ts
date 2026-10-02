@@ -501,15 +501,17 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
         })
       : prisma.aIConversation.findFirst({
           where: {
-            adminId: input.adminId,
-            source: "mobile",
-            status: "ACTIVE",
+            OR: [
+              { adminId: input.adminId },
+              { telegramAccount: { adminId: input.adminId } },
+            ],
+            status: { not: "DELETED" },
           },
           orderBy: { updatedAt: "desc" },
           include: {
             messages: {
               orderBy: { createdAt: "desc" },
-              take: 12,
+              take: 16,
             },
           },
         }),
@@ -677,6 +679,13 @@ Instructions :
   if (conversation) {
     conversationId = conversation.id;
     historyMessages = [...conversation.messages].reverse();
+
+    if (!conversation.adminId && input.adminId) {
+      await prisma.aIConversation.update({
+        where: { id: conversationId },
+        data: { adminId: input.adminId },
+      }).catch(() => null);
+    }
 
     // If conversation has a default placeholder title, update it with smart generated title
     if (!conversation.title || conversation.title === "Nouvelle discussion" || conversation.title === "Nouvelle conversation") {

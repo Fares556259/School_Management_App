@@ -25,12 +25,14 @@ export async function GET(request: NextRequest) {
     if (searchParams.get("threads") === "true") {
       const conversations = await prisma.aIConversation.findMany({
         where: {
-          adminId: userId,
-          source: "mobile",
-          status: "ACTIVE",
+          OR: [
+            { adminId: userId },
+            { telegramAccount: { adminId: userId } },
+          ],
+          status: { not: "DELETED" },
         },
         orderBy: { updatedAt: "desc" },
-        take: 50,
+        take: 100,
         include: {
           messages: {
             orderBy: { createdAt: "desc" },
@@ -42,9 +44,13 @@ export async function GET(request: NextRequest) {
         },
       });
 
+      const validConversations = conversations.filter(
+        (c) => c._count.messages > 0 || c.status === "ACTIVE"
+      );
+
       return NextResponse.json({
         success: true,
-        threads: conversations.map((c) => {
+        threads: validConversations.map((c) => {
           const lastMsg = c.messages[0];
           let preview = lastMsg?.content || "";
           preview = preview.replace(/\[IMAGE:https?:\/\/[^\]]+\]\n?/g, "📷 Photo ").replace(/[#*`_]/g, "").trim();
@@ -63,8 +69,14 @@ export async function GET(request: NextRequest) {
 
     let conversation: any = null;
     if (conversationIdParam) {
-      conversation = await prisma.aIConversation.findUnique({
-        where: { id: conversationIdParam },
+      conversation = await prisma.aIConversation.findFirst({
+        where: {
+          id: conversationIdParam,
+          OR: [
+            { adminId: userId },
+            { telegramAccount: { adminId: userId } },
+          ],
+        },
         include: {
           messages: {
             orderBy: { createdAt: "desc" },
@@ -76,12 +88,17 @@ export async function GET(request: NextRequest) {
           },
         },
       });
-    } else {
+    }
+
+    // Fallback: if no specific conversation requested or requested ID not found, load most recent active one
+    if (!conversation) {
       conversation = await prisma.aIConversation.findFirst({
         where: {
-          adminId: userId,
-          source: "mobile",
-          status: "ACTIVE",
+          OR: [
+            { adminId: userId },
+            { telegramAccount: { adminId: userId } },
+          ],
+          status: { not: "DELETED" },
         },
         orderBy: { updatedAt: "desc" },
         include: {
@@ -224,16 +241,19 @@ export async function DELETE(request: NextRequest) {
     await prisma.aIConversation.updateMany({
       where: {
         id: conversationId,
-        adminId: userId,
+        OR: [
+          { adminId: userId },
+          { telegramAccount: { adminId: userId } },
+        ],
       },
       data: {
-        status: "ARCHIVED",
+        status: "DELETED",
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Discussion archivée avec succès.",
+      message: "Discussion supprimée avec succès.",
     });
   } catch (error: any) {
     console.error("[Mobile Agent Delete Thread API] Error:", error);
@@ -270,7 +290,10 @@ export async function PATCH(request: NextRequest) {
     await prisma.aIConversation.updateMany({
       where: {
         id: conversationId,
-        adminId: userId,
+        OR: [
+          { adminId: userId },
+          { telegramAccount: { adminId: userId } },
+        ],
       },
       data: {
         title: newTitle,

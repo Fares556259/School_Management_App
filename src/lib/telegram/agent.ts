@@ -187,6 +187,7 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
       data: {
         telegramAccountId: tgAccount.id,
         telegramChatId: chatId.toString(),
+        adminId: tgAccount.adminId,
         title: userMessage.slice(0, 40),
       },
     });
