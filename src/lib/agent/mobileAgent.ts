@@ -1197,13 +1197,18 @@ Instructions :
             }
           }
 
-          pendingConfirmation = pendingConfirmations;
+          const primaryCard = pendingConfirmations.length === 1 ? pendingConfirmations[0] : pendingConfirmations;
+          pendingConfirmation = primaryCard as any;
           detectedWidget = {
             type: "action_card",
-            data: pendingConfirmations,
+            data: primaryCard,
           };
 
-          finalReply = "Veuillez vérifier et confirmer l'action ci-dessous :";
+          const firstCard = pendingConfirmations[0];
+          const summaryDesc = firstCard?.fields?.map((f) => `• ${f.label} : **${f.value}**`).join("\n") || "";
+          finalReply = summaryDesc
+            ? `Veuillez vérifier et confirmer l'action ci-dessous :\n\n${summaryDesc}`
+            : "Veuillez vérifier et confirmer l'action ci-dessous :";
 
           // Save assistant message with confirmation request
           await prisma.aIMessage.create({
