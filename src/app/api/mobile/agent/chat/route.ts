@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { authenticateMobileRequest, checkRateLimit } from "@/lib/mobileAuth";
 import { runMobileAgent } from "@/lib/agent/mobileAgent";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,12 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const { userId, userType, schoolId } = auth.payload;
+    const ip = request.headers.get("x-forwarded-for") || "unknown_ip";
+    const rateLimited = checkRateLimit(userId || ip, "chat");
+    if (!rateLimited.success) {
+      return NextResponse.json({ error: 'Trop de requêtes. Veuillez patienter.' }, { status: 429 });
+    }
+
     if (userType !== "admin") {
       return NextResponse.json(
         { success: false, error: "Accès réservé à la direction / administrateur." },

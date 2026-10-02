@@ -45,7 +45,7 @@ export interface MobileAgentResponse {
   transcription?: string;
   analyzedDocument?: any;
   imageUrl?: string;
-  pendingConfirmation?: ActionCardData | null;
+  pendingConfirmation?: ActionCardData | ActionCardData[] | null;
   executedTool?: string;
   widget?: {
     type: "caisse" | "unpaid_tuition" | "pdf_receipt" | "finance_summary" | "student_card" | "attendance_card" | "action_card";
@@ -235,6 +235,12 @@ function getMobileDeclarations(userMessage: string): any[] {
       "post_announcement",
       "send_payment_reminders",
       "get_class_timetable",
+      "get_teachers",
+      "get_staff",
+      "get_grades",
+      "get_payment_receipt",
+      "update_student",
+      "add_income"
     ]);
     return declarations.filter((d: any) => UNIVERSAL_KEYS.has(d.name));
   }
@@ -339,7 +345,22 @@ export function generateSmartConversationTitle(userText: string, doc?: any): str
   if (doc?.merchant || doc?.title) {
     return `Reçu ${doc.merchant || doc.title}`.slice(0, 35);
   }
-  const clean = (userText || "").trim();
+  let clean = (userText || "").trim();
+
+  // Strip technical document analysis tags and map them nicely
+  if (clean.includes("[DOCUMENT ANALYSÉ]") || clean.includes("[DOCUMENT NUMÉRISÉ]")) {
+    const lowerClean = clean.toLowerCase();
+    if (lowerClean.includes("bordereau") || lowerClean.includes("bancaire")) return "Bordereau bancaire";
+    if (lowerClean.includes("reçu") || lowerClean.includes("recu") || lowerClean.includes("paiement")) return "Reçu de paiement";
+    if (lowerClean.includes("facture")) return "Facture scannée";
+    if (lowerClean.includes("bulletin") || lowerClean.includes("note")) return "Relevé de notes";
+    if (lowerClean.includes("dépense") || lowerClean.includes("depense")) return "Justificatif dépense";
+    if (lowerClean.includes("chèque") || lowerClean.includes("cheque")) return "Chèque bancaire";
+    return "Document analysé";
+  }
+
+  // Strip technical bracket tags like [SOMETHING] or markdown
+  clean = clean.replace(/^\[.*?\]\s*/g, "").replace(/[#*_`]/g, "").trim();
   const lower = clean.toLowerCase();
 
   if (lower.includes("caisse") || lower.includes("recette") || lower.includes("bilan") || lower.includes("chiffre")) {
@@ -1050,6 +1071,8 @@ Instructions :
   const genAI = new GoogleGenerativeAI(apiKey);
   const declarations = getMobileDeclarations(effectiveUserMessage);
 
+  let executedToolResults: Map<string, any> = new Map();
+
   for (const modelName of CANDIDATE_MODELS) {
     try {
       const model = genAI.getGenerativeModel({
@@ -1072,8 +1095,22 @@ Instructions :
 
       const chat = model.startChat({ history: historyContents });
       await input.onStatusUpdate?.({ step: "Recherche en cours..." });
-      let response = await chat.sendMessage([{ text: effectiveUserMessage }]);
-      let candidate = response.response;
+      
+      let didStreamText = false;
+      let streamResult = await chat.sendMessageStream([{ text: effectiveUserMessage }]);
+      for await (const chunk of streamResult.stream) {
+        try {
+          const chunkText = chunk.text();
+          if (chunkText && input.onTokenDelta) {
+            didStreamText = true;
+            await input.onTokenDelta(chunkText);
+          }
+        } catch {
+          // chunk contains functionCall, not text — skip text extraction
+        }
+      }
+      let response = await streamResult.response;
+      let candidate = response;
 
       let functionCalls = candidate.functionCalls();
       let lastExecutedTool: string | undefined;
@@ -1093,7 +1130,15 @@ Instructions :
 
         if (!toolDef) {
           console.warn(`[MobileAgent] Unknown tool call: ${toolName}`);
-          break;
+          let errResponse = await chat.sendMessage([{
+            functionResponse: {
+              name: toolName,
+              response: { error: true, message: `L'outil '${toolName}' n'existe pas. Utilisez un outil valide de la liste disponible.` }
+            }
+          }]);
+          candidate = errResponse.response;
+          functionCalls = candidate.functionCalls();
+          continue;
         }
 
         const toolLabels: Record<string, string> = {
@@ -1119,26 +1164,36 @@ Instructions :
 
         // Action requires confirmation
         if (toolDef.requiresConfirmation) {
-          const toolCallRecord = await prisma.aIToolCall.create({
-            data: {
-              conversationId,
-              toolName,
-              arguments: toolArgs,
-              status: "PENDING",
-              requiresConfirm: true,
-            },
-          });
+          let pendingConfirmations: ActionCardData[] = [];
+          for (const c of functionCalls) {
+            const tName = c.name;
+            const tArgs = (c.args || {}) as Record<string, any>;
+            const tDef = TOOLS[tName];
+            if (tDef && tDef.requiresConfirmation) {
+              const toolCallRecord = await prisma.aIToolCall.create({
+                data: {
+                  conversationId,
+                  toolName: tName,
+                  arguments: tArgs,
+                  status: "PENDING",
+                  requiresConfirm: true,
+                },
+              });
 
-          const rawConfirmText = toolDef.formatConfirmationMessage
-            ? await Promise.resolve(toolDef.formatConfirmationMessage(toolArgs, context))
-            : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
-          const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
+              const rawConfirmText = tDef.formatConfirmationMessage
+                ? await Promise.resolve(tDef.formatConfirmationMessage(tArgs, context))
+                : `❓ Souhaitez-vous confirmer l'exécution de l'action **${tName}** ?`;
+              const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
-          const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText);
-          pendingConfirmation = actionCard;
+              const actionCard = buildActionCardMetadata(toolCallRecord.id, tName, tArgs, confirmText);
+              pendingConfirmations.push(actionCard);
+            }
+          }
+
+          pendingConfirmation = pendingConfirmations;
           detectedWidget = {
             type: "action_card",
-            data: actionCard,
+            data: pendingConfirmations,
           };
 
           finalReply = "Veuillez vérifier et confirmer l'action ci-dessous :";
@@ -1148,7 +1203,7 @@ Instructions :
             data: {
               conversationId,
               role: "assistant",
-              content: confirmText,
+              content: finalReply,
             },
           });
 
@@ -1169,10 +1224,16 @@ Instructions :
         // Read-only or instant tool
         lastExecutedTool = toolName;
         let toolOutput: any;
-        try {
-          toolOutput = await toolDef.execute(toolArgs, context);
-        } catch (err: any) {
-          toolOutput = { error: true, message: err.message || "Erreur d'exécution" };
+        const cacheKey = toolName + JSON.stringify(toolArgs);
+        if (executedToolResults.has(cacheKey)) {
+          toolOutput = executedToolResults.get(cacheKey);
+        } else {
+          try {
+            toolOutput = await toolDef.execute(toolArgs, context);
+          } catch (err: any) {
+            toolOutput = { error: true, message: err.message || "Erreur d'exécution" };
+          }
+          executedToolResults.set(cacheKey, toolOutput);
         }
 
         // Extract widget data if applicable
@@ -1333,7 +1394,8 @@ Instructions :
 
         // Synthesize via Gemini (fallback only if unformatted custom tool output)
         await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        response = await chat.sendMessage([
+        
+        let toolStreamResult = await chat.sendMessageStream([
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
@@ -1344,13 +1406,26 @@ Instructions :
           },
         ]);
 
-        candidate = response.response;
+        for await (const chunk of toolStreamResult.stream) {
+          try {
+            const chunkText = chunk.text();
+            if (chunkText && input.onTokenDelta) {
+              didStreamText = true;
+              await input.onTokenDelta(chunkText);
+            }
+          } catch {
+            // chunk contains functionCall, not text
+          }
+        }
+        
+        response = await toolStreamResult.response;
+        candidate = response;
         functionCalls = candidate.functionCalls();
       }
 
-      if (!finalReply) {
+    if (!finalReply) {
         try {
-          const rawText = candidate.text() || "C'est noté ! Avez-vous besoin d'autre chose ?";
+          const rawText = candidate.text() || "Désolé, une erreur s'est produite. Pourriez-vous reformuler votre demande ?";
 
           // Safety interceptor: If the model generated raw JSON for an action instead of calling a tool natively
           const jsonActionMatch =
@@ -1410,12 +1485,12 @@ Instructions :
             finalReply = cleanTelegramFormattingForMobile(rawText);
           }
         } catch {
-          finalReply = "C'est noté ! Avez-vous besoin d'autre chose ?";
+          finalReply = "Désolé, une erreur s'est produite. Pourriez-vous reformuler votre demande ?";
         }
       }
 
       // Stream tokens to client if incremental callback provided
-      if (input.onTokenDelta && finalReply) {
+      if (input.onTokenDelta && finalReply && !didStreamText) {
         await input.onTokenDelta(finalReply);
       }
 

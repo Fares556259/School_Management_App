@@ -1,7 +1,10 @@
 import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET || "snapschool_mobile_jwt_super_secret_key_2026";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[SECURITY] JWT_SECRET environment variable is not set!');
+}
 
 export interface MobileJWTPayload {
   userId: string;
@@ -13,11 +16,12 @@ export interface MobileJWTPayload {
 
 // ─── 1. JWT Token Issuer & Verifier ──────────────────────────────────────────
 export function generateToken(payload: Omit<MobileJWTPayload, "iat" | "exp">): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign(payload, JWT_SECRET as string, { expiresIn: "30d" });
 }
 
 export function verifyToken(token: string): MobileJWTPayload | null {
   try {
+    if (!JWT_SECRET) throw new Error('JWT_SECRET is not configured. Set it in environment variables.');
     const cleanToken = token.startsWith("Bearer ") ? token.slice(7) : token;
     return jwt.verify(cleanToken, JWT_SECRET) as MobileJWTPayload;
   } catch (error) {
