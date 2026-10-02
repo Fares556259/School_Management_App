@@ -1,9 +1,10 @@
 import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error('[SECURITY] JWT_SECRET environment variable is not set!');
+const JWT_SECRET_FALLBACK = "snapschool_mobile_jwt_super_secret_key_2026";
+const JWT_SECRET = process.env.JWT_SECRET || JWT_SECRET_FALLBACK;
+if (!process.env.JWT_SECRET) {
+  console.warn('[SECURITY] JWT_SECRET environment variable is not set! Using fallback. Set JWT_SECRET in Vercel env vars.');
 }
 
 export interface MobileJWTPayload {
@@ -21,7 +22,6 @@ export function generateToken(payload: Omit<MobileJWTPayload, "iat" | "exp">): s
 
 export function verifyToken(token: string): MobileJWTPayload | null {
   try {
-    if (!JWT_SECRET) throw new Error('JWT_SECRET is not configured. Set it in environment variables.');
     const cleanToken = token.startsWith("Bearer ") ? token.slice(7) : token;
     return jwt.verify(cleanToken, JWT_SECRET) as MobileJWTPayload;
   } catch (error) {
