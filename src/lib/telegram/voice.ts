@@ -22,9 +22,8 @@ export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   // 2. Call Gemini with audio multimodal input (with multi-model fallback)
   // Use gemini-3.5-flash and gemini-3.6-flash for high acoustic fidelity on North African dialects
   const CANDIDATE_MODELS = [
-    "gemini-3.5-transcribe",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
   ];
 
   const genAI = new GoogleGenerativeAI(apiKey);
