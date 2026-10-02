@@ -1561,6 +1561,7 @@ export async function confirmMobileAction(params: {
   action: "confirm" | "cancel";
   adminId: string;
   schoolId: string;
+  updatedArgs?: Record<string, any>;
 }): Promise<{
   success: boolean;
   message: string;
@@ -1572,7 +1573,7 @@ export async function confirmMobileAction(params: {
     status: "EXECUTED" | "REJECTED";
   };
 }> {
-  const { toolCallId, action, adminId, schoolId } = params;
+  const { toolCallId, action, adminId, schoolId, updatedArgs } = params;
 
   const toolCall = await prisma.aIToolCall.findUnique({
     where: { id: toolCallId },
@@ -1667,13 +1668,33 @@ export async function confirmMobileAction(params: {
   };
 
   try {
-    const args = toolCall.arguments as Record<string, any>;
+    const rawArgs = (toolCall.arguments as Record<string, any>) || {};
+    const args = updatedArgs ? { ...rawArgs, ...updatedArgs } : { ...rawArgs };
+
+    // Normalize amount if provided as string or formatted (e.g. "7 DT", "7.5")
+    if (args.amount !== undefined) {
+      if (typeof args.amount === "string") {
+        const parsedNum = parseFloat(args.amount.replace(/[^0-9.]/g, ""));
+        if (!isNaN(parsedNum)) args.amount = parsedNum;
+      } else if (typeof args.amount === "number") {
+        args.amount = Math.abs(args.amount);
+      }
+    }
+
+    // Align title and description if one is provided
+    if (args.title && !args.description) {
+      args.description = args.title;
+    } else if (args.description && !args.title) {
+      args.title = args.description;
+    }
+
     const executionResult = await tool.execute(args, context);
 
     await prisma.aIToolCall.update({
       where: { id: toolCallId },
       data: {
         status: "EXECUTED",
+        arguments: args,
         result: executionResult,
         confirmedAt: new Date(),
         executedAt: new Date(),

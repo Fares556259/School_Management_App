@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { toolCallId, action } = body;
+    const { toolCallId, action, updatedArgs } = body;
 
     if (!toolCallId || !action || !["confirm", "cancel"].includes(action)) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       action,
       adminId: userId,
       schoolId,
+      updatedArgs,
     });
 
     return NextResponse.json(result);
