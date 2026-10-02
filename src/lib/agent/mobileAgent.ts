@@ -1096,21 +1096,8 @@ Instructions :
       const chat = model.startChat({ history: historyContents });
       await input.onStatusUpdate?.({ step: "Recherche en cours..." });
       
-      let didStreamText = false;
-      let streamResult = await chat.sendMessageStream([{ text: effectiveUserMessage }]);
-      for await (const chunk of streamResult.stream) {
-        try {
-          const chunkText = chunk.text();
-          if (chunkText && input.onTokenDelta) {
-            didStreamText = true;
-            await input.onTokenDelta(chunkText);
-          }
-        } catch {
-          // chunk contains functionCall, not text — skip text extraction
-        }
-      }
-      let response = await streamResult.response;
-      let candidate = response;
+      let response = await chat.sendMessage([{ text: effectiveUserMessage }]);
+      let candidate = response.response;
 
       let functionCalls = candidate.functionCalls();
       let lastExecutedTool: string | undefined;
@@ -1395,7 +1382,7 @@ Instructions :
         // Synthesize via Gemini (fallback only if unformatted custom tool output)
         await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
         
-        let toolStreamResult = await chat.sendMessageStream([
+        let toolResponse = await chat.sendMessage([
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
@@ -1405,21 +1392,9 @@ Instructions :
 - Termine par un conseil Hnia si pertinent.`,
           },
         ]);
-
-        for await (const chunk of toolStreamResult.stream) {
-          try {
-            const chunkText = chunk.text();
-            if (chunkText && input.onTokenDelta) {
-              didStreamText = true;
-              await input.onTokenDelta(chunkText);
-            }
-          } catch {
-            // chunk contains functionCall, not text
-          }
-        }
         
-        response = await toolStreamResult.response;
-        candidate = response;
+        response = toolResponse;
+        candidate = response.response;
         functionCalls = candidate.functionCalls();
       }
 
@@ -1487,11 +1462,6 @@ Instructions :
         } catch {
           finalReply = "Désolé, une erreur s'est produite. Pourriez-vous reformuler votre demande ?";
         }
-      }
-
-      // Stream tokens to client if incremental callback provided
-      if (input.onTokenDelta && finalReply && !didStreamText) {
-        await input.onTokenDelta(finalReply);
       }
 
       await input.onStatusUpdate?.({ step: "Terminé" });
