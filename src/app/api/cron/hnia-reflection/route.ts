@@ -7,7 +7,7 @@ import { formatTelegramMessage } from "@/lib/telegram/formatter";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const CANDIDATE_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+const CANDIDATE_MODELS = ["gemini-flash-latest", "gemini-3.5-flash", "gemini-3.6-flash"];
 
 /**
  * Nightly / Weekly Autonomous Reflection Cron

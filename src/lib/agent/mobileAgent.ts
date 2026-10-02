@@ -188,13 +188,17 @@ export function buildActionCardMetadata(
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-flash-latest",
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-flash-lite-latest",
 ];
 
 const VOICE_CANDIDATE_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-flash-latest",
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-flash-lite-latest",
 ];
 
 /**
@@ -300,22 +304,37 @@ Transcribe the speaker's exact spoken words word-for-word.
 
 CRITICAL TRANSCRIBING RULES:
 1. DIALECT RECOGNITION: The speaker is speaking in Tunisian Arabic (Derja / Tounsi), French, English, or a natural mix of Tunisian Arabic and French (code-switching).
-2. DO NOT TRANSLATE: Never translate Tunisian words into French or English. Transcribe in the exact language spoken.
-3. MULTI-INTENT SPOKEN COMMANDS: School directors frequently give compound instructions (e.g. "300 DT khlass w 40 mazout").
+2. DO NOT TRANSLATE: Never translate Tunisian words into French or English. Transcribe in the exact language spoken:
+   - If spoken in Tunisian Arabic, transcribe in authentic Arabic script (e.g. قيدلي خلاص, شكون غايب, كاسة اليوم, قداش فما فلوس, زيد مصروف 40 مازوط) or accurate phonetic text.
+   - If spoken in French, transcribe in French.
+   - If mixed, transcribe both faithfully.
+3. MULTI-INTENT SPOKEN COMMANDS: School directors frequently give compound instructions (e.g. "300 DT khlass w 40 mazout", "marqui ahmed ghayeb w a3tini el caisse"). Transcribe every word faithfully.
 4. SCHOOL VOCABULARY: Common terms include: élèves, profs, classes (1A, 2B...), matières, notes, absences, retards, paiements, reliquats, impayés, factures, STEG, SONEDE, Dinars / DT, cantine, مازوط, كاسة, شيك, تلامذة, معلمين, Appel.
-5. OUTPUT: Output ONLY the exact transcribed text. No quotes, no markdown explanations.`;
+5. NOISE/SILENCE: If no clear speech is detected or the audio is pure silence/noise, return an empty string.
+6. OUTPUT: Output ONLY the exact transcribed text. No quotes, no markdown explanations, no intros like "Here is the transcription:".`;
 
-  const normalizedMime = mimeType?.toLowerCase().includes("m4a")
+  const cleanMime = (mimeType || "").toLowerCase();
+  const normalizedMime = cleanMime.includes("m4a") || cleanMime.includes("mp4")
     ? "audio/mp4"
-    : mimeType?.toLowerCase().includes("aac")
+    : cleanMime.includes("aac")
     ? "audio/aac"
-    : mimeType?.toLowerCase().includes("wav")
+    : cleanMime.includes("wav")
     ? "audio/wav"
+    : cleanMime.includes("ogg")
+    ? "audio/ogg"
     : "audio/mp4";
+
+  console.log(`[Mobile Voice] Starting transcription with ${base64Audio?.length || 0} base64 chars, mime: ${normalizedMime}`);
 
   for (const modelName of VOICE_CANDIDATE_MODELS) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        },
+      });
       const result = await model.generateContent([
         {
           inlineData: {
@@ -325,9 +344,14 @@ CRITICAL TRANSCRIBING RULES:
         },
         { text: prompt },
       ]);
-      const text = result.response.text().trim();
-      if (text) {
-        console.log(`[Mobile Voice] Successfully transcribed with ${modelName}: "${text.slice(0, 40)}"`);
+      let text = "";
+      try {
+        text = result.response.text().trim();
+      } catch (extractErr: any) {
+        console.warn(`[Mobile Voice] Failed to extract text with ${modelName}:`, extractErr.message);
+      }
+      if (text && !text.toUpperCase().includes("NO_SPEECH")) {
+        console.log(`[Mobile Voice] Successfully transcribed with ${modelName}: "${text.slice(0, 60)}"`);
         return text;
       }
     } catch (err: any) {
