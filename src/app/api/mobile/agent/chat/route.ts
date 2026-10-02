@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
             onStatusUpdate: async (status) => {
               await sendEvent("status", status);
             },
+            onTranscription: async (transcription) => {
+              await sendEvent("transcription", { transcription });
+            },
             onTokenDelta: async (delta) => {
               await sendEvent("token", { delta });
             },

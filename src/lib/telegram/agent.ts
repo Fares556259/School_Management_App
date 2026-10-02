@@ -233,10 +233,10 @@ export async function runTelegramAgent(input: AgentInput): Promise<void> {
 
   // Candidate models — fastest and most capable first, followed by solid fallbacks
   const CANDIDATE_MODELS = [
-    "gemini-flash-latest",
-    "gemini-3.5-flash",
-    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
     "gemini-flash-lite-latest",
+    "gemini-3.5-flash",
+    "gemini-3.8-flash",
   ];
 
   // Helper to format friendly error message without raw API dumps

@@ -22,11 +22,11 @@ export async function transcribeTelegramVoice(fileId: string): Promise<string> {
   // 2. Call Gemini with audio multimodal input (with multi-model fallback)
   // Use gemini-3.5-flash and gemini-3.6-flash for high acoustic fidelity on North African dialects
   const CANDIDATE_MODELS = [
-    "gemini-flash-latest",
-    "gemini-3.5-flash",
-    "gemini-3.6-flash",
-    "gemini-flash-lite-latest",
-  ];
+  "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash",
+  "gemini-3.8-flash",
+];
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const prompt = `You are an expert, high-fidelity audio transcriber specialized in Tunisian school operations and North African multilingual speech.

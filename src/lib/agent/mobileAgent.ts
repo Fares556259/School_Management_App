@@ -16,6 +16,7 @@ export interface MobileAgentInput {
   imageBase64?: string;
   imageMimeType?: string;
   onStatusUpdate?: (status: { step: string; tool?: string }) => void | Promise<void>;
+  onTranscription?: (transcription: string) => void | Promise<void>;
   onTokenDelta?: (delta: string) => void | Promise<void>;
 }
 
@@ -188,17 +189,17 @@ export function buildActionCardMetadata(
 }
 
 const CANDIDATE_MODELS = [
-  "gemini-flash-latest",
-  "gemini-3.5-flash",
-  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
   "gemini-flash-lite-latest",
+  "gemini-3.5-flash",
+  "gemini-3.8-flash",
 ];
 
 const VOICE_CANDIDATE_MODELS = [
-  "gemini-flash-latest",
-  "gemini-3.5-flash",
-  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
   "gemini-flash-lite-latest",
+  "gemini-3.5-flash",
+  "gemini-3.8-flash",
 ];
 
 /**
@@ -500,6 +501,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   const schoolName = admin.School?.name || "SnapSchool";
 
   let transcription: string | undefined = transcriptionResult || undefined;
+  if (transcription) {
+    if (input.onTranscription) {
+      try {
+        await input.onTranscription(transcription);
+      } catch {}
+    }
+    await input.onStatusUpdate?.({ step: "Hnia prépare votre action..." });
+  }
   let effectiveUserMessage = originalUserText;
   if (transcription) {
     effectiveUserMessage = effectiveUserMessage
