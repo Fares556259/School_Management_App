@@ -300,19 +300,20 @@ async function transcribeMobileAudio(
   if (!apiKey) throw new Error("Clé GEMINI_API_KEY manquante");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const prompt = `You are an expert, high-fidelity audio transcriber specialized in Tunisian school operations and North African multilingual speech.
-Transcribe the speaker's exact spoken words word-for-word.
+  const prompt = `You are an ultra-fast, high-precision speech transcriber specialized in Tunisian Arabic (Derja / Tounsi) and French for school administration.
+Transcribe the speaker's exact spoken words word-for-word in authentic script (Arabic script or accurate Latin phonetics).
 
-CRITICAL TRANSCRIBING RULES:
-1. DIALECT RECOGNITION: The speaker is speaking in Tunisian Arabic (Derja / Tounsi), French, English, or a natural mix of Tunisian Arabic and French (code-switching).
-2. DO NOT TRANSLATE: Never translate Tunisian words into French or English. Transcribe in the exact language spoken:
-   - If spoken in Tunisian Arabic, transcribe in authentic Arabic script (e.g. قيدلي خلاص, شكون غايب, كاسة اليوم, قداش فما فلوس, زيد مصروف 40 مازوط) or accurate phonetic text.
-   - If spoken in French, transcribe in French.
-   - If mixed, transcribe both faithfully.
-3. MULTI-INTENT SPOKEN COMMANDS: School directors frequently give compound instructions (e.g. "300 DT khlass w 40 mazout", "marqui ahmed ghayeb w a3tini el caisse"). Transcribe every word faithfully.
-4. SCHOOL VOCABULARY: Common terms include: élèves, profs, classes (1A, 2B...), matières, notes, absences, retards, paiements, reliquats, impayés, factures, STEG, SONEDE, Dinars / DT, cantine, مازوط, كاسة, شيك, تلامذة, معلمين, Appel.
-5. NOISE/SILENCE: If no clear speech is detected or the audio is pure silence/noise, return an empty string.
-6. OUTPUT: Output ONLY the exact transcribed text. No quotes, no markdown explanations, no intros like "Here is the transcription:".`;
+TUNISIAN VOCABULARY & PHONETIC ANCHORS:
+- Purchases & Expenses: chrina / chrit (شرينا / شريت = acheté), dabbouza me (دبوزة ماء), kes the (كاس تاي), 9ahwa (قهوة), kaskrout (كسكروت), gaz / mazout (غاز / مازوط / إيصانص), fourfour (فورفور), kra / kré (كراء), tabachir (طباشير), rames (أوراق).
+- Actions: qayedli / sajjelli (قيدلي / سجللي = enregistre), 5allas / 5lass (خلاص / خلص = paiement), a3tini (أعطيني), choufli (شوفلي), chkoun (شكون), marqui (ماركي), a7seb (احسب).
+- School: tlamdha (تلامذة), asatdha / m3almin (أساتذة / معلمين), 9esm (قسم), chhar (شهر), 8yeb (غياب), rtar (retard), caisse (كاسة), transport / car (كار / نقل), buvette (بيفات).
+- Numbers & Monetary Units: alf (1 DT), 2 alaf (2 DT), 5 leff (5 DT), 10 leff / 10 alaf (10 DT), 20 alf (20 DT), 50 alf (50 DT), mya alf (100 DT), melyoun (1000 DT), zouj mleyen (2000 DT).
+
+RULES:
+1. Output ONLY the plain transcribed words.
+2. Do NOT translate Tunisian dialect to French or standard Arabic. Keep the exact words spoken.
+3. Do NOT output timestamps, SRT subtitle codes (e.g. 00:00.000 --> 00:01.000), or speaker labels.
+4. If pure noise or silence, output an empty string.`;
 
   const cleanMime = (mimeType || "").toLowerCase();
   const normalizedMime = cleanMime.includes("m4a") || cleanMime.includes("mp4")
@@ -332,8 +333,8 @@ CRITICAL TRANSCRIBING RULES:
       const model = genAI.getGenerativeModel({
         model: modelName,
         generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 1024,
+          temperature: 0,
+          maxOutputTokens: 256,
         },
       });
       const result = await model.generateContent([
@@ -351,7 +352,15 @@ CRITICAL TRANSCRIBING RULES:
       } catch (extractErr: any) {
         console.warn(`[Mobile Voice] Failed to extract text with ${modelName}:`, extractErr.message);
       }
-      if (text && !text.toUpperCase().includes("NO_SPEECH")) {
+      if (text) {
+        // Clean any timestamp artifacts or subtitle tags
+        text = text
+          .replace(/\d{1,2}:\d{2}(?:\.\d{1,3})?\s*-->\s*\d{1,2}:\d{2}(?:\.\d{1,3})?/g, "")
+          .replace(/^\d+\s*$/gm, "")
+          .replace(/^["']|["']$/g, "")
+          .trim();
+      }
+      if (text && !text.toUpperCase().includes("NO_SPEECH") && !text.toUpperCase().includes("EMPTY")) {
         console.log(`[Mobile Voice] Successfully transcribed with ${modelName}: "${text.slice(0, 60)}"`);
         return text;
       }
