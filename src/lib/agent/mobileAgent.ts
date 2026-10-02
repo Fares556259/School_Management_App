@@ -30,7 +30,7 @@ export interface ActionCardData {
   toolCallId: string;
   toolName: string;
   actionTitle: string;
-  actionType: "expense" | "payment" | "student" | "class" | "attendance" | "announcement" | "generic";
+  actionType: "expense" | "income" | "payment" | "student" | "class" | "attendance" | "announcement" | "generic";
   confirmText: string;
   fields: ActionCardField[];
   status: "PENDING" | "EXECUTING" | "EXECUTED" | "REJECTED";
@@ -81,6 +81,24 @@ export function buildActionCardMetadata(
         { label: "Montant", value: `${args.amount || 0} DT` },
         { label: "Catégorie", value: args.category || "Général" },
         { label: "Description", value: args.title || args.description || "Facture / Dépense" },
+        { label: "Date", value: args.date || today },
+      ],
+    };
+  }
+
+  if (toolName === "add_income") {
+    return {
+      toolCallId,
+      toolName,
+      actionTitle: "Encaisser une recette",
+      actionType: "income",
+      confirmText,
+      status: "PENDING",
+      arguments: args,
+      fields: [
+        { label: "Montant", value: `${args.amount || 0} DT` },
+        { label: "Description", value: args.title || args.description || "Recette du jour (Entrée caisse)" },
+        { label: "Catégorie", value: args.category || "Frais scolarité" },
         { label: "Date", value: args.date || today },
       ],
     };
