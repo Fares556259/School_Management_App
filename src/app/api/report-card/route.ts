@@ -17,11 +17,19 @@ export async function GET(req: NextRequest) {
 
   try {
     const schoolId = await getSchoolId();
-    // Fetch ALL subjects for this school, grouped by domain
-    const allSubjects = await prisma.subject.findMany({
-      where: { schoolId },
-      orderBy: [{ domain: "asc" }, { name: "asc" }],
-    });
+    // Fetch ALL subjects for this school, grouped by domain + institution info
+    const [allSubjects, institution, school] = await Promise.all([
+      prisma.subject.findMany({
+        where: { schoolId },
+        orderBy: [{ domain: "asc" }, { name: "asc" }],
+      }),
+      prisma.institution.findFirst({
+        where: { schoolId },
+      }),
+      prisma.school.findUnique({
+        where: { id: schoolId },
+      }),
+    ]);
 
     // 1. Fetch Students
     let studentsToProcess: any[] = [];
@@ -201,6 +209,9 @@ export async function GET(req: NextRequest) {
           maxAverage,
           minAverage,
           rank,
+          schoolName: institution?.schoolName || school?.name || "",
+          academicYear: institution?.academicYear || "2025/2026",
+          enrolledCount: classStudents.length,
         },
         domains,
       };
