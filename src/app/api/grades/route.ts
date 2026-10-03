@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
-import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
+import { getSchoolId } from "@/lib/school";
 import { revalidatePath } from "next/cache";
 import { invalidateTenantTags } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const schoolId = req.headers.get("x-school-id") ? getSchoolIdFromHeader(req.headers) : await getSchoolId();
+    const schoolId = await getSchoolId();
     const grades = await prisma.grade.findMany({
       where: {
         studentId,
@@ -54,11 +54,11 @@ export async function POST(req: NextRequest) {
     const validatedData = gradeSchema.parse(body);
     const { studentId, term, scores } = validatedData;
 
-    const schoolId = req.headers.get("x-school-id") ? getSchoolIdFromHeader(req.headers) : await getSchoolId();
+    const schoolId = await getSchoolId();
 
     // 1. Find the student's class to look for corresponding sheets
     const student = await prisma.student.findFirst({
-      where: { id: studentId },
+      where: { id: studentId, schoolId },
       select: { classId: true },
     });
 
@@ -70,6 +70,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Student is not assigned to a class" }, { status: 400 });
     }
 
+    const subjects = await prisma.subject.count({ where: { schoolId, id: { in: Array.from(new Set(scores.map(s => s.subjectId))) } } });
+    if (subjects !== new Set(scores.map(s => s.subjectId)).size) {
+      return NextResponse.json({ error: "Subject not found in this school" }, { status: 400 });
+    }
     const classId = student.classId;
 
     // Use a transaction to ensure all grades are saved correctly
@@ -92,6 +96,7 @@ export async function POST(req: NextRequest) {
       const relevantSheets = await tx.gradeSheet.findMany({
         where: {
           classId: classId,
+          schoolId,
           term,
           subjectId: { in: scores.map(s => s.subjectId) }
         },

@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
     if (action === "collect_student") {
       const { studentId, amount, paymentMethod = "Espèces", category = "Scolarité", img } = body;
 
-      if (!studentId || !amount || Number(amount) <= 0) {
+      if (!studentId || !amount || (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || Math.abs(Number(amount) * 1000 - Math.round(Number(amount) * 1000)) > 0.000001)) {
         return NextResponse.json({ success: false, error: "Élève et montant valides requis." }, { status: 400 });
       }
 
@@ -423,24 +423,15 @@ export async function POST(request: NextRequest) {
 
       const fullFee = student.customTuition ?? student.level?.tuitionFee ?? 450;
 
-      // Check existing payment for this month
-      const existingPayment = await prisma.payment.findUnique({
-        where: {
-          studentId_month_year: {
-            studentId,
-            month: activeMonth,
-            year: activeYear,
-          },
-        },
-      });
-
-      const previousPaid = existingPayment?.amount || 0;
-      const totalNowPaid = previousPaid + numAmount;
-      const isComplete = totalNowPaid >= fullFee;
-      const finalStatus = isComplete ? "PAID" : "PARTIAL";
-      const deferredAmount = Math.max(0, fullFee - totalNowPaid);
-
-      await prisma.$transaction(async (tx) => {
+      const { finalStatus } = await prisma.$transaction(async (tx) => {
+        // Serialize collections for this student, including the first payment.
+        await tx.$queryRaw`SELECT id FROM "Student" WHERE id = ${studentId} AND "schoolId" = ${schoolId} FOR UPDATE`;
+        const existingPayment = await tx.payment.findUnique({
+          where: { studentId_month_year: { studentId, month: activeMonth, year: activeYear } },
+        });
+        const totalNowPaid = Math.round(((existingPayment?.amount || 0) + numAmount) * 1000) / 1000;
+        const finalStatus = totalNowPaid >= fullFee ? "PAID" : "PARTIAL";
+        const deferredAmount = Math.max(0, Math.round((fullFee - totalNowPaid) * 1000) / 1000);
         // 1. Upsert payment record
         const payment = await tx.payment.upsert({
           where: {
@@ -482,6 +473,7 @@ export async function POST(request: NextRequest) {
             schoolId,
           },
         });
+        return { finalStatus };
       });
 
       return NextResponse.json({
@@ -497,7 +489,7 @@ export async function POST(request: NextRequest) {
     if (action === "record_expense") {
       const { title, amount, category = "Divers", img } = body;
 
-      if (!title || !amount || Number(amount) <= 0) {
+      if (!title || !amount || (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || Math.abs(Number(amount) * 1000 - Math.round(Number(amount) * 1000)) > 0.000001)) {
         return NextResponse.json({ success: false, error: "Libellé et montant valides requis." }, { status: 400 });
       }
 
@@ -525,7 +517,7 @@ export async function POST(request: NextRequest) {
     if (action === "record_income") {
       const { title, amount, category = "Autre", paymentMethod = "Espèces", img } = body;
 
-      if (!title || !amount || Number(amount) <= 0) {
+      if (!title || !amount || (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || Math.abs(Number(amount) * 1000 - Math.round(Number(amount) * 1000)) > 0.000001)) {
         return NextResponse.json({ success: false, error: "Libellé et montant valides requis." }, { status: 400 });
       }
 
@@ -553,7 +545,7 @@ export async function POST(request: NextRequest) {
     if (action === "pay_salary") {
       const { recipientId, recipientType, amount, paymentMethod = "Espèces" } = body;
 
-      if (!recipientId || !recipientType || !amount || Number(amount) <= 0) {
+      if (!recipientId || !recipientType || !amount || (!Number.isFinite(Number(amount)) || Number(amount) <= 0 || Math.abs(Number(amount) * 1000 - Math.round(Number(amount) * 1000)) > 0.000001)) {
         return NextResponse.json({ success: false, error: "Bénéficiaire et montant valides requis." }, { status: 400 });
       }
 

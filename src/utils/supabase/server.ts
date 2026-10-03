@@ -37,9 +37,8 @@ export const createClient = () => {
 
 export const getAuthenticatedUser = cache(async () => {
   const supabase = createClient();
-  // We use getSession() instead of getUser() to avoid unnecessary network requests
-  // during SSR which can cause timeouts and fallback to "default_school"
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session?.user) return null;
-  return session.user;
+  // Verify the session with the authentication service before trusting identity.
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
 });

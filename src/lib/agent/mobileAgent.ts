@@ -1161,7 +1161,16 @@ Instructions :
       const chat = model.startChat({ history: historyContents });
       await input.onStatusUpdate?.({ step: "Recherche en cours..." });
       
-      let response = await chat.sendMessage([{ text: effectiveUserMessage }]);
+      const sendMessage = async (parts: Parameters<typeof chat.sendMessage>[0]) => {
+        if (!input.onTokenDelta) return chat.sendMessage(parts);
+        const streamed = await chat.sendMessageStream(parts);
+        for await (const chunk of streamed.stream) {
+          const delta = chunk.text();
+          if (delta) await input.onTokenDelta(delta);
+        }
+        return { response: await streamed.response };
+      };
+      let response = await sendMessage([{ text: effectiveUserMessage }]);
       let candidate = response.response;
 
       let functionCalls = candidate.functionCalls();
@@ -1182,7 +1191,7 @@ Instructions :
 
         if (!toolDef) {
           console.warn(`[MobileAgent] Unknown tool call: ${toolName}`);
-          let errResponse = await chat.sendMessage([{
+          let errResponse = await sendMessage([{
             functionResponse: {
               name: toolName,
               response: { error: true, message: `L'outil '${toolName}' n'existe pas. Utilisez un outil valide de la liste disponible.` }
@@ -1452,7 +1461,7 @@ Instructions :
         // Synthesize via Gemini (fallback only if unformatted custom tool output)
         await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
         
-        let toolResponse = await chat.sendMessage([
+        let toolResponse = await sendMessage([
           {
             text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
               toolOutput
@@ -1618,7 +1627,7 @@ export async function confirmMobileAction(params: {
   }
 
   // Ownership check
-  if (toolCall.conversation.adminId && toolCall.conversation.adminId !== adminId) {
+  if (toolCall.conversation.adminId !== adminId || toolCall.conversation.admin?.schoolId !== schoolId) {
     return { success: false, message: "Action non autorisée pour votre compte." };
   }
 

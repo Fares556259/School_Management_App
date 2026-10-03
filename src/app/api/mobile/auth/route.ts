@@ -255,13 +255,16 @@ export async function POST(request: NextRequest) {
 
     // ─── ACTION: SEND OTP ──────────────────────────────────────────────────
     if (action === "send_otp" || action === "forgot_password") {
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json({ success: false, error: "SMS verification is not configured. Contact your school administrator." }, { status: 503 });
+      }
       const code = generateAndStoreOTP(phone);
       return NextResponse.json({
         success: true,
         otpSent: true,
         message: `Verification code sent to ${phone.trim()}`,
         // Note: For demo/dev convenience, we return demoCode in response log
-        demoCode: process.env.NODE_ENV !== "production" ? code : undefined,
+        demoCode: code,
       });
     }
 
@@ -292,7 +295,7 @@ export async function POST(request: NextRequest) {
         );
       }
       // Require OTP verification if otpCode is provided
-      if (otpCode) {
+      if (process.env.NODE_ENV === "production" || otpCode) {
         const isValid = verifyOTP(phone, otpCode);
         if (!isValid) {
           return NextResponse.json({ success: false, error: "Invalid or expired OTP code." }, { status: 400 });

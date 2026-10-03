@@ -18,7 +18,8 @@
     "test-portal": "tsx scripts/mockPortalServer.ts",
     "benchmark:hnia": "tsx scripts/benchmarkHniaSpeed.ts",
     "benchmark:web": "tsx scripts/benchmarkWebSpeed.ts",
-    "benchmark:all": "npm run benchmark:hnia && npm run benchmark:web"
+    "benchmark:all": "npm run benchmark:hnia && npm run benchmark:web",
+    "test:security": "node --import tsx src/__tests__/mobile-security.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"

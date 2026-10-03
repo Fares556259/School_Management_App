@@ -71,7 +71,7 @@ const extendedPrisma = basePrisma.$extends({
             error?.code === "P1001" ||
             error?.code === "P1017";
 
-          if (isConnError) {
+          if (isConnError && ["findUnique", "findUniqueOrThrow", "findFirst", "findFirstOrThrow", "findMany", "count", "aggregate", "groupBy"].includes(operation)) {
             console.warn(`[Prisma] Connection drop or pool queue timeout detected on ${model}.${operation}. Reconnecting...`);
             await basePrisma.$disconnect().catch(() => {});
             await new Promise((r) => setTimeout(r, 600));
@@ -92,7 +92,7 @@ if (isDev) globalForPrisma.prisma = prisma;
 /**
  * Safe wrapper for concurrent db calls (e.g. Promise.all)
  */
-export async function safeDbQuery<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+export async function safeDbQuery<T>(fn: () => Promise<T>, retries = 0): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {

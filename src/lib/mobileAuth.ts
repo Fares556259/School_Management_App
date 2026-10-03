@@ -1,10 +1,13 @@
 import jwt from "jsonwebtoken";
+import { randomInt } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
-const JWT_SECRET_FALLBACK = "snapschool_mobile_jwt_super_secret_key_2026";
-const JWT_SECRET = process.env.JWT_SECRET || JWT_SECRET_FALLBACK;
-if (!process.env.JWT_SECRET) {
-  console.warn('[SECURITY] JWT_SECRET environment variable is not set! Using fallback. Set JWT_SECRET in Vercel env vars.');
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be configured with at least 32 characters.");
+  }
+  return secret;
 }
 
 export interface MobileJWTPayload {
@@ -17,13 +20,17 @@ export interface MobileJWTPayload {
 
 // ─── 1. JWT Token Issuer & Verifier ──────────────────────────────────────────
 export function generateToken(payload: Omit<MobileJWTPayload, "iat" | "exp">): string {
-  return jwt.sign(payload, JWT_SECRET as string, { expiresIn: "30d" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "30d" });
 }
 
 export function verifyToken(token: string): MobileJWTPayload | null {
   try {
     const cleanToken = token.startsWith("Bearer ") ? token.slice(7) : token;
-    return jwt.verify(cleanToken, JWT_SECRET) as MobileJWTPayload;
+    const payload = jwt.verify(cleanToken, getJwtSecret(), { algorithms: ["HS256"] });
+    if (typeof payload === "string" || typeof payload.userId !== "string" || !payload.userId ||
+        typeof payload.schoolId !== "string" || !payload.schoolId ||
+        !["parent", "teacher", "admin"].includes(payload.userType)) return null;
+    return payload as MobileJWTPayload;
   } catch (error) {
     return null;
   }
@@ -59,20 +66,21 @@ export function checkRateLimit(ip: string, action: string = "auth"): { success: 
   return { success: true };
 }
 
-// ─── 3. In-Memory OTP Store (Phone -> { code, expiresAt }) ────────────────────
+// ─── 3. In-Memory OTP Store (Phone -> { code, expiresAt, attempts: 0 }) ────────────────────
 interface OTPRecord {
   code: string;
   expiresAt: number;
+  attempts: number;
 }
 
 const otpStore = new Map<string, OTPRecord>();
 
 export function generateAndStoreOTP(phone: string): string {
   // Generate 6-digit random code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = randomInt(100000, 1000000).toString();
   const expiresAt = Date.now() + 10 * 60 * 1000; // Expires in 10 minutes
-  otpStore.set(phone.trim(), { code, expiresAt });
-  console.log(`[OTP GENERATED] Phone: ${phone.trim()} -> Code: ${code} (Expires in 10m)`);
+  otpStore.set(phone.trim(), { code, expiresAt, attempts: 0 });
+
   return code;
 }
 
@@ -83,7 +91,9 @@ export function verifyOTP(phone: string, inputCode: string): boolean {
     otpStore.delete(phone.trim());
     return false;
   }
+  record.attempts += 1;
   const isValid = record.code === inputCode.trim();
+  if (record.attempts >= 5) otpStore.delete(phone.trim());
   if (isValid) {
     otpStore.delete(phone.trim()); // Delete after single use
   }
