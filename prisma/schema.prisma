@@ -191,6 +191,9 @@ model Subject {
   teachers    Teacher[]       @relation("SubjectToTeacher")
 
   @@unique([name, schoolId])
+  @@index([schoolId])
+  @@index([parentId])
+  @@index([schoolId, parentId])
 }
 
 model Grade {
@@ -234,6 +237,7 @@ model GradeSheet {
   @@index([schoolId])
   @@index([teacherId])
   @@index([schoolId, classId])
+  @@index([classId, updatedAt])
 }
 
 model Lesson {
@@ -298,6 +302,8 @@ model Assignment {
   @@index([lessonId])
   @@index([dueDate])
   @@index([schoolId, dueDate])
+  @@index([startDate])
+  @@index([schoolId, startDate])
 }
 
 model Resource {
@@ -328,6 +334,7 @@ model ExamPeriodConfig {
   School    School    @relation(fields: [schoolId], references: [id])
 
   @@unique([period, classId])
+  @@index([schoolId])
 }
 
 model Institution {

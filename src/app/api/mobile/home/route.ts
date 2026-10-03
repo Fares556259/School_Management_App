@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { parseTime } from "@/lib/timeUtils";
+import { getCachedTenantData } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +34,30 @@ export async function GET(request: NextRequest) {
         where: { id: studentId },
         select: { classId: true, schoolId: true, parentId: true },
       }),
-      prisma.institution.findFirst({
-        where: { schoolId },
-        select: {
-          schoolName: true, schoolLogo: true, ministryName: true, ministryLogo: true,
-          universityName: true, universityLogo: true, academicYear: true, currentSemester: true,
-          sessions: true, holidays: true, yearStart: true, yearEnd: true,
-        },
-      })
+      getCachedTenantData(
+        schoolId,
+        "institution",
+        ["mobileHomeConfig"],
+        () =>
+          prisma.institution.findFirst({
+            where: { schoolId },
+            select: {
+              schoolName: true,
+              schoolLogo: true,
+              ministryName: true,
+              ministryLogo: true,
+              universityName: true,
+              universityLogo: true,
+              academicYear: true,
+              currentSemester: true,
+              sessions: true,
+              holidays: true,
+              yearStart: true,
+              yearEnd: true,
+            },
+          }),
+        3600
+      ),
     ]);
 
     if (!student) {
@@ -138,10 +155,17 @@ export async function GET(request: NextRequest) {
         where: { classId: student.classId, day: todayEnum as any },
         select: { id: true, subjectId: true, teacherId: true, name: true },
       }),
-      prisma.examPeriodConfig.findMany({
-        select: { period: true, startDate: true, endDate: true, pdfUrl: true },
-        orderBy: { period: "asc" },
-      }),
+      getCachedTenantData(
+        schoolId,
+        "exams",
+        ["mobileExamPeriods"],
+        () =>
+          prisma.examPeriodConfig.findMany({
+            select: { period: true, startDate: true, endDate: true, pdfUrl: true },
+            orderBy: { period: "asc" },
+          }),
+        1800
+      ),
       prisma.result.findMany({
         where: { studentId, assignmentId: { not: null } },
         select: { assignmentId: true },
@@ -304,15 +328,33 @@ export async function GET(request: NextRequest) {
     const mappedTasksGiven = tasksGiven.map(mapTask);
     const mappedResources = resources.map(mapResource);
 
-    return NextResponse.json({
-      sessions, examPeriods, holidayName,
-      tasksDue: mappedTasksDue, homeworkDue: mappedTasksDue,
-      tasksGiven: mappedTasksGiven, homeworkGiven: mappedTasksGiven,
-      upcomingExams: upcomingExams.map((e) => ({ id: e.id, title: e.title, subject: e.lesson.subject.name, teacher: `${e.lesson.teacher.name} ${e.lesson.teacher.surname}`, startTime: e.startTime, endTime: e.endTime })),
-      teacherRemarks,
-      resources: mappedResources,
-      files: mappedResources,
-    });
+    return NextResponse.json(
+      {
+        sessions,
+        examPeriods,
+        holidayName,
+        tasksDue: mappedTasksDue,
+        homeworkDue: mappedTasksDue,
+        tasksGiven: mappedTasksGiven,
+        homeworkGiven: mappedTasksGiven,
+        upcomingExams: upcomingExams.map((e) => ({
+          id: e.id,
+          title: e.title,
+          subject: e.lesson.subject.name,
+          teacher: `${e.lesson.teacher.name} ${e.lesson.teacher.surname}`,
+          startTime: e.startTime,
+          endTime: e.endTime,
+        })),
+        teacherRemarks,
+        resources: mappedResources,
+        files: mappedResources,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("[Mobile Home Error]", error);
     return new NextResponse(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json" } });
