@@ -1,0 +1,370 @@
+/*
+ * AttendanceCertificate.css
+ * ----------------------------------------------------------------------------
+ * Flat A4 (210 x 297 mm) layout of the "شهادة حضور" attendance-certificate
+ * TEMPLATE. Every element is positioned in physical units (mm / pt), measured
+ * from a perspective-corrected (rectified) version of the reference photo.
+ *
+ * Coordinate convention used by the helper custom properties below:
+ *   --y   vertical CENTRE of a text line, mm from the top edge of the sheet
+ *   --xr  RIGHT edge of an element, mm from the LEFT edge of the sheet
+ *   --xl  LEFT  edge of an element, mm from the LEFT edge of the sheet
+ *
+ * Nothing here is responsive on purpose: the sheet behaves like physical paper.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap");
+
+.ac-page {
+  /* ── tunable tokens ─────────────────────────────────────────────────── */
+  --ac-ink: #151515;
+  --ac-ink-soft: #3b3b3b;
+  --ac-placeholder: #8c929c;
+  --ac-dots: 0.32mm dotted #151515;
+  --ac-dots-offset: 2.6mm; /* distance of a dotted rule below its text centre */
+  --ac-font: "Noto Naskh Arabic", "Amiri", "Traditional Arabic", "Simplified Arabic", serif;
+  --ac-font-title: "Noto Naskh Arabic", "Amiri", "Traditional Arabic", serif;
+  --ac-font-mono: "SFMono-Regular", Menlo, Consolas, "Courier New", monospace;
+
+  --ac-fs-body: 16.2pt;
+  --ac-fs-header: 20pt;
+  --ac-fs-sign: 17.5pt;
+  --ac-fs-note: 13pt;
+  --ac-fs-title: 40pt;
+
+  position: relative;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #ffffff;
+  color: var(--ac-ink);
+  direction: rtl;
+  font-family: var(--ac-font);
+  font-size: var(--ac-fs-body);
+  font-weight: 600;
+  font-synthesis: none;
+  line-height: 1;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ac-page *,
+.ac-page *::before,
+.ac-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── generic positioned text line ─────────────────────────────────────── */
+.ac-t {
+  position: absolute;
+  top: calc(var(--y) - 4mm);
+  height: 8mm;
+  line-height: 8mm;
+  white-space: nowrap;
+}
+.ac-r {
+  right: calc(210mm - var(--xr));
+}
+.ac-box {
+  left: var(--xl);
+  width: calc(var(--xr) - var(--xl));
+}
+
+/* ── header block (right) ─────────────────────────────────────────────── */
+.ac-hdr {
+  font-size: var(--ac-fs-header);
+  font-weight: 700;
+}
+.ac-hdr-1 { --xr: 174mm; --y: 12.5mm; }
+.ac-hdr-2 { --xr: 169mm; --y: 20.8mm; }
+.ac-hdr-3 { --xr: 177mm; --y: 29.5mm; }
+.ac-hdr-field { --xl: 118mm; --xr: 173mm; --y: 38mm; }
+.ac-hdr-ba { --xr: 177mm; --y: 38mm; font-size: var(--ac-fs-body); }
+
+/* ── serial number (left of the header) ───────────────────────────────── */
+.ac-serial {
+  --xl: 36mm;
+  --xr: 75mm;
+  --y: 29.5mm;
+  direction: ltr;
+  text-align: left;
+  font-family: var(--ac-font-mono);
+  font-weight: 700;
+  font-size: 12.5pt;
+  letter-spacing: 0.45mm;
+  color: #3d4663;
+}
+.ac-placeholder-text {
+  font-family: var(--ac-font-mono);
+  font-weight: 600;
+  font-size: 6.5pt;
+  letter-spacing: 0.15mm;
+  color: var(--ac-placeholder);
+}
+.ac-serial .ac-placeholder-text {
+  display: inline-block;
+  border: 0.25mm dashed var(--ac-placeholder);
+  padding: 0 1.5mm;
+  line-height: 5mm;
+  vertical-align: middle;
+}
+
+/* ── title ────────────────────────────────────────────────────────────── */
+.ac-title {
+  --xl: 52mm;
+  --xr: 126mm;
+  --y: 47.5mm;
+  top: calc(var(--y) - 9mm);
+  height: 18mm;
+  line-height: 18mm;
+  text-align: center;
+  font-family: var(--ac-font-title);
+  font-size: 42pt;
+  font-weight: 700;
+  letter-spacing: 0.5mm;
+}
+
+/* ── body: label + dotted writing field ───────────────────────────────── */
+.ac-label {
+  font-size: var(--ac-fs-body);
+}
+
+.ac-field {
+  position: absolute;
+  top: calc(var(--y) - 4mm);
+  height: 8mm;
+  left: var(--xl);
+  width: calc(var(--xr) - var(--xl));
+}
+.ac-field::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% + var(--ac-dots-offset));
+  border-bottom: var(--ac-dots);
+  pointer-events: none;
+}
+.ac-val {
+  display: block;
+  height: 8mm;
+  line-height: 8mm;
+  padding-inline: 1.5mm;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: start;
+  font-size: var(--ac-fs-body);
+  font-weight: 600;
+}
+.ac-val bdi {
+  unicode-bidi: isolate;
+}
+
+/* editable (screen only – the print copy is always read-only) */
+.ac-input {
+  display: block;
+  width: 100%;
+  height: 8mm;
+  margin: 0;
+  padding: 0 1.5mm;
+  border: 0;
+  outline: 0;
+  background: rgba(255, 224, 102, 0.28);
+  color: inherit;
+  font: inherit;
+  direction: rtl;
+  text-align: start;
+}
+.ac-input:focus {
+  background: rgba(255, 224, 102, 0.55);
+}
+.ac-input-serial {
+  direction: ltr;
+  font-family: var(--ac-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.45mm;
+  width: 28mm;
+}
+
+/* row geometry */
+.ac-l1 { --xr: 164mm; --y: 82mm; }
+.ac-f1 { --xl: 22mm; --xr: 123mm; --y: 82mm; }
+
+.ac-l2 { --xr: 164mm; --y: 94.5mm; }
+.ac-f2 { --xl: 22mm; --xr: 130mm; --y: 94.5mm; }
+
+.ac-l3 { --xr: 164mm; --y: 107mm; }
+.ac-f3 { --xl: 22mm; --xr: 126mm; --y: 107mm; }
+
+.ac-l4 { --xr: 164mm; --y: 120.5mm; }
+
+.ac-l5 { --xr: 164mm; --y: 133mm; }
+.ac-f5 { --xl: 22mm; --xr: 154mm; --y: 133mm; }
+
+.ac-l6 { --xr: 164mm; --y: 146.5mm; }
+.ac-f6 { --xl: 22mm; --xr: 51mm; --y: 146.5mm; }
+.ac-f6b { --xl: 22mm; --xr: 164mm; --y: 155mm; }
+
+/* label + value share one flowing block so the value wraps like handwriting */
+.ac-purpose {
+  position: absolute;
+  right: calc(210mm - 164mm);
+  width: 142mm;
+  top: calc(146.5mm - 4.7mm);
+  line-height: 10mm;
+  font-size: var(--ac-fs-body);
+  font-weight: 600;
+  text-align: start;
+}
+
+.ac-l7 { --xr: 131mm; --y: 171mm; }
+.ac-f7a { --xl: 83mm; --xr: 117mm; --y: 171mm; }
+.ac-l7b { --xr: 78mm; --y: 171mm; }
+.ac-f7b { --xl: 22mm; --xr: 70mm; --y: 171mm; }
+.ac-center { text-align: center; }
+.ac-center .ac-val,
+.ac-center .ac-input {
+  text-align: center;
+}
+
+/* ── signature block ──────────────────────────────────────────────────── */
+.ac-sign {
+  font-size: var(--ac-fs-sign);
+}
+.ac-sign-1 { --xr: 89mm; --y: 189mm; }
+.ac-sign-2 { --xr: 89mm; --y: 199mm; }
+.ac-sign-name {
+  --xr: 89mm;
+  --y: 207mm;
+  font-size: 10.5pt;
+  font-weight: 600;
+  color: var(--ac-ink-soft);
+}
+
+/* ── placeholders (replace with authorised assets) ────────────────────── */
+.ac-ph-sign {
+  position: absolute;
+  left: 51mm;
+  top: 211mm;
+  width: 38mm;
+  height: 18mm;
+  border: 0.25mm dashed var(--ac-placeholder);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  direction: ltr;
+}
+.ac-ph-seal {
+  position: absolute;
+  left: 172.5mm;
+  top: 134mm;
+  width: 14mm;
+  height: 14mm;
+  border-radius: 50%;
+  border: 0.25mm dashed var(--ac-placeholder);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  direction: ltr;
+  overflow: hidden;
+}
+.ac-ph-seal .ac-placeholder-text {
+  font-size: 3.4pt;
+  line-height: 1.25;
+  letter-spacing: 0;
+  white-space: pre-line;
+}
+.ac-seal-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ── vertical margin text (rotated, reads bottom-to-top) ──────────────── */
+.ac-vert {
+  position: absolute;
+  width: 4mm;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 4mm;
+}
+.ac-vert .ac-placeholder-text {
+  font-size: 5pt;
+}
+.ac-vert-1 { left: 176mm; top: 99mm; height: 24mm; }
+.ac-vert-2 { left: 176mm; top: 209mm; height: 40mm; }
+
+/* ── footer notes ─────────────────────────────────────────────────────── */
+.ac-rule {
+  position: absolute;
+  --xl: 107mm;
+  --xr: 165mm;
+  left: var(--xl);
+  width: calc(var(--xr) - var(--xl));
+  top: 241mm;
+  border-top: 0.38mm solid var(--ac-ink);
+}
+.ac-note {
+  font-size: var(--ac-fs-note);
+  font-weight: 600;
+  --xr: 165mm;
+}
+.ac-note-1 { --y: 247mm; }
+.ac-note-2 { --y: 255mm; }
+.ac-note-3 { --y: 262.5mm; }
+.ac-note-4 { --y: 270mm; }
+
+/* ── printing: exactly one A4 sheet, no browser margins ───────────────── */
+.ac-print-portal {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Only the dedicated print copy (portalled to <body>) is printed. */
+  body.ac-print-active > *:not(.ac-print-portal) {
+    display: none !important;
+  }
+  body.ac-print-active .ac-print-portal {
+    display: block !important;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    page-break-after: avoid;
+    break-after: avoid-page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .ac-print-portal .ac-page {
+    margin: 0;
+    box-shadow: none;
+  }
+  .ac-no-print {
+    display: none !important;
+  }
+}

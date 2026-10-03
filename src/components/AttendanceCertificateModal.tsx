@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AttendanceCertificate, {
+  AttendanceCertificatePrintPortal,
   CertificateData,
   formatArabicDate,
   getLevelArabicInWords,
@@ -356,6 +357,7 @@ export default function AttendanceCertificateModal({
                 </div>
               </div>
             </motion.div>
+            <AttendanceCertificatePrintPortal data={formData} />
           </div>
         )}
       </AnimatePresence>
