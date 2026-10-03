@@ -9,6 +9,7 @@ import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
 import StudentDetailsModal from "@/components/StudentDetailsModal";
+import AttendanceCertificateModal from "@/components/AttendanceCertificateModal";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -326,13 +327,14 @@ export default function StudentListClient({
               schoolName={relatedData?.schoolName || "SnapSchool"}
               adminName={relatedData?.adminName || "Administration"}
             />
-            <Link
-              href={`/list/students/${item.id}`}
-              className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors text-[#41454d]"
-              title="Profil complet"
-            >
-              <ExternalLink size={15} strokeWidth={2} />
-            </Link>
+            <AttendanceCertificateModal
+              student={item}
+              className={item.class?.name ?? ""}
+              schoolName={relatedData?.schoolName || "SnapSchool"}
+              adminName={relatedData?.adminName || "Administration"}
+              delegation={relatedData?.delegation}
+              schoolAddress={relatedData?.schoolAddress}
+            />
             <PayStudentModal
               studentId={item.id}
               studentName={item.name + " " + item.surname}

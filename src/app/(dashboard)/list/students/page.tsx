@@ -109,6 +109,7 @@ const StudentListPage = async ({
   let levels: any[] = [];
   let admin: any = null;
   let school: any = null;
+  let institution: any = null;
   let summaryTotal = 0;
   let summaryPaid = 0;
   let summaryPartial = 0;
@@ -134,6 +135,10 @@ const StudentListPage = async ({
         ? prisma.admin.findUnique({ where: { id: userId }, select: { name: true, surname: true } })
         : Promise.resolve(null),
       prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
+      prisma.institution.findFirst({
+        where: { schoolId },
+        select: { schoolName: true, ministryName: true, address: true, phone: true },
+      }),
     ]);
 
   // 2. Dynamic paginated student data & month payment summaries (TTL: 5 min / 300s)
@@ -197,11 +202,13 @@ const StudentListPage = async ({
       ).catch(() => fetchDynamicData()),
     ]);
 
-    if (Array.isArray(staticRes) && staticRes.length >= 5) {
+    if (Array.isArray(staticRes) && staticRes.length >= 6) {
+      [parents, classes, levels, admin, school, institution] = staticRes;
+    } else if (Array.isArray(staticRes) && staticRes.length >= 5) {
       [parents, classes, levels, admin, school] = staticRes;
     } else {
       const freshStatic = await fetchStaticReferences();
-      [parents, classes, levels, admin, school] = freshStatic;
+      [parents, classes, levels, admin, school, institution] = freshStatic;
     }
 
     if (Array.isArray(dynamicRes) && dynamicRes.length >= 5) {
@@ -217,7 +224,7 @@ const StudentListPage = async ({
         fetchStaticReferences(),
         fetchDynamicData(),
       ]);
-      [parents, classes, levels, admin, school] = fallbackStatic;
+      [parents, classes, levels, admin, school, institution] = fallbackStatic;
       [data, count, summaryTotal, summaryPaid, summaryPartial] = fallbackDynamic;
     } catch (dbErr) {
       console.error("[StudentListPage] Direct DB fallback also failed:", dbErr);
@@ -256,7 +263,9 @@ const StudentListPage = async ({
       value: String(l.id),
       label: l.level === 0 ? "Préscolaire (تحضيري)" : `Level ${l.level}`
     })),
-    schoolName: school?.name || "SnapSchool",
+    schoolName: institution?.schoolName || school?.name || "SnapSchool",
+    ministryName: institution?.ministryName || "وزارة التربية",
+    schoolAddress: institution?.address || "",
     schoolSubdomain: school?.subdomain || "snapschool-academy",
     adminName: admin ? `${admin.name} ${admin.surname}` : "Administration",
   };
