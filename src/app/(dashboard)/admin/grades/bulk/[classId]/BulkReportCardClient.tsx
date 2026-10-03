@@ -78,12 +78,10 @@ export default function BulkReportCardClient({
             margin: 6mm 7mm;
           }
 
-          html, body, main, div, section, article {
+          html, body {
             height: auto !important;
-            max-height: none !important;
+            min-height: auto !important;
             overflow: visible !important;
-            display: block !important;
-            flex: none !important;
             background: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -91,8 +89,17 @@ export default function BulkReportCardClient({
             print-color-adjust: exact !important;
           }
 
-          .print-hidden {
+          /* Hide dashboard nav and chrome */
+          aside, nav, header, .print-hidden {
             display: none !important;
+          }
+
+          /* Ensure parent layout wrappers allow full height */
+          body > div, main {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            display: block !important;
           }
 
           .bulk-print-container {
@@ -111,17 +118,22 @@ export default function BulkReportCardClient({
             break-inside: avoid !important;
             margin: 0 !important;
             padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
           }
 
           .report-card-page {
             width: 196mm !important;
             max-height: 284mm !important;
             margin: 0 auto !important;
-            padding: 2mm 0 !important;
+            padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
             overflow: hidden !important;
             box-sizing: border-box !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `,

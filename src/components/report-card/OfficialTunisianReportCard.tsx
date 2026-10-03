@@ -1,6 +1,23 @@
 "use client";
 
 import React from "react";
+import { Noto_Naskh_Arabic } from "next/font/google";
+
+/**
+ * Official Tunisian primary-school report card ("بطاقة الأعداد").
+ *
+ * Geometry is reproduced from the ministry's printed form: shaded top band with a
+ * floating term badge, rounded domain banners, a dark subject column, a detached
+ * "highest / lowest in class" column pair, and tabbed boxes in the left column that
+ * are anchored to the domain rows on the right. All dimensions are in millimetres so
+ * the screen preview and the A4 print are identical.
+ */
+
+const naskh = Noto_Naskh_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export interface ReportSubject {
   id: number;
@@ -34,7 +51,9 @@ export interface ReportCardData {
   domains: ReportDomain[];
 }
 
-/** Parse first segment of pipe-separated trilingual name to get Arabic/display name. */
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Parse first Arabic segment of a pipe-separated trilingual name. */
 export const parseSubjectName = (name: string): string => {
   if (!name) return "";
   const parts = name.split("|");
@@ -43,25 +62,26 @@ export const parseSubjectName = (name: string): string => {
 };
 
 export const getTermText = (term: number): string => {
-  if (term === 1) return "الثّلاثي الأوّل";
-  if (term === 2) return "الثّلاثي الثّاني";
-  return "الثّلاثي الثّالث";
+  if (term === 1) return "الثّلاثيّ الأوّل";
+  if (term === 2) return "الثّلاثيّ الثّاني";
+  return "الثّلاثيّ الثّالث";
 };
 
 export const getCertificate = (avg: number): string => {
   if (avg >= 16) return "شهادة شكر";
   if (avg >= 14) return "لوحة شرف";
   if (avg >= 12) return "تشجيع";
-  return "ـ";
+  return "";
 };
 
+/** Empty cells stay empty, exactly like the blank official form. */
 export const formatScore = (val: number | undefined | null): string => {
-  if (val === undefined || val === null || val <= 0) return "ـ";
+  if (val === undefined || val === null || Number.isNaN(val) || val <= 0) return "";
   return val.toFixed(2);
 };
 
 export const getOfficialDomainTitle = (domainName: string): string => {
-  const trimmed = domainName.trim();
+  const trimmed = (domainName || "").trim();
   const upper = trimmed.toUpperCase();
   if (upper.includes("عرب") || upper.includes("ARAB")) return "مجال اللّغة العربيّة";
   if (upper.includes("علوم") || upper.includes("MATH") || upper.includes("SCIENCE")) return "مجال العلوم والتّكنولوجيا";
@@ -72,7 +92,7 @@ export const getOfficialDomainTitle = (domainName: string): string => {
 };
 
 const isTanchiaDomain = (domainName: string): boolean => {
-  const upper = domainName.trim().toUpperCase();
+  const upper = (domainName || "").trim().toUpperCase();
   return upper.includes("تنشئة") || upper.includes("DISCOV") || upper.includes("HUMAN");
 };
 
@@ -80,19 +100,470 @@ type TanchiaCategory = "social" | "artistic" | "physical";
 
 const classifyTanchia = (name: string): TanchiaCategory => {
   const s = name.toLowerCase();
-  if (s.includes("بدني") || s.includes("رياضة") || s.includes("sport") || s.includes("eps")) {
-    return "physical";
-  }
-  if (s.includes("تشكيل") || s.includes("موسيق") || s.includes("فني") || s.includes("art")) {
-    return "artistic";
-  }
+  if (s.includes("بدني") || s.includes("رياض") || s.includes("sport") || s.includes("eps")) return "physical";
+  if (s.includes("تشكيل") || s.includes("موسيق") || s.includes("فني") || s.includes("art")) return "artistic";
   return "social";
 };
 
-interface TanchiaSection {
-  title: string;
-  subjects: ReportSubject[];
+const isLatin = (text: string) => !/[\u0600-\u06FF]/.test(text);
+
+const parseYears = (year?: string): [string, string] | null => {
+  if (!year) return null;
+  const m = year.match(/\d{4}/g);
+  if (!m || m.length < 2) return null;
+  return [m[0], m[1]];
+};
+
+// ─── Design tokens (blue edition of the ministry form) ──────────────────────
+
+const C = {
+  ink: "#0d1f40", // body text
+  navy: "#163a72", // borders
+  dark: "#1d5aa6", // domain banners, "معدّل الثّلاثي" tab
+  mid: "#4b83c8", // subject column & "المادّة" header
+  light: "#dbe7f7", // column headers, tabs, average boxes
+  band: "#bcd2ef", // top shaded band
+  shadow: "#8fb0dd",
+};
+
+const B = 0.3; // border width (mm)
+const mm = (v: number) => `${v}mm`;
+
+const PAGE_W = 196;
+const LEFT_W = 56;
+const RIGHT_W = 136.5;
+
+// Right column columns, measured from the right edge (RTL)
+const COL = {
+  subject: { x: 0, w: 26.5 },
+  score: { x: 26.5, w: 16 },
+  avg: { x: 42.5, w: 14.5 },
+  rec: { x: 57, w: 47.5 },
+  max: { x: 107, w: 14.75 },
+  min: { x: 121.75, w: 14.75 },
+};
+
+const BANNER_H = 6.5;
+const BANNER_GAP = 0.9;
+const HEAD_H = 8.5;
+const HEAD_GAP = 1.2;
+const DOMAIN_GAP = 3;
+const DOMAIN_OVERHEAD = BANNER_H + BANNER_GAP + HEAD_H + HEAD_GAP;
+const CAT_RATIO = 0.62;
+
+const BAND_H = 19;
+const BADGE_TOP = 13;
+const BADGE_H = 12;
+const BAND_TO_INFO = 8.5;
+const INFO_H = 6;
+const INFO_TO_BODY = 1.5;
+const PAGE_MAX_H = 283; // A4 (297) minus 2×6mm print margins, minus safety
+const BODY_AVAILABLE = PAGE_MAX_H - (BAND_H + BAND_TO_INFO + INFO_H + INFO_TO_BODY) - 1;
+const ROW_MAX = 10.5;
+const ROW_MIN = 5;
+const TAB_OVER = 2.8; // how much a box label sticks out above its box
+
+// ─── Layout computation ─────────────────────────────────────────────────────
+
+type Row =
+  | { kind: "subject"; subject: ReportSubject }
+  | { kind: "category"; title: string };
+
+interface DomainLayout {
+  domain: ReportDomain;
+  rows: Row[];
+  rowYs: { y: number; h: number }[];
+  top: number;
+  bodyTop: number;
+  bodyH: number;
+  bottom: number;
 }
+
+const buildRows = (d: ReportDomain): Row[] => {
+  if (!isTanchiaDomain(d.domain)) {
+    return d.subjects.map((s) => ({ kind: "subject", subject: s }));
+  }
+  const groups: Record<TanchiaCategory, ReportSubject[]> = { social: [], artistic: [], physical: [] };
+  d.subjects.forEach((s) => groups[classifyTanchia(s.name)].push(s));
+  const sections: { title: string; subjects: ReportSubject[] }[] = [
+    { title: "التّنشئة الاجتماعيّة", subjects: groups.social },
+    { title: "التّنشئة الفنّيّة", subjects: groups.artistic },
+    { title: "التّنشئة البدنيّة", subjects: groups.physical },
+  ];
+  const rows: Row[] = [];
+  sections.forEach((sec) => {
+    if (sec.subjects.length === 0) return;
+    rows.push({ kind: "category", title: sec.title });
+    sec.subjects.forEach((s) => rows.push({ kind: "subject", subject: s }));
+  });
+  return rows;
+};
+
+const computeLayout = (domains: ReportDomain[]) => {
+  const rowsList = domains.map(buildRows);
+  const units = rowsList.reduce(
+    (acc, rows) => acc + Math.max(1, rows.reduce((b, r) => b + (r.kind === "subject" ? 1 : CAT_RATIO), 0)),
+    0
+  );
+  const fixed = domains.length * DOMAIN_OVERHEAD + Math.max(0, domains.length - 1) * DOMAIN_GAP;
+  const r = Math.min(ROW_MAX, Math.max(ROW_MIN, (BODY_AVAILABLE - fixed) / Math.max(units, 1)));
+
+  let y = 0;
+  const layouts: DomainLayout[] = rowsList.map((rows, i) => {
+    const top = y;
+    const bodyTop = top + DOMAIN_OVERHEAD;
+    let ry = 0;
+    const rowYs = rows.map((row) => {
+      const h = row.kind === "subject" ? r : r * CAT_RATIO;
+      const o = { y: ry, h };
+      ry += h;
+      return o;
+    });
+    const bodyH = Math.max(ry, r);
+    const bottom = bodyTop + bodyH;
+    y = bottom + DOMAIN_GAP;
+    return { domain: domains[i], rows, rowYs, top, bodyTop, bodyH, bottom };
+  });
+
+  const totalH = layouts.length ? layouts[layouts.length - 1].bottom : 60;
+  return { layouts, r, totalH };
+};
+
+interface Span {
+  top: number;
+  bottom: number;
+}
+
+const computeLeftColumn = (L: DomainLayout[], r: number, totalH: number) => {
+  const MIN_GAP = TAB_OVER + 2.5;
+  const d0 = L[0];
+  const avgTabsTop = d0 ? d0.bodyTop + 0.15 * r : 0;
+  const avgTabsH = Math.max(0.85 * r, 6.5);
+  const avgValTop = avgTabsTop + avgTabsH + 0.8;
+  const avgValH = Math.max(1.9 * r, 11);
+  const avgBottom = avgValTop + avgValH;
+
+  let boxes: [Span, Span, Span, Span];
+
+  if (L.length >= 4) {
+    const [, d1, d2, d3] = L;
+    const notes = { top: Math.max(d0.bottom - 0.5 * r, avgBottom + MIN_GAP), bottom: d1.bodyTop + r };
+    const cert = { top: Math.max(d1.bodyTop + 1.6 * r, notes.bottom + MIN_GAP), bottom: d2.bodyTop - 1 };
+    const principal = {
+      top: Math.max(d2.bodyTop + 0.5 * r, cert.bottom + MIN_GAP),
+      bottom: d3.top + BANNER_H + BANNER_GAP + 0.5,
+    };
+    const parent = { top: Math.max(d3.bodyTop + 0.55 * r, principal.bottom + MIN_GAP), bottom: d3.bottom };
+    boxes = [notes, cert, principal, parent];
+  } else {
+    // Fewer domains (e.g. 1st/2nd year): spread the four boxes below the average block.
+    const start = avgBottom + MIN_GAP;
+    const end = Math.max(totalH, start + 4 * 14 + 3 * MIN_GAP);
+    const weights = [0.24, 0.18, 0.34, 0.24];
+    const usable = end - start - 3 * MIN_GAP;
+    let y = start;
+    boxes = weights.map((w) => {
+      const b = { top: y, bottom: y + usable * w };
+      y = b.bottom + MIN_GAP;
+      return b;
+    }) as [Span, Span, Span, Span];
+  }
+
+  boxes.forEach((b) => {
+    if (b.bottom < b.top + 12) b.bottom = b.top + 12;
+  });
+
+  return { avgTabsTop, avgTabsH, avgValTop, avgValH, boxes };
+};
+
+// ─── Primitive drawing blocks ───────────────────────────────────────────────
+
+/**
+ * Absolutely-positioned cell. Bordered cells are enlarged by one border width so
+ * neighbouring borders overlap instead of doubling (emulates border-collapse).
+ */
+const Cell = ({
+  x,
+  w,
+  y,
+  h,
+  bordered = true,
+  style,
+  children,
+}: {
+  x: number;
+  w: number;
+  y: number;
+  h: number;
+  bordered?: boolean;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}) => (
+  <div
+    style={{
+      position: "absolute",
+      right: mm(x),
+      top: mm(y),
+      width: mm(w + (bordered ? B : 0)),
+      height: mm(h + (bordered ? B : 0)),
+      border: bordered ? `${B}mm solid ${C.navy}` : undefined,
+      boxSizing: "border-box",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      textAlign: "center",
+      overflow: "hidden",
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
+
+const DotField = ({ value, width }: { value?: React.ReactNode; width?: number }) => (
+  <span
+    style={{
+      display: "inline-flex",
+      flex: width ? undefined : 1,
+      width: width ? mm(width) : undefined,
+      minWidth: 0,
+      alignItems: "flex-end",
+      justifyContent: "center",
+      borderBottom: `0.35mm dotted ${C.ink}`,
+      minHeight: mm(4.4),
+      padding: "0 1mm",
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+    }}
+  >
+    {value !== undefined && value !== null && value !== "" ? <bdi>{value}</bdi> : null}
+  </span>
+);
+
+const TwoLines = ({ a, b, size }: { a: string; b: string; size: number }) => (
+  <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, fontSize: mm(size), fontWeight: 600 }}>
+    <span>{a}</span>
+    <span>{b}</span>
+  </span>
+);
+
+const LabeledBox = ({
+  span,
+  label,
+  tabRight,
+  tabWidth,
+  tabFont = 3,
+  children,
+}: {
+  span: Span;
+  label: string;
+  tabRight: number;
+  tabWidth: number;
+  tabFont?: number;
+  children?: React.ReactNode;
+}) => (
+  <div
+    style={{
+      position: "absolute",
+      top: mm(span.top),
+      right: 0,
+      width: mm(LEFT_W),
+      height: mm(span.bottom - span.top),
+      border: `0.35mm solid ${C.navy}`,
+      borderRadius: "1.5mm",
+      background: "#fff",
+      boxShadow: `-0.8mm -0.8mm 0 0 ${C.band}`,
+      boxSizing: "border-box",
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        top: mm(-TAB_OVER),
+        right: mm(tabRight),
+        width: mm(tabWidth),
+        height: mm(5.6),
+        background: C.light,
+        border: `${B}mm solid ${C.navy}`,
+        boxShadow: `-0.6mm 0.6mm 0 0 ${C.shadow}`,
+        boxSizing: "border-box",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 700,
+        fontSize: mm(tabFont),
+        whiteSpace: "nowrap",
+        color: C.ink,
+      }}
+    >
+      {label}
+    </div>
+    {children}
+  </div>
+);
+
+// ─── Domain block (right column) ────────────────────────────────────────────
+
+const DomainBlock = ({ L, r }: { L: DomainLayout; r: number }) => {
+  const nameFont = Math.min(3.1, r * 0.34);
+  const lastSubjectIdx = L.rows.reduce((acc, row, i) => (row.kind === "subject" ? i : acc), -1);
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: mm(L.top),
+        right: 0,
+        width: mm(RIGHT_W),
+        height: mm(L.bottom - L.top),
+      }}
+    >
+      {/* Domain banner: square on the left, rounded on the right, stops short of the edge */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: mm(9),
+          height: mm(BANNER_H),
+          background: C.dark,
+          borderTopRightRadius: "12mm 100%",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 700,
+          fontSize: mm(4.1),
+          letterSpacing: "0.1mm",
+        }}
+      >
+        {getOfficialDomainTitle(L.domain.domain)}
+      </div>
+
+      {/* Column header row */}
+      <div style={{ position: "absolute", top: mm(BANNER_H + BANNER_GAP), right: 0, width: mm(RIGHT_W), height: mm(HEAD_H) }}>
+        <Cell
+          {...COL.subject}
+          y={0}
+          h={HEAD_H}
+          bordered={false}
+          style={{
+            background: C.mid,
+            borderTopRightRadius: "7mm 100%",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: mm(3.6),
+          }}
+        >
+          المـادّة
+        </Cell>
+        <Cell
+          {...COL.score}
+          y={0}
+          h={HEAD_H}
+          style={{
+            background: `linear-gradient(110deg, ${C.light} 0 47%, ${C.mid} 47% 100%)`,
+            justifyContent: "space-around",
+            fontWeight: 700,
+          }}
+        >
+          <span style={{ color: "#fff", fontSize: mm(2.7) }}>العدد/</span>
+          <span style={{ color: C.ink, fontSize: mm(3) }}>20</span>
+        </Cell>
+        <Cell {...COL.avg} y={0} h={HEAD_H} style={{ background: C.light, color: C.ink }}>
+          <TwoLines a="معدّل" b="المجال" size={2.6} />
+        </Cell>
+        <Cell
+          {...COL.rec}
+          y={0}
+          h={HEAD_H}
+          style={{ background: C.light, color: C.ink, fontWeight: 600, fontSize: mm(3.4), borderTopLeftRadius: "1.5mm" }}
+        >
+          توصيات المدرّس(ة)
+        </Cell>
+        <Cell {...COL.max} y={0} h={HEAD_H} style={{ background: C.light, color: C.ink, borderTopRightRadius: "1.5mm" }}>
+          <TwoLines a="أعلى" b="عدد بالقسم" size={2.2} />
+        </Cell>
+        <Cell {...COL.min} y={0} h={HEAD_H} style={{ background: C.light, color: C.ink, borderTopLeftRadius: "1.5mm" }}>
+          <TwoLines a="أدنى" b="عدد بالقسم" size={2.2} />
+        </Cell>
+      </div>
+
+      {/* Body */}
+      <div style={{ position: "absolute", top: mm(DOMAIN_OVERHEAD), right: 0, width: mm(RIGHT_W), height: mm(L.bodyH) }}>
+        {L.rows.map((row, i) => {
+          const { y, h } = L.rowYs[i];
+          if (row.kind === "category") {
+            return (
+              <Cell
+                key={`cat-${i}`}
+                x={0}
+                w={COL.subject.w + COL.score.w}
+                y={y}
+                h={h}
+                style={{
+                  background: "#fff",
+                  justifyContent: "flex-start",
+                  paddingRight: mm(1),
+                  fontWeight: 700,
+                  fontSize: mm(Math.min(2.9, h * 0.5)),
+                  color: C.ink,
+                }}
+              >
+                <span style={{ fontSize: mm(2.3), marginLeft: mm(1.2) }}>●</span>
+                {row.title}
+              </Cell>
+            );
+          }
+          const name = parseSubjectName(row.subject.name);
+          const latin = isLatin(name);
+          return (
+            <React.Fragment key={`sub-${row.subject.id}-${i}`}>
+              <Cell
+                {...COL.subject}
+                y={y}
+                h={h}
+                bordered={false}
+                style={{
+                  background: C.mid,
+                  color: "#fff",
+                  borderBottom: i !== lastSubjectIdx ? "0.35mm solid #fff" : undefined,
+                  justifyContent: latin ? "flex-end" : "flex-start",
+                  padding: "0 1.3mm",
+                  fontWeight: 600,
+                  fontSize: mm(nameFont),
+                  lineHeight: 1.15,
+                }}
+              >
+                <span dir={latin ? "ltr" : "rtl"} style={{ textAlign: latin ? "left" : "right" }}>
+                  {name}
+                </span>
+              </Cell>
+              <Cell {...COL.score} y={y} h={h} style={{ background: "#fff", fontWeight: 700, fontSize: mm(3.4), color: "#000" }}>
+                {formatScore(row.subject.score)}
+              </Cell>
+              <Cell {...COL.max} y={y} h={h} style={{ background: "#fff", fontWeight: 600, fontSize: mm(2.9), color: "#000" }}>
+                {formatScore(row.subject.maxScore)}
+              </Cell>
+              <Cell {...COL.min} y={y} h={h} style={{ background: "#fff", fontWeight: 600, fontSize: mm(2.9), color: "#000" }}>
+                {formatScore(row.subject.minScore)}
+              </Cell>
+            </React.Fragment>
+          );
+        })}
+
+        {/* Merged domain average + teacher recommendations */}
+        <Cell {...COL.avg} y={0} h={L.bodyH} style={{ background: "#fff", fontWeight: 700, fontSize: mm(4.2), color: "#000" }}>
+          {formatScore(L.domain.domainAverage)}
+        </Cell>
+        <Cell {...COL.rec} y={0} h={L.bodyH} style={{ background: "#fff" }} />
+      </div>
+    </div>
+  );
+};
+
+// ─── Main component ─────────────────────────────────────────────────────────
 
 export default function OfficialTunisianReportCard({
   report,
@@ -102,367 +573,233 @@ export default function OfficialTunisianReportCard({
   className?: string;
 }) {
   const { header, domains } = report;
-
-  // Process Domain 3 into official sub-sections if present
-  const renderTanchiaDomain = (domain: ReportDomain) => {
-    const social: ReportSubject[] = [];
-    const artistic: ReportSubject[] = [];
-    const physical: ReportSubject[] = [];
-
-    domain.subjects.forEach((subj) => {
-      const cat = classifyTanchia(subj.name);
-      if (cat === "social") social.push(subj);
-      else if (cat === "artistic") artistic.push(subj);
-      else physical.push(subj);
-    });
-
-    const sections: TanchiaSection[] = [
-      { title: "• التّنشئة الاجتماعيّة", subjects: social },
-      { title: "• التّنشئة الفنّيّة", subjects: artistic },
-      { title: "• التّنشئة البدنيّة", subjects: physical },
-    ];
-
-    // Total rows = sum of subject rows + category header rows
-    const totalRowCount = sections.reduce(
-      (acc, sec) => acc + (sec.subjects.length > 0 ? sec.subjects.length + 1 : 1),
-      0
-    );
-
-    let isFirstRow = true;
-
-    return (
-      <div key={domain.domain} className="mb-2.5 overflow-hidden">
-        {/* Domain Title Header */}
-        <div className="bg-[#262626] text-white text-center font-bold py-0.5 text-[11px] tracking-wide rounded-t-[3px] border border-black border-b-0">
-          {getOfficialDomainTitle(domain.domain)}
-        </div>
-
-        <table className="w-full text-center border-collapse border border-black text-[10px]">
-          <thead>
-            <tr className="bg-[#f2f2f2] text-black font-bold text-[9px] border-b border-black">
-              <th className="py-0.5 px-1.5 text-right w-[28%] border-l border-black">المادّة</th>
-              <th className="py-0.5 px-1 w-[13%] border-l border-black">العدد / 20</th>
-              <th className="py-0.5 px-1 w-[13%] border-l border-black">معدل المجال</th>
-              <th className="py-0.5 px-1 w-[28%] border-l border-black">توصيات المدرس(ة)</th>
-              <th className="py-0.5 px-0.5 w-[9%] border-l border-black text-[7.5px] leading-tight font-bold">
-                أعلى<br />عدد بالقسم
-              </th>
-              <th className="py-0.5 px-0.5 w-[9%] text-[7.5px] leading-tight font-bold">
-                أدنى<br />عدد بالقسم
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sections.map((section, sIdx) => {
-              const rows: React.ReactNode[] = [];
-
-              // Section Header Row (e.g. • التنشئة الاجتماعية)
-              const sectionHeaderIsFirst = isFirstRow;
-              if (isFirstRow) isFirstRow = false;
-
-              rows.push(
-                <tr key={`sec-${sIdx}`} className="border-b border-black text-[9.5px]">
-                  <td className="py-0.5 px-2 text-right font-black bg-[#fafafa] border-l border-black">
-                    {section.title}
-                  </td>
-                  {/* Shaded empty cells for category header */}
-                  <td className="bg-[#dcdcdc] border-l border-black"></td>
-
-                  {sectionHeaderIsFirst && (
-                    <>
-                      <td
-                        rowSpan={totalRowCount}
-                        className="align-middle font-black text-sm text-black border-l border-black bg-white"
-                      >
-                        {formatScore(domain.domainAverage)}
-                      </td>
-                      <td
-                        rowSpan={totalRowCount}
-                        className="align-middle p-1 border-l border-black bg-white text-[9px] text-gray-700 italic"
-                      ></td>
-                    </>
-                  )}
-
-                  <td className="bg-[#dcdcdc] border-l border-black"></td>
-                  <td className="bg-[#dcdcdc]"></td>
-                </tr>
-              );
-
-              // Subject Rows for this section
-              section.subjects.forEach((subj) => {
-                const subIsFirst = isFirstRow;
-                if (isFirstRow) isFirstRow = false;
-
-                rows.push(
-                  <tr key={`subj-${subj.id}`} className="border-b border-black text-[9.5px]">
-                    <td className="py-0.5 px-3 text-right font-medium text-black border-l border-black">
-                      {parseSubjectName(subj.name)}
-                    </td>
-                    <td className="py-0.5 px-1 font-bold text-black border-l border-black">
-                      {formatScore(subj.score)}
-                    </td>
-
-                    {subIsFirst && (
-                      <>
-                        <td
-                          rowSpan={totalRowCount}
-                          className="align-middle font-black text-sm text-black border-l border-black bg-white"
-                        >
-                          {formatScore(domain.domainAverage)}
-                        </td>
-                        <td
-                          rowSpan={totalRowCount}
-                          className="align-middle p-1 border-l border-black bg-white text-[9px] text-gray-700 italic"
-                        ></td>
-                      </>
-                    )}
-
-                    <td className="py-0.5 px-0.5 text-[8.5px] font-bold text-black border-l border-black">
-                      {formatScore(subj.maxScore)}
-                    </td>
-                    <td className="py-0.5 px-0.5 text-[8.5px] font-bold text-black">
-                      {formatScore(subj.minScore)}
-                    </td>
-                  </tr>
-                );
-              });
-
-              return <React.Fragment key={`frag-${sIdx}`}>{rows}</React.Fragment>;
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  // Render Standard Domain (Domain 1, 2, 4)
-  const renderStandardDomain = (domain: ReportDomain) => {
-    const subjects = domain.subjects;
-    const rowCount = Math.max(subjects.length, 1);
-
-    return (
-      <div key={domain.domain} className="mb-2.5 overflow-hidden">
-        {/* Domain Title Header */}
-        <div className="bg-[#262626] text-white text-center font-bold py-0.5 text-[11px] tracking-wide rounded-t-[3px] border border-black border-b-0">
-          {getOfficialDomainTitle(domain.domain)}
-        </div>
-
-        <table className="w-full text-center border-collapse border border-black text-[10px]">
-          <thead>
-            <tr className="bg-[#f2f2f2] text-black font-bold text-[9px] border-b border-black">
-              <th className="py-0.5 px-1.5 text-right w-[28%] border-l border-black">المادّة</th>
-              <th className="py-0.5 px-1 w-[13%] border-l border-black">العدد / 20</th>
-              <th className="py-0.5 px-1 w-[13%] border-l border-black">معدل المجال</th>
-              <th className="py-0.5 px-1 w-[28%] border-l border-black">توصيات المدرس(ة)</th>
-              <th className="py-0.5 px-0.5 w-[9%] border-l border-black text-[7.5px] leading-tight font-bold">
-                أعلى<br />عدد بالقسم
-              </th>
-              <th className="py-0.5 px-0.5 w-[9%] text-[7.5px] leading-tight font-bold">
-                أدنى<br />عدد بالقسم
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {subjects.map((subj, idx) => (
-              <tr key={subj.id || idx} className="border-b border-black text-[9.5px]">
-                <td className="py-0.5 px-2 text-right font-medium text-black border-l border-black">
-                  {parseSubjectName(subj.name)}
-                </td>
-                <td className="py-0.5 px-1 font-bold text-black border-l border-black">
-                  {formatScore(subj.score)}
-                </td>
-
-                {idx === 0 && (
-                  <>
-                    <td
-                      rowSpan={rowCount}
-                      className="align-middle font-black text-sm text-black border-l border-black bg-white"
-                    >
-                      {formatScore(domain.domainAverage)}
-                    </td>
-                    <td
-                      rowSpan={rowCount}
-                      className="align-middle p-1 border-l border-black bg-white text-[9px] text-gray-700 italic"
-                    ></td>
-                  </>
-                )}
-
-                <td className="py-0.5 px-0.5 text-[8.5px] font-bold text-black border-l border-black">
-                  {formatScore(subj.maxScore)}
-                </td>
-                <td className="py-0.5 px-0.5 text-[8.5px] font-bold text-black">
-                  {formatScore(subj.minScore)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+  const { layouts, r, totalH } = computeLayout(domains || []);
+  const left = computeLeftColumn(layouts, r, totalH);
+  const years = parseYears(header.academicYear);
+  const certificate = getCertificate(header.generalAverage);
 
   return (
     <div
-      className={`report-card-page bg-white text-black font-sans mx-auto ${className}`}
+      className={`report-card-page ${naskh.className} ${className}`}
       dir="rtl"
       style={{
-        width: "196mm",
+        width: mm(PAGE_W),
         boxSizing: "border-box",
+        background: "#fff",
+        color: C.ink,
+        margin: "0 auto",
+        position: "relative",
       }}
     >
-      {/* ── TOP HEADER BOX (Authentic Shaded Header) ── */}
-      <div className="relative mb-5">
-        <div className="bg-[#ebebeb] border border-black p-3 pb-5 flex justify-between items-start text-black font-bold text-[11px] leading-relaxed">
-          {/* Right Header Info */}
-          <div className="text-right space-y-1.5">
-            <div className="text-[12px] font-black">المندوبية الجهوية للتربية</div>
-            <div>
-              بـ : <span className="font-normal">....................................................</span>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `.report-card-page, .report-card-page * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }`,
+        }}
+      />
+
+      {/* ── Top shaded band + term badge ── */}
+      <div style={{ position: "relative", height: mm(BAND_H), marginBottom: mm(BAND_TO_INFO) }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: C.band,
+            borderBottom: `0.5mm solid ${C.mid}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            padding: "2.2mm 4mm 0 12mm",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Right: regional directorate */}
+          <div style={{ width: mm(90) }}>
+            <div style={{ fontWeight: 700, fontSize: mm(4.4), lineHeight: 1.2 }}>المندوبيّة الجهويّة للتّربية</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: mm(1.5), marginTop: mm(1.6), fontSize: mm(3.4), fontWeight: 700 }}>
+              <span>بـ</span>
+              <DotField />
             </div>
           </div>
 
-          {/* Left Header Info */}
-          <div className="text-right space-y-1.5 pl-2">
-            <div>
-              المدرسة الابتدائية :{" "}
-              <span className="font-bold">
-                {header.schoolName || "................................................"}
-              </span>
+          {/* Left: school + academic year */}
+          <div style={{ width: mm(80), fontSize: mm(3.3), fontWeight: 600 }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: mm(1.5), whiteSpace: "nowrap" }}>
+              <span>المدرسة الابتدائيّة</span>
+              <DotField value={header.schoolName} />
             </div>
-            <div>
-              السنة الدّراسية :{" "}
-              <span className="font-bold tracking-wider">
-                {header.academicYear || "20... / 20..."}
-              </span>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: mm(1.5), marginTop: mm(2), whiteSpace: "nowrap" }}>
+              <span>السّنة الدّراسيّة :</span>
+              {years ? (
+                <span dir="ltr" style={{ fontWeight: 700, letterSpacing: "0.2mm" }}>
+                  {years[0]} / {years[1]}
+                </span>
+              ) : (
+                <span dir="ltr" style={{ display: "flex", alignItems: "flex-end", gap: mm(1) }}>
+                  20<DotField width={12} /> / 20<DotField width={12} />
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Floating Oval Pill Badge: "الثلاثي الثاني" */}
-        <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2">
-          <div className="bg-white border-2 border-black px-7 py-0.5 rounded-full shadow-none text-center min-w-[190px]">
-            <h2 className="text-[14px] font-black text-black tracking-wide leading-normal">
-              {getTermText(header.term)}
-            </h2>
-          </div>
+        {/* Floating term badge */}
+        <div
+          style={{
+            position: "absolute",
+            top: mm(BADGE_TOP),
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: mm(52),
+            height: mm(BADGE_H),
+            background: "#fff",
+            border: `0.55mm solid ${C.navy}`,
+            borderRadius: "4mm",
+            boxShadow: `0.9mm 0.9mm 0 0 ${C.navy}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: mm(5.8),
+            color: C.ink,
+            boxSizing: "border-box",
+          }}
+        >
+          {getTermText(header.term)}
         </div>
       </div>
 
-      {/* ── STUDENT INFO ROW ── */}
-      <div className="flex justify-between items-baseline mb-3 px-1 text-[11px] font-bold text-black">
-        {/* Right: Student Name */}
-        <div className="flex items-baseline gap-1.5 flex-1">
-          <span>التلميذ (ة) :</span>
-          <span className="text-[12px] font-black uppercase tracking-tight">
-            {header.studentName}
-          </span>
-          <span className="text-gray-400 font-normal tracking-tighter overflow-hidden text-ellipsis">
-            ..................................................................
-          </span>
+      {/* ── Student info line ── */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: mm(4),
+          height: mm(INFO_H),
+          marginBottom: mm(INFO_TO_BODY),
+          fontSize: mm(3.4),
+          fontWeight: 700,
+          whiteSpace: "nowrap",
+        }}
+      >
+        <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: mm(1.5), minWidth: 0 }}>
+          <span>التّلميذ (ة)</span>
+          <DotField value={header.studentName} />
         </div>
-
-        {/* Center: Class */}
-        <div className="flex items-baseline gap-1 px-4">
+        <div style={{ width: mm(46), display: "flex", alignItems: "flex-end", gap: mm(1.5) }}>
           <span>القسم :</span>
-          <span className="text-[12px] font-black">{header.class}</span>
+          <DotField value={header.class} />
         </div>
-
-        {/* Left: Enrolled Count */}
-        <div className="flex items-baseline gap-1 min-w-[150px] justify-end">
-          <span>عدد التلاميذ المرسمين :</span>
-          <span className="font-black">
-            {header.enrolledCount !== undefined && header.enrolledCount > 0
-              ? header.enrolledCount
-              : "........"}
-          </span>
+        <div style={{ width: mm(62), display: "flex", alignItems: "flex-end", gap: mm(1.5) }}>
+          <span>عدد التّلاميذ المرسّمين :</span>
+          <DotField value={header.enrolledCount && header.enrolledCount > 0 ? header.enrolledCount : undefined} />
         </div>
       </div>
 
-      {/* ── TWO-COLUMN MAIN BODY (Right: Domains, Left: Administrative) ── */}
-      <div className="flex gap-2.5 items-stretch">
-        {/* ── RIGHT COLUMN: SUBJECT DOMAINS (~69% Width) ── */}
-        <div className="flex-1 flex flex-col justify-between">
-          {domains.map((dom) =>
-            isTanchiaDomain(dom.domain)
-              ? renderTanchiaDomain(dom)
-              : renderStandardDomain(dom)
-          )}
+      {/* ── Body: domains (right) + administrative boxes (left) ── */}
+      <div style={{ position: "relative", width: mm(PAGE_W), height: mm(totalH) }}>
+        {/* Right column */}
+        <div style={{ position: "absolute", top: 0, right: 0, width: mm(RIGHT_W), height: mm(totalH) }}>
+          {layouts.map((L, i) => (
+            <DomainBlock key={`${L.domain.domain}-${i}`} L={L} r={r} />
+          ))}
         </div>
 
-        {/* ── LEFT COLUMN: ADMINISTRATIVE & EVALUATION PANELS (~31% Width) ── */}
-        <div className="w-[195px] flex flex-col justify-between">
-          {/* 1. Term Average Table */}
-          <div className="border border-black overflow-hidden mb-2.5">
-            <div className="grid grid-cols-[1.2fr_1fr_1fr] border-b border-black">
-              {/* Col 1 (Right): معدل الثلاثي */}
-              <div className="bg-[#262626] text-white text-[9.5px] font-black text-center py-1 border-l border-black flex items-center justify-center">
-                معدل الثلاثي
-              </div>
-              {/* Col 2 (Middle): أعلى معدل بالقسم */}
-              <div className="bg-[#f2f2f2] text-black text-[7.5px] font-bold text-center py-0.5 leading-tight border-l border-black flex flex-col justify-center">
-                <span>أعلى</span>
-                <span>معدل بالقسم</span>
-              </div>
-              {/* Col 3 (Left): أدنى معدل بالقسم */}
-              <div className="bg-[#f2f2f2] text-black text-[7.5px] font-bold text-center py-0.5 leading-tight flex flex-col justify-center">
-                <span>أدنى</span>
-                <span>معدل بالقسم</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-[1.2fr_1fr_1fr] bg-white text-center">
-              {/* Value Col 1: Term Average */}
-              <div className="py-2.5 font-black text-[15px] text-black border-l border-black flex items-center justify-center">
-                {formatScore(header.generalAverage)}
-              </div>
-              {/* Value Col 2: Max Average */}
-              <div className="py-2.5 font-bold text-[10px] text-black border-l border-black flex items-center justify-center">
-                {formatScore(header.maxAverage)}
-              </div>
-              {/* Value Col 3: Min Average */}
-              <div className="py-2.5 font-bold text-[10px] text-black flex items-center justify-center">
-                {formatScore(header.minAverage)}
-              </div>
-            </div>
+        {/* Left column */}
+        <div style={{ position: "absolute", top: 0, left: 0, width: mm(LEFT_W), height: mm(totalH) }}>
+          {/* Term average: tabs */}
+          <div style={{ position: "absolute", top: mm(left.avgTabsTop), right: 0, width: mm(LEFT_W), height: mm(left.avgTabsH) }}>
+            <Cell
+              x={0}
+              w={24.2}
+              y={0}
+              h={left.avgTabsH}
+              bordered={false}
+              style={{
+                background: C.dark,
+                color: "#fff",
+                borderTopRightRadius: "7mm 100%",
+                fontWeight: 700,
+                fontSize: mm(3.6),
+              }}
+            >
+              معدّل الثّلاثي
+            </Cell>
+            <Cell x={25} w={15.5} y={0} h={left.avgTabsH} style={{ background: C.light, color: C.ink }}>
+              <TwoLines a="أعلى" b="معدّل بالقسم" size={2.3} />
+            </Cell>
+            <Cell
+              x={40.5}
+              w={15.5}
+              y={0}
+              h={left.avgTabsH}
+              style={{ background: C.light, color: C.ink, borderTopLeftRadius: "5mm 100%" }}
+            >
+              <TwoLines a="أدنى" b="معدّل بالقسم" size={2.3} />
+            </Cell>
           </div>
 
-          {/* 2. Behavior and Attendance Notes Box with Right Tab */}
-          <div className="border border-black relative bg-white h-[92px] mb-2.5 flex flex-col">
-            <div className="absolute -top-[9px] right-2 bg-white px-1.5 border-t border-x border-black text-[8px] font-black text-black z-10 leading-tight">
-              ملاحظات المدرس(ة) حول السلوك والمواظبة
-            </div>
-            <div className="flex-1 p-2"></div>
+          {/* Term average: values */}
+          <div style={{ position: "absolute", top: mm(left.avgValTop), right: 0, width: mm(LEFT_W), height: mm(left.avgValH) }}>
+            <Cell x={0} w={24.2} y={0} h={left.avgValH} style={{ background: C.light, fontWeight: 700, fontSize: mm(5), color: "#000" }}>
+              {formatScore(header.generalAverage)}
+            </Cell>
+            <Cell x={25} w={15.5} y={0} h={left.avgValH} style={{ background: C.light, fontWeight: 700, fontSize: mm(3.4), color: "#000" }}>
+              {formatScore(header.maxAverage)}
+            </Cell>
+            <Cell x={40.5} w={15.5} y={0} h={left.avgValH} style={{ background: C.light, fontWeight: 700, fontSize: mm(3.4), color: "#000" }}>
+              {formatScore(header.minAverage)}
+            </Cell>
           </div>
 
-          {/* 3. Certificate Box with Center Tab */}
-          <div className="border border-black relative bg-white h-[58px] mb-2.5 flex items-center justify-center">
-            <div className="absolute -top-[9px] left-1/2 -translate-x-1/2 bg-white px-2.5 border-t border-x border-black text-[8.5px] font-black text-black z-10 leading-tight">
-              الشهادة
-            </div>
-            <div className="font-black text-[12px] text-black tracking-wide">
-              {getCertificate(header.generalAverage)}
-            </div>
-          </div>
+          {/* Teacher notes on behaviour & attendance */}
+          <LabeledBox span={left.boxes[0]} label="ملاحظات المدرّس(ة) حول السّلوك والمواظبة" tabRight={1.5} tabWidth={51} tabFont={2.45} />
 
-          {/* 4. Principal Box with Right Tab & Stamp Info */}
-          <div className="border border-black relative bg-white h-[96px] mb-2.5 flex flex-col justify-between p-2">
-            <div className="absolute -top-[9px] right-2 bg-white px-2 border-t border-x border-black text-[8.5px] font-black text-black z-10 leading-tight">
-              مدير(ة) المدرسة
-            </div>
-            <div className="flex-1"></div>
-            <div className="flex justify-between items-end text-[8px] font-bold text-black pt-1">
-              <span>التاريخ : ...................</span>
-              <span>(الختم والإمضاء)</span>
-            </div>
-          </div>
+          {/* Certificate */}
+          <LabeledBox span={left.boxes[1]} label="الشّهادة" tabRight={2} tabWidth={27}>
+            {certificate && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: mm(4.4),
+                  color: C.ink,
+                }}
+              >
+                {certificate}
+              </div>
+            )}
+          </LabeledBox>
 
-          {/* 5. Parent Signature Box with Center Tab */}
-          <div className="border border-black relative bg-white h-[64px] flex flex-col">
-            <div className="absolute -top-[9px] left-1/2 -translate-x-1/2 bg-white px-3 border-t border-x border-black text-[8.5px] font-black text-black z-10 leading-tight">
-              إمضاء الولي
+          {/* Principal */}
+          <LabeledBox span={left.boxes[2]} label="مدير(ة) المدرسة" tabRight={2} tabWidth={30}>
+            <div
+              style={{
+                position: "absolute",
+                right: mm(3),
+                left: mm(3),
+                bottom: mm(10),
+                display: "flex",
+                alignItems: "flex-end",
+                gap: mm(1.5),
+                fontSize: mm(3.1),
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span>التّاريخ :</span>
+              <DotField />
             </div>
-            <div className="flex-1"></div>
-          </div>
+            <div style={{ position: "absolute", left: mm(3), bottom: mm(3), fontSize: mm(2.8), fontWeight: 600 }}>
+              (الختم والإمضاء)
+            </div>
+          </LabeledBox>
+
+          {/* Parent signature */}
+          <LabeledBox span={left.boxes[3]} label="إمضاء الوليّ" tabRight={2} tabWidth={30} />
         </div>
       </div>
     </div>

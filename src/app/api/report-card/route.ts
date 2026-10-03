@@ -69,12 +69,32 @@ export async function GET(req: NextRequest) {
 
     if (levelConfig) {
       // Level-specific configuration logic
+      // Each DB subject may only be used once, and Arabic searches (e.g. "القراءة")
+      // must not grab the French counterpart (e.g. "القراءة (فرنسية)").
+      const usedSubjectIds = new Set<number>();
+      const isFrenchName = (n: string) => /فرنس|french|fran[cç]ais/i.test(n);
+      const findDbSubject = (search: string) => {
+        const term = search.trim();
+        const wantsFrench = isFrenchName(term);
+        const candidates = allSubjects.filter(
+          (s) => !usedSubjectIds.has(s.id) && s.name.includes(term)
+        );
+        if (candidates.length === 0) return undefined;
+        const rank = (s: (typeof allSubjects)[number]) => {
+          const exact = s.name.split("|").some((p) => p.trim() === term) ? 0 : 2;
+          const langMismatch = isFrenchName(s.name) === wantsFrench ? 0 : 1;
+          return exact + langMismatch;
+        };
+        return [...candidates].sort((a, b) => rank(a) - rank(b))[0];
+      };
+
       levelConfig.domains.forEach(domainConfig => {
         effectiveDomainMap[domainConfig.name] = [];
         domainCoefficients[domainConfig.name] = domainConfig.coefficient ?? 1;
         domainConfig.subjects.forEach(sub => {
-          const dbSubject = allSubjects.find(s => s.name.includes(sub.search.trim()));
+          const dbSubject = findDbSubject(sub.search);
           if (dbSubject) {
+            usedSubjectIds.add(dbSubject.id);
             effectiveDomainMap[domainConfig.name].push(dbSubject);
             displayMap[dbSubject.id] = sub.display;
             expectedSubjectCount++;
