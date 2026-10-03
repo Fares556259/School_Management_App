@@ -36,11 +36,32 @@ export async function GET(request: NextRequest) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
-    // 1. Fetch the timetable for this class to know the sessions per day
-    let slots: any[] = await prisma.timetableSlot.findMany({
-      where: { classId: student.classId, isDraft: false },
-      include: { subject: true },
-    });
+    // Calculate history range (Last 180 days)
+    const now = new Date();
+    const startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+    startDate.setHours(0, 0, 0, 0);
+
+    // 1. Fetch timetable slots & bounded attendance records in parallel
+    const [rawSlots, attendance] = await Promise.all([
+      prisma.timetableSlot.findMany({
+        where: { classId: student.classId, isDraft: false },
+        include: { subject: true },
+      }),
+      prisma.attendance.findMany({
+        where: {
+          studentId,
+          date: { gte: startDate },
+        },
+        include: {
+          lesson: {
+            include: { subject: true },
+          },
+        },
+        orderBy: { date: "desc" },
+      }),
+    ]);
+
+    let slots: any[] = rawSlots;
 
     // FALLBACK: If no slots defined for this class, assume a generic school schedule (Mon-Sat)
     if (slots.length === 0) {
@@ -58,29 +79,13 @@ export async function GET(request: NextRequest) {
        })) as any;
     }
 
-    // 2. Fetch all existing attendance records
-    const attendance = await prisma.attendance.findMany({
-      where: { studentId },
-      include: {
-        lesson: {
-          include: { subject: true },
-        },
-      },
-      orderBy: { date: "desc" },
-    });
-
-    // 3. Map records for quick lookup
+    // 2. Map records for quick lookup
     const attendanceMap: Record<string, any[]> = {};
     attendance.forEach(a => {
       const key = a.date.toISOString().split('T')[0];
       if (!attendanceMap[key]) attendanceMap[key] = [];
       attendanceMap[key].push(a);
     });
-
-    // 4. Calculate history range (Last 90 days for 'All Time' feel)
-    const now = new Date();
-    const startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-    startDate.setHours(0, 0, 0, 0);
 
     const history: any[] = [];
     const DAY_NAMES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];

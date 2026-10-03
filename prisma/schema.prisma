@@ -277,6 +277,8 @@ model Exam {
 
   @@index([schoolId])
   @@index([lessonId])
+  @@index([startTime])
+  @@index([schoolId, startTime])
 }
 
 model Assignment {
@@ -291,6 +293,11 @@ model Assignment {
   lesson      Lesson   @relation(fields: [lessonId], references: [id])
   School      School   @relation(fields: [schoolId], references: [id])
   results     Result[]
+
+  @@index([schoolId])
+  @@index([lessonId])
+  @@index([dueDate])
+  @@index([schoolId, dueDate])
 }
 
 model Resource {
@@ -372,6 +379,8 @@ model Result {
 
   @@index([schoolId])
   @@index([studentId])
+  @@index([assignmentId])
+  @@index([examId])
 }
 
 model Expense {
@@ -439,6 +448,8 @@ model Payment {
   @@index([schoolId, status, paidAt])
   @@index([schoolId, userType, status])
   @@index([schoolId, status, deferredUntil])
+  @@index([schoolId, month, year])
+  @@index([schoolId, month, year, status])
 }
 
 model AuditLog {
@@ -459,6 +470,7 @@ model AuditLog {
 
   @@index([schoolId])
   @@index([timestamp])
+  @@index([schoolId, timestamp])
 }
 
 model Notice {
@@ -475,6 +487,12 @@ model Notice {
   class           Class?   @relation(fields: [classId], references: [id])
   School          School   @relation(fields: [schoolId], references: [id])
   targetStudent   Student? @relation(fields: [targetStudentId], references: [id])
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([targetStudentId])
+  @@index([date])
+  @@index([schoolId, date])
 }
 
 model TimetableSlot {
@@ -498,6 +516,9 @@ model TimetableSlot {
 
   groupId    Int      @default(1)
   @@unique([classId, day, slotNumber, groupId, isDraft])
+  @@index([schoolId])
+  @@index([teacherId])
+  @@index([classId, day])
 }
 
 
@@ -550,6 +571,7 @@ model Attendance {
   @@index([schoolId])
   @@index([schoolId, date])
   @@index([studentId])
+  @@index([studentId, date])
   @@index([lessonId])
 }
 
@@ -570,6 +592,8 @@ model Notification {
 
   @@index([parentId])
   @@index([schoolId])
+  @@index([parentId, isRead])
+  @@index([parentId, createdAt])
 }
 
 model School {

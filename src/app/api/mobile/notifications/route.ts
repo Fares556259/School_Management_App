@@ -13,12 +13,24 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
     const studentId = searchParams.get("studentId");
+    const countOnly = searchParams.get("countOnly") === "true";
 
-    if (!parentId) return NextResponse.json([]);
+    if (!parentId) return countOnly ? NextResponse.json({ unreadCount: 0 }) : NextResponse.json([]);
 
     // Enforce ownership
     if (userType !== "parent" || userId !== parentId) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
+    if (countOnly) {
+      const unreadCount = await prisma.notification.count({
+        where: {
+          parentId,
+          isRead: false,
+          OR: [{ studentId: studentId || undefined }, { studentId: null }],
+        },
+      });
+      return NextResponse.json({ unreadCount });
     }
 
     const notifications = await prisma.notification.findMany({
@@ -77,6 +89,38 @@ export async function PATCH(request: NextRequest) {
     await prisma.notification.updateMany({
       where: whereClause,
       data: { isRead: true },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return new NextResponse(error.message, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType } = auth.payload;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return new NextResponse("Missing id", { status: 400 });
+    }
+
+    const notificationId = parseInt(id, 10);
+    if (isNaN(notificationId)) {
+      return new NextResponse("Invalid id", { status: 400 });
+    }
+
+    const whereClause: any = { id: notificationId };
+    if (userType === "parent") {
+      whereClause.parentId = userId;
+    }
+
+    await prisma.notification.deleteMany({
+      where: whereClause,
     });
 
     return NextResponse.json({ success: true });
