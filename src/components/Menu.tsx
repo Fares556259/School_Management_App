@@ -118,6 +118,7 @@ const menuItems: MenuSection[] = [
       { icon: TrendingDown, label: "Expenses", href: "/list/expenses", visible: ["admin", "superuser"] },
       { icon: CreditCard, label: "Partial Payments", href: "/list/payments-partial", visible: ["admin", "superuser"] },
       { icon: Activity, label: "Audit Log", href: "/admin/audit", visible: ["admin", "superuser"] },
+      { icon: ClipboardList, label: "Privacy requests", href: "/admin/privacy-requests", visible: ["admin"] },
     ],
   },
   {

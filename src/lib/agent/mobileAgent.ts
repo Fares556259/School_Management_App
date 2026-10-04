@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 import { TOOLS, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
@@ -1143,6 +1143,12 @@ Instructions :
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction,
+        safetySettings: [
+          HarmCategory.HARM_CATEGORY_HARASSMENT,
+          HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        ].map(category => ({ category, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE })),
         ...(declarations.length > 0
           ? {
               tools: [
