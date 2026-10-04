@@ -9,6 +9,7 @@ import prisma from '../lib/prisma';
 import { generateToken } from '../lib/mobileAuth';
 import { GET } from '../app/api/mobile/teacher/students/route';
 import { POST } from '../app/api/mobile/teacher/attendance/route';
+import { GET as getAdminProfile } from '../app/api/mobile/admin/profile/route';
 
 async function main() {
   assert.equal(getExpenseNature({ title: 'Salaire: Octobre' }), 'salary');
@@ -60,6 +61,12 @@ async function main() {
     return [];
   });
   replace(prisma.teacher, 'findUnique', async () => ({ schoolId: 'school-a', name: 'Teacher', surname: 'A' }));
+  let adminProfileReads = 0;
+  replace(prisma.admin, 'findFirst', async (args: any) => {
+    adminProfileReads++;
+    assert.deepEqual(args.where, { id: 'admin-a', schoolId: 'school-a', status: 'active' });
+    return { id: 'admin-a', name: 'Admin', surname: 'A', username: 'admin', email: null, phone: null, img: null, School: { name: 'Synthetic school' } };
+  });
   const token = generateToken({ userId: 'teacher-a', userType: 'teacher', schoolId: 'school-a' });
   const request = (query: string) => new NextRequest(`https://example.com/api/mobile/teacher/students?${query}`, { headers: { Authorization: `Bearer ${token}` } });
   try {
@@ -81,6 +88,17 @@ async function main() {
     denied = true;
     assert.equal((await GET(request('classId=111&date=2026-10-04'))).status, 404);
     assert.equal((await GET(request('classId=111&teacherId=another-teacher'))).status, 403);
+    const adminToken = generateToken({ userId: 'admin-a', userType: 'admin', schoolId: 'school-a' });
+    const adminRequest = (id = 'admin-a', bearer = adminToken) => new NextRequest(`https://example.com/api/mobile/admin/profile?id=${id}`, { headers: { Authorization: `Bearer ${bearer}` } });
+    assert.equal((await getAdminProfile(new NextRequest('https://example.com/api/mobile/admin/profile'))).status, 401);
+    assert.equal((await getAdminProfile(adminRequest('admin-a', token))).status, 403);
+    assert.equal((await getAdminProfile(adminRequest('other-admin'))).status, 403);
+    assert.equal(adminProfileReads, 0, 'Rejected profile requests must not query the database');
+    const profileResponse = await getAdminProfile(adminRequest());
+    assert.equal(profileResponse.status, 200);
+    assert.equal(profileResponse.headers.get('Cache-Control'), 'private, no-store');
+    assert.deepEqual(await profileResponse.json(), { id: 'admin-a', name: 'Admin', surname: 'A', username: 'admin', email: null, phone: null, img: null, schoolName: 'Synthetic school' });
+    assert.equal(adminProfileReads, 1);
     for (const date of ['2026-10-04', 'bad']) {
       const response = await POST(new NextRequest('https://example.com/api/mobile/teacher/attendance', {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
