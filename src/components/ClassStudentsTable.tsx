@@ -40,7 +40,6 @@ interface ClassStudentsTableProps {
   activeClass: {
     id: number;
     name: string;
-    capacity: number;
     level: { level: number } | null;
     students: Student[];
   };
@@ -247,7 +246,6 @@ export default function ClassStudentsTable({
                 classId={activeClass.id}
                 className={activeClass.name}
                 levelNumber={activeClass.level?.level}
-                capacity={activeClass.capacity}
               />
             </div>
           )}
@@ -273,7 +271,7 @@ export default function ClassStudentsTable({
             <div className="flex flex-col leading-none">
               <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">{t.classStudents.enrolledCapacity}</span>
               <span className="text-[18px] font-normal text-[#181d26]">
-                {activeClass.students.length} / {activeClass.capacity} {t.classStudents.studentsText}
+                {activeClass.students.length} {t.classStudents.studentsText}
               </span>
             </div>
           </div>
@@ -524,7 +522,6 @@ export default function ClassStudentsTable({
                               classId={activeClass.id}
                               className={activeClass.name}
                               levelNumber={activeClass.level?.level}
-                              capacity={activeClass.capacity}
                             />
                           </div>
                         )}

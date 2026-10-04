@@ -94,7 +94,6 @@ const entityFields: Record<EntityType, FieldDef[]> = {
   ],
   class: [
     { name: "name", label: "Class Name", type: "select", required: true },
-    { name: "capacity", label: "Capacity", type: "number", required: true },
   ],
   subject: [
     { 
@@ -343,8 +342,10 @@ export default function CrudFormModal({
       return;
     }
 
-    // Handle image state: ensure null is sent if photo was explicitly removed
-    values.img = imgs.length > 0 ? imgs.join(",") : null;
+    // Handle image state only for entities that actually support an image.
+    if (fields.some((field) => field.type === "image")) {
+      values.img = imgs.length > 0 ? imgs.join(",") : null;
+    }
 
     // Optimistic UI: Close modal instantly to remove the 3-second blocking wait
     setOpen(false);

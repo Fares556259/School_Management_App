@@ -8,6 +8,7 @@ import {
   TrendingUp, Printer
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getGradeSubjects } from "@/lib/subject-utils";
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
@@ -25,6 +26,30 @@ interface Student {
   surname: string;
   img?: string | null;
   grades: { subjectId: number; score: number }[];
+}
+
+function StudentAvatar({ student, className }: { student: Student; className: string }) {
+  const uploadedImage = student.img && !student.img.startsWith("/avatars/")
+    ? student.img.split(",")[0].trim()
+    : "/icon.png";
+  const [src, setSrc] = useState(uploadedImage);
+
+  useEffect(() => {
+    setSrc(uploadedImage);
+  }, [uploadedImage]);
+
+  return (
+    <div className={`relative shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
+      <Image
+        src={src}
+        alt={`${student.name} ${student.surname}`.trim()}
+        fill
+        sizes="44px"
+        className="object-cover"
+        onError={() => setSrc("/icon.png")}
+      />
+    </div>
+  );
 }
 
 const parseArabicName = (name: string): string => {
@@ -557,13 +582,7 @@ export default function GradeEntryForm({
                       {/* Student Info (Sticky Left) */}
                       <td className="py-2.5 px-4 sticky left-0 z-10 bg-white group-hover:bg-slate-50/90 border-r border-slate-200 font-medium transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] shrink-0 ${
-                            m.isComplete
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-slate-100 text-slate-600"
-                          }`}>
-                            {student.name[0]?.toUpperCase()}{student.surname?.[0]?.toUpperCase() || ""}
-                          </div>
+                          <StudentAvatar student={student} className="h-7 w-7 rounded-lg" />
                           <div className="min-w-0">
                             <span className="text-[13px] font-bold text-slate-800 block truncate">
                               {student.name} {student.surname}
@@ -738,9 +757,7 @@ export default function GradeEntryForm({
                 <div className="p-5 border-b border-slate-100 bg-white">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-bold text-blue-700 shrink-0">
-                        {selectedStudent.name[0]?.toUpperCase()}{selectedStudent.surname?.[0]?.toUpperCase() ?? ""}
-                      </div>
+                      <StudentAvatar student={selectedStudent} className="h-11 w-11" />
                       <div>
                         <h2 className="text-base font-bold text-slate-900">
                           {selectedStudent.name} {selectedStudent.surname}

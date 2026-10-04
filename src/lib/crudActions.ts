@@ -885,7 +885,7 @@ export const deleteParent = async (id: string) => {
 // ===================== CLASS =====================
 export const createClass = async (data: {
   name: string;
-  capacity: number;
+  capacity?: number;
   levelId?: number;
     customTuition?: number | null;
   supervisorId?: string;
@@ -919,7 +919,9 @@ export const createClass = async (data: {
       data: {
         schoolId,
         name: data.name,
-        capacity: Number(data.capacity),
+        // Kept only for schema compatibility. Enrollment is intentionally
+        // unbounded and the UI displays the real student count instead.
+        capacity: Number.isFinite(Number(data.capacity)) ? Number(data.capacity) : 0,
         levelId: targetLevel.id,
         supervisorId: data.supervisorId || null,
       },

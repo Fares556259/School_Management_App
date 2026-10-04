@@ -16,8 +16,8 @@ export default function Loading() {
       accessor: "name",
     },
     {
-      header: t.classes.capacity,
-      accessor: "capacity",
+      header: t.classes.studentCount,
+      accessor: "studentCount",
       className: "hidden md:table-cell",
     },
     {

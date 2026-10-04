@@ -35,8 +35,8 @@ const ClassListPage = async ({
       accessor: "name",
     },
     {
-      header: t.classes.capacity,
-      accessor: "capacity",
+      header: t.classes.studentCount,
+      accessor: "studentCount",
       className: "hidden md:table-cell",
     },
     {
@@ -100,7 +100,11 @@ const ClassListPage = async ({
       <td className="py-4 px-6">
         <span className="font-medium text-[#181d26]">{item.name}</span>
       </td>
-      <td className="hidden md:table-cell py-4 px-6">{item.capacity}</td>
+      <td className="hidden md:table-cell py-4 px-6">
+        <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-blue-50 px-2.5 py-1 text-[13px] font-semibold text-blue-700">
+          {item._count.students}
+        </span>
+      </td>
       <td className="hidden md:table-cell py-4 px-6">
         {item.level?.level === 0 ? (lang === 'ar' ? 'تحضيري' : 'Préscolaire (تحضيري)') : item.level?.level}
       </td>

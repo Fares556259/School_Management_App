@@ -108,7 +108,6 @@ export default async function ClassTeachersPage({
       activeClass={{
         id: activeClass.id,
         name: activeClass.name,
-        capacity: activeClass.capacity,
         level: activeClass.level,
         supervisor: activeClass.supervisor,
         teachers: uniqueTeachers,

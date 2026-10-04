@@ -26,7 +26,6 @@ interface ClassTeachersTableProps {
   activeClass: {
     id: number;
     name: string;
-    capacity: number;
     level: { level: number } | null;
     supervisor: { name: string; surname: string } | null;
     teachers: Teacher[];

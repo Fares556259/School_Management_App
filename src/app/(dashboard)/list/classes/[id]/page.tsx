@@ -55,7 +55,6 @@ export default async function ClassStudentsPage({
       activeClass={{
         id: activeClass.id,
         name: activeClass.name,
-        capacity: activeClass.capacity,
         level: activeClass.level,
         students: activeClass.students.map((student) => ({
           id: student.id,

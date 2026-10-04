@@ -36,14 +36,12 @@ interface AssignStudentsModalProps {
   classId: number;
   className: string;
   levelNumber?: number;
-  capacity?: number;
 }
 
 export default function AssignStudentsModal({
   classId,
   className,
   levelNumber,
-  capacity = 30,
 }: AssignStudentsModalProps) {
   const router = useRouter();
   const { t } = useLanguage();
@@ -514,21 +512,9 @@ export default function AssignStudentsModal({
                 )}
 
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13.5px] font-bold text-slate-800">
-                      {selectedIds.length} élève(s) sélectionné(s)
-                    </span>
-                    <span className="text-slate-400 text-xs">•</span>
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
-                        selectedIds.length > capacity
-                          ? "bg-rose-100 text-rose-800 border border-rose-200"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      Capacité : {selectedIds.length} / {capacity}
-                    </span>
-                  </div>
+                  <span className="text-[13.5px] font-bold text-slate-800">
+                    {selectedIds.length} élève(s) sélectionné(s)
+                  </span>
 
                   <div className="flex gap-2.5">
                     <button
@@ -567,4 +553,3 @@ export default function AssignStudentsModal({
     </>
   );
 }
-
