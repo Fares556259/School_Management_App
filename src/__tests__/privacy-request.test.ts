@@ -9,6 +9,7 @@ async function main() {
   process.env.JWT_SECRET = 'test-only-privacy-secret-at-least-32-characters';
   const originalFind = prisma.parent.findFirst;
   const originalCreate = prisma.auditLog.create;
+  const originalAdminFind = prisma.admin.findFirst;
   let created: any;
   let exists = true;
   (prisma.parent as any).findFirst = async (args: any) => {
@@ -29,10 +30,22 @@ async function main() {
     assert.equal(created.schoolId,'school-a');assert.equal(created.entityId,'privacy-test');
     exists=false;
     assert.equal((await POST(request({kind:'ACCOUNT_DELETION'}))).status,403);
+    assert.equal((await POST(request({kind:'ACCOUNT_DELETION',message:'x'.repeat(4001)}))).status,400);
+    (prisma.admin as any).findFirst = async (args: any) => {
+      assert.deepEqual(args.where,{id:'privacy-admin',schoolId:'school-a'});
+      return {id:'privacy-admin'};
+    };
+    const adminToken = generateToken({userId:'privacy-admin',userType:'admin',schoolId:'school-a'});
+    const report = new NextRequest('https://example.com/api/mobile/privacy-request', {
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${adminToken}`},body:JSON.stringify({kind:'AI_REPORT',message:'Synthetic reported response'})
+    });
+    assert.equal((await POST(report)).status,200);
+    assert.equal(created.action,'AI_REPORT');assert.equal(created.newValues.message,'Synthetic reported response');
     console.log('Privacy request checks passed: authentication, role, input, tenant isolation and account existence.');
   } finally {
     (prisma.parent as any).findFirst=originalFind;
     (prisma.auditLog as any).create=originalCreate;
+    (prisma.admin as any).findFirst=originalAdminFind;
     if(secret===undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET=secret;
     await prisma.$disconnect();
   }
