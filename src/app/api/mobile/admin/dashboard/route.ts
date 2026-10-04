@@ -102,7 +102,6 @@ export async function GET(request: NextRequest) {
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 ELSE 2 END,
           s.surname ASC
-        LIMIT 100
       ` as Promise<any[]>,
       // Unpaid Teachers query
       prisma.$queryRaw`
@@ -124,7 +123,6 @@ export async function GET(request: NextRequest) {
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           t.surname ASC
-        LIMIT 100
       ` as Promise<any[]>,
       // Unpaid Staff query
       prisma.$queryRaw`
@@ -145,7 +143,6 @@ export async function GET(request: NextRequest) {
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           s.surname ASC
-        LIMIT 100
       ` as Promise<any[]>,
     ]);
 
