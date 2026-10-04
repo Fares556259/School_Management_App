@@ -1,5 +1,6 @@
 "use client";
 
+import { useCertificatePrinting } from '@/hooks/useCertificatePrinting';
 import React, { useState } from "react";
 import { ArrowRight, Printer, Edit3, Home } from "lucide-react";
 import AttendanceCertificate, {
@@ -54,12 +55,8 @@ export default function CertificatePageClient({
     student.class?.name || null
   );
 
-  const serialNum = student.nationalId
-    ? student.nationalId.slice(-6).padStart(6, "0")
-    : "000099";
-
   const [formData, setFormData] = useState<CertificateData>({
-    certificateNumber: serialNum,
+    certificateNumber: "",
     delegation: getDefaultDelegation(),
     schoolName,
     studentName: `${student.name} ${student.surname}`.trim(),
@@ -73,12 +70,11 @@ export default function CertificatePageClient({
   });
 
   const handleUpdate = (fields: Partial<CertificateData>) => {
-    setFormData((prev) => ({ ...prev, ...fields }));
+    if (printing) return;
+    setFormData((prev) => ({ ...prev, ...fields, certificateNumber: "" }));
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const { handlePrint, printing, printError } = useCertificatePrinting(student.id, formData, setFormData);
 
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-2 print:p-0 print:bg-white print:m-0" dir="rtl">
@@ -138,7 +134,8 @@ export default function CertificatePageClient({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsEditing(!isEditing)}
+            disabled={printing}
+                    onClick={() => setIsEditing(!isEditing)}
             className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl border transition-colors shadow-sm ${
               isEditing
                 ? "bg-blue-600 text-white border-blue-600"
@@ -151,14 +148,16 @@ export default function CertificatePageClient({
 
           <button
             onClick={handlePrint}
+                    disabled={printing}
             className="flex items-center gap-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md shadow-blue-500/20 transition-all active:scale-95"
           >
             <Printer size={15} />
-            <span>طباعة الشهادة (Imprimer)</span>
+            <span>{printing ? "جارٍ تسجيل الشهادة…" : "تسجيل وطباعة الشهادة (Imprimer)"}</span>
           </button>
         </div>
       </div>
 
+      {printError && <p role="alert" className="p-3 text-sm text-red-700 bg-red-50 no-print">{printError}</p>}
       {/* ── EDIT PANEL DRAWER (Hidden in Print) ── */}
       {isEditing && (
         <div className="max-w-[850px] mx-auto mb-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm no-print">
@@ -187,7 +186,9 @@ export default function CertificatePageClient({
               <input
                 type="text"
                 value={formData.certificateNumber || ""}
-                onChange={(e) => handleUpdate({ certificateNumber: e.target.value })}
+                readOnly
+                      dir="ltr"
+                      placeholder="Attribué automatiquement à l’impression"
                 className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono focus:outline-none focus:border-blue-500"
               />
             </div>

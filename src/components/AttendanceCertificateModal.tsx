@@ -1,5 +1,6 @@
 "use client";
 
+import { useCertificatePrinting } from '@/hooks/useCertificatePrinting';
 import React, { useState, useEffect } from "react";
 import {
   FileText,
@@ -92,7 +93,7 @@ export default function AttendanceCertificateModal({
   );
 
   const [formData, setFormData] = useState<CertificateData>({
-    certificateNumber: "000099",
+    certificateNumber: "",
     delegation: getDefaultDelegation(),
     schoolName: schoolName || "المدرسة الابتدائية الخاصة سناب سكول",
     studentName: `${student.name} ${student.surname}`.trim(),
@@ -108,14 +109,9 @@ export default function AttendanceCertificateModal({
   // Re-sync when modal opens or student changes
   useEffect(() => {
     if (isOpen) {
-      // Generate clean sequence number based on student id or random 6 digits
-      const serialNum = student.nationalId
-        ? student.nationalId.slice(-6).padStart(6, "0")
-        : String(Math.floor(10000 + Math.random() * 90000)).padStart(6, "0");
-
       setFormData((prev) => ({
         ...prev,
-        certificateNumber: prev.certificateNumber === "000099" ? serialNum : prev.certificateNumber,
+        certificateNumber: "",
         delegation: prev.delegation || getDefaultDelegation(),
         schoolName: schoolName || prev.schoolName,
         studentName: `${student.name} ${student.surname}`.trim(),
@@ -129,12 +125,11 @@ export default function AttendanceCertificateModal({
   }, [isOpen, student.id]);
 
   const handleUpdate = (fields: Partial<CertificateData>) => {
-    setFormData((prev) => ({ ...prev, ...fields }));
+    if (printing) return;
+    setFormData((prev) => ({ ...prev, ...fields, certificateNumber: "" }));
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const { handlePrint, printing, printError } = useCertificatePrinting(student.id, formData, setFormData);
 
   return (
     <>
@@ -155,7 +150,7 @@ export default function AttendanceCertificateModal({
             {/* Click outside to close (hidden in print) */}
             <div
               className="fixed inset-0 no-print"
-              onClick={() => setIsOpen(false)}
+              onClick={() => { if (!printing) setIsOpen(false); }}
             />
 
             {/* Modal Dialog Card */}
@@ -182,7 +177,7 @@ export default function AttendanceCertificateModal({
                         شهادة حضور (Certificat de présence)
                       </h2>
                       <span className="px-2 py-0.5 text-xs font-semibold rounded bg-slate-100 text-slate-700 font-mono">
-                        № {formData.certificateNumber}
+                        <span dir="ltr">{formData.certificateNumber || "N° attribué à l’impression"}</span>
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 font-medium">
@@ -195,6 +190,7 @@ export default function AttendanceCertificateModal({
                 <div className="flex items-center gap-2">
                   {/* Quick Edit Toggle */}
                   <button
+                    disabled={printing}
                     onClick={() => setIsEditing(!isEditing)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                       isEditing
@@ -209,10 +205,11 @@ export default function AttendanceCertificateModal({
                   {/* Print Button (High Priority) */}
                   <button
                     onClick={handlePrint}
+                    disabled={printing}
                     className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition-all active:scale-95"
                   >
                     <Printer size={15} />
-                    <span>طباعة الشهادة (Imprimer)</span>
+                    <span>{printing ? "جارٍ تسجيل الشهادة…" : "تسجيل وطباعة الشهادة (Imprimer)"}</span>
                   </button>
 
                   {/* Standalone Fullscreen Link */}
@@ -227,7 +224,7 @@ export default function AttendanceCertificateModal({
 
                   {/* Close Modal */}
                   <button
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => { if (!printing) setIsOpen(false); }}
                     className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                     title="إغلاق"
                   >
@@ -236,6 +233,7 @@ export default function AttendanceCertificateModal({
                 </div>
               </div>
 
+              {printError && <p role="alert" className="p-3 text-sm text-red-700 bg-red-50 no-print">{printError}</p>}
               {/* ── OPTIONAL EDIT CONTROLS DRAWER (Hidden in print) ── */}
               {isEditing && (
                 <div
@@ -273,7 +271,9 @@ export default function AttendanceCertificateModal({
                     <input
                       type="text"
                       value={formData.certificateNumber || ""}
-                      onChange={(e) => handleUpdate({ certificateNumber: e.target.value })}
+                      readOnly
+                      dir="ltr"
+                      placeholder="Attribué automatiquement à l’impression"
                       className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     />
                   </div>

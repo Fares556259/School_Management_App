@@ -99,7 +99,7 @@ export const getLevelArabicInWords = (
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface CertificateData {
-  /** Pre-printed form serial number. Leave empty to show the placeholder. */
+  /** Server-registered document reference. Empty means an unregistered draft. */
   certificateNumber?: string;
   /** Regional delegation (المندوبية الجهوية للتربية بـ …). */
   delegation?: string;
@@ -195,23 +195,11 @@ export default function AttendanceCertificate({
 
       {/* ── Serial number area (placeholder unless supplied) ──────────── */}
       <div className="ac-t ac-box ac-serial">
-        {editable ? (
-          <>
-            <span>№ </span>
-            <input
-              className="ac-input ac-input-serial"
-              type="text"
-              value={data.certificateNumber || ""}
-              placeholder="000000"
-              aria-label="Serial number"
-              onChange={(e) => set({ certificateNumber: e.target.value })}
-            />
-          </>
-        ) : data.certificateNumber ? (
-          <span>№ {data.certificateNumber}</span>
-        ) : showPlaceholders ? (
-          <span className="ac-placeholder-text">[SERIAL NUMBER PLACEHOLDER]</span>
-        ) : null}
+        {data.certificateNumber ? (
+          <span dir="ltr">№ {data.certificateNumber}</span>
+        ) : (
+          <span className="ac-placeholder-text">مسودة — رقم الشهادة عند التسجيل</span>
+        )}
       </div>
 
       {/* ── Title ─────────────────────────────────────────────────────── */}

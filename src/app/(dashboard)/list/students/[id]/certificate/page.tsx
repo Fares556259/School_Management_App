@@ -1,6 +1,6 @@
 import React from "react";
 import prisma from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSchoolId } from "@/lib/school";
 import { getAuthenticatedUser } from "@/utils/supabase/server";
 import CertificatePageClient from "./CertificatePageClient";
@@ -15,12 +15,15 @@ interface CertificatePageProps {
 
 export default async function CertificatePage({ params }: CertificatePageProps) {
   const { id } = params;
-  const schoolId = await getSchoolId();
   const user = await getAuthenticatedUser();
+  if (!user) redirect('/sign-in');
+  const schoolId = await getSchoolId();
+  const issuer = await prisma.admin.findFirst({where:{id:user.id,schoolId,status:'active'},select:{id:true}});
+  if (!issuer) redirect('/sign-in');
 
   const [student, school, institution, admin] = await Promise.all([
-    prisma.student.findUnique({
-      where: { id },
+    prisma.student.findFirst({
+      where: { id, schoolId },
       include: {
         class: true,
         level: true,

@@ -86,14 +86,14 @@
 /* ── serial number (left of the header) ───────────────────────────────── */
 .ac-serial {
   --xl: 36mm;
-  --xr: 75mm;
+  --xr: 97mm;
   --y: 29.5mm;
   direction: ltr;
   text-align: left;
   font-family: var(--ac-font-mono);
   font-weight: 700;
-  font-size: 12.5pt;
-  letter-spacing: 0.45mm;
+  font-size: 10pt;
+  letter-spacing: 0.15mm;
   color: #3d4663;
 }
 .ac-placeholder-text {
