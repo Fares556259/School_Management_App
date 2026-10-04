@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
-import moment from "moment";
+import { parseSchoolDay } from "@/lib/schoolDay";
 
 export const dynamic = "force-dynamic";
 
@@ -24,70 +24,40 @@ export async function GET(request: NextRequest) {
     }
 
 
-    if (!classId) {
-      return new NextResponse("Missing classId", { status: 400 });
+    if (!classId || !/^\d+$/.test(classId) || !Number.isSafeInteger(Number(classId)) || Number(classId) < 1) {
+      return NextResponse.json({ error: "Invalid classId" }, { status: 400 });
     }
+    const selectedDay = parseSchoolDay(date);
+    if (!selectedDay) return NextResponse.json({ error: "Invalid date. Use YYYY-MM-DD." }, { status: 400 });
+    const { date: today, start: dayStart, end: dayEnd, day: dayName } = selectedDay;
+    const schoolClass = await prisma.class.findFirst({ where: { id: Number(classId), schoolId }, select: { id: true } });
+    if (!schoolClass) return NextResponse.json({ error: "Class not found" }, { status: 404 });
 
-    let today = new Date();
-    let dayStart, dayEnd;
-    if (date) {
-      const parts = date.split('-');
-      if (parts.length === 3) {
-        dayStart = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        dayEnd = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]) + 1);
-        // For backwards compatibility in other parts of the file
-        today = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
-      } else {
-        today = new Date(date);
-        today.setUTCHours(0, 0, 0, 0);
-        dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-      }
-    } else {
-      today = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-      const now = new Date();
-      dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    }
-
-    // Identify the specific lesson context for this teacher and class
-    const dayName = moment(date || new Date()).format('dddd').toUpperCase();
-    const [lessons, allTimetableSlots, teacherTimetableSlots] = await Promise.all([
+    // Sunday has no database Day enum value. Reuse the empty-session response below.
+    const [lessons, allTimetableSlots] = dayName ? await Promise.all([
       prisma.lesson.findMany({
         where: {
-          classId: parseInt(classId),
-          day: dayName as any
+          classId: parseInt(classId), schoolId,
+          day: dayName
         }
       }),
       prisma.timetableSlot.findMany({ // Get all slots for mapping to match admin API exactly
         where: {
-          classId: parseInt(classId),
-          day: dayName as any,
-          isDraft: false
-        },
-        include: { subject: true },
-        orderBy: { slotNumber: "asc" }
-      }),
-      prisma.timetableSlot.findMany({ // Get only teacher's slots for UI
-        where: {
-          classId: parseInt(classId),
-          OR: [
-            { teacherId: teacherId || undefined },
-            { teacherId: null }
-          ],
-          day: dayName as any,
+          classId: parseInt(classId), schoolId,
+          day: dayName,
           isDraft: false
         },
         include: { subject: true },
         orderBy: { slotNumber: "asc" }
       })
-    ]);
+    ]) : [[], []];
+    const teacherTimetableSlots = allTimetableSlots.filter(slot => slot.teacherId === userId || slot.teacherId === null);
 
     const activeSlotId = slotIdParam;
 
-    if (!teacherTimetableSlots.length) {
+    if (!dayName || !teacherTimetableSlots.length) {
       const classStudents = await prisma.student.findMany({
-        where: { classId: parseInt(classId) },
+        where: { classId: parseInt(classId), schoolId },
         orderBy: { name: "asc" }
       });
       return NextResponse.json({
@@ -178,7 +148,7 @@ export async function GET(request: NextRequest) {
     const activeSlotIdToReturn = activeSlot?.id || null;
 
     const students = await prisma.student.findMany({
-      where: { classId: parseInt(classId) },
+      where: { classId: parseInt(classId), schoolId },
       include: {
         attendance: {
           where: {
@@ -192,34 +162,16 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" }
     });
 
-    // Fetch assignments and resources for this class and date
-    // Use the date string directly for moment to avoid timezone shifting issues with new Date()
-
-    if (dayName === "SUNDAY") {
-      return NextResponse.json({
-        students: students.map(s => ({
-          id: s.id,
-          name: s.name,
-          surname: s.surname,
-          img: s.img,
-          attendanceStatus: s.attendance[0]?.status || null
-        })),
-        assignments: [],
-        resources: [],
-        hasLesson: false
-      });
-    }
-    
     const [assignments, resources] = await Promise.all([
       prisma.assignment.findMany({
         where: {
-          lesson: { classId: parseInt(classId) },
+          lesson: { classId: parseInt(classId), schoolId },
           dueDate: { gte: today, lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
         }
       }),
       prisma.resource.findMany({
         where: {
-          lesson: { classId: parseInt(classId), day: dayName as any }
+          lesson: { classId: parseInt(classId), schoolId, day: dayName }
         }
       })
     ]);
@@ -257,7 +209,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("[Teacher Students API Error]", error);
-    return new NextResponse(JSON.stringify({ error: error.message }), { 
+    return new NextResponse(JSON.stringify({ error: "Unable to load the class. Please try again." }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

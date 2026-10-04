@@ -53,7 +53,9 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   // Mobile routes authenticate their own Bearer tokens; a web-cookie lookup
   // adds an unrelated network round trip to every phone request.
-  if (pathname === "/api/mobile" || pathname.startsWith("/api/mobile/")) {
+  // Public documents also need no session lookup or token rotation.
+  if (["/", "/privacy", "/account-deletion"].includes(pathname) ||
+      pathname === "/api/mobile" || pathname.startsWith("/api/mobile/")) {
     return NextResponse.next({ request });
   }
   let supabaseResponse = NextResponse.next({ request });
@@ -100,7 +102,7 @@ export async function middleware(request: NextRequest) {
   const redirectWithCookies = (url: URL) => {
     const redirectRes = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach(cookie => {
-      redirectRes.cookies.set(cookie.name, cookie.value);
+      redirectRes.cookies.set(cookie);
     });
     return redirectRes;
   };

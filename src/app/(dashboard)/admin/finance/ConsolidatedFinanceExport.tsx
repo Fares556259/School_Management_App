@@ -1,7 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { getExpenseNature } from "@/app/(dashboard)/list/expenses/ExpensesListClient";
+import { getExpenseNature } from "@/lib/expenseNature";
 
 interface ConsolidatedFinanceExportProps {
   periodLabel: string;

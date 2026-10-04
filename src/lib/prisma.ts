@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { withDatabaseReadRetry, isDroppedConnection } from "./databaseReadRetry";
 
 /**
  * STABLE PRISMA 6 SINGLETON WITH AUTOMATIC CONNECTION RECOVERY
@@ -57,29 +58,8 @@ if (isDev) globalForPrisma.prismaBase = basePrisma;
 const extendedPrisma = basePrisma.$extends({
   query: {
     $allModels: {
-      async $allOperations({ model, operation, args, query }) {
-        try {
-          return await query(args);
-        } catch (error: any) {
-          const isConnError =
-            error?.message?.includes("closed the connection") ||
-            error?.message?.includes("Connection reset") ||
-            error?.message?.includes("Kind: Closed") ||
-            error?.message?.includes("Engine is not yet connected") ||
-            error?.message?.includes("ECHECKOUTTIMEOUT") ||
-            error?.message?.includes("unable to check out connection") ||
-            error?.code === "P1001" ||
-            error?.code === "P1017";
-
-          if (isConnError && ["findUnique", "findUniqueOrThrow", "findFirst", "findFirstOrThrow", "findMany", "count", "aggregate", "groupBy"].includes(operation)) {
-            console.warn(`[Prisma] Connection drop or pool queue timeout detected on ${model}.${operation}. Reconnecting...`);
-            await basePrisma.$disconnect().catch(() => {});
-            await new Promise((r) => setTimeout(r, 600));
-            await basePrisma.$connect().catch(() => {});
-            return await query(args);
-          }
-          throw error;
-        }
+      async $allOperations({ operation, args, query }) {
+        return withDatabaseReadRetry(operation, () => query(args));
       },
     },
   },
@@ -96,30 +76,12 @@ export async function safeDbQuery<T>(fn: () => Promise<T>, retries = 0): Promise
   try {
     return await fn();
   } catch (error: any) {
-    const isConnError =
-      error?.message?.includes("closed the connection") ||
-      error?.message?.includes("Connection reset") ||
-      error?.message?.includes("Kind: Closed") ||
-      error?.message?.includes("Engine is not yet connected") ||
-      error?.message?.includes("ECHECKOUTTIMEOUT") ||
-      error?.message?.includes("unable to check out connection") ||
-      error?.code === "P1001" ||
-      error?.code === "P1017";
-
-    if (retries > 0 && isConnError) {
-      console.warn("[Prisma] safeDbQuery retrying query after connection error...");
-      await basePrisma.$disconnect().catch(() => {});
-      await new Promise((r) => setTimeout(r, 600));
-      await basePrisma.$connect().catch(() => {});
+    if (retries > 0 && isDroppedConnection(error)) {
+      await new Promise((r) => setTimeout(r, 150));
       return safeDbQuery(fn, retries - 1);
     }
     throw error;
   }
 }
-
-// Explicit cleanup for high-fidelity connection management
-process.on("beforeExit", async () => {
-  await basePrisma.$disconnect();
-});
 
 export default prisma;

@@ -1,3 +1,4 @@
+import { parseSchoolDay } from "@/lib/schoolDay";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest) {
     }
 
 
+    const selectedDay = parseSchoolDay(date);
+    if (!selectedDay) return NextResponse.json({ error: "Invalid date. Use YYYY-MM-DD." }, { status: 400 });
+    if (!selectedDay.day) return NextResponse.json({ error: "No teaching sessions on this date." }, { status: 400 });
+    const attendanceDate = selectedDay.date;
+    const dayName = selectedDay.day;
+
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
       select: { schoolId: true, name: true, surname: true }
@@ -32,25 +39,10 @@ export async function POST(request: NextRequest) {
 
     const schoolId = teacher.schoolId;
     
-    let attendanceDate = new Date();
-    if (date) {
-      const parts = date.split('-');
-      if (parts.length === 3) {
-        attendanceDate = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
-      } else {
-        attendanceDate = new Date(date);
-        attendanceDate.setUTCHours(0, 0, 0, 0);
-      }
-    } else {
-      attendanceDate = new Date(Date.UTC(attendanceDate.getFullYear(), attendanceDate.getMonth(), attendanceDate.getDate()));
-    }
-
     let effectiveLessonId = lessonId ? parseInt(lessonId) : null;
 
     // 1. Ensure lesson exists (First pass, outside main transaction for speed)
     if (!effectiveLessonId && classId) {
-      const moment = (await import('moment')).default;
-      const dayName = moment(attendanceDate).format('dddd').toUpperCase();
       
       const parsedSubjectId = subjectId ? parseInt(subjectId) : undefined;
 
@@ -65,7 +57,7 @@ export async function POST(request: NextRequest) {
       } else {
         slot = await prisma.timetableSlot.findFirst({
           where: {
-            classId: parseInt(classId), teacherId, day: dayName as any, isDraft: false,
+            classId: parseInt(classId), teacherId, day: dayName, isDraft: false,
             ...(parsedSubjectId ? { subjectId: parsedSubjectId } : {})
           },
           orderBy: { slotNumber: "asc" },
@@ -77,7 +69,7 @@ export async function POST(request: NextRequest) {
         // Find all timetable slots for this subject
         const subjectSlots = await prisma.timetableSlot.findMany({
           where: {
-            classId: parseInt(classId), day: dayName as any, isDraft: false, subjectId: slot.subjectId
+            classId: parseInt(classId), day: dayName, isDraft: false, subjectId: slot.subjectId
           },
           include: { subject: true },
           orderBy: { slotNumber: "asc" }
@@ -88,7 +80,7 @@ export async function POST(request: NextRequest) {
         // Find all existing lessons for this subject
         const subjectLessons = await prisma.lesson.findMany({
           where: {
-            schoolId, classId: parseInt(classId), day: dayName as any, subjectId: slot.subjectId
+            schoolId, classId: parseInt(classId), day: dayName, subjectId: slot.subjectId
           },
           orderBy: [
             { startTime: "asc" },
@@ -147,7 +139,7 @@ export async function POST(request: NextRequest) {
           const newLesson = await prisma.lesson.create({
             data: {
               name: expectedName,
-              day: dayName as any,
+              day: dayName,
               startTime: realStartTime,
               endTime: realStartTime,
               subjectId: slot.subjectId,

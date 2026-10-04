@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getExpenseNature } from "@/lib/expenseNature";
 import { Expense } from "@prisma/client";
 import Link from "next/link";
 import CrudFormModal from "@/components/CrudFormModal";
@@ -23,18 +24,6 @@ interface ExpensesListClientProps {
   category?: string;
 }
 
-export function getExpenseNature(item: { title?: string; category?: string }): "salary" | "advance" | "operation" {
-  const cat = (item.category || "").toLowerCase().trim();
-  const title = (item.title || "").toLowerCase().trim();
-  
-  if (cat === "advance" || cat === "avance" || title.startsWith("advance:") || title.startsWith("avance:") || title.includes("(avance") || title.includes("(advance")) {
-    return "advance";
-  }
-  if (cat === "salary" || cat === "salaire" || title.startsWith("salary:") || title.startsWith("salaire:")) {
-    return "salary";
-  }
-  return "operation";
-}
 
 export default function ExpensesListClient({
   data,

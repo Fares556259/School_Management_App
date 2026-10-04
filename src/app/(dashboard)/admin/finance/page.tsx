@@ -19,30 +19,10 @@ import ExportButton from "@/components/ExportButton";
 import { MONTHS } from "@/lib/dateUtils";
 import FinancePeriodFilter from "./FinancePeriodFilter";
 import ConsolidatedFinanceExport from "./ConsolidatedFinanceExport";
-import { getExpenseNature } from "@/app/(dashboard)/list/expenses/ExpensesListClient";
+import { getExpenseNature } from "@/lib/expenseNature";
 import { TrendingUp, Banknote, Receipt, AlertCircle, ArrowUpRight } from "lucide-react";
 
-// Group records by "Month Year" and sum amounts
-function groupByMonth(records: { date: Date; amount: number }[]) {
-  const map: Record<string, number> = {};
-  for (const r of records) {
-    const key = r.date.toLocaleString("en-US", { month: "short", year: "numeric" });
-    map[key] = (map[key] || 0) + r.amount;
-  }
-  return map;
-}
-
-// Get last 6 month labels
-function getLast6Months(): string[] {
-  const months: string[] = [];
-  const d = new Date();
-  d.setMonth(d.getMonth() - 5);
-  for (let i = 0; i < 6; i++) {
-    months.push(d.toLocaleString("en-US", { month: "short", year: "numeric" }));
-    d.setMonth(d.getMonth() + 1);
-  }
-  return months;
-}
+import { groupByMonth, getLast6Months } from "@/lib/financeChartData";
 
 const FinancePage = async ({
   searchParams,
@@ -141,8 +121,8 @@ const FinancePage = async ({
           salary: true,
           payments: {
             where: {
-              month: MONTHS.indexOf(MONTHS[new Date().getMonth()]),
-              year: new Date().getFullYear(),
+              month: now.getMonth() + 1,
+              year: now.getFullYear(),
             },
           },
         },
@@ -153,8 +133,8 @@ const FinancePage = async ({
           level: true,
           payments: {
             where: {
-              month: MONTHS.indexOf(MONTHS[new Date().getMonth()]),
-              year: new Date().getFullYear(),
+              month: now.getMonth() + 1,
+              year: now.getFullYear(),
             },
           },
         },
@@ -164,7 +144,7 @@ const FinancePage = async ({
   const cached = await getCachedTenantData(
     schoolId,
     "finance",
-    [category, type, q, activePeriod, from, to, schoolId],
+    [category, type, q, activePeriod, from, to, schoolId, now.getFullYear(), now.getMonth()],
     executeFinanceQueries,
     120
   ).catch(() => null);
