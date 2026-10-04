@@ -22,8 +22,12 @@ export async function GET(request: NextRequest) {
     const yearParam = searchParams.get("year");
 
     const now = new Date();
-    const activeMonth = monthParam ? Math.min(12, Math.max(1, parseInt(monthParam, 10))) : now.getMonth() + 1;
-    const activeYear = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
+    const activeMonth = monthParam === null ? now.getMonth() + 1 : Number(monthParam);
+    const activeYear = yearParam === null ? now.getFullYear() : Number(yearParam);
+    if (!Number.isInteger(activeMonth) || activeMonth < 1 || activeMonth > 12 ||
+        !Number.isInteger(activeYear) || activeYear < 1 || activeYear > 9999) {
+      return NextResponse.json({ success: false, error: "Mois ou année invalide." }, { status: 400 });
+    }
 
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -34,8 +38,19 @@ export async function GET(request: NextRequest) {
     ];
     const monthLabel = `${monthNamesFr[activeMonth - 1]} ${activeYear}`;
 
-    // 1. Fetch School & Admin info
-    const [admin, school] = await Promise.all([
+    // These reads are independent. Start them together instead of waiting for
+    // identity, counts, finance and attendance in separate network stages.
+    // Prisma's connection pool still bounds database concurrency.
+    const [
+      admin, school,
+      studentCount, teacherCount, staffCount, classCount,
+      monthlyCollectedTuitionAgg,
+      expectedTuitionRows,
+      unpaidStudentRows,
+      unpaidTeacherRows,
+      unpaidStaffRows,
+      todayAttendanceCount, todayAbsences, recentAbsenteesList, notices,
+    ] = await Promise.all([
       prisma.admin.findUnique({
         where: { id: userId },
         select: { name: true, surname: true, username: true, img: true },
@@ -44,26 +59,10 @@ export async function GET(request: NextRequest) {
         where: { id: schoolId },
         select: { name: true },
       }),
-    ]);
-
-    const adminName = admin ? ([admin.name, admin.surname].filter(Boolean).join(" ") || admin.username) : "Direction";
-
-    // 2. Operations snapshot (matching web dashboard exactly)
-    const [studentCount, teacherCount, staffCount, classCount] = await Promise.all([
       prisma.student.count({ where: { schoolId } }),
       prisma.teacher.count({ where: { schoolId } }),
       prisma.staff.count({ where: { schoolId } }),
       prisma.class.count({ where: { schoolId } }),
-    ]);
-
-    // 3. Tuition metrics & Unpaid queries for active month
-    const [
-      monthlyCollectedTuitionAgg,
-      expectedTuitionRows,
-      unpaidStudentRows,
-      unpaidTeacherRows,
-      unpaidStaffRows,
-    ] = await Promise.all([
       prisma.payment.aggregate({
         where: {
           schoolId,
@@ -144,8 +143,43 @@ export async function GET(request: NextRequest) {
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           s.surname ASC
       ` as Promise<any[]>,
+      prisma.attendance.count({
+        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
+      }),
+      prisma.attendance.count({
+        where: { schoolId, date: { gte: startOfDay, lte: endOfDay }, status: "ABSENT" },
+      }),
+      prisma.attendance.findMany({
+        where: { schoolId, date: { gte: startOfDay, lte: endOfDay }, status: "ABSENT" },
+        take: 4,
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          student: {
+            select: {
+              name: true,
+              surname: true,
+              class: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      prisma.notice.findMany({
+        where: { schoolId },
+        take: 3,
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          date: true,
+          important: true,
+        },
+      }),
     ]);
 
+    const adminName = admin ? ([admin.name, admin.surname].filter(Boolean).join(" ") || admin.username) : "Direction";
     const collectedTuition = monthlyCollectedTuitionAgg._sum.amount || 0;
     const expectedTuition = (expectedTuitionRows?.[0]?.expectedTotal as number) || (studentCount * 450);
     const collectionRate = expectedTuition > 0 ? Math.min(100, Math.round((collectedTuition / expectedTuition) * 100)) : 0;
@@ -251,49 +285,9 @@ export async function GET(request: NextRequest) {
       ...unpaidStaff,
     ];
 
-    // 4. Attendance pulse for today
-    const [todayAttendanceCount, todayAbsences, recentAbsenteesList] = await Promise.all([
-      prisma.attendance.count({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
-      }),
-      prisma.attendance.count({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay }, status: "ABSENT" },
-      }),
-      prisma.attendance.findMany({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay }, status: "ABSENT" },
-        take: 4,
-        orderBy: { date: "desc" },
-        select: {
-          id: true,
-          date: true,
-          student: {
-            select: {
-              name: true,
-              surname: true,
-              class: { select: { name: true } },
-            },
-          },
-        },
-      }),
-    ]);
-
     const attendanceRate = todayAttendanceCount > 0
       ? Math.max(0, Math.round(((todayAttendanceCount - todayAbsences) / todayAttendanceCount) * 100))
       : 98; // Default optimistic school attendance if not yet fully taken
-
-    // 5. Important Notices / Flash Alerts
-    const notices = await prisma.notice.findMany({
-      where: { schoolId },
-      take: 3,
-      orderBy: { date: "desc" },
-      select: {
-        id: true,
-        title: true,
-        message: true,
-        date: true,
-        important: true,
-      },
-    });
 
     return NextResponse.json({
       success: true,
@@ -342,9 +336,9 @@ export async function GET(request: NextRequest) {
         date: n.date.toISOString(),
         important: n.important,
       })),
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error: any) {
     console.error("[Admin Dashboard API] Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Le tableau de bord est indisponible. Veuillez réessayer." }, { status: 500 });
   }
 }

@@ -50,6 +50,12 @@ const getMatcherRoles = (pathname: string) => {
 };
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  // Mobile routes authenticate their own Bearer tokens; a web-cookie lookup
+  // adds an unrelated network round trip to every phone request.
+  if (pathname === "/api/mobile" || pathname.startsWith("/api/mobile/")) {
+    return NextResponse.next({ request });
+  }
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -73,17 +79,21 @@ export async function middleware(request: NextRequest) {
 
   // Use getUser() so Supabase automatically refreshes expired JWT tokens via the refresh token.
   // Without this, users get randomly signed out after 1 hour when their JWT expires.
-  // We wrap it in a 3s timeout so a slow Supabase response never causes a 504.
+  // Bound the wait and release the timer when authentication finishes early.
   let user = null;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+    const timeout = new Promise<null>((resolve) => {
+      timeoutId = setTimeout(() => resolve(null), 5000);
+    });
     const authCall = supabase.auth.getUser().then(({ data }) => data?.user ?? null);
     user = await Promise.race([authCall, timeout]);
   } catch (error) {
     console.error("[MIDDLEWARE] Supabase auth error:", error);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 
-  const pathname = request.nextUrl.pathname;
   const isPublic = isPublicRoute(pathname);
   const isAuth = isAuthRoute(pathname);
 

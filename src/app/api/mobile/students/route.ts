@@ -23,10 +23,11 @@ export async function GET(request: NextRequest) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
-    const parent = await prisma.parent.findUnique({
-      where: { id: parentId },
+    const parent = await prisma.parent.findFirst({
+      where: { id: parentId, schoolId },
       include: {
         students: {
+          where: { schoolId },
           include: {
             class: {
               include: {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Parent not found", { status: 404 });
     }
 
-    return NextResponse.json(parent.students);
+    return NextResponse.json(parent.students, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("[Mobile Students Error]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -57,24 +58,14 @@ export async function PATCH(request: NextRequest) {
   try {
     const { id, img, name, surname } = await request.json();
 
-    if (!id) {
+    if (typeof id !== "string" || !id) {
       return new NextResponse("Missing id", { status: 400 });
     }
 
-    // Verify this student belongs to the authenticated parent (for parents)
-    // or to the authenticated teacher's school (for teachers)
-    if (userType === "parent") {
-      const student = await prisma.student.findUnique({
-        where: { id },
-        select: { parentId: true },
-      });
-      if (!student || student.parentId !== userId) {
-        return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
-      }
-    }
-
+    // Enforce ownership in the write itself, including for teachers/admins.
+    // This also avoids a separate read and a read/write ownership race.
     const updatedStudent = await prisma.student.update({
-      where: { id },
+      where: { id, schoolId, ...(userType === "parent" ? { parentId: userId } : {}) },
       data: {
         ...(img !== undefined && { img: img || null }),
         ...(name !== undefined && { name }),
@@ -84,6 +75,9 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedStudent);
   } catch (error: any) {
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     console.error("[Mobile Students Update Error]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
