@@ -10,6 +10,8 @@ const isPublicRoute = (pathname: string) => {
     "/waiting-approval",
     "/request-setup",
     "/join",
+    "/privacy",
+    "/account-deletion",
   ];
   if (publicPaths.some(p => pathname === p || pathname.startsWith(p + "/"))) return true;
   if (pathname.startsWith("/api/join")) return true;

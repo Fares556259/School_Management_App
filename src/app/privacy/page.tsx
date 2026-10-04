@@ -14,7 +14,7 @@ export default function PrivacyPolicy() {
           </div>
           
           <div className="prose prose-slate max-w-none">
-            <p className="text-sm text-slate-500 mb-6">Last updated: September 3, 2026</p>
+            <p className="text-sm text-slate-500 mb-6">Last updated: October 4, 2026</p>
 
             <section className="mb-8">
               <h2 className="text-xl font-semibold text-slate-800 mb-3">1. Introduction</h2>
@@ -32,6 +32,7 @@ export default function PrivacyPolicy() {
                 <li><strong>Identity Data:</strong> includes first name, last name, username or similar identifier.</li>
                 <li><strong>Contact Data:</strong> includes email address and telephone numbers.</li>
                 <li><strong>Educational Data:</strong> includes attendance records, grades, timetable, and school-related communications.</li>
+                <li><strong>School profile data:</strong> may include address, date of birth, gender and blood type supplied by your school. Blood type is sensitive health information and should only be recorded where necessary for the school’s legitimate purpose.</li>
                 <li><strong>Technical Data:</strong> includes internet protocol (IP) address, your login data, browser type and version, time zone setting, and operating system platform.</li>
               </ul>
             </section>
@@ -66,7 +67,17 @@ export default function PrivacyPolicy() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-semibold text-slate-800 mb-3">6. Contact Us</h2>
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">6. Photos, audio, financial records and AI</h2>
+              <p className="text-slate-600 leading-relaxed">If you choose to upload a photo or document, SnapSchool stores the selected file to provide the requested school feature. The system photo picker shares only the items you select. Camera and microphone access is requested when you use those features. Voice messages, prompts, selected images and relevant school context may be processed by AI service providers, including Google Gemini, to provide Hnia responses and transcription. Do not submit information unrelated to the school task. Hnia responses may be inaccurate; review information and confirm financial actions before proceeding.</p>
+              <p className="text-slate-600 leading-relaxed mt-3">Tuition, salary, payment and receipt records are processed to provide school financial administration. Hosting, authentication, storage and notification providers, including Vercel, Supabase and Expo, process necessary data on our behalf. We do not sell personal data.</p>
+              <p className="text-slate-600 leading-relaxed mt-3">SnapSchool mobile version 1.0.4 and the updated website disable PostHog analytics and interaction autocapture. Older installed versions may have transmitted user identifiers, usage events and financial event properties to PostHog. Existing analytics data must be reviewed and removed when no longer needed.</p>
+            </section>
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">7. Account deletion and data retention</h2>
+              <p className="text-slate-600 leading-relaxed">You can request deletion of your account and associated personal data from the app’s privacy controls or from our public <Link className="text-blue-700 underline" href="/account-deletion">account deletion page</Link>. Your identity is verified before processing. A request is recorded for review by your school; it does not immediately delete the account. Your school will explain any educational, accounting or legal records it must retain, their retention period and why. Other personal data that is no longer necessary is deleted or anonymised. If you cannot sign in, contact your school to verify your identity and request deletion.</p>
+            </section>
+            <section className="mb-8">
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">8. Contact Us</h2>
               <p className="text-slate-600 leading-relaxed">
                 If you have any questions about this privacy policy or our privacy practices, please contact us or your school administrator directly.
               </p>
