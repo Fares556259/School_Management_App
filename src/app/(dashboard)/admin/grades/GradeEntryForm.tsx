@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getGradeSubjects } from "@/lib/subject-utils";
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
+import { getDefaultAvatar, getUserAvatar } from "@/lib/avatar";
 
 interface Subject {
   id: number;
@@ -25,18 +26,18 @@ interface Student {
   name: string;
   surname: string;
   img?: string | null;
+  sex?: "MALE" | "FEMALE" | null;
   grades: { subjectId: number; score: number }[];
 }
 
 function StudentAvatar({ student, className }: { student: Student; className: string }) {
-  const uploadedImage = student.img && !student.img.startsWith("/avatars/")
-    ? student.img.split(",")[0].trim()
-    : "/icon.png";
-  const [src, setSrc] = useState(uploadedImage);
+  const resolvedImage = getUserAvatar(student.img, "student", student.sex);
+  const fallbackImage = getDefaultAvatar("student", student.sex);
+  const [src, setSrc] = useState(resolvedImage);
 
   useEffect(() => {
-    setSrc(uploadedImage);
-  }, [uploadedImage]);
+    setSrc(resolvedImage);
+  }, [resolvedImage]);
 
   return (
     <div className={`relative shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
@@ -46,7 +47,7 @@ function StudentAvatar({ student, className }: { student: Student; className: st
         fill
         sizes="44px"
         className="object-cover"
-        onError={() => setSrc("/icon.png")}
+        onError={() => setSrc(fallbackImage)}
       />
     </div>
   );
