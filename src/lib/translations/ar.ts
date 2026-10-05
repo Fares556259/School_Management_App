@@ -352,6 +352,8 @@ export const ar = {
     "editSchedule": "تعديل الجدول",
     "exportPdf": "تصدير PDF",
     "doneEditing": "إنهاء التعديل",
+    "editingHint": "اسحب الحصص لتغيير موعدها. استخدم القلم للتعديل أو سلة المهملات لحذف الحصة.",
+    "daysScheduled": "أيام دراسة",
     "aiGenerate": "توليد بالذكاء الاصطناعي",
     "regenerate": "إعادة التوليد",
     "limitReached": "تم بلوغ الحد",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Day } from "@prisma/client";
 import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock, Plus } from "lucide-react";
@@ -88,7 +88,10 @@ const ScheduleSlot = ({
   };
   
   // Form State
-  const slotsArray = Array.isArray(slot) ? slot : (slot ? [slot] : []);
+  const slotsArray = useMemo(
+    () => (Array.isArray(slot) ? slot : (slot ? [slot] : [])),
+    [slot]
+  );
   const firstSlot = slotsArray[0];
   const [sessions, setSessions] = useState<any[]>([]);
   const [duration, setDuration] = useState<number>(firstSlot?.duration || 120);
@@ -148,7 +151,7 @@ const ScheduleSlot = ({
         setSlotStartTime(startTime);
       }
     }
-  }, [slot, type, startTime]);
+  }, [slotsArray, type, startTime]);
 
 
   const handleUpdate = async () => {
@@ -284,14 +287,31 @@ const ScheduleSlot = ({
           onDragStart={handleDragStart}
           className={`w-full h-full rounded-[8px] transition-all relative group ${isEditMode && !!firstSlot ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''} overflow-hidden`}
         >
-          {/* Edit button */}
+          {/* Slot actions */}
           {isEditMode && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="absolute top-1 end-1 z-20 p-1 bg-white/90 hover:bg-white rounded-md shadow-sm border border-[#e5e7eb] transition-all text-[#181d26] print:hidden"
-            >
-              <Edit2 size={12} />
-            </button>
+            <div className="absolute top-1.5 end-1.5 z-20 flex items-center gap-1 print:hidden opacity-90 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="w-7 h-7 bg-white/95 hover:bg-blue-50 rounded-lg shadow-sm border border-slate-200 transition-all text-slate-700 hover:text-blue-700 flex items-center justify-center"
+                title={t.crud.edit}
+                aria-label={t.crud.edit}
+              >
+                <Edit2 size={13} />
+              </button>
+              {firstSlot?.id && onDeleteAction && (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleDelete}
+                  className="w-7 h-7 bg-white/95 hover:bg-rose-50 rounded-lg shadow-sm border border-slate-200 transition-all text-slate-500 hover:text-rose-600 flex items-center justify-center disabled:opacity-50"
+                  title={t.crud.delete}
+                  aria-label={t.crud.delete}
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
           )}
 
           {slotsArray.length === 1 ? (
@@ -305,15 +325,17 @@ const ScheduleSlot = ({
                 : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : t.timetable.noTeacherAssigned);
               const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
               return (
-                <div className={`w-full h-full border border-slate-200/50 ${getSlotColor(colorSubject || 0)} p-1.5 px-2 rounded-[8px] flex flex-col justify-between overflow-hidden relative`}>
+                <div className={`w-full h-full border border-slate-200/70 ${getSlotColor(colorSubject || 0)} p-2.5 rounded-[10px] flex flex-col justify-between overflow-hidden relative shadow-[0_1px_2px_rgba(15,23,42,0.04)]`}>
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
-                  <h3 title={rawSubjectName} className={`text-[11px] font-bold leading-snug line-clamp-2 relative z-10 pe-6 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
+                  <h3 title={rawSubjectName} className={`text-[12px] font-bold leading-snug line-clamp-2 relative z-10 pe-16 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
                     {colorSubject ? (subjectName || t.timetable.unscheduled) : `☕ ${t.timetable.freeTime}`}
                   </h3>
                   {colorSubject && (
-                    <p className="text-[9px] font-medium text-[#41454d] opacity-80 truncate relative z-10 mt-1">
-                      {teacherName} • {s.room?.name || t.timetable.tba}
-                    </p>
+                    <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600 relative z-10 mt-2 min-w-0">
+                      <span className="truncate">{teacherName}</span>
+                      <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                      <span className="truncate">{s.room?.name || t.timetable.tba}</span>
+                    </div>
                   )}
                 </div>
               );
@@ -368,12 +390,12 @@ const ScheduleSlot = ({
 
       {/* Modern Fixed Popover Modal overlay */}
       {isEditing && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[99999] bg-[#181d26]/40 backdrop-blur-sm flex items-center justify-center p-4" dir={isRtl ? "rtl" : "ltr"}>
-          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl border border-[#dddddd] overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-[3px] flex items-center justify-center p-4" dir={isRtl ? "rtl" : "ltr"} role="dialog" aria-modal="true">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-[#dddddd]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-[#f8fafc] flex items-center justify-center text-[#181d26] border border-[#dddddd]">
+                <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 border border-blue-100">
                   {firstSlot?.id ? <Edit2 size={18} /> : <Plus size={18} strokeWidth={2.5} />}
                 </div>
                 <div>
@@ -386,8 +408,10 @@ const ScheduleSlot = ({
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsEditing(false)}
                 className="p-2 hover:bg-[#f8fafc] rounded-full text-[#9297a0] hover:text-[#181d26] transition-colors"
+                aria-label={t.crud.cancel}
               >
                 <X size={18} />
               </button>
@@ -418,7 +442,7 @@ const ScheduleSlot = ({
                 const otherTeachers = filterBySubject(teachers.filter(t => !t.classes?.some((c: any) => c.id === classId)));
 
                 return (
-                <div key={index} className="flex flex-col gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50 relative">
+                <div key={index} className="flex flex-col gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50/70 relative">
                   {sessions.length > 1 && (
                     <button 
                       onClick={() => removeSession(index)}
@@ -530,7 +554,8 @@ const ScheduleSlot = ({
                 </div>
               )})}
 
-              <button 
+              <button
+                type="button"
                 onClick={addSession}
                 className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-medium hover:bg-slate-50 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 text-sm mt-2"
               >
@@ -579,26 +604,30 @@ const ScheduleSlot = ({
 
             {/* Modal Footer Actions */}
             <div className="flex items-center gap-3 pt-4 border-t border-[#dddddd] shrink-0">
-              {slot?.id && slot.id !== -1 && onDeleteAction && (
+              {firstSlot?.id && firstSlot.id !== -1 && onDeleteAction && (
                 <button 
+                  type="button"
                   disabled={loading}
                   onClick={handleDelete}
-                  className="px-4 h-11 bg-white text-[#aa2d00] hover:bg-rose-50 active:scale-95 transition-all border border-[#dddddd] rounded-md flex items-center justify-center shrink-0"
+                  className="px-4 h-11 bg-white text-rose-600 hover:bg-rose-50 active:scale-95 transition-all border border-rose-200 rounded-lg flex items-center justify-center gap-2 shrink-0 text-sm font-semibold disabled:opacity-50"
                   title={t.crud.delete}
                 >
                   <Trash2 size={16} />
+                  <span className="hidden sm:inline">{t.crud.delete}</span>
                 </button>
               )}
               <button 
+                type="button"
                 onClick={() => setIsEditing(false)}
-                className="flex-1 h-11 bg-white hover:bg-[#f8fafc] active:scale-95 transition-all text-[#181d26] rounded-md text-sm font-medium border border-[#dddddd] text-center flex items-center justify-center"
+                className="flex-1 h-11 bg-white hover:bg-[#f8fafc] active:scale-95 transition-all text-[#181d26] rounded-lg text-sm font-medium border border-[#dddddd] text-center flex items-center justify-center"
               >
                 {t.crud.cancel}
               </button>
               <button 
+                type="button"
                 disabled={loading}
                 onClick={handleUpdate}
-                className="flex-[2] h-11 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-md text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                className="flex-[2] h-11 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-60"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>

@@ -289,20 +289,21 @@ export async function moveTimetableSlot(slotId: number, targetDay: Day, targetSl
 
 export async function deleteTimetableSlot(id: number) {
   try {
-    const slot = await prisma.timetableSlot.findUnique({
-      where: { id },
+    const schoolId = await getSchoolId();
+    const slot = await prisma.timetableSlot.findFirst({
+      where: { id, schoolId },
       select: { classId: true, day: true, isDraft: true }
     });
-    
+
+    if (!slot) return { success: false, error: "Time slot not found" };
+
     await prisma.timetableSlot.delete({
       where: { id }
     });
-    
-    if (slot) {
-      await recalculateSlotTimes(slot.classId, slot.day, slot.isDraft);
-      revalidatePath(`/admin/timetable`);
-      try { const sId = await getSchoolId(); invalidateTenantTags(sId, "classes"); } catch(e) {}
-    }
+
+    await recalculateSlotTimes(slot.classId, slot.day, slot.isDraft);
+    revalidatePath(`/admin/timetable`);
+    invalidateTenantTags(schoolId, "classes");
     return { success: true };
   } catch (error: any) {
     console.error("Error deleting timetable slot:", error);

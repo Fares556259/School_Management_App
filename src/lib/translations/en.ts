@@ -352,6 +352,8 @@ export const en = {
     "editSchedule": "Edit Schedule",
     "exportPdf": "Export PDF",
     "doneEditing": "Done Editing",
+    "editingHint": "Drag sessions to reschedule them. Use the pencil to edit or the trash button to delete a slot.",
+    "daysScheduled": "school days",
     "aiGenerate": "AI Generate",
     "regenerate": "Regenerate",
     "limitReached": "Limit Reached",

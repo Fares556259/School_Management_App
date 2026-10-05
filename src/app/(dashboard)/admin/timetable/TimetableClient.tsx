@@ -133,12 +133,12 @@ const TimetablePage = ({
   const classSlots = React.useMemo(() => {
     if (isDraftView || !selectedClass) return undefined;
     return (allActiveSlots || []).filter((s: any) => s.classId === selectedClass.id);
-  }, [allActiveSlots, selectedClass?.id, isDraftView]);
+  }, [allActiveSlots, selectedClass, isDraftView]);
 
   return (
-    <div className="p-6 lg:p-10 flex flex-col gap-8 flex-1 bg-white">
+    <div className="p-5 lg:p-8 flex flex-col gap-6 flex-1 bg-[#f6f8fb] min-w-0">
        {/* Unified Main Dashboard Header Card */}
-      <div className="flex flex-col gap-6 w-full">
+      <div className="flex flex-col gap-6 w-full bg-white border border-slate-200 rounded-2xl p-5 lg:p-6 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
         {/* Row 1: Header title and action buttons */}
         <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 w-full">
           <div className="flex items-center gap-4">
@@ -154,13 +154,13 @@ const TimetablePage = ({
               
               <div className="flex items-center gap-2">
                 {forceDraft ? <Sparkles size={24} className="text-[#181d26]" /> : <CalendarDays size={24} className="text-[#181d26]" />}
-                <h1 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">
+                <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#181d26] leading-[1.2]">
                   {forceDraft ? t.timetable.aiScheduler : t.timetable.academicTimetable}
                 </h1>
               </div>
               
               {/* PRO VIEW BAR (Airtable-style filter bar) */}
-              <div className="flex items-center bg-[#f8fafc] border border-[#dddddd] rounded-[6px] px-2 py-1.5 gap-2 w-fit mt-4">
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 gap-2 w-fit mt-4">
                 {/* Target Class */}
                 <div className="flex items-center gap-2 px-2 shrink-0">
                   <span className="text-[12px] font-medium text-[#41454d] capitalize tracking-wide">{t.timetable.class}</span>
@@ -269,6 +269,18 @@ const TimetablePage = ({
         </div>
 
       </div>
+
+      {isEditMode && (
+        <div className="flex items-start sm:items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900 print:hidden">
+          <div className="w-8 h-8 rounded-lg bg-white border border-blue-200 flex items-center justify-center shrink-0">
+            <Edit2 size={15} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{t.timetable.editMode}</p>
+            <p className="text-xs text-blue-700 mt-0.5">{t.timetable.editingHint}</p>
+          </div>
+        </div>
+      )}
 
       {selectedClass ? (
         <ScheduleGrid 

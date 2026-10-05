@@ -60,6 +60,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const isInitialMount = React.useRef(true);
   const { t, locale } = useLanguage();
   const isRtl = locale === "ar";
+  const hasPrefetchedSlots = Boolean(propSlots?.length);
 
   const displaySlots = localSlots.length > 0 ? localSlots : (propSlots || []);
 
@@ -69,7 +70,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
 
   useEffect(() => {
     if (fetchDataAction && classId) {
-      if (propSlots && propSlots.length > 0 && isInitialMount.current) {
+      if (hasPrefetchedSlots && isInitialMount.current) {
         isInitialMount.current = false;
         setIsLoading(false);
         return;
@@ -86,7 +87,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       };
       loadData();
     }
-  }, [classId, fetchDataAction, refreshKey, isDraft]);
+  }, [classId, fetchDataAction, refreshKey, isDraft, hasPrefetchedSlots]);
 
   useEffect(() => {
     if (propSlots) {
@@ -227,7 +228,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   }
 
   return (
-    <div className="w-full flex flex-col relative" ref={ref}>
+    <div className="w-full flex flex-col relative gap-3" ref={ref}>
       {isLoading && (
         <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[12px]">
           <div className="flex flex-col items-center gap-2">
@@ -237,11 +238,21 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
         </div>
       )}
 
-      <div className="w-full overflow-x-auto rounded-[12px] border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 print:hidden">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">{classNameStr}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{displayDaysList.length} {t.timetable.daysScheduled}</p>
+        </div>
+        <div className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-sm">
+          {dayStartTime} — {dayEndTime}
+        </div>
+      </div>
+
+      <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
         <div className="min-w-[800px]">
           {/* HEADER ROW */}
-          <div className="flex h-14 border-b border-slate-200 bg-[#f8fafc] shadow-sm relative z-10">
-            <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest">
+          <div className="flex h-14 border-b border-slate-200 bg-slate-50/95 sticky top-0 z-30 backdrop-blur-sm">
+            <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest sticky start-0 z-40 bg-slate-50/95">
               {t.timetable.day || "Jour"}
             </div>
             <div className="flex-1 relative">
@@ -325,9 +336,9 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             }
 
             return (
-              <div key={d} className="flex h-[110px] border-b border-slate-200 last:border-b-0 group">
+              <div key={d} className="flex h-[104px] border-b border-slate-200 last:border-b-0 group">
                 {/* DAY LABEL */}
-                <div className="w-28 flex-shrink-0 border-e border-slate-200 flex flex-col items-center justify-center bg-slate-50/30 group-hover:bg-slate-50 transition-colors relative z-20">
+                <div className="w-28 flex-shrink-0 border-e border-slate-200 flex flex-col items-center justify-center bg-white group-hover:bg-blue-50/40 transition-colors sticky start-0 z-20">
                   <span className="font-bold text-[13px] text-slate-700 capitalize">{dayLabels[d]}</span>
                   {dateObj && (
                     <span className="text-[10px] font-medium text-slate-400 mt-1">
@@ -399,7 +410,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   );})}
 
                   {/* Empty Slots (Add session buttons / dropzones across all free hours) */}
-                  {emptyHourSlots.map((emptySlot) => (
+                  {isEditMode && emptyHourSlots.map((emptySlot) => (
                     <div 
                       key={`empty-${d}-${emptySlot.hour}`}
                       className="absolute top-1 bottom-1 p-0.5 transition-all group/empty"

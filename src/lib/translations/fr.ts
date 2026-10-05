@@ -352,6 +352,8 @@ export const fr = {
     "editSchedule": "Modifier l'horaire",
     "exportPdf": "Exporter en PDF",
     "doneEditing": "Terminer l'édition",
+    "editingHint": "Glissez les séances pour les déplacer. Utilisez le crayon pour modifier ou la corbeille pour supprimer un créneau.",
+    "daysScheduled": "jours de cours",
     "aiGenerate": "Générer avec l'IA",
     "regenerate": "Régénérer",
     "limitReached": "Limite Atteinte",
