@@ -1,5 +1,6 @@
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
 import prisma from "@/lib/prisma";
+import { expandStoredExpoPushTokens } from "@/lib/expoPushTokens";
 
 const expo = new Expo();
 
@@ -21,9 +22,7 @@ export async function sendSystemPushNotification({
   data = {},
   channelId = "default",
 }: SendPushNotificationParams) {
-  const validTokens = tokens.filter(
-    (t): t is string => !!t && Expo.isExpoPushToken(t)
-  );
+  const validTokens = expandStoredExpoPushTokens(tokens);
 
   if (validTokens.length === 0) {
     console.log("[PUSH] No valid Expo push tokens to notify.");

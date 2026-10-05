@@ -37,11 +37,11 @@ async function main() {
   let deletedWhere: any;
   replace(prisma.notification, "deleteMany", async (args: any) => { deletedWhere = args.where; return { count: 1 }; });
   replace(prisma.student, "findFirst", async () => null);
+  let savedPushToken: string | null | undefined;
   replace(prisma.parent, "findFirst", async (args: any) => {
     assert.deepEqual(args.where, { id: "parent-a", schoolId: "school-a" });
-    return { id: "parent-a" };
+    return { id: "parent-a", expoPushToken: savedPushToken };
   });
-  let savedPushToken: string | null | undefined;
   replace(prisma.parent, "update", async (args: any) => { savedPushToken = args.data.expoPushToken; return { id: "parent-a" }; });
 
   try {
@@ -70,6 +70,12 @@ async function main() {
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", teacherToken, { method: "POST", body: JSON.stringify({ pushToken: "" }) }))).status, 403);
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ parentId: "parent-b", pushToken: "" }) }))).status, 403);
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: "invalid" }) }))).status, 400);
+    const firstDevice = "ExponentPushToken[first-device-token]";
+    const secondDevice = "ExponentPushToken[second-device-token]";
+    assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: firstDevice }) }))).status, 200);
+    assert.equal(savedPushToken, firstDevice, "The first device should remain backward-compatible as a plain token");
+    assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: secondDevice }) }))).status, 200);
+    assert.deepEqual(JSON.parse(savedPushToken as string), [firstDevice, secondDevice], "A shared tester account should keep both devices");
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: "" }) }))).status, 200);
     assert.equal(savedPushToken, null, "Disabling notifications should remove the saved parent token");
 

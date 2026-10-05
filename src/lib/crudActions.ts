@@ -1386,8 +1386,9 @@ export const createNotice = async (data: {
       },
     });
 
-    // Trigger notifications for parents
-    import("@/lib/notifications").then(m => m.createAnnouncementNotifications(notice.id));
+    // Keep the server action alive until Expo has accepted the notification batch.
+    const { createAnnouncementNotifications } = await import("@/lib/notifications");
+    await createAnnouncementNotifications(notice.id);
 
     await createAuditLog({
       action: "CREATE_NOTICE",

@@ -1,5 +1,6 @@
 import prisma from "./prisma";
 import { Expo } from "expo-server-sdk";
+import { expandStoredExpoPushTokens, parseStoredExpoPushTokens } from "./expoPushTokens";
 
 const expo = new Expo();
 
@@ -28,24 +29,14 @@ export async function sendPush(parentId: string, title: string, body: string, da
       select: { expoPushToken: true },
     });
 
-    if (!parent?.expoPushToken || !Expo.isExpoPushToken(parent.expoPushToken)) {
-      return;
-    }
+    const tokens = parseStoredExpoPushTokens(parent?.expoPushToken);
+    if (tokens.length === 0) return;
 
-    const channelId = resolveChannelId(data.channelId);
-
-    const messages = [{
-      to: parent.expoPushToken,
-      sound: 'default' as const,
-      title,
-      body,
-      data: { ...data, channelId, title, body, message: body },
-      channelId,
-      priority: 'high' as const,
-    }];
-
-    await expo.sendPushNotificationsAsync(messages);
-    console.log(`[PUSH-SENT] To parent ${parentId}: ${title}`);
+    const result = await sendDirectPushTokens(tokens, title, body, {
+      channelId: resolveChannelId(data.channelId),
+      data,
+    });
+    console.log(`[PUSH-SENT] To parent ${parentId}: ${result.sentCount}/${tokens.length} devices`);
   } catch (error) {
     console.error("[PUSH-ERROR]", error);
   }
@@ -69,14 +60,15 @@ export async function sendPushBatch(
       select: { id: true, expoPushToken: true, phone: true },
     });
 
-    const validParents = parents.filter(
-      (p) => p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken)
+    const tokensByParent = new Map(
+      parents.map((parent) => [parent.id, parseStoredExpoPushTokens(parent.expoPushToken)])
     );
-    console.log(`[PUSH-BATCH] Found ${parents.length} parents, ${validParents.length} with valid tokens`);
+    const parentsWithTokens = parents.filter((parent) => (tokensByParent.get(parent.id)?.length || 0) > 0);
+    console.log(`[PUSH-BATCH] Found ${parents.length} parents, ${parentsWithTokens.length} with registered devices`);
 
     // Fallback: If some parents have null tokens, check if any account with the same phone has an active push token
     const missingParents = parents.filter(
-      (p) => (!p.expoPushToken || !Expo.isExpoPushToken(p.expoPushToken)) && p.phone
+      (parent) => (tokensByParent.get(parent.id)?.length || 0) === 0 && parent.phone
     );
 
     if (missingParents.length > 0) {
@@ -93,36 +85,29 @@ export async function sendPushBatch(
           }),
         ]);
 
-        const phoneToToken = new Map<string, string>();
+        const phoneToTokens = new Map<string, string[]>();
         for (const p of altParents) {
-          if (p.expoPushToken && Expo.isExpoPushToken(p.expoPushToken)) {
-            phoneToToken.set(p.phone, p.expoPushToken);
-          }
+          const tokens = parseStoredExpoPushTokens(p.expoPushToken);
+          if (tokens.length > 0) phoneToTokens.set(p.phone, tokens);
         }
         for (const t of altTeachers) {
-          if (t.phone && t.expoPushToken && Expo.isExpoPushToken(t.expoPushToken) && !phoneToToken.has(t.phone)) {
-            phoneToToken.set(t.phone, t.expoPushToken);
+          const tokens = parseStoredExpoPushTokens(t.expoPushToken);
+          if (t.phone && tokens.length > 0 && !phoneToTokens.has(t.phone)) {
+            phoneToTokens.set(t.phone, tokens);
           }
         }
 
         for (const p of missingParents) {
-          if (p.phone && phoneToToken.has(p.phone)) {
-            const fallbackToken = phoneToToken.get(p.phone)!;
-            validParents.push({ id: p.id, expoPushToken: fallbackToken, phone: p.phone });
-            // Auto-backfill to DB
-            prisma.parent.update({
-              where: { id: p.id },
-              data: { expoPushToken: fallbackToken },
-            }).catch((err) => console.warn("[PUSH-BACKFILL-FAIL]", err));
-          }
+          if (p.phone && phoneToTokens.has(p.phone)) tokensByParent.set(p.id, phoneToTokens.get(p.phone)!);
         }
-        console.log(`[PUSH-BATCH] After fallback: ${validParents.length} valid tokens`);
+        console.log(`[PUSH-BATCH] Phone fallback matched ${missingParents.filter((p) => (tokensByParent.get(p.id)?.length || 0) > 0).length} parents`);
       } catch (fbErr) {
         console.warn("[PUSH-FALLBACK-LOOKUP-WARN]", fbErr);
       }
     }
 
-    if (validParents.length === 0) {
+    const uniqueTokens = Array.from(new Set(parents.flatMap((parent) => tokensByParent.get(parent.id) || [])));
+    if (uniqueTokens.length === 0) {
       console.log(`[PUSH-BATCH] No valid tokens found, skipping push`);
       return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
     }
@@ -130,15 +115,8 @@ export async function sendPushBatch(
     const channelId = resolveChannelId(data.channelId);
 
     // Deduplicate tokens to avoid sending the same push multiple times to the same device
-    const seenTokens = new Set<string>();
-    const uniqueMessages = validParents
-      .filter(p => {
-        if (seenTokens.has(p.expoPushToken!)) return false;
-        seenTokens.add(p.expoPushToken!);
-        return true;
-      })
-      .map(p => ({
-        to: p.expoPushToken!,
+    const uniqueMessages = uniqueTokens.map((token) => ({
+        to: token,
         sound: 'default' as const,
         title,
         body,
@@ -192,7 +170,7 @@ export async function sendPushBatch(
     }
 
     console.log(`[PUSH-BATCH] Sent ${sentCount}/${uniqueMessages.length} notifications: ${title}`);
-    return { totalParents: parents.length, tokensCount: validParents.length, sentCount };
+    return { totalParents: parents.length, tokensCount: uniqueTokens.length, sentCount };
   } catch (error) {
     console.error("[PUSH-BATCH-ERROR]", error);
     return { totalParents: parentIds.length, tokensCount: 0, sentCount: 0 };
@@ -213,24 +191,20 @@ async function sendPushIndividualBatch(
       select: { id: true, expoPushToken: true },
     });
 
-    const tokenMap = new Map(parents.map((p) => [p.id, p.expoPushToken]));
+    const tokenMap = new Map(parents.map((p) => [p.id, parseStoredExpoPushTokens(p.expoPushToken)]));
 
-    const messages = items
-      .filter((item) => {
-        const token = tokenMap.get(item.parentId);
-        return token && Expo.isExpoPushToken(token);
-      })
-      .map((item) => {
+    const messages = items.flatMap((item) => {
+        const tokens = tokenMap.get(item.parentId) || [];
         const channelId = resolveChannelId(item.data?.channelId);
-        return {
-          to: tokenMap.get(item.parentId)!,
+        return tokens.map((token) => ({
+          to: token,
           sound: "default" as const,
           title: item.title,
           body: item.body,
           data: { ...item.data, channelId, title: item.title, body: item.body, message: item.body },
           channelId,
           priority: "high" as const,
-        };
+        }));
       });
 
     if (messages.length === 0) return;
@@ -254,7 +228,7 @@ export async function sendDirectPushTokens(
   body: string,
   options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1" | "snapschool_alerts_v2" | "snapschool_emergency_v2"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
 ): Promise<{ success: boolean; sentCount: number; tickets: any[] }> {
-  const validTokens = Array.from(new Set(tokens)).filter((t) => t && Expo.isExpoPushToken(t));
+  const validTokens = expandStoredExpoPushTokens(tokens);
   if (validTokens.length === 0) {
     return { success: false, sentCount: 0, tickets: [] };
   }
@@ -328,9 +302,7 @@ export async function sendPushToTeachers({
     select: { id: true, name: true, surname: true, expoPushToken: true },
   });
 
-  const tokens = teachers
-    .map((t) => t.expoPushToken)
-    .filter((t): t is string => Boolean(t && Expo.isExpoPushToken(t)));
+  const tokens = expandStoredExpoPushTokens(teachers.map((teacher) => teacher.expoPushToken));
 
   if (tokens.length > 0) {
     const res = await sendDirectPushTokens(tokens, title, body, options);
@@ -358,19 +330,20 @@ export async function createAnnouncementNotifications(noticeId: number) {
       // 1. Specific Student notice
       const student = await prisma.student.findUnique({
         where: { id: notice.targetStudentId },
-        select: { parentId: true },
+        select: { parentId: true, schoolId: true },
       });
-      if (student?.parentId) parentIds = [student.parentId];
+      if (student?.parentId && student.schoolId === notice.schoolId) parentIds = [student.parentId];
     } else if (notice.classId) {
       // 2. Class notice
       const students = await prisma.student.findMany({
-        where: { classId: notice.classId, parentId: { not: null } },
+        where: { classId: notice.classId, schoolId: notice.schoolId, parentId: { not: null } },
         select: { parentId: true },
       });
       parentIds = Array.from(new Set(students.map((s) => s.parentId).filter((id): id is string => Boolean(id))));
     } else {
       // 3. Global notice
       const parents = await prisma.parent.findMany({
+        where: { schoolId: notice.schoolId },
         select: { id: true },
       });
       parentIds = parents.map((p) => p.id);
@@ -1003,19 +976,18 @@ export async function notifyTeacherTaskSubmitted(studentId: string, assignmentId
 
     if (!assignment || !student || !assignment.lesson.teacher?.expoPushToken) return;
 
-    if (Expo.isExpoPushToken(assignment.lesson.teacher.expoPushToken)) {
-      const messages = [{
-        to: assignment.lesson.teacher.expoPushToken,
-        sound: 'default' as const,
-        title: `📝 وظيفة مسلمة`,
-        body: `قام ${student.name} ${student.surname} بتسليم ${assignment.title}.`,
-        data: { type: 'TASK_SUBMISSION', assignmentId, studentId, channelId: 'snapschool_alerts_v2' },
+    const tokens = parseStoredExpoPushTokens(assignment.lesson.teacher.expoPushToken);
+    if (tokens.length === 0) return;
+    await sendDirectPushTokens(
+      tokens,
+      `📝 وظيفة مسلمة`,
+      `قام ${student.name} ${student.surname} بتسليم ${assignment.title}.`,
+      {
+        data: { type: 'TASK_SUBMISSION', assignmentId, studentId },
         channelId: 'snapschool_alerts_v2',
-        priority: 'high' as const,
-      }];
-      await expo.sendPushNotificationsAsync(messages);
-      console.log(`[PUSH-SENT] To teacher ${assignment.lesson.teacher.id} for task submission`);
-    }
+      }
+    );
+    console.log(`[PUSH-SENT] To teacher ${assignment.lesson.teacher.id} for task submission`);
   } catch (error) {
     console.error("[NOTIFY-TEACHER-TASK]", error);
   }
@@ -1036,19 +1008,18 @@ export async function notifyTeacherAbsenceJustified(attendanceId: number) {
 
     if (!record || !record.student || !record.lesson?.teacher?.expoPushToken) return;
 
-    if (Expo.isExpoPushToken(record.lesson.teacher.expoPushToken)) {
-      const messages = [{
-        to: record.lesson.teacher.expoPushToken,
-        sound: 'default' as const,
-        title: `✅ تبرير غياب`,
-        body: `قام ولي أمر ${record.student.name} ${record.student.surname} بتبرير غيابه.`,
-        data: { type: 'ATTENDANCE_JUSTIFICATION', attendanceId, channelId: 'snapschool_alerts_v2' },
+    const tokens = parseStoredExpoPushTokens(record.lesson.teacher.expoPushToken);
+    if (tokens.length === 0) return;
+    await sendDirectPushTokens(
+      tokens,
+      `✅ تبرير غياب`,
+      `قام ولي أمر ${record.student.name} ${record.student.surname} بتبرير غيابه.`,
+      {
+        data: { type: 'ATTENDANCE_JUSTIFICATION', attendanceId },
         channelId: 'snapschool_alerts_v2',
-        priority: 'high' as const,
-      }];
-      await expo.sendPushNotificationsAsync(messages);
-      console.log(`[PUSH-SENT] To teacher ${record.lesson.teacher.id} for absence justification`);
-    }
+      }
+    );
+    console.log(`[PUSH-SENT] To teacher ${record.lesson.teacher.id} for absence justification`);
   } catch (error) {
     console.error("[NOTIFY-TEACHER-ABSENCE]", error);
   }

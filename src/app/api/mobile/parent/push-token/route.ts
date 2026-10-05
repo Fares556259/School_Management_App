@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { Expo } from "expo-server-sdk";
+import { parseStoredExpoPushTokens, storeExpoPushToken } from "@/lib/expoPushTokens";
 
 export async function POST(request: NextRequest) {
   const auth = authenticateMobileRequest(request);
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const parent = await prisma.parent.findFirst({
       where: { id: userId, schoolId },
-      select: { id: true },
+      select: { id: true, expoPushToken: true },
     });
 
     if (!parent) {
@@ -36,10 +37,23 @@ export async function POST(request: NextRequest) {
 
     await prisma.parent.update({
       where: { id: parent.id },
-      data: { expoPushToken: pushToken },
+      data: {
+        expoPushToken: pushToken
+          ? storeExpoPushToken(parent.expoPushToken, pushToken)
+          : null,
+      },
     });
 
-    return NextResponse.json({ success: true });
+    const registeredDevices = pushToken
+      ? parseStoredExpoPushTokens(storeExpoPushToken(parent.expoPushToken, pushToken)).length
+      : 0;
+    console.log("[PUSH-TOKEN-REGISTERED]", {
+      userType: "parent",
+      userId,
+      schoolId,
+      registeredDevices,
+    });
+    return NextResponse.json({ success: true, registeredDevices });
   } catch (error) {
     console.error("[PUSH-TOKEN-ERROR]", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });

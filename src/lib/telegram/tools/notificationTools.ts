@@ -1,9 +1,9 @@
 import prisma from "@/lib/prisma";
-import { Expo } from "expo-server-sdk";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
 import { resolveStudentByName } from "./entityResolvers";
+import { expandStoredExpoPushTokens, parseStoredExpoPushTokens } from "@/lib/expoPushTokens";
 import {
   sendDirectPushTokens,
   sendPushToTeachers,
@@ -106,7 +106,7 @@ export async function getAdminPushTokens(context: ToolContext): Promise<string[]
     if (fallbackParent?.expoPushToken) tokens.push(fallbackParent.expoPushToken);
   }
 
-  return Array.from(new Set(tokens.filter((t) => t && Expo.isExpoPushToken(t))));
+  return expandStoredExpoPushTokens(tokens);
 }
 
 /**
@@ -279,7 +279,8 @@ export async function sendPushNotificationTool(
       };
     }
 
-    if (!teacher.expoPushToken || !Expo.isExpoPushToken(teacher.expoPushToken)) {
+    const teacherPushTokens = parseStoredExpoPushTokens(teacher.expoPushToken);
+    if (teacherPushTokens.length === 0) {
       return {
         success: false,
         message: `⚠️ L'enseignant <b>${teacher.name} ${teacher.surname}</b> n'a pas encore connecté l'application mobile (aucun jeton push enregistré).`,
@@ -287,7 +288,7 @@ export async function sendPushNotificationTool(
       };
     }
 
-    await sendDirectPushTokens([teacher.expoPushToken], title, body, {
+    await sendDirectPushTokens(teacherPushTokens, title, body, {
       channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
       sound: "default",
       data: { type: "TEACHER_ALERT" },
@@ -343,7 +344,8 @@ export async function sendPushNotificationTool(
       select: { id: true, name: true, surname: true, expoPushToken: true },
     });
 
-    if (!parent?.expoPushToken || !Expo.isExpoPushToken(parent.expoPushToken)) {
+    const parentPushTokens = parseStoredExpoPushTokens(parent?.expoPushToken);
+    if (!parent || parentPushTokens.length === 0) {
       // Still create in-app notification in DB so parent sees it when they log in
       await prisma.notification.create({
         data: {
@@ -376,7 +378,7 @@ export async function sendPushNotificationTool(
     });
 
     // Send push
-    await sendDirectPushTokens([parent.expoPushToken], title, body, {
+    await sendDirectPushTokens(parentPushTokens, title, body, {
       channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
       sound: "default",
       data: { studentId: student.id, type: "STUDENT_UPDATE" },
