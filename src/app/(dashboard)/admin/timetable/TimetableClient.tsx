@@ -7,13 +7,15 @@ import { Clock, Check, Edit2, Sparkles, Lock, FileDown, Eye, CalendarDays, Chevr
 import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "./components/ScheduleGrid";
 import AiScheduleModal from "./components/AiScheduleModal";
+import { describeTimetableConflict } from "@/lib/timetableConflicts";
 import { toast } from "react-toastify";
 import { isAIQuotaReached } from "../actions/aiActions";
 import { 
   getTimetableByClass, 
   moveTimetableSlot, 
   updateTimetableSlot,
-  deleteTimetableSlot,
+  deleteTimetableSession,
+  saveTimetableSession,
   bulkUpdateTimetableSlots,
   publishDraftTimetable,
   discardDraftTimetable
@@ -26,6 +28,8 @@ const TimetablePage = ({
   teachers,
   dayStartTime,
   dayEndTime,
+  editingDayStartTime,
+  editingDayEndTime,
   rooms,
   allActiveSlots,
   forceDraft = false,
@@ -35,6 +39,8 @@ const TimetablePage = ({
   teachers: any[];
   dayStartTime?: string;
   dayEndTime?: string;
+  editingDayStartTime?: string;
+  editingDayEndTime?: string;
   rooms: any[];
   allActiveSlots?: any[];
   forceDraft?: boolean;
@@ -110,7 +116,7 @@ const TimetablePage = ({
         router.refresh();
         toast.success(t.toasts.draftPublished);
       } else {
-        toast.error(res.error || t.toasts.failedToPublishDraft);
+        toast.error(res.conflicts?.length ? res.conflicts.map(c => describeTimetableConflict(c, t.timetable)).join(" ") : t.timetable.validation[res.code as keyof typeof t.timetable.validation] || t.toasts.failedToPublishDraft);
       }
     }
   };
@@ -125,7 +131,7 @@ const TimetablePage = ({
         setRefreshKey(prev => prev + 1);
         toast.success(t.toasts.draftDiscarded);
       } else {
-        toast.error(res.error || t.toasts.failedToDiscardDraft);
+        toast.error(t.timetable.validation[res.code as keyof typeof t.timetable.validation] || t.toasts.failedToDiscardDraft);
       }
     }
   };
@@ -158,6 +164,7 @@ const TimetablePage = ({
                   {forceDraft ? t.timetable.aiScheduler : t.timetable.academicTimetable}
                 </h1>
               </div>
+              <p className="text-sm text-slate-500 mt-2">{t.timetable.viewHint}</p>
               
               {/* PRO VIEW BAR (Airtable-style filter bar) */}
               <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 gap-2 w-fit mt-4">
@@ -285,6 +292,7 @@ const TimetablePage = ({
       {selectedClass ? (
         <ScheduleGrid 
           ref={gridRef}
+          key={`${selectedClass.id}-${isDraftView}`}
           classId={selectedClass.id} 
           classNameStr={selectedClass.name}
           slots={classSlots}
@@ -296,15 +304,18 @@ const TimetablePage = ({
           type="timetable"
           fetchDataAction={getTimetableByClass}
           allActiveSlots={allActiveSlots || []}
-          onMoveAction={moveTimetableSlot}
+          onMoveAction={(id, day, number, _exam, time) => moveTimetableSlot(id, day, number, time)}
           onUpdateAction={updateTimetableSlot}
-          onDeleteAction={deleteTimetableSlot}
+          onDeleteAction={deleteTimetableSession}
+          onSaveSessionAction={saveTimetableSession}
           onRefresh={() => {
             setRefreshKey(prev => prev + 1);
             router.refresh();
           }}
           dayStartTime={dayStartTime}
           dayEndTime={dayEndTime}
+          editingDayStartTime={editingDayStartTime}
+          editingDayEndTime={editingDayEndTime}
           isDraft={isDraftView}
         />
       ) : (

@@ -9,32 +9,14 @@ const TimetablePage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  let schoolId = await getSchoolId();
+  const schoolId = await getSchoolId();
 
   // 1. Fetch classes for the resolved school
-  let classes = await prisma.class.findMany({
+  const classes = await prisma.class.findMany({
     where: { schoolId },
     include: { level: true },
     orderBy: { name: "asc" },
   });
-
-  // Fallback: If current schoolId has 0 classes, check leaders-1 or leaders
-  if (classes.length === 0) {
-    for (const fallbackId of ["leaders-1", "leaders"]) {
-      if (fallbackId !== schoolId) {
-        const fallbackClasses = await prisma.class.findMany({
-          where: { schoolId: fallbackId },
-          include: { level: true },
-          orderBy: { name: "asc" },
-        });
-        if (fallbackClasses.length > 0) {
-          schoolId = fallbackId;
-          classes = fallbackClasses;
-          break;
-        }
-      }
-    }
-  }
 
   // 2. Fetch all other timetable data in parallel for the effective schoolId
   const [subjects, teachers, institution, rooms, allActiveSlots] = await Promise.all([
@@ -61,6 +43,7 @@ const TimetablePage = async ({
     prisma.timetableSlot.findMany({
       where: { schoolId, isDraft: false },
       include: {
+        class: { select: { name: true } },
         subject: true,
         teacher: true,
         room: true,
@@ -92,6 +75,8 @@ const TimetablePage = async ({
       teachers={teachers}
       dayStartTime={dayStartTime}
       dayEndTime={dayEndTime}
+      editingDayStartTime={configuredStartTime}
+      editingDayEndTime={configuredEndTime}
       rooms={rooms}
       allActiveSlots={allActiveSlots}
     />

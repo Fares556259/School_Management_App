@@ -1,28 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useMemo, useId } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Day } from "@prisma/client";
-import { Edit2, BookOpen, X, Check, Trash2, User, MapPin, Clock, Plus } from "lucide-react";
+import { Edit2, X, Check, Trash2, User, MapPin, Clock, Plus, AlertTriangle, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
+import { describeTimetableConflict, findTimetableConflicts, minutesToTime, timeToMinutes, timesOverlap, validateTimetableTime, TimetableConflict } from "@/lib/timetableConflicts";
+import type { TimetableBlockInput } from "@/lib/timetableEditor";
 
-const dayLabels: { [key in Day]: string } = {
-  [Day.MONDAY]: "Lundi",
-  [Day.TUESDAY]: "Mardi",
-  [Day.WEDNESDAY]: "Mercredi",
-  [Day.THURSDAY]: "Jeudi",
-  [Day.FRIDAY]: "Vendredi",
-  [Day.SATURDAY]: "Samedi",
-};
-
-// Add minutes to "HH:MM", returns "HH:MM"
-function addMinutes(time: string, minutes: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const total = h * 60 + (m || 0) + minutes;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
+type EditResult = { success: boolean; error?: string; code?: string; conflicts?: TimetableConflict[]; slots?: any[] };
 interface SlotProps {
   slot: any;
   classId: number;
@@ -34,8 +21,9 @@ interface SlotProps {
   teachers: any[];
   rooms: any[];
   allActiveSlots?: any[];
-  onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string }>;
-  onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
+  onUpdateAction: (data: any) => Promise<EditResult>;
+  onSaveSessionAction?: (data: TimetableBlockInput) => Promise<EditResult>;
+  onDeleteAction?: (id: number) => Promise<EditResult>;
   onRefresh: () => void;
   isEditMode: boolean;
   type: "timetable" | "exam";
@@ -44,607 +32,192 @@ interface SlotProps {
   targetDate?: Date;
   compactMode?: boolean;
   classNameStr?: string;
+  dayStartTime?: string;
+  dayEndTime?: string;
+  availableMinutes?: number;
+  isDraft?: boolean;
 }
 
-const ScheduleSlot = ({ 
-  slot, 
-  classId, 
-  day, 
-  period, 
-  startTime, 
-  endTime, 
-  subjects, 
-  teachers, 
-  rooms,
-  allActiveSlots = [],
-  onUpdateAction,
-  onDeleteAction,
-  onRefresh,
-  isEditMode,
-  type,
-  usedSubjectIds,
-  examPeriod,
-  targetDate,
-  compactMode = false,
-  classNameStr = ""
-}: SlotProps) => {
-  const { t, locale } = useLanguage();
-  const isRtl = locale === "ar";
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+const colors = ["bg-blue-50 border-blue-200", "bg-emerald-50 border-emerald-200", "bg-rose-50 border-rose-200", "bg-amber-50 border-amber-200", "bg-violet-50 border-violet-200", "bg-cyan-50 border-cyan-200"];
+const selectStyle = "h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500";
 
-  const formatSubjectName = (rawName?: string) => {
-    if (!rawName) return "";
-    if (!rawName.includes("|")) return rawName;
-    const parts = rawName.split("|").map((p: string) => p.trim());
-    if (locale === "ar") {
-      const arPart = parts.find((p: string) => /[\u0600-\u06FF]/.test(p));
-      return arPart || parts[0];
-    }
-    if (locale === "fr") {
-      return parts[1] || parts[0];
-    }
-    return parts[2] || parts[1] || parts[0];
-  };
-  
-  // Form State
-  const slotsArray = useMemo(
-    () => (Array.isArray(slot) ? slot : (slot ? [slot] : [])),
-    [slot]
-  );
+export default function ScheduleSlot({ slot, classId, day, period, startTime, endTime, subjects, teachers, rooms, allActiveSlots = [], onUpdateAction, onSaveSessionAction, onDeleteAction, onRefresh, isEditMode, type, usedSubjectIds, examPeriod, targetDate, compactMode = false, classNameStr = "", dayStartTime = "08:00", dayEndTime = "18:00", availableMinutes = 120, isDraft = false }: SlotProps) {
+  const { t, locale } = useLanguage();
+  const labels = t.timetable;
+  const isRtl = locale === "ar";
+  const fieldPrefix = useId();
+  const [isEditing, setIsEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const slotsArray = useMemo(() => Array.isArray(slot) ? slot : slot ? [slot] : [], [slot]);
   const firstSlot = slotsArray[0];
   const [sessions, setSessions] = useState<any[]>([]);
-  const [duration, setDuration] = useState<number>(firstSlot?.duration || 120);
+  const [duration, setDuration] = useState(firstSlot?.duration || (availableMinutes < 120 ? 60 : 120));
+  const [slotStartTime, setSlotStartTime] = useState(startTime || "08:00");
+  const [serverFailure, setServerFailure] = useState<{ message: string; conflicts?: TimetableConflict[] } | null>(null);
 
-  const addSession = () => setSessions([...sessions, { id: -1, subjectId: "", teacherId: "", roomId: "" }]);
-  const removeSession = (index: number) => setSessions(sessions.filter((_, i) => i !== index));
-  const updateSession = (index: number, field: string, value: any) => {
-    const newSessions = [...sessions];
-    newSessions[index] = { ...newSessions[index], [field]: value };
-    setSessions(newSessions);
+  const formatSubjectName = (name?: string) => {
+    if (!name) return "";
+    const parts = name.split("|").map(p => p.trim());
+    return locale === "ar" ? parts.find(p => /[\u0600-\u06FF]/.test(p)) || parts[0] : locale === "fr" ? parts[1] || parts[0] : parts[2] || parts[1] || parts[0];
   };
-
-  const pastelColors = [
-    "bg-[#F0F4FF] border-[#D6E4FF]", // Blue
-    "bg-[#F0FDF4] border-[#DCFCE7]", // Green
-    "bg-[#FEF2F2] border-[#FEE2E2]", // Red
-    "bg-[#FFFBEB] border-[#FEF3C7]", // Yellow
-    "bg-[#FAF5FF] border-[#F3E8FF]", // Purple
-    "bg-[#F0FDFB] border-[#CCFBF1]"  // Teal
-  ];
-
-  const getSlotColor = (subjectId: number) => {
-    return pastelColors[subjectId % pastelColors.length];
+  const dayLabel = labels[day.toLowerCase() as "monday"] || String(day);
+  const finishTime = minutesToTime(timeToMinutes(slotStartTime) + duration);
+  const errorMessage = (res: EditResult) => labels.validation[(res.code || res.error) as keyof typeof labels.validation] || res.error || labels.validation.saveFailed;
+  const resetForm = () => {
+    setSessions(slotsArray.length ? slotsArray.map(s => ({ id: s.id, groupId: s.groupId, subjectId: type === "timetable" ? s.subjectId == null ? "FREE" : String(s.subjectId) : String(s.lesson?.subjectId || ""), teacherId: type === "timetable" ? s.teacherId || "" : s.lesson?.teacherId || "", roomId: s.roomId ? String(s.roomId) : "" })) : [{ id: -1, subjectId: "", teacherId: "", roomId: "" }]);
+    setDuration(firstSlot?.duration || (availableMinutes < 120 ? 60 : 120));
+    setSlotStartTime(firstSlot?.startTime || startTime || "08:00");
+    setServerFailure(null);
   };
-
-  const [slotStartTime, setSlotStartTime] = useState<string>(startTime || "08:00");
-
   useEffect(() => {
-    if (startTime) {
-      setSlotStartTime(startTime);
-    }
-  }, [startTime]);
+    setSessions(slotsArray.length ? slotsArray.map(s => ({ id: s.id, groupId: s.groupId, subjectId: type === "timetable" ? s.subjectId == null ? "FREE" : String(s.subjectId) : String(s.lesson?.subjectId || ""), teacherId: type === "timetable" ? s.teacherId || "" : s.lesson?.teacherId || "", roomId: s.roomId ? String(s.roomId) : "" })) : [{ id: -1, subjectId: "", teacherId: "", roomId: "" }]);
+    setDuration(slotsArray[0]?.duration || (availableMinutes < 120 ? 60 : 120));
+    setSlotStartTime(slotsArray[0]?.startTime || startTime || "08:00");
+  }, [slotsArray, startTime, type, availableMinutes]);
 
-  // Sync state when slot prop changes
-  useEffect(() => {
-    if (slotsArray.length > 0) {
-      setSessions(slotsArray.map(s => {
-        const sid = type === "timetable" 
-          ? (s.subjectId === null ? "FREE" : (s.subjectId?.toString() || "")) 
-          : (s.lesson?.subjectId?.toString() || "");
-        const tid = type === "timetable" ? (s.teacherId || "") : (s.lesson?.teacherId || "");
-        return {
-          id: s.id,
-          subjectId: sid,
-          teacherId: tid,
-          roomId: s.roomId?.toString() || ""
-        };
-      }));
-      setDuration(slotsArray[0].duration || 120);
-      if (slotsArray[0].startTime) {
-        setSlotStartTime(slotsArray[0].startTime);
-      }
-    } else {
-      setSessions([{ id: -1, subjectId: "", teacherId: "", roomId: "" }]);
-      setDuration(120);
-      if (startTime) {
-        setSlotStartTime(startTime);
-      }
-    }
-  }, [slotsArray, type, startTime]);
-
+  const setOpen = (open: boolean) => { if (loading) return; if (open) resetForm(); setIsEditing(open); };
+  const updateSession = (index: number, field: string, value: string) => {
+    setServerFailure(null);
+    setSessions(prev => prev.map((s, i) => i === index ? { ...s, [field]: value, ...(field === "subjectId" && type === "timetable" ? { teacherId: "", roomId: value === "FREE" ? "" : s.roomId } : {}) } : s));
+  };
+  const originalIds = slotsArray.map(s => s.id);
+  const others = allActiveSlots.filter(s => !originalIds.includes(s.id));
+  const overlapping = others.filter(s => s.day === day && timesOverlap(slotStartTime, finishTime, s.startTime, s.endTime));
+  const proposed = sessions.map(s => ({ classId, day, slotNumber: firstSlot?.slotNumber || period, startTime: slotStartTime, endTime: finishTime, teacherId: s.subjectId === "FREE" ? null : s.teacherId || null, roomId: s.subjectId === "FREE" ? null : Number(s.roomId) || null, class: { name: classNameStr }, teacher: teachers.find(teacher => teacher.id === s.teacherId), room: rooms.find(room => room.id === Number(s.roomId)) }));
+  const conflicts = type === "timetable" ? findTimetableConflicts(proposed, others) : [];
+  const cardConflicts = type === "timetable" ? findTimetableConflicts(slotsArray, others) : [];
+  const validationCode = type === "timetable" ? validateTimetableTime(slotStartTime, duration, dayStartTime, dayEndTime) : null;
+  const invalidSubject = sessions.some(s => !s.subjectId);
+  const canSave = !loading && !invalidSubject && !validationCode && !conflicts.length;
+  const classSubjectIds = new Set(teachers.filter(teacher => teacher.classes?.some((c: any) => c.id === classId)).flatMap(teacher => teacher.subjects?.map((s: any) => s.id) || []));
+  const timeOptions = Array.from({ length: 96 }, (_, i) => minutesToTime(i * 15)).filter(time => type !== "timetable" || (timeToMinutes(time) >= timeToMinutes(dayStartTime) && timeToMinutes(time) + duration <= timeToMinutes(dayEndTime)));
+  if (!timeOptions.includes(slotStartTime)) timeOptions.push(slotStartTime);
+  timeOptions.sort();
 
   const handleUpdate = async () => {
+    if (!canSave) return;
     setLoading(true);
+    setServerFailure(null);
     try {
-      let allSuccess = true;
-      
-      // Find deleted sessions
-      if (slotsArray && slotsArray.length > 0) {
-        const currentSessionIds = sessions.map(s => s.id).filter(id => id && id !== -1);
-        const originalSessionIds = slotsArray.map((s: any) => s.id);
-        
-        for (const originalId of originalSessionIds) {
-          if (!currentSessionIds.includes(originalId)) {
-            if (onDeleteAction) {
-              const delRes = await onDeleteAction(originalId);
-              if (!delRes.success) allSuccess = false;
-            }
+      if (onSaveSessionAction && type === "timetable") {
+        const res = await onSaveSessionAction({ id: firstSlot?.id, classId, day, slotNumber: period, startTime: slotStartTime, duration, isDraft, sessions: sessions.map(s => ({ id: s.id > 0 ? s.id : undefined, subjectId: s.subjectId === "FREE" ? null : Number(s.subjectId), teacherId: s.teacherId || null, roomId: Number(s.roomId) || null })) });
+        if (!res.success) { setServerFailure({ message: errorMessage(res), conflicts: res.conflicts }); return; }
+      } else {
+        // Keep the existing exam action contract; timetable blocks use one atomic save.
+        for (const original of slotsArray) {
+          if (!sessions.some(s => s.id === original.id) && onDeleteAction) {
+            const res = await onDeleteAction(original.id);
+            if (!res.success) throw new Error(res.error || labels.validation.saveFailed);
           }
         }
-      }
-
-      let currentMaxGroupId = slotsArray && slotsArray.length > 0 ? Math.max(...slotsArray.map((s: any) => s.groupId || 1)) : 0;
-
-      for (const sess of sessions) {
-        const isFree = sess.subjectId === "FREE";
-        const res = await onUpdateAction({
-          id: sess.id ?? -1,
-          groupId: sess.id === -1 ? (++currentMaxGroupId) : (sess.groupId || undefined),
-          subjectId: isFree ? null : (parseInt(sess.subjectId) || null),
-          teacherId: isFree ? null : (sess.teacherId || null),
-          classId: classId,
-          day: day,
-          slotNumber: period,
-          startTime: slotStartTime,
-          endTime: addMinutes(slotStartTime, duration),
-          duration,
-          roomId: isFree ? null : (parseInt(sess.roomId) || null),
-          examPeriod: examPeriod,
-          targetDate: targetDate?.toISOString(),
-        });
-        if (!res.success) {
-          console.error("Save failed:", res.error);
-          toast.error(t.toasts.timeSlotSaveFailed + (res.error ? `: ${res.error}` : ""));
-          allSuccess = false;
+        for (const s of sessions) {
+          const free = s.subjectId === "FREE";
+          const res = await onUpdateAction({ id: s.id || -1, groupId: s.groupId, subjectId: free ? null : Number(s.subjectId), teacherId: free ? null : s.teacherId || null, roomId: free ? null : Number(s.roomId) || null, classId, day, slotNumber: period, startTime: slotStartTime, endTime: finishTime, duration, examPeriod, targetDate: targetDate?.toISOString() });
+          if (!res.success) throw new Error(res.error || labels.validation.saveFailed);
         }
       }
-      if (allSuccess) {
-        setIsEditing(false);
-        onRefresh();
-      }
-    } catch (err) {
-        console.error("Update error:", err);
-        toast.error(t.toasts.timeSlotSaveFailed);
-    } finally {
-        setLoading(false);
-    }
+      setIsEditing(false);
+      onRefresh();
+    } catch (error) { setServerFailure({ message: error instanceof Error ? error.message : labels.validation.saveFailed }); }
+    finally { setLoading(false); }
   };
 
   const handleDelete = async () => {
-    if (!onDeleteAction) return;
-    if (window.confirm(t.confirmations.deleteTimeSlotMessage)) {
-      setLoading(true);
-      try {
-        let allSuccess = true;
-        for (const s of slotsArray) {
-          if (!s.id) continue;
-          const res = await onDeleteAction(s.id);
-          if (!res.success) {
-            console.error("Delete failed:", res.error);
-            toast.error(res.error || t.toasts.timeSlotDeleteFailed);
-            allSuccess = false;
-          }
-        }
-        if (allSuccess) {
-          setIsEditing(false);
-          onRefresh();
-          toast.success(t.toasts.timeSlotDeleted);
-        }
-      } catch (err) {
-        console.error("Delete error:", err);
-        toast.error(t.toasts.timeSlotDeleteFailed);
-      } finally {
-        setLoading(false);
+    if (!onDeleteAction || !firstSlot?.id || loading) return;
+    setLoading(true);
+    try {
+      // The timetable action removes a complete block in a single transaction.
+      for (const s of type === "timetable" && onSaveSessionAction ? [firstSlot] : slotsArray) {
+        const res = await onDeleteAction(s.id);
+        if (!res.success) throw new Error(errorMessage(res));
       }
-    }
+      setConfirmDelete(false); setIsEditing(false); onRefresh(); toast.success(t.toasts.timeSlotDeleted);
+    } catch (error) { toast.error(error instanceof Error ? error.message : t.toasts.timeSlotDeleteFailed); }
+    finally { setLoading(false); }
   };
 
-
-
-  // Group Rooms based on active slots
-  const occupiedRoomIds = allActiveSlots
-    .filter((s: any) => s.day === day && s.slotNumber === period && s.classId !== classId && s.roomId)
-    .map((s: any) => s.roomId);
-
-  const availableRooms = rooms.filter((r) => !occupiedRoomIds.includes(r.id));
-  const occupiedRooms = rooms.filter((r) => occupiedRoomIds.includes(r.id));
-
-  const handleDragStart = (e: React.DragEvent) => {
-    if (firstSlot?.id) {
-       e.dataTransfer.setData("slotId", firstSlot.id.toString());
-       e.dataTransfer.effectAllowed = "move";
-    }
-  };
-
-  return (
-    <>
-      {/* Background Cell Rendering */}
-      {!firstSlot ? (
-        <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditing(true);
-            }}
-            className={`w-full h-full border-none bg-transparent flex flex-col items-center justify-center text-slate-400 hover:text-blue-600 transition-all group/btn print:hidden cursor-pointer p-1 ${
-              !isEditMode ? 'opacity-0 group-hover/empty:opacity-100 hover:opacity-100' : 'opacity-70 hover:opacity-100'
-            }`}
-            title={`${type === 'exam' ? t.timetable.addExam : (t.timetable.addSession || "Ajouter une séance")} (${slotStartTime})`}
-        >
-          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center transition-all group-hover/btn:scale-110 group-hover/btn:border-blue-500 group-hover/btn:bg-blue-50 group-hover/btn:text-blue-600">
-             <Plus size={16} strokeWidth={2.5} className="text-slate-400 group-hover/btn:text-blue-600 transition-colors" />
-          </div>
-          {!compactMode && (
-            <span className="text-[12px] font-medium mt-1.5 capitalize text-slate-500 group-hover/btn:text-blue-600">
-              {type === 'exam' ? t.timetable.addExam : (t.timetable.addSession || "Ajouter une séance")}
-            </span>
-          )}
-        </button>
-      ) : (
-        <div 
-          draggable={isEditMode && !!firstSlot}
-          onDragStart={handleDragStart}
-          className={`w-full h-full rounded-[8px] transition-all relative group ${isEditMode && !!firstSlot ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''} overflow-hidden`}
-        >
-          {/* Slot actions */}
-          {isEditMode && (
-            <div className="absolute top-1.5 end-1.5 z-20 flex items-center gap-1 print:hidden opacity-90 group-hover:opacity-100 transition-opacity">
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="w-7 h-7 bg-white/95 hover:bg-blue-50 rounded-lg shadow-sm border border-slate-200 transition-all text-slate-700 hover:text-blue-700 flex items-center justify-center"
-                title={t.crud.edit}
-                aria-label={t.crud.edit}
-              >
-                <Edit2 size={13} />
-              </button>
-              {firstSlot?.id && onDeleteAction && (
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handleDelete}
-                  className="w-7 h-7 bg-white/95 hover:bg-rose-50 rounded-lg shadow-sm border border-slate-200 transition-all text-slate-500 hover:text-rose-600 flex items-center justify-center disabled:opacity-50"
-                  title={t.crud.delete}
-                  aria-label={t.crud.delete}
-                >
-                  <Trash2 size={13} />
-                </button>
-              )}
-            </div>
-          )}
-
-          {slotsArray.length === 1 ? (
-            /* Single group: original card */
-            (() => {
-              const s = slotsArray[0];
-              const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-              const subjectName = formatSubjectName(rawSubjectName);
-              const teacherName = type === "timetable"
-                ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : t.timetable.noTeacherAssigned)
-                : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : t.timetable.noTeacherAssigned);
-              const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
-              return (
-                <div className={`w-full h-full border border-slate-200/70 ${getSlotColor(colorSubject || 0)} p-2.5 rounded-[10px] flex flex-col justify-between overflow-hidden relative shadow-[0_1px_2px_rgba(15,23,42,0.04)]`}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
-                  <h3 title={rawSubjectName} className={`text-[12px] font-bold leading-snug line-clamp-2 relative z-10 pe-16 ${!colorSubject ? 'text-slate-600' : 'text-[#181d26]'}`}>
-                    {colorSubject ? (subjectName || t.timetable.unscheduled) : `☕ ${t.timetable.freeTime}`}
-                  </h3>
-                  {colorSubject && (
-                    <div className="flex items-center gap-2 text-[10px] font-medium text-slate-600 relative z-10 mt-2 min-w-0">
-                      <span className="truncate">{teacherName}</span>
-                      <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
-                      <span className="truncate">{s.room?.name || t.timetable.tba}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()
-          ) : slotsArray.length === 2 ? (
-            /* Two groups: side-by-side split */
-            <div className="w-full h-full flex border border-slate-200/60 rounded-[8px] overflow-hidden relative">
-              {slotsArray.map((s, idx) => {
-                const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-                const subjectName = formatSubjectName(rawSubjectName);
-                const teacherName = type === "timetable"
-                  ? (s?.teacher ? `${s.teacher.name} ${s.teacher.surname}` : "")
-                  : (s?.lesson?.teacher ? `${s.lesson.teacher.name} ${s.lesson.teacher.surname}` : "");
-                const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
-                return (
-                  <div key={s.id || idx} className={`flex-1 ${getSlotColor(colorSubject || 0)} flex flex-col justify-between p-1.5 overflow-hidden relative ${idx === 0 ? 'border-e-2 border-slate-200' : ''}`}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
-                    <span className="text-[8px] font-bold uppercase tracking-wide opacity-40 relative z-10">G{idx + 1}</span>
-                    <h3 title={rawSubjectName} className={`text-[10px] font-bold leading-snug line-clamp-2 relative z-10 ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
-                      {colorSubject ? (subjectName || "—") : `☕ ${t.timetable.freeTime}`}
-                    </h3>
-                    {colorSubject && (
-                      <p className="text-[8px] font-medium text-[#41454d] opacity-70 truncate relative z-10 mt-0.5">
-                        {teacherName}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* 3+ groups: compact numbered list */
-            <div className={`w-full h-full border border-slate-200/50 ${getSlotColor(slotsArray[0]?.subjectId || 0)} rounded-[8px] flex flex-col gap-0.5 p-1.5 overflow-hidden relative`}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
-              {slotsArray.map((s, idx) => {
-                const rawSubjectName = type === "timetable" ? s?.subject?.name : s?.lesson?.subject?.name;
-                const subjectName = formatSubjectName(rawSubjectName);
-                const colorSubject = type === "timetable" ? s.subjectId : s.lesson?.subjectId;
-                return (
-                  <div key={s.id || idx} className="flex items-center gap-1 relative z-10">
-                    <span className="text-[7px] font-bold bg-white/60 rounded px-0.5 text-slate-500 flex-shrink-0">G{idx + 1}</span>
-                    <span className={`text-[9px] font-semibold truncate ${!colorSubject ? 'text-slate-500' : 'text-[#181d26]'}`}>
-                      {colorSubject ? (subjectName || "—") : t.timetable.freeTime}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+  return <>
+    {!firstSlot ? (
+      <button type="button" onClick={() => setOpen(true)} className="h-full w-full flex flex-col items-center justify-center gap-1.5 rounded-xl text-slate-400 hover:text-blue-700 hover:bg-blue-50 transition-colors print:hidden" aria-label={`${labels.addSession} (${startTime})`}>
+        <Plus size={19} /><span className="text-[11px] font-medium">{compactMode ? startTime : labels.addSession}</span>
+      </button>
+    ) : (
+      <div draggable={isEditMode && !loading} onDragStart={e => { if ((e.target as HTMLElement).closest("button")) { e.preventDefault(); return; } e.dataTransfer.setData("slotId", String(firstSlot.id)); e.dataTransfer.effectAllowed = "move"; }} className={`h-full w-full relative rounded-xl overflow-hidden border ${cardConflicts.length ? "border-rose-300 ring-1 ring-rose-200" : "border-slate-200"} ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""}`}>
+        <div className="absolute top-2 start-3 end-3 flex items-center justify-between gap-1 z-10">
+          <span dir="ltr" className="text-[10px] whitespace-nowrap font-semibold tabular-nums text-slate-600">{startTime}–{endTime}</span>
+          {isEditMode && <div className="flex gap-1 print:hidden">
+            <button type="button" draggable={false} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setOpen(true); }} aria-label={t.crud.edit} title={t.crud.edit} className="p-1 rounded-md bg-white border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50"><Edit2 size={12} /></button>
+            {onDeleteAction && <button type="button" draggable={false} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setConfirmDelete(true); }} aria-label={t.crud.delete} title={t.crud.delete} disabled={loading} className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50"><Trash2 size={12} /></button>}
+          </div>}
+          {!isEditMode && cardConflicts.length > 0 && <span title={cardConflicts.map(c => describeTimetableConflict(c, labels)).join("\n")} className="text-rose-600"><AlertTriangle size={15} /></span>}
         </div>
-      )}
+        <div className={`h-full flex flex-col pt-10 px-3 pb-2.5 ${colors[(firstSlot.subjectId || firstSlot.lesson?.subjectId || 0) % colors.length]}`}>
+          {slotsArray.map((s, index) => {
+            const subject = type === "timetable" ? s.subject : s.lesson?.subject;
+            const teacher = type === "timetable" ? s.teacher : s.lesson?.teacher;
+            return <div key={s.id || index} className={`min-w-0 flex-1 ${index > 0 ? "border-t border-slate-200/80 pt-1 mt-1" : ""}`}>
+              <h3 title={formatSubjectName(subject?.name)} className="text-[13px] font-semibold leading-tight text-slate-900 line-clamp-2">
+                {slotsArray.length > 1 && <span className="text-[10px] text-slate-500 me-1">G{index + 1}</span>}{subject ? formatSubjectName(subject.name) : labels.freeTime}
+              </h3>
+              {subject && <div className="mt-2 space-y-0.5 text-[11px] leading-tight text-slate-600">
+                <p className="flex gap-1.5 items-center" title={teacher ? `${teacher.name} ${teacher.surname}` : labels.noTeacherAssigned}><User size={11} className="shrink-0" /><span className="truncate">{teacher ? `${teacher.name} ${teacher.surname}` : labels.noTeacherAssigned}</span></p>
+                {s.room && <p className="flex gap-1.5 items-center" title={s.room.name}><MapPin size={11} className="shrink-0" /><span className="truncate">{s.room.name}</span></p>}
+              </div>}
+            </div>;
+          })}
+        </div>
+      </div>
+    )}
 
-      {/* Modern Fixed Popover Modal overlay */}
-      {isEditing && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[99999] bg-slate-950/45 backdrop-blur-[3px] flex items-center justify-center p-4" dir={isRtl ? "rtl" : "ltr"} role="dialog" aria-modal="true">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#dddddd]">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 border border-blue-100">
-                  {firstSlot?.id ? <Edit2 size={18} /> : <Plus size={18} strokeWidth={2.5} />}
-                </div>
-                <div>
-                  <h3 className="text-[20px] font-medium text-[#181d26]">
-                    {firstSlot?.id ? t.crud.edit : (t.timetable.addSession || t.crud.add)}
-                  </h3>
-                  <p className="text-sm text-[#41454d] mt-1">
-                    {(t.timetable as any)[day.toLowerCase()] || dayLabels[day] || String(day)} · {slotStartTime} - {addMinutes(slotStartTime, duration)}
-                  </p>
-                </div>
+    <Dialog.Root open={isEditing} onOpenChange={setOpen}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[99998] bg-slate-950/45 backdrop-blur-[2px]" />
+        <Dialog.Content dir={isRtl ? "rtl" : "ltr"} onEscapeKeyDown={e => { if (loading) e.preventDefault(); }} onPointerDownOutside={e => e.preventDefault()} className="fixed z-[99999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%_-_2rem)] max-w-2xl max-h-[90dvh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden focus:outline-none">
+          <header className="px-6 pt-5 pb-4 flex items-start justify-between border-b border-slate-200 shrink-0">
+            <div><Dialog.Title className="text-xl font-semibold text-slate-900">{firstSlot ? labels.editSession : type === "exam" ? labels.addExam : labels.addSession}</Dialog.Title><Dialog.Description className="text-sm text-slate-500 mt-1">{classNameStr && `${labels.class} ${classNameStr} · `}{dayLabel} <span dir="ltr">· {slotStartTime}–{finishTime}</span></Dialog.Description></div>
+            <Dialog.Close disabled={loading} aria-label={t.crud.cancel} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"><X size={18} /></Dialog.Close>
+          </header>
+          <div className="overflow-y-auto px-6 py-5 space-y-5">
+            <section className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                <div><label htmlFor={`${fieldPrefix}-time`} className="block text-sm font-medium text-slate-700 mb-1.5">{labels.startTime}</label><select id={`${fieldPrefix}-time`} aria-label={labels.startTime} dir="ltr" className={`${selectStyle} tabular-nums`} value={slotStartTime} onChange={e => { setSlotStartTime(e.target.value); setServerFailure(null); }}>{timeOptions.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
+                <div><label htmlFor={`${fieldPrefix}-duration`} className="block text-sm font-medium text-slate-700 mb-1.5">{labels.duration}</label><select id={`${fieldPrefix}-duration`} className={selectStyle} value={duration} onChange={e => { setDuration(Number(e.target.value)); setServerFailure(null); }}><option value={60}>{labels.oneHour}</option><option value={90}>{labels.oneHourThirty}</option><option value={120}>{labels.twoHours}</option></select></div>
+                <div className="col-span-2 sm:col-span-1 flex sm:flex-col justify-between sm:justify-center gap-1 px-1 pb-1"><span className="text-xs font-medium text-slate-500">{labels.endTime}</span><strong dir="ltr" className="text-lg tabular-nums text-blue-900">{finishTime}</strong></div>
               </div>
-              <button 
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="p-2 hover:bg-[#f8fafc] rounded-full text-[#9297a0] hover:text-[#181d26] transition-colors"
-                aria-label={t.crud.cancel}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Form */}
-            <div className="flex flex-col gap-4 py-4 max-h-[60vh] overflow-y-auto px-2">
+              <p className="text-xs text-blue-700 mt-2.5 flex items-center gap-1.5"><Clock size={12} />{labels.hours24} · <span dir="ltr">{dayStartTime}–{dayEndTime}</span></p>
+            </section>
+            <div className="space-y-3">
               {sessions.map((sess, index) => {
-                  
-                // Recompute filtered lists for this session
-                const classTeacherSubjectIds = new Set<number>();
-                teachers.forEach(t => {
-                  if (t.classes?.some((c: any) => c.id === classId)) {
-                    t.subjects?.forEach((s: any) => classTeacherSubjectIds.add(s.id));
-                  }
-                });
-
-                const availableSubjects = subjects.filter(s => type !== 'exam' || !usedSubjectIds.includes(s.id) || s.id.toString() === sess.subjectId);
-                const classSubjects = availableSubjects.filter(s => classTeacherSubjectIds.has(s.id));
-                const otherSubjects = availableSubjects.filter(s => !classTeacherSubjectIds.has(s.id));
-
-                const filterBySubject = (tArr: any[]) => {
-                  if (!sess.subjectId || sess.subjectId === "FREE") return tArr;
-                  return tArr.filter(t => t.subjects?.some((s: any) => s.id === parseInt(sess.subjectId)));
-                };
-                
-                const classTeachers = filterBySubject(teachers.filter(t => t.classes?.some((c: any) => c.id === classId)));
-                const otherTeachers = filterBySubject(teachers.filter(t => !t.classes?.some((c: any) => c.id === classId)));
-
-                return (
-                <div key={index} className="flex flex-col gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50/70 relative">
-                  {sessions.length > 1 && (
-                    <button 
-                      onClick={() => removeSession(index)}
-                      className="absolute top-2 end-2 p-1 text-slate-400 hover:text-rose-500 bg-white rounded-md border border-slate-200 shadow-sm"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.timetable.group} {index + 1}</div>
-              
-              {/* Subject Input */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.subject}</label>
-                <div className="relative">
-                  <select 
-                    className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
-                    value={sess.subjectId}
-                    onChange={(e) => updateSession(index, "subjectId", e.target.value)}
-                  >
-                    <option value="">{t.timetable.selectSubject}</option>
-                    <option value="FREE" className="font-semibold text-amber-700 bg-amber-50">{t.timetable.freeBreak}</option>
-                    {classSubjects.length > 0 && (
-                      <optgroup label={classNameStr ? `${t.timetable.classSubjects} (${classNameStr})` : t.timetable.classSubjects}>
-                        {classSubjects.map(s => (
-                          <option key={s.id} value={s.id}>{formatSubjectName(s.name)}</option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {otherSubjects.length > 0 && (
-                      <optgroup label={classSubjects.length > 0 ? t.timetable.otherSubjects : t.timetable.allSubjects}>
-                        {otherSubjects.map(s => (
-                          <option key={s.id} value={s.id}>{formatSubjectName(s.name)}</option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
-                  <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                    <BookOpen size={16} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Teacher Input */}
-              {sess.subjectId !== "FREE" && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.teacher}</label>
-                  <div className="relative">
-                    <select 
-                      className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer disabled:opacity-50"
-                      value={sess.teacherId}
-                      onChange={(e) => updateSession(index, "teacherId", e.target.value)}
-                      disabled={type === 'exam'}
-                    >
-                      <option value="">{t.timetable.selectTeacher}</option>
-                      {classTeachers.length > 0 && (
-                        <optgroup label={classNameStr ? `${t.timetable.classTeachers} (${classNameStr})` : t.timetable.classTeachers}>
-                          {classTeachers.map(t => (
-                            <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {otherTeachers.length > 0 && (
-                        <optgroup label={classTeachers.length > 0 ? t.timetable.otherTeachers : t.timetable.allTeachers}>
-                          {otherTeachers.map(t => (
-                            <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </select>
-                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                      <User size={16} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Room Input */}
-              {sess.subjectId !== "FREE" && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.room}</label>
-                  <div className="relative">
-                    <select 
-                      className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
-                      value={sess.roomId}
-                      onChange={(e) => updateSession(index, "roomId", e.target.value)}
-                    >
-                    <option value="">{t.timetable.selectRoom}</option>
-                    {availableRooms.length > 0 && (
-                      <optgroup label={t.timetable.availableRooms}>
-                        {availableRooms.map(r => (
-                          <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {occupiedRooms.length > 0 && (
-                      <optgroup label={t.timetable.occupiedRooms}>
-                        {occupiedRooms.map(r => (
-                          <option key={r.id} value={r.id} className="text-red-500 bg-red-50 font-medium">⚠️ {r.name} ({t.timetable.occupiedRooms})</option>
-                        ))}
-                      </optgroup>
-                    )}
-                    </select>
-                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                      <MapPin size={16} />
-                    </div>
-                  </div>
-                </div>
-              )}
-                </div>
-              )})}
-
-              <button
-                type="button"
-                onClick={addSession}
-                className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-medium hover:bg-slate-50 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 text-sm mt-2"
-              >
-                <Plus size={16} />
-                {t.timetable.addGroup}
-              </button>
-
-              {/* Timing Controls (Start Time & Duration) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[#181d26] ms-1">
-                    {(t.timetable as any).startTime || "Heure de début"}
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="time"
-                      className="text-sm h-11 ps-10 pe-3 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all"
-                      value={slotStartTime}
-                      onChange={(e) => setSlotStartTime(e.target.value)}
-                    />
-                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                      <Clock size={16} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-[#181d26] ms-1">{t.timetable.duration}</label>
-                  <div className="relative">
-                    <select 
-                      className="text-sm h-11 ps-10 pe-4 border border-[#dddddd] rounded-md bg-white text-[#181d26] w-full focus:outline-none focus:border-[#458fff] transition-all appearance-none cursor-pointer"
-                      value={duration}
-                      onChange={(e) => setDuration(Number(e.target.value))}
-                    >
-                      <option value={60}>{t.timetable.oneHour}</option>
-                      <option value={90}>{t.timetable.oneHourThirty}</option>
-                      <option value={120}>{t.timetable.twoHours}</option>
-                    </select>
-                    <div className="absolute start-3.5 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                      <Clock size={16} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+                const availableSubjects = subjects.filter(s => type !== "exam" || !usedSubjectIds.includes(s.id) || String(s.id) === sess.subjectId);
+                const classSubjects = availableSubjects.filter(s => classSubjectIds.has(s.id));
+                const otherSubjects = availableSubjects.filter(s => !classSubjectIds.has(s.id));
+                const eligibleTeachers = teachers.filter(teacher => !sess.subjectId || sess.subjectId === "FREE" || teacher.id === sess.teacherId || teacher.subjects?.some((s: any) => s.id === Number(sess.subjectId)));
+                const busyTeacher = (id: string) => type === "timetable" && (overlapping.some(s => s.teacherId === id) || sessions.some((s, i) => i !== index && s.subjectId !== "FREE" && s.teacherId === id));
+                const busyRoom = (id: number) => type === "timetable" && (overlapping.some(s => s.roomId === id) || sessions.some((s, i) => i !== index && s.subjectId !== "FREE" && Number(s.roomId) === id));
+                return <section key={index} className="rounded-xl border border-slate-200 p-4 space-y-3">
+                  <div className="flex items-center justify-between"><h4 className="text-sm font-semibold text-slate-700">{sessions.length > 1 ? `${labels.group} ${index + 1}` : labels.sessionDetails}</h4>{sessions.length > 1 && <button type="button" onClick={() => { setSessions(prev => prev.filter((_, i) => i !== index)); setServerFailure(null); }} aria-label={`${t.crud.delete} ${labels.group} ${index + 1}`} className="text-slate-400 hover:text-rose-600 p-1"><Trash2 size={15} /></button>}</div>
+                  <div><label htmlFor={`${fieldPrefix}-subject-${index}`} className="block text-sm text-slate-700 mb-1.5">{labels.subject} <span className="text-rose-500">*</span></label><select id={`${fieldPrefix}-subject-${index}`} className={selectStyle} value={sess.subjectId} onChange={e => updateSession(index, "subjectId", e.target.value)} required><option value="">{labels.selectSubject}</option><option value="FREE">{labels.freeBreak}</option>{classSubjects.length > 0 && <optgroup label={labels.classSubjects}>{classSubjects.map(s => <option key={s.id} value={s.id}>{formatSubjectName(s.name)}</option>)}</optgroup>}<optgroup label={classSubjects.length ? labels.otherSubjects : labels.allSubjects}>{otherSubjects.map(s => <option key={s.id} value={s.id}>{formatSubjectName(s.name)}</option>)}</optgroup></select></div>
+                  {sess.subjectId !== "FREE" && <div className="grid sm:grid-cols-2 gap-3">
+                    <div><label htmlFor={`${fieldPrefix}-teacher-${index}`} className="block text-sm text-slate-700 mb-1.5">{labels.teacher} <span className="text-xs text-slate-400">· {labels.optional}</span></label><select id={`${fieldPrefix}-teacher-${index}`} className={selectStyle} value={sess.teacherId} disabled={type === "exam"} onChange={e => updateSession(index, "teacherId", e.target.value)}><option value="">{labels.selectTeacher}</option>{eligibleTeachers.map(teacher => <option key={teacher.id} value={teacher.id} disabled={busyTeacher(teacher.id)}>{teacher.name} {teacher.surname}{busyTeacher(teacher.id) ? ` — ${labels.busy}` : ""}</option>)}</select></div>
+                    <div><label htmlFor={`${fieldPrefix}-room-${index}`} className="block text-sm text-slate-700 mb-1.5">{labels.room} <span className="text-xs text-slate-400">· {labels.optional}</span></label><select id={`${fieldPrefix}-room-${index}`} className={selectStyle} value={sess.roomId} onChange={e => updateSession(index, "roomId", e.target.value)}><option value="">{labels.selectRoom}</option>{rooms.map(room => <option key={room.id} value={room.id} disabled={busyRoom(room.id)}>{room.name}{busyRoom(room.id) ? ` — ${labels.busy}` : ""}</option>)}</select></div>
+                  </div>}
+                </section>;
+              })}
+              {sessions.length < 12 && <button type="button" onClick={() => { setSessions(prev => [...prev, { id: -1, subjectId: "", teacherId: "", roomId: "" }]); setServerFailure(null); }} className="flex items-center gap-2 text-sm text-blue-700 font-medium py-1.5 hover:text-blue-900"><Plus size={16} />{labels.addGroup}</button>}
+              {sessions.length > 1 && <p className="text-xs text-slate-500">{labels.groupHint}</p>}
             </div>
-
-            {/* Modal Footer Actions */}
-            <div className="flex items-center gap-3 pt-4 border-t border-[#dddddd] shrink-0">
-              {firstSlot?.id && firstSlot.id !== -1 && onDeleteAction && (
-                <button 
-                  type="button"
-                  disabled={loading}
-                  onClick={handleDelete}
-                  className="px-4 h-11 bg-white text-rose-600 hover:bg-rose-50 active:scale-95 transition-all border border-rose-200 rounded-lg flex items-center justify-center gap-2 shrink-0 text-sm font-semibold disabled:opacity-50"
-                  title={t.crud.delete}
-                >
-                  <Trash2 size={16} />
-                  <span className="hidden sm:inline">{t.crud.delete}</span>
-                </button>
-              )}
-              <button 
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="flex-1 h-11 bg-white hover:bg-[#f8fafc] active:scale-95 transition-all text-[#181d26] rounded-lg text-sm font-medium border border-[#dddddd] text-center flex items-center justify-center"
-              >
-                {t.crud.cancel}
-              </button>
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={handleUpdate}
-                className="flex-[2] h-11 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-60"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
-                ) : (
-                  <>
-                    <Check size={16} />
-                    {t.crud.saveChanges}
-                  </>
-                )}
-              </button>
-            </div>
+            {(validationCode || conflicts.length > 0 || serverFailure) ? <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><p className="font-semibold flex items-center gap-2"><AlertTriangle size={16} />{validationCode ? labels.validation[validationCode as keyof typeof labels.validation] : serverFailure?.message || labels.resolveConflicts}</p>{[...conflicts, ...(serverFailure?.conflicts || [])].map((c, i) => <p key={i} className="mt-1.5">{describeTimetableConflict(c, labels)}</p>)}</div> : !invalidSubject && type === "timetable" && <div className="flex items-center gap-2 text-sm text-emerald-700 rounded-lg bg-emerald-50 px-3 py-2.5"><ShieldCheck size={16} />{labels.noConflicts}</div>}
           </div>
-        </div>,
-        document.body
-      )}
-    </>
-  );
-};
-
-export default ScheduleSlot;
+          <footer className="border-t border-slate-200 px-6 py-4 flex flex-wrap gap-2.5 items-center bg-slate-50/60 shrink-0">
+            {firstSlot && onDeleteAction && <button type="button" disabled={loading} onClick={() => setConfirmDelete(true)} className="text-rose-600 hover:bg-rose-50 p-2.5 rounded-lg flex items-center gap-1.5 text-sm font-medium"><Trash2 size={16} /><span className="hidden sm:inline">{t.crud.delete}</span></button>}
+            <div className="flex-1" /><Dialog.Close disabled={loading} className="px-4 h-11 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700">{t.crud.cancel}</Dialog.Close><button type="button" disabled={!canSave} onClick={handleUpdate} className="px-5 h-11 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold flex items-center gap-2 disabled:bg-slate-200 disabled:text-slate-500"><Check size={16} />{loading ? labels.saving : labels.saveSession}</button>
+          </footer>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+    <Dialog.Root open={confirmDelete} onOpenChange={open => { if (!loading) setConfirmDelete(open); }}>
+      <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-[100000] bg-slate-950/50" /><Dialog.Content dir={isRtl ? "rtl" : "ltr"} className="fixed z-[100001] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-white p-6 shadow-2xl focus:outline-none" onPointerDownOutside={e => e.preventDefault()} onEscapeKeyDown={e => { if (loading) e.preventDefault(); }}><Dialog.Title className="text-lg font-semibold text-slate-900">{labels.deleteSession}</Dialog.Title><Dialog.Description className="text-sm text-slate-600 mt-2 leading-relaxed">{type === "timetable" ? labels.deleteHint : t.confirmations.deleteTimeSlotMessage}</Dialog.Description><p className="my-4 text-sm font-semibold text-slate-700">{classNameStr} · {dayLabel} <span dir="ltr">· {startTime}–{endTime}</span></p><div className="flex justify-end gap-3"><Dialog.Close disabled={loading} className="h-11 px-4 rounded-lg border border-slate-300 text-sm">{t.crud.cancel}</Dialog.Close><button type="button" disabled={loading} onClick={handleDelete} className="h-11 px-4 rounded-lg bg-rose-600 text-white text-sm font-semibold disabled:opacity-50">{loading ? labels.saving : t.crud.delete}</button></div></Dialog.Content></Dialog.Portal>
+    </Dialog.Root>
+  </>;
+}

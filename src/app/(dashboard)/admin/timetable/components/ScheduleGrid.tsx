@@ -2,7 +2,9 @@ import React, { useEffect, useState, forwardRef } from "react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import ScheduleSlot from "./ScheduleSlot";
 import { Day } from "@prisma/client";
-import { Plus } from "lucide-react";
+import { AlertTriangle, Clock, ShieldCheck, User } from "lucide-react";
+import { displayScheduleTime, describeTimetableConflict, findTimetableConflicts, timeToMinutes, TimetableConflict } from "@/lib/timetableConflicts";
+import type { TimetableBlockInput } from "@/lib/timetableEditor";
 import { toast } from "react-toastify";
 
 const days = [Day.MONDAY, Day.TUESDAY, Day.WEDNESDAY, Day.THURSDAY, Day.FRIDAY, Day.SATURDAY];
@@ -22,8 +24,11 @@ interface ScheduleGridProps {
   endDate?: Date;
   dayStartTime?: string;
   dayEndTime?: string;
+  editingDayStartTime?: string;
+  editingDayEndTime?: string;
   fetchDataAction?: (id: number, isDraft?: boolean) => Promise<{ success: boolean; data?: any[] }>;
-  onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number) => Promise<{ success: boolean; error?: string }>;
+  onMoveAction: (id: number, day: Day, slotNumber: number, examPeriod?: number, startTime?: string) => Promise<{ success: boolean; error?: string; code?: string; conflicts?: TimetableConflict[] }>;
+  onSaveSessionAction?: (data: TimetableBlockInput) => Promise<{ success: boolean; error?: string; code?: string; conflicts?: TimetableConflict[]; slots?: any[] }>;
   onUpdateAction: (data: any) => Promise<{ success: boolean; error?: string; data?: any }>;
   onDeleteAction?: (id: number) => Promise<{ success: boolean; error?: string }>;
   onRefresh: () => void;
@@ -46,9 +51,12 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   endDate,
   dayStartTime = "08:00",
   dayEndTime = "18:00",
+  editingDayStartTime,
+  editingDayEndTime,
   fetchDataAction,
   onMoveAction,
   onUpdateAction,
+  onSaveSessionAction,
   onDeleteAction,
   onRefresh,
   isDraft = false,
@@ -60,9 +68,16 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const isInitialMount = React.useRef(true);
   const { t, locale } = useLanguage();
   const isRtl = locale === "ar";
-  const hasPrefetchedSlots = Boolean(propSlots?.length);
+  const hasPrefetchedSlots = propSlots !== undefined;
 
-  const displaySlots = localSlots.length > 0 ? localSlots : (propSlots || []);
+  const displaySlots = React.useMemo(() => type === "exam" ? localSlots.map(s => ({ ...s, dateStartTime: s.startTime, startTime: displayScheduleTime(s.startTime), endTime: displayScheduleTime(s.endTime) })) : localSlots, [localSlots, type]);
+  const conflictWorld = [...(allActiveSlots || []).filter(s => s.classId !== classId), ...displaySlots.map(s => ({ ...s, class: s.class || { name: classNameStr } }))];
+  const existingConflicts = type === "timetable" ? displaySlots.flatMap(slot => findTimetableConflicts([slot], conflictWorld, [slot.id])) : [];
+  const conflictDescriptions = Array.from(new Set(existingConflicts.map(c => `${(t.timetable as any)[c.day.toLowerCase()]} · ${describeTimetableConflict(c, t.timetable)}`)));
+  const blocks = new Map<string, number>();
+  displaySlots.forEach(s => blocks.set(`${s.day}:${s.slotNumber}`, Math.max(blocks.get(`${s.day}:${s.slotNumber}`) || 0, s.duration || 120)));
+  const totalMinutes = Array.from(blocks.values()).reduce((sum, minutes) => sum + minutes, 0);
+  const missingTeachers = displaySlots.filter(s => s.subjectId && !s.teacherId).length;
 
   useEffect(() => {
     isInitialMount.current = true;
@@ -76,18 +91,20 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
         return;
       }
 
+      let cancelled = false;
       const loadData = async () => {
-        if (isInitialMount.current) setIsLoading(true);
-        const res = await fetchDataAction(classId, isDraft);
-        if (res.success && res.data) {
-          setLocalSlots(res.data);
-        }
-        setIsLoading(false);
-        isInitialMount.current = false;
+        setIsLoading(true);
+        try {
+          const res = await fetchDataAction(classId, isDraft);
+          if (!cancelled && res.success && res.data) setLocalSlots(res.data);
+          else if (!cancelled && !res.success) toast.error(t.timetable.validation.saveFailed);
+        } catch { if (!cancelled) toast.error(t.timetable.validation.saveFailed); }
+        finally { if (!cancelled) { setIsLoading(false); isInitialMount.current = false; } }
       };
-      loadData();
+      void loadData();
+      return () => { cancelled = true; };
     }
-  }, [classId, fetchDataAction, refreshKey, isDraft, hasPrefetchedSlots]);
+  }, [classId, fetchDataAction, refreshKey, isDraft, hasPrefetchedSlots, t.timetable.validation.saveFailed]);
 
   useEffect(() => {
     if (propSlots) {
@@ -152,42 +169,25 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
     setDraggedOver(targetId);
   };
 
-  const handleDrop = async (e: React.DragEvent, targetDay: Day, targetSlotNumber: number) => {
-    if (!isEditMode) return;
+  const handleDrop = async (e: React.DragEvent, targetDay: Day, targetSlotNumber: number, targetStartTime: string) => {
+    if (!isEditMode || isLoading) return;
     e.preventDefault();
+    e.stopPropagation();
     setDraggedOver(null);
-    const slotIdStr = e.dataTransfer.getData("slotId");
-    if (!slotIdStr) return;
-
-    const slotId = parseInt(slotIdStr, 10);
-    const currentSlots = [...displaySlots];
-
-    // Optimistic UI for visual snap
-    const nextSlots = currentSlots.map((slot) => {
-      const isMovedSlot = slot.id === slotId || slot.lessonId === slotId;
-      if (isMovedSlot) {
-        return {
-          ...slot,
-          day: targetDay,
-          slotNumber: targetSlotNumber,
-        };
-      }
-      return slot;
-    });
-    setLocalSlots(nextSlots);
-
+    const slotId = Number(e.dataTransfer.getData("slotId"));
+    if (!slotId) return;
+    const source = displaySlots.find(s => s.id === slotId);
+    if (!source || (source.day === targetDay && source.slotNumber === targetSlotNumber)) return;
+    setIsLoading(true);
     try {
-      const res = await onMoveAction(slotId, targetDay, targetSlotNumber, examPeriod);
+      const res = await onMoveAction(slotId, targetDay, targetSlotNumber, examPeriod, targetStartTime);
       if (!res.success) {
-        setLocalSlots(currentSlots);
-        toast.error(res.error || t.toasts.timeSlotMoveFailed);
-      } else {
-        onRefresh(); // Trigger refresh to get recalculated cascading times
-      }
-    } catch (err) {
-      setLocalSlots(currentSlots);
-      toast.error(t.toasts.timeSlotMoveFailed);
-    }
+        const message = res.conflicts?.length ? res.conflicts.map(c => describeTimetableConflict(c, t.timetable)).join(" ")
+          : t.timetable.validation[(res.code || res.error) as keyof typeof t.timetable.validation] || res.error || t.toasts.timeSlotMoveFailed;
+        toast.error(message);
+      } else onRefresh();
+    } catch { toast.error(t.toasts.timeSlotMoveFailed); }
+    finally { setIsLoading(false); }
   };
 
   const dayLabels: { [key in Day]: string } = {
@@ -241,18 +241,25 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
       <div className="flex flex-wrap items-center justify-between gap-3 px-1 print:hidden">
         <div>
           <p className="text-sm font-semibold text-slate-800">{classNameStr}</p>
-          <p className="text-xs text-slate-500 mt-0.5">{displayDaysList.length} {t.timetable.daysScheduled}</p>
+          <p className="text-sm text-slate-500 mt-0.5">{blocks.size} {t.timetable.sessions} · {totalMinutes / 60} {t.timetable.weeklyHours}</p>
         </div>
         <div className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-sm">
           {dayStartTime} — {dayEndTime}
         </div>
       </div>
 
+      {type === "timetable" && <div className="flex flex-wrap items-center gap-3 text-xs print:hidden">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium ${conflictDescriptions.length ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-100"}`}>
+          {conflictDescriptions.length ? <AlertTriangle size={14} /> : <ShieldCheck size={14} />}{conflictDescriptions.length ? `${conflictDescriptions.length} ${t.timetable.conflicts}` : t.timetable.scheduleClear}
+        </span>
+        {missingTeachers > 0 && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-800 border border-amber-100"><User size={13} />{missingTeachers} {t.timetable.missingTeacher}</span>}
+      </div>}
+      {conflictDescriptions.length > 0 && <details className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 print:hidden"><summary className="cursor-pointer font-semibold">{t.timetable.resolveConflicts}</summary><ul className="mt-2 space-y-1">{conflictDescriptions.map(message => <li key={message}>{message}</li>)}</ul></details>}
       <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
-        <div className="min-w-[800px]">
+        <div style={{ minWidth: Math.max(1100, totalHours * 150 + 112) }}>
           {/* HEADER ROW */}
-          <div className="flex h-14 border-b border-slate-200 bg-slate-50/95 sticky top-0 z-30 backdrop-blur-sm">
-            <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest sticky start-0 z-40 bg-slate-50/95">
+          <div className="flex h-12 border-b border-slate-200 bg-slate-50 sticky top-0 z-30 backdrop-blur-sm">
+            <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest sticky start-0 z-40 bg-slate-50">
               {t.timetable.day || "Jour"}
             </div>
             <div className="flex-1 relative">
@@ -268,7 +275,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                     {/* Tick mark */}
                     <div className={`absolute bottom-0 w-[2px] h-3 bg-slate-300 rounded-t-[1px] ${isRtl ? "translate-x-1/2" : "-translate-x-1/2"}`} />
                     {/* Time Label */}
-                    <span className={`absolute bottom-4 text-[13px] font-semibold text-slate-600 ${isRtl ? "translate-x-1/2" : "-translate-x-1/2"}`}>
+                    <span className={`absolute bottom-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap ${pct === 0 ? (isRtl ? "translate-x-0 -me-1" : "translate-x-0 ms-1") : pct === 100 ? (isRtl ? "translate-x-full me-1" : "-translate-x-full -ms-1") : (isRtl ? "translate-x-1/2" : "-translate-x-1/2")}`}>
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -286,7 +293,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             let rawDaySlots = displaySlots.filter(s => {
               if (type === "timetable") return s.day === d;
               if (!s.startTime) return false;
-              const sDate = new Date(s.startTime);
+              const sDate = new Date(s.dateStartTime || s.startTime);
               return dateObj ? sDate.toLocaleDateString('en-CA') === dateObj.toLocaleDateString('en-CA') : true;
             }).sort((a, b) => {
               const diff = parseTime(a.startTime || "00:00") - parseTime(b.startTime || "00:00");
@@ -301,6 +308,18 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               groupedSlots.get(s.slotNumber)!.push(s);
             });
             const daySlots = Array.from(groupedSlots.values());
+            const laneEnds: number[] = [];
+            const lanes = new Map<number, number>();
+            daySlots.forEach(group => {
+              const start = timeToMinutes(group[0].startTime);
+              const end = Math.max(...group.map(s => timeToMinutes(s.endTime)));
+              let lane = laneEnds.findIndex(lastEnd => lastEnd <= start);
+              if (lane < 0) lane = laneEnds.length;
+              laneEnds[lane] = end;
+              lanes.set(group[0].slotNumber, lane);
+            });
+            const laneHeight = Math.max(132, ...daySlots.map(group => group.length > 1 ? 46 + group.length * 59 : 132));
+            const rowHeight = Math.max(1, laneEnds.length) * laneHeight;
 
             const maxSlotNum = rawDaySlots.length > 0 ? Math.max(...rawDaySlots.map(s => s.slotNumber)) : 0;
             const appendSlotNumber = maxSlotNum + 1;
@@ -317,8 +336,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             const maxH = Math.ceil(endHour);
 
             for (let h = minH; h < maxH; h++) {
-              const hStart = h;
-              const hEnd = h + 1;
+              const hStart = Math.max(h, startHour);
+              const hEnd = Math.min(h + 1, endHour);
               const isOccupied = rawDaySlots.some(s => {
                 if (!s.startTime) return false;
                 const sStart = parseTime(s.startTime);
@@ -329,14 +348,14 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               if (!isOccupied) {
                 emptyHourSlots.push({
                   hour: h,
-                  startTime: formatHour(h),
-                  endTime: formatHour(h + 1),
+                  startTime: formatHour(hStart),
+                  endTime: formatHour(hEnd),
                 });
               }
             }
 
             return (
-              <div key={d} className="flex h-[104px] border-b border-slate-200 last:border-b-0 group">
+              <div key={dateObj?.toISOString() || d} className="flex border-b border-slate-200 last:border-b-0 group" style={{ height: rowHeight }}>
                 {/* DAY LABEL */}
                 <div className="w-28 flex-shrink-0 border-e border-slate-200 flex flex-col items-center justify-center bg-white group-hover:bg-blue-50/40 transition-colors sticky start-0 z-20">
                   <span className="font-bold text-[13px] text-slate-700 capitalize">{dayLabels[d]}</span>
@@ -374,14 +393,16 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   {daySlots.map(slotGroup => { const slot = slotGroup[0]; return (
                     <div 
                       key={slot.id}
-                      className="absolute top-1 bottom-1 p-0.5 transition-all"
+                      className="absolute p-1 transition-all"
                       style={{ 
-                        ...getSlotPosition(slot.startTime, slot.duration || 120),
+                        ...getSlotPosition(slot.startTime, (timeToMinutes(slot.endTime) - timeToMinutes(slot.startTime)) || slot.duration || 120),
+                        top: (lanes.get(slot.slotNumber) || 0) * laneHeight,
+                        height: laneHeight,
                         zIndex: draggedOver === `slot-${slot.id}` ? 10 : 3
                       }}
                       onDragOver={(e) => handleDragOver(e, `slot-${slot.id}`)}
                       onDragLeave={() => setDraggedOver(null)}
-                      onDrop={(e) => handleDrop(e, d, slot.slotNumber)}
+                      onDrop={(e) => handleDrop(e, d, slot.slotNumber, slot.startTime)}
                     >
                       <div className={`w-full h-full rounded-[8px] transition-all ${draggedOver === `slot-${slot.id}` ? 'ring-2 ring-indigo-500 scale-[1.02] opacity-70' : ''}`}>
                         <ScheduleSlot 
@@ -395,9 +416,13 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           subjects={subjects}
                           teachers={teachers}
                           rooms={rooms}
-                          allActiveSlots={allActiveSlots || []}
+                          allActiveSlots={conflictWorld}
                           usedSubjectIds={rawDaySlots.map((s: any) => s.subjectId).filter(Boolean)}
                           onUpdateAction={handleOptimisticUpdate}
+                          onSaveSessionAction={onSaveSessionAction}
+                          dayStartTime={editingDayStartTime || dayStartTime}
+                          dayEndTime={editingDayEndTime || dayEndTime}
+                          isDraft={isDraft}
                           onDeleteAction={onDeleteAction}
                           onRefresh={onRefresh}
                           isEditMode={isEditMode}
@@ -413,14 +438,14 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                   {isEditMode && emptyHourSlots.map((emptySlot) => (
                     <div 
                       key={`empty-${d}-${emptySlot.hour}`}
-                      className="absolute top-1 bottom-1 p-0.5 transition-all group/empty"
+                      className="absolute top-1 bottom-1 p-1 transition-all group/empty"
                       style={{ 
-                        ...getSlotPosition(emptySlot.startTime, 60),
+                        ...getSlotPosition(emptySlot.startTime, timeToMinutes(emptySlot.endTime) - timeToMinutes(emptySlot.startTime)),
                         zIndex: draggedOver === `empty-${d}-${emptySlot.hour}` ? 10 : 2
                       }}
                       onDragOver={(e) => handleDragOver(e, `empty-${d}-${emptySlot.hour}`)}
                       onDragLeave={() => setDraggedOver(null)}
-                      onDrop={(e) => handleDrop(e, d, appendSlotNumber)}
+                      onDrop={(e) => handleDrop(e, d, appendSlotNumber, emptySlot.startTime)}
                     >
                       <div className={`w-full h-full rounded-[8px] transition-all flex items-center justify-center
                         ${isEditMode 
@@ -440,9 +465,13 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           subjects={subjects}
                           teachers={teachers}
                           rooms={rooms}
-                          allActiveSlots={allActiveSlots || []}
+                          allActiveSlots={conflictWorld}
                           usedSubjectIds={rawDaySlots.map((s: any) => s.subjectId).filter(Boolean)}
                           onUpdateAction={handleOptimisticUpdate}
+                          onSaveSessionAction={onSaveSessionAction}
+                          dayStartTime={editingDayStartTime || dayStartTime}
+                          dayEndTime={editingDayEndTime || dayEndTime}
+                          isDraft={isDraft}
                           onDeleteAction={onDeleteAction}
                           onRefresh={onRefresh}
                           isEditMode={isEditMode}
@@ -450,6 +479,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                           examPeriod={examPeriod}
                           targetDate={dateObj}
                           compactMode={true}
+                          availableMinutes={Math.min(timeToMinutes(dayEndTime), ...rawDaySlots.filter(s => timeToMinutes(s.startTime) >= timeToMinutes(emptySlot.endTime)).map(s => timeToMinutes(s.startTime))) - timeToMinutes(emptySlot.startTime)}
                         />
                       </div>
                     </div>
