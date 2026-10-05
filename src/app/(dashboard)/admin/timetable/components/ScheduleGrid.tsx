@@ -68,6 +68,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   const isInitialMount = React.useRef(true);
   const { t, locale } = useLanguage();
   const isRtl = locale === "ar";
+  const compactWeek = type === "timetable";
   const hasPrefetchedSlots = propSlots !== undefined;
 
   const displaySlots = React.useMemo(() => type === "exam" ? localSlots.map(s => ({ ...s, dateStartTime: s.startTime, startTime: displayScheduleTime(s.startTime), endTime: displayScheduleTime(s.endTime) })) : localSlots, [localSlots, type]);
@@ -228,7 +229,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
   }
 
   return (
-    <div className="w-full flex flex-col relative gap-3" ref={ref}>
+    <div className="w-full flex flex-col relative gap-2" ref={ref}>
       {isLoading && (
         <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-[12px]">
           <div className="flex flex-col items-center gap-2">
@@ -238,28 +239,25 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-1 print:hidden">
-        <div>
-          <p className="text-sm font-semibold text-slate-800">{classNameStr}</p>
-          <p className="text-sm text-slate-500 mt-0.5">{blocks.size} {t.timetable.sessions} · {totalMinutes / 60} {t.timetable.weeklyHours}</p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 print:hidden">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+          <span className="font-semibold text-slate-800">{classNameStr}</span>
+          <span>{blocks.size} {t.timetable.sessions} · {totalMinutes / 60} {t.timetable.weeklyHours}</span>
+          <span dir="ltr" className="tabular-nums">{dayStartTime}–{dayEndTime}</span>
         </div>
-        <div className="px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-sm">
-          {dayStartTime} — {dayEndTime}
-        </div>
+        {type === "timetable" && <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 font-medium ${conflictDescriptions.length ? "bg-rose-50 text-rose-700 border border-rose-200" : "text-emerald-700"}`}>
+            {conflictDescriptions.length ? <AlertTriangle size={13} /> : <ShieldCheck size={13} />}{conflictDescriptions.length ? `${conflictDescriptions.length} ${t.timetable.conflicts}` : t.timetable.scheduleClear}
+          </span>
+          {missingTeachers > 0 && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-amber-800"><User size={12} />{missingTeachers} {t.timetable.missingTeacher}</span>}
+        </div>}
       </div>
-
-      {type === "timetable" && <div className="flex flex-wrap items-center gap-3 text-xs print:hidden">
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium ${conflictDescriptions.length ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-100"}`}>
-          {conflictDescriptions.length ? <AlertTriangle size={14} /> : <ShieldCheck size={14} />}{conflictDescriptions.length ? `${conflictDescriptions.length} ${t.timetable.conflicts}` : t.timetable.scheduleClear}
-        </span>
-        {missingTeachers > 0 && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-800 border border-amber-100"><User size={13} />{missingTeachers} {t.timetable.missingTeacher}</span>}
-      </div>}
       {conflictDescriptions.length > 0 && <details className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 print:hidden"><summary className="cursor-pointer font-semibold">{t.timetable.resolveConflicts}</summary><ul className="mt-2 space-y-1">{conflictDescriptions.map(message => <li key={message}>{message}</li>)}</ul></details>}
       <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
-        <div style={{ minWidth: Math.max(1100, totalHours * 150 + 112) }}>
+        <div style={{ minWidth: compactWeek && !isEditMode ? Math.max(680, totalHours * 95 + 80) : Math.max(1100, totalHours * 150 + 112) }}>
           {/* HEADER ROW */}
-          <div className="flex h-12 border-b border-slate-200 bg-slate-50 sticky top-0 z-30 backdrop-blur-sm">
-            <div className="w-28 flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest sticky start-0 z-40 bg-slate-50">
+          <div className={`flex ${compactWeek ? "h-9" : "h-12"} border-b border-slate-200 bg-slate-50 sticky top-0 z-30 backdrop-blur-sm`}>
+            <div className={`${compactWeek ? "w-20" : "w-28"} flex-shrink-0 border-e border-slate-200 flex items-center justify-center font-bold text-[11px] text-slate-500 uppercase tracking-widest sticky start-0 z-40 bg-slate-50`}>
               {t.timetable.day || "Jour"}
             </div>
             <div className="flex-1 relative">
@@ -275,7 +273,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                     {/* Tick mark */}
                     <div className={`absolute bottom-0 w-[2px] h-3 bg-slate-300 rounded-t-[1px] ${isRtl ? "translate-x-1/2" : "-translate-x-1/2"}`} />
                     {/* Time Label */}
-                    <span className={`absolute bottom-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap ${pct === 0 ? (isRtl ? "translate-x-0 -me-1" : "translate-x-0 ms-1") : pct === 100 ? (isRtl ? "translate-x-full me-1" : "-translate-x-full -ms-1") : (isRtl ? "translate-x-1/2" : "-translate-x-1/2")}`}>
+                    <span className={`absolute bottom-3 text-xs font-semibold text-slate-600 whitespace-nowrap ${pct === 0 ? (isRtl ? "translate-x-0 -me-1" : "translate-x-0 ms-1") : pct === 100 ? (isRtl ? "translate-x-full me-1" : "-translate-x-full -ms-1") : (isRtl ? "translate-x-1/2" : "-translate-x-1/2")}`}>
                       {hour.toString().padStart(2, '0')}:00
                     </span>
                   </div>
@@ -318,7 +316,8 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
               laneEnds[lane] = end;
               lanes.set(group[0].slotNumber, lane);
             });
-            const laneHeight = Math.max(132, ...daySlots.map(group => group.length > 1 ? 46 + group.length * 59 : 132));
+            const baseHeight = compactWeek ? (isEditMode ? 104 : 88) : 132;
+            const laneHeight = Math.max(baseHeight, ...daySlots.map(group => group.length > 1 ? (compactWeek ? 28 + group.length * 54 : 46 + group.length * 59) : baseHeight));
             const rowHeight = Math.max(1, laneEnds.length) * laneHeight;
 
             const maxSlotNum = rawDaySlots.length > 0 ? Math.max(...rawDaySlots.map(s => s.slotNumber)) : 0;
@@ -357,7 +356,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
             return (
               <div key={dateObj?.toISOString() || d} className="flex border-b border-slate-200 last:border-b-0 group" style={{ height: rowHeight }}>
                 {/* DAY LABEL */}
-                <div className="w-28 flex-shrink-0 border-e border-slate-200 flex flex-col items-center justify-center bg-white group-hover:bg-blue-50/40 transition-colors sticky start-0 z-20">
+                <div className={`${compactWeek ? "w-20" : "w-28"} flex-shrink-0 border-e border-slate-200 flex flex-col items-center justify-center bg-white group-hover:bg-blue-50/40 transition-colors sticky start-0 z-20`}>
                   <span className="font-bold text-[13px] text-slate-700 capitalize">{dayLabels[d]}</span>
                   {dateObj && (
                     <span className="text-[10px] font-medium text-slate-400 mt-1">
@@ -406,6 +405,7 @@ const ScheduleGrid = forwardRef<HTMLDivElement, ScheduleGridProps>(({
                     >
                       <div className={`w-full h-full rounded-[8px] transition-all ${draggedOver === `slot-${slot.id}` ? 'ring-2 ring-indigo-500 scale-[1.02] opacity-70' : ''}`}>
                         <ScheduleSlot 
+                          compactMode={compactWeek}
                           slot={slotGroup} 
                           classId={classId}
                           classNameStr={classNameStr}

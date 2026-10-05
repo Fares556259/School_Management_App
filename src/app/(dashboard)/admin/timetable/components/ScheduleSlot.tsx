@@ -144,7 +144,7 @@ export default function ScheduleSlot({ slot, classId, day, period, startTime, en
       </button>
     ) : (
       <div draggable={isEditMode && !loading} onDragStart={e => { if ((e.target as HTMLElement).closest("button")) { e.preventDefault(); return; } e.dataTransfer.setData("slotId", String(firstSlot.id)); e.dataTransfer.effectAllowed = "move"; }} className={`h-full w-full relative rounded-xl overflow-hidden border ${cardConflicts.length ? "border-rose-300 ring-1 ring-rose-200" : "border-slate-200"} ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""}`}>
-        <div className="absolute top-2 start-3 end-3 flex items-center justify-between gap-1 z-10">
+        <div className={`absolute ${compactMode ? "top-1.5 start-2 end-2" : "top-2 start-3 end-3"} flex items-center justify-between gap-1 z-10`}>
           <span dir="ltr" className="text-[10px] whitespace-nowrap font-semibold tabular-nums text-slate-600">{startTime}–{endTime}</span>
           {isEditMode && <div className="flex gap-1 print:hidden">
             <button type="button" draggable={false} onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setOpen(true); }} aria-label={t.crud.edit} title={t.crud.edit} className="p-1 rounded-md bg-white border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50"><Edit2 size={12} /></button>
@@ -152,15 +152,15 @@ export default function ScheduleSlot({ slot, classId, day, period, startTime, en
           </div>}
           {!isEditMode && cardConflicts.length > 0 && <span title={cardConflicts.map(c => describeTimetableConflict(c, labels)).join("\n")} className="text-rose-600"><AlertTriangle size={15} /></span>}
         </div>
-        <div className={`h-full flex flex-col pt-10 px-3 pb-2.5 ${colors[(firstSlot.subjectId || firstSlot.lesson?.subjectId || 0) % colors.length]}`}>
+        <div className={`h-full flex flex-col ${compactMode ? (isEditMode ? "pt-8 px-2 pb-1.5" : "pt-6 px-2 pb-1.5") : "pt-10 px-3 pb-2.5"} ${colors[(firstSlot.subjectId || firstSlot.lesson?.subjectId || 0) % colors.length]}`}>
           {slotsArray.map((s, index) => {
             const subject = type === "timetable" ? s.subject : s.lesson?.subject;
             const teacher = type === "timetable" ? s.teacher : s.lesson?.teacher;
             return <div key={s.id || index} className={`min-w-0 flex-1 ${index > 0 ? "border-t border-slate-200/80 pt-1 mt-1" : ""}`}>
-              <h3 title={formatSubjectName(subject?.name)} className="text-[13px] font-semibold leading-tight text-slate-900 line-clamp-2">
+              <h3 title={formatSubjectName(subject?.name)} className={`${compactMode ? "text-xs line-clamp-1" : "text-[13px] line-clamp-2"} font-semibold leading-tight text-slate-900`}>
                 {slotsArray.length > 1 && <span className="text-[10px] text-slate-500 me-1">G{index + 1}</span>}{subject ? formatSubjectName(subject.name) : labels.freeTime}
               </h3>
-              {subject && <div className="mt-2 space-y-0.5 text-[11px] leading-tight text-slate-600">
+              {subject && <div className={`${compactMode ? "mt-1" : "mt-2"} space-y-0.5 text-[11px] leading-tight text-slate-600`}>
                 <p className="flex gap-1.5 items-center" title={teacher ? `${teacher.name} ${teacher.surname}` : labels.noTeacherAssigned}><User size={11} className="shrink-0" /><span className="truncate">{teacher ? `${teacher.name} ${teacher.surname}` : labels.noTeacherAssigned}</span></p>
                 {s.room && <p className="flex gap-1.5 items-center" title={s.room.name}><MapPin size={11} className="shrink-0" /><span className="truncate">{s.room.name}</span></p>}
               </div>}

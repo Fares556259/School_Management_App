@@ -142,63 +142,34 @@ const TimetablePage = ({
   }, [allActiveSlots, selectedClass, isDraftView]);
 
   return (
-    <div className="p-5 lg:p-8 flex flex-col gap-6 flex-1 bg-[#f6f8fb] min-w-0">
-       {/* Unified Main Dashboard Header Card */}
-      <div className="flex flex-col gap-6 w-full bg-white border border-slate-200 rounded-2xl p-5 lg:p-6 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
-        {/* Row 1: Header title and action buttons */}
-        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 w-full">
-          <div className="flex items-center gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1 text-[12px] font-medium text-[#5a5a5a]">
-                <span>{forceDraft ? t.timetable.aiPlayground : t.timetable.registry}</span>
-                <span className="w-1 h-1 rounded-full bg-[#dddddd]"></span>
-                <span className={`flex items-center gap-1.5 ${isEditMode ? 'text-amber-600' : 'text-emerald-600'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-600 animate-pulse' : 'bg-emerald-600'}`}></span>
-                  {isEditMode ? t.timetable.editMode : t.timetable.viewMode}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {forceDraft ? <Sparkles size={24} className="text-[#181d26]" /> : <CalendarDays size={24} className="text-[#181d26]" />}
-                <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#181d26] leading-[1.2]">
-                  {forceDraft ? t.timetable.aiScheduler : t.timetable.academicTimetable}
-                </h1>
-              </div>
-              <p className="text-sm text-slate-500 mt-2">{t.timetable.viewHint}</p>
-              
-              {/* PRO VIEW BAR (Airtable-style filter bar) */}
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 gap-2 w-fit mt-4">
-                {/* Target Class */}
-                <div className="flex items-center gap-2 px-2 shrink-0">
-                  <span className="text-[12px] font-medium text-[#41454d] capitalize tracking-wide">{t.timetable.class}</span>
-                  <div className="relative inline-flex items-center">
-                    <select 
-                      className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none transition-all cursor-pointer pr-5 appearance-none"
-                      value={selectedClass?.id}
-                      onChange={(e) => {
-                        if (forceDraft) {
-                          router.push(`/admin/timetable/ai?classId=${e.target.value}`);
-                        } else {
-                          setClientClassId(parseInt(e.target.value));
-                        }
-                      }}
-                    >
-                      {classes.map(cls => (
-                        <option key={cls.id} value={cls.id} className="bg-white text-[#181d26]">
-                          {cls.level?.level === 0 ? cls.name : cls.level ? `${t.timetable.grade} ${cls.level.level} - ${cls.name}` : cls.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9297a0] pointer-events-none">
-                      <ChevronDown size={14} />
-                    </div>
-                  </div>
-                </div>
+    <div className="-m-3 md:-m-6 lg:-m-8 p-3 md:p-4 flex flex-col gap-3 flex-1 bg-[#f6f8fb] min-w-0 print:m-0 print:p-0">
+      {/* Keep class selection and actions together above the weekly grid. */}
+      <div className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className={forceDraft ? "text-lg font-semibold text-slate-900" : "sr-only"}>
+              {forceDraft ? t.timetable.aiScheduler : t.timetable.academicTimetable}
+            </h1>
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 h-10">
+              <CalendarDays size={16} className="text-slate-500 shrink-0" />
+              <label htmlFor="timetable-class" className="text-xs font-medium text-slate-600">{t.timetable.class}</label>
+              <div className="relative inline-flex items-center">
+                <select id="timetable-class" className="bg-transparent border-0 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded pe-5 appearance-none cursor-pointer" value={selectedClass?.id} onChange={e => {
+                  if (forceDraft) router.push(`/admin/timetable/ai?classId=${e.target.value}`);
+                  else setClientClassId(parseInt(e.target.value));
+                }}>
+                  {classes.map(cls => <option key={cls.id} value={cls.id} className="bg-white">{cls.level?.level === 0 ? cls.name : cls.level ? `${t.timetable.grade} ${cls.level.level} - ${cls.name}` : cls.name}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute end-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
             </div>
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${isEditMode ? 'text-amber-700' : 'text-emerald-700'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+              {isEditMode ? t.timetable.editMode : t.timetable.viewMode}
+            </span>
           </div>
                     {/* Right Part: Action buttons */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {!isEditMode ? (
               <>
                 {/* 1. Design & Plan Capsule Group */}
