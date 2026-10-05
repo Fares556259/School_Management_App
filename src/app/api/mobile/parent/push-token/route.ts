@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const targetId = body.parentId || userId;
     const pushToken = typeof body.pushToken === "string" && body.pushToken.trim() ? body.pushToken.trim() : null;
+    const channelVersion = Number.isInteger(body.notificationChannelVersion) ? body.notificationChannelVersion : 2;
+    const platform = body.platform === "android" || body.platform === "ios" ? body.platform : undefined;
 
     if (targetId !== userId) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
@@ -35,23 +37,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Parent not found" }, { status: 404 });
     }
 
+    const storedToken = pushToken
+      ? storeExpoPushToken(parent.expoPushToken, pushToken, channelVersion, platform)
+      : null;
     await prisma.parent.update({
       where: { id: parent.id },
-      data: {
-        expoPushToken: pushToken
-          ? storeExpoPushToken(parent.expoPushToken, pushToken)
-          : null,
-      },
+      data: { expoPushToken: storedToken },
     });
 
-    const registeredDevices = pushToken
-      ? parseStoredExpoPushTokens(storeExpoPushToken(parent.expoPushToken, pushToken)).length
-      : 0;
+    const registeredDevices = parseStoredExpoPushTokens(storedToken).length;
     console.log("[PUSH-TOKEN-REGISTERED]", {
       userType: "parent",
       userId,
       schoolId,
       registeredDevices,
+      channelVersion,
+      platform,
     });
     return NextResponse.json({ success: true, registeredDevices });
   } catch (error) {

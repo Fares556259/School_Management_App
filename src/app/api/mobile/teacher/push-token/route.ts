@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const targetId = body.teacherId || userId;
     const pushToken = typeof body.pushToken === "string" && body.pushToken.trim() ? body.pushToken.trim() : null;
+    const channelVersion = Number.isInteger(body.notificationChannelVersion) ? body.notificationChannelVersion : 2;
+    const platform = body.platform === "android" || body.platform === "ios" ? body.platform : undefined;
 
     if (targetId !== userId) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const storedToken = pushToken
-      ? storeExpoPushToken(teacher.expoPushToken, pushToken)
+      ? storeExpoPushToken(teacher.expoPushToken, pushToken, channelVersion, platform)
       : null;
     await prisma.teacher.update({
       where: { id: teacher.id },
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
       userId,
       schoolId,
       registeredDevices,
+      channelVersion,
+      platform,
     });
     return NextResponse.json({ success: true, registeredDevices });
   } catch (error) {

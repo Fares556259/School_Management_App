@@ -1,8 +1,5 @@
-import { Expo, ExpoPushMessage } from "expo-server-sdk";
 import prisma from "@/lib/prisma";
-import { expandStoredExpoPushTokens } from "@/lib/expoPushTokens";
-
-const expo = new Expo();
+import { sendDirectPushTokens } from "@/lib/notifications";
 
 export interface SendPushNotificationParams {
   tokens: (string | null | undefined)[];
@@ -22,36 +19,17 @@ export async function sendSystemPushNotification({
   data = {},
   channelId = "default",
 }: SendPushNotificationParams) {
-  const validTokens = expandStoredExpoPushTokens(tokens);
+  const storedTokens = tokens.filter((token): token is string => Boolean(token));
 
-  if (validTokens.length === 0) {
+  if (storedTokens.length === 0) {
     console.log("[PUSH] No valid Expo push tokens to notify.");
     return;
   }
 
-  const isEmergency = channelId === "emergency" || channelId === "snapschool_emergency_v1" || channelId === "snapschool_emergency_v2";
-  const resolvedChannelId = isEmergency ? "snapschool_emergency_v2" : "snapschool_alerts_v2";
-
-  const messages: ExpoPushMessage[] = validTokens.map((token) => ({
-    to: token,
-    sound: "default",
-    title,
-    body,
-    data: { ...data, channelId: resolvedChannelId },
-    channelId: resolvedChannelId,
-    priority: "high",
-  }));
-
-  const chunks = expo.chunkPushNotifications(messages);
-
-  for (const chunk of chunks) {
-    try {
-      const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-      console.log("[PUSH SUCCESS] Push ticket received:", ticketChunk);
-    } catch (error) {
-      console.error("[PUSH ERROR] Failed to send push notification chunk:", error);
-    }
-  }
+  await sendDirectPushTokens(storedTokens, title, body, {
+    channelId: channelId as any,
+    data,
+  });
 }
 
 /**

@@ -2,33 +2,75 @@ import { Expo } from "expo-server-sdk";
 
 const MAX_TOKENS_PER_ACCOUNT = 8;
 
-export function parseStoredExpoPushTokens(value: string | null | undefined): string[] {
+export type ExpoPushDevice = {
+  token: string;
+  channelVersion: number;
+  platform?: 'android' | 'ios';
+};
+
+export function parseStoredExpoPushDevices(value: string | null | undefined): ExpoPushDevice[] {
   if (!value) return [];
 
   const trimmed = value.trim();
-  if (Expo.isExpoPushToken(trimmed)) return [trimmed];
+  if (Expo.isExpoPushToken(trimmed)) return [{ token: trimmed, channelVersion: 2 }];
 
   try {
     const parsed = JSON.parse(trimmed);
     if (!Array.isArray(parsed)) return [];
-    return Array.from(
-      new Set(parsed.filter((token): token is string => typeof token === "string" && Expo.isExpoPushToken(token)))
-    ).slice(-MAX_TOKENS_PER_ACCOUNT);
+
+    const devices = new Map<string, ExpoPushDevice>();
+    for (const item of parsed) {
+      if (typeof item === "string" && Expo.isExpoPushToken(item)) {
+        devices.set(item, { token: item, channelVersion: 2 });
+      } else if (
+        item &&
+        typeof item === "object" &&
+        typeof item.token === "string" &&
+        Expo.isExpoPushToken(item.token)
+      ) {
+        const device: ExpoPushDevice = {
+          token: item.token,
+          channelVersion: Number.isInteger(item.channelVersion) && item.channelVersion >= 3
+            ? item.channelVersion
+            : 2,
+        };
+        if (item.platform === 'android' || item.platform === 'ios') device.platform = item.platform;
+        devices.set(item.token, device);
+      }
+    }
+    return Array.from(devices.values()).slice(-MAX_TOKENS_PER_ACCOUNT);
   } catch {
     return [];
   }
 }
 
+export function parseStoredExpoPushTokens(value: string | null | undefined): string[] {
+  return parseStoredExpoPushDevices(value).map((device) => device.token);
+}
+
 export function storeExpoPushToken(
   currentValue: string | null | undefined,
-  token: string
+  token: string,
+  channelVersion = 2,
+  platform?: 'android' | 'ios'
 ): string {
-  const tokens = parseStoredExpoPushTokens(currentValue).filter((current) => current !== token);
-  tokens.push(token);
-  const retained = tokens.slice(-MAX_TOKENS_PER_ACCOUNT);
-  return retained.length === 1 ? retained[0] : JSON.stringify(retained);
+  const devices = parseStoredExpoPushDevices(currentValue).filter((device) => device.token !== token);
+  const device: ExpoPushDevice = { token, channelVersion: channelVersion >= 3 ? channelVersion : 2 };
+  if (platform) device.platform = platform;
+  devices.push(device);
+  const retained = devices.slice(-MAX_TOKENS_PER_ACCOUNT);
+  if (retained.length === 1 && retained[0].channelVersion === 2 && !retained[0].platform) return retained[0].token;
+  return JSON.stringify(retained);
 }
 
 export function expandStoredExpoPushTokens(values: Array<string | null | undefined>): string[] {
-  return Array.from(new Set(values.flatMap(parseStoredExpoPushTokens)));
+  return expandStoredExpoPushDevices(values).map((device) => device.token);
+}
+
+export function expandStoredExpoPushDevices(values: Array<string | null | undefined>): ExpoPushDevice[] {
+  const devices = new Map<string, ExpoPushDevice>();
+  for (const value of values) {
+    for (const device of parseStoredExpoPushDevices(value)) devices.set(device.token, device);
+  }
+  return Array.from(devices.values());
 }

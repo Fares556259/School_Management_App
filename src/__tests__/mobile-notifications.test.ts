@@ -4,6 +4,8 @@ import prisma from "../lib/prisma";
 import { generateToken } from "../lib/mobileAuth";
 import { DELETE, GET, PATCH } from "../app/api/mobile/notifications/route";
 import { POST as registerParentPushToken } from "../app/api/mobile/parent/push-token/route";
+import { parseStoredExpoPushDevices } from "../lib/expoPushTokens";
+import { resolveChannelId } from "../lib/notifications";
 
 async function main() {
   const originalSecret = process.env.JWT_SECRET;
@@ -75,7 +77,18 @@ async function main() {
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: firstDevice }) }))).status, 200);
     assert.equal(savedPushToken, firstDevice, "The first device should remain backward-compatible as a plain token");
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: secondDevice }) }))).status, 200);
-    assert.deepEqual(JSON.parse(savedPushToken as string), [firstDevice, secondDevice], "A shared tester account should keep both devices");
+    assert.deepEqual(parseStoredExpoPushDevices(savedPushToken), [
+      { token: firstDevice, channelVersion: 2 },
+      { token: secondDevice, channelVersion: 2 },
+    ], "A shared tester account should keep both devices");
+    assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: secondDevice, notificationChannelVersion: 3, platform: "android" }) }))).status, 200);
+    assert.deepEqual(parseStoredExpoPushDevices(savedPushToken), [
+      { token: firstDevice, channelVersion: 2 },
+      { token: secondDevice, channelVersion: 3, platform: "android" },
+    ], "Only updated devices should move to the custom-sound channel");
+    assert.equal(resolveChannelId("default", 2), "snapschool_alerts_v2");
+    assert.equal(resolveChannelId("default", 3), "snapschool_alerts_v3");
+    assert.equal(resolveChannelId("emergency", 3), "snapschool_emergency_v3");
     assert.equal((await registerParentPushToken(request("/api/mobile/parent/push-token", parentToken, { method: "POST", body: JSON.stringify({ pushToken: "" }) }))).status, 200);
     assert.equal(savedPushToken, null, "Disabling notifications should remove the saved parent token");
 

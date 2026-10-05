@@ -1,6 +1,10 @@
 import prisma from "./prisma";
 import { Expo } from "expo-server-sdk";
-import { expandStoredExpoPushTokens, parseStoredExpoPushTokens } from "./expoPushTokens";
+import {
+  expandStoredExpoPushDevices,
+  parseStoredExpoPushDevices,
+  type ExpoPushDevice,
+} from "./expoPushTokens";
 
 const expo = new Expo();
 
@@ -8,15 +12,67 @@ const expo = new Expo();
  * Canonical notification channel resolver.
  * Ensures notifications are routed to Android Notification Channels configured with MAX importance and system ringtones.
  */
-export function resolveChannelId(rawChannel?: string): 'snapschool_emergency_v2' | 'snapschool_alerts_v2' {
-  if (
+type PushChannelId =
+  | 'default'
+  | 'emergency'
+  | 'snapschool_alerts_v1'
+  | 'snapschool_emergency_v1'
+  | 'snapschool_alerts_v2'
+  | 'snapschool_emergency_v2'
+  | 'snapschool_alerts_v3'
+  | 'snapschool_emergency_v3';
+
+function isEmergencyChannel(rawChannel?: string): boolean {
+  return (
     rawChannel === 'emergency' ||
     rawChannel === 'snapschool_emergency_v1' ||
-    rawChannel === 'snapschool_emergency_v2'
-  ) {
-    return 'snapschool_emergency_v2';
-  }
-  return 'snapschool_alerts_v2';
+    rawChannel === 'snapschool_emergency_v2' ||
+    rawChannel === 'snapschool_emergency_v3'
+  );
+}
+
+export function resolveChannelId(
+  rawChannel?: string,
+  channelVersion = 2
+): 'snapschool_emergency_v2' | 'snapschool_alerts_v2' | 'snapschool_emergency_v3' | 'snapschool_alerts_v3' {
+  const emergency = isEmergencyChannel(rawChannel);
+  if (channelVersion >= 3) return emergency ? 'snapschool_emergency_v3' : 'snapschool_alerts_v3';
+  return emergency ? 'snapschool_emergency_v2' : 'snapschool_alerts_v2';
+}
+
+function resolveSound(
+  device: ExpoPushDevice,
+  channelId: ReturnType<typeof resolveChannelId>,
+  requestedSound?: string
+) {
+  if (requestedSound === 'none') return null;
+  if (requestedSound && requestedSound !== 'default') return requestedSound;
+  // Android 8+ uses the channel sound. iOS keeps the reliable system sound
+  // until the bundled files are replaced with native WAV/CAF assets.
+  if (device.platform === 'android' && channelId === 'snapschool_emergency_v3') return 'alert.m4a';
+  if (device.platform === 'android' && channelId === 'snapschool_alerts_v3') return 'notification.m4a';
+  return 'default';
+}
+
+function buildPushMessage(
+  device: ExpoPushDevice,
+  title: string,
+  body: string,
+  data: any,
+  rawChannel?: string,
+  requestedSound?: string,
+  priority: 'default' | 'normal' | 'high' = 'high'
+) {
+  const channelId = resolveChannelId(rawChannel, device.channelVersion);
+  return {
+    to: device.token,
+    sound: resolveSound(device, channelId, requestedSound) as any,
+    title,
+    body,
+    data: { ...data, channelId, title, body, message: body },
+    channelId,
+    priority,
+  };
 }
 
 /**
@@ -29,14 +85,14 @@ export async function sendPush(parentId: string, title: string, body: string, da
       select: { expoPushToken: true },
     });
 
-    const tokens = parseStoredExpoPushTokens(parent?.expoPushToken);
-    if (tokens.length === 0) return;
+    const devices = parseStoredExpoPushDevices(parent?.expoPushToken);
+    if (devices.length === 0) return;
 
-    const result = await sendDirectPushTokens(tokens, title, body, {
-      channelId: resolveChannelId(data.channelId),
+    const result = await sendDirectPushTokens([parent!.expoPushToken!], title, body, {
+      channelId: data.channelId,
       data,
     });
-    console.log(`[PUSH-SENT] To parent ${parentId}: ${result.sentCount}/${tokens.length} devices`);
+    console.log(`[PUSH-SENT] To parent ${parentId}: ${result.sentCount}/${devices.length} devices`);
   } catch (error) {
     console.error("[PUSH-ERROR]", error);
   }
@@ -60,15 +116,15 @@ export async function sendPushBatch(
       select: { id: true, expoPushToken: true, phone: true },
     });
 
-    const tokensByParent = new Map(
-      parents.map((parent) => [parent.id, parseStoredExpoPushTokens(parent.expoPushToken)])
+    const devicesByParent = new Map(
+      parents.map((parent) => [parent.id, parseStoredExpoPushDevices(parent.expoPushToken)])
     );
-    const parentsWithTokens = parents.filter((parent) => (tokensByParent.get(parent.id)?.length || 0) > 0);
+    const parentsWithTokens = parents.filter((parent) => (devicesByParent.get(parent.id)?.length || 0) > 0);
     console.log(`[PUSH-BATCH] Found ${parents.length} parents, ${parentsWithTokens.length} with registered devices`);
 
     // Fallback: If some parents have null tokens, check if any account with the same phone has an active push token
     const missingParents = parents.filter(
-      (parent) => (tokensByParent.get(parent.id)?.length || 0) === 0 && parent.phone
+      (parent) => (devicesByParent.get(parent.id)?.length || 0) === 0 && parent.phone
     );
 
     if (missingParents.length > 0) {
@@ -85,45 +141,40 @@ export async function sendPushBatch(
           }),
         ]);
 
-        const phoneToTokens = new Map<string, string[]>();
+        const phoneToDevices = new Map<string, ExpoPushDevice[]>();
         for (const p of altParents) {
-          const tokens = parseStoredExpoPushTokens(p.expoPushToken);
-          if (tokens.length > 0) phoneToTokens.set(p.phone, tokens);
+          const devices = parseStoredExpoPushDevices(p.expoPushToken);
+          if (devices.length > 0) phoneToDevices.set(p.phone, devices);
         }
         for (const t of altTeachers) {
-          const tokens = parseStoredExpoPushTokens(t.expoPushToken);
-          if (t.phone && tokens.length > 0 && !phoneToTokens.has(t.phone)) {
-            phoneToTokens.set(t.phone, tokens);
+          const devices = parseStoredExpoPushDevices(t.expoPushToken);
+          if (t.phone && devices.length > 0 && !phoneToDevices.has(t.phone)) {
+            phoneToDevices.set(t.phone, devices);
           }
         }
 
         for (const p of missingParents) {
-          if (p.phone && phoneToTokens.has(p.phone)) tokensByParent.set(p.id, phoneToTokens.get(p.phone)!);
+          if (p.phone && phoneToDevices.has(p.phone)) devicesByParent.set(p.id, phoneToDevices.get(p.phone)!);
         }
-        console.log(`[PUSH-BATCH] Phone fallback matched ${missingParents.filter((p) => (tokensByParent.get(p.id)?.length || 0) > 0).length} parents`);
+        console.log(`[PUSH-BATCH] Phone fallback matched ${missingParents.filter((p) => (devicesByParent.get(p.id)?.length || 0) > 0).length} parents`);
       } catch (fbErr) {
         console.warn("[PUSH-FALLBACK-LOOKUP-WARN]", fbErr);
       }
     }
 
-    const uniqueTokens = Array.from(new Set(parents.flatMap((parent) => tokensByParent.get(parent.id) || [])));
-    if (uniqueTokens.length === 0) {
+    const uniqueDevices = new Map<string, ExpoPushDevice>();
+    for (const parent of parents) {
+      for (const device of devicesByParent.get(parent.id) || []) uniqueDevices.set(device.token, device);
+    }
+    if (uniqueDevices.size === 0) {
       console.log(`[PUSH-BATCH] No valid tokens found, skipping push`);
       return { totalParents: parents.length, tokensCount: 0, sentCount: 0 };
     }
 
-    const channelId = resolveChannelId(data.channelId);
-
     // Deduplicate tokens to avoid sending the same push multiple times to the same device
-    const uniqueMessages = uniqueTokens.map((token) => ({
-        to: token,
-        sound: 'default' as const,
-        title,
-        body,
-        data: { ...data, channelId, title, body, message: body },
-        channelId,
-        priority: 'high' as const,
-      }));
+    const uniqueMessages = Array.from(uniqueDevices.values()).map((device) =>
+      buildPushMessage(device, title, body, data, data.channelId)
+    );
 
     console.log(`[PUSH-BATCH] Sending ${uniqueMessages.length} unique push(es) via direct HTTP to Expo API`);
 
@@ -170,7 +221,7 @@ export async function sendPushBatch(
     }
 
     console.log(`[PUSH-BATCH] Sent ${sentCount}/${uniqueMessages.length} notifications: ${title}`);
-    return { totalParents: parents.length, tokensCount: uniqueTokens.length, sentCount };
+    return { totalParents: parents.length, tokensCount: uniqueDevices.size, sentCount };
   } catch (error) {
     console.error("[PUSH-BATCH-ERROR]", error);
     return { totalParents: parentIds.length, tokensCount: 0, sentCount: 0 };
@@ -191,20 +242,13 @@ async function sendPushIndividualBatch(
       select: { id: true, expoPushToken: true },
     });
 
-    const tokenMap = new Map(parents.map((p) => [p.id, parseStoredExpoPushTokens(p.expoPushToken)]));
+    const deviceMap = new Map(parents.map((p) => [p.id, parseStoredExpoPushDevices(p.expoPushToken)]));
 
     const messages = items.flatMap((item) => {
-        const tokens = tokenMap.get(item.parentId) || [];
-        const channelId = resolveChannelId(item.data?.channelId);
-        return tokens.map((token) => ({
-          to: token,
-          sound: "default" as const,
-          title: item.title,
-          body: item.body,
-          data: { ...item.data, channelId, title: item.title, body: item.body, message: item.body },
-          channelId,
-          priority: "high" as const,
-        }));
+        const devices = deviceMap.get(item.parentId) || [];
+        return devices.map((device) =>
+          buildPushMessage(device, item.title, item.body, item.data, item.data?.channelId)
+        );
       });
 
     if (messages.length === 0) return;
@@ -226,23 +270,24 @@ export async function sendDirectPushTokens(
   tokens: string[],
   title: string,
   body: string,
-  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1" | "snapschool_alerts_v2" | "snapschool_emergency_v2"; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
+  options?: { channelId?: PushChannelId; data?: any; sound?: string; priority?: "default" | "normal" | "high" }
 ): Promise<{ success: boolean; sentCount: number; tickets: any[] }> {
-  const validTokens = expandStoredExpoPushTokens(tokens);
-  if (validTokens.length === 0) {
+  const devices = expandStoredExpoPushDevices(tokens);
+  if (devices.length === 0) {
     return { success: false, sentCount: 0, tickets: [] };
   }
 
-  const channelId = resolveChannelId(options?.channelId);
-  const messages = validTokens.map((token) => ({
-    to: token,
-    sound: (options?.sound === "none" ? null : "default") as any,
-    title,
-    body,
-    data: { ...(options?.data || {}), channelId, title, body, message: body },
-    channelId,
-    priority: (options?.priority || "high") as "high",
-  }));
+  const messages = devices.map((device) =>
+    buildPushMessage(
+      device,
+      title,
+      body,
+      options?.data || {},
+      options?.channelId,
+      options?.sound,
+      options?.priority || 'high'
+    )
+  );
 
   const chunks = expo.chunkPushNotifications(messages);
   const tickets: any[] = [];
@@ -272,7 +317,7 @@ export async function sendDirectPushTokens(
   }
 
   const sentCount = tickets.filter((t) => t.status === "ok").length;
-  console.log(`[sendDirectPushTokens] Sent ${sentCount}/${validTokens.length}: "${title}"`);
+  console.log(`[sendDirectPushTokens] Sent ${sentCount}/${devices.length}: "${title}"`);
   return { success: sentCount > 0, sentCount, tickets };
 }
 
@@ -290,7 +335,7 @@ export async function sendPushToTeachers({
   teacherIds?: string[];
   title: string;
   body: string;
-  options?: { channelId?: "default" | "emergency" | "snapschool_alerts_v1" | "snapschool_emergency_v1" | "snapschool_alerts_v2" | "snapschool_emergency_v2"; data?: any; sound?: string };
+  options?: { channelId?: PushChannelId; data?: any; sound?: string };
 }): Promise<{ count: number; validTokensCount: number; success: boolean }> {
   const where: any = { schoolId };
   if (teacherIds && teacherIds.length > 0) {
@@ -302,11 +347,12 @@ export async function sendPushToTeachers({
     select: { id: true, name: true, surname: true, expoPushToken: true },
   });
 
-  const tokens = expandStoredExpoPushTokens(teachers.map((teacher) => teacher.expoPushToken));
+  const storedTokens = teachers.map((teacher) => teacher.expoPushToken).filter((value): value is string => Boolean(value));
+  const deviceCount = expandStoredExpoPushDevices(storedTokens).length;
 
-  if (tokens.length > 0) {
-    const res = await sendDirectPushTokens(tokens, title, body, options);
-    return { count: teachers.length, validTokensCount: tokens.length, success: res.success };
+  if (deviceCount > 0) {
+    const res = await sendDirectPushTokens(storedTokens, title, body, options);
+    return { count: teachers.length, validTokensCount: deviceCount, success: res.success };
   }
 
   return { count: teachers.length, validTokensCount: 0, success: false };
@@ -976,10 +1022,10 @@ export async function notifyTeacherTaskSubmitted(studentId: string, assignmentId
 
     if (!assignment || !student || !assignment.lesson.teacher?.expoPushToken) return;
 
-    const tokens = parseStoredExpoPushTokens(assignment.lesson.teacher.expoPushToken);
-    if (tokens.length === 0) return;
+    const devices = parseStoredExpoPushDevices(assignment.lesson.teacher.expoPushToken);
+    if (devices.length === 0) return;
     await sendDirectPushTokens(
-      tokens,
+      [assignment.lesson.teacher.expoPushToken],
       `📝 وظيفة مسلمة`,
       `قام ${student.name} ${student.surname} بتسليم ${assignment.title}.`,
       {
@@ -1008,10 +1054,10 @@ export async function notifyTeacherAbsenceJustified(attendanceId: number) {
 
     if (!record || !record.student || !record.lesson?.teacher?.expoPushToken) return;
 
-    const tokens = parseStoredExpoPushTokens(record.lesson.teacher.expoPushToken);
-    if (tokens.length === 0) return;
+    const devices = parseStoredExpoPushDevices(record.lesson.teacher.expoPushToken);
+    if (devices.length === 0) return;
     await sendDirectPushTokens(
-      tokens,
+      [record.lesson.teacher.expoPushToken],
       `✅ تبرير غياب`,
       `قام ولي أمر ${record.student.name} ${record.student.surname} بتبرير غيابه.`,
       {

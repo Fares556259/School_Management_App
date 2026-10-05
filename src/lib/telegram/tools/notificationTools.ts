@@ -3,7 +3,7 @@ import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
 import { resolveClassByName } from "./classResolver";
 import { resolveStudentByName } from "./entityResolvers";
-import { expandStoredExpoPushTokens, parseStoredExpoPushTokens } from "@/lib/expoPushTokens";
+import { parseStoredExpoPushTokens } from "@/lib/expoPushTokens";
 import {
   sendDirectPushTokens,
   sendPushToTeachers,
@@ -106,7 +106,7 @@ export async function getAdminPushTokens(context: ToolContext): Promise<string[]
     if (fallbackParent?.expoPushToken) tokens.push(fallbackParent.expoPushToken);
   }
 
-  return expandStoredExpoPushTokens(tokens);
+  return Array.from(new Set(tokens));
 }
 
 /**
@@ -288,7 +288,7 @@ export async function sendPushNotificationTool(
       };
     }
 
-    await sendDirectPushTokens(teacherPushTokens, title, body, {
+    await sendDirectPushTokens([teacher.expoPushToken!], title, body, {
       channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
       sound: "default",
       data: { type: "TEACHER_ALERT" },
@@ -378,7 +378,7 @@ export async function sendPushNotificationTool(
     });
 
     // Send push
-    await sendDirectPushTokens(parentPushTokens, title, body, {
+    await sendDirectPushTokens([parent.expoPushToken!], title, body, {
       channelId: isUrgent ? "snapschool_emergency_v1" : "snapschool_alerts_v1",
       sound: "default",
       data: { studentId: student.id, type: "STUDENT_UPDATE" },
