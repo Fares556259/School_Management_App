@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const auth = authenticateMobileRequest(request);
   if (auth.error) return auth.error;
-  const { userId, userType } = auth.payload;
+  const { userId, userType, schoolId } = auth.payload;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -15,29 +15,33 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get("studentId");
     const countOnly = searchParams.get("countOnly") === "true";
 
-    if (!parentId) return countOnly ? NextResponse.json({ unreadCount: 0 }) : NextResponse.json([]);
-
-    // Enforce ownership
-    if (userType !== "parent" || userId !== parentId) {
-      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    if (userType !== "parent" || (parentId && userId !== parentId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    if (studentId) {
+      const ownedStudent = await prisma.student.findFirst({
+        where: { id: studentId, parentId: userId, schoolId },
+        select: { id: true },
+      });
+      if (!ownedStudent) return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    const where = {
+      parentId: userId,
+      schoolId,
+      ...(studentId ? { OR: [{ studentId }, { studentId: null }] } : {}),
+    };
 
     if (countOnly) {
       const unreadCount = await prisma.notification.count({
-        where: {
-          parentId,
-          isRead: false,
-          OR: [{ studentId: studentId || undefined }, { studentId: null }],
-        },
+        where: { ...where, isRead: false },
       });
-      return NextResponse.json({ unreadCount });
+      return NextResponse.json({ unreadCount }, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     const notifications = await prisma.notification.findMany({
-      where: {
-        parentId,
-        OR: [{ studentId: studentId || undefined }, { studentId: null }],
-      },
+      where,
       include: { student: { include: { class: true } } },
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -53,17 +57,20 @@ export async function GET(request: NextRequest) {
         type: n.type,
         title: n.title || "Notification",
         student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
+        studentId: n.studentId,
+        studentAvatar: n.student?.img || null,
         className: n.student?.class?.name || "School",
         message: n.message, 
         time: formatRelativeTime(n.createdAt), 
         rawDate: n.createdAt,
+        createdAt: n.createdAt,
         iconName, 
         iconColor, 
         isNew: !n.isRead,
       };
     });
 
-    return NextResponse.json(formatted);
+    return NextResponse.json(formatted, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error: any) {
     console.error("[API] Notifications GET Error:", error);
     return new NextResponse(error.message || "Internal Server Error", { status: 500 });
@@ -73,21 +80,22 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const auth = authenticateMobileRequest(request);
   if (auth.error) return auth.error;
-  const { userId, userType } = auth.payload;
+  const { userId, userType, schoolId } = auth.payload;
+
+  if (userType !== "parent") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
     const { notificationIds } = await request.json();
 
-    if (!notificationIds || !Array.isArray(notificationIds)) {
+    const validIds = Array.isArray(notificationIds)
+      ? notificationIds.filter((id): id is number => Number.isInteger(id) && id > 0).slice(0, 100)
+      : [];
+    if (validIds.length === 0 || validIds.length !== notificationIds.length) {
       return new NextResponse("Missing IDs", { status: 400 });
     }
 
-    // Only allow marking notifications that belong to this user
-    const whereClause: any = { id: { in: notificationIds } };
-    if (userType === "parent") whereClause.parentId = userId;
-
     await prisma.notification.updateMany({
-      where: whereClause,
+      where: { id: { in: validIds }, parentId: userId, schoolId },
       data: { isRead: true },
     });
 
@@ -100,7 +108,9 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const auth = authenticateMobileRequest(request);
   if (auth.error) return auth.error;
-  const { userId, userType } = auth.payload;
+  const { userId, userType, schoolId } = auth.payload;
+
+  if (userType !== "parent") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
     const { searchParams } = new URL(request.url);
@@ -114,13 +124,8 @@ export async function DELETE(request: NextRequest) {
       return new NextResponse("Invalid id", { status: 400 });
     }
 
-    const whereClause: any = { id: notificationId };
-    if (userType === "parent") {
-      whereClause.parentId = userId;
-    }
-
     await prisma.notification.deleteMany({
-      where: whereClause,
+      where: { id: notificationId, parentId: userId, schoolId },
     });
 
     return NextResponse.json({ success: true });

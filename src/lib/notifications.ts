@@ -39,7 +39,7 @@ export async function sendPush(parentId: string, title: string, body: string, da
       sound: 'default' as const,
       title,
       body,
-      data: { ...data, channelId },
+      data: { ...data, channelId, title, body, message: body },
       channelId,
       priority: 'high' as const,
     }];
@@ -227,7 +227,7 @@ async function sendPushIndividualBatch(
           sound: "default" as const,
           title: item.title,
           body: item.body,
-          data: { ...item.data, channelId },
+          data: { ...item.data, channelId, title: item.title, body: item.body, message: item.body },
           channelId,
           priority: "high" as const,
         };

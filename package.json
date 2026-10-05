@@ -19,7 +19,8 @@
     "benchmark:hnia": "tsx scripts/benchmarkHniaSpeed.ts",
     "benchmark:web": "tsx scripts/benchmarkWebSpeed.ts",
     "benchmark:all": "npm run benchmark:hnia && npm run benchmark:web",
-    "test:security": "node --import tsx src/__tests__/mobile-security.test.ts"
+    "test:security": "node --import tsx src/__tests__/mobile-security.test.ts",
+    "test:notifications": "node --import tsx src/__tests__/mobile-notifications.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"
