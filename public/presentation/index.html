@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapSchool Ecosystem — Web, Mobile & Hnia AI Presentation</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --bg-dark: #07090e;
+      --surface-border: rgba(255, 255, 255, 0.08);
+      --surface-card: rgba(18, 24, 39, 0.82);
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      color: #f3f4f6;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .font-ar { font-family: 'Cairo', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Ambient background mesh */
+    .bg-mesh {
+      background: 
+        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.16) 0%, transparent 40%),
+        radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.16) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.12) 0%, transparent 50%),
+        #07090e;
+    }
+
+    /* Slides viewport with 3D perspective transitions */
+    .slides-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      perspective: 1200px;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(70px) scale(0.96);
+      transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), 
+                  opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+                  visibility 0.65s;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1.5rem 2.5rem 5.5rem 2.5rem;
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    .slide.prev {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(-70px) scale(0.96);
+      pointer-events: none;
+    }
+
+    /* Staggered entrance */
+    .slide.active .stagger-1 { animation: slideInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both; }
+    .slide.active .stagger-2 { animation: slideInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.10s both; }
+    .slide.active .stagger-3 { animation: slideInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both; }
+    .slide.active .stagger-4 { animation: slideInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both; }
+    .slide.active .stagger-5 { animation: slideInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both; }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .glass-card {
+      background: var(--surface-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--surface-border);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .glass-card-hover {
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .glass-card-hover:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow: 0 12px 35px -8px rgba(59, 130, 246, 0.25);
+    }
+
+    .text-glow {
+      text-shadow: 0 0 25px rgba(59, 130, 246, 0.45);
+    }
+
+    /* Device frames */
+    .device-macbook {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+      background: #111522;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .device-iphone {
+      width: 220px;
+      height: 440px;
+      border: 8px solid #1f293d;
+      border-radius: 36px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+      background: #090d16;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .iphone-notch {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 68px;
+      height: 16px;
+      background: #000;
+      border-radius: 10px;
+      z-index: 30;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+  </style>
+</head>
+<body class="bg-mesh select-none flex flex-col justify-between">
+
+  <!-- TOP BAR -->
+  <header class="h-14 px-6 md:px-8 flex items-center justify-between z-30 border-b border-white/5 bg-black/30 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold tracking-tight text-white text-sm">SnapSchool</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Executive Suite</span>
+        </div>
+        <p class="text-[10px] text-gray-400">Web • Mobile • Hnia AI (هنيّة)</p>
+      </div>
+    </div>
+
+    <!-- Live indicator pills -->
+    <div class="flex items-center gap-2 md:gap-3">
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>0-Lag Realtime Sync</span>
+      </div>
+      <button onclick="toggleOverview()" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-gray-300 hover:text-white transition-all flex items-center gap-1.5" title="View all slides (O)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+        <span class="hidden md:inline">Index</span>
+      </button>
+      <button onclick="toggleFullscreen()" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all" title="Fullscreen (F)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- SLIDES VIEWPORT -->
+  <main class="slides-container flex-1">
+
+    <!-- ── SLIDE 1: HERO / THE ECOSYSTEM ────────────────────────────────── -->
+    <section class="slide active" id="slide-1">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="stagger-1 inline-flex items-center gap-2.5 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs font-semibold w-fit mb-3">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+          <span>Next-Generation School Operating System</span>
+        </div>
+
+        <h1 class="stagger-2 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+          Unify Your School.<br>
+          <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-violet-400 bg-clip-text text-transparent text-glow">
+            Web. Mobile. Autonomous AI.
+          </span>
+        </h1>
+
+        <p class="stagger-3 text-sm sm:text-base text-gray-300 max-w-2xl mb-6 leading-relaxed">
+          <strong class="text-white font-semibold">SnapSchool</strong> connects administration, teachers, and parents into one ultra-fast, zero-lag platform — powered by <span class="text-indigo-400 font-semibold">Hnia AI (هنيّة)</span>, Tunisia's first bilingual executive school co-pilot.
+        </p>
+
+        <!-- 3 Pillars Cards Grid -->
+        <div class="stagger-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="glass-card glass-card-hover p-4 sm:p-5 rounded-xl border-blue-500/20">
+            <div class="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1">SnapSchool Web</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              Complete ERP command center: finances, caisse recovery, dynamic timetables, and official ministry certificates.
+            </p>
+          </div>
+
+          <div class="glass-card glass-card-hover p-4 sm:p-5 rounded-xl border-indigo-500/20">
+            <div class="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1">SnapSchool Mobile</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              High-performance React Native app for Parents & Teachers: instant roll-calls, real-time grades, and 0-lag caching.
+            </p>
+          </div>
+
+          <div class="glass-card glass-card-hover p-4 sm:p-5 rounded-xl border-purple-500/20">
+            <div class="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1 flex items-center gap-1.5">
+              <span>Hnia AI</span>
+              <span class="font-ar text-xs px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300">هنيّة</span>
+            </h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              Autonomous digital secretary via Telegram & In-App chat: vocal expense entry, receipt OCR, and morning briefings.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 2: THE PROBLEM VS SNAPSCHOOL ───────────────────────────── -->
+    <section class="slide" id="slide-2">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="stagger-1 text-xs uppercase font-bold tracking-widest text-blue-400 mb-1.5">Why SnapSchool?</div>
+        <h2 class="stagger-2 text-3xl sm:text-4xl font-extrabold text-white mb-2">
+          Eliminating Chaos in School Operations
+        </h2>
+        <p class="stagger-3 text-xs sm:text-sm text-gray-400 mb-6 max-w-2xl">
+          Traditional private schools struggle with disconnected software, paper trails, and delayed communications. SnapSchool unifies everything.
+        </p>
+
+        <div class="stagger-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- The Legacy Trap -->
+          <div class="glass-card p-5 rounded-xl border-rose-500/20 bg-rose-950/10">
+            <div class="flex items-center gap-2.5 mb-3">
+              <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-sm">✕</div>
+              <h3 class="text-base font-bold text-rose-300">The Traditional Reality</h3>
+            </div>
+            <ul class="space-y-2.5 text-xs text-gray-300">
+              <li class="flex items-start gap-2">
+                <span class="text-rose-400 font-bold">•</span>
+                <span><strong>Manual Cash & Tuition Leaks:</strong> Excel sheets, uncollected school fees, paper receipts lost in transit.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-rose-400 font-bold">•</span>
+                <span><strong>Frustrated Parents:</strong> No visibility into daily absences, delayed homework updates, endless phone calls.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-rose-400 font-bold">•</span>
+                <span><strong>Administrative Bottlenecks:</strong> Official certificates and reports handwritten or manually typed each time.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-rose-400 font-bold">•</span>
+                <span><strong>Slow, Clunky Mobile Apps:</strong> Laggy apps that crash, constantly re-fetch data, and offer poor mobile UX.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- The SnapSchool Advantage -->
+          <div class="glass-card p-5 rounded-xl border-emerald-500/20 bg-emerald-950/10">
+            <div class="flex items-center gap-2.5 mb-3">
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">✓</div>
+              <h3 class="text-base font-bold text-emerald-300">The SnapSchool Standard</h3>
+            </div>
+            <ul class="space-y-2.5 text-xs text-gray-300">
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">•</span>
+                <span><strong>Live Caisse & Smart Recovery:</strong> Automated tracking of cash balances, partial splits, and overdue alerts.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">•</span>
+                <span><strong>Delighted Parents:</strong> Instant notifications, daily schedule timeline, transparent payment histories.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">•</span>
+                <span><strong>1-Click Government Forms:</strong> High-precision A4 attendance certificates (شهادة حضور) filled automatically.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">•</span>
+                <span><strong>Sub-50ms React Query Cache:</strong> Zero lag mobile experience with persistent local storage.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 3: SNAPSCHOOL WEB (COMMAND CENTER) ─────────────────────── -->
+    <section class="slide" id="slide-3">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center">
+          
+          <!-- Text left -->
+          <div class="flex-1 w-full">
+            <div class="stagger-1 text-xs uppercase font-bold tracking-widest text-blue-400 mb-1.5">Desktop Management</div>
+            <h2 class="stagger-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
+              SnapSchool Web<br>
+              <span class="text-blue-400 font-medium text-xl lg:text-2xl">Executive Command Center</span>
+            </h2>
+            <p class="stagger-3 text-xs sm:text-sm text-gray-300 mb-4 leading-relaxed">
+              Built on Next.js 14, SnapSchool Web delivers a real-time cockpit for school directors:
+            </p>
+
+            <div class="stagger-4 space-y-2.5">
+              <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 font-bold text-xs mt-0.5">💰</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Live Caisse & Recovery Queue</h4>
+                  <p class="text-[11px] text-gray-400">Daily opening/closing, partial payments, automated debt reminders, teacher salary tracker.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 font-bold text-xs mt-0.5">📅</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Smart Timetable Management</h4>
+                  <p class="text-[11px] text-gray-400">Interactive schedule planner with conflict detection across teachers, rooms, and classes.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-xs mt-0.5">📜</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Sub-Millimeter Government Docs (شهادة حضور)</h4>
+                  <p class="text-[11px] text-gray-400">Pixel-calibrated flat A4 print engine with zero browser margins and Arabic RTL typography.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device right (Mockup) -->
+          <div class="flex-1 w-full max-w-lg stagger-4">
+            <div class="device-macbook p-2">
+              <div class="h-5 flex items-center justify-between px-2.5 bg-black/40 rounded-t-lg mb-1.5">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-2 h-2 rounded-full bg-rose-500/80"></div>
+                  <div class="w-2 h-2 rounded-full bg-amber-500/80"></div>
+                  <div class="w-2 h-2 rounded-full bg-emerald-500/80"></div>
+                </div>
+                <div class="text-[9px] text-gray-400 font-mono">app.snapschool.tn/admin/dashboard</div>
+                <div class="w-6"></div>
+              </div>
+
+              <div class="relative group rounded-lg overflow-hidden border border-white/10 bg-slate-900 aspect-[16/10]">
+                <img id="mockup-web-img" src="./assets/dashboard.png" onerror="this.src='./assets/dashboard-command-center.png'" alt="Web Dashboard" class="w-full h-full object-cover">
+                
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
+                  <p class="text-xs font-semibold text-white mb-2">Executive Web Dashboard</p>
+                  <label class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold cursor-pointer transition-all shadow-lg">
+                    <span>📷 Replace Screenshot</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="replaceImage(event, 'mockup-web-img')">
+                  </label>
+                  <span class="text-[10px] text-gray-300 mt-2">Click to load your real screenshot</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-2 mt-2.5">
+              <button onclick="setWebScreenshot('dashboard.png')" class="text-[10px] px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">Dashboard</button>
+              <button onclick="setWebScreenshot('finance-recovery.png')" class="text-[10px] px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 font-medium">Finance</button>
+              <button onclick="setWebScreenshot('timetable-grid.png')" class="text-[10px] px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 font-medium">Timetable</button>
+              <button onclick="setWebScreenshot('certificate-preview.png')" class="text-[10px] px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 font-medium">شهادة حضور</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 4: SNAPSCHOOL MOBILE ──────────────────────────────────── -->
+    <section class="slide" id="slide-4">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center">
+          
+          <!-- Mockups left -->
+          <div class="flex-1 flex items-center justify-center gap-4 stagger-3">
+            <!-- iPhone 1: Parent App -->
+            <div class="device-iphone group">
+              <div class="iphone-notch"></div>
+              <img id="mockup-mobile-1" src="./assets/mobile-student-schedule.jpg" onerror="this.src='./assets/mobile.png'" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-3 text-center">
+                <span class="text-[11px] text-white font-bold mb-1">Parent View</span>
+                <label class="px-2.5 py-1 rounded bg-blue-600 text-white text-[10px] font-bold cursor-pointer">
+                  <span>📷 Replace</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="replaceImage(event, 'mockup-mobile-1')">
+                </label>
+              </div>
+              <div class="absolute bottom-2 left-0 right-0 text-center">
+                <span class="text-[9px] bg-black/60 backdrop-blur px-2 py-0.5 rounded-full text-blue-300 font-bold">Parent Portal</span>
+              </div>
+            </div>
+
+            <!-- iPhone 2: Teacher App -->
+            <div class="device-iphone group mt-4">
+              <div class="iphone-notch"></div>
+              <img id="mockup-mobile-2" src="./assets/mobile-teacher-home.jpg" onerror="this.src='./assets/mobile-parent-payments.jpg'" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-3 text-center">
+                <span class="text-[11px] text-white font-bold mb-1">Teacher View</span>
+                <label class="px-2.5 py-1 rounded bg-blue-600 text-white text-[10px] font-bold cursor-pointer">
+                  <span>📷 Replace</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="replaceImage(event, 'mockup-mobile-2')">
+                </label>
+              </div>
+              <div class="absolute bottom-2 left-0 right-0 text-center">
+                <span class="text-[9px] bg-black/60 backdrop-blur px-2 py-0.5 rounded-full text-indigo-300 font-bold">Teacher Portal</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Text right -->
+          <div class="flex-1 w-full">
+            <div class="stagger-1 text-xs uppercase font-bold tracking-widest text-indigo-400 mb-1.5">Native Mobile Experience</div>
+            <h2 class="stagger-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
+              SnapSchool Mobile<br>
+              <span class="text-indigo-400 font-medium text-xl lg:text-2xl">Ultra-Fast & Zero Lag</span>
+            </h2>
+            <p class="stagger-3 text-xs sm:text-sm text-gray-300 mb-4 leading-relaxed">
+              Designed for daily high-frequency use. Powered by React Native + Expo with persistent caching:
+            </p>
+
+            <div class="stagger-4 space-y-2.5">
+              <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-3">
+                <div class="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 font-bold text-xs">⚡</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Instant Data Hydration</h4>
+                  <p class="text-[11px] text-gray-400">Offline-first query cache. Switching between dates or children happens in 0ms without spinners.</p>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-3">
+                <div class="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-xs">🔔</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Instant Attendance & Marks Alerts</h4>
+                  <p class="text-[11px] text-gray-400">Push notifications reach parents immediately when teachers submit daily attendance or exam marks.</p>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-3">
+                <div class="p-1.5 rounded-lg bg-purple-500/20 text-purple-400 font-bold text-xs">👥</div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Multi-Child Family Switcher</h4>
+                  <p class="text-[11px] text-gray-400">Parents toggle between siblings instantly with child-specific schedules, fees, and reports.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 5: MEET HNIA AI (THE ASSISTANT) ────────────────────────── -->
+    <section class="slide" id="slide-5">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-center">
+          
+          <!-- Left: Assistant Persona & Avatar -->
+          <div class="flex-1 w-full">
+            <div class="stagger-1 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold mb-2">
+              <span>🤖 Next-Gen Autonomous School Assistant</span>
+            </div>
+            
+            <h2 class="stagger-2 text-3xl sm:text-4xl font-extrabold text-white mb-2">
+              Meet Hnia AI <span class="font-ar text-purple-400 font-bold">(هنيّة)</span>
+            </h2>
+            <p class="stagger-3 text-base text-indigo-300 font-medium mb-3">
+              The Intelligent Digital Secretary for School Directors
+            </p>
+            <p class="stagger-3 text-xs text-gray-300 leading-relaxed mb-5">
+              Hnia understands the natural realities of Tunisian schools. Speaking fluent Tunisian Darija (دزيري/تونسي) and French, she acts as an autonomous co-pilot across administration, finance, and logistics.
+            </p>
+
+            <div class="stagger-4 grid grid-cols-2 gap-2.5 text-left">
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="text-xs font-bold text-purple-300 mb-0.5">🎙️ Vocal Intelligence</div>
+                <div class="text-[10.5px] text-gray-400">Processes Darija voice notes: "سجلت 50 دينار تصليح كليماتيزور".</div>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="text-xs font-bold text-purple-300 mb-0.5">📸 Receipt OCR Vision</div>
+                <div class="text-[10.5px] text-gray-400">Photo-to-expense: extracts vendor, amount, and date automatically.</div>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="text-xs font-bold text-purple-300 mb-0.5">🛡️ 2-Step Safety Guard</div>
+                <div class="text-[10.5px] text-gray-400">Generates interactive confirmation cards before any mutation.</div>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                <div class="text-xs font-bold text-purple-300 mb-0.5">⚡ Fast-Path Engine</div>
+                <div class="text-[10.5px] text-gray-400">Regex-bypasses LLM for instant caisse totals in under 80ms.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Avatar & Showcase -->
+          <div class="flex-1 w-full max-w-sm stagger-4 flex flex-col items-center">
+            <div class="relative w-56 h-56 lg:w-64 lg:h-64 rounded-3xl overflow-hidden glass-card border-purple-500/30 p-2 shadow-2xl shadow-purple-500/20 group">
+              <img id="mockup-hnia-avatar" src="./assets/hnia_avatar.jpg" onerror="this.src='./assets/hnia_mascot_robot.jpg'" class="w-full h-full object-cover rounded-2xl">
+              
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-base font-bold text-white flex items-center gap-1.5">
+                      <span>Hnia AI</span>
+                      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    </h3>
+                    <p class="text-[10px] text-gray-300 font-ar">المساعدة الذكية لإدارة المدارس</p>
+                  </div>
+                  <label class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold cursor-pointer">
+                    <span>📷 Replace</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="replaceImage(event, 'mockup-hnia-avatar')">
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-3 p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/25 max-w-xs text-center">
+              <p class="text-[11px] text-purple-200 font-ar" dir="rtl">
+                "صباح الخير مسيو فارس! هاو ملخص مصاريف ومداخيل اليوم، وحالة غيابات الأساتذة..."
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 6: HNIA AI MULTI-CHANNEL ──────────────────────────────── -->
+    <section class="slide" id="slide-6">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="stagger-1 text-xs uppercase font-bold tracking-widest text-purple-400 mb-1.5">Omnipresent AI</div>
+        <h2 class="stagger-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2">
+          Always Accessible: Telegram & Native Mobile Chat
+        </h2>
+        <p class="stagger-3 text-xs text-gray-400 mb-5 max-w-2xl">
+          School directors don't sit behind desks all day. Hnia AI travels with them across their favorite messaging channel and our dedicated app.
+        </p>
+
+        <div class="stagger-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Channel 1: Telegram Bot -->
+          <div class="glass-card p-5 rounded-xl border-blue-500/20 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white">Telegram Executive Bot</h3>
+                  <p class="text-[10px] text-blue-300">Zero friction on-the-go assistant</p>
+                </div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">@HniaBot</span>
+            </div>
+
+            <div class="space-y-2.5 text-xs text-gray-300">
+              <div class="p-2.5 rounded-lg bg-black/30 border border-white/5">
+                <span class="text-blue-400 font-bold block mb-0.5">🌅 Morning Briefing (07:45 AM)</span>
+                <span class="text-[11px]">Scheduled classes, teacher absences, students with overdue tuitions, urgent calendar events.</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-black/30 border border-white/5">
+                <span class="text-emerald-400 font-bold block mb-0.5">🌇 Evening Caisse Closing (17:00 PM)</span>
+                <span class="text-[11px]">Day's total collected revenue, recorded expenditures, net physical cash in caisse drawer.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Channel 2: Native Mobile In-App Chat -->
+          <div class="glass-card p-5 rounded-xl border-purple-500/20 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white">In-App Chat Screen</h3>
+                  <p class="text-[10px] text-purple-300">ChatGPT-grade smoothness in SnapSchool Mobile</p>
+                </div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">Inverted FlatList</span>
+            </div>
+
+            <div class="space-y-2.5 text-xs text-gray-300">
+              <div class="p-2.5 rounded-lg bg-black/30 border border-white/5">
+                <span class="text-purple-400 font-bold block mb-0.5">🌊 True Token SSE Streaming</span>
+                <span class="text-[11px]">Real-time response token emission via Gemini SDK stream. Instant feedback without waiting.</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-black/30 border border-white/5">
+                <span class="text-indigo-400 font-bold block mb-0.5">🎯 Action Cards & Follow-Up Chips</span>
+                <span class="text-[11px]">Interactive confirm/cancel buttons and contextual follow-up chips with 1-tap triggers.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 7: ARCHITECTURE & ZERO-LAG ────────────────────────────── -->
+    <section class="slide" id="slide-7">
+      <div class="max-w-6xl mx-auto w-full my-auto flex flex-col justify-center">
+        <div class="stagger-1 text-xs uppercase font-bold tracking-widest text-emerald-400 mb-1.5">Engineering Excellence</div>
+        <h2 class="stagger-2 text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2">
+          Architecture Built for Speed & Stability
+        </h2>
+        <p class="stagger-3 text-xs text-gray-400 mb-5 max-w-2xl">
+          Engineered with a relentless focus on performance: parallelized queries, persistent caching, and zero compiler flaws.
+        </p>
+
+        <div class="stagger-4 grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-5">
+          <div class="glass-card p-3.5 rounded-xl border-white/10 text-center">
+            <div class="text-2xl font-extrabold text-blue-400 font-mono mb-0.5">&lt; 50ms</div>
+            <div class="text-xs font-bold text-white mb-0.5">Cached Reads</div>
+            <div class="text-[10.5px] text-gray-400">TanStack Query persistence with MMKV storage.</div>
+          </div>
+
+          <div class="glass-card p-3.5 rounded-xl border-white/10 text-center">
+            <div class="text-2xl font-extrabold text-indigo-400 font-mono mb-0.5">11+ Q</div>
+            <div class="text-xs font-bold text-white mb-0.5">Parallel Queries</div>
+            <div class="text-[10.5px] text-gray-400">Promise.all execution cuts route latency by 65%.</div>
+          </div>
+
+          <div class="glass-card p-3.5 rounded-xl border-white/10 text-center">
+            <div class="text-2xl font-extrabold text-purple-400 font-mono mb-0.5">0.1mm</div>
+            <div class="text-xs font-bold text-white mb-0.5">Print Precision</div>
+            <div class="text-[10.5px] text-gray-400">Ministerial A4 document CSS layout accuracy.</div>
+          </div>
+
+          <div class="glass-card p-3.5 rounded-xl border-white/10 text-center">
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono mb-0.5">100%</div>
+            <div class="text-xs font-bold text-white mb-0.5">TypeScript Strict</div>
+            <div class="text-[10.5px] text-gray-400">Zero compiler errors across Web & Mobile repos.</div>
+          </div>
+        </div>
+
+        <div class="stagger-5 glass-card p-4 rounded-xl border-white/10">
+          <h4 class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Modern Technology Stack</h4>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">Next.js 14 (App Router)</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">React Native + Expo 51</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">PostgreSQL + Prisma ORM</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">Google Gemini Flash AI</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">Server-Sent Events (SSE)</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">TanStack React Query v5</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">Tailwind CSS</span>
+            <span class="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-200 font-mono text-[11px]">Telegram Bot API</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SLIDE 8: SUMMARY & NEXT STEPS ───────────────────────────────── -->
+    <section class="slide" id="slide-8">
+      <div class="max-w-5xl mx-auto w-full my-auto flex flex-col justify-center text-center items-center">
+        <div class="stagger-1 w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/30 mb-4">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+
+        <h2 class="stagger-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3">
+          Ready to Modernize Your School
+        </h2>
+        
+        <p class="stagger-3 text-xs sm:text-sm text-gray-300 max-w-2xl mb-6 leading-relaxed">
+          SnapSchool is not just another school portal. It is the intelligent backbone connecting students, parents, teachers, and directors through one cohesive ecosystem.
+        </p>
+
+        <div class="stagger-4 grid grid-cols-1 md:grid-cols-3 gap-3.5 w-full text-left mb-6">
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10">
+            <span class="text-blue-400 font-bold text-xs block mb-1">For School Directors</span>
+            <p class="text-[11px] text-gray-400">Total financial visibility, zero uncollected tuitions, instant automated reports, AI assistant in pocket.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10">
+            <span class="text-indigo-400 font-bold text-xs block mb-1">For Parents</span>
+            <p class="text-[11px] text-gray-400">Real-time peace of mind, attendance monitoring, immediate grades, and digital payment receipts.</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-white/5 border border-white/10">
+            <span class="text-purple-400 font-bold text-xs block mb-1">For Teachers</span>
+            <p class="text-[11px] text-gray-400">Fast 15-second roll-calls, simplified assignment posting, transparent timetable and salary advances.</p>
+          </div>
+        </div>
+
+        <div class="stagger-5 flex items-center gap-3">
+          <button onclick="goToSlide(0)" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span>Restart Presentation</span>
+          </button>
+          <button onclick="toggleOverview()" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-medium text-xs border border-white/10 transition-all">
+            <span>Browse Slide Index</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── BOTTOM NAVIGATION BAR ─────────────────────────────────────────── -->
+  <footer class="h-16 px-6 md:px-8 flex items-center justify-between z-30 border-t border-white/5 bg-black/40 backdrop-blur-xl">
+    
+    <div class="flex items-center gap-3">
+      <div class="font-mono text-xs font-semibold text-gray-300">
+        <span id="current-slide-num" class="text-white font-bold text-sm">01</span>
+        <span class="text-gray-500"> / </span>
+        <span id="total-slide-num" class="text-gray-400">08</span>
+      </div>
+
+      <div class="w-28 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300" style="width: 12.5%;"></div>
+      </div>
+    </div>
+
+    <div id="dots-container" class="hidden md:flex items-center gap-2"></div>
+
+    <div class="flex items-center gap-2">
+      <button id="autoplay-btn" onclick="toggleAutoPlay()" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-gray-300 hover:text-white transition-all flex items-center gap-1.5 mr-1" title="Auto Play Presentation">
+        <svg id="autoplay-icon" class="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <span id="autoplay-text">Auto</span>
+      </button>
+
+      <button onclick="prevSlide()" class="p-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-gray-300 hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed" id="prev-btn" title="Previous Slide (←)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+      </button>
+
+      <button onclick="nextSlide()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-1.5" id="next-btn" title="Next Slide (→ or Space)">
+        <span>Next</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ── OVERVIEW LIGHT TABLE MODAL ─────────────────────────────────────── -->
+  <div id="overview-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl opacity-0 pointer-events-none transition-all duration-300 flex flex-col p-6 md:p-8">
+    <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+      <div>
+        <h3 class="text-lg font-bold text-white">Slide Index</h3>
+        <p class="text-xs text-gray-400">Click any slide card to jump directly</p>
+      </div>
+      <button onclick="toggleOverview()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto overview-grid pr-1" id="overview-cards"></div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let currentSlide = 0;
+    let autoPlayInterval = null;
+
+    const SLIDE_TITLES = [
+      "1. SnapSchool Vision & Trinity",
+      "2. The Problem vs SnapSchool",
+      "3. SnapSchool Web Command Center",
+      "4. SnapSchool Mobile App (0-Lag)",
+      "5. Meet Hnia AI (هنيّة)",
+      "6. Hnia AI: Telegram & Mobile Chat",
+      "7. Architecture & Performance",
+      "8. Summary & Next Steps"
+    ];
+
+    function initPresentation() {
+      const dotsContainer = document.getElementById('dots-container');
+      dotsContainer.innerHTML = '';
+      slides.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${i === 0 ? 'bg-blue-400 w-6' : 'bg-white/20 hover:bg-white/40'}`;
+        dot.title = SLIDE_TITLES[i];
+        dot.onclick = () => goToSlide(i);
+        dotsContainer.appendChild(dot);
+      });
+
+      const overviewCards = document.getElementById('overview-cards');
+      overviewCards.innerHTML = '';
+      slides.forEach((slide, i) => {
+        const card = document.createElement('div');
+        card.className = `glass-card p-4 rounded-xl cursor-pointer hover:border-blue-500 transition-all ${i === currentSlide ? 'border-blue-500 ring-2 ring-blue-500/30' : ''}`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-mono font-bold text-blue-400">SLIDE 0${i+1}</span>
+            <span class="text-[10px] text-gray-500 font-mono">#${i+1}</span>
+          </div>
+          <h4 class="text-sm font-bold text-white mb-1">${SLIDE_TITLES[i]}</h4>
+          <p class="text-[11px] text-gray-400">Jump to slide</p>
+        `;
+        card.onclick = () => {
+          goToSlide(i);
+          toggleOverview();
+        };
+        overviewCards.appendChild(card);
+      });
+
+      updateUI();
+    }
+
+    function goToSlide(index) {
+      if (index < 0 || index >= slides.length || index === currentSlide) return;
+
+      currentSlide = index;
+      slides.forEach((slide, i) => {
+        slide.classList.remove('active', 'prev');
+        if (i === currentSlide) {
+          slide.classList.add('active');
+        } else if (i < currentSlide) {
+          slide.classList.add('prev');
+        }
+      });
+
+      updateUI();
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        goToSlide(currentSlide + 1);
+      } else {
+        goToSlide(0);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        goToSlide(currentSlide - 1);
+      }
+    }
+
+    function updateUI() {
+      document.getElementById('current-slide-num').textContent = String(currentSlide + 1).padStart(2, '0');
+      document.getElementById('total-slide-num').textContent = String(slides.length).padStart(2, '0');
+
+      const progressPercent = ((currentSlide + 1) / slides.length) * 100;
+      document.getElementById('progress-bar-fill').style.width = `${progressPercent}%`;
+
+      const dots = document.querySelectorAll('#dots-container button');
+      dots.forEach((dot, i) => {
+        if (i === currentSlide) {
+          dot.className = 'w-6 h-2 rounded-full bg-blue-400 transition-all duration-300';
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300';
+        }
+      });
+
+      const prevBtn = document.getElementById('prev-btn');
+      prevBtn.disabled = currentSlide === 0;
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        goToSlide(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        goToSlide(slides.length - 1);
+      } else if (e.key.toLowerCase() === 'o' || e.key === 'Escape') {
+        toggleOverview();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      }
+    });
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, false);
+
+    window.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      if (Math.abs(touchEndX - touchStartX) > 50) {
+        if (touchEndX - touchStartX < 0) nextSlide();
+        else prevSlide();
+      }
+    }, false);
+
+    function toggleOverview() {
+      const modal = document.getElementById('overview-modal');
+      const isVisible = modal.classList.contains('opacity-100');
+      if (isVisible) {
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+      } else {
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function toggleAutoPlay() {
+      const btn = document.getElementById('autoplay-btn');
+      const text = document.getElementById('autoplay-text');
+
+      if (autoPlayInterval) {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = null;
+        text.textContent = 'Auto';
+        btn.classList.remove('bg-blue-600/30', 'border-blue-500');
+      } else {
+        autoPlayInterval = setInterval(() => nextSlide(), 7000);
+        text.textContent = 'Playing (7s)';
+        btn.classList.add('bg-blue-600/30', 'border-blue-500');
+      }
+    }
+
+    function replaceImage(event, targetImgId) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById(targetImgId).src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setWebScreenshot(filename) {
+      document.getElementById('mockup-web-img').src = `./assets/${filename}`;
+    }
+
+    initPresentation();
+  </script>
+</body>
+</html>
