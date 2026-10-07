@@ -270,17 +270,27 @@
   border-radius: 50%;
   background: #dde3ec;
 }
-.previewBarEnd {
-  font-size: 8px;
-  letter-spacing: 1px;
-  width: 60px;
-  text-align: right;
+.previewExpand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: #52637c;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
 }
 .previewImage {
   position: relative;
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
   aspect-ratio: 1.92;
   background: #f5f7fb;
   overflow: hidden;
+  cursor: zoom-in;
 }
 .screenshot {
   object-fit: cover;
@@ -288,8 +298,98 @@
 }
 .previewCaption {
   font-size: 11px;
-  color: #7b8799;
-  margin: 16px 0 0;
+  color: #52637c;
+  line-height: 1.55;
+  margin: 4px 0 0;
+}
+.previewSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 24px;
+  padding: 18px 4px 0;
+  text-align: left;
+}
+.previewEyebrow {
+  margin: 0;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.previewSummary ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.previewSummary li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #536175;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.previewSummary li svg {
+  flex: 0 0 auto;
+  color: #228c63;
+  margin-top: 1px;
+}
+.previewDialogBackdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgb(11 21 38 / 0.74);
+}
+.previewDialog {
+  width: min(1180px, 100%);
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.24);
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 30px 100px rgb(0 0 0 / 0.35);
+}
+.previewDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border-bottom: 1px solid #e8edf4;
+}
+.previewDialogHeader p {
+  margin: 0 0 2px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.previewDialogHeader strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+.previewDialogHeader button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: white;
+  color: #52637c;
+  cursor: pointer;
+}
+.previewDialog > img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .sectionHeading h2,
 .hnia h2,
@@ -843,8 +943,30 @@
   .previewCaption {
     font-size: 9px;
     line-height: 1.7;
-    padding: 0 14px;
-    margin-top: 12px;
+  }
+  .previewSummary {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px 4px 0;
+  }
+  .previewSummary ul {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .previewSummary li {
+    font-size: 10px;
+  }
+  .previewExpand {
+    font-size: 8px;
+  }
+  .previewDialogBackdrop {
+    padding: 14px;
+  }
+  .previewDialogHeader {
+    padding: 11px 12px;
+  }
+  .previewDialogHeader strong {
+    font-size: 13px;
   }
   .benefits {
     padding-top: 65px;

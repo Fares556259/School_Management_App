@@ -11,6 +11,7 @@ import {
   ChevronDown,
   GraduationCap,
   Menu,
+  Maximize2,
   Smartphone,
   Sparkles,
   Wallet,
@@ -24,19 +25,25 @@ const previews = [
     label: "Vue d’ensemble",
     src: "/landing/dashboard-command-center.png",
     alt: "Tableau de bord SnapSchool : effectifs, recettes et dépenses",
+    eyebrow: "Pilotage quotidien",
     caption: "Les chiffres essentiels de votre école, au même endroit.",
+    details: ["Recettes, dépenses et marge", "Élèves, enseignants et classes", "Décisions rapides, sans Excel"],
   },
   {
     label: "Finances",
     src: "/landing/finance-recovery.png",
     alt: "Suivi des paiements scolaires et des salaires dans SnapSchool",
+    eyebrow: "Suivi financier",
     caption: "Suivez les paiements, les impayés et les salaires en dinars.",
+    details: ["Échéances et impayés à relancer", "Paiements partiels et reçus", "Vue claire de la trésorerie"],
   },
   {
     label: "Emploi du temps",
     src: "/landing/timetable-grid.png",
     alt: "Emploi du temps bilingue par classe dans SnapSchool",
+    eyebrow: "Organisation scolaire",
     caption: "Organisez les cours, les enseignants et les salles.",
+    details: ["Une vue par classe", "Cours, enseignants et salles", "Conflits visibles avant publication"],
   },
 ];
 const plans = [
@@ -111,6 +118,7 @@ export default function Homepage() {
   const supabase = useMemo(() => createClient(), []);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePreview, setActivePreview] = useState(0);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const preview = previews[activePreview];
 
   useEffect(() => {
@@ -286,9 +294,21 @@ export default function Homepage() {
                     <span />
                   </div>
                   <span>Votre espace SnapSchool</span>
-                  <span className={styles.previewBarEnd}>APERÇU</span>
+                  <button
+                    className={styles.previewExpand}
+                    type="button"
+                    onClick={() => setPreviewExpanded(true)}
+                    aria-label={`Agrandir l’aperçu ${preview.label}`}
+                  >
+                    Agrandir <Maximize2 size={12} aria-hidden="true" />
+                  </button>
                 </div>
-                <div className={styles.previewImage}>
+                <button
+                  type="button"
+                  className={styles.previewImage}
+                  onClick={() => setPreviewExpanded(true)}
+                  aria-label={`Agrandir l’aperçu ${preview.label}`}
+                >
                   <Image
                     key={preview.src}
                     src={preview.src}
@@ -298,11 +318,22 @@ export default function Homepage() {
                     sizes="(max-width: 1100px) 92vw, 1040px"
                     className={styles.screenshot}
                   />
-                </div>
+                </button>
               </div>
-              <p className={styles.previewCaption} aria-live="polite">
-                {preview.caption}
-              </p>
+              <div className={styles.previewSummary} aria-live="polite">
+                <div>
+                  <p className={styles.previewEyebrow}>{preview.eyebrow}</p>
+                  <p className={styles.previewCaption}>{preview.caption}</p>
+                </div>
+                <ul>
+                  {preview.details.map((detail) => (
+                    <li key={detail}>
+                      <Check size={13} aria-hidden="true" />
+                      {detail}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </section>
@@ -551,6 +582,36 @@ export default function Homepage() {
           </Link>
         </section>
       </main>
+      {previewExpanded && (
+        <div
+          className={styles.previewDialogBackdrop}
+          role="presentation"
+          onMouseDown={() => setPreviewExpanded(false)}
+        >
+          <section
+            className={styles.previewDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Aperçu agrandi : ${preview.label}`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className={styles.previewDialogHeader}>
+              <div>
+                <p>{preview.eyebrow}</p>
+                <strong>{preview.label}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewExpanded(false)}
+                aria-label="Fermer l’aperçu"
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
+            <Image src={preview.src} alt={preview.alt} width={1024} height={540} priority />
+          </section>
+        </div>
+      )}
       <footer className={`${styles.container} ${styles.footer}`}>
         <Link href="/" className={styles.logo}>
           <span className={styles.logoMark}>
