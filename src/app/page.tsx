@@ -317,6 +317,7 @@ export default function Homepage() {
                     priority={activePreview === 0}
                     sizes="(max-width: 1100px) 92vw, 1040px"
                     className={styles.screenshot}
+                    unoptimized
                   />
                 </button>
               </div>
@@ -608,7 +609,14 @@ export default function Homepage() {
                 <X size={20} aria-hidden="true" />
               </button>
             </div>
-            <Image src={preview.src} alt={preview.alt} width={1024} height={540} priority />
+            <Image
+              src={preview.src}
+              alt={preview.alt}
+              width={1024}
+              height={540}
+              priority
+              unoptimized
+            />
           </section>
         </div>
       )}
