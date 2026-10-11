@@ -984,6 +984,12 @@ export const ar = {
     }
   },
   "attendancePage": {
+    "loadError": "تعذّر تحميل الحضور. حاول مجدداً.",
+    "retry": "إعادة المحاولة",
+    "saveError": "فشل الحفظ. تم الاحتفاظ بتعديلاتك.",
+    "noClasses": "لا توجد أقسام متاحة.",
+    "selectDate": "اختر تاريخاً.",
+
     "title": "الحضور",
     "dailyLogs": "السجلات اليومية",
     "viewMode": "وضع العرض",

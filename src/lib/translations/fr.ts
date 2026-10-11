@@ -984,6 +984,12 @@ export const fr = {
     }
   },
   "attendancePage": {
+    "loadError": "Impossible de charger les présences. Réessayez.",
+    "retry": "Réessayer",
+    "saveError": "Échec de l’enregistrement. Vos modifications sont conservées.",
+    "noClasses": "Aucune classe disponible.",
+    "selectDate": "Sélectionnez une date.",
+
     "title": "Présence",
     "dailyLogs": "Journaux Quotidiens",
     "viewMode": "Mode Vue",

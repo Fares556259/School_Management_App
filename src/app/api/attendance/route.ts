@@ -4,19 +4,9 @@ import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
 import { createAttendanceNotification, createAttendanceNotificationsBatch } from "@/lib/notifications";
 import { getSchoolId } from "@/lib/school";
+import { parseSchoolDay } from "@/lib/schoolDay";
 
 export const dynamic = "force-dynamic";
-
-// Map JS day number to Prisma Day enum
-const DAY_MAP: Record<number, string> = {
-  1: "MONDAY",
-  2: "TUESDAY",
-  3: "WEDNESDAY",
-  4: "THURSDAY",
-  5: "FRIDAY",
-  6: "SATURDAY",
-  0: "SUNDAY",
-};
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -24,18 +14,23 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get("classId");
   const dateStr = searchParams.get("date");
   const lessonIdParam = searchParams.get("lessonId");
+  const rosterView = searchParams.get("view") === "roster";
 
   if (!classId || !dateStr) {
     return NextResponse.json({ error: "Missing classId or date" }, { status: 400 });
   }
 
-  const parsedClassId = parseInt(classId);
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const dayStart = new Date(Date.UTC(year, month - 1, day));
-  const dayEnd = new Date(Date.UTC(year, month - 1, day + 1));
-
-  const dayNum = dayStart.getDay();
-  const dayEnum = DAY_MAP[dayNum] || "MONDAY";
+  const parsedClassId = Number(classId);
+  const calendarDay = parseSchoolDay(dateStr);
+  if (!Number.isSafeInteger(parsedClassId) || parsedClassId <= 0 || !calendarDay) {
+    return NextResponse.json({ error: "Invalid classId or date" }, { status: 400 });
+  }
+  const schoolClass = await prisma.class.findFirst({ where: { id: parsedClassId, schoolId }, select: { id: true } });
+  if (!schoolClass) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+  const dayStart = calendarDay.date;
+  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+  const dayEnum = calendarDay.day;
+  if (!dayEnum) return NextResponse.json({ students: [], lessons: [], assignments: [], resources: [] });
 
   const weekEnd = new Date(dayStart);
   weekEnd.setDate(weekEnd.getDate() + 1);
@@ -45,8 +40,9 @@ export async function GET(request: NextRequest) {
   // 1. Fetch slots first to quickly check if there are classes today
   const slots = await prisma.timetableSlot.findMany({
     where: {
+      schoolId,
       classId: parsedClassId,
-      day: dayEnum as any,
+      day: dayEnum,
       isDraft: false,
     },
     include: { subject: true },
@@ -66,7 +62,7 @@ export async function GET(request: NextRequest) {
   // 2. Parallelize remaining database queries
   const [lessonIds, students, recentAbsences, recentNotifications] = await Promise.all([
     prisma.lesson.findMany({
-      where: { schoolId, classId: parsedClassId, day: dayEnum as any },
+      where: { schoolId, classId: parsedClassId, day: dayEnum },
       select: { id: true, subjectId: true, name: true },
     }),
     prisma.student.findMany({
@@ -85,6 +81,7 @@ export async function GET(request: NextRequest) {
         },
         attendance: {
           where: {
+            schoolId,
             date: { gte: dayStart, lt: dayEnd },
           },
           select: { id: true, status: true, note: true, lessonId: true },
@@ -95,11 +92,13 @@ export async function GET(request: NextRequest) {
     }),
     prisma.attendance.findMany({
       where: {
-        date: { gte: weekStart, lte: weekEnd },
+        schoolId,
+        date: { gte: weekStart, lt: weekEnd },
         status: "ABSENT",
-        student: { classId: parsedClassId },
+        student: { schoolId, classId: parsedClassId },
       },
-      include: {
+      select: {
+        studentId: true, date: true,
         lesson: {
           select: {
             name: true,
@@ -111,6 +110,8 @@ export async function GET(request: NextRequest) {
     }),
     prisma.notification.findMany({
       where: {
+        schoolId,
+        student: { schoolId, classId: parsedClassId },
         type: "ATTENDANCE",
         createdAt: { gte: weekStart },
         studentId: { not: null }
@@ -119,34 +120,7 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  // Ensure each slot has a canonical Lesson record in the DB so realLessonId is never null
-  for (const s of slots) {
-    if (!s.subjectId) continue;
-    const expectedName = `${s.subject?.name || "Session"} - ${s.startTime}`;
-    let realLesson = lessonIds.find((l) => l.subjectId === s.subjectId && l.name === expectedName);
-    if (!realLesson) {
-      const anyTeacher = await prisma.teacher.findFirst({ where: { schoolId } });
-      try {
-        const createdLesson = await prisma.lesson.create({
-          data: {
-            name: expectedName,
-            day: dayEnum as any,
-            startTime: dayStart,
-            endTime: dayStart,
-            subjectId: s.subjectId,
-            classId: parsedClassId,
-            teacherId: s.teacherId || anyTeacher?.id || "",
-            schoolId,
-          },
-          select: { id: true, subjectId: true, name: true },
-        });
-        lessonIds.push(createdLesson);
-      } catch (err) {
-        console.warn("[GET /api/attendance] lesson creation warning:", err);
-      }
-    }
-  }
-
+  // Reading attendance must not create lessons. Missing slot lessons are resolved on save.
   const usedLegacyLessonIds = new Set<number>();
 
   const lessonsForUI = slots.map((s) => {
@@ -238,7 +212,9 @@ export async function GET(request: NextRequest) {
   const aggregatedStudents = students.map((s) => {
     const relevantAttendance = isAll
       ? s.attendance
-      : s.attendance.filter((a) => (targetLessonId ? (a.lessonId === targetLessonId || a.lessonId === null) : true));
+      : s.attendance.filter((a) => a.lessonId === null || (targetLessonId !== null && a.lessonId === targetLessonId));
+
+    if (rosterView) return s;
 
     if (isAll) {
       let finalStatus: string | null = null;
@@ -300,7 +276,7 @@ export async function GET(request: NextRequest) {
   let assignments: any[] = [];
   let resources: any[] = [];
 
-  if (targetLessonId) {
+  if (targetLessonId && !rosterView) {
     [assignments, resources] = await Promise.all([
       prisma.assignment.findMany({ where: { lessonId: targetLessonId, schoolId } }),
       prisma.resource.findMany({ where: { lessonId: targetLessonId, schoolId } }),
@@ -352,27 +328,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing records or date" }, { status: 400 });
     }
 
-    const [year, month, day] = date.split("-").map(Number);
-    const dayStart = new Date(Date.UTC(year, month - 1, day));
+    const calendarDay = parseSchoolDay(date);
+    if (!calendarDay?.day || !Array.isArray(records) || records.some(record =>
+      !record || typeof record.studentId !== "string" || !["PRESENT", "ABSENT", "LATE"].includes(record.status))) {
+      return NextResponse.json({ error: "Invalid attendance records or date" }, { status: 400 });
+    }
+    const studentIds = Array.from(new Set(records.map(record => record.studentId)));
+    const allowedStudents = await prisma.student.findMany({ where: { schoolId, id: { in: studentIds } }, select: { id: true, classId: true } });
+    if (allowedStudents.length !== studentIds.length) return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    const dayStart = calendarDay.date;
     let targetLessonId: number | null = null;
 
     if (lessonId && lessonId !== "ALL") {
       if (lessonId.startsWith("slot-")) {
         const slotId = parseInt(lessonId.replace("slot-", ""));
         const targetSlot = await prisma.timetableSlot.findFirst({
-          where: { id: slotId },
+          where: { id: slotId, schoolId, isDraft: false, day: calendarDay.day },
           include: { subject: true },
         });
+        if (!targetSlot?.subjectId || allowedStudents.some(student => student.classId !== targetSlot.classId)) {
+          return NextResponse.json({ error: "Invalid session" }, { status: 400 });
+        }
         if (targetSlot && targetSlot.subjectId) {
           const lessonName = `${targetSlot.subject?.name || "Session"} - ${targetSlot.startTime}`;
           let lesson = await prisma.lesson.findFirst({
-            where: { classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day, name: lessonName },
+            where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day, name: lessonName },
           });
 
           if (!lesson) {
             // Fallback: check if there's an old lesson without the time suffix
             const oldLesson = await prisma.lesson.findFirst({
-              where: { classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
+              where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day }
             });
             
             if (oldLesson && oldLesson.name === (targetSlot.subject?.name || "Session")) {
@@ -401,14 +387,18 @@ export async function POST(request: NextRequest) {
           targetLessonId = lesson.id;
         }
       } else {
-        targetLessonId = parseInt(lessonId);
+        targetLessonId = Number(lessonId);
+        if (!Number.isSafeInteger(targetLessonId) || targetLessonId <= 0) return NextResponse.json({ error: "Invalid session" }, { status: 400 });
+        const lesson = await prisma.lesson.findFirst({ where: { id: targetLessonId, schoolId, day: calendarDay.day }, select: { classId: true } });
+        if (!lesson || allowedStudents.some(student => student.classId !== lesson.classId)) return NextResponse.json({ error: "Invalid session" }, { status: 400 });
       }
     }
 
     // Optimize DB writes: single findMany + bulk update & createMany
-    const studentIds = records.map((r) => r.studentId);
+
     const existingRecords = await prisma.attendance.findMany({
       where: {
+        schoolId,
         studentId: { in: studentIds },
         date: dayStart,
         lessonId: targetLessonId,

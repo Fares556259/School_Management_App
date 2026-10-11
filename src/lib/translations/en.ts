@@ -984,6 +984,12 @@ export const en = {
     }
   },
   "attendancePage": {
+    "loadError": "Unable to load attendance. Please try again.",
+    "retry": "Try again",
+    "saveError": "Save failed. Your changes are still available.",
+    "noClasses": "No classes available.",
+    "selectDate": "Select a date.",
+
     "title": "Attendance",
     "dailyLogs": "Daily Logs",
     "viewMode": "View Mode",

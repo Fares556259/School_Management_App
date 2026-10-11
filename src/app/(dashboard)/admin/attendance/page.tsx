@@ -15,10 +15,12 @@ import {
   Users,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getUserAvatar } from "@/lib/avatar";
+import { fetchAttendanceJson, selectAttendanceSession } from "@/lib/attendanceRoster";
 
 type Status = "PRESENT" | "ABSENT" | "LATE" | null;
 
@@ -36,13 +38,15 @@ interface StudentRow {
     surname: string;
     phone: string;
   };
-  attendance: { id: number; status: string; note: string | null }[];
+  attendance: { id: number; status: string; note: string | null; lessonId?: number | null }[];
 }
 
 interface ClassOption {
   id: number;
   name: string;
 }
+
+const EMPTY_LESSONS: any[] = [];
 
 const getStatusConfig = (t: any) => ({
   PRESENT: { label: t.attendancePage?.present || "Present", pill: "bg-emerald-50 text-emerald-600 border border-emerald-200/50" },
@@ -52,17 +56,21 @@ const getStatusConfig = (t: any) => ({
 
 export default function AttendancePage() {
   const { t } = useLanguage();
-  const [classes, setClasses] = useState<ClassOption[]>([]);
+
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  });
   const [students, setStudents] = useState<StudentRow[]>([]);
-  const [lessons, setLessons] = useState<any[]>([]);
+
   const [selectedLesson, setSelectedLesson] = useState<string>("ALL");
   const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [notes, setNotes] = useState<Record<string, { author: string; text: string }[]>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadedKey, setLoadedKey] = useState("");
+  const [saveError, setSaveError] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Status | "ALL">("ALL");
@@ -72,51 +80,40 @@ export default function AttendancePage() {
 
   const queryClient = useQueryClient();
 
-  const { data: classesData, isLoading: isClassesLoading } = useQuery({
+  const classesQuery = useQuery<ClassOption[]>({
     queryKey: ["attendanceClasses"],
-    queryFn: async () => {
-      const res = await fetch("/api/attendance/classes");
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    }
+    queryFn: ({ signal }) => fetchAttendanceJson<ClassOption[]>("/api/attendance/classes", signal),
+    retry: 1,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
-
-  useEffect(() => {
-    if (classesData) {
-      setClasses(classesData);
-      if (classesData.length > 0 && !selectedClass) {
-        setSelectedClass(String(classesData[0].id));
-      }
-    }
-  }, [classesData, selectedClass]);
-
-  const { data: studentsData, isLoading: isStudentsLoading, isFetching } = useQuery({
-    queryKey: ["attendanceStudents", selectedClass, date, selectedLesson],
-    queryFn: async () => {
-      if (!selectedClass) return null;
-      const res = await fetch(`/api/attendance?classId=${selectedClass}&date=${date}&lessonId=${selectedLesson}`);
-      return await res.json();
-    },
-    enabled: !!selectedClass,
+  const classes = classesQuery.data || [];
+  const classId = selectedClass || (classes[0] ? String(classes[0].id) : "");
+  const rosterQuery = useQuery<{ students: StudentRow[]; lessons: any[] }>({
+    queryKey: ["attendanceRoster", classId, date],
+    queryFn: ({ signal }) => fetchAttendanceJson(`/api/attendance?classId=${classId}&date=${date}&view=roster`, signal),
+    enabled: !!classId && !!date,
+    retry: 1,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
+  const studentsData = rosterQuery.data;
+  const lessons = studentsData?.lessons || EMPTY_LESSONS;
+  const activeLesson = lessons.some(l => String(l.id) === selectedLesson)
+    ? selectedLesson : (lessons[0] ? String(lessons[0].id) : "");
+  const rosterKey = `${classId}:${date}:${activeLesson}`;
+  const loadError = classesQuery.isError || rosterQuery.isError;
+  const loading = !loadError && (classesQuery.isPending || (!!classId && !!date &&
+    (rosterQuery.isPending || loadedKey !== rosterKey)));
+  const ready = !loading && !loadError && !!classId && !!date && lessons.length > 0;
 
   const resetState = useCallback(() => {
     if (!studentsData) return;
     setIsDirty(false);
     
-    const fetchedLessons = studentsData?.lessons || [];
-    setLessons(fetchedLessons);
-
-    if (fetchedLessons.length > 0) {
-      const firstLessonId = String(fetchedLessons[0].id);
-      if (selectedLesson === "ALL" || !fetchedLessons.find((l: any) => String(l.id) === selectedLesson)) {
-        if (selectedLesson !== firstLessonId) setSelectedLesson(firstLessonId);
-      }
-    } else if (selectedLesson !== "") {
-      setSelectedLesson("");
-    }
-
-    const studentsArray = Array.isArray(studentsData?.students) ? studentsData.students : Array.isArray(studentsData) ? studentsData : [];
+    const studentsArray = selectAttendanceSession(studentsData.students, lessons, activeLesson);
     setStudents(studentsArray);
 
     const initialStatuses: Record<string, Status> = {};
@@ -135,12 +132,8 @@ export default function AttendancePage() {
     });
     setStatuses(initialStatuses);
     setNotes(initialNotes);
-  }, [studentsData, selectedLesson]);
-
-  useEffect(() => {
-    // Sync loading state for UI
-    setLoading(isStudentsLoading || isFetching);
-  }, [isStudentsLoading, isFetching]);
+    setLoadedKey(rosterKey);
+  }, [studentsData, lessons, activeLesson, rosterKey]);
 
   useEffect(() => {
     resetState();
@@ -148,7 +141,8 @@ export default function AttendancePage() {
 
 
   const handleSave = async () => {
-    if (!isDirty) return;
+    if (!isDirty || !ready) return;
+    setSaveError(false);
     setSaving(true);
     const records = students.filter(s => statuses[s.id]).map(s => {
       const studentNotes = (notes[s.id] || []).filter(n => n.text.trim() !== "");
@@ -160,20 +154,23 @@ export default function AttendancePage() {
     });
 
     try {
-      await fetch("/api/attendance", {
+      const response = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ records, date, lessonId: selectedLesson }),
+        body: JSON.stringify({ records, date, lessonId: activeLesson }),
       });
       
+      if (!response.ok || !(await response.json()).success) throw new Error("Attendance save failed");
+
       // Invalidate query to ensure fresh data next time
-      queryClient.invalidateQueries({ queryKey: ["attendanceStudents", selectedClass, date, selectedLesson] });
+      queryClient.invalidateQueries({ queryKey: ["attendanceRoster", classId, date] });
       
       setSaved(true);
       setIsDirty(false);
       setTimeout(() => setSaved(false), 3000);
       setIsEditMode(false);
     } catch (e) {
+      setSaveError(true);
       console.error(e);
     } finally {
       setSaving(false);
@@ -239,8 +236,9 @@ export default function AttendancePage() {
             {!isEditMode ? (
               <>
                 <button 
+                  disabled={!ready}
                   onClick={() => setIsEditMode(true)}
-                  className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm"
+                  className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Edit2 size={14} className="text-white/80" /> {t.attendancePage?.overrideRecords || "Override Records"}
                 </button>
@@ -263,7 +261,7 @@ export default function AttendancePage() {
                 </button>
                 <button 
                   onClick={handleSave}
-                  disabled={saving || !isDirty}
+                  disabled={saving || !isDirty || !ready}
                   className="px-4 py-2.5 rounded-[6px] font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? (t.attendancePage?.saving || "Saving...") : saved ? (t.attendancePage?.saved || "Saved!") : <><Check size={14} /> {t.attendancePage?.saveChanges || "Save Changes"}</>}
@@ -282,8 +280,10 @@ export default function AttendancePage() {
             <div className="relative inline-flex items-center">
               <select 
                 className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none cursor-pointer pr-5 appearance-none"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                value={classId}
+                disabled={classesQuery.isPending || isEditMode || saving}
+                aria-label={t.attendancePage?.class || "Class"}
+                onChange={(e) => { setSelectedClass(e.target.value); setSelectedLesson("ALL"); setSaveError(false); }}
               >
                 {classes.map(c => <option key={c.id} value={c.id} className="bg-white">{c.name}</option>)}
               </select>
@@ -297,7 +297,9 @@ export default function AttendancePage() {
             <input 
               type="date" 
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              disabled={isEditMode || saving}
+              aria-label={t.attendancePage?.date || "Date"}
+              onChange={(e) => { setDate(e.target.value); setSelectedLesson("ALL"); setSaveError(false); }}
               className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none"
             />
           </div>
@@ -308,11 +310,12 @@ export default function AttendancePage() {
             <div className="relative inline-flex items-center">
               <select 
                 className="bg-transparent border-0 text-[13px] font-medium text-[#181d26] focus:outline-none cursor-pointer pr-5 appearance-none disabled:opacity-50"
-                value={selectedLesson}
-                onChange={(e) => setSelectedLesson(e.target.value)}
-                disabled={lessons.length === 0}
+                value={activeLesson}
+                aria-label={t.attendancePage?.session || "Session"}
+                onChange={(e) => { setSelectedLesson(e.target.value); setSaveError(false); }}
+                disabled={!ready || isEditMode || saving}
               >
-                {lessons.length === 0 && <option value="">{t.attendancePage?.noSessions || "No sessions"}</option>}
+                {lessons.length === 0 && <option value="">{loading ? t.attendancePage.loadingRecords : (t.attendancePage?.noSessions || "No sessions")}</option>}
                 {lessons.map((l) => {
                   const fullName = l.subject?.name || l.name || "";
                   const arabicName = fullName.split("|")[0].trim();
@@ -331,7 +334,24 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      {lessons.length === 0 && !loading ? (
+      {saveError && <p role="alert" className="text-sm text-rose-700">{t.attendancePage.saveError}</p>}
+      {loadError ? (
+        <div role="alert" className="flex flex-col items-center gap-4 py-20 bg-rose-50 border border-rose-200 rounded-xl">
+          <AlertCircle className="text-rose-600" />
+          <p className="text-sm text-rose-800">{t.attendancePage.loadError}</p>
+          <button className="px-4 py-2 border rounded-md bg-white" onClick={() => {
+            if (classesQuery.isError) void classesQuery.refetch();
+            if (rosterQuery.isError) void rosterQuery.refetch();
+          }}>{t.attendancePage.retry}</button>
+        </div>
+      ) : loading ? (
+        <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 py-24 bg-slate-50 border rounded-xl">
+          <Loader2 className="animate-spin text-indigo-600" size={28} />
+          <p className="text-sm text-slate-600">{t.attendancePage.loadingRecords}</p>
+        </div>
+      ) : !classId || !date ? (
+        <p className="text-sm text-slate-600 py-16 text-center">{!classId ? t.attendancePage.noClasses : t.attendancePage.selectDate}</p>
+      ) : lessons.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 bg-[#f8fafc] border border-[#dddddd] rounded-[12px] mt-2 flex-1">
           <div className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-4 shadow-sm">
             <Clock size={28} className="text-indigo-600" />
