@@ -12,6 +12,7 @@ interface Option {
 interface SearchableSelectProps {
   options: Option[];
   name: string;
+  id?: string;
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
@@ -23,6 +24,7 @@ interface SearchableSelectProps {
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
   options = [],
   name,
+  id,
   placeholder = "Search and select...",
   defaultValue = "",
   required = false,
@@ -94,6 +96,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
       {/* Search Input Field */}
       <div className="relative">
         <input
+          id={id}
           type="text"
           value={searchTerm}
           onChange={handleInputChange}

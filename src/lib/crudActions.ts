@@ -10,7 +10,8 @@ import { revalidatePath } from "next/cache";
 import { invalidateTenantTags } from "@/lib/cache";
 import { createAuditLog } from "@/lib/audit";
 import { createAssignmentNotification, createResourceNotification } from "./notifications";
-import { UserSex } from "@prisma/client";
+import { UserSex, type Prisma } from "@prisma/client";
+import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProfile";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -269,12 +270,21 @@ export const createStudent = async (data: {
   img?: string | null;
 }) => {
   try {
+    const schoolId = await getStudentAdminSchool();
+    const nationalId = normalizeStudentNationalId(data.nationalId) ?? null;
     const id = crypto.randomUUID();
 
     // Auto-fetch levelId from class or resolve DB level PK
-    let finalClassId = data.classId && data.classId !== "null" && data.classId !== "" ? parseInt(String(data.classId)) : null;
+    const finalClassId = data.classId && data.classId !== "null" && data.classId !== "" ? Number(data.classId) : null;
+    if (finalClassId !== null && (!Number.isSafeInteger(finalClassId) || finalClassId <= 0)) throw new Error("Invalid class.");
 
-    const schoolId = await getSchoolId();
+    const finalParentId = data.parentId && data.parentId !== "null" ? data.parentId : null;
+    const [targetClass, parent] = await Promise.all([
+      finalClassId ? prisma.class.findFirst({ where: { id: finalClassId, schoolId }, select: { levelId: true } }) : null,
+      finalParentId ? prisma.parent.findFirst({ where: { id: finalParentId, schoolId }, select: { id: true } }) : null,
+    ]);
+    if (finalClassId && !targetClass) throw new Error("Class not found.");
+    if (finalParentId && !parent) throw new Error("Parent not found.");
 
     let dbLevel = data.levelId
       ? await prisma.level.findFirst({ where: { id: data.levelId, schoolId } })
@@ -285,10 +295,6 @@ export const createStudent = async (data: {
     }
 
     if (!dbLevel && finalClassId) {
-      const targetClass = await prisma.class.findUnique({
-        where: { id: finalClassId },
-        select: { levelId: true }
-      });
       if (targetClass?.levelId) {
         dbLevel = await prisma.level.findFirst({ where: { id: targetClass.levelId, schoolId } });
       }
@@ -309,8 +315,6 @@ export const createStudent = async (data: {
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
-    const finalParentId = data.parentId && data.parentId !== "null" && data.parentId !== "" ? data.parentId : null;
-
     await prisma.student.create({
       data: {
         schoolId,
@@ -326,8 +330,8 @@ export const createStudent = async (data: {
         parentId: finalParentId,
         classId: finalClassId,
         levelId: finalLevelId,
-        customTuition: data.customTuition || null,
-        nationalId: data.nationalId ? String(data.nationalId).trim() : null,
+        customTuition: data.customTuition ?? null,
+        nationalId,
         img: data.img || (data.sex === "FEMALE" ? "/avatars/student_female.jpg" : "/avatars/student_male.jpg"),
       },
     });
@@ -522,12 +526,12 @@ export const updateStudent = async (
     username: string;
     name: string;
     surname: string;
-    phone: string;
+    phone: string | null;
     address: string;
     bloodType: string;
     birthday: string;
     sex: "MALE" | "FEMALE";
-    parentId: string;
+    parentId: string | null;
     classId: number | string | null;
     levelId?: number;
     customTuition?: number | null;
@@ -536,30 +540,45 @@ export const updateStudent = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
-    const updateData: any = { ...data };
-    if (data.birthday) {
-      updateData.birthday = new Date(data.birthday);
-    } else {
-      delete updateData.birthday;
-    }
+    const schoolId = await getStudentAdminSchool();
+    const student = await prisma.student.findFirst({ where: { id, schoolId }, select: { id: true } });
+    if (!student) throw new Error("Student not found.");
 
-    // Auto-update levelId if classId changed
-    if ('classId' in data) {
-      if (data.classId && data.classId !== "null" && data.classId !== "") {
-        const parsedClassId = parseInt(String(data.classId));
-        updateData.classId = parsedClassId;
-        const targetClass = await prisma.class.findUnique({
-          where: { id: parsedClassId },
-          select: { levelId: true }
-        });
-        if (targetClass) updateData.levelId = targetClass.levelId;
+    // Whitelist scalar profile fields; never accept a schoolId or relation payload.
+    const updateData: Prisma.StudentUncheckedUpdateInput = {};
+    for (const key of ["username", "name", "surname", "phone", "address", "bloodType", "sex", "customTuition", "img"] as const) {
+      if (data[key] !== undefined) Object.assign(updateData, { [key]: data[key] });
+    }
+    if (data.nationalId !== undefined) updateData.nationalId = normalizeStudentNationalId(data.nationalId);
+    if (data.birthday) updateData.birthday = new Date(data.birthday);
+
+    if (data.levelId !== undefined) {
+      const level = await prisma.level.findFirst({ where: { id: data.levelId, schoolId }, select: { id: true } });
+      if (!level) throw new Error("Level not found.");
+      updateData.levelId = level.id;
+    }
+    if (data.classId !== undefined) {
+      if (data.classId && data.classId !== "null") {
+        const classId = Number(data.classId);
+        if (!Number.isSafeInteger(classId) || classId <= 0) throw new Error("Invalid class.");
+        const targetClass = await prisma.class.findFirst({ where: { id: classId, schoolId }, select: { levelId: true } });
+        if (!targetClass) throw new Error("Class not found.");
+        updateData.classId = classId;
+        updateData.levelId = targetClass.levelId;
       } else {
         updateData.classId = null;
       }
     }
+    if (data.parentId !== undefined) {
+      const parentId = data.parentId && data.parentId !== "null" ? data.parentId : null;
+      if (parentId) {
+        const parent = await prisma.parent.findFirst({ where: { id: parentId, schoolId }, select: { id: true } });
+        if (!parent) throw new Error("Parent not found.");
+      }
+      updateData.parentId = parentId;
+    }
 
-    await prisma.student.update({ where: { id }, data: updateData });
+    await prisma.student.update({ where: { id, schoolId }, data: updateData });
     await createAuditLog({
       action: "UPDATE_STUDENT",
       entityType: "Student",

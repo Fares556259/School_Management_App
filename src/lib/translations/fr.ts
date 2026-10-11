@@ -603,7 +603,23 @@ export const fr = {
     "pdfDocument": "Document PDF",
     "incomeDetails": "Détails du revenu",
     "expenseDetails": "Détails de la dépense",
+    "studentProfile": {
+      "uploadPhoto": "Ajouter une photo",
+      "editDescription": "Identité, scolarité et coordonnées de l’élève.",
+      "createDescription": "Complétez le dossier de l’élève. Les champs marqués * sont obligatoires.",
+      "identity": "Identité de l’élève",
+      "enrollment": "Scolarité et responsable",
+      "contact": "Coordonnées",
+      "tuition": "Frais de scolarité",
+      "nationalIdHint": "المعرّف الوحيد · Facultatif. Vous pouvez le renseigner ou le corriger à tout moment.",
+      "tuitionHint": "Sans tarif spécial, les frais définis pour le niveau de l’élève s’appliquent.",
+      "optional": "Facultatif",
+      "requiredHint": "* Champs obligatoires",
+      "searchParent": "Rechercher un parent…",
+      "photoHint": "Une photo permet de reconnaître l’élève plus facilement."
+    },
     "fields": {
+      "Unique Student Identifier": "Identifiant unique",
       "Subject Name": "Nom de la matière",
       "Domain / Category": "Domaine / Catégorie",
       "Arabic | Français | English e.g. الرياضيات | Mathématiques | Mathematics": "Arabe | Français | Anglais (ex: الرياضيات | Mathématiques | Mathematics)",

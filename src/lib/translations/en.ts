@@ -603,7 +603,23 @@ export const en = {
     "pdfDocument": "PDF Document",
     "incomeDetails": "Income Details",
     "expenseDetails": "Expense Details",
+    "studentProfile": {
+      "uploadPhoto": "Upload a photo",
+      "editDescription": "Student identity, enrollment and contact details.",
+      "createDescription": "Complete the student profile. Fields marked * are required.",
+      "identity": "Student identity",
+      "enrollment": "Enrollment and guardian",
+      "contact": "Contact details",
+      "tuition": "Tuition fees",
+      "nationalIdHint": "المعرّف الوحيد · Optional. You can add or correct it at any time.",
+      "tuitionHint": "Without a special rate, the tuition set for the student’s level applies.",
+      "optional": "Optional",
+      "requiredHint": "* Required fields",
+      "searchParent": "Search for a parent…",
+      "photoHint": "A photo makes the student easier to recognize."
+    },
     "fields": {
+      "Unique Student Identifier": "Unique student identifier",
       "Subject Name": "Subject Name",
       "Domain / Category": "Domain / Category",
       "Arabic | Français | English e.g. الرياضيات | Mathématiques | Mathematics": "Arabic | Français | English e.g. الرياضيات | Mathématiques | Mathematics",

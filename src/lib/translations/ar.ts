@@ -603,7 +603,23 @@ export const ar = {
     "pdfDocument": "ملف PDF",
     "incomeDetails": "تفاصيل الدخل",
     "expenseDetails": "تفاصيل المصروف",
+    "studentProfile": {
+      "uploadPhoto": "إضافة صورة",
+      "editDescription": "هوية التلميذ وتسجيله وبيانات التواصل.",
+      "createDescription": "أكمل ملف التلميذ. الحقول المعلّمة بـ * إلزامية.",
+      "identity": "هوية التلميذ",
+      "enrollment": "التسجيل والولي",
+      "contact": "بيانات التواصل",
+      "tuition": "معلوم الدراسة",
+      "nationalIdHint": "اختياري. يمكنك إضافة المعرّف الوحيد أو تصحيحه في أي وقت.",
+      "tuitionHint": "عند عدم تحديد معلوم خاص، يُعتمد المعلوم المخصص لمستوى التلميذ.",
+      "optional": "اختياري",
+      "requiredHint": "* حقول إلزامية",
+      "searchParent": "ابحث عن ولي…",
+      "photoHint": "تساعد الصورة على التعرف على التلميذ بسهولة."
+    },
     "fields": {
+      "Unique Student Identifier": "المعرّف الوحيد",
       "Subject Name": "اسم المادة",
       "Domain / Category": "المجال / الفئة",
       "Arabic | Français | English e.g. الرياضيات | Mathématiques | Mathematics": "عربي | فرنسي | إنجليزي (مثل: الرياضيات | Mathématiques | Mathematics)",
