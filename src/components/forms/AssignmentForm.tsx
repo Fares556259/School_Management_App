@@ -3,12 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import InputField from "../InputField";
 import { createAssignment, updateAssignment } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { compressImageFiles } from "@/lib/imageCompression";
 import { toast } from "react-toastify";
+import { fetchAttendanceJson } from "@/lib/attendanceRoster";
 
 function getTranslatedSubject(subjectStr: string, locale: string): string {
   if (!subjectStr) return "";
@@ -26,7 +28,7 @@ const schema = z.object({
   description: z.string().optional(),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
-  lessonId: z.coerce.number().min(1, { message: "Lesson is required!" }),
+  lessonId: z.union([z.coerce.number().int().positive(), z.string().regex(/^slot-[1-9]\d*$/)], { message: "Lesson is required!" }),
 });
 
 type Inputs = z.infer<typeof schema>;
@@ -39,14 +41,26 @@ const AssignmentForm = ({
   data?: any;
   relatedData?: any;
 }) => {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>(data?.classId ? data.classId.toString() : "");
+  const [selectedClassId, setSelectedClassId] = useState<string>(String(data?.classId || data?.lesson?.classId || ""));
   const [isPending, startTransition] = useTransition();
-  const [lessons, setLessons] = useState<any[]>([]);
   const [imgs, setImgs] = useState<string[]>(data?.img ? data.img.split(",") : []);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const { t, locale } = useLanguage();
+  const classesQuery = useQuery<any[]>({
+    queryKey: ["attendanceClasses"],
+    queryFn: ({ signal }) => fetchAttendanceJson("/api/attendance/classes", signal),
+    staleTime: 60_000, retry: 1,
+  });
+  const lessonsQuery = useQuery<any[]>({
+    queryKey: ["assignmentLessonOptions", selectedClassId],
+    queryFn: ({ signal }) => fetchAttendanceJson(`/api/assignment-lessons${selectedClassId ? `?classId=${selectedClassId}` : ""}`, signal),
+    staleTime: 30_000, retry: 1,
+    refetchOnWindowFocus: false,
+  });
+  const classes = classesQuery.data || [];
+  const lessons = lessonsQuery.data || [];
+  const optionsLoading = classesQuery.isPending || lessonsQuery.isPending;
+  const optionsError = classesQuery.isError || lessonsQuery.isError;
 
   const {
     register,
@@ -66,39 +80,7 @@ const AssignmentForm = ({
   });
 
   const watchedLessonId = watch("lessonId");
-
-  useEffect(() => {
-    if (watchedLessonId && lessons.length > 0) {
-      const lesson = lessons.find(l => l.id.toString() === watchedLessonId.toString());
-      setSelectedLesson(lesson);
-    } else if (data?.lessonId && lessons.length > 0) {
-      // Fallback to data.lessonId if watch hasn't picked it up yet
-      const lesson = lessons.find(l => l.id.toString() === data.lessonId.toString());
-      setSelectedLesson(lesson);
-    } else {
-      setSelectedLesson(null);
-    }
-  }, [watchedLessonId, lessons, data?.lessonId]);
-
-  useEffect(() => {
-    // Fetch classes
-    fetch("/api/attendance/classes")
-      .then(res => res.json())
-      .then(data => setClasses(data))
-      .catch(err => console.error("Error fetching classes:", err));
-  }, []);
-
-  // Update lessons when class changes
-  useEffect(() => {
-    const url = selectedClassId 
-      ? `/api/lessons?classId=${selectedClassId}&skipSync=true`
-      : "/api/lessons?skipSync=true";
-      
-    fetch(url)
-      .then(res => res.json())
-      .then(data => setLessons(Array.isArray(data) ? data : []))
-      .catch(err => console.error("Error filtering lessons:", err));
-  }, [selectedClassId]);
+  const selectedLesson = lessons.find(lesson => String(lesson.id) === String(watchedLessonId));
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFiles = e.target.files ? Array.from(e.target.files) : [];
@@ -147,6 +129,7 @@ const AssignmentForm = ({
   };
 
   const onSubmit = handleSubmit((formData) => {
+    if (optionsLoading || optionsError || !selectedLesson) return;
     startTransition(async () => {
       const imgString = imgs.join(",");
       const now = new Date();
@@ -203,9 +186,11 @@ const AssignmentForm = ({
           <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.selectClass}</label>
           <div className="relative">
             <select
+              aria-label={t.assignmentsPage.modal.selectClass}
               className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white appearance-none text-[#181d26] cursor-pointer pr-10"
               value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
+              disabled={classesQuery.isPending || isPending}
+              onChange={(e) => { setSelectedClassId(e.target.value); setValue("lessonId", "", { shouldDirty: true }); }}
             >
               <option value="">{t.assignmentsPage.modal.allClasses}</option>
               {classes.map((c) => (
@@ -223,9 +208,12 @@ const AssignmentForm = ({
           <div className="relative">
             <select
               {...register("lessonId")}
+              aria-label={t.assignmentsPage.modal.selectLesson}
+              value={watchedLessonId || ""}
+              disabled={optionsLoading || optionsError || isPending}
               className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white appearance-none text-[#181d26] cursor-pointer pr-10"
             >
-              <option value="">{t.assignmentsPage.modal.selectLessonPlaceholder}</option>
+              <option value="">{optionsLoading ? t.assignmentsPage.modal.loadingLessons : t.assignmentsPage.modal.selectLessonPlaceholder}</option>
               {lessons.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
                   {getTranslatedSubject(lesson.subject?.name, locale)} ({lesson.class?.name}) - {lesson.teacher?.name} {lesson.teacher?.surname}
@@ -236,6 +224,16 @@ const AssignmentForm = ({
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
           </div>
+          {optionsError ? (
+            <div role="alert" className="text-sm text-rose-700">
+              {t.assignmentsPage.modal.optionsLoadError}
+              <button type="button" className="ml-2 underline" onClick={() => {
+                if (classesQuery.isError) void classesQuery.refetch();
+                if (lessonsQuery.isError) void lessonsQuery.refetch();
+              }}>{t.assignmentsPage.modal.retryOptions}</button>
+            </div>
+          ) : optionsLoading ? <p role="status" className="text-xs text-slate-500">{t.assignmentsPage.modal.loadingLessons}</p>
+            : lessons.length === 0 ? <p className="text-xs text-slate-500">{t.assignmentsPage.modal.noLessons}</p> : null}
           {errors.lessonId?.message && (
             <p className="text-[10px] text-rose-500 mt-1">{errors.lessonId.message.toString()}</p>
           )}
@@ -314,7 +312,7 @@ const AssignmentForm = ({
 
       <button
         className="bg-[#181d26] hover:bg-[#0d1218] text-white py-2.5 px-4 rounded-[6px] text-[13px] font-medium transition-all mt-4 disabled:opacity-50"
-        disabled={isPending || isUploading}
+        disabled={isPending || isUploading || optionsLoading || optionsError || !selectedLesson}
       >
         {isPending ? t.assignmentsPage.modal.processing : type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}
       </button>

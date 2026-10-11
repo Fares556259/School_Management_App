@@ -2,6 +2,7 @@
 
 import { getSchoolId } from "@/lib/school";
 import { DEFAULT_SUBJECTS } from "./subjectConstants";
+import { getAssignmentAccess, resolveAssignmentLesson } from "./assignmentLessons";
 
 
 import prisma from "@/lib/prisma";
@@ -1722,11 +1723,14 @@ export const createAssignment = async (data: {
   img?: string;
   startDate: string;
   dueDate: string;
-  lessonId: number;
+  lessonId: number | string;
 }) => {
   try {
-    const schoolId = await getSchoolId();
-    const assignment = await prisma.assignment.create({
+    const access = await getAssignmentAccess();
+    const { schoolId } = access;
+    const assignment = await prisma.$transaction(async tx => {
+      const lessonId = await resolveAssignmentLesson(tx, access, data.lessonId);
+      return tx.assignment.create({
         data: {
           schoolId,
           title: data.title,
@@ -1734,15 +1738,16 @@ export const createAssignment = async (data: {
           img: data.img || null,
           startDate: new Date(data.startDate),
           dueDate: new Date(data.dueDate),
-          lessonId: data.lessonId,
+          lessonId,
         },
+      });
     });
 
     await createAuditLog({
       action: "CREATE_ASSIGNMENT",
       entityType: "Assignment",
       entityId: assignment.id.toString(),
-      description: `Created new assignment: ${data.title} (Lesson ID: ${data.lessonId})`,
+      description: `Created new assignment: ${data.title} (Lesson ID: ${assignment.lessonId})`,
     });
 
     // Trigger Notifications
@@ -1766,15 +1771,28 @@ export const updateAssignment = async (
     img: string;
     startDate: string;
     dueDate: string;
-    lessonId: number;
+    lessonId: number | string;
   }>
 ) => {
   try {
-    const updateData: any = { ...data };
+    const access = await getAssignmentAccess();
+    const { schoolId } = access;
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.img !== undefined) updateData.img = data.img;
     if (data.startDate) updateData.startDate = new Date(data.startDate);
     if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
 
-    await prisma.assignment.update({ where: { id }, data: updateData });
+    await prisma.$transaction(async tx => {
+      const existing = await tx.assignment.findFirst({
+        where: { id, schoolId, ...(access.teacherId ? { lesson: { teacherId: access.teacherId, schoolId } } : {}) },
+        select: { id: true },
+      });
+      if (!existing) throw new Error("Assignment not found");
+      if (data.lessonId !== undefined) updateData.lessonId = await resolveAssignmentLesson(tx, access, data.lessonId);
+      await tx.assignment.update({ where: { id: existing.id }, data: updateData });
+    });
     
     await createAuditLog({
       action: "UPDATE_ASSIGNMENT",
@@ -1783,7 +1801,6 @@ export const updateAssignment = async (
       description: `Updated assignment: ${id}`,
     });
 
-    const schoolId = await getSchoolId();
     invalidateTenantTags(schoolId, 'assignments');
     revalidatePath("/list/assignments");
     revalidatePath("/admin/attendance");
