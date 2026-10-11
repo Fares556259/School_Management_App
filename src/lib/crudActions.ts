@@ -11,6 +11,7 @@ import { invalidateTenantTags } from "@/lib/cache";
 import { createAuditLog } from "@/lib/audit";
 import { createAssignmentNotification, createResourceNotification } from "./notifications";
 import { UserSex, type Prisma } from "@prisma/client";
+import { withUniqueStudentIdentifiers } from "./studentIdentifier";
 import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProfile";
 
 // ===================== TEACHER =====================
@@ -315,7 +316,7 @@ export const createStudent = async (data: {
     const finalUsername = data.username || 
       `${data.name.toLowerCase()}.${data.surname.toLowerCase()}.${Math.floor(Math.random() * 1000)}`;
 
-    await prisma.student.create({
+    await withUniqueStudentIdentifiers(schoolId, [{ nationalId }], tx => tx.student.create({
       data: {
         schoolId,
         id,
@@ -334,7 +335,7 @@ export const createStudent = async (data: {
         nationalId,
         img: data.img || (data.sex === "FEMALE" ? "/avatars/student_female.jpg" : "/avatars/student_male.jpg"),
       },
-    });
+    }));
     await createAuditLog({
       action: "CREATE_STUDENT",
       entityType: "Student",
@@ -352,163 +353,169 @@ export const createStudent = async (data: {
 
 export const bulkCreateStudents = async (students: any[]) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     if (!students || students.length === 0) return { success: true };
 
-    // 0. Resolve school Level records: map pedagogical grade (0..6) to Level.id (DB primary key)
-    const schoolLevels = await prisma.level.findMany({
-      where: { schoolId },
-    });
-    const gradeToDbLevelId = new Map<number, number>();
-    schoolLevels.forEach((l) => gradeToDbLevelId.set(l.level, l.id));
-
-    // Ensure any requested grade exists in this school
-    const uniqueGrades = Array.from(
-      new Set(students.map((s) => (s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1)))
-    );
-    for (const g of uniqueGrades) {
-      if (!gradeToDbLevelId.has(g)) {
-        const createdLvl = await prisma.level.create({
-          data: {
-            schoolId,
-            level: g,
-            tuitionFee: 450,
-          },
+    const normalizedIds = students.map(s => normalizeStudentNationalId(s.nationalId == null ? null : String(s.nationalId)) ?? null);
+    const createdCount = await withUniqueStudentIdentifiers(schoolId,
+      normalizedIds.map(nationalId => ({ nationalId })), async tx => {
+        // 0. Resolve school Level records: map pedagogical grade (0..6) to Level.id (DB primary key)
+        const schoolLevels = await tx.level.findMany({
+          where: { schoolId },
         });
-        gradeToDbLevelId.set(g, createdLvl.id);
-      }
-    }
+        const gradeToDbLevelId = new Map<number, number>();
+        schoolLevels.forEach((l) => gradeToDbLevelId.set(l.level, l.id));
 
-    const fallbackDbLevelId =
-      gradeToDbLevelId.get(1) ||
-      Array.from(gradeToDbLevelId.values())[0] ||
-      (
-        await prisma.level.create({
-          data: { schoolId, level: 1, tuitionFee: 450 },
-        })
-      ).id;
-
-    // 1. Collect unique parent phone numbers needing lookup
-    const phoneToParentIdMap = new Map<string, string>();
-    const phonesToLookup = Array.from(
-      new Set(
-        students
-          .filter((s) => !s.parentId && s.parentPhone)
-          .map((s) => String(s.parentPhone).trim().replace(/\s+/g, ""))
-          .filter(Boolean)
-      )
-    );
-
-    // 2. Batch lookup existing parents by phone
-    if (phonesToLookup.length > 0) {
-      const existingParents = await prisma.parent.findMany({
-        where: { phone: { in: phonesToLookup } },
-        select: { id: true, phone: true },
-      });
-      for (const p of existingParents) {
-        phoneToParentIdMap.set(p.phone, p.id);
-      }
-    }
-
-    // 3. Prepare any missing parents to create in batch
-    const parentsToCreate: any[] = [];
-    for (const s of students) {
-      if (!s.parentId && s.parentPhone) {
-        const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
-        if (cleanPhone && !phoneToParentIdMap.has(cleanPhone)) {
-          const newParentId = crypto.randomUUID();
-          const baseUser = (s.parentName || "parent").toLowerCase().replace(/[^a-z0-9]/g, "") || "parent";
-          const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-          const uniqueUsername = `${baseUser}${randomSuffix}_${Date.now().toString(36).slice(-4)}`;
-          
-          parentsToCreate.push({
-            schoolId,
-            id: newParentId,
-            username: uniqueUsername,
-            name: s.parentName || "Parent",
-            surname: s.parentSurname || s.surname || "Unknown",
-            phone: cleanPhone,
-            address: s.address || "Unknown",
-          });
-          phoneToParentIdMap.set(cleanPhone, newParentId);
+        // Ensure any requested grade exists in this school
+        const uniqueGrades = Array.from(
+          new Set(students.map((s) => (s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1)))
+        );
+        for (const g of uniqueGrades) {
+          if (!gradeToDbLevelId.has(g)) {
+            const createdLvl = await tx.level.create({
+              data: {
+                schoolId,
+                level: g,
+                tuitionFee: 450,
+              },
+            });
+            gradeToDbLevelId.set(g, createdLvl.id);
+          }
         }
-      }
-    }
 
-    // 4. Validate and construct student records with guaranteed uniqueness
-    const seenUsernames = new Set<string>();
-    const seenPhones = new Set<string>();
+        const fallbackDbLevelId =
+          gradeToDbLevelId.get(1) ||
+          Array.from(gradeToDbLevelId.values())[0] ||
+          (
+            await tx.level.create({
+              data: { schoolId, level: 1, tuitionFee: 450 },
+            })
+          ).id;
 
-    const studentsToCreate = students.map((s, idx) => {
-      let parentId = s.parentId || null;
-      if (!parentId && s.parentPhone) {
-        const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
-        parentId = phoneToParentIdMap.get(cleanPhone) || null;
-      }
+        // 1. Collect unique parent phone numbers needing lookup
+        const phoneToParentIdMap = new Map<string, string>();
+        const phonesToLookup = Array.from(
+          new Set(
+            students
+              .filter((s) => !s.parentId && s.parentPhone)
+              .map((s) => String(s.parentPhone).trim().replace(/\s+/g, ""))
+              .filter(Boolean)
+          )
+        );
 
-      const rawNationalId = s.nationalId ? String(s.nationalId).trim() : null;
+        // 2. Batch lookup existing parents by phone
+        if (phonesToLookup.length > 0) {
+          const existingParents = await tx.parent.findMany({
+            where: { schoolId, phone: { in: phonesToLookup } },
+            select: { id: true, phone: true },
+          });
+          for (const p of existingParents) {
+            phoneToParentIdMap.set(p.phone, p.id);
+          }
+        }
 
-      const baseUser =
-        ((s.name || "student") + "." + (s.surname || "")).toLowerCase().replace(/[^a-z0-9]/g, "") ||
-        "student";
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        // 3. Prepare any missing parents to create in batch
+        const parentsToCreate: any[] = [];
+        for (const s of students) {
+          if (!s.parentId && s.parentPhone) {
+            const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
+            if (cleanPhone && !phoneToParentIdMap.has(cleanPhone)) {
+              const newParentId = crypto.randomUUID();
+              const baseUser = (s.parentName || "parent").toLowerCase().replace(/[^a-z0-9]/g, "") || "parent";
+              const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+              const uniqueUsername = `${baseUser}${randomSuffix}_${Date.now().toString(36).slice(-4)}`;
+          
+              parentsToCreate.push({
+                schoolId,
+                id: newParentId,
+                username: uniqueUsername,
+                name: s.parentName || "Parent",
+                surname: s.parentSurname || s.surname || "Unknown",
+                phone: cleanPhone,
+                address: s.address || "Unknown",
+              });
+              phoneToParentIdMap.set(cleanPhone, newParentId);
+            }
+          }
+        }
 
-      let username = s.username || (rawNationalId ? `std_${rawNationalId}` : `${baseUser}_${randomSuffix}`);
-      if (seenUsernames.has(username)) {
-        username = `${username}_${idx}_${Math.floor(100 + Math.random() * 900)}`;
-      }
-      seenUsernames.add(username);
+        // 4. Validate and construct student records with guaranteed uniqueness
+        const seenUsernames = new Set<string>();
+        const seenPhones = new Set<string>();
 
-      let cleanStudentPhone = s.phone && String(s.phone).trim() ? String(s.phone).trim() : null;
-      if (cleanStudentPhone && seenPhones.has(cleanStudentPhone)) {
-        cleanStudentPhone = null;
-      }
-      if (cleanStudentPhone) seenPhones.add(cleanStudentPhone);
+        const studentsToCreate = students.map((s, idx) => {
+          let parentId = s.parentId || null;
+          if (!parentId && s.parentPhone) {
+            const cleanPhone = String(s.parentPhone).trim().replace(/\s+/g, "");
+            parentId = phoneToParentIdMap.get(cleanPhone) || null;
+          }
 
-      const requestedGrade = s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1;
-      const finalLevelId = gradeToDbLevelId.get(requestedGrade) || fallbackDbLevelId;
+          const rawNationalId = normalizedIds[idx];
 
-      return {
-        schoolId,
-        id: crypto.randomUUID(),
-        username,
-        name: s.name || "Élève",
-        surname: s.surname || "",
-        phone: cleanStudentPhone,
-        address: s.address || "Tunis",
-        bloodType: s.bloodType || "O+",
-        birthday: new Date(s.birthday || "2015-01-01"),
-        sex: s.sex === "FEMALE" ? UserSex.FEMALE : UserSex.MALE,
-        parentId,
-        classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
-        levelId: finalLevelId,
-        nationalId: rawNationalId,
-      };
+          const baseUser =
+            ((s.name || "student") + "." + (s.surname || "")).toLowerCase().replace(/[^a-z0-9]/g, "") ||
+            "student";
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+
+          let username = s.username || (rawNationalId ? `std_${rawNationalId}` : `${baseUser}_${randomSuffix}`);
+          if (seenUsernames.has(username)) {
+            username = `${username}_${idx}_${Math.floor(100 + Math.random() * 900)}`;
+          }
+          seenUsernames.add(username);
+
+          let cleanStudentPhone = s.phone && String(s.phone).trim() ? String(s.phone).trim() : null;
+          if (cleanStudentPhone && seenPhones.has(cleanStudentPhone)) {
+            cleanStudentPhone = null;
+          }
+          if (cleanStudentPhone) seenPhones.add(cleanStudentPhone);
+
+          const requestedGrade = s.levelId !== undefined && s.levelId !== null ? Number(s.levelId) : 1;
+          const finalLevelId = gradeToDbLevelId.get(requestedGrade) || fallbackDbLevelId;
+
+          return {
+            schoolId,
+            id: crypto.randomUUID(),
+            username,
+            name: s.name || "Élève",
+            surname: s.surname || "",
+            phone: cleanStudentPhone,
+            address: s.address || "Tunis",
+            bloodType: s.bloodType || "O+",
+            birthday: new Date(s.birthday || "2015-01-01"),
+            sex: s.sex === "FEMALE" ? UserSex.FEMALE : UserSex.MALE,
+            parentId,
+            classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
+            levelId: finalLevelId,
+            nationalId: rawNationalId,
+          };
+        });
+
+        // 5. Write only after the school-scoped identifier check, in the same transaction
+        if (parentsToCreate.length > 0) {
+          await tx.parent.createMany({
+            data: parentsToCreate,
+            skipDuplicates: true,
+          });
+        }
+
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < studentsToCreate.length; i += CHUNK_SIZE) {
+          const chunk = studentsToCreate.slice(i, i + CHUNK_SIZE);
+          await tx.student.createMany({
+            data: chunk,
+            skipDuplicates: true,
+          });
+        }
+
+      return studentsToCreate.length;
     });
-
-    // 5. Execute creation directly without interactive transaction (avoids pool connection pinning)
-    if (parentsToCreate.length > 0) {
-      await prisma.parent.createMany({
-        data: parentsToCreate,
-        skipDuplicates: true,
-      });
-    }
-
-    const CHUNK_SIZE = 100;
-    for (let i = 0; i < studentsToCreate.length; i += CHUNK_SIZE) {
-      const chunk = studentsToCreate.slice(i, i + CHUNK_SIZE);
-      await prisma.student.createMany({
-        data: chunk,
-        skipDuplicates: true,
-      });
-    }
 
     // 6. Single consolidated audit log
     await createAuditLog({
       action: "BULK_CREATE_STUDENT",
       entityType: "Student",
       entityId: null,
-      description: `Bulk enrolled ${studentsToCreate.length} student(s)`,
+      description: `Bulk enrolled ${createdCount} student(s)`,
     });
 
     invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard', 'parents');
@@ -578,7 +585,8 @@ export const updateStudent = async (
       updateData.parentId = parentId;
     }
 
-    await prisma.student.update({ where: { id, schoolId }, data: updateData });
+    await withUniqueStudentIdentifiers(schoolId, [{ nationalId: normalizeStudentNationalId(data.nationalId), studentId: id }],
+      tx => tx.student.update({ where: { id, schoolId }, data: updateData }));
     await createAuditLog({
       action: "UPDATE_STUDENT",
       entityType: "Student",

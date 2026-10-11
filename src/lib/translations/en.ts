@@ -611,7 +611,7 @@ export const en = {
       "enrollment": "Enrollment and guardian",
       "contact": "Contact details",
       "tuition": "Tuition fees",
-      "nationalIdHint": "المعرّف الوحيد · Optional. You can add or correct it at any time.",
+      "nationalIdHint": "المعرّف الوحيد · Optional. Each identifier can belong to only one student in your school.",
       "tuitionHint": "Without a special rate, the tuition set for the student’s level applies.",
       "optional": "Optional",
       "requiredHint": "* Required fields",

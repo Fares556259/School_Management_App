@@ -41,9 +41,8 @@ const columns = [
     className: "hidden lg:table-cell",
   },
   {
-    header: "Address",
-    accessor: "address",
-    className: "hidden lg:table-cell",
+    header: "Identifiant unique",
+    accessor: "nationalId",
   },
   {
     header: "Paid Status",

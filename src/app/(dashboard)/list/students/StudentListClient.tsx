@@ -215,7 +215,7 @@ export default function StudentListClient({
       header: c.accessor === "info" ? t.students.info 
             : c.accessor === "grade" ? t.students.grade 
             : (c.accessor === "parent" || c.accessor === "phone") ? (t.students.parent || "Parent")
-            : c.accessor === "address" ? t.students.address 
+            : c.accessor === "nationalId" ? t.crud.fields["Unique Student Identifier"]
             : c.accessor === "isPaid" ? t.students.paidStatus 
             : c.accessor === "action" ? t.students.actions 
             : c.header
@@ -272,12 +272,9 @@ export default function StudentListClient({
                     {locale === 'ar' ? 'غير موزع على قسم' : (t.students?.noClass || "Non classé")}
                   </span>
                 )}
-                {item.nationalId && (
-                  <span
-                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200"
-                    title={locale === 'ar' ? 'المعرف التربوي' : 'Identifiant éducatif'}
-                  >
-                    🆔 {item.nationalId}
+                {item.address && (
+                  <span className="text-[12px] text-slate-500 truncate max-w-[180px]" title={item.address}>
+                    <span aria-hidden="true" className="mx-1">·</span>{item.address}
                   </span>
                 )}
               </div>
@@ -301,8 +298,12 @@ export default function StudentListClient({
             </span>
           )}
         </td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d] truncate max-w-[150px]" title={item.address || ""}>
-          {item.address || <span className="text-[#a1a1aa] italic text-[13px]">{t.students.notProvided}</span>}
+        <td className="py-4 px-6">
+          {item.nationalId ? (
+            <span dir="ltr" className="inline-block font-mono text-[13px] font-semibold tracking-wide text-blue-700 bg-blue-50 border border-blue-100 rounded-md px-2.5 py-1 select-all whitespace-nowrap">
+              {item.nationalId}
+            </span>
+          ) : <span className="text-slate-400 text-[13px]">{t.students.notProvided}</span>}
         </td>
         <td className="py-4 px-6">
           {isPaidThisMonth ? (

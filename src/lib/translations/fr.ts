@@ -611,7 +611,7 @@ export const fr = {
       "enrollment": "Scolarité et responsable",
       "contact": "Coordonnées",
       "tuition": "Frais de scolarité",
-      "nationalIdHint": "المعرّف الوحيد · Facultatif. Vous pouvez le renseigner ou le corriger à tout moment.",
+      "nationalIdHint": "المعرّف الوحيد · Facultatif. Un identifiant ne peut être attribué qu’à un seul élève dans votre école.",
       "tuitionHint": "Sans tarif spécial, les frais définis pour le niveau de l’élève s’appliquent.",
       "optional": "Facultatif",
       "requiredHint": "* Champs obligatoires",

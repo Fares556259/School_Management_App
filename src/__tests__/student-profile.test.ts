@@ -24,10 +24,15 @@ function load(file: string, modules: Record<string, any>, globals: Record<string
 async function main() {
   let signedIn = true, admin = true, foreignStudent = false, foreignClass = false, foreignParent = false;
   let writes = 0, saved: any;
+  let duplicates: Array<{id:string,nationalId:string}> = [];
+  let locked = false;
   const assertSchool = (where: any) => assert.equal(where.schoolId, 'school-a');
-  const prisma = {
+  const prisma: any = {
+    $transaction: async (fn:any, options:any) => { assert.equal(options.isolationLevel,"ReadCommitted"); locked=false; return fn(prisma); },
+    $executeRaw: async (_sql:any, schoolId:string) => { assert.equal(schoolId,"school-a"); locked=true; },
     admin: { findFirst: async ({where}: any) => { assertSchool(where); assert.equal(where.id, 'admin-a'); return admin ? {id:'admin-a'} : null; } },
     student: {
+      findMany: async ({where}:any) => { assertSchool(where); assert.ok(locked,"Lock must precede duplicate lookup"); return duplicates.filter(s=>where.nationalId.in.includes(s.nationalId)); },
       findFirst: async ({where}: any) => { assertSchool(where); return foreignStudent ? null : {id:where.id}; },
       create: async ({data}: any) => { writes++; saved=data; },
       update: async ({where, data}: any) => { assertSchool(where); writes++; saved=data; },
@@ -40,9 +45,10 @@ async function main() {
     '@/lib/prisma': {__esModule:true,default:prisma}, '@/lib/school': {getSchoolId:async ()=>'school-a'},
     '@/utils/supabase/server': {getAuthenticatedUser:async ()=>signedIn ? {id:'admin-a'} : null},
   });
+  const identifiers = load('src/lib/studentIdentifier.ts', {'@/lib/prisma': {__esModule:true,default:prisma}});
   const actions = load('src/lib/crudActions.ts', {
     '@/lib/prisma': {__esModule:true,default:prisma}, '@/lib/school': {getSchoolId:async ()=>'school-a'},
-    './subjectConstants':{}, './assignmentLessons':{}, './studentProfile':service,
+    './subjectConstants':{}, './assignmentLessons':{}, './studentProfile':service, './studentIdentifier':identifiers,
     'next/cache':{revalidatePath:()=>{}}, '@/lib/cache':{invalidateTenantTags:()=>{}},
     '@/lib/audit':{createAuditLog:async()=>{}}, './notifications':{}, '@prisma/client':{},
   });
@@ -61,6 +67,22 @@ async function main() {
   assert.equal(saved.levelId,4,'Class selection preserves automatic level assignment');
   assert.equal((await actions.updateStudent('student-a',{parentId:null,classId:null})).success,true);
   assert.equal(saved.parentId,null); assert.equal(saved.classId,null);
+  duplicates=[{id:'student-other',nationalId:'0012345678'}];
+  const beforeDuplicate=writes;
+  assert.equal((await actions.bulkCreateStudents([{...base,nationalId:'0012345678'}])).success,false,'Import rejects an existing school identifier');
+  assert.equal((await actions.bulkCreateStudents([{...base,nationalId:' 0099 '},{...base,nationalId:'0099'}])).success,false,'Import rejects repeated normalized identifiers before any writes');
+  for (const result of [await actions.createStudent({...base,nationalId:' 0012345678 '}), await actions.updateStudent('student-a',{nationalId:'0012345678'})]) {
+    assert.equal(result.success,false); assert.match(result.error,/déjà utilisé/);
+  }
+  assert.equal(writes,beforeDuplicate,'Duplicate identifiers must not be written');
+  duplicates=[{id:'student-a',nationalId:'0012345678'}];
+  assert.equal((await actions.updateStudent('student-a',{nationalId:'0012345678'})).success,true,'Keeping own ID is allowed');
+  duplicates=[];
+  let bulkWritten=false;
+  await assert.rejects(identifiers.withUniqueStudentIdentifiers('school-a',[{nationalId:'001'},{nationalId:'001'}],async()=>{bulkWritten=true;}),/déjà utilisé/);
+  assert.equal(bulkWritten,false,'Duplicate IDs inside an import reject the entire batch');
+  await identifiers.withUniqueStudentIdentifiers('school-a',[{nationalId:null},{nationalId:null}],async()=>{bulkWritten=true;});
+  assert.equal(bulkWritten,true,'Multiple students without identifiers are allowed');
   const before=writes;
   signedIn=false; assert.equal((await actions.updateStudent('student-a',{nationalId:'01'})).success,false);
   signedIn=true; admin=false;
