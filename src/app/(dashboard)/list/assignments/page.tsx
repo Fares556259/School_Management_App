@@ -194,7 +194,7 @@ const AssignmentListPage = async ({
       filters={<OperationsFilters classes={classes} defaultSearch={queryParams.search} defaultClass={queryParams.classId} searchPlaceholder={t.navbar.search} allClassesLabel={t.assignmentsPage.modal.allClasses} />}
       pagination={<Pagination page={p} count={count} />}
     >
-      <Table columns={columns} renderRow={renderRow} data={data} emptyState={<div><ClipboardList className="mx-auto mb-3 text-slate-300" size={30} /><p className="text-sm font-medium text-slate-600">{t.assignmentsPage.pageTitle}</p><p className="mt-1 text-sm text-slate-400">0 {t.announcementsPage.total}</p></div>} />
+      <Table columns={columns} renderRow={renderRow} data={data} emptyState={<div><ClipboardList className="mx-auto mb-3 text-slate-300" size={30} /><p className="text-sm text-slate-500">{t.assignmentsPage.empty}</p></div>} />
     </OperationsListShell>
   );
 };

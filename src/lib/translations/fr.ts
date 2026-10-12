@@ -668,6 +668,7 @@ export const fr = {
   },
   "assignmentsPage": {
     "pageTitle": "Toutes les tâches",
+    "empty": "Aucune tâche trouvée. Ajoutez-en une ou modifiez vos filtres.",
     "addAssignment": "Ajouter Tâche",
     "table": {
       "subjectName": "Nom de la matière",
@@ -1151,6 +1152,7 @@ export const fr = {
       "uploadError": "Certains fichiers n’ont pas pu être envoyés. Les fichiers déjà envoyés ont été conservés."
 },
     "title": "Ressources du Cours",
+    "empty": "Aucune ressource trouvée. Ajoutez-en une ou modifiez vos filtres.",
     "viewFile": "Voir le fichier",
     "table": {
       "title": "Titre",

@@ -668,6 +668,7 @@ export const en = {
   },
   "assignmentsPage": {
     "pageTitle": "All Assignments",
+    "empty": "No assignments found. Add one or adjust your filters.",
     "addAssignment": "Add Assignment",
     "table": {
       "subjectName": "Subject Name",
@@ -1151,6 +1152,7 @@ export const en = {
       "uploadError": "Some files could not be uploaded. Successfully uploaded files have been kept."
 },
     "title": "Course Resources",
+    "empty": "No resources found. Add one or adjust your filters.",
     "viewFile": "View File",
     "table": {
       "title": "Title",

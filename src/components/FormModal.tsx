@@ -13,20 +13,32 @@ import { toast } from "react-toastify";
 // import TeacherForm from "./forms/TeacherForm";
 // import StudentForm from "./forms/StudentForm";
 
+const FormLoading = () => (
+  <div className="space-y-5 p-6" aria-label="Loading form">
+    <div className="h-7 w-56 animate-pulse rounded-md bg-slate-200" />
+    <div className="h-4 w-80 max-w-full animate-pulse rounded bg-slate-100" />
+    <div className="space-y-3 border-t border-slate-100 pt-6">
+      <div className="h-11 animate-pulse rounded-lg bg-slate-100" />
+      <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
+      <div className="h-11 animate-pulse rounded-lg bg-slate-100" />
+    </div>
+  </div>
+);
+
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: FormLoading,
 });
 const StudentForm = dynamic(() => import("./forms/StudentForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: FormLoading,
 });
 const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: FormLoading,
 });
 const AssignmentForm = dynamic(() => import("./forms/AssignmentForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: FormLoading,
 });
 const ResourceDialog = dynamic(() => import("./ResourceDialog"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: FormLoading,
 });
 
 const forms: {
