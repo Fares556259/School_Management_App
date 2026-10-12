@@ -456,7 +456,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
               className="mt-0.5 flex min-h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-ink-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-ink-700 transition-colors hover:bg-ink-50 hover:text-ink-900"
             >
               <QrCode size={13} strokeWidth={1.75} className="shrink-0 text-brand-600" />
-              <span>Inviter / QR Code</span>
+              <span>{locale === "ar" ? "تحميل التطبيق" : locale === "en" ? "Download the app" : "Télécharger l’app"}</span>
             </button>
           </div>
         )}
@@ -515,6 +515,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
       </div>
 
       {/* Share Parent Link Modal */}
+      {/* SnapSchool mobile download modal */}
       <ShareParentLinkModal 
         isOpen={isShareModalOpen} 
         onClose={() => setIsShareModalOpen(false)} 

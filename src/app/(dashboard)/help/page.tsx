@@ -53,8 +53,8 @@ const GUIDES: GuideItem[] = [
     id: "partial-payments",
     category: "finance",
     badge: { fr: "Finances & Scolarité", en: "Finance & Tuition", ar: "المالية والمصاريف" },
-    badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-    icon: <CreditCard className="text-blue-600" size={20} />,
+    badgeColor: "bg-brand-50 text-brand-700 border-brand-200",
+    icon: <CreditCard className="text-brand-600" size={20} />,
     title: {
       fr: "Encaisser une tranche & Suivre les reliquats",
       en: "Record Installments & Track Balances",
@@ -164,9 +164,9 @@ const GUIDES: GuideItem[] = [
     badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
     icon: <QrCode className="text-emerald-600" size={20} />,
     title: {
-      fr: "Inviter les parents & Générer le flyer QR Code",
-      en: "Invite Parents & Generate QR Flyer",
-      ar: "دعوة الأولياء وإنشاء رمز QR للطباعة"
+      fr: "Télécharger l'application mobile SnapSchool",
+      en: "Download the SnapSchool Mobile App",
+      ar: "تحميل تطبيق SnapSchool للهاتف"
     },
     description: {
       fr: "Permettez aux parents d'accéder à l'application mobile SnapSchool pour suivre notes, absences et paiements.",
@@ -175,23 +175,23 @@ const GUIDES: GuideItem[] = [
     },
     steps: {
       fr: [
-        "Cliquez sur le bouton ci-dessous pour ouvrir l'outil d'invitation parentale.",
-        "Imprimez la circulaire officielle avec code QR ou partagez le lien d'accès directement sur WhatsApp.",
-        "Validez les demandes d'inscription des parents dans l'onglet des requêtes."
+        "Cliquez sur le bouton ci-dessous pour afficher le code QR officiel.",
+        "Scannez le code QR pour ouvrir la fiche SnapSchool sur Google Play.",
+        "Connectez-vous avec le compte sécurisé fourni par l'établissement."
       ],
       en: [
-        "Click the button below to launch the parent invitation tool.",
-        "Print the official QR registration flyer or share the invitation link on WhatsApp.",
-        "Approve incoming parent registration requests in the requests tab."
+        "Click the button below to display the official QR code.",
+        "Scan the QR code to open SnapSchool on Google Play.",
+        "Sign in with the secure account provided by the school."
       ],
       ar: [
-        "انقر على الزر أدناه لفتح أداة دعوة الأولياء.",
-        "اطبع المنشور الرسمي الذي يحتوي على رمز QR أو شارك رابط التسجيل عبر واتساب.",
-        "قم بتأكيد طلبات انضمام الأولياء في نافذة الطلبات."
+        "انقر على الزر أدناه لإظهار رمز QR الرسمي.",
+        "امسح الرمز لفتح تطبيق SnapSchool على Google Play.",
+        "سجل الدخول بالحساب الآمن الذي توفره المؤسسة."
       ]
     },
     isModalTrigger: true,
-    actionText: { fr: "Générer le Code QR & Inviter", en: "Generate QR & Invite", ar: "إنشاء رمز QR والدعوة" }
+    actionText: { fr: "Afficher le QR Google Play", en: "Show Google Play QR", ar: "إظهار رمز Google Play" }
   },
   {
     id: "teacher-salaries",
@@ -297,14 +297,14 @@ const FAQS: FaqItem[] = [
   {
     category: "mobile",
     question: {
-      fr: "Comment inviter les parents et les aider à utiliser l'application mobile ?",
-      en: "How do I invite parents and help them set up the mobile app?",
-      ar: "كيف أدعو الأولياء لمساعدتهم على تنصيب تطبيق الهاتف؟"
+      fr: "Comment aider les parents à installer et utiliser l'application mobile ?",
+      en: "How do parents install and use the mobile app?",
+      ar: "كيف أساعد الأولياء على تثبيت تطبيق الهاتف واستخدامه؟"
     },
     answer: {
-      fr: "Votre établissement dispose d'un lien d'inscription dédié et d'un Code QR imprimable. Cliquez sur 'Inviter / QR Code' dans le menu ou sur cette page pour imprimer des circulaires distribuables aux réunions de parents, ou partagez directement le lien pré-rédigé sur WhatsApp. Dès qu'un parent crée son compte, sa demande s'affiche dans votre tableau de bord pour validation en un clic.",
-      en: "Your institution has a unique registration link and printable QR flyer. Click 'Invite / QR Code' in the menu or on this page to print parent handouts, or forward the pre-formatted link on WhatsApp. As soon as a parent requests access, you can approve them in one click from the dashboard.",
-      ar: "تمتلك مدرستكم رابط تسجيل خاصاً ورمز QR قابل للطباعة. انقر على زر 'دعوة / رمز QR' لطباعة مناشير ورقية أو إرسال الرابط مباشرة عبر واتساب. بمجرد قيام الولي بالتسجيل، يظهر طلبه في لوحة التحكم لتأكيده بنقرة واحدة."
+      fr: "Cliquez sur 'Télécharger l’app' dans le menu ou sur cette page. Le QR Code ouvre directement la fiche officielle SnapSchool sur Google Play. Après installation, le parent se connecte avec le compte sécurisé fourni par l'établissement. En cas d'oubli, l'administration réinitialise l'accès sur le même compte sans perdre les enfants associés.",
+      en: "Click 'Download the app' in the menu or on this page. The QR code opens the official SnapSchool listing on Google Play. After installation, the parent signs in with the secure account supplied by the school. If access is forgotten, the school resets the same account without removing linked children.",
+      ar: "انقر على 'تحميل التطبيق' في القائمة أو في هذه الصفحة. يفتح رمز QR صفحة SnapSchool الرسمية على Google Play. بعد التثبيت، يسجل الولي الدخول بالحساب الآمن الذي توفره المؤسسة. عند نسيان كلمة المرور، تعيد الإدارة تهيئة نفس الحساب دون فقدان الأبناء المرتبطين به."
     }
   },
   {
@@ -445,7 +445,7 @@ const HelpPage = () => {
 
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200/80 text-brand-700 text-xs font-semibold mb-3">
               <BookOpen size={13} className="shrink-0" />
               <span>
                 {lang === "ar"
@@ -503,7 +503,7 @@ const HelpPage = () => {
                   ? "Search a guide or question (e.g. partial payments, timetable, QR code, salary advance, bulletins)..."
                   : "Rechercher un guide ou une question (ex: reliquat, emploi du temps, code QR, avance enseignant, bulletins)..."
               }
-              className={`w-full ${isRTL ? "pr-11 pl-10" : "pl-11 pr-10"} py-3.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-500/15 transition-all shadow-2xs`}
+              className={`w-full ${isRTL ? "pr-11 pl-10" : "pl-11 pr-10"} py-3.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-brand-600 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-3 focus:ring-blue-500/15 transition-all shadow-2xs`}
             />
             {searchQuery && (
               <button
@@ -527,7 +527,7 @@ const HelpPage = () => {
                 key={idx}
                 type="button"
                 onClick={() => setSearchQuery(tag.query)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100/80 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-slate-200/60 text-slate-600 transition-all cursor-pointer font-medium"
+                className="px-2.5 py-1 rounded-lg bg-slate-100/80 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 border border-slate-200/60 text-slate-600 transition-all cursor-pointer font-medium"
               >
                 {tag.label}
               </button>
@@ -548,7 +548,7 @@ const HelpPage = () => {
               onClick={() => setSelectedCategory(cat.id)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                 isActive
-                  ? "bg-blue-600 text-white shadow-xs shadow-blue-500/20"
+                  ? "bg-brand-600 text-white shadow-xs shadow-brand-500/20"
                   : "bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200"
               }`}
             >
@@ -569,7 +569,7 @@ const HelpPage = () => {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-blue-600 rounded-full inline-block"></span>
+                <span className="w-1.5 h-5 bg-brand-600 rounded-full inline-block"></span>
                 <span>
                   {lang === "ar"
                     ? "أدلة وإجراءات التصرف المدرسي"
@@ -591,7 +591,7 @@ const HelpPage = () => {
                 <button
                   type="button"
                   onClick={() => { setSearchQuery(""); setSelectedCategory("all"); }}
-                  className="mt-3 text-xs font-semibold text-blue-600 hover:underline"
+                  className="mt-3 text-xs font-semibold text-brand-600 hover:underline"
                 >
                   {lang === "ar" ? "إعادة ضبط البحث" : lang === "en" ? "Reset filters" : "Réinitialiser la recherche"}
                 </button>
@@ -614,7 +614,7 @@ const HelpPage = () => {
                         </div>
                       </div>
 
-                      <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                      <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-brand-600 transition-colors leading-snug">
                         {guide.title[lang]}
                       </h3>
 
@@ -641,7 +641,7 @@ const HelpPage = () => {
                         <button
                           type="button"
                           onClick={() => setIsShareModalOpen(true)}
-                          className="w-full py-2.5 px-3 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-blue-700 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-blue-200/70"
+                          className="w-full py-2.5 px-3 rounded-xl bg-brand-50 hover:bg-brand-100/80 text-brand-700 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border border-brand-200/70"
                         >
                           <span>{guide.actionText?.[lang]}</span>
                           <ArrowRight size={14} className={isRTL ? "rotate-180" : ""} />
@@ -649,7 +649,7 @@ const HelpPage = () => {
                       ) : (
                         <Link
                           href={guide.href || "#"}
-                          className="w-full py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-semibold text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-blue-200"
+                          className="w-full py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-brand-50 text-slate-700 hover:text-brand-700 font-semibold text-xs transition-all flex items-center justify-center gap-2 border border-slate-200 hover:border-brand-200"
                         >
                           <span>{guide.actionText?.[lang]}</span>
                           <ArrowRight size={14} className={isRTL ? "rotate-180" : ""} />
@@ -697,13 +697,13 @@ const HelpPage = () => {
                       onClick={() => setOpenFaq(isOpen ? null : idx)}
                       className="w-full flex items-center justify-between p-4 sm:p-5 text-start focus:outline-none cursor-pointer select-none"
                     >
-                      <span className={`text-[14px] font-bold transition-colors pr-2 ${isOpen ? "text-blue-600" : "text-slate-800"}`}>
+                      <span className={`text-[14px] font-bold transition-colors pr-2 ${isOpen ? "text-brand-600" : "text-slate-800"}`}>
                         {faq.question[lang]}
                       </span>
                       <ChevronDown
                         size={18}
                         className={`text-slate-400 transition-transform duration-200 shrink-0 ${
-                          isOpen ? "rotate-180 text-blue-600" : ""
+                          isOpen ? "rotate-180 text-brand-600" : ""
                         }`}
                       />
                     </button>
@@ -739,7 +739,7 @@ const HelpPage = () => {
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-blue-600" />
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center shrink-0">
                 <Headphones size={20} />
               </div>
               <div className="flex flex-col min-w-0">
@@ -785,7 +785,7 @@ const HelpPage = () => {
                 className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 transition-all font-semibold text-xs group"
               >
                 <div className="flex items-center gap-2.5">
-                  <Phone size={16} className="text-blue-600 shrink-0" />
+                  <Phone size={16} className="text-brand-600 shrink-0" />
                   <span>{lang === "ar" ? "اتصال هاتفي مباشر" : lang === "en" ? "Direct Phone Call" : "Appel Téléphonique"}</span>
                 </div>
                 <span className="text-[11px] text-slate-600 font-medium">
@@ -841,17 +841,17 @@ const HelpPage = () => {
                   {lang === "ar" ? "تطبيق الأولياء والهاتف" : lang === "en" ? "Parent Mobile App" : "Application Parents & Profs"}
                 </h4>
                 <p className="text-[11px] text-slate-500">
-                  {lang === "ar" ? "منشور QR ورابط التسجيل" : lang === "en" ? "Flyer QR Code & Link" : "Flyer officiel & QR Code"}
+                  {lang === "ar" ? "رمز QR للتحميل" : lang === "en" ? "Google Play QR Code" : "QR Code Google Play"}
                 </p>
               </div>
             </div>
 
             <p className="text-[11.5px] text-slate-600 leading-relaxed">
               {lang === "ar"
-                ? "اطبع بطاقات الدعوة التي تتضمن رمز QR لتوزيعها على الأولياء أو شارك الرابط في مجموعات واتساب."
+                ? "اعرض رمز QR ليتمكن الأولياء والأساتذة من تحميل تطبيق SnapSchool الرسمي."
                 : lang === "en"
-                ? "Generate official printable flyers with QR code for parent meetings or share on WhatsApp."
-                : "Générez la circulaire officielle avec code QR pour inviter les parents d'élèves en réunion ou par WhatsApp."}
+                ? "Display the official QR code so parents and teachers can download SnapSchool from Google Play."
+                : "Affichez le QR Code officiel pour permettre aux parents et enseignants de télécharger SnapSchool sur Google Play."}
             </p>
 
             <button
@@ -859,9 +859,9 @@ const HelpPage = () => {
               onClick={() => setIsShareModalOpen(true)}
               className="mt-1 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold text-xs transition-all shadow-2xs cursor-pointer"
             >
-              <QrCode size={14} className="text-blue-600" />
+              <QrCode size={14} className="text-brand-600" />
               <span>
-                {lang === "ar" ? "فتح أداة الدعوة والرمز" : lang === "en" ? "Open Invitation Tool" : "Ouvrir l'outil d'invitation"}
+                {lang === "ar" ? "عرض رمز التحميل" : lang === "en" ? "Show download QR" : "Afficher le QR de téléchargement"}
               </span>
             </button>
           </div>

@@ -3,6 +3,10 @@ import jwt from "jsonwebtoken";
 import { generateToken, verifyToken, generateAndStoreOTP, verifyOTP } from "../lib/mobileAuth";
 import { GET as promote } from "../app/api/dev-promote/route";
 import { GET as upgrade } from "../app/api/upgrade-to-admin/route";
+import { POST as verifyStudent } from "../app/api/mobile/student/verify/route";
+import { POST as mobileAuth } from "../app/api/mobile/auth/route";
+import { POST as linkStudent } from "../app/api/mobile/students/route";
+import { getStudentLinkDisposition, normalizeDateOnly } from "../lib/mobileStudentLink";
 
 async function main() {
 const originalSecret = process.env.JWT_SECRET;
@@ -24,7 +28,37 @@ try {
   assert.equal(verifyOTP("blocked-phone", blockedCode), false);
   assert.equal((await promote()).status, 410);
   assert.equal((await upgrade()).status, 410);
-  console.log("Mobile security checks passed: secret enforcement, claims, expiry, OTP single use/attempt limit, disabled privilege escalation.");
+  assert.equal((await verifyStudent()).status, 410);
+  assert.equal(
+    (
+      await mobileAuth(
+        new Request("http://localhost/api/mobile/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: "20000000", action: "signup", role: "parent" }),
+        }) as any
+      )
+    ).status,
+    403
+  );
+  assert.equal(
+    (
+      await linkStudent(
+        new Request("http://localhost/api/mobile/students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studentId: "student", birthday: "2012-05-15" }),
+        }) as any
+      )
+    ).status,
+    401
+  );
+  assert.equal(getStudentLinkDisposition(null, "parent-a"), "unlinked");
+  assert.equal(getStudentLinkDisposition("parent-a", "parent-a"), "same-parent");
+  assert.equal(getStudentLinkDisposition("parent-b", "parent-a"), "other-parent");
+  assert.equal(normalizeDateOnly("2012-05-15"), "2012-05-15");
+  assert.equal(normalizeDateOnly("2012-02-31"), null);
+  console.log("Mobile security checks passed: secret enforcement, claims, expiry, OTP controls, disabled self-registration, authenticated linking, ownership rules, and date validation.");
 } finally {
   if (originalSecret === undefined) delete process.env.JWT_SECRET;
   else process.env.JWT_SECRET = originalSecret;

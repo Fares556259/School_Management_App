@@ -851,7 +851,7 @@ export const ar = {
     "filterAll": "الكل",
     "filterActive": "نشط",
     "filterInactive": "غير نشط",
-    "parentRegistrationsAndRequests": "تسجيلات وطلبات الأولياء",
+    "parentRegistrationsAndRequests": "تحميل SnapSchool",
     "activeBadge": "مفعل",
     "pendingBadge": "في الانتظار",
     "noParentsFound": "لم يتم العثور على أي ولي أمر",

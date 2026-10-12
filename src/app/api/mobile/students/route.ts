@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { getStudentLinkDisposition, normalizeDateOnly } from "@/lib/mobileStudentLink";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,116 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[Mobile Students Error]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const auth = authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  const { userId, userType, schoolId } = auth.payload;
+
+  if (userType !== "parent") {
+    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const studentIdentifier =
+      typeof body.studentId === "string" ? body.studentId.trim() : "";
+    const birthday =
+      typeof body.birthday === "string" ? normalizeDateOnly(body.birthday.trim()) : null;
+
+    if (!studentIdentifier || !birthday) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Saisissez un identifiant élève et une date de naissance valides.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const parent = await prisma.parent.findFirst({
+      where: { id: userId, schoolId },
+      select: { id: true },
+    });
+    if (!parent) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    // The identifier is resolved only inside the authenticated parent's school.
+    // Phone numbers are deliberately excluded from student lookup.
+    const student = await prisma.student.findFirst({
+      where: {
+        schoolId,
+        nationalId: studentIdentifier,
+      },
+      include: {
+        class: { include: { level: true } },
+      },
+    });
+
+    const storedBirthday = student?.birthday
+      ? student.birthday.toISOString().slice(0, 10)
+      : null;
+    if (!student || storedBirthday !== birthday) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Impossible de vérifier cet élève. Vérifiez les informations ou contactez l'établissement.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const disposition = getStudentLinkDisposition(student.parentId, userId);
+    if (disposition === "same-parent") {
+      return NextResponse.json({ success: true, alreadyLinked: true, student });
+    }
+
+    if (disposition === "other-parent") {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "STUDENT_ALREADY_LINKED",
+          error:
+            "Cet élève est déjà rattaché à un compte parent. Contactez l'établissement pour toute modification.",
+        },
+        { status: 409 }
+      );
+    }
+
+    // Atomic claim: a concurrent request cannot transfer an already linked child.
+    const linked = await prisma.student.updateMany({
+      where: { id: student.id, schoolId, parentId: null },
+      data: { parentId: userId },
+    });
+
+    if (linked.count !== 1) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "STUDENT_ALREADY_LINKED",
+          error:
+            "Cet élève est déjà rattaché à un compte parent. Contactez l'établissement pour toute modification.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const linkedStudent = await prisma.student.findFirst({
+      where: { id: student.id, schoolId, parentId: userId },
+      include: { class: { include: { level: true } } },
+    });
+
+    return NextResponse.json({ success: true, alreadyLinked: false, student: linkedStudent });
+  } catch (error) {
+    console.error("[Mobile Student Link Error]", error);
+    return NextResponse.json(
+      { success: false, error: "Impossible de rattacher l'élève pour le moment." },
+      { status: 500 }
+    );
   }
 }
 

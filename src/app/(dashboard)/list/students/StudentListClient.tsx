@@ -246,7 +246,7 @@ export default function StudentListClient({
     return (
       <tr
         key={item.id}
-        className="border-b border-[#dddddd] hover:bg-[#f8fafc] transition-colors group"
+        className="border-b border-ink-200 hover:bg-ink-50 transition-colors group"
       >
         <td className="py-4 px-6">
           <Link
@@ -258,10 +258,10 @@ export default function StudentListClient({
               alt=""
               width={40}
               height={40}
-              className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-[#dddddd] group-hover/name:border-blue-400 transition-colors"
+              className="md:hidden xl:block w-10 h-10 rounded-full object-cover border border-ink-200 group-hover/name:border-blue-400 transition-colors"
             />
             <div className="flex flex-col">
-              <h3 className="text-[14px] font-medium text-[#181d26] group-hover/name:text-blue-600 group-hover/name:underline transition-colors">
+              <h3 className="text-[14px] font-medium text-ink-900 group-hover/name:text-brand-600 group-hover/name:underline transition-colors">
                 {item.name} {item.surname}
               </h3>
               <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
@@ -281,13 +281,13 @@ export default function StudentListClient({
             </div>
           </Link>
         </td>
-        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-[#41454d]">
+        <td className="hidden md:table-cell py-4 px-6 text-[14px] text-ink-600">
           {item.level ? (item.level.level === 0 ? (locale === 'ar' ? 'تحضيري' : 'Préscolaire') : `${locale === 'ar' ? 'السنة' : (t.systemSettings?.level || "Niveau")} ${item.level.level}`) : "-"}
         </td>
-        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-[#41454d]">
+        <td className="hidden lg:table-cell py-4 px-6 text-[14px] text-ink-600">
           {item.parent ? (
             <div className="flex flex-col">
-              <span className="font-medium text-[#181d26]">{item.parent.name} {item.parent.surname}</span>
+              <span className="font-medium text-ink-900">{item.parent.name} {item.parent.surname}</span>
               {item.parent.phone && (
                 <span className="text-[12px] text-[#71717a]">{item.parent.phone}</span>
               )}
@@ -300,7 +300,7 @@ export default function StudentListClient({
         </td>
         <td className="py-4 px-6">
           {item.nationalId ? (
-            <span dir="ltr" className="inline-block font-mono text-[13px] font-semibold tracking-wide text-blue-700 bg-blue-50 border border-blue-100 rounded-md px-2.5 py-1 select-all whitespace-nowrap">
+            <span dir="ltr" className="inline-block font-mono text-[13px] font-semibold tracking-wide text-brand-700 bg-brand-50 border border-brand-100 rounded-md px-2.5 py-1 select-all whitespace-nowrap">
               {item.nationalId}
             </span>
           ) : <span className="text-slate-400 text-[13px]">{t.students.notProvided}</span>}
@@ -403,7 +403,7 @@ export default function StudentListClient({
               handleFilterResetPage();
             }} />
             <select
-              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              className="bg-white border border-ink-200 rounded-control px-3 py-2 text-[13px] font-medium text-ink-900 focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-100 transition-all shadow-sm min-w-[120px]"
               value={clientClassId}
               onChange={(e) => {
                 const val = e.target.value;
@@ -420,7 +420,7 @@ export default function StudentListClient({
 
             {/* MONTH FILTER */}
             <select
-              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              className="bg-white border border-ink-200 rounded-control px-3 py-2 text-[13px] font-medium text-ink-900 focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-100 transition-all shadow-sm min-w-[120px]"
               value={clientMonthKey}
               onChange={(e) => {
                 const val = e.target.value;
@@ -440,7 +440,7 @@ export default function StudentListClient({
 
             {/* STATUS FILTER */}
             <select
-              className="bg-white border border-[#dddddd] rounded-[6px] px-3 py-2 text-[13px] font-medium text-[#181d26] focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm min-w-[120px]"
+              className="bg-white border border-ink-200 rounded-control px-3 py-2 text-[13px] font-medium text-ink-900 focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-100 transition-all shadow-sm min-w-[120px]"
               value={clientStatus}
               onChange={(e) => {
                 const val = e.target.value;
@@ -462,7 +462,7 @@ export default function StudentListClient({
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setIsBulkImportOpen(true)}
-                className="flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[13px] font-semibold rounded-[6px] hover:bg-indigo-100 transition-all shadow-sm group shrink-0"
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[13px] font-semibold rounded-control hover:bg-indigo-100 transition-all shadow-sm group shrink-0"
                 title={locale === 'ar' ? 'استيراد التلاميذ (نص، صورة أو معرف تربوي)' : 'Importer des élèves'}
               >
                 <Sparkles size={15} className="text-indigo-600 group-hover:scale-110 transition-transform" />
@@ -470,10 +470,10 @@ export default function StudentListClient({
               </button>
               <button 
                 onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-[6px] hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[13px] font-semibold rounded-control hover:bg-emerald-100 transition-all shadow-sm group shrink-0"
               >
                 <Share2 size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-                <span>{locale === 'ar' ? 'التسجيلات' : locale === 'fr' ? 'Inscriptions' : 'Registrations'}</span>
+                <span>{locale === 'ar' ? 'تحميل التطبيق' : locale === 'fr' ? 'Télécharger l’app' : 'Download app'}</span>
               </button>
               <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
             </div>

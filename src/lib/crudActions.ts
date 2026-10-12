@@ -13,6 +13,8 @@ import { createAssignmentNotification, createResourceNotification } from "./noti
 import { UserSex, type Prisma } from "@prisma/client";
 import { withUniqueStudentIdentifiers } from "./studentIdentifier";
 import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProfile";
+import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -1559,23 +1561,33 @@ export const bulkUpdateTimetableSlots = async (classId: number, slots: any[], is
 // ===================== SECURITY =====================
 export const resetParentPassword = async (parentId: string) => {
   try {
-    console.log(`[SECURITY] Initiating password reset for Parent ID: ${parentId}`);
+    const schoolId = await getSchoolId();
+    const existingParent = await prisma.parent.findFirst({
+      where: { id: parentId, schoolId },
+      select: { id: true, name: true, surname: true },
+    });
+    if (!existingParent) {
+      return { success: false, error: "Parent account not found in this school." };
+    }
 
-    // Direct update to clear the password
-    const parent = await prisma.parent.update({
-      where: { id: parentId },
-      data: { password: null }
+    // The password changes on the same account. Student links and all related
+    // school records remain untouched.
+    const temporaryPassword = `Ss-${randomBytes(7).toString("base64url")}`;
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+    await prisma.parent.update({
+      where: { id: parentId, schoolId },
+      data: { password: passwordHash },
     });
 
     await createAuditLog({
       action: "RESET_PARENT_PASSWORD",
       entityType: "Parent",
       entityId: parentId,
-      description: `Administrative password reset for: ${parent.name} ${parent.surname} (${parent.phone})`,
+      description: `Administrative password reset for: ${existingParent.name} ${existingParent.surname}`,
     });
 
     revalidatePath("/list/parents");
-    return { success: true };
+    return { success: true, temporaryPassword };
   } catch (err: any) {
     console.error("[SECURITY_ERROR] resetParentPassword failed:", err);
     

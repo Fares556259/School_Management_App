@@ -851,7 +851,7 @@ export const en = {
     "filterAll": "All",
     "filterActive": "Active",
     "filterInactive": "Inactive",
-    "parentRegistrationsAndRequests": "Parent Registrations & Requests",
+    "parentRegistrationsAndRequests": "Download SnapSchool",
     "activeBadge": "Activated",
     "pendingBadge": "Pending",
     "noParentsFound": "No parents found",

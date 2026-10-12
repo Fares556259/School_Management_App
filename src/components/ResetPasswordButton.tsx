@@ -8,6 +8,8 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const handleReset = async () => {
     setLoading(true);
@@ -26,12 +28,16 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
     setLoading(false);
 
     if (result.success) {
+      if (parentId && "temporaryPassword" in result && typeof result.temporaryPassword === "string") {
+        setTemporaryPassword(result.temporaryPassword);
+      }
       setStatus("success");
-      // Close automatically after showing success
-      setTimeout(() => {
-        setIsOpen(false);
-        setTimeout(() => setStatus("idle"), 300); // reset state after animation
-      }, 2000);
+      if (!parentId) {
+        setTimeout(() => {
+          setIsOpen(false);
+          setTimeout(() => setStatus("idle"), 300);
+        }, 2000);
+      }
     } else {
       setStatus("error");
       setErrorMessage(result.error || "Failed to reset password.");
@@ -42,7 +48,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-8 h-8 flex items-center justify-center rounded-[6px] border shadow-sm transition-colors bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300 hover:text-indigo-700"
+        className="w-8 h-8 flex items-center justify-center rounded-control border shadow-sm transition-colors bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300 hover:text-indigo-700"
         title="Reset Password"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -57,7 +63,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
           onClick={() => !loading && setIsOpen(false)}
         >
           <div 
-            className="bg-white rounded-[16px] shadow-2xl max-w-[400px] w-full relative overflow-hidden animate-in zoom-in-95 duration-200"
+            className="bg-white rounded-dialog shadow-2xl max-w-[400px] w-full relative overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {status === "success" ? (
@@ -65,10 +71,40 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                 <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                 </div>
-                <h2 className="text-[20px] font-semibold text-[#181d26] mb-2">Password Reset!</h2>
+                <h2 className="text-[20px] font-semibold text-ink-900 mb-2">Accès réinitialisé</h2>
                 <p className="text-[14px] text-[#5a5a5a]">
-                  The user&apos;s security has been cleared. They will create a new password upon their next login.
+                  {parentId
+                    ? "Le compte parent et tous ses enfants associés restent inchangés. Communiquez ce mot de passe temporaire de manière sécurisée."
+                    : "The user can configure a new password on their next login."}
                 </p>
+                {temporaryPassword && (
+                  <div className="mt-5 w-full rounded-control border border-brand-200 bg-brand-50 p-3">
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-brand-700">Mot de passe temporaire</p>
+                    <code className="block break-all text-[18px] font-bold tracking-wide text-ink-900">{temporaryPassword}</code>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(temporaryPassword);
+                        setCopied(true);
+                      }}
+                      className="mt-3 w-full rounded-control border border-brand-200 bg-white px-3 py-2 text-[13px] font-semibold text-brand-700 hover:bg-brand-50"
+                    >
+                      {copied ? "Copié" : "Copier le mot de passe"}
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setStatus("idle");
+                    setTemporaryPassword("");
+                    setCopied(false);
+                  }}
+                  className="mt-5 rounded-control bg-ink-900 px-5 py-2.5 text-[13px] font-semibold text-white"
+                >
+                  Fermer
+                </button>
               </div>
             ) : (
               <div className="p-6">
@@ -79,9 +115,11 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-[18px] font-semibold text-[#181d26] mb-1.5">Reset Security Access?</h2>
+                    <h2 className="text-[18px] font-semibold text-ink-900 mb-1.5">Réinitialiser l’accès ?</h2>
                     <p className="text-[14px] text-[#5a5a5a] leading-relaxed">
-                      Are you sure you want to reset this user&apos;s security? They will be forced to create a new password on their mobile app.
+                      {parentId
+                        ? "Un mot de passe temporaire sera créé pour ce même compte. Les enfants et les données associées resteront liés."
+                        : "The existing password will be cleared for secure setup."}
                     </p>
                   </div>
                 </div>
@@ -97,7 +135,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="flex-1 px-4 py-2.5 text-[14px] font-medium text-[#41454d] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[8px] transition-all"
+                    className="flex-1 px-4 py-2.5 text-[14px] font-medium text-ink-600 bg-white border border-ink-200 hover:bg-ink-50 rounded-[8px] transition-all"
                     disabled={loading}
                   >
                     Cancel

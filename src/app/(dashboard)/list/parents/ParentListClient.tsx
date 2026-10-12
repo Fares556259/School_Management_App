@@ -145,7 +145,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-[24px] font-medium text-[#181d26] tracking-tight">{t.parents.title}</h1>
+          <h1 className="text-[24px] font-medium text-ink-900 tracking-tight">{t.parents.title}</h1>
 
           {/* Quick Status Filter Tabs */}
           <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 shadow-2xs">
@@ -200,7 +200,7 @@ export default function ParentListClient({ data, columns, role, count, page, rel
                   className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-all shadow-xs cursor-pointer"
                 >
                   <Share2 size={15} className="text-emerald-600" />
-                  <span>{t.parents.parentRegistrationsAndRequests || (locale === 'ar' ? 'تسجيلات وطلبات الأولياء' : locale === 'fr' ? 'Inscriptions & Demandes Parents' : 'Parent Registrations & Requests')}</span>
+                  <span>{locale === 'ar' ? 'تحميل تطبيق SnapSchool' : locale === 'fr' ? 'Télécharger SnapSchool' : 'Download SnapSchool'}</span>
                 </button>
                 <CrudFormModal
                   entity="parent"

@@ -851,7 +851,7 @@ export const fr = {
     "filterAll": "Tous",
     "filterActive": "Actifs",
     "filterInactive": "Non actifs",
-    "parentRegistrationsAndRequests": "Inscriptions & Demandes Parents",
+    "parentRegistrationsAndRequests": "Télécharger SnapSchool",
     "activeBadge": "Activé",
     "pendingBadge": "En attente",
     "noParentsFound": "Aucun parent trouvé",
