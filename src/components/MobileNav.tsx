@@ -18,6 +18,7 @@ interface MobileNavProps {
 const MobileNav = ({ isOpen, onClose, role, adminData, schoolConfig }: MobileNavProps) => {
   const pathname = usePathname();
   const prevPathname = useRef(pathname);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Auto-close when navigation happens
   useEffect(() => {
@@ -39,28 +40,36 @@ const MobileNav = ({ isOpen, onClose, role, adminData, schoolConfig }: MobileNav
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    closeButtonRef.current?.focus();
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
+        className="fixed inset-0 z-40 bg-ink-950/40 backdrop-blur-[2px] md:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Drawer */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out md:hidden ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className="fixed inset-y-0 start-0 z-50 flex w-[min(88vw,300px)] animate-in flex-col border-e border-ink-200 bg-white shadow-overlay slide-in-from-left-4 duration-200 md:hidden"
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
       >
         {/* Drawer header */}
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200/80 shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-ink-200 px-4 py-3.5">
           <Link
             href={role === "superadmin" || role === "superuser" ? "/superadmin" : role ? `/${role}` : "/"}
             onClick={onClose}
@@ -68,19 +77,20 @@ const MobileNav = ({ isOpen, onClose, role, adminData, schoolConfig }: MobileNav
           >
             <Image
               src={schoolConfig?.schoolLogo || "/logo.png"}
-              alt="logo"
+              alt={schoolConfig?.schoolName ? `${schoolConfig.schoolName} logo` : "SnapSchool logo"}
               width={32}
               height={32}
-              className="w-8 h-8 object-contain rounded-lg border border-slate-200 shadow-xs bg-white shrink-0"
+              className="h-8 w-8 shrink-0 rounded-control border border-ink-200 bg-white object-contain"
             />
-            <span className="font-bold text-[15px] text-slate-900 tracking-tight truncate max-w-[170px]">
+            <span className="max-w-[170px] truncate text-[15px] font-semibold tracking-tight text-ink-900">
               {schoolConfig?.schoolName || "SnapSchool"}
             </span>
           </Link>
           <button
             type="button"
+            ref={closeButtonRef}
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+            className="ss-icon-button shrink-0"
             aria-label="Fermer la navigation"
           >
             <X size={18} />
@@ -89,7 +99,7 @@ const MobileNav = ({ isOpen, onClose, role, adminData, schoolConfig }: MobileNav
 
         {/* Menu — reuse the same desktop Menu component, which already handles role/locale */}
         <div className="flex-1 overflow-y-auto p-3">
-          <Menu role={role} adminData={adminData} schoolConfig={schoolConfig} />
+          <Menu role={role} adminData={adminData} schoolConfig={schoolConfig} mobile />
         </div>
       </div>
     </>

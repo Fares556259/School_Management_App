@@ -26,9 +26,8 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const inputClass =
-    "w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-sm font-medium";
-  const labelClass = "text-xs font-semibold text-slate-700 mb-1.5 block";
+  const inputClass = "ss-field min-h-12 px-4 text-sm font-medium";
+  const labelClass = "ss-label mb-1.5 block";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,14 +83,12 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#F5F6F8] text-slate-900 font-sans relative overflow-hidden">
-      {/* Subtle background radial glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(59,130,246,0.08),transparent)] pointer-events-none" />
+    <div className="relative flex min-h-screen flex-col justify-between overflow-hidden bg-paper font-sans text-ink-900">
 
       {/* Top minimal header */}
       <header className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
+          <div className="flex h-9 w-9 items-center justify-center rounded-control bg-brand-600">
             <span className="text-white font-bold text-lg">S</span>
           </div>
           <span className="text-lg font-bold text-slate-900 tracking-tight">SnapSchool</span>
@@ -110,11 +107,11 @@ export default function SignInPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="w-full max-w-[420px] bg-white rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-200/50 p-7 sm:p-9"
+          className="w-full max-w-[420px] rounded-dialog border border-ink-200 bg-white p-7 shadow-panel sm:p-9"
         >
           {/* Card Header */}
           <div className="text-center mb-6">
-            <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3.5 border border-blue-100">
+            <div className="mx-auto mb-3.5 flex h-11 w-11 items-center justify-center rounded-control bg-brand-50 text-brand-600">
               <Lock className="w-5 h-5" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -185,7 +182,7 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                className="ss-button-primary min-h-12 w-full"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -248,7 +245,7 @@ export default function SignInPage() {
               <button
                 disabled={loading}
                 type="submit"
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                className="ss-button-primary min-h-12 w-full"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Envoyer le lien <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -289,7 +286,7 @@ export default function SignInPage() {
         {/* Security / System Badges underneath the card */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
           <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Chiffrement SSL 256-bit
+            <ShieldCheck className="h-3.5 w-3.5 text-brand-600" /> Chiffrement SSL 256-bit
           </span>
           <span className="text-slate-300">•</span>
           <span>Système Éducatif Tunisien</span>

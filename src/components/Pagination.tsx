@@ -57,10 +57,11 @@ const Pagination = ({
   };
 
   return (
-    <div className="pt-6 mt-4 flex items-center justify-between text-[#41454d]">
+    <nav aria-label="Pagination" className="mt-4 flex items-center justify-between gap-3 pt-5 text-ink-600">
       <button
         disabled={!hasPrev || isPending}
-        className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="ss-button-secondary px-3 sm:px-4"
+        aria-label={t.pagination.previous}
         onClick={() => changePage(safePage - 1)}
         onMouseEnter={() => router.prefetch(getUrl(safePage - 1))}
       >
@@ -73,7 +74,7 @@ const Pagination = ({
           t.pagination.previous
         )}
       </button>
-      <div className="flex items-center gap-1.5 text-[13px]">
+      <div className="hidden items-center gap-1 text-[13px] sm:flex">
         {(() => {
           const pages = [];
           const range = 2; // Pages to show on either side of current page
@@ -99,8 +100,10 @@ const Pagination = ({
               <button
                 key={p}
                 disabled={isPending}
-                className={`w-8 h-8 rounded-[8px] flex items-center justify-center text-[13px] font-medium transition-all border ${
-                  safePage === p ? "bg-[#181d26] text-white border-[#181d26]" : "border-transparent hover:bg-slate-100 text-[#41454d]"
+                aria-current={safePage === p ? "page" : undefined}
+                aria-label={`Page ${p}`}
+                className={`flex h-8 w-8 items-center justify-center rounded-control border text-[13px] font-medium transition ${
+                  safePage === p ? "border-brand-600 bg-brand-600 text-white" : "border-transparent text-ink-600 hover:bg-ink-100"
                 } ${isPending && safePage !== p ? "opacity-50" : ""}`}
                 onClick={() => changePage(p as number)}
                 onMouseEnter={() => router.prefetch(getUrl(p as number))}
@@ -117,7 +120,8 @@ const Pagination = ({
       </div>
       <button
         disabled={!hasNext || isPending}
-        className="py-2.5 px-5 rounded-[8px] border border-[#dddddd] bg-white text-[13px] font-medium hover:bg-slate-50 disabled:opacity-40 transition-all disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="ss-button-secondary px-3 sm:px-4"
+        aria-label={t.pagination.next}
         onClick={() => changePage(safePage + 1)}
         onMouseEnter={() => router.prefetch(getUrl(safePage + 1))}
       >
@@ -130,7 +134,7 @@ const Pagination = ({
           t.pagination.next
         )}
       </button>
-    </div>
+    </nav>
   );
 };
 

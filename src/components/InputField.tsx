@@ -1,4 +1,5 @@
 import { FieldError } from "react-hook-form";
+import { useId } from "react";
 
 type InputFieldProps = {
   label: string;
@@ -25,15 +26,22 @@ const InputField = ({
   required,
   className,
 }: InputFieldProps) => {
+  const generatedId = useId();
+  const inputId = inputProps?.id || `${name}-${generatedId}`;
+  const errorId = `${inputId}-error`;
+
   return (
     <div className={`flex flex-col gap-1.5 ${className || "w-full"}`}>
-      <label className="text-[12px] font-medium text-[#181d26]">{label}</label>
+      <label htmlFor={inputId} className="ss-label">{label}</label>
       <input
         type={type}
         name={name}
         {...(register ? register(name) : {})}
-        className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white"
         {...inputProps}
+        id={inputId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : inputProps?.["aria-describedby"]}
+        className={`ss-field ${inputProps?.className || ""}`}
         onInput={(e) => {
           if (name === "phone") {
             const target = e.target as HTMLInputElement;
@@ -48,7 +56,7 @@ const InputField = ({
         required={required}
       />
       {error?.message && (
-        <p className="text-xs text-red-400">{error.message.toString()}</p>
+        <p id={errorId} role="alert" className="text-xs text-rose-600">{error.message.toString()}</p>
       )}
     </div>
   );

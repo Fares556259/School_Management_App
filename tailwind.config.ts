@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { apricot, brand, designRadius, designShadow, ink, paper } from './src/styles/tokens';
 
 const config: Config = {
   content: [
@@ -16,6 +17,15 @@ const config: Config = {
     },
     extend: {
       colors: {
+        brand,
+        ink,
+        paper,
+        apricot,
+        // Keep older utility classes visually aligned while screens migrate to tokens.
+        blue: brand,
+        indigo: brand,
+        slate: ink,
+        gray: ink,
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -49,23 +59,27 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        lamaSky: "#C3EBFA",
-        lamaSkyLight: "#EDF9FD",
-        lamaPurple: "#CFCEFF",
-        lamaPurpleLight: "#F1F0FF",
-        lamaYellow: "#FAE27C",
-        lamaYellowLight: "#FEFCE8",
+        // Compatibility for existing chart categories and old skeletons.
+        lamaSky: '#B8DCDD',
+        lamaSkyLight: '#EDF6F5',
+        lamaPurple: brand[200],
+        lamaPurpleLight: brand[50],
+        lamaYellow: apricot,
+        lamaYellowLight: '#FFF1E7',
         // Premium Palette
         premium: {
-          dark: "#0F172A",
-          darkMuted: "#1E293B",
-          accent: "#6366F1",
-          accentHover: "#4F46E5",
+          dark: ink[900],
+          darkMuted: ink[800],
+          accent: brand[600],
+          accentHover: brand[700],
           glassWhite: "rgba(255, 255, 255, 0.05)",
           glassBorder: "rgba(255, 255, 255, 0.1)",
         }
       },
       borderRadius: {
+        control: designRadius.control,
+        panel: designRadius.panel,
+        dialog: designRadius.dialog,
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -90,13 +104,17 @@ const config: Config = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       fontFamily: {
-        sans: ["var(--font-jakarta)", "Plus Jakarta Sans", "sans-serif"],
-        jakarta: ["var(--font-jakarta)", "sans-serif"],
-        montserrat: ["var(--font-montserrat)", "sans-serif"],
+        sans: ['var(--font-manrope)', 'var(--font-arabic)', 'sans-serif'],
+        arabic: ['var(--font-arabic)', 'var(--font-manrope)', 'sans-serif'],
+        // Legacy names resolve to the same family during migration.
+        jakarta: ['var(--font-manrope)', 'var(--font-arabic)', 'sans-serif'],
+        montserrat: ['var(--font-manrope)', 'var(--font-arabic)', 'sans-serif'],
       },
       boxShadow: {
-        'premium': '0 10px 40px -15px rgba(0, 0, 0, 0.2)',
-        'premium-hover': '0 20px 50px -20px rgba(99, 102, 241, 0.3)',
+        panel: designShadow.panel,
+        overlay: designShadow.overlay,
+        premium: designShadow.panel,
+        'premium-hover': '0 6px 18px -8px rgb(24 33 54 / 0.18)',
       }
     },
   },

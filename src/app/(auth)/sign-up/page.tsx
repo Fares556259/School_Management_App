@@ -26,9 +26,8 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const inputClass =
-    "w-full bg-white border border-gray-200 rounded-2xl pl-11 pr-4 py-3.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all text-sm font-medium";
-  const labelClass = "text-xs font-semibold text-gray-600 mb-1.5 block uppercase tracking-wider";
+  const inputClass = "ss-field min-h-12 ps-11 pe-4 text-sm font-medium";
+  const labelClass = "ss-label mb-1.5 block";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,21 +49,15 @@ export default function SignUpPage() {
   ];
 
   return (
-    <div className="min-h-screen flex bg-white text-gray-900 font-sans">
+    <div className="flex min-h-screen bg-white font-sans text-ink-900">
       {/* ── LEFT PANEL (Showcase & Trust) ─────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[42%] xl:w-[38%] bg-gradient-to-br from-blue-900 via-blue-950 to-slate-900 flex-col justify-between p-12 relative overflow-hidden text-white">
-        {/* Glow Effects */}
-        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-80px] left-[-80px] w-[300px] h-[300px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
-        />
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-ink-950 p-12 text-white lg:flex lg:w-[42%] xl:w-[38%]">
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1.5 bg-apricot" />
 
         {/* Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30">
+            <div className="flex h-10 w-10 items-center justify-center rounded-control bg-brand-600">
               <span className="text-white font-bold text-xl">S</span>
             </div>
             <span className="text-white font-bold text-xl tracking-tight">SnapSchool</span>
@@ -131,7 +124,7 @@ export default function SignUpPage() {
       </div>
 
       {/* ── RIGHT PANEL (Multi-step styled Registration Form) ─────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 p-6 sm:p-10 lg:p-14 overflow-y-auto">
+      <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto bg-paper p-6 sm:p-10 lg:p-14">
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-3 mb-6">
           <Link href="/" className="flex items-center gap-2.5">
@@ -145,7 +138,7 @@ export default function SignUpPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-2xl bg-white p-8 sm:p-10 rounded-3xl border border-gray-100 shadow-xl"
+          className="w-full max-w-2xl rounded-dialog border border-ink-200 bg-white p-8 shadow-panel sm:p-10"
         >
           <div className="mb-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold mb-3">
@@ -298,7 +291,7 @@ export default function SignUpPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 bg-blue-600 text-white font-semibold text-base rounded-2xl hover:bg-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 shadow-lg shadow-blue-600/25"
+                className="ss-button-primary min-h-12 w-full text-base"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

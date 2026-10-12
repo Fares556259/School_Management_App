@@ -82,10 +82,10 @@ const FormModal = ({
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
     type === "create"
-      ? "bg-lamaYellow"
+      ? "border border-brand-200 bg-brand-50 text-brand-700"
       : type === "update"
-      ? "bg-lamaSky"
-      : "bg-lamaPurple";
+      ? "border border-ink-200 bg-white text-ink-600"
+      : "border border-rose-200 bg-rose-50 text-rose-600";
 
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -122,20 +122,20 @@ const FormModal = ({
 
   const Form = () => {
     return type === "delete" && id ? (
-      <div className="p-4 flex flex-col gap-4">
-        <span className="text-center font-medium">
+      <div className="flex flex-col gap-5 p-6">
+        <span className="text-center font-medium text-ink-800">
           {t.crud.deleteConfirm} {t.crud.entities[table as keyof typeof t.crud.entities] || table}?
         </span>
         <div className="flex gap-4 justify-center">
           <button 
-            className="bg-slate-200 text-slate-700 py-2 px-4 rounded-md border-none w-max"
+            className="ss-button-secondary w-max"
             onClick={() => setOpen(false)}
             disabled={isPending}
           >
             {t.crud.cancel}
           </button>
           <button 
-            className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max disabled:opacity-50"
+            className="inline-flex min-h-10 w-max items-center justify-center rounded-control bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
             onClick={handleDelete}
             disabled={isPending}
           >
@@ -164,7 +164,9 @@ const FormModal = ({
         </div>
       ) : (
         <button
-          className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
+          type="button"
+          aria-label={`${type} ${table}`}
+          className={`${size} flex items-center justify-center rounded-control transition-colors ${bgColor}`}
           onClick={() => setOpen(true)}
         >
           <Image src={`/${type}.png`} alt="" width={16} height={16} />
@@ -172,14 +174,14 @@ const FormModal = ({
       )}
       <AnimatePresence>
         {open && (
-          <div className="w-screen h-screen fixed left-0 top-0 z-50 flex items-center justify-center">
+          <div className="fixed left-0 top-0 z-50 flex h-screen w-screen items-center justify-center">
             {/* BACKDROP */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-black bg-opacity-60"
+              className="absolute inset-0 bg-ink-950/45 backdrop-blur-[2px]"
             />
             
             {/* MODAL CONTAINER */}
@@ -190,17 +192,17 @@ const FormModal = ({
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               role="dialog"
               aria-modal="true"
-              className={`relative z-10 max-h-[90dvh] w-[calc(100%-24px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ${(table === "assignment" || table === "announcement") ? "max-w-[720px]" : "max-w-[620px]"}`}
+              className={`ss-dialog relative z-10 max-h-[90dvh] w-[calc(100%-24px)] overflow-hidden ${(table === "assignment" || table === "announcement") ? "max-w-[720px]" : "max-w-[620px]"}`}
             >
               <Form />
               <button
                 type="button"
                 aria-label={t.crud.cancel}
-                className="absolute end-4 top-4 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                className="ss-icon-button absolute end-4 top-4 z-20 h-9 w-9 cursor-pointer"
                 onClick={() => setOpen(false)}
               >
-                <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                <svg className="h-4 w-4 text-ink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </motion.div>

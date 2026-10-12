@@ -41,12 +41,12 @@ export default function OperationsFilters({
     <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
       <label className="relative block w-full sm:max-w-sm">
         <span className="sr-only">{searchPlaceholder}</span>
-        {isPending ? <Loader2 className="absolute start-3.5 top-1/2 -translate-y-1/2 animate-spin text-blue-600" size={17} /> : <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />}
+        {isPending ? <Loader2 className="absolute start-3.5 top-1/2 -translate-y-1/2 animate-spin text-brand-600" size={17} /> : <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 text-ink-400" size={17} />}
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={searchPlaceholder}
-          className="h-10 w-full rounded-lg border border-slate-300 bg-white ps-10 pe-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="ss-field ps-10 pe-3"
         />
       </label>
       <label className="relative block w-full sm:w-56">
@@ -54,12 +54,12 @@ export default function OperationsFilters({
         <select
           value={searchParams.get("classId") || defaultClass}
           onChange={(event) => updateParams({ classId: event.target.value })}
-          className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pe-9 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="ss-field appearance-none pe-9"
         >
           <option value="">{allClassesLabel}</option>
           {classes.map((schoolClass) => <option key={schoolClass.id} value={schoolClass.id}>{schoolClass.name}</option>)}
         </select>
-        <ChevronDown className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <ChevronDown className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-ink-400" size={16} strokeWidth={1.75} />
       </label>
     </div>
   );

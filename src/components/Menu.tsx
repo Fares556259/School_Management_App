@@ -145,7 +145,7 @@ const menuItems: MenuSection[] = [
   },
 ];
 
-const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: any, schoolConfig?: any }) => {
+const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string, adminData?: any, schoolConfig?: any, mobile?: boolean }) => {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -184,27 +184,27 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
 
   // Auto-expand sections containing the active item
   useEffect(() => {
-    const newExpanded = { ...expandedSections };
-    let changed = false;
+    setExpandedSections(previous => {
+      const next = { ...previous };
+      let changed = false;
 
-    menuItems.forEach(section => {
-      if (section.title === "MAIN") return;
-      
-      const hasActive = section.items.some(item => {
-        const targetHref = item.href === "/" ? (isSuper ? "/superadmin" : `/${role}`) : item.href;
-        return (pendingHref ? pendingHref === targetHref : pathname === targetHref) || 
-               (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
+      menuItems.forEach(section => {
+        if (section.title === "MAIN") return;
+
+        const hasActive = section.items.some(item => {
+          const targetHref = item.href === "/" ? (isSuper ? "/superadmin" : `/${role}`) : item.href;
+          return (pendingHref ? pendingHref === targetHref : pathname === targetHref) ||
+            (item.href !== "/" && (pendingHref || pathname).startsWith(item.href) && (item.href !== "/admin/timetable" || (pendingHref || pathname) === "/admin/timetable"));
+        });
+
+        if (hasActive && !next[section.title]) {
+          next[section.title] = true;
+          changed = true;
+        }
       });
 
-      if (hasActive && !newExpanded[section.title]) {
-        newExpanded[section.title] = true;
-        changed = true;
-      }
+      return changed ? next : previous;
     });
-
-    if (changed) {
-      setExpandedSections(newExpanded);
-    }
   }, [pathname, pendingHref, role, isSuper]);
 
   // Proactive background prefetching for high-frequency routes on idle
@@ -271,10 +271,8 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
     });
   };
 
-  const isRTL = locale === "ar";
-
   return (
-    <div className="flex flex-col min-h-full h-full text-sm pb-2">
+    <nav aria-label="Navigation principale" className="flex h-full min-h-full flex-col pb-2 text-sm">
       {/* 1. TOP STANDALONE LINK (Accueil / Dashboard) */}
       <div className="flex flex-col gap-1 mb-2 px-1">
         {menuItems.find(s => s.title === "MAIN")?.items
@@ -290,16 +288,17 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                 onClick={() => setPendingHref(targetHref)}
                 onMouseEnter={() => router.prefetch(targetHref)}
                 key={item.label}
-                className={`flex items-center justify-center lg:justify-start gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group relative ${
-                  isActive 
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20 font-semibold" 
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium"
+                aria-current={isActive ? "page" : undefined}
+                className={`group relative flex items-center gap-3 rounded-control px-3 py-2.5 transition-colors duration-150 ${mobile ? "justify-start" : "justify-center lg:justify-start"} ${
+                  isActive
+                    ? "bg-brand-600 font-semibold text-white"
+                    : "font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900"
                 }`}
               >
                 <div className="transition-transform duration-200 shrink-0">
-                  <item.icon size={19} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-white" : "text-slate-500 group-hover:text-slate-800"} />
+                  <item.icon size={19} strokeWidth={1.75} className={isActive ? "text-white" : "text-ink-500 group-hover:text-ink-800"} />
                 </div>
-                <span className="hidden lg:block tracking-tight text-[14px]">
+                <span className={`${mobile ? "block" : "hidden lg:block"} text-[14px] tracking-tight`}>
                   {(t.menu as any)[labelToKey[item.label]] || item.label}
                 </span>
               </Link>
@@ -330,36 +329,40 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                     if (href !== "/logout") router.prefetch(href);
                   });
                 }}
-                className={`flex items-center justify-center lg:justify-between w-full py-2 px-3 rounded-xl transition-all duration-200 group cursor-pointer select-none ${
-                  isExpanded 
-                    ? "bg-slate-100/90 text-slate-900 font-semibold" 
-                    : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 font-medium"
+                aria-expanded={Boolean(isExpanded)}
+                className={`group flex w-full cursor-pointer select-none items-center rounded-control px-3 py-2 transition-colors duration-150 ${mobile ? "justify-between" : "justify-center lg:justify-between"} ${
+                  isExpanded
+                    ? "bg-ink-100 font-semibold text-ink-900"
+                    : "font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {SectionIcon && (
                     <SectionIcon 
                       size={18} 
-                      className={`shrink-0 transition-colors ${isExpanded ? "text-blue-600" : "text-slate-500 group-hover:text-slate-800"}`} 
+                      strokeWidth={1.75}
+                      className={`shrink-0 transition-colors ${isExpanded ? "text-brand-600" : "text-ink-500 group-hover:text-ink-800"}`}
                     />
                   )}
-                  <span className="hidden lg:block font-medium text-[13.5px] tracking-tight truncate">
+                  <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13.5px] font-medium tracking-tight`}>
                     {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
                   </span>
                 </div>
                 <ChevronDown 
                   size={15} 
-                  className={`hidden lg:block shrink-0 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-blue-600' : ''}`} 
+                  strokeWidth={1.75}
+                  className={`${mobile ? "block" : "hidden lg:block"} shrink-0 text-ink-400 transition-transform duration-200 group-hover:text-ink-600 ${isExpanded ? 'rotate-180 text-brand-600' : ''}`}
                 />
               </button>
 
               {/* Sub-items list */}
-              <div 
-                className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-300 ease-in-out ${
-                  isExpanded ? 'max-h-[500px] opacity-100 mt-1 lg:pl-3' : 'max-h-0 opacity-0'
+              <div
+                aria-hidden={!isExpanded}
+                className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-200 ease-out ${
+                  isExpanded ? `max-h-[500px] opacity-100 mt-1 ${mobile ? "ps-3" : "lg:ps-3"}` : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className={`flex flex-col gap-1 lg:border-l lg:border-slate-200 lg:pl-2.5 py-1 ${isRTL ? 'lg:border-l-0 lg:border-r lg:pr-2.5 lg:pl-0' : ''}`}>
+                <div className={`flex flex-col gap-1 border-s border-ink-200 py-1 ps-2.5 ${!mobile ? "max-lg:border-0 max-lg:ps-0" : ""}`}>
                   {visibleItems.map((item) => {
                     const targetHref = item.href === "/" 
                       ? (isSuper ? "/superadmin" : `/${role}`) 
@@ -373,12 +376,12 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                         <form key={item.label} action="/api/auth/signout" method="POST" className="w-full">
                           <button
                             type="submit"
-                            className="flex items-center justify-center lg:justify-start gap-2.5 py-2 px-2.5 rounded-lg transition-all duration-200 group relative w-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-normal"
+                            className={`group relative flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 font-normal text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900 ${mobile ? "justify-start" : "justify-center lg:justify-start"}`}
                           >
-                            <div className="transition-colors shrink-0 text-slate-400 group-hover:text-slate-600">
-                              <item.icon size={17} strokeWidth={2} />
+                            <div className="shrink-0 text-ink-400 transition-colors group-hover:text-ink-600">
+                              <item.icon size={17} strokeWidth={1.75} />
                             </div>
-                            <span className="hidden lg:block tracking-tight text-[13px] transition-transform duration-200 truncate">
+                            <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
                               {(t.menu as any)[labelToKey[item.label]] || item.label}
                             </span>
                           </button>
@@ -393,16 +396,17 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                         onClick={() => setPendingHref(targetHref)}
                         onMouseEnter={() => router.prefetch(targetHref)}
                         key={item.label}
-                        className={`flex items-center justify-center lg:justify-start gap-2.5 py-2 px-2.5 rounded-lg transition-all duration-200 group relative ${
-                          isActive 
-                            ? "bg-blue-50 text-blue-700 font-semibold border-l-2 border-blue-600" 
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-normal"
+                        aria-current={isActive ? "page" : undefined}
+                        className={`group relative flex items-center gap-2.5 rounded-control px-2.5 py-2 transition-colors duration-150 ${mobile ? "justify-start" : "justify-center lg:justify-start"} ${
+                          isActive
+                            ? "bg-brand-50 font-semibold text-brand-700 ring-1 ring-inset ring-brand-100"
+                            : "font-normal text-ink-600 hover:bg-ink-50 hover:text-ink-900"
                         }`}
                       >
                         <div className={`transition-colors shrink-0 ${
-                          isActive 
-                            ? "text-blue-600" 
-                            : "text-slate-400 group-hover:text-slate-600"
+                          isActive
+                            ? "text-brand-600"
+                            : "text-ink-400 group-hover:text-ink-600"
                         }`}>
                           {typeof item.icon === 'string' ? (
                             <div className="relative w-[17px] h-[17px]">
@@ -414,10 +418,10 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                                />
                             </div>
                           ) : (
-                            <item.icon size={17} strokeWidth={isActive ? 2.5 : 2} />
+                            <item.icon size={17} strokeWidth={1.75} />
                           )}
                         </div>
-                        <span className="hidden lg:block tracking-tight text-[13px] transition-transform duration-200 truncate">
+                        <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
                           {(t.menu as any)[labelToKey[item.label]] || item.label}
                         </span>
                       </Link>
@@ -431,16 +435,16 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
 
         {/* 3. SUBTLE UTILITY CARD (App Mobile & Parents) - Clean Outline Design */}
         {(role === "admin" || role === "superadmin" || role === "superuser" || role === "teacher") && (
-          <div className="hidden lg:flex flex-col gap-2 p-3 my-2 mx-1 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-colors">
+          <div className={`${mobile ? "flex" : "hidden lg:flex"} mx-1 my-2 flex-col gap-2 rounded-panel border border-ink-200 bg-ink-50 p-3`}>
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-100/70 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
-                <Smartphone size={15} />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-brand-100 text-brand-600">
+                <Smartphone size={15} strokeWidth={1.75} />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[12px] font-bold text-slate-800 leading-tight truncate">
+                <span className="truncate text-[12px] font-semibold leading-tight text-ink-800">
                   Application Mobile
                 </span>
-                <span className="text-[10.5px] text-slate-500 leading-tight">
+                <span className="text-[11px] leading-tight text-ink-500">
                   Accès Parents & Profs
                 </span>
               </div>
@@ -449,9 +453,9 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
             <button
               type="button"
               onClick={() => setIsShareModalOpen(true)}
-              className="mt-0.5 w-full flex items-center justify-center gap-2 py-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-semibold text-[11px] tracking-wide transition-all shadow-2xs cursor-pointer"
+              className="mt-0.5 flex min-h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-ink-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-ink-700 transition-colors hover:bg-ink-50 hover:text-ink-900"
             >
-              <QrCode size={13} className="text-blue-600 shrink-0" />
+              <QrCode size={13} strokeWidth={1.75} className="shrink-0 text-brand-600" />
               <span>Inviter / QR Code</span>
             </button>
           </div>
@@ -459,15 +463,15 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
       </div>
 
       {/* 4. BOTTOM FOOTER SECTION (Academic Status & Account) */}
-      <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-slate-200">
+      <div className="mt-auto flex flex-col gap-2 border-t border-ink-200 pt-3">
         {/* SCHOOL & ACADEMIC YEAR BADGE */}
-        <div className="hidden lg:flex items-center gap-2.5 px-3 py-2 mx-1 rounded-2xl bg-slate-50 border border-slate-200">
+        <div className={`${mobile ? "flex" : "hidden lg:flex"} mx-1 items-center gap-2.5 rounded-panel border border-ink-200 bg-ink-50 px-3 py-2`}>
           <div className="w-7 h-7 rounded-lg bg-emerald-100/70 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
             <Building2 size={14} />
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[12px] font-bold text-slate-800 truncate">
+              <span className="truncate text-[12px] font-semibold text-ink-800">
                 {badgeT.year} {academicYear}
               </span>
               <span className="flex h-2 w-2 relative shrink-0">
@@ -475,34 +479,34 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
             </div>
-            <span className="text-[10.5px] text-slate-500 font-medium">
+            <span className="text-[11px] font-medium text-ink-500">
               {badgeT.term} {currentTerm} • {badgeT.online}
             </span>
           </div>
         </div>
 
         {/* USER PROFILE FOOTER */}
-        <div className="hidden lg:flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-xl hover:bg-slate-100 transition-colors">
+        <div className={`${mobile ? "flex" : "hidden lg:flex"} mx-1 items-center gap-2.5 rounded-control px-2.5 py-1.5 transition-colors hover:bg-ink-50`}>
           {adminData?.img ? (
             <Image src={adminData.img} alt="" width={32} height={32} className="rounded-full object-cover w-8 h-8 shrink-0 border border-slate-200" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center shrink-0">
-              <span className="text-blue-700 text-xs font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-200 bg-brand-100">
+              <span className="text-xs font-bold text-brand-700">
                 {fullName.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-[12.5px] font-bold text-slate-800 truncate">
+            <span className="truncate text-[12.5px] font-semibold text-ink-800">
               {fullName}
             </span>
-            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider truncate">
+            <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-ink-500">
               {(t.navbar as any)?.[role?.toLowerCase() || ""] || role || "User"}
             </span>
           </div>
           <button 
             type="button" 
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 cursor-pointer ml-auto shrink-0 transition-colors"
+            className="ms-auto shrink-0 cursor-pointer rounded-control p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
             title="Options"
           >
             <MoreVertical size={15} />
@@ -517,7 +521,7 @@ const Menu = ({ role, adminData, schoolConfig }: { role?: string, adminData?: an
         schoolName={schoolConfig?.schoolName}
         schoolSubdomain={schoolConfig?.schoolSubdomain}
       />
-    </div>
+    </nav>
   );
 };
 

@@ -49,7 +49,7 @@ const TableSearch = ({ onPending, onChangeImmediate, clientSideOnly }: TableSear
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchValue, searchParams, pathname, router, clientSideOnly]);
+  }, [searchValue, searchParams, pathname, router, clientSideOnly, onPending]);
 
   useEffect(() => {
     if (onPending && !isPending) {
@@ -58,13 +58,14 @@ const TableSearch = ({ onPending, onChangeImmediate, clientSideOnly }: TableSear
   }, [isPending, onPending]);
 
   return (
-    <div className="relative w-full sm:w-72">
+    <label className="relative block w-full sm:w-72">
+      <span className="sr-only">{t.navbar.search || "Search"}</span>
       {isPending ? (
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1b61c9]">
+        <span className="absolute start-3.5 top-1/2 -translate-y-1/2 text-brand-600">
           <Loader2 className="animate-spin" size={16} />
-        </div>
+        </span>
       ) : (
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#41454d]" size={16} />
+        <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 text-ink-400" size={16} />
       )}
       <input
         type="text"
@@ -74,9 +75,9 @@ const TableSearch = ({ onPending, onChangeImmediate, clientSideOnly }: TableSear
           setSearchValue(e.target.value);
           if (onChangeImmediate) onChangeImmediate(e.target.value);
         }}
-        className="w-full bg-white border border-[#dddddd] rounded-[6px] pl-10 pr-4 py-2 text-[13px] font-medium text-[#181d26] placeholder-[#41454d]/60 focus:outline-none focus:border-[#1b61c9] focus:ring-1 focus:ring-[#1b61c9] transition-all shadow-sm"
+        className="ss-field ps-10 pe-4"
       />
-    </div>
+    </label>
   );
 };
 

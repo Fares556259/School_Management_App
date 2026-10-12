@@ -1,7 +1,7 @@
 .page {
-  --ink: #172238;
+  --ink: #182136;
   --muted: #647084;
-  --blue: #265cf0;
+  --blue: #233bdb;
   background: #fff;
   color: var(--ink);
   font-size: 15px;
@@ -22,7 +22,7 @@
   cursor: pointer;
 }
 .page :focus-visible {
-  outline: 3px solid #265cf0;
+  outline: 3px solid #233bdb;
   outline-offset: 5px;
 }
 .page section[id],
@@ -102,7 +102,7 @@
 .desktopNav a,
 .login {
   font-size: 13px;
-  color: #596477;
+  color: #59677d;
   transition: color 0.15s;
 }
 .desktopNav a:hover,
@@ -137,8 +137,8 @@
 }
 .button:hover,
 .buttonSmall:hover {
-  background: #1748d2;
-  border-color: #1748d2;
+  background: #1c2fb2;
+  border-color: #1c2fb2;
   transform: translateY(-1px);
 }
 .buttonSmall {
@@ -169,7 +169,7 @@
 .hero {
   text-align: center;
   padding: 68px 0 0;
-  background: radial-gradient(ellipse at 50% 15%, #f2f6ff 0, white 65%);
+  background: radial-gradient(ellipse at 50% 15%, #f0f2fe 0, white 65%);
 }
 .eyebrow {
   display: inline-flex;
@@ -238,7 +238,7 @@
 .previewTabs .activeTab {
   background: white;
   color: var(--ink);
-  box-shadow: 0 1px 5px #17223812;
+  box-shadow: 0 1px 5px #18213612;
   font-weight: 600;
 }
 .previewFrame {
@@ -495,7 +495,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 13px;
   background: white;
-  box-shadow: 0 8px 26px -15px #17223824;
+  box-shadow: 0 8px 26px -15px #18213624;
   overflow: hidden;
 }
 .chatHeader {
@@ -853,7 +853,7 @@
   .mobileNav > a:not(.button) {
     padding: 11px 8px;
     font-size: 13px;
-    color: #596477;
+    color: #59677d;
   }
   .mobileNav .button {
     margin-top: 8px;

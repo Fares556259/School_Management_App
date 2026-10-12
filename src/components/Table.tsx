@@ -10,18 +10,18 @@ const Table = ({
   emptyState?: React.ReactNode;
 }) => {
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[800px]">
+    <div className="w-full overflow-x-auto" tabIndex={0}>
+      <table className="min-w-[800px] w-full border-collapse text-start">
         <thead>
-          <tr className="bg-slate-50 text-xs font-semibold text-slate-600">
+          <tr className="border-y border-ink-200 bg-ink-50 text-xs font-semibold text-ink-600">
             {columns.map((col) => (
-              <th key={col.accessor} className={`px-6 py-3.5 ${col.className || ""}`}>{col.header}</th>
+              <th scope="col" key={col.accessor} className={`px-5 py-3.5 text-start ${col.className || ""}`}>{col.header}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-ink-100 text-ink-700">
           {data.length > 0 ? data.map((item) => renderRow(item)) : (
-            <tr><td colSpan={columns.length} className="px-6 py-14 text-center">{emptyState}</td></tr>
+            <tr><td colSpan={columns.length} className="px-5 py-14 text-center text-ink-500">{emptyState}</td></tr>
           )}
         </tbody>
       </table>

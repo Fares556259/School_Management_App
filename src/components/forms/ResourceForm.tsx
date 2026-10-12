@@ -17,7 +17,7 @@ import { toast } from "react-toastify";
 type LessonOption = { id: number | string; classId: number; subject: { name: string }; teacher: { name: string; surname: string } };
 type ResourceData = { id: number; title: string; description?: string | null; url: string; lessonId: number; classId?: number; lesson?: { classId: number } };
 type Inputs = { title: string; description?: string; lessonId: string };
-const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
+const fieldClass = "ss-field py-2.5";
 
 export default function ResourceForm({ type, data, onClose, onBusyChange }: {
   type: "create" | "update";
@@ -121,7 +121,7 @@ export default function ResourceForm({ type, data, onClose, onBusyChange }: {
         <fieldset disabled={busy} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label htmlFor={`${formId}-class`} className="block text-sm font-medium text-slate-700">{copy.classLabel} <span aria-hidden="true">*</span></label>
+              <label htmlFor={`${formId}-class`} className="ss-label block">{copy.classLabel} <span aria-hidden="true">*</span></label>
               <select id={`${formId}-class`} required className={fieldClass} disabled={busy || classesQuery.isPending || classesQuery.isError} value={selectedClassId} onChange={event => {
                 setSelectedClassId(event.target.value);
                 setValue("lessonId", "", { shouldDirty: true, shouldValidate: false });
@@ -132,7 +132,7 @@ export default function ResourceForm({ type, data, onClose, onBusyChange }: {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor={`${formId}-lesson`} className="block text-sm font-medium text-slate-700">{copy.lessonLabel} <span aria-hidden="true">*</span></label>
+              <label htmlFor={`${formId}-lesson`} className="ss-label block">{copy.lessonLabel} <span aria-hidden="true">*</span></label>
               <select id={`${formId}-lesson`} {...register("lessonId")} className={fieldClass} disabled={busy || !selectedClassId || optionsLoading || optionsError} aria-invalid={!!errors.lessonId} aria-describedby={errors.lessonId ? `${formId}-lesson-error` : undefined}>
                 <option value="">{!selectedClassId ? copy.chooseClassFirst : optionsLoading ? copy.loading : copy.chooseLesson}</option>
                 {lessons.map(lesson => <option key={lesson.id} value={lesson.id}>{getSubjectName(lesson.subject.name, locale)} — {lesson.teacher.name} {lesson.teacher.surname}</option>)}
@@ -146,20 +146,20 @@ export default function ResourceForm({ type, data, onClose, onBusyChange }: {
             : !classes.length ? <p role="status" className="text-sm text-slate-500">{copy.noClasses}</p>
             : selectedClassId && !lessons.length ? <p role="status" className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{copy.noLessons}</p> : null}
           {selectedLesson && <p className="text-xs text-slate-500">{copy.teacher} : <span className="font-medium text-slate-700">{selectedLesson.teacher.name} {selectedLesson.teacher.surname}</span></p>}
-          <div className="space-y-1.5 border-t border-slate-100 pt-5">
-            <label htmlFor={`${formId}-title`} className="block text-sm font-medium text-slate-700">{copy.title} <span aria-hidden="true">*</span></label>
+          <div className="space-y-1.5 border-t border-ink-100 pt-5">
+            <label htmlFor={`${formId}-title`} className="ss-label block">{copy.title} <span aria-hidden="true">*</span></label>
             <input id={`${formId}-title`} {...register("title")} className={fieldClass} placeholder={copy.titlePlaceholder} aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
             {errors.title && <p id={`${formId}-title-error`} className="text-xs text-red-600">{errors.title.message}</p>}
           </div>
           <div className="space-y-1.5">
-            <label htmlFor={`${formId}-description`} className="block text-sm font-medium text-slate-700">{copy.description} <span className="ms-1 text-xs font-normal text-slate-400">{copy.optional}</span></label>
+            <label htmlFor={`${formId}-description`} className="ss-label block">{copy.description} <span className="ms-1 text-xs font-normal text-ink-400">{copy.optional}</span></label>
             <textarea id={`${formId}-description`} {...register("description")} rows={3} className={`${fieldClass} resize-y`} placeholder={copy.descriptionPlaceholder} />
           </div>
           <div className="space-y-3">
-            <p className="text-sm font-medium text-slate-700">{copy.files} <span aria-hidden="true">*</span></p>
+            <p className="ss-label">{copy.files} <span aria-hidden="true">*</span></p>
             <input ref={fileInput} type="file" className="hidden" multiple onChange={handleFileUpload} aria-label={copy.addFiles} />
-            <button type="button" onClick={() => fileInput.current?.click()} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-4 text-start transition-colors hover:border-blue-400 hover:bg-blue-50/40 disabled:opacity-60">
-              {isUploading ? <Loader2 size={20} className="shrink-0 animate-spin text-blue-600" /> : <Upload size={20} className="shrink-0 text-blue-600" />}
+            <button type="button" onClick={() => fileInput.current?.click()} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-4 text-start transition-colors hover:border-blue-400 hover:bg-brand-50/40 disabled:opacity-60">
+              {isUploading ? <Loader2 size={20} className="shrink-0 animate-spin text-brand-600" /> : <Upload size={20} className="shrink-0 text-brand-600" />}
               <span><span className="block text-sm font-medium text-slate-800">{isUploading ? copy.uploading : copy.addFiles}</span><span className="mt-1 block text-xs text-slate-500">{copy.filesHint}</span></span>
             </button>
             {uploadError && <p role="alert" className="text-sm text-red-600">{uploadError}</p>}
@@ -170,11 +170,11 @@ export default function ResourceForm({ type, data, onClose, onBusyChange }: {
           </div>
         </fieldset>
       </div>
-      <div className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+      <div className="shrink-0 border-t border-ink-200 bg-ink-50/70 px-6 py-4">
         {saveError && <p role="alert" className="mb-3 text-sm text-red-600">{saveError}</p>}
         <div className="flex items-center justify-end gap-3">
-          <button type="button" onClick={onClose} disabled={busy} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{copy.cancel}</button>
-          <button type="submit" disabled={busy || optionsLoading || optionsError || !selectedLesson} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+          <button type="button" onClick={onClose} disabled={busy} className="ss-button-secondary">{copy.cancel}</button>
+          <button type="submit" disabled={busy || optionsLoading || optionsError || !selectedLesson} className="ss-button-primary">
             {isSaving && <Loader2 size={16} className="animate-spin" />}{isSaving ? copy.saving : type === "update" ? copy.save : copy.publish}
           </button>
         </div>

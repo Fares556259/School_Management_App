@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 50 22% 94%;
+    --foreground: 221 38% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 221 38% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 210 100% 45%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 221 38% 15%;
+    --primary: 233 73% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 24% 96%;
+    --secondary-foreground: 221 38% 15%;
+    --muted: 225 24% 96%;
+    --muted-foreground: 218 17% 42%;
+    --accent: 230 78% 97%;
+    --accent-foreground: 233 73% 42%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 100% 45%;
-    --radius: 0.75rem;
+    --border: 219 20% 88%;
+    --input: 219 20% 80%;
+    --ring: 233 73% 50%;
+    --radius: 0.5rem;
   }
 
   .dark {
@@ -51,28 +51,47 @@
 
 @layer base {
   body {
-    background-color: white;
-    color: rgb(15, 23, 42);
+    background-color: #f3f2ec;
+    color: #182136;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  [dir="rtl"] body,
+  [dir="rtl"] input,
+  [dir="rtl"] textarea,
+  [dir="rtl"] select,
+  [lang="ar"] {
+    font-family: var(--font-arabic), var(--font-manrope), sans-serif;
+  }
+
+  ::selection {
+    background: #c4cdf9;
+    color: #19266d;
+  }
+
+  :focus-visible {
+    outline: 2px solid #233bdb;
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
   .shadow-premium {
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 4px 6px -1px rgba(0,0,0,0.06), 0 10px 30px -5px rgba(0,0,0,0.1), 0 30px 60px -15px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px -4px rgb(24 33 54 / 0.12);
   }
   .shadow-premium-hover {
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 16px -4px rgba(0,0,0,0.08), 0 20px 50px -8px rgba(0,0,0,0.14), 0 40px 80px -20px rgba(0,0,0,0.10);
+    box-shadow: 0 8px 24px -14px rgb(24 33 54 / 0.24);
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-premium transition-all duration-300;
+    @apply border border-ink-200 bg-white/90 shadow-panel transition-all duration-200;
   }
   
   .glass-card:hover {
-    @apply shadow-premium-hover -translate-y-1;
+    @apply border-ink-300 shadow-panel;
   }
 
   .interactive-glow {
@@ -86,6 +105,34 @@
   .interactive-glow:hover::after {
     @apply opacity-100;
   }
+
+  .ss-panel {
+    @apply rounded-panel border border-ink-200 bg-white shadow-panel;
+  }
+
+  .ss-dialog {
+    @apply rounded-dialog border border-ink-200 bg-white shadow-overlay;
+  }
+
+  .ss-field {
+    @apply min-h-10 w-full rounded-control border border-ink-300 bg-white px-3 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400;
+  }
+
+  .ss-label {
+    @apply text-sm font-medium text-ink-700;
+  }
+
+  .ss-button-primary {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-control bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-200 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .ss-button-secondary {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-ink-300 bg-white px-4 text-sm font-medium text-ink-700 transition hover:border-ink-400 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-brand-100 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .ss-icon-button {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-control border border-transparent text-ink-500 transition hover:border-ink-200 hover:bg-white hover:text-ink-900;
+  }
 }
 
 /* Scrollbar Styling */
@@ -94,11 +141,11 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-slate-100;
+  @apply bg-ink-100;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  @apply rounded-full bg-ink-300 transition-colors hover:bg-ink-400;
 }
 
 .react-calendar {
@@ -113,7 +160,7 @@
 }
 
 .react-calendar__tile--active {
-  background-color: #6366f1 !important;
+  background-color: #233bdb !important;
   color: white !important;
   @apply rounded-lg !important;
 }
@@ -135,18 +182,18 @@
   border: none !important;
   background-color: #f1f0ff !important;
   margin-left: 2px !important;
-  @apply px-4 py-2 rounded-md transition-all hover:bg-indigo-100 !important;
+  @apply rounded-control px-4 py-2 transition-all hover:bg-brand-100 !important;
 }
 
 .rbc-toolbar button.rbc-active {
-  background-color: #6366f1 !important;
+  background-color: #233bdb !important;
   color: white !important;
   box-shadow: none !important;
 }
 
 .rbc-time-view {
   border-color: #f1f5f9 !important;
-  @apply rounded-2xl overflow-hidden !important;
+  @apply overflow-hidden rounded-panel !important;
 }
 
 .rbc-time-header {
@@ -221,7 +268,7 @@
 }
 
 .Toastify__toast {
-  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: var(--font-manrope), var(--font-arabic), sans-serif !important;
   font-size: 13.5px !important;
   line-height: 1.6 !important;
   font-weight: 500 !important;
@@ -240,7 +287,7 @@
 .Toastify__toast--rtl {
   direction: rtl !important;
   text-align: right !important;
-  font-family: var(--font-jakarta), 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif !important;
+  font-family: var(--font-arabic), var(--font-manrope), sans-serif !important;
 }
 
 .Toastify__toast-body {
@@ -325,5 +372,16 @@
 }
 
 .Toastify__progress-bar--info {
-  background: #2563eb !important;
+  background: #233bdb !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

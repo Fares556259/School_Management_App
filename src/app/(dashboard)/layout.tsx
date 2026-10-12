@@ -82,9 +82,9 @@ export default async function DashboardLayout({
 
   return (
     <QueryProvider>
-      <div className="h-screen flex text-slate-900 print:h-auto print:block bg-[#F5F6F8]">
+      <div className="ss-app flex h-screen bg-paper text-ink-900 print:block print:h-auto">
         {/* LEFT SIDEBAR — hidden on mobile, visible md+ */}
-        <aside className="hidden md:flex w-20 lg:w-[260px] xl:w-[275px] shrink-0 p-3.5 lg:p-4 print:hidden z-30 sticky top-0 h-screen flex-col bg-white text-slate-800 border-r border-slate-200/80 shadow-xs transition-all duration-300">
+        <aside className="ss-sidebar sticky top-0 z-30 hidden h-screen w-20 shrink-0 flex-col border-e border-ink-200 bg-white p-3.5 text-ink-800 transition-all duration-300 md:flex lg:w-[260px] lg:p-4 xl:w-[275px] print:hidden">
           <div className="flex items-center justify-center lg:justify-between mb-6 px-1 shrink-0">
             <Link
               href={role === "superadmin" || role === "superuser" ? "/superadmin" : (role ? `/${role}` : "/")}
@@ -93,17 +93,17 @@ export default async function DashboardLayout({
             >
               <Image
                 src={schoolConfig?.schoolLogo || "/logo.png"}
-                alt="logo"
+                alt={schoolConfig?.schoolName ? `${schoolConfig.schoolName} logo` : "SnapSchool logo"}
                 width={32}
                 height={32}
-                className="w-8 h-8 object-contain rounded-lg border border-slate-200 shadow-xs bg-white shrink-0"
+                className="h-8 w-8 shrink-0 rounded-control border border-ink-200 bg-white object-contain"
               />
-              <span className="hidden lg:block font-bold text-[15px] text-slate-900 tracking-tight truncate max-w-[170px]">
+              <span className="hidden max-w-[170px] truncate text-[15px] font-semibold tracking-tight text-ink-900 lg:block">
                 {schoolConfig?.schoolName || "SnapSchool"}
               </span>
             </Link>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+          <div className="custom-scrollbar -me-1 flex-1 overflow-y-auto pe-1">
             <Menu role={role!} adminData={adminProfile} schoolConfig={schoolConfig} />
           </div>
         </aside>
@@ -113,7 +113,7 @@ export default async function DashboardLayout({
           {/* DashboardShellClient owns mobile drawer state + wires hamburger → drawer */}
           <DashboardShellClient role={role!} adminData={adminProfile} schoolConfig={schoolConfig}>
             <PageTransition>
-              <div className="p-3 md:p-6 lg:p-8 print:p-0 print:m-0">
+              <div className="ss-page-content p-3 md:p-6 lg:p-8 print:m-0 print:p-0">
                 {children}
               </div>
             </PageTransition>

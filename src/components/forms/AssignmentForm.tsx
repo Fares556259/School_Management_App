@@ -161,25 +161,25 @@ const AssignmentForm = ({
     });
   });
 
-  const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
+  const fieldClass = "ss-field py-2.5";
 
   return (
     <form className="flex max-h-[90dvh] min-h-0 flex-col" onSubmit={onSubmit}>
-      <header className="shrink-0 border-b border-slate-200 px-6 py-5 pe-14">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}</h1>
-        <p className="mt-1.5 text-sm text-slate-500">{t.assignmentsPage.modal.subtitle}</p>
+      <header className="shrink-0 border-b border-ink-200 px-6 py-5 pe-14">
+        <h1 className="text-xl font-semibold tracking-[-0.02em] text-ink-900">{type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}</h1>
+        <p className="mt-1.5 text-sm text-ink-500">{t.assignmentsPage.modal.subtitle}</p>
       </header>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.selectClass} *</label>
+            <label className="ss-label">{t.assignmentsPage.modal.selectClass} *</label>
             <select aria-label={t.assignmentsPage.modal.selectClass} className={fieldClass} value={selectedClassId} disabled={classesQuery.isPending || isPending} onChange={(event) => { setSelectedClassId(event.target.value); setValue("lessonId", "", { shouldDirty: true }); }}>
               <option value="">{t.resourcesPage.form.chooseClass}</option>
               {classes.map((schoolClass) => <option key={schoolClass.id} value={schoolClass.id}>{schoolClass.name}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.selectLesson} *</label>
+            <label className="ss-label">{t.assignmentsPage.modal.selectLesson} *</label>
             <select {...register("lessonId")} aria-label={t.assignmentsPage.modal.selectLesson} value={watchedLessonId || ""} disabled={!selectedClassId || optionsLoading || optionsError || isPending} className={fieldClass}>
               <option value="">{!selectedClassId ? t.resourcesPage.form.chooseClassFirst : optionsLoading ? t.assignmentsPage.modal.loadingLessons : t.assignmentsPage.modal.selectLessonPlaceholder}</option>
               {lessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{getTranslatedSubject(lesson.subject?.name, locale)} — {lesson.teacher?.name} {lesson.teacher?.surname}</option>)}
@@ -191,33 +191,33 @@ const AssignmentForm = ({
         {!optionsLoading && selectedClassId && lessons.length === 0 ? <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">{t.assignmentsPage.modal.noLessons}</p> : null}
         {selectedLesson ? <p className="text-xs text-slate-500">{t.assignmentsPage.modal.assignedTeacher}: <span className="font-medium text-slate-700">{selectedLesson.teacher?.name} {selectedLesson.teacher?.surname}</span></p> : null}
 
-        <div className="space-y-1.5 border-t border-slate-100 pt-5">
-          <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.taskTitle} *</label>
+        <div className="space-y-1.5 border-t border-ink-100 pt-5">
+          <label className="ss-label">{t.assignmentsPage.modal.taskTitle} *</label>
           <input {...register("title")} className={fieldClass} placeholder={t.assignmentsPage.modal.taskTitlePlaceholder} />
           {errors.title ? <p className="text-xs text-rose-600">{errors.title.message?.toString()}</p> : null}
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.taskDesc}</label>
+          <label className="ss-label">{t.assignmentsPage.modal.taskDesc}</label>
           <textarea {...register("description")} rows={3} className={`${fieldClass} resize-y`} placeholder={t.assignmentsPage.modal.taskDescPlaceholder} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.dueDate}</label>
+          <label className="ss-label">{t.assignmentsPage.modal.dueDate}</label>
           <input type="datetime-local" {...register("dueDate")} className={fieldClass} />
         </div>
         <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.attachments}</p>
+          <p className="ss-label">{t.assignmentsPage.modal.attachments}</p>
           <input type="file" id="assignment-file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" multiple />
-          <button type="button" disabled={isUploading} onClick={() => document.getElementById("assignment-file")?.click()} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-4 text-start transition hover:border-blue-400 hover:bg-blue-50/40 disabled:opacity-60">
-            {isUploading ? <Loader2 size={20} className="shrink-0 animate-spin text-blue-600" /> : <Upload size={20} className="shrink-0 text-blue-600" />}
+          <button type="button" disabled={isUploading} onClick={() => document.getElementById("assignment-file")?.click()} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-4 text-start transition hover:border-blue-400 hover:bg-brand-50/40 disabled:opacity-60">
+            {isUploading ? <Loader2 size={20} className="shrink-0 animate-spin text-brand-600" /> : <Upload size={20} className="shrink-0 text-brand-600" />}
             <span className="text-sm font-medium text-slate-700">{isUploading ? t.assignmentsPage.modal.uploading : t.assignmentsPage.modal.uploadSheets}</span>
           </button>
           {imgs.length ? <ul className="space-y-2">{imgs.map((url, index) => <li key={url} className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5"><FileText size={17} className="text-slate-400" /><span className="min-w-0 flex-1 truncate text-sm text-slate-700">{url.split("/").pop()}</span><button type="button" aria-label={t.assignmentsPage.modal.remove} onClick={() => removeFile(index)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><X size={16} /></button></li>)}</ul> : null}
         </div>
       </div>
-      <footer className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+      <footer className="shrink-0 border-t border-ink-200 bg-ink-50/70 px-6 py-4">
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} disabled={isPending || isUploading} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{t.resourcesPage.form.cancel}</button>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50" disabled={isPending || isUploading || optionsLoading || optionsError || !selectedLesson}>{isPending ? <><Loader2 size={16} className="animate-spin" />{t.assignmentsPage.modal.processing}</> : type === "create" ? t.assignmentsPage.modal.assignTask : t.assignmentsPage.modal.updateTitle}</button>
+          <button type="button" onClick={onClose} disabled={isPending || isUploading} className="ss-button-secondary">{t.resourcesPage.form.cancel}</button>
+          <button className="ss-button-primary" disabled={isPending || isUploading || optionsLoading || optionsError || !selectedLesson}>{isPending ? <><Loader2 size={16} className="animate-spin" />{t.assignmentsPage.modal.processing}</> : type === "create" ? t.assignmentsPage.modal.assignTask : t.assignmentsPage.modal.updateTitle}</button>
         </div>
       </footer>
     </form>

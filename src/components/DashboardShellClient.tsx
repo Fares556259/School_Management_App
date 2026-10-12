@@ -48,7 +48,7 @@ const DashboardShellClient = ({
       />
 
       {/* Top navbar with hamburger wired in */}
-      <div className="print:hidden sticky top-0 bg-[#F5F6F8]/80 backdrop-blur-md z-20">
+      <div className="sticky top-0 z-20 border-b border-ink-200/70 bg-paper/90 backdrop-blur-md print:hidden">
         <Navbar adminData={adminData} role={role!} onMobileMenuOpen={openDrawer} />
       </div>
 

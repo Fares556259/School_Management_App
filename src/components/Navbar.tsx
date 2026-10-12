@@ -4,18 +4,13 @@ import Image from "next/image"
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { useEffect, useState } from "react";
-import { getAIUsageStats, toggleTestAIQuota } from "@/app/(dashboard)/admin/actions/aiActions";
-import { Sparkles, Lock, Unlock, RefreshCw, Search, Bell, Menu as MenuIcon } from "lucide-react";
-import { motion } from "framer-motion";
-import { useRouter, usePathname } from "next/navigation";
+import { Menu as MenuIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { getUserAvatar } from "@/lib/avatar";
 
 const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }: { adminData?: any, role?: string, onMobileMenuOpen?: () => void }) => {
   const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(initialAdminData);
-  const [aiStats, setAiStats] = useState<{usage: number, quota: number} | null>(null);
-  const [isToggling, setIsToggling] = useState(false);
-  const router = useRouter();
 
   const pathname = usePathname();
   
@@ -26,28 +21,22 @@ const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }
     setAdminData(initialAdminData);
   }, [initialAdminData]);
 
-  useEffect(() => {
-    if (role === "admin") {
-      getAIUsageStats().then(setAiStats).catch(console.error);
-    }
-  }, [role]);
-
   return (
-    <div className='flex items-center justify-between px-4 md:px-6 py-3 md:py-4 bg-[#F5F6F8]/80 backdrop-blur-md sticky top-0 z-50 border-b border-transparent transition-all'>
+    <header className="flex min-h-16 items-center justify-between gap-4 px-4 py-3 md:px-6 lg:px-8">
       {/* LEFT: Hamburger (mobile only) + PAGE TITLE */}
       <div className="flex items-center gap-3 flex-1">
         {/* Hamburger — only visible on mobile */}
         <button
           type="button"
           onClick={onMobileMenuOpen}
-          className="flex md:hidden items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 transition-colors shrink-0"
+          className="ss-icon-button shrink-0 md:hidden"
           aria-label="Ouvrir la navigation"
         >
           <MenuIcon size={20} />
         </button>
 
         {/* Page title — always visible, smaller on mobile */}
-        <h1 className="text-[18px] md:text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px] truncate">
+        <h1 className="truncate text-lg font-semibold leading-tight tracking-[-0.02em] text-ink-900 md:text-xl">
           {(() => {
             if (pathSegments.length === 0) return "Dashboard";
             const lastSegment = pathSegments[pathSegments.length - 1];
@@ -59,37 +48,27 @@ const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }
       </div>
 
       {/* RIGHT: UTILITIES */}
-      <div className='flex items-center gap-3 justify-end flex-1'>
-
-
-        {/* NOTIFICATIONS */}
-        <div className='rounded-full w-9 h-9 flex items-center justify-center cursor-pointer relative transition-all group hover:bg-[#e5e7eb]/50'>
-          <Bell size={18} className="text-[#9297a0] group-hover:text-[#41454d] transition-colors"/>
-          <div className='absolute top-2 right-2 w-1.5 h-1.5 bg-rose-500 rounded-full border border-[#F5F6F8]'></div>
-        </div>
-        
+      <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3">
         {/* LANGUAGE SWITCHER */}
-        <div className="scale-90 origin-right">
-          <LanguageSwitcher />
-        </div>
+        <LanguageSwitcher />
 
         {/* USER PROFILE */}
-        <div className="flex items-center ml-2 border-l border-[#dddddd] pl-4">
-          <Image 
-            src={getUserAvatar(adminData?.img, role, adminData?.sex)} 
-            alt="Profile" 
-            width={32} 
-            height={32} 
-            className="rounded-full object-cover w-8 h-8 shadow-sm border border-[#dddddd]" 
+        <div className="ms-1 flex items-center border-s border-ink-200 ps-3 sm:ms-2 sm:ps-4">
+          <Image
+            src={getUserAvatar(adminData?.img, role, adminData?.sex)}
+            alt="Profile"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-full border border-ink-200 object-cover"
           />
-          <form action="/api/auth/signout" method="POST" className="ml-3">
-            <button type="submit" className="text-xs text-red-500 hover:underline">
-              Sign out
+          <form action="/api/auth/signout" method="POST" className="ms-2 hidden sm:block">
+            <button type="submit" className="rounded-control px-2 py-1.5 text-xs font-medium text-ink-600 transition hover:bg-white hover:text-ink-900">
+              {(t.menu as any)?.logout || "Sign out"}
             </button>
           </form>
         </div>
       </div>
-    </div>
+    </header>
   )
 }
 
