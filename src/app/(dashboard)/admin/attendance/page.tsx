@@ -319,7 +319,7 @@ export default function AttendancePage() {
                 {lessons.map((l) => {
                   const fullName = l.subject?.name || l.name || "";
                   const arabicName = fullName.split("|")[0].trim();
-                  const timeStr = l.startTime ? `(${new Date(l.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : "";
+                  const timeStr = l.startTime ? `(${String(l.startTime).slice(0, 5)})` : "";
                   return (
                     <option key={l.id} value={l.id} className="bg-white">
                       {arabicName} {timeStr}

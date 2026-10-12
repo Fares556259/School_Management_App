@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { NextResponse } from 'next/server';
 import { parseSchoolDay } from '../lib/schoolDay';
 import { fetchAttendanceJson, selectAttendanceSession } from '../lib/attendanceRoster';
+import { selectChangedNonPresent } from '../lib/attendanceNotifications';
 
 function load(file: string, modules: Record<string, any>) {
   const exports: any = {};
@@ -63,12 +64,14 @@ async function main() {
     '@/lib/timeUtils': { parseTime: () => ({ hours: 8, minutes: 0 }) }, '@prisma/client': {},
     '@/lib/notifications': {}, '@/lib/school': { getSchoolId: async () => 'school-a' },
     '@/lib/schoolDay': { parseSchoolDay },
+    '@/lib/attendanceNotifications': { selectChangedNonPresent },
   });
   const get = (query: string) => api.GET(new Request(`http://localhost/api/attendance?${query}`));
   let response = await get('classId=1&date=2026-10-05&view=roster');
   assert.equal(response.status, 200);
   let data = await response.json();
   assert.equal(data.lessons[0].id, 'slot-1');
+  assert.equal(data.lessons[0].startTime, '08:00', 'Session time remains a Tunisia school wall-clock value');
   assert.equal(data.lessons[0].realLessonId, null);
   assert.equal(data.students[0].attendance.length, 2, 'Roster retains all session records for local selection');
   assert.equal(writes, 0, 'GET never creates missing lessons');
@@ -84,6 +87,23 @@ async function main() {
   response = await api.POST(new Request('http://localhost/api/attendance', { method: 'POST', body: JSON.stringify({ date: '2026-10-05', lessonId: 'slot-1', records: [{ studentId: 'other-school-child', status: 'ABSENT' }] }) }));
   assert.equal(response.status, 404, 'Reject another school student before any attendance or lesson writes');
   assert.equal(writes, 0);
+  assert.deepEqual(
+    selectChangedNonPresent(
+      [
+        { studentId: 'same', status: 'LATE' },
+        { studentId: 'changed', status: 'ABSENT' },
+        { studentId: 'new', status: 'LATE' },
+        { studentId: 'present', status: 'PRESENT' },
+      ],
+      new Map([
+        ['same', { status: 'LATE' }],
+        ['changed', { status: 'PRESENT' }],
+        ['present', { status: 'ABSENT' }],
+      ])
+    ).map((record: any) => record.studentId),
+    ['changed', 'new'],
+    'Only new or changed absent/late states should notify parents'
+  );
 
   const fixtures: any[] = [];
   const page = load('src/app/(dashboard)/admin/attendance/page.tsx', {

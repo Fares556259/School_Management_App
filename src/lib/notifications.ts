@@ -232,13 +232,14 @@ export async function sendPushBatch(
  * Sends individualized push notifications to multiple parents in batch.
  */
 async function sendPushIndividualBatch(
-  items: { parentId: string; title: string; body: string; data?: any }[]
-) {
-  if (items.length === 0) return;
+  items: { parentId: string; title: string; body: string; data?: any }[],
+  schoolId: string
+): Promise<{ tokensCount: number; sentCount: number }> {
+  if (items.length === 0) return { tokensCount: 0, sentCount: 0 };
   try {
     const parentIds = Array.from(new Set(items.map((i) => i.parentId)));
     const parents = await prisma.parent.findMany({
-      where: { id: { in: parentIds } },
+      where: { id: { in: parentIds }, schoolId },
       select: { id: true, expoPushToken: true },
     });
 
@@ -251,15 +252,19 @@ async function sendPushIndividualBatch(
         );
       });
 
-    if (messages.length === 0) return;
+    if (messages.length === 0) return { tokensCount: 0, sentCount: 0 };
 
     const chunks = expo.chunkPushNotifications(messages);
+    let sentCount = 0;
     for (const chunk of chunks) {
-      await expo.sendPushNotificationsAsync(chunk);
+      const tickets = await expo.sendPushNotificationsAsync(chunk);
+      sentCount += tickets.filter((ticket) => ticket.status === 'ok').length;
     }
-    console.log(`[PUSH-BATCH] Sent ${messages.length} individualized notifications`);
+    console.log(`[PUSH-BATCH] Expo accepted ${sentCount}/${messages.length} individualized notifications`);
+    return { tokensCount: messages.length, sentCount };
   } catch (error) {
     console.error("[PUSH-INDIVIDUAL-BATCH-ERROR]", error);
+    return { tokensCount: 0, sentCount: 0 };
   }
 }
 
@@ -665,38 +670,51 @@ export async function createAttendanceNotification(studentId: string, status: st
 export async function createAttendanceNotificationsBatch(
   records: { studentId: string; status: string }[],
   date: Date,
-  lessonId?: number | null
+  lessonId?: number | null,
+  context?: { schoolId: string; subjectName?: string | null; startTime?: string | null }
 ) {
   try {
     const nonPresent = records.filter((r) => r.status !== "PRESENT");
-    if (nonPresent.length === 0) return;
+    if (nonPresent.length === 0 || !context?.schoolId) {
+      return { notificationsCreated: 0, pushTokensCount: 0, pushSentCount: 0 };
+    }
 
     const studentIds = Array.from(new Set(nonPresent.map((r) => r.studentId)));
     const students = await prisma.student.findMany({
-      where: { id: { in: studentIds } },
+      where: { id: { in: studentIds }, schoolId: context.schoolId },
       select: { id: true, name: true, parentId: true, schoolId: true },
     });
 
-    if (students.length === 0) return;
+    if (students.length === 0) {
+      return { notificationsCreated: 0, pushTokensCount: 0, pushSentCount: 0 };
+    }
 
     const studentMap = new Map(students.map((s) => [s.id, s]));
 
-    let lessonInfo = "";
-    if (lessonId) {
-      const lesson = await prisma.lesson.findUnique({
-        where: { id: lessonId },
+    let subjectName = context.subjectName || null;
+    let startTime = context.startTime || null;
+    if (lessonId && (!subjectName || !startTime)) {
+      const lesson = await prisma.lesson.findFirst({
+        where: { id: lessonId, schoolId: context.schoolId },
         include: { subject: true, teacher: true },
       });
-      if (lesson && lesson.subject && lesson.teacher) {
-        const timeStr = lesson.startTime.toLocaleTimeString("en-US", {
-          hour: "numeric",
+      subjectName ||= lesson?.subject?.name || null;
+      if (!startTime && lesson?.startTime) {
+        startTime = lesson.startTime.toLocaleTimeString("fr-TN", {
+          timeZone: "Africa/Tunis",
+          hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         });
-        lessonInfo = ` في حصة ${lesson.subject.name} على الساعة ${timeStr}`;
       }
     }
+    const cleanTime = startTime ? startTime.slice(0, 5) : null;
+    const lessonInfo = subjectName
+      ? ` في حصة ${subjectName}${cleanTime ? ` على الساعة ${cleanTime}` : ""}`
+      : "";
 
-    const dateStr = date.toLocaleDateString("en-US", {
+    const dateStr = date.toLocaleDateString("ar-TN", {
+      timeZone: "Africa/Tunis",
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -736,7 +754,14 @@ export async function createAttendanceNotificationsBatch(
         parentId: student.parentId,
         title: `📍 الحضور: ${r.status === "ABSENT" ? "غياب" : "تأخير"}`,
         body: `${student.name} ${statusLabel}${lessonInfo ? lessonInfo : ` اليوم (${dateStr})`}.`,
-        data: { type: "ATTENDANCE", studentId: student.id, channelId: "emergency" },
+        data: {
+          type: "ATTENDANCE",
+          studentId: student.id,
+          channelId: "emergency",
+          createdAt: new Date().toISOString(),
+          attendanceDate: date.toISOString(),
+          sessionTime: cleanTime || undefined,
+        },
       });
     }
 
@@ -747,16 +772,21 @@ export async function createAttendanceNotificationsBatch(
       });
     }
 
-    // Dispatch Expo push notifications in background without blocking response
-    sendPushIndividualBatch(pushItems).catch((err) =>
-      console.error("[NOTIFICATIONS] Error sending batch push:", err)
-    );
+    // Await Expo acceptance so a serverless request cannot terminate before
+    // pushes for the exact school-scoped parents have been submitted.
+    const pushResult = await sendPushIndividualBatch(pushItems, context.schoolId);
 
     console.log(
       `[NOTIFICATIONS] Created batch attendance alerts for ${notificationsData.length} records`
     );
+    return {
+      notificationsCreated: notificationsData.length,
+      pushTokensCount: pushResult.tokensCount,
+      pushSentCount: pushResult.sentCount,
+    };
   } catch (error) {
     console.error("[NOTIFICATIONS] Error creating batch attendance notifications:", error);
+    return { notificationsCreated: 0, pushTokensCount: 0, pushSentCount: 0 };
   }
 }
 

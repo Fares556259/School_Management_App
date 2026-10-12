@@ -2,9 +2,10 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { parseTime } from "@/lib/timeUtils";
 import { AttendanceStatus } from "@prisma/client";
-import { createAttendanceNotification, createAttendanceNotificationsBatch } from "@/lib/notifications";
+import { createAttendanceNotificationsBatch } from "@/lib/notifications";
 import { getSchoolId } from "@/lib/school";
 import { parseSchoolDay } from "@/lib/schoolDay";
+import { selectChangedNonPresent } from "@/lib/attendanceNotifications";
 
 export const dynamic = "force-dynamic";
 
@@ -156,7 +157,8 @@ export async function GET(request: NextRequest) {
     return {
       id: `slot-${s.id}`,
       name: s.subject?.name || "Free Period",
-      startTime: `${dateStr}T${timeStr}`,
+      // A timetable value is a school wall-clock time, not a UTC instant.
+      startTime: timeStr.slice(0, 5),
       subject: s.subject,
       slotId: s.id,
       realLessonId: realLesson?.id || null,
@@ -338,6 +340,8 @@ export async function POST(request: NextRequest) {
     if (allowedStudents.length !== studentIds.length) return NextResponse.json({ error: "Student not found" }, { status: 404 });
     const dayStart = calendarDay.date;
     let targetLessonId: number | null = null;
+    let sessionSubject: string | null = null;
+    let sessionStartTime: string | null = null;
 
     if (lessonId && lessonId !== "ALL") {
       if (lessonId.startsWith("slot-")) {
@@ -350,6 +354,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Invalid session" }, { status: 400 });
         }
         if (targetSlot && targetSlot.subjectId) {
+          sessionSubject = targetSlot.subject?.name || "Session";
+          sessionStartTime = targetSlot.startTime;
           const lessonName = `${targetSlot.subject?.name || "Session"} - ${targetSlot.startTime}`;
           let lesson = await prisma.lesson.findFirst({
             where: { schoolId, classId: targetSlot.classId, subjectId: targetSlot.subjectId, day: targetSlot.day, name: lessonName },
@@ -403,20 +409,20 @@ export async function POST(request: NextRequest) {
         date: dayStart,
         lessonId: targetLessonId,
       },
-      select: { id: true, studentId: true },
+      select: { id: true, studentId: true, status: true },
     });
 
-    const existingMap = new Map(existingRecords.map((e) => [e.studentId, e.id]));
+    const existingMap = new Map(existingRecords.map((e) => [e.studentId, e]));
 
     const updates: any[] = [];
     const creates: any[] = [];
 
     for (const r of records) {
-      const existingId = existingMap.get(r.studentId);
-      if (existingId) {
+      const existing = existingMap.get(r.studentId);
+      if (existing) {
         updates.push(
           prisma.attendance.update({
-            where: { id: existingId },
+            where: { id: existing.id },
             data: { status: r.status as AttendanceStatus, note: r.note ?? null },
           })
         );
@@ -437,13 +443,18 @@ export async function POST(request: NextRequest) {
       creates.length > 0 ? prisma.attendance.createMany({ data: creates }) : Promise.resolve(),
     ]);
 
-    // Batch notifications and dispatch Expo pushes asynchronously
-    const nonPresent = records.filter((r) => r.status !== "PRESENT");
-    if (nonPresent.length > 0) {
-      await createAttendanceNotificationsBatch(nonPresent, dayStart, targetLessonId);
-    }
+    // Alert only when a student enters or changes a non-present state.
+    // Re-saving the same register must not notify a parent twice.
+    const changedNonPresent = selectChangedNonPresent(records, existingMap);
+    const notificationSummary = changedNonPresent.length > 0
+      ? await createAttendanceNotificationsBatch(changedNonPresent, dayStart, targetLessonId, {
+          schoolId,
+          subjectName: sessionSubject,
+          startTime: sessionStartTime,
+        })
+      : { notificationsCreated: 0, pushTokensCount: 0, pushSentCount: 0 };
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, notificationSummary });
   } catch (error: any) {
     console.error("[Attendance POST]", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -550,7 +550,10 @@ export async function markClassAttendanceTool(
   // Batch notifications to parents
   if (recordsToNotify.length > 0) {
     try {
-      await createAttendanceNotificationsBatch(recordsToNotify, date, lesson?.id);
+      await createAttendanceNotificationsBatch(recordsToNotify, date, lesson?.id, {
+        schoolId: context.schoolId,
+        subjectName: args.sessionName || lesson?.subject?.name,
+      });
     } catch (err) {
       console.warn("[markClassAttendanceTool] Batch push notification warning:", err);
     }
