@@ -18,6 +18,14 @@ export interface MobileJWTPayload {
   exp?: number;
 }
 
+interface StudentClaimPayload {
+  purpose: "parent-signup";
+  studentId: string;
+  schoolId: string;
+  iat?: number;
+  exp?: number;
+}
+
 // ─── 1. JWT Token Issuer & Verifier ──────────────────────────────────────────
 export function generateToken(payload: Omit<MobileJWTPayload, "iat" | "exp">): string {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: "30d" });
@@ -32,6 +40,21 @@ export function verifyToken(token: string): MobileJWTPayload | null {
         !["parent", "teacher", "admin"].includes(payload.userType)) return null;
     return payload as MobileJWTPayload;
   } catch (error) {
+    return null;
+  }
+}
+
+export function generateStudentClaimToken(studentId: string, schoolId: string): string {
+  return jwt.sign({ purpose: "parent-signup", studentId, schoolId }, getJwtSecret(), { expiresIn: "10m" });
+}
+
+export function verifyStudentClaimToken(token: string): StudentClaimPayload | null {
+  try {
+    const payload = jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] });
+    if (typeof payload === "string" || payload.purpose !== "parent-signup" ||
+        typeof payload.studentId !== "string" || typeof payload.schoolId !== "string") return null;
+    return payload as StudentClaimPayload;
+  } catch {
     return null;
   }
 }

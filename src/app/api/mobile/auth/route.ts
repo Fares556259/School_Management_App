@@ -2,12 +2,14 @@ export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { 
   generateToken, 
   checkRateLimit, 
   generateAndStoreOTP, 
-  verifyOTP 
+  verifyOTP,
+  verifyStudentClaimToken,
 } from "@/lib/mobileAuth";
 
 export async function POST(request: NextRequest) {
@@ -90,14 +92,87 @@ export async function POST(request: NextRequest) {
 
     // === PARENT SIGNUP (Claim Student / Self-Registration) ===
     if (action === "signup") {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "L'inscription libre est désactivée. Votre établissement doit créer et sécuriser votre compte parent.",
-        },
-        { status: 403 }
+      const parentName = typeof body.parentName === "string" ? body.parentName.trim() : "";
+      const parentSurname = typeof body.parentSurname === "string" ? body.parentSurname.trim() : "";
+      const cleanPhone = phone.trim().replace(/\s+/g, "");
+      const claimTokens = Array.isArray(body.claimTokens) ? body.claimTokens : [];
+      const claims: Array<ReturnType<typeof verifyStudentClaimToken>> = claimTokens.map((value: unknown) =>
+        typeof value === "string" ? verifyStudentClaimToken(value) : null
       );
+
+      if (!parentName || !parentSurname || !cleanPhone || !password || password.length < 8 ||
+          claims.length === 0 || claims.some((claim: unknown) => !claim)) {
+        return NextResponse.json({
+          success: false,
+          error: "Informations d'inscription invalides ou expirées. Recommencez la vérification.",
+        }, { status: 400 });
+      }
+
+      const verifiedClaims = claims.filter((claim): claim is NonNullable<ReturnType<typeof verifyStudentClaimToken>> => Boolean(claim));
+      const signupSchoolId = verifiedClaims[0].schoolId;
+      if (verifiedClaims.some(claim => claim.schoolId !== signupSchoolId)) {
+        return NextResponse.json({ success: false, error: "Tous les enfants doivent appartenir au même établissement." }, { status: 400 });
+      }
+      const studentIds = Array.from(new Set(verifiedClaims.map(claim => claim.studentId)));
+
+      try {
+        const result = await prisma.$transaction(async tx => {
+          const existingParent = await tx.parent.findFirst({
+            where: { OR: [{ phone: cleanPhone }, { username: cleanPhone }] },
+            select: { id: true },
+          });
+          if (existingParent) throw new Error("PARENT_EXISTS");
+
+          const availableStudents = await tx.student.findMany({
+            where: { id: { in: studentIds }, schoolId: signupSchoolId, parentId: null },
+            select: { id: true },
+          });
+          if (availableStudents.length !== studentIds.length) throw new Error("STUDENT_UNAVAILABLE");
+
+          const parent = await tx.parent.create({
+            data: {
+              id: randomUUID(),
+              username: cleanPhone,
+              name: parentName,
+              surname: parentSurname,
+              phone: cleanPhone,
+              password: await bcrypt.hash(password, 12),
+              address: typeof body.address === "string" && body.address.trim() ? body.address.trim() : "Non renseignée",
+              schoolId: signupSchoolId,
+            },
+          });
+          const linked = await tx.student.updateMany({
+            where: { id: { in: studentIds }, schoolId: signupSchoolId, parentId: null },
+            data: { parentId: parent.id },
+          });
+          if (linked.count !== studentIds.length) throw new Error("STUDENT_UNAVAILABLE");
+
+          const students = await tx.student.findMany({
+            where: { parentId: parent.id, schoolId: signupSchoolId },
+            include: { class: { include: { level: true } }, payments: true },
+          });
+          return { parent, students };
+        });
+
+        return NextResponse.json({
+          success: true,
+          token: generateToken({ userId: result.parent.id, userType: "parent", schoolId: signupSchoolId }),
+          userId: result.parent.id,
+          userType: "parent",
+          schoolId: signupSchoolId,
+          name: `${result.parent.name} ${result.parent.surname}`,
+          img: result.parent.img || null,
+          students: result.students,
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === "PARENT_EXISTS") {
+          return NextResponse.json({ success: false, code: "PARENT_EXISTS", error: "Un compte existe déjà avec ce numéro. Connectez-vous ou contactez l'établissement." }, { status: 409 });
+        }
+        if (error instanceof Error && error.message === "STUDENT_UNAVAILABLE") {
+          return NextResponse.json({ success: false, code: "STUDENT_ALREADY_LINKED", error: "Un élève est déjà rattaché à un compte parent. Contactez l'établissement." }, { status: 409 });
+        }
+        throw error;
+      }
     }
 
     let user: any = null;

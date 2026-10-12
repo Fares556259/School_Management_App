@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import jwt from "jsonwebtoken";
-import { generateToken, verifyToken, generateAndStoreOTP, verifyOTP } from "../lib/mobileAuth";
+import { generateToken, verifyToken, generateAndStoreOTP, verifyOTP, generateStudentClaimToken, verifyStudentClaimToken } from "../lib/mobileAuth";
 import { GET as promote } from "../app/api/dev-promote/route";
 import { GET as upgrade } from "../app/api/upgrade-to-admin/route";
 import { POST as verifyStudent } from "../app/api/mobile/student/verify/route";
@@ -20,6 +20,12 @@ try {
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "superadmin", schoolId: "test-school" }, process.env.JWT_SECRET)), null);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "admin" }, process.env.JWT_SECRET)), null);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "admin", schoolId: "test-school" }, process.env.JWT_SECRET, { expiresIn: -1 })), null);
+  const claimToken = generateStudentClaimToken("student-a", "school-a");
+  assert.deepEqual(
+    { studentId: verifyStudentClaimToken(claimToken)?.studentId, schoolId: verifyStudentClaimToken(claimToken)?.schoolId },
+    { studentId: "student-a", schoolId: "school-a" }
+  );
+  assert.equal(verifyStudentClaimToken(`${claimToken}broken`), null);
   const code = generateAndStoreOTP("test-phone");
   assert.equal(verifyOTP("test-phone", code), true);
   assert.equal(verifyOTP("test-phone", code), false);
@@ -28,7 +34,11 @@ try {
   assert.equal(verifyOTP("blocked-phone", blockedCode), false);
   assert.equal((await promote()).status, 410);
   assert.equal((await upgrade()).status, 410);
-  assert.equal((await verifyStudent()).status, 410);
+  assert.equal((await verifyStudent(new Request("http://localhost/api/mobile/student/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ schoolCode: "", nationalId: "", birthday: "" }),
+  }) as any)).status, 400);
   assert.equal(
     (
       await mobileAuth(
@@ -39,7 +49,7 @@ try {
         }) as any
       )
     ).status,
-    403
+    400
   );
   assert.equal(
     (
@@ -58,7 +68,7 @@ try {
   assert.equal(getStudentLinkDisposition("parent-b", "parent-a"), "other-parent");
   assert.equal(normalizeDateOnly("2012-05-15"), "2012-05-15");
   assert.equal(normalizeDateOnly("2012-02-31"), null);
-  console.log("Mobile security checks passed: secret enforcement, claims, expiry, OTP controls, disabled self-registration, authenticated linking, ownership rules, and date validation.");
+  console.log("Mobile security checks passed: secret enforcement, claims, expiry, OTP controls, secure registration, authenticated linking, ownership rules, and date validation.");
 } finally {
   if (originalSecret === undefined) delete process.env.JWT_SECRET;
   else process.env.JWT_SECRET = originalSecret;
