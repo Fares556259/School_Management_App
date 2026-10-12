@@ -1,6 +1,5 @@
 import prisma from "@/lib/prisma";
 import { checkRateLimit, generateStudentClaimToken } from "@/lib/mobileAuth";
-import { normalizeDateOnly } from "@/lib/mobileStudentLink";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -14,25 +13,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const schoolCode = typeof body.schoolCode === "string" ? body.schoolCode.trim() : "";
     const nationalId = typeof body.nationalId === "string" ? body.nationalId.trim() : "";
-    const birthday = typeof body.birthday === "string" ? normalizeDateOnly(body.birthday.trim()) : null;
-    if (!schoolCode || !nationalId || !birthday) {
-      return NextResponse.json({ success: false, error: "Renseignez le code école, le matricule et la date de naissance." }, { status: 400 });
+    if (!nationalId) {
+      return NextResponse.json({ success: false, error: "Renseignez le matricule de l’élève." }, { status: 400 });
     }
 
-    const school = await prisma.school.findFirst({
-      where: { subdomain: { equals: schoolCode, mode: "insensitive" }, status: "ACTIVE" },
-      select: { id: true, name: true },
+    // The parent supplies only the matricule. Resolve its school server-side and
+    // accept it only when it identifies exactly one student in an active school.
+    // This prevents a matricule reused by two schools from linking the wrong child.
+    const matches = await prisma.student.findMany({
+      where: { nationalId },
+      select: {
+        id: true,
+        parentId: true,
+        schoolId: true,
+        School: { select: { name: true, status: true } },
+      },
     });
-    const student = school ? await prisma.student.findFirst({
-      where: { schoolId: school.id, nationalId },
-      select: { id: true, parentId: true, birthday: true },
-    }) : null;
+    const activeMatches = matches.filter((student) => student.School.status === "ACTIVE");
+    const student = activeMatches.length === 1 ? activeMatches[0] : null;
 
-    const storedBirthday = student?.birthday.toISOString().slice(0, 10) || null;
-    if (!school || !student || storedBirthday !== birthday) {
-      return NextResponse.json({ success: false, error: "Informations non reconnues. Vérifiez-les ou contactez l'établissement." }, { status: 404 });
+    if (!student) {
+      return NextResponse.json({ success: false, error: "Matricule non reconnu. Vérifiez-le ou contactez l’établissement." }, { status: 404 });
     }
     if (student.parentId) {
       return NextResponse.json({
@@ -45,10 +47,10 @@ export async function POST(request: NextRequest) {
     const suffix = nationalId.slice(-4);
     return NextResponse.json({
       success: true,
-      claimToken: generateStudentClaimToken(student.id, school.id),
+      claimToken: generateStudentClaimToken(student.id, student.schoolId),
       student: {
         reference: suffix ? `••••${suffix}` : "Vérifié",
-        schoolName: school.name,
+        schoolName: student.School.name,
       },
     });
   } catch (error) {

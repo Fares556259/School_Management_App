@@ -37,7 +37,7 @@ try {
   assert.equal((await verifyStudent(new Request("http://localhost/api/mobile/student/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ schoolCode: "", nationalId: "", birthday: "" }),
+    body: JSON.stringify({ nationalId: "" }),
   }) as any)).status, 400);
   assert.equal(
     (
