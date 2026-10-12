@@ -5,12 +5,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTransition, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import InputField from "../InputField";
 import { createAssignment, updateAssignment } from "@/lib/crudActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { compressImageFiles } from "@/lib/imageCompression";
 import { toast } from "react-toastify";
 import { fetchAttendanceJson } from "@/lib/attendanceRoster";
+import { FileText, Loader2, Upload, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 function getTranslatedSubject(subjectStr: string, locale: string): string {
   if (!subjectStr) return "";
@@ -36,16 +37,19 @@ type Inputs = z.infer<typeof schema>;
 const AssignmentForm = ({
   type,
   data,
+  onClose,
 }: {
   type: "create" | "update";
   data?: any;
   relatedData?: any;
+  onClose?: () => void;
 }) => {
   const [selectedClassId, setSelectedClassId] = useState<string>(String(data?.classId || data?.lesson?.classId || ""));
   const [isPending, startTransition] = useTransition();
   const [imgs, setImgs] = useState<string[]>(data?.img ? data.img.split(",") : []);
   const [isUploading, setIsUploading] = useState(false);
   const { t, locale } = useLanguage();
+  const router = useRouter();
   const classesQuery = useQuery<any[]>({
     queryKey: ["attendanceClasses"],
     queryFn: ({ signal }) => fetchAttendanceJson("/api/attendance/classes", signal),
@@ -53,14 +57,15 @@ const AssignmentForm = ({
   });
   const lessonsQuery = useQuery<any[]>({
     queryKey: ["assignmentLessonOptions", selectedClassId],
-    queryFn: ({ signal }) => fetchAttendanceJson(`/api/assignment-lessons${selectedClassId ? `?classId=${selectedClassId}` : ""}`, signal),
+    queryFn: ({ signal }) => fetchAttendanceJson(`/api/assignment-lessons?classId=${selectedClassId}`, signal),
+    enabled: !!selectedClassId,
     staleTime: 30_000, retry: 1,
     refetchOnWindowFocus: false,
   });
   const classes = classesQuery.data || [];
   const lessons = lessonsQuery.data || [];
-  const optionsLoading = classesQuery.isPending || lessonsQuery.isPending;
-  const optionsError = classesQuery.isError || lessonsQuery.isError;
+  const optionsLoading = classesQuery.isPending || (!!selectedClassId && lessonsQuery.isPending);
+  const optionsError = classesQuery.isError || (!!selectedClassId && lessonsQuery.isError);
 
   const {
     register,
@@ -74,7 +79,7 @@ const AssignmentForm = ({
       title: data?.title || "",
       description: data?.description || "",
       startDate: data?.startDate ? new Date(data.startDate).toISOString().split('T')[0] : "",
-      dueDate: data?.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : "",
+      dueDate: data?.dueDate ? new Date(data.dueDate).toISOString().slice(0, 16) : "",
       lessonId: data?.lessonId || "",
     },
   });
@@ -148,174 +153,73 @@ const AssignmentForm = ({
           : await updateAssignment(data.id, payload);
 
       if (res.success) {
-        window.location.reload();
+        onClose?.();
+        router.refresh();
       } else {
         toast.error(res.error || t.toasts.operationFailed);
       }
     });
   });
 
+  const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
+
   return (
-    <form className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto" onSubmit={onSubmit}>
-      <div>
-        <h1 className="text-[20px] font-medium text-[#181d26] tracking-tight">
-          {type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}
-        </h1>
-        <p className="text-[13px] text-[#41454d] mt-1">{t.assignmentsPage.modal.subtitle}</p>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <InputField
-          label={t.assignmentsPage.modal.taskTitle}
-          name="title"
-          register={register}
-          error={errors.title}
-          placeholder={t.assignmentsPage.modal.taskTitlePlaceholder}
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.taskDesc}</label>
-          <textarea
-            {...register("description")}
-            className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white min-h-[100px] text-[#181d26]"
-            placeholder={t.assignmentsPage.modal.taskDescPlaceholder}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.selectClass}</label>
-          <div className="relative">
-            <select
-              aria-label={t.assignmentsPage.modal.selectClass}
-              className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white appearance-none text-[#181d26] cursor-pointer pr-10"
-              value={selectedClassId}
-              disabled={classesQuery.isPending || isPending}
-              onChange={(e) => { setSelectedClassId(e.target.value); setValue("lessonId", "", { shouldDirty: true }); }}
-            >
-              <option value="">{t.assignmentsPage.modal.allClasses}</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+    <form className="flex max-h-[90dvh] min-h-0 flex-col" onSubmit={onSubmit}>
+      <header className="shrink-0 border-b border-slate-200 px-6 py-5 pe-14">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}</h1>
+        <p className="mt-1.5 text-sm text-slate-500">{t.assignmentsPage.modal.subtitle}</p>
+      </header>
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.selectClass} *</label>
+            <select aria-label={t.assignmentsPage.modal.selectClass} className={fieldClass} value={selectedClassId} disabled={classesQuery.isPending || isPending} onChange={(event) => { setSelectedClassId(event.target.value); setValue("lessonId", "", { shouldDirty: true }); }}>
+              <option value="">{t.resourcesPage.form.chooseClass}</option>
+              {classes.map((schoolClass) => <option key={schoolClass.id} value={schoolClass.id}>{schoolClass.name}</option>)}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9297a0]">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-            </div>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.selectLesson}</label>
-          <div className="relative">
-            <select
-              {...register("lessonId")}
-              aria-label={t.assignmentsPage.modal.selectLesson}
-              value={watchedLessonId || ""}
-              disabled={optionsLoading || optionsError || isPending}
-              className="border border-[#dddddd] p-2.5 rounded-[6px] text-[13px] w-full focus:border-[#1b61c9] outline-none transition-all bg-white appearance-none text-[#181d26] cursor-pointer pr-10"
-            >
-              <option value="">{optionsLoading ? t.assignmentsPage.modal.loadingLessons : t.assignmentsPage.modal.selectLessonPlaceholder}</option>
-              {lessons.map((lesson) => (
-                <option key={lesson.id} value={lesson.id}>
-                  {getTranslatedSubject(lesson.subject?.name, locale)} ({lesson.class?.name}) - {lesson.teacher?.name} {lesson.teacher?.surname}
-                </option>
-              ))}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.selectLesson} *</label>
+            <select {...register("lessonId")} aria-label={t.assignmentsPage.modal.selectLesson} value={watchedLessonId || ""} disabled={!selectedClassId || optionsLoading || optionsError || isPending} className={fieldClass}>
+              <option value="">{!selectedClassId ? t.resourcesPage.form.chooseClassFirst : optionsLoading ? t.assignmentsPage.modal.loadingLessons : t.assignmentsPage.modal.selectLessonPlaceholder}</option>
+              {lessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{getTranslatedSubject(lesson.subject?.name, locale)} — {lesson.teacher?.name} {lesson.teacher?.surname}</option>)}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9297a0]">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-            </div>
+            {errors.lessonId?.message ? <p className="text-xs text-rose-600">{errors.lessonId.message.toString()}</p> : null}
           </div>
-          {optionsError ? (
-            <div role="alert" className="text-sm text-rose-700">
-              {t.assignmentsPage.modal.optionsLoadError}
-              <button type="button" className="ml-2 underline" onClick={() => {
-                if (classesQuery.isError) void classesQuery.refetch();
-                if (lessonsQuery.isError) void lessonsQuery.refetch();
-              }}>{t.assignmentsPage.modal.retryOptions}</button>
-            </div>
-          ) : optionsLoading ? <p role="status" className="text-xs text-slate-500">{t.assignmentsPage.modal.loadingLessons}</p>
-            : lessons.length === 0 ? <p className="text-xs text-slate-500">{t.assignmentsPage.modal.noLessons}</p> : null}
-          {errors.lessonId?.message && (
-            <p className="text-[10px] text-rose-500 mt-1">{errors.lessonId.message.toString()}</p>
-          )}
         </div>
+        {optionsError ? <div role="alert" className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"><span>{t.assignmentsPage.modal.optionsLoadError}</span><button type="button" className="font-medium underline" onClick={() => { void classesQuery.refetch(); if (selectedClassId) void lessonsQuery.refetch(); }}>{t.assignmentsPage.modal.retryOptions}</button></div> : null}
+        {!optionsLoading && selectedClassId && lessons.length === 0 ? <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">{t.assignmentsPage.modal.noLessons}</p> : null}
+        {selectedLesson ? <p className="text-xs text-slate-500">{t.assignmentsPage.modal.assignedTeacher}: <span className="font-medium text-slate-700">{selectedLesson.teacher?.name} {selectedLesson.teacher?.surname}</span></p> : null}
 
-        {selectedLesson && (
-          <div className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-[6px] border border-[#dddddd] animate-in fade-in slide-in-from-top-2">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#181d26] border border-[#dddddd] text-[12px] font-medium">
-               {selectedLesson.teacher?.name?.charAt(0)}{selectedLesson.teacher?.surname?.charAt(0)}
-            </div>
-            <div>
-              <p className="text-[11px] text-[#41454d]">{t.assignmentsPage.modal.assignedTeacher}</p>
-              <p className="text-[13px] font-medium text-[#181d26]">{selectedLesson.teacher?.name} {selectedLesson.teacher?.surname}</p>
-            </div>
-          </div>
-        )}
-
-        <InputField
-          label={t.assignmentsPage.modal.dueDate || "Due Date"}
-          name="dueDate"
-          type="datetime-local"
-          register={register}
-          error={errors.dueDate}
-          defaultValue={data?.dueDate ? new Date(data.dueDate).toISOString().slice(0, 16) : ""}
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-medium text-[#181d26]">{t.assignmentsPage.modal.attachments}</label>
-          <input
-            type="file"
-            id="assignment-file"
-            className="hidden"
-            onChange={handleFileUpload}
-            accept="image/*,.pdf"
-            multiple
-          />
-          <button
-            type="button"
-            disabled={isUploading}
-            onClick={() => document.getElementById('assignment-file')?.click()}
-            className="flex flex-col items-center justify-center gap-2 py-6 px-4 border border-dashed border-[#dddddd] bg-[#f8fafc] rounded-[6px] hover:bg-[#ffffff] hover:border-[#a0a5b0] transition-all group disabled:opacity-50"
-          >
-            <div className="w-8 h-8 bg-white border border-[#dddddd] rounded-full flex items-center justify-center transition-colors">
-              {isUploading ? (
-                  <span className="text-[14px] animate-spin">⏳</span>
-              ) : (
-                <span className="text-[14px]">📁</span>
-              )}
-            </div>
-            <span className="text-[12px] text-[#41454d]">
-              {isUploading ? t.assignmentsPage.modal.uploading : t.assignmentsPage.modal.uploadSheets}
-            </span>
+        <div className="space-y-1.5 border-t border-slate-100 pt-5">
+          <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.taskTitle} *</label>
+          <input {...register("title")} className={fieldClass} placeholder={t.assignmentsPage.modal.taskTitlePlaceholder} />
+          {errors.title ? <p className="text-xs text-rose-600">{errors.title.message?.toString()}</p> : null}
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.taskDesc}</label>
+          <textarea {...register("description")} rows={3} className={`${fieldClass} resize-y`} placeholder={t.assignmentsPage.modal.taskDescPlaceholder} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.dueDate}</label>
+          <input type="datetime-local" {...register("dueDate")} className={fieldClass} />
+        </div>
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-slate-700">{t.assignmentsPage.modal.attachments}</p>
+          <input type="file" id="assignment-file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf" multiple />
+          <button type="button" disabled={isUploading} onClick={() => document.getElementById("assignment-file")?.click()} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-4 text-start transition hover:border-blue-400 hover:bg-blue-50/40 disabled:opacity-60">
+            {isUploading ? <Loader2 size={20} className="shrink-0 animate-spin text-blue-600" /> : <Upload size={20} className="shrink-0 text-blue-600" />}
+            <span className="text-sm font-medium text-slate-700">{isUploading ? t.assignmentsPage.modal.uploading : t.assignmentsPage.modal.uploadSheets}</span>
           </button>
-
-          {imgs.length > 0 && (
-            <div className="flex flex-col gap-2 mt-2">
-              {imgs.map((url, index) => (
-                <div key={index} className="flex items-center justify-between p-2.5 bg-[#f8fafc] rounded-[6px] border border-[#dddddd]">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-[14px]">📄</span>
-                    <span className="text-[12px] text-[#41454d] truncate max-w-[200px]">{url.split('/').pop()}</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => removeFile(index)}
-                    className="text-rose-500 hover:bg-rose-50 p-1 rounded-md transition-colors"
-                  >
-                    <span className="text-[12px] font-medium">{t.assignmentsPage.modal.remove}</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {imgs.length ? <ul className="space-y-2">{imgs.map((url, index) => <li key={url} className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5"><FileText size={17} className="text-slate-400" /><span className="min-w-0 flex-1 truncate text-sm text-slate-700">{url.split("/").pop()}</span><button type="button" aria-label={t.assignmentsPage.modal.remove} onClick={() => removeFile(index)} className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><X size={16} /></button></li>)}</ul> : null}
         </div>
       </div>
-
-      <button
-        className="bg-[#181d26] hover:bg-[#0d1218] text-white py-2.5 px-4 rounded-[6px] text-[13px] font-medium transition-all mt-4 disabled:opacity-50"
-        disabled={isPending || isUploading || optionsLoading || optionsError || !selectedLesson}
-      >
-        {isPending ? t.assignmentsPage.modal.processing : type === "create" ? t.assignmentsPage.modal.createTitle : t.assignmentsPage.modal.updateTitle}
-      </button>
+      <footer className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={isPending || isUploading} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{t.resourcesPage.form.cancel}</button>
+          <button className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50" disabled={isPending || isUploading || optionsLoading || optionsError || !selectedLesson}>{isPending ? <><Loader2 size={16} className="animate-spin" />{t.assignmentsPage.modal.processing}</> : type === "create" ? t.assignmentsPage.modal.assignTask : t.assignmentsPage.modal.updateTitle}</button>
+        </div>
+      </footer>
     </form>
   );
 };

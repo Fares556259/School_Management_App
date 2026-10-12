@@ -30,12 +30,12 @@ const ResourceDialog = dynamic(() => import("./ResourceDialog"), {
 });
 
 const forms: {
-  [key: string]: (type: "create" | "update", data?: any, relatedData?: any) => JSX.Element;
+  [key: string]: (type: "create" | "update", data?: any, relatedData?: any, onClose?: () => void) => JSX.Element;
 } = {
   teacher: (type, data, relatedData) => <TeacherForm type={type} data={data} relatedData={relatedData} />,
   student: (type, data, relatedData) => <StudentForm type={type} data={data} relatedData={relatedData} />,
-  announcement: (type, data, relatedData) => <AnnouncementForm type={type} data={data} relatedData={relatedData} />,
-  assignment: (type, data, relatedData) => <AssignmentForm type={type} data={data} relatedData={relatedData} />,
+  announcement: (type, data, relatedData, onClose) => <AnnouncementForm type={type} data={data} relatedData={relatedData} onClose={onClose} />,
+  assignment: (type, data, relatedData, onClose) => <AssignmentForm type={type} data={data} relatedData={relatedData} onClose={onClose} />,
 
 };
 
@@ -133,7 +133,7 @@ const FormModal = ({
       </div>
     ) : type === "create" || type === "update" ? (
       forms[table] ? (
-        forms[table](type, data, relatedData)
+        forms[table](type, data, relatedData, () => setOpen(false))
       ) : (
         <div className="p-8 text-center text-slate-400 font-bold">
           Form for &quot;{table}&quot; is not implemented yet.
@@ -176,17 +176,21 @@ const FormModal = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={`bg-white p-4 rounded-md relative z-10 w-[95%] ${(table === "assignment" || table === "resource") ? "md:w-[80%] lg:w-[70%] xl:w-[60%]" : "md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]"}`}
+              role="dialog"
+              aria-modal="true"
+              className={`relative z-10 max-h-[90dvh] w-[calc(100%-24px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ${(table === "assignment" || table === "announcement") ? "max-w-[720px]" : "max-w-[620px]"}`}
             >
               <Form />
-              <div
-                className="absolute top-4 right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+              <button
+                type="button"
+                aria-label={t.crud.cancel}
+                className="absolute end-4 top-4 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 onClick={() => setOpen(false)}
               >
                 <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </div>
+              </button>
             </motion.div>
           </div>
         )}

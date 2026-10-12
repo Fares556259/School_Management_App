@@ -3,8 +3,7 @@ import { getCachedTenantData } from "@/lib/cache";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import { createClient } from "@/utils/supabase/server";
-import { Filter, ArrowUpDown, Plus, Edit2, Trash2, Eye } from "lucide-react";
+import { ClipboardList, Edit2, Plus, Trash2 } from "lucide-react";
 import prisma, { safeDbQuery } from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
@@ -12,6 +11,8 @@ import { getSchoolId } from "@/lib/school";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
+import OperationsListShell from "@/components/operations/OperationsListShell";
+import OperationsFilters from "@/components/operations/OperationsFilters";
 
 type AssignmentList = Assignment & {
   lesson: Lesson & {
@@ -37,10 +38,6 @@ const AssignmentListPage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
-  const userId = user?.id;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, ...queryParams } = safeSearchParams;
@@ -61,51 +58,36 @@ const AssignmentListPage = async ({
   ];
 
   // URL QUERY PARAMS CONDITION
-  const query: Prisma.AssignmentWhereInput = { schoolId };
-
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            query.lesson = { classId: parseInt(value) };
-            break;
-          case "teacherId":
-            query.lesson = { teacherId: value };
-            break;
-          case "search":
-            query.lesson = {
-              OR: [
-                { subject: { name: { contains: value, mode: "insensitive" } } },
-                { teacher: { name: { contains: value, mode: "insensitive" } } },
-                { teacher: { surname: { contains: value, mode: "insensitive" } } },
-              ],
-            };
-            break;
-          default:
-            break;
-        }
-      }
-    }
-  }
+  const lessonFilter: Prisma.LessonWhereInput = {};
+  if (queryParams.classId) lessonFilter.classId = parseInt(queryParams.classId);
+  if (queryParams.teacherId) lessonFilter.teacherId = queryParams.teacherId;
+  if (queryParams.search) lessonFilter.OR = [
+    { subject: { name: { contains: queryParams.search, mode: "insensitive" } } },
+    { teacher: { name: { contains: queryParams.search, mode: "insensitive" } } },
+    { teacher: { surname: { contains: queryParams.search, mode: "insensitive" } } },
+  ];
+  const query: Prisma.AssignmentWhereInput = {
+    schoolId,
+    ...(Object.keys(lessonFilter).length ? { lesson: lessonFilter } : {}),
+  };
 
   const renderRow = (item: AssignmentList) => (
     <tr
       key={item.id}
-      className="border-b border-[#dddddd] text-[15px] text-[#41454d] hover:bg-[#f8fafc] transition-colors group"
+      className="text-sm text-slate-600 transition-colors hover:bg-slate-50"
     >
-      <td className="py-4 px-6 font-medium text-[#181d26]">
+      <td className="px-6 py-4 font-medium text-slate-900">
         {getTranslatedSubject(item.lesson.subject.name, lang)}
       </td>
-      <td className="py-4 px-6">{item.lesson.class.name}</td>
-      <td className="hidden md:table-cell py-4 px-6">
+      <td className="px-6 py-4">{item.lesson.class.name}</td>
+      <td className="hidden px-6 py-4 md:table-cell">
         {item.lesson.teacher?.name + " " + item.lesson.teacher?.surname}
       </td>
-      <td className="hidden md:table-cell py-4 px-6">
+      <td className="hidden px-6 py-4 md:table-cell">
         {new Intl.DateTimeFormat("en-GB").format(new Date(item.startDate))}
       </td>
-      <td className="py-4 px-6">
-        <div className="flex items-center justify-end gap-3">
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-2">
           {(role === "admin" || role === "teacher") && (
             <>
               <AssignmentDetailsModal item={item} />
@@ -114,7 +96,7 @@ const AssignmentListPage = async ({
                 type="update" 
                 data={item}
                 trigger={
-                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors">
+                  <button aria-label={t.announcementsPage.actions.edit} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
                     <Edit2 size={14} />
                   </button>
                 }
@@ -124,7 +106,7 @@ const AssignmentListPage = async ({
                 type="delete" 
                 id={item.id}
                 trigger={
-                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors">
+                  <button aria-label={t.announcementsPage.actions.delete} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50">
                     <Trash2 size={14} />
                   </button>
                 }
@@ -193,39 +175,27 @@ const AssignmentListPage = async ({
     count = typeof freshCount === "number" ? freshCount : 0;
   }
 
+  const classes = await safeDbQuery(() => prisma.class.findMany({
+    where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" },
+  })).catch(() => [] as Array<{ id: number; name: string }>);
+
   return (
-    <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
-      {/* TOP */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="hidden md:block text-[28px] md:text-[32px] font-normal text-[#181d26] tracking-tight">{t.assignmentsPage.pageTitle}</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <div className="flex items-center gap-3 self-end">
-            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors shadow-sm">
-              <Filter size={16} strokeWidth={2} />
-            </button>
-            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors shadow-sm">
-              <ArrowUpDown size={16} strokeWidth={2} />
-            </button>
-            {(role === "admin" || role === "teacher") && (
-              <FormModal 
-                table="assignment" 
-                type="create"
-                trigger={
-                  <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#0d1218] text-white rounded-full px-5 py-2.5 transition-colors shadow-sm">
-                    <Plus size={18} strokeWidth={2.5} />
-                    <span className="font-medium text-[15px]">{t.assignmentsPage.addAssignment}</span>
-                  </button>
-                }
-              />
-            )}
-          </div>
-        </div>
-      </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
-    </div>
+    <OperationsListShell
+      icon={<ClipboardList size={21} />}
+      title={t.assignmentsPage.pageTitle}
+      subtitle={t.assignmentsPage.modal.subtitle}
+      count={count}
+      totalLabel={t.announcementsPage.total}
+      action={(role === "admin" || role === "teacher") ? <FormModal table="assignment" type="create" trigger={
+        <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
+          <Plus size={17} />{t.assignmentsPage.addAssignment}
+        </button>
+      } /> : undefined}
+      filters={<OperationsFilters classes={classes} defaultSearch={queryParams.search} defaultClass={queryParams.classId} searchPlaceholder={t.navbar.search} allClassesLabel={t.assignmentsPage.modal.allClasses} />}
+      pagination={<Pagination page={p} count={count} />}
+    >
+      <Table columns={columns} renderRow={renderRow} data={data} emptyState={<div><ClipboardList className="mx-auto mb-3 text-slate-300" size={30} /><p className="text-sm font-medium text-slate-600">{t.assignmentsPage.pageTitle}</p><p className="mt-1 text-sm text-slate-400">0 {t.announcementsPage.total}</p></div>} />
+    </OperationsListShell>
   );
 };
 

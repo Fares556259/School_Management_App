@@ -128,7 +128,8 @@ async function main() {
   assert.equal((await actions.updateResource(40,resourcePayload)).success,false);
   role='admin';
   assert.equal(resourceCreates,1);assert.equal(resourceUpdates,1);
-  const translations={assignmentsPage:{modal:{selectClass:'Select class',selectLesson:'Select lesson',selectLessonPlaceholder:'Choose lesson',loadingLessons:'Loading lessons',optionsLoadError:'Unable to load options',retryOptions:'Retry',noLessons:'No scheduled lessons'}}};
+  const baseTranslations=load('src/lib/translations/fr.ts',{}).fr;
+  const translations={...baseTranslations,assignmentsPage:{...baseTranslations.assignmentsPage,modal:{...baseTranslations.assignmentsPage.modal,selectClass:'Select class',selectLesson:'Select lesson',selectLessonPlaceholder:'Choose lesson',loadingLessons:'Loading lessons',optionsLoadError:'Unable to load options',retryOptions:'Retry',noLessons:'No scheduled lessons'}}};
   const form=load('src/components/forms/AssignmentForm.tsx',{
     react:React,'react/jsx-runtime':require('react/jsx-runtime'),
     '@hookform/resolvers/zod':require('@hookform/resolvers/zod'),'react-hook-form':require('react-hook-form'),zod:require('zod'),
@@ -136,6 +137,7 @@ async function main() {
     '../InputField':{__esModule:true,default:()=>null},'@/lib/crudActions':{},
     '@/lib/translations/LanguageContext':{useLanguage:()=>({t:translations,locale:'fr'})},
     '@/lib/imageCompression':{},'react-toastify':{toast:{}},'@/lib/attendanceRoster':{},
+    'next/navigation':{useRouter:()=>({refresh:()=>{}})},'lucide-react':require('lucide-react'),
   }).default;
   const render=(result:any)=>{fixtures.push({data:[{id:6,name:'6E'}]},result);return renderToStaticMarkup(React.createElement(form,{type:'create',data:{classId:6}}));};
   let markup=render({isPending:true}); assert.match(markup,/Loading lessons/);

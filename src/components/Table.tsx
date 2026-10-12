@@ -2,22 +2,28 @@ const Table = ({
   columns,
   renderRow,
   data,
+  emptyState,
 }: {
   columns: { header: string; accessor: string; className?: string }[];
   renderRow: (item: any) => React.ReactNode;
   data: any[];
+  emptyState?: React.ReactNode;
 }) => {
   return (
-    <div className="overflow-x-auto w-full mt-6">
+    <div className="w-full overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr className="border-y border-[#dddddd] text-[13px] font-medium text-[#41454d] bg-slate-50/50">
+          <tr className="bg-slate-50 text-xs font-semibold text-slate-600">
             {columns.map((col) => (
-              <th key={col.accessor} className={`py-4 px-6 ${col.className || ""}`}>{col.header}</th>
+              <th key={col.accessor} className={`px-6 py-3.5 ${col.className || ""}`}>{col.header}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#dddddd]">{data.map((item) => renderRow(item))}</tbody>
+        <tbody className="divide-y divide-slate-100">
+          {data.length > 0 ? data.map((item) => renderRow(item)) : (
+            <tr><td colSpan={columns.length} className="px-6 py-14 text-center">{emptyState}</td></tr>
+          )}
+        </tbody>
       </table>
     </div>
   );

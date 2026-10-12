@@ -8,10 +8,11 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Notice, Class, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import { Megaphone, Plus, FileText, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
-import AnnouncementFilters from "./AnnouncementFilters";
 import AnnouncementPreviewModal from "./AnnouncementPreviewModal";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
+import OperationsListShell from "@/components/operations/OperationsListShell";
+import OperationsFilters from "@/components/operations/OperationsFilters";
 
 type NoticeList = Notice & { class: Class | null };
 
@@ -69,81 +70,51 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
   ]);
 
   return (
-    <div className="p-6 flex flex-col gap-8 flex-1 bg-white rounded-[16px] border border-[#dddddd] shadow-sm">
-      {/* Header Section */}
-      <div className="flex flex-col gap-6 w-full mb-2">
-        
-        {/* Top Row: Title & Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-[10px] bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-              <Megaphone size={22} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-[28px] font-semibold text-[#181d26] leading-none tracking-tight mb-2">{t.announcementsPage?.title || "Announcements"}</h1>
-              <div className="flex items-center gap-2 text-[13px] font-medium text-[#5a5a5a]">
-                <span>{t.announcementsPage?.communications || "School Communications"}</span>
-                <span className="w-1 h-1 rounded-full bg-[#dddddd]"></span>
-                <span className="text-indigo-600 font-medium">{count} {t.announcementsPage?.total || "Total"}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {(role === "admin" || role === "teacher") && (
-              <FormModal 
-                table="announcement" 
-                type="create" 
-                relatedData={{ classes }}
-                trigger={
-                  <button className="px-4 py-2.5 rounded-[6px] bg-[#181d26] text-white hover:bg-[#0d1218] border border-transparent font-medium text-[13px] active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm">
-                    <Plus size={14} className="text-white/80" /> {t.announcementsPage?.createAnnouncement || "Create Announcement"}
-                  </button>
-                }
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Filter Bar */}
-        <AnnouncementFilters 
-          classes={classes} 
-          defaultSearch={search} 
-          defaultClass={classId} 
-        />
-      </div>
-
-      {/* Table Area */}
-      <div className="bg-[#ffffff] border border-[#dddddd] rounded-[8px] overflow-x-auto">
+    <OperationsListShell
+      icon={<Megaphone size={21} />}
+      title={t.announcementsPage?.title || "Announcements"}
+      subtitle={t.announcementsPage?.communications || "School Communications"}
+      count={count}
+      totalLabel={t.announcementsPage?.total || "Total"}
+      action={(role === "admin" || role === "teacher") ? <FormModal table="announcement" type="create" relatedData={{ classes }} trigger={
+        <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
+          <Plus size={17} />{t.announcementsPage?.createAnnouncement || "Create Announcement"}
+        </button>
+      } /> : undefined}
+      filters={<OperationsFilters classes={classes} defaultSearch={search} defaultClass={classId} searchPlaceholder={t.announcementsPage?.filters?.search || "Search announcements..."} allClassesLabel={t.announcementsPage?.filters?.globalOption || "All classes"} />}
+      pagination={<Pagination page={p} count={count} />}
+    >
+      <div className="overflow-x-auto">
         <table className="w-full text-start border-collapse">
           <thead>
-            <tr className="border-b border-[#dddddd] bg-[#f8fafc]">
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] w-[40%]">{t.announcementsPage?.table?.title || "Title"}</th>
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.target || "Target"}</th>
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d] hidden sm:table-cell">{t.announcementsPage?.table?.date || "Date"}</th>
-              <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.attachments || "Attachments"}</th>
+            <tr className="bg-slate-50 text-xs font-semibold text-slate-600">
+              <th className="w-[40%] px-6 py-3.5">{t.announcementsPage?.table?.title || "Title"}</th>
+              <th className="px-6 py-3.5">{t.announcementsPage?.table?.target || "Target"}</th>
+              <th className="hidden px-6 py-3.5 sm:table-cell">{t.announcementsPage?.table?.date || "Date"}</th>
+              <th className="px-6 py-3.5">{t.announcementsPage?.table?.attachments || "Attachments"}</th>
               {(role === "admin" || role === "teacher") && (
-                <th className="px-4 py-3 text-[12px] font-medium text-[#41454d]">{t.announcementsPage?.table?.actions || "Actions"}</th>
+                <th className="px-6 py-3.5">{t.announcementsPage?.table?.actions || "Actions"}</th>
               )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-[13px] text-[#9297a0]">
-                  {t.announcementsPage?.noAnnouncements || "No announcements found. Try adjusting your filters."}
+                <td colSpan={5} className="px-6 py-14 text-center">
+                  <Megaphone className="mx-auto mb-3 text-slate-300" size={30} />
+                  <p className="text-sm text-slate-500">{t.announcementsPage?.noAnnouncements || "No announcements found. Try adjusting your filters."}</p>
                 </td>
               </tr>
             ) : (
               data.map((item) => (
-                <tr key={item.id} className="border-b border-[#f0f0f0] last:border-none hover:bg-[#fafafa] group">
-                  <td className="px-4 py-4">
+                <tr key={item.id} className="border-b border-slate-100 text-sm text-slate-600 transition-colors last:border-none hover:bg-slate-50">
+                  <td className="px-6 py-4">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[13px] font-medium text-[#181d26] group-hover:text-indigo-600 transition-colors">{item.title}</span>
-                      <span className="text-[12px] text-[#5a5a5a] max-w-xs sm:max-w-md truncate">{item.message}</span>
+                      <span className="font-medium text-slate-900">{item.title}</span>
+                      <span className="max-w-xs truncate text-xs text-slate-500 sm:max-w-md">{item.message}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-bold tracking-wide uppercase ${item.class ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/50' : 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'}`}>
                         {item.class ? `${t.announcementsPage?.filters?.classPrefix || "Class "}${item.class.name}` : (t.announcementsPage?.global || "GLOBAL")}
@@ -155,10 +126,10 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-[12px] font-medium text-[#5a5a5a] hidden sm:table-cell">
+                  <td className="hidden px-6 py-4 text-xs text-slate-500 sm:table-cell">
                     {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(item.date))}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {item.img ? (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[11px] font-semibold border border-indigo-100" title="Attached Images">
@@ -178,7 +149,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
                     </div>
                   </td>
                   {(role === "admin" || role === "teacher") && (
-                    <td className="px-4 py-4">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <AnnouncementPreviewModal item={item} />
                         <FormModal 
@@ -187,7 +158,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
                            data={item}
                            relatedData={{ classes }}
                            trigger={
-                             <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="Edit">
+                             <button aria-label={t.announcementsPage.actions.edit} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
                                <Pencil size={14} strokeWidth={2} />
                              </button>
                            } 
@@ -197,7 +168,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
                            type="delete" 
                            id={item.id}
                            trigger={
-                             <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title="Delete">
+                             <button aria-label={t.announcementsPage.actions.delete} className="group flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50">
                                <Trash2 size={16} strokeWidth={2} className="group-hover:text-rose-600" />
                              </button>
                            }
@@ -211,9 +182,7 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
           </tbody>
         </table>
       </div>
-
-      <Pagination page={p} count={count} />
-    </div>
+    </OperationsListShell>
   );
 };
 export default AnnouncementListPage;

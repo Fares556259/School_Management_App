@@ -2,9 +2,6 @@ import { getRole } from "@/lib/role";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
-import { createClient } from "@/utils/supabase/server";
-import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Resource, Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
@@ -12,8 +9,11 @@ import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
-import { Pencil, Trash2 } from "lucide-react";
+import { BookOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import ResourceDetailsModal from "@/components/ResourceDetailsModal";
+import OperationsListShell from "@/components/operations/OperationsListShell";
+import OperationsFilters from "@/components/operations/OperationsFilters";
+import { getSubjectName } from "@/lib/utils";
 
 type ResourceList = Resource & {
   lesson: Lesson & {
@@ -29,10 +29,6 @@ const ResourceListPage = async ({
 }: {
   searchParams?: { [key: string]: string | undefined };
 }) => {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
-  const userId = user?.id;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, ...queryParams } = safeSearchParams;
@@ -104,23 +100,23 @@ const ResourceListPage = async ({
   const renderRow = (item: ResourceList) => (
     <tr
       key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+      className="text-sm text-slate-600 transition-colors hover:bg-slate-50"
     >
-      <td className="p-4">
+      <td className="px-6 py-4">
         <div className="flex flex-col">
-          <span className="font-bold text-slate-700">{item.title}</span>
+          <span className="font-medium text-slate-900">{item.title}</span>
         </div>
       </td>
-      <td>{item.lesson.subject.name.split('|')[0].trim()}</td>
-      <td className="hidden md:table-cell">{item.lesson.class.name}</td>
-      <td className="hidden lg:table-cell">
+      <td className="px-6 py-4">{getSubjectName(item.lesson.subject.name, locale)}</td>
+      <td className="hidden px-6 py-4 md:table-cell">{item.lesson.class.name}</td>
+      <td className="hidden px-6 py-4 lg:table-cell">
         {item.lesson.teacher?.name + " " + item.lesson.teacher?.surname}
       </td>
-      <td className="hidden md:table-cell">
+      <td className="hidden px-6 py-4 md:table-cell">
         {new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(item.createdAt))}
       </td>
-      <td>
-        <div className="flex items-center gap-2">
+      <td className="px-6 py-4">
+        <div className="flex items-center justify-end gap-2">
           <ResourceDetailsModal item={item} />
           {(role === "admin" || role === "teacher") && (
             <>
@@ -129,7 +125,7 @@ const ResourceListPage = async ({
                 type="update"
                 data={item}
                 trigger={
-                  <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d]" title="Edit">
+                  <button aria-label={t.announcementsPage.actions.edit} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
                     <Pencil size={14} strokeWidth={2} />
                   </button>
                 }
@@ -139,7 +135,7 @@ const ResourceListPage = async ({
                 type="delete"
                 id={item.id}
                 trigger={
-                  <button className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-rose-50 hover:text-rose-600 transition-colors group text-[#41454d]" title="Delete">
+                  <button aria-label={t.announcementsPage.actions.delete} className="group flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-rose-500 transition hover:border-rose-200 hover:bg-rose-50">
                     <Trash2 size={16} strokeWidth={2} className="group-hover:text-rose-600" />
                   </button>
                 }
@@ -195,33 +191,27 @@ const ResourceListPage = async ({
     prisma.resource.count({ where: query }),
   ]);
 
+  const classes = await prisma.class.findMany({
+    where: { schoolId }, select: { id: true, name: true }, orderBy: { name: "asc" },
+  }).catch(() => [] as Array<{ id: number; name: string }>);
+
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">
-          {t.resourcesPage?.title || "Course Resources"}
-        </h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
-            {(role === "admin" || role === "teacher") && (
-              <FormModal table="resource" type="create" />
-            )}
-          </div>
-        </div>
-      </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
-    </div>
+    <OperationsListShell
+      icon={<BookOpen size={21} />}
+      title={t.resourcesPage?.title || "Course Resources"}
+      subtitle={t.resourcesPage.form.subtitle}
+      count={count}
+      totalLabel={t.announcementsPage.total}
+      action={(role === "admin" || role === "teacher") ? <FormModal table="resource" type="create" trigger={
+        <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
+          <Plus size={17} />{t.resourcesPage.form.createTitle}
+        </button>
+      } /> : undefined}
+      filters={<OperationsFilters classes={classes} defaultSearch={queryParams.search} defaultClass={queryParams.classId} searchPlaceholder={t.navbar.search} allClassesLabel={t.assignmentsPage.modal.allClasses} />}
+      pagination={<Pagination page={p} count={count} />}
+    >
+      <Table columns={columns} renderRow={renderRow} data={data} emptyState={<div><BookOpen className="mx-auto mb-3 text-slate-300" size={30} /><p className="text-sm font-medium text-slate-600">{t.resourcesPage?.title || "Course Resources"}</p><p className="mt-1 text-sm text-slate-400">0 {t.announcementsPage.total}</p></div>} />
+    </OperationsListShell>
   );
 };
 
