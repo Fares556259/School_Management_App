@@ -6,6 +6,8 @@ import { getCachedTenantData } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
+const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store, max-age=0" };
+
 const DAY_MAP: Record<number, string> = {
   1: "MONDAY",
   2: "TUESDAY",
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
         teacherRemarks: [],
         resources: [],
         files: [],
-      });
+      }, { headers: PRIVATE_NO_STORE });
     }
 
     let now = new Date();
@@ -122,7 +124,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (todayEnum === "SUNDAY" || holidayName) {
-      return NextResponse.json({ holidayName, sessions: [], upcomingExams: [], teacherRemarks: [], tasksDue: [], tasksGiven: [], examPeriods: [] });
+      return NextResponse.json({ holidayName, sessions: [], upcomingExams: [], teacherRemarks: [], tasksDue: [], tasksGiven: [], examPeriods: [] }, { headers: PRIVATE_NO_STORE });
     }
 
     const todayStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -142,7 +144,7 @@ export async function GET(request: NextRequest) {
       resources
     ] = await Promise.all([
       prisma.timetableSlot.findMany({
-        where: { classId: student.classId, day: todayEnum as any, isDraft: false },
+        where: { schoolId, classId: student.classId, day: todayEnum as any, isDraft: false },
         include: { subject: true, teacher: true, room: true },
         orderBy: { slotNumber: "asc" },
       }),
@@ -152,7 +154,7 @@ export async function GET(request: NextRequest) {
         include: { lesson: { include: { subject: true, teacher: true } } },
       }),
       prisma.lesson.findMany({
-        where: { classId: student.classId, day: todayEnum as any },
+        where: { schoolId, classId: student.classId, day: todayEnum as any },
         select: { id: true, subjectId: true, teacherId: true, name: true },
       }),
       getCachedTenantData(
@@ -187,6 +189,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.gradeSheet.findMany({
         where: { 
+          schoolId,
           classId: student.classId, 
           notes: { not: "" },
           NOT: { notes: { contains: "AUTO_SYNCED" } },
@@ -351,7 +354,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
+          ...PRIVATE_NO_STORE,
         },
       }
     );
