@@ -1858,34 +1858,23 @@ export const deleteAssignment = async (id: number) => {
   }
 };
 
-export const createResource = async (data: {
-  title: string;
-  description?: string;
-  url: string;
-  lessonId: number;
-}) => {
+type ResourceInput = { title: string; description?: string; url: string; lessonId: number | string };
+
+export const createResource = async (data: ResourceInput) => {
   try {
-    const schoolId = await getSchoolId();
-    const resource = await prisma.resource.create({
-      data: {
-        schoolId,
-        title: data.title,
-        description: data.description || null,
-        url: data.url,
-        lessonId: data.lessonId,
-      },
+    const access = await getAssignmentAccess();
+    const { schoolId } = access;
+    if (!data.title.trim() || !data.url.trim()) throw new Error("A title and document are required.");
+    const resource = await prisma.$transaction(async tx => {
+      const lessonId = await resolveAssignmentLesson(tx, access, data.lessonId);
+      return tx.resource.create({ data: {
+        schoolId, title: data.title.trim(), description: data.description?.trim() || null,
+        url: data.url, lessonId,
+      } });
     });
-
-    await createAuditLog({
-      action: "CREATE_RESOURCE",
-      entityType: "Resource",
-      entityId: resource.id.toString(),
-      description: `Uploaded new course resource: ${data.title} (Lesson ID: ${data.lessonId})`,
-    });
-
-    // Trigger Notifications
+    await createAuditLog({ action: "CREATE_RESOURCE", entityType: "Resource",
+      entityId: resource.id.toString(), description: `Uploaded course resource: ${data.title} (Lesson ID: ${resource.lessonId})` });
     await createResourceNotification(resource.id);
-
     invalidateTenantTags(schoolId, 'resources');
     revalidatePath("/list/resources");
     revalidatePath("/admin/attendance");
@@ -1893,6 +1882,32 @@ export const createResource = async (data: {
   } catch (err: any) {
     console.error("createResource error:", err);
     return { success: false, error: err?.message || "Failed to create resource." };
+  }
+};
+
+export const updateResource = async (id: number, data: ResourceInput) => {
+  try {
+    const access = await getAssignmentAccess();
+    const { schoolId } = access;
+    if (!data.title.trim() || !data.url.trim()) throw new Error("A title and document are required.");
+    await prisma.$transaction(async tx => {
+      const resource = await tx.resource.findFirst({
+        where: { id, schoolId, lesson: { schoolId, ...(access.teacherId ? { teacherId: access.teacherId } : {}) } },
+        select: { id: true },
+      });
+      if (!resource) throw new Error("Resource not found.");
+      const lessonId = await resolveAssignmentLesson(tx, access, data.lessonId);
+      await tx.resource.update({ where: { id: resource.id, schoolId }, data: {
+        title: data.title.trim(), description: data.description?.trim() || null, url: data.url, lessonId,
+      } });
+    });
+    await createAuditLog({ action: "UPDATE_RESOURCE", entityType: "Resource", entityId: String(id), description: `Updated course resource: ${id}` });
+    invalidateTenantTags(schoolId, 'resources');
+    revalidatePath("/list/resources");
+    revalidatePath("/admin/attendance");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update resource." };
   }
 };
 

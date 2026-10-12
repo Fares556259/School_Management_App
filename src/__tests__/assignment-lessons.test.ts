@@ -27,6 +27,7 @@ async function main() {
   const existing = { ...slot, id: 9, name: 'Arabe' };
   let lessons: any[] = [], denied = false, role = 'admin', writes = 0, notifications = 0;
   let committed = 0, failAssignment = false, staged = 0;
+  let resourceCreates = 0, resourceUpdates = 0, failResource = false;
   const checkScope = (where: any) => {
     assert.equal(where.schoolId, 'school-a');
     for (const relation of ['class', 'subject', 'teacher']) assert.equal(where[relation]?.schoolId, 'school-a');
@@ -40,6 +41,11 @@ async function main() {
       checkScope(where); assert.equal(where.isDraft,false);
       return denied || (where.teacherId && where.teacherId !== slot.teacherId) ? null : slot;
     } },
+    resource: {
+      create: async ({data}:any) => { if(failResource) throw new Error('synthetic failure'); assert.equal(data.schoolId,'school-a'); assert.equal(data.lessonId,20); resourceCreates++; staged++; return {id:40,...data}; },
+      findFirst: async ({where}:any) => { assert.equal(where.schoolId,'school-a'); assert.equal(where.lesson.schoolId,'school-a'); return denied || (where.lesson.teacherId && where.lesson.teacherId !== slot.teacherId) ? null : {id:40}; },
+      update: async ({where,data}:any) => { assert.equal(where.schoolId,'school-a'); assert.equal(data.lessonId,20); resourceUpdates++; staged++; return {id:40}; },
+    },
     assignment: {
       create: async ({data}: any) => { writes++; staged++; if (failAssignment) throw new Error('synthetic failure'); return {id:30, ...data}; },
       findFirst: async ({where}: any) => { assert.equal(where.schoolId,'school-a'); return denied ? null : {id:30}; },
@@ -83,7 +89,7 @@ async function main() {
     '@/lib/school':{getSchoolId:async()=>'school-a'}, './subjectConstants':{}, './assignmentLessons':service, './studentProfile':{}, './studentIdentifier':{},
     '@/lib/prisma':{__esModule:true,default:prisma}, 'next/cache':{revalidatePath:()=>{}},
     '@/lib/cache':{invalidateTenantTags:()=>{}}, '@/lib/audit':{createAuditLog:async()=>{}},
-    './notifications':{createAssignmentNotification:async()=>{notifications++;}}, '@prisma/client':{},
+    './notifications':{createAssignmentNotification:async()=>{notifications++;},createResourceNotification:async()=>{notifications++;}}, '@prisma/client':{},
   });
   const payload={title:'Synthetic task',startDate:'2026-10-12',dueDate:'2026-10-13',lessonId:'slot-80'};
   assert.equal((await actions.createAssignment(payload)).success,true);
@@ -102,6 +108,26 @@ async function main() {
   role='parent'; assert.equal((await api.GET(new Request('http://localhost/api/assignment-lessons?classId=6'))).status,403);
   role='admin';
   const fixtures: any[]=[]; const queryKeys: any[]=[];
+  lessons=[];
+  const resourcePayload={title:'Synthetic resource',url:'https://example.test/demo.pdf',lessonId:'slot-80'};
+  assert.equal((await actions.createResource(resourcePayload)).success,true);
+  assert.equal(resourceCreates,1);
+  assert.equal((await actions.updateResource(40,resourcePayload)).success,true);
+  assert.equal(resourceCreates,1,'Editing must not create a second resource');
+  assert.equal(resourceUpdates,1);
+  const resourceCommit=committed, notificationCount=notifications;
+  failResource=true;
+  assert.equal((await actions.createResource(resourcePayload)).success,false);
+  assert.equal(committed,resourceCommit,'Resource failure rolls back the resolved lesson');
+  assert.equal(notifications,notificationCount);
+  failResource=false; denied=true;
+  assert.equal((await actions.createResource(resourcePayload)).success,false);
+  assert.equal((await actions.updateResource(40,resourcePayload)).success,false);
+  denied=false; role='parent';
+  assert.equal((await actions.createResource(resourcePayload)).success,false);
+  assert.equal((await actions.updateResource(40,resourcePayload)).success,false);
+  role='admin';
+  assert.equal(resourceCreates,1);assert.equal(resourceUpdates,1);
   const translations={assignmentsPage:{modal:{selectClass:'Select class',selectLesson:'Select lesson',selectLessonPlaceholder:'Choose lesson',loadingLessons:'Loading lessons',optionsLoadError:'Unable to load options',retryOptions:'Retry',noLessons:'No scheduled lessons'}}};
   const form=load('src/components/forms/AssignmentForm.tsx',{
     react:React,'react/jsx-runtime':require('react/jsx-runtime'),
@@ -118,6 +144,22 @@ async function main() {
   markup=render({data:options});assert.match(markup,/6E/);assert.match(markup,/Arabe/);assert.match(markup,/value="9"/);
   options=await service.getAssignmentLessonOptions(access,6);markup=render({data:options});assert.match(markup,/value="slot-80"/);
   assert.equal(queryKeys[1][0],'assignmentLessonOptions');assert.equal(queryKeys[1][1],'6');
-  console.log('Assignment lesson checks passed: timetable-only options, deduplication, class/teacher/school authorization, read-only GET, transactional saves and rollback, loading/error form states. No live database or notifications used.');
+  const resourceForm=load('src/components/forms/ResourceForm.tsx',{
+    react:React,'react/jsx-runtime':require('react/jsx-runtime'),
+    '@hookform/resolvers/zod':require('@hookform/resolvers/zod'),'react-hook-form':require('react-hook-form'),zod:require('zod'),
+    '@tanstack/react-query':{useQuery:(args:any)=>{queryKeys.push(args.queryKey);return fixtures.shift();}},
+    '@/lib/crudActions':{},'next/navigation':{useRouter:()=>({refresh:()=>{}})},'lucide-react':require('lucide-react'),
+    '@/lib/translations/LanguageContext':{useLanguage:()=>({t:load('src/lib/translations/fr.ts',{}).fr,locale:'fr'})},
+    '@/lib/utils':{getSubjectName:(name:string)=>name.split('|')[1]?.trim() || name},
+    '@/lib/imageCompression':{},'react-toastify':{toast:{}},'@/lib/attendanceRoster':{},
+  }).default;
+  const renderResource=(result:any)=>{fixtures.push({data:[{id:6,name:'6E'}]},result);return renderToStaticMarkup(React.createElement(resourceForm,{type:'create',data:{classId:6},onClose:()=>{},onBusyChange:()=>{}}));};
+  markup=renderResource({isPending:true});assert.match(markup,/Chargement/);assert.doesNotMatch(markup,/Aucune matière/);
+  markup=renderResource({isError:true});assert.match(markup,/Impossible de charger/);assert.match(markup,/Réessayer/);
+  markup=renderResource({data:[]});assert.match(markup,/Aucune matière/);
+  markup=renderResource({data:options});assert.match(markup,/value="slot-80"/);assert.match(markup,/Arabe/);
+  assert.match(markup,/Annuler/);assert.match(markup,/Publier la ressource/);assert.match(markup,/overflow-y-auto/);assert.match(markup,/shrink-0 border-t/);
+  assert.doesNotMatch(markup,/Upload Course Resources|uppercase tracking/);
+  console.log('Assignment and Resource checks passed: timetable-only options, school/teacher authorization, read-only GET, transactional saves and rollback, edit without duplication, translated loading/error/empty form states. Mock database and notifications only.');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

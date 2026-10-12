@@ -3,309 +3,182 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useTransition, useState, useEffect, useMemo } from "react";
-import InputField from "../InputField";
-import { createResource } from "@/lib/crudActions";
+import { useState, useEffect, useRef, useId } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { FileText, Upload, X, Loader2 } from "lucide-react";
+import { createResource, updateResource } from "@/lib/crudActions";
 import { getSubjectName } from "@/lib/utils";
 import { compressImageFiles } from "@/lib/imageCompression";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { fetchAttendanceJson } from "@/lib/attendanceRoster";
 import { toast } from "react-toastify";
 
-const schema = z.object({
-  title: z.string().min(1, { message: "Resource title is required!" }),
-  description: z.string().optional(),
-  lessonId: z.coerce.number().min(1, { message: "Lesson is required!" }),
-});
+type LessonOption = { id: number | string; classId: number; subject: { name: string }; teacher: { name: string; surname: string } };
+type ResourceData = { id: number; title: string; description?: string | null; url: string; lessonId: number; classId?: number; lesson?: { classId: number } };
+type Inputs = { title: string; description?: string; lessonId: string };
+const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400";
 
-type Inputs = z.infer<typeof schema>;
-
-const ResourceForm = ({
-  type,
-  data,
-}: {
+export default function ResourceForm({ type, data, onClose, onBusyChange }: {
   type: "create" | "update";
-  data?: any;
-  relatedData?: any;
-}) => {
-  const { t } = useLanguage();
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>(data?.classId ? data.classId.toString() : "");
-  const [isPending, startTransition] = useTransition();
-  const [lessons, setLessons] = useState<any[]>([]);
-  const [fileUrls, setFileUrls] = useState<string[]>(data?.url ? data.url.split(",") : []);
+  data?: ResourceData;
+  onClose: () => void;
+  onBusyChange: (busy: boolean) => void;
+}) {
+  const { t, locale } = useLanguage();
+  const copy = t.resourcesPage.form;
+  const router = useRouter();
+  const formId = useId();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
+  const uploadingRef = useRef(false);
+  const [selectedClassId, setSelectedClassId] = useState(String(data?.classId || data?.lesson?.classId || ""));
+  const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [saveError, setSaveError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [files, setFiles] = useState(() => (data?.url?.split(",").filter(Boolean) || []).map(url => ({ url, name: url.split("/").pop() || copy.files })));
+  const busy = isSaving || isUploading;
+  useEffect(() => { onBusyChange(busy); }, [busy, onBusyChange]);
 
-  const uniqueLessons = useMemo(() => {
-    const seen = new Set<string>();
-    return lessons.filter((lesson) => {
-      const subjectClean = getSubjectName(lesson.subject?.name || "");
-      const key = lesson.subjectId ? `id-${lesson.subjectId}` : `name-${subjectClean}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [lessons]);
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<Inputs>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      title: data?.title || "",
-      description: data?.description || "",
-      lessonId: data?.lessonId || "",
-    },
+  const classesQuery = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ["attendanceClasses"],
+    queryFn: ({ signal }) => fetchAttendanceJson("/api/attendance/classes", signal),
+    staleTime: 60_000, retry: 1,
   });
-
+  const lessonsQuery = useQuery<LessonOption[]>({
+    queryKey: ["assignmentLessonOptions", selectedClassId],
+    queryFn: ({ signal }) => fetchAttendanceJson(`/api/assignment-lessons?classId=${encodeURIComponent(selectedClassId)}`, signal),
+    enabled: !!selectedClassId, staleTime: 30_000, retry: 1, refetchOnWindowFocus: false,
+  });
+  const classes = classesQuery.data || [];
+  const lessons = lessonsQuery.data || [];
+  const optionsLoading = classesQuery.isPending || (!!selectedClassId && lessonsQuery.isPending);
+  const optionsError = classesQuery.isError || (!!selectedClassId && lessonsQuery.isError);
+  const schema = z.object({
+    title: z.string().trim().min(1, copy.requiredTitle),
+    description: z.string().optional(),
+    lessonId: z.string().regex(/^(?:[1-9]\d*|slot-[1-9]\d*)$/, copy.requiredLesson),
+  });
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Inputs>({
+    resolver: zodResolver(schema),
+    defaultValues: { title: data?.title || "", description: data?.description || "", lessonId: String(data?.lessonId || "") },
+  });
   const watchedLessonId = watch("lessonId");
+  const selectedLesson = lessons.find(lesson => String(lesson.id) === watchedLessonId);
 
-  useEffect(() => {
-    if (watchedLessonId && lessons.length > 0) {
-      const lesson = lessons.find(l => l.id.toString() === watchedLessonId.toString());
-      setSelectedLesson(lesson);
-    } else if (data?.lessonId && lessons.length > 0) {
-      const lesson = lessons.find(l => l.id.toString() === data.lessonId.toString());
-      setSelectedLesson(lesson);
-    } else {
-      setSelectedLesson(null);
-    }
-  }, [watchedLessonId, lessons, data?.lessonId]);
-
-  useEffect(() => {
-    // Fetch classes
-    fetch("/api/attendance/classes")
-      .then(res => res.json())
-      .then(data => setClasses(data))
-      .catch(err => console.error("Error fetching classes:", err));
-  }, []);
-
-  // Update lessons when class changes
-  useEffect(() => {
-    const url = selectedClassId 
-      ? `/api/lessons?classId=${selectedClassId}&skipSync=true`
-      : "/api/lessons?skipSync=true";
-      
-    fetch(url)
-      .then(res => res.json())
-      .then(data => setLessons(Array.isArray(data) ? data : []))
-      .catch(err => console.error("Error filtering lessons:", err));
-  }, [selectedClassId]);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawFiles = e.target.files ? Array.from(e.target.files) : [];
-    if (rawFiles.length === 0) return;
-
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!rawFiles.length || savingRef.current || uploadingRef.current) return;
+    uploadingRef.current = true;
     setIsUploading(true);
+    setUploadError("");
     try {
-      const files = await compressImageFiles(rawFiles, {
-        maxWidth: 1600,
-        maxHeight: 1600,
-        quality: 0.8,
-      });
-
-      const supabase = (await import('@/utils/supabase/client')).createClient();
-      const newUrls: string[] = [];
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileName = `resource-${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-        const filePath = `resources/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('uploads')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('uploads')
-          .getPublicUrl(filePath);
-
-        newUrls.push(publicUrl);
+      const compressed = await compressImageFiles(rawFiles, { maxWidth: 1600, maxHeight: 1600, quality: 0.8 });
+      const supabase = (await import("@/utils/supabase/client")).createClient();
+      for (const file of compressed) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `resources/resource-${crypto.randomUUID()}-${safeName}`;
+        const { error } = await supabase.storage.from("uploads").upload(path, file);
+        if (error) throw error;
+        const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(path);
+        setFiles(previous => [...previous, { url: publicUrl, name: file.name }]);
       }
-
-      setFileUrls(prev => [...prev, ...newUrls]);
-    } catch (err: any) {
-      console.error("Resource upload failed:", err);
-      toast.error(err.message || t.toasts.uploadFailed);
+    } catch {
+      setUploadError(copy.uploadError);
     } finally {
+      uploadingRef.current = false;
       setIsUploading(false);
     }
   };
 
-  const removeFile = (index: number) => {
-    setFileUrls(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const onSubmit = handleSubmit((formData) => {
-    if (fileUrls.length === 0) {
-      toast.error(t.toasts.uploadAtLeastOneFile);
-      return;
+  const onSubmit = handleSubmit(async values => {
+    if (savingRef.current || uploadingRef.current || optionsLoading || optionsError || !selectedLesson || selectedLesson.classId !== Number(selectedClassId)) return;
+    if (!files.length) { setSaveError(copy.requiredFiles); return; }
+    savingRef.current = true;
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      const payload = { ...values, url: files.map(file => file.url).join(",") };
+      const result = type === "update" && data ? await updateResource(data.id, payload) : await createResource(payload);
+      if (!result.success) throw new Error(result.error || copy.saveError);
+      toast.success(copy.saved);
+      onBusyChange(false);
+      onClose();
+      router.refresh();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : copy.saveError);
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
     }
-
-    startTransition(async () => {
-      const urlString = fileUrls.join(",");
-      const res = await createResource({
-        ...formData,
-        url: urlString,
-      });
-
-      if (res.success) {
-        window.location.reload();
-      } else {
-        toast.error(res.error || t.toasts.operationFailed);
-      }
-    });
   });
 
   return (
-    <form className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto" onSubmit={onSubmit}>
-      <div>
-        <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-          📚 Upload Course Resources
-        </h1>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Share documents and materials with your students</p>
+    <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" aria-busy={busy}>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <fieldset disabled={busy} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label htmlFor={`${formId}-class`} className="block text-sm font-medium text-slate-700">{copy.classLabel} <span aria-hidden="true">*</span></label>
+              <select id={`${formId}-class`} required className={fieldClass} disabled={busy || classesQuery.isPending || classesQuery.isError} value={selectedClassId} onChange={event => {
+                setSelectedClassId(event.target.value);
+                setValue("lessonId", "", { shouldDirty: true, shouldValidate: false });
+                setSaveError("");
+              }}>
+                <option value="">{classesQuery.isPending ? copy.loading : copy.chooseClass}</option>
+                {classes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={`${formId}-lesson`} className="block text-sm font-medium text-slate-700">{copy.lessonLabel} <span aria-hidden="true">*</span></label>
+              <select id={`${formId}-lesson`} {...register("lessonId")} className={fieldClass} disabled={busy || !selectedClassId || optionsLoading || optionsError} aria-invalid={!!errors.lessonId} aria-describedby={errors.lessonId ? `${formId}-lesson-error` : undefined}>
+                <option value="">{!selectedClassId ? copy.chooseClassFirst : optionsLoading ? copy.loading : copy.chooseLesson}</option>
+                {lessons.map(lesson => <option key={lesson.id} value={lesson.id}>{getSubjectName(lesson.subject.name, locale)} — {lesson.teacher.name} {lesson.teacher.surname}</option>)}
+              </select>
+              {errors.lessonId && <p id={`${formId}-lesson-error`} className="text-xs text-red-600">{errors.lessonId.message}</p>}
+            </div>
+          </div>
+          {optionsError ? <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <span>{copy.loadError}</span><button type="button" className="shrink-0 font-medium underline" onClick={() => { void classesQuery.refetch(); if (selectedClassId) void lessonsQuery.refetch(); }}>{copy.retry}</button>
+          </div> : optionsLoading ? <p role="status" className="text-sm text-slate-500">{copy.loading}</p>
+            : !classes.length ? <p role="status" className="text-sm text-slate-500">{copy.noClasses}</p>
+            : selectedClassId && !lessons.length ? <p role="status" className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{copy.noLessons}</p> : null}
+          {selectedLesson && <p className="text-xs text-slate-500">{copy.teacher} : <span className="font-medium text-slate-700">{selectedLesson.teacher.name} {selectedLesson.teacher.surname}</span></p>}
+          <div className="space-y-1.5 border-t border-slate-100 pt-5">
+            <label htmlFor={`${formId}-title`} className="block text-sm font-medium text-slate-700">{copy.title} <span aria-hidden="true">*</span></label>
+            <input id={`${formId}-title`} {...register("title")} className={fieldClass} placeholder={copy.titlePlaceholder} aria-invalid={!!errors.title} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
+            {errors.title && <p id={`${formId}-title-error`} className="text-xs text-red-600">{errors.title.message}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor={`${formId}-description`} className="block text-sm font-medium text-slate-700">{copy.description} <span className="ms-1 text-xs font-normal text-slate-400">{copy.optional}</span></label>
+            <textarea id={`${formId}-description`} {...register("description")} rows={3} className={`${fieldClass} resize-y`} placeholder={copy.descriptionPlaceholder} />
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-slate-700">{copy.files} <span aria-hidden="true">*</span></p>
+            <input ref={fileInput} type="file" className="hidden" multiple onChange={handleFileUpload} aria-label={copy.addFiles} />
+            <button type="button" onClick={() => fileInput.current?.click()} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-4 text-start transition-colors hover:border-blue-400 hover:bg-blue-50/40 disabled:opacity-60">
+              {isUploading ? <Loader2 size={20} className="shrink-0 animate-spin text-blue-600" /> : <Upload size={20} className="shrink-0 text-blue-600" />}
+              <span><span className="block text-sm font-medium text-slate-800">{isUploading ? copy.uploading : copy.addFiles}</span><span className="mt-1 block text-xs text-slate-500">{copy.filesHint}</span></span>
+            </button>
+            {uploadError && <p role="alert" className="text-sm text-red-600">{uploadError}</p>}
+            {files.length > 0 && <ul className="space-y-2">{files.map((file, index) => <li key={`${file.url}-${index}`} className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5">
+              <FileText size={17} className="shrink-0 text-slate-400" /><span className="min-w-0 flex-1 truncate text-sm text-slate-700" title={file.name}>{file.name}</span>
+              <button type="button" aria-label={`${copy.remove} ${file.name}`} onClick={() => setFiles(previous => previous.filter((_, i) => i !== index))} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"><X size={16} /></button>
+            </li>)}</ul>}
+          </div>
+        </fieldset>
       </div>
-
-      <div className="flex flex-col gap-4">
-        <InputField
-          label="Resource Title"
-          name="title"
-          register={register}
-          error={errors.title}
-          placeholder="e.g. Chapter 1 - Introduction PDF"
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Material Description</label>
-          <textarea
-            {...register("description")}
-            className="ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none bg-slate-50 transition-all min-h-[100px] font-medium text-slate-700"
-            placeholder="Briefly describe this material..."
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Select Class</label>
-          <div className="relative">
-            <select
-              className="ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none bg-slate-50 transition-all appearance-none font-bold text-slate-700 cursor-pointer pr-10"
-              value={selectedClassId}
-              onChange={(e) => {
-                setSelectedClassId(e.target.value);
-                setSelectedLesson(null);
-                setValue("lessonId", "" as any);
-              }}
-            >
-              <option value="" disabled>Select a class...</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Select Lesson</label>
-          <div className="relative">
-            <select
-              {...register("lessonId")}
-              disabled={!selectedClassId}
-              className={`ring-[1.5px] ring-slate-200 p-4 rounded-2xl text-sm w-full focus:ring-2 focus:ring-indigo-400 outline-none transition-all appearance-none font-bold text-slate-700 pr-10 ${!selectedClassId ? 'bg-slate-100 opacity-60 cursor-not-allowed' : 'bg-slate-50 cursor-pointer'}`}
-            >
-              <option value="">Select a lesson...</option>
-              {uniqueLessons.map((lesson) => (
-                <option key={lesson.id} value={lesson.id}>
-                  {getSubjectName(lesson.subject.name)}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-            </div>
-          </div>
-          {errors.lessonId?.message && (
-            <p className="text-[10px] font-bold text-rose-500 uppercase tracking-tight mt-1">{errors.lessonId.message.toString()}</p>
-          )}
-        </div>
-
-        {selectedLesson && (
-          <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-top-2">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-indigo-600 font-bold border border-indigo-200">
-               {selectedLesson.teacher.name.charAt(0)}{selectedLesson.teacher.surname.charAt(0)}
-            </div>
-            <div>
-              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">Assigned Teacher</p>
-              <p className="text-sm font-bold text-indigo-900">{selectedLesson.teacher.name} {selectedLesson.teacher.surname}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-slate-800 font-bold uppercase tracking-wider">File Attachments</label>
-          <input
-            type="file"
-            id="resource-file"
-            className="hidden"
-            onChange={handleFileUpload}
-            multiple
-          />
-          <button
-            type="button"
-            disabled={isUploading}
-            onClick={() => document.getElementById('resource-file')?.click()}
-            className="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-slate-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50 transition-all group disabled:opacity-50"
-          >
-            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-              {isUploading ? (
-                  <span className="text-lg animate-spin">⏳</span>
-              ) : (
-                <span className="text-2xl">📁</span>
-              )}
-            </div>
-            <span className="text-xs font-bold text-slate-500">
-              {isUploading ? "Uploading..." : "Upload Documents (Multiple allowed)"}
-            </span>
+      <div className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+        {saveError && <p role="alert" className="mb-3 text-sm text-red-600">{saveError}</p>}
+        <div className="flex items-center justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={busy} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{copy.cancel}</button>
+          <button type="submit" disabled={busy || optionsLoading || optionsError || !selectedLesson} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+            {isSaving && <Loader2 size={16} className="animate-spin" />}{isSaving ? copy.saving : type === "update" ? copy.save : copy.publish}
           </button>
-
-          {fileUrls.length > 0 && (
-            <div className="flex flex-col gap-2 mt-2">
-              {fileUrls.map((url, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-sm">📄</span>
-                    <span className="text-xs text-slate-600 truncate max-w-[200px]">{url.split('/').pop()}</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => removeFile(index)}
-                    className="text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors"
-                  >
-                    <span className="text-xs font-bold">Remove</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
-
-      <button
-        className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all mt-4 disabled:opacity-50"
-        disabled={isPending || isUploading}
-      >
-        {isPending ? "🚀 Processing..." : "Publish Resource"}
-      </button>
     </form>
   );
-};
-
-export default ResourceForm;
+}

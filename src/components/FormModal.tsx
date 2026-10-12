@@ -25,7 +25,7 @@ const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
 const AssignmentForm = dynamic(() => import("./forms/AssignmentForm"), {
   loading: () => <h1>Loading...</h1>,
 });
-const ResourceForm = dynamic(() => import("./forms/ResourceForm"), {
+const ResourceDialog = dynamic(() => import("./ResourceDialog"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -36,7 +36,7 @@ const forms: {
   student: (type, data, relatedData) => <StudentForm type={type} data={data} relatedData={relatedData} />,
   announcement: (type, data, relatedData) => <AnnouncementForm type={type} data={data} relatedData={relatedData} />,
   assignment: (type, data, relatedData) => <AssignmentForm type={type} data={data} relatedData={relatedData} />,
-  resource: (type, data, relatedData) => <ResourceForm type={type} data={data} relatedData={relatedData} />,
+
 };
 
 const FormModal = ({
@@ -103,6 +103,10 @@ const FormModal = ({
       }
     });
   };
+
+  if (table === "resource" && type !== "delete") {
+    return <ResourceDialog type={type} data={data} trigger={trigger} />;
+  }
 
   const Form = () => {
     return type === "delete" && id ? (
