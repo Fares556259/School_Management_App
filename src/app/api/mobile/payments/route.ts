@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { schoolId: true, parentId: true },
+      select: {
+        schoolId: true,
+        parentId: true,
+        customTuition: true,
+        level: { select: { tuitionFee: true } },
+      },
     });
 
     if (!student) {
@@ -33,15 +38,18 @@ export async function GET(request: NextRequest) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
-    const payments = await prisma.payment.findMany({
-      where: {
-        studentId: studentId
-      },
-      orderBy: [
-        { year: 'desc' },
-        { month: 'desc' }
-      ]
-    });
+    const [payments, institution] = await Promise.all([
+      prisma.payment.findMany({
+        where: { studentId, schoolId },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+      }),
+      prisma.institution.findFirst({
+        where: { schoolId },
+        select: { academicYear: true },
+      }),
+    ]);
+
+    const tuitionFee = student.customTuition ?? student.level?.tuitionFee ?? 450;
 
     const formattedPayments = payments.map(p => ({
       id: p.id.toString(),
@@ -53,7 +61,16 @@ export async function GET(request: NextRequest) {
       paidDate: p.paidAt ? p.paidAt.toISOString().split('T')[0] : null
     }));
 
-    return NextResponse.json(formattedPayments);
+    // Keep the response as an array for older mobile builds. They ignore this
+    // metadata row, while current builds use it as the authoritative school data.
+    return NextResponse.json([
+      {
+        kind: "metadata",
+        tuitionFee,
+        academicYear: institution?.academicYear || null,
+      },
+      ...formattedPayments,
+    ], { headers: { "Cache-Control": "private, no-store" } });
 
   } catch (error) {
     console.error("Error fetching mobile payments:", error);
