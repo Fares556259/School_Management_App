@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
+    const dayView = searchParams.get("view") === "day";
 
     if (!studentId) {
       return new NextResponse("Missing studentId", { status: 400 });
@@ -157,12 +158,13 @@ export async function GET(request: NextRequest) {
         where: { schoolId, classId: student.classId, day: todayEnum as any },
         select: { id: true, subjectId: true, teacherId: true, name: true },
       }),
-      getCachedTenantData(
+      dayView ? Promise.resolve([]) : getCachedTenantData(
         schoolId,
         "exams",
         ["mobileExamPeriods"],
         () =>
           prisma.examPeriodConfig.findMany({
+            where: { schoolId },
             select: { period: true, startDate: true, endDate: true, pdfUrl: true },
             orderBy: { period: "asc" },
           }),
@@ -172,7 +174,7 @@ export async function GET(request: NextRequest) {
         where: { studentId, assignmentId: { not: null } },
         select: { assignmentId: true },
       }),
-      prisma.assignment.findMany({
+      dayView ? Promise.resolve([]) : prisma.assignment.findMany({
         where: { lesson: { classId: student.classId }, dueDate: { gte: todayStart, lt: todayEnd }, schoolId },
         include: { lesson: { include: { subject: true, teacher: true } } },
       }),
@@ -182,7 +184,7 @@ export async function GET(request: NextRequest) {
         orderBy: { id: "desc" },
         take: 20,
       }),
-      prisma.exam.findMany({
+      dayView ? Promise.resolve([]) : prisma.exam.findMany({
         where: { lesson: { classId: student.classId }, startTime: { gte: todayStart, lt: weekEnd }, schoolId },
         include: { lesson: { include: { subject: true, teacher: true } } },
         orderBy: { startTime: "asc" },
@@ -199,7 +201,7 @@ export async function GET(request: NextRequest) {
         orderBy: { updatedAt: "desc" },
         take: 5,
       }),
-      prisma.resource.findMany({
+      dayView ? Promise.resolve([]) : prisma.resource.findMany({
         where: { lesson: { classId: student.classId }, createdAt: { gte: todayStart, lt: todayEnd }, schoolId },
         include: { lesson: { include: { subject: true, teacher: true } } },
       })
