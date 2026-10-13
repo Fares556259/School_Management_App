@@ -48,13 +48,16 @@ export async function GET(request: NextRequest) {
     });
 
     const formatted = notifications.map((n) => {
+      const homeworkMatch = /^HOMEWORK:(\d+)$/.exec(n.type);
+      const normalizedType = homeworkMatch ? "HOMEWORK" : n.type;
       let iconName = "Info";
       let iconColor = "#0055d4";
-      if (n.type === "PAYMENT" || n.type === "REMINDER") { iconName = "AlertTriangle"; iconColor = "#ef4444"; }
-      else if (n.type === "ANNOUNCEMENT") { iconName = "GraduationCap"; iconColor = "#0055d4"; }
+      if (normalizedType === "PAYMENT" || normalizedType === "REMINDER") { iconName = "AlertTriangle"; iconColor = "#ef4444"; }
+      else if (normalizedType === "ANNOUNCEMENT" || normalizedType === "HOMEWORK") { iconName = "GraduationCap"; iconColor = "#0055d4"; }
       return {
         id: n.id, 
-        type: n.type,
+        type: normalizedType,
+        homeworkId: homeworkMatch ? Number(homeworkMatch[1]) : undefined,
         title: n.title || "Notification",
         student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
         studentId: n.studentId,

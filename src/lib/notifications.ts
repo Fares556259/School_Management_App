@@ -808,8 +808,6 @@ export async function createAssignmentNotification(assignmentId: number) {
     });
 
     const validStudents = students.filter((s): s is typeof s & { parentId: string } => Boolean(s.parentId));
-    const parentIds = Array.from(new Set(validStudents.map((s) => s.parentId)));
-
     const rawSubject = assignment.lesson.subject.name || "";
     const cleanSubject = rawSubject.split('|')[0].trim();
 
@@ -819,18 +817,26 @@ export async function createAssignmentNotification(assignmentId: number) {
         schoolId: s.schoolId,
         parentId: s.parentId,
         studentId: s.id,
-        type: "ANNOUNCEMENT",
+        type: `HOMEWORK:${assignment.id}`,
         title: `📝 مهمة جديدة: ${assignment.title}`,
         message: `تم تعيين مهمة جديدة في ${cleanSubject} لـ ${s.name}.`,
       })),
     });
 
-    // Send push notifications in batch
-    await sendPushBatch(
-      parentIds,
-      `📝 مهمة جديدة: ${assignment.title}`,
-      `تمت إضافة مهمة جديدة في ${cleanSubject}.`,
-      { type: "HOMEWORK", homeworkId: assignment.id }
+    // Keep the child identity in every push so the mobile app opens the task
+    // for the correct child, even when one parent has several children.
+    await sendPushIndividualBatch(
+      validStudents.map((student) => ({
+        parentId: student.parentId,
+        title: `📝 مهمة جديدة: ${assignment.title}`,
+        body: `تمت إضافة مهمة جديدة في ${cleanSubject}.`,
+        data: {
+          type: "HOMEWORK",
+          homeworkId: assignment.id,
+          studentId: student.id,
+        },
+      })),
+      assignment.schoolId
     );
 
     console.log(`[NOTIFICATIONS] Created ${validStudents.length} assignment notifications for assignment ${assignmentId}`);

@@ -2,6 +2,18 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { notifyTeacherTaskSubmitted } from "@/lib/notifications";
+import { waitUntil } from "@vercel/functions";
+
+function notifyTeacherInBackground(studentId: string, assignmentId: number) {
+  const notification = notifyTeacherTaskSubmitted(studentId, assignmentId).catch((error) => {
+    console.error("[Task Submit Notification Error]", error);
+  });
+  try {
+    waitUntil(notification);
+  } catch {
+    void notification;
+  }
+}
 
 // GET: Check if a student has completed a specific task
 export async function GET(request: NextRequest) {
@@ -18,22 +30,52 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    // Verify student belongs to authenticated parent
-    if (userType === "parent") {
-      const student = await prisma.student.findUnique({
-        where: { id: studentId },
-        select: { parentId: true },
-      });
-      if (!student || student.parentId !== userId) {
-        return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
-      }
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, schoolId },
+      select: { parentId: true, classId: true },
+    });
+    if (!student || (userType === "parent" && student.parentId !== userId)) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
-    const existing = await prisma.result.findFirst({
-      where: { studentId, assignmentId: parseInt(assignmentId) },
-    });
+    const numericAssignmentId = parseInt(assignmentId, 10);
+    const [assignment, existing] = await Promise.all([
+      prisma.assignment.findFirst({
+        where: {
+          id: numericAssignmentId,
+          schoolId,
+          lesson: { classId: student.classId ?? -1 },
+        },
+        include: { lesson: { include: { subject: true, teacher: true } } },
+      }),
+      prisma.result.findFirst({ where: { studentId, assignmentId: numericAssignmentId, schoolId } }),
+    ]);
 
-    return NextResponse.json({ isCompleted: !!existing, img: existing?.img || null });
+    if (!assignment) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      isCompleted: !!existing,
+      img: existing?.img || null,
+      task: {
+        id: assignment.id,
+        isCompleted: !!existing,
+        title: assignment.title,
+        description: assignment.description,
+        img: assignment.img,
+        attachments: assignment.img
+          ? assignment.img.split(",").map((url) => ({
+              type: url.toLowerCase().split("?")[0].endsWith(".pdf") ? "PDF" : "IMAGE",
+              url,
+            }))
+          : [],
+        subject: assignment.lesson.subject.name,
+        teacher: `${assignment.lesson.teacher.name} ${assignment.lesson.teacher.surname}`,
+        dueDate: assignment.dueDate,
+        startDate: assignment.startDate,
+      },
+    });
   } catch (error: any) {
     return NextResponse.json({ isCompleted: false });
   }
@@ -56,15 +98,28 @@ export async function POST(request: NextRequest) {
     // Verify student belongs to authenticated parent
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { parentId: true, schoolId: true },
+      select: { parentId: true, schoolId: true, classId: true },
     });
 
     if (!student) {
       return new NextResponse(JSON.stringify({ error: "Student not found" }), { status: 404 });
     }
 
-    if (userType === "parent" && student.parentId !== userId) {
+    if (student.schoolId !== schoolId || (userType === "parent" && student.parentId !== userId)) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    }
+
+    const numericAssignmentId = parseInt(String(assignmentId), 10);
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: numericAssignmentId,
+        schoolId,
+        lesson: { classId: student.classId ?? -1 },
+      },
+      select: { id: true },
+    });
+    if (!assignment) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
     // Handle multiple file submissions
@@ -74,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     // Check if already submitted
     const existing = await prisma.result.findFirst({
-      where: { studentId, assignmentId: parseInt(assignmentId) },
+      where: { studentId, assignmentId: numericAssignmentId, schoolId },
     });
 
     if (existing) {
@@ -85,7 +140,7 @@ export async function POST(request: NextRequest) {
           submittedAt: new Date(),
         }
       });
-      await notifyTeacherTaskSubmitted(studentId, parseInt(assignmentId)).catch(console.error);
+      notifyTeacherInBackground(studentId, numericAssignmentId);
       return NextResponse.json({ success: true, message: "Submission updated" });
     }
 
@@ -93,14 +148,14 @@ export async function POST(request: NextRequest) {
       data: {
         score: 100,
         studentId,
-        assignmentId: parseInt(assignmentId),
+        assignmentId: numericAssignmentId,
         schoolId: student.schoolId || schoolId,
         img: submissionImg,
         submittedAt: new Date(),
       },
     });
 
-    await notifyTeacherTaskSubmitted(studentId, parseInt(assignmentId)).catch(console.error);
+    notifyTeacherInBackground(studentId, numericAssignmentId);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[Task Submit Error]", error);
