@@ -137,18 +137,23 @@ export async function GET(request: NextRequest) {
       attendance,
       todayLessons,
       examPeriods,
-      submissions,
       tasksDue,
       tasksGiven,
       upcomingExams,
       gradeSheetRemarks,
       resources
     ] = await Promise.all([
-      prisma.timetableSlot.findMany({
-        where: { schoolId, classId: student.classId, day: todayEnum as any, isDraft: false },
-        include: { subject: true, teacher: true, room: true },
-        orderBy: { slotNumber: "asc" },
-      }),
+      getCachedTenantData(
+        schoolId,
+        "classes",
+        ["mobileDaySlots", student.classId, todayEnum],
+        () => prisma.timetableSlot.findMany({
+          where: { schoolId, classId: student.classId!, day: todayEnum as any, isDraft: false },
+          include: { subject: true, teacher: true, room: true },
+          orderBy: { slotNumber: "asc" },
+        }),
+        120
+      ),
       prisma.attendance.findMany({
         where: { studentId, date: { gte: todayStart, lt: todayEnd } },
         orderBy: { id: "desc" },
@@ -170,17 +175,19 @@ export async function GET(request: NextRequest) {
           }),
         1800
       ),
-      prisma.result.findMany({
-        where: { studentId, assignmentId: { not: null } },
-        select: { assignmentId: true },
-      }),
       dayView ? Promise.resolve([]) : prisma.assignment.findMany({
         where: { lesson: { classId: student.classId }, dueDate: { gte: todayStart, lt: todayEnd }, schoolId },
-        include: { lesson: { include: { subject: true, teacher: true } } },
+        include: {
+          lesson: { include: { subject: true, teacher: true } },
+          results: { where: { studentId }, select: { id: true }, take: 1 },
+        },
       }),
       prisma.assignment.findMany({
         where: { lesson: { classId: student.classId }, schoolId, startDate: { gte: todayStart, lt: todayEnd } },
-        include: { lesson: { include: { subject: true, teacher: true } } },
+        include: {
+          lesson: { include: { subject: true, teacher: true } },
+          results: { where: { studentId }, select: { id: true }, take: 1 },
+        },
         orderBy: { id: "desc" },
         take: 20,
       }),
@@ -325,8 +332,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const submittedIds = new Set(submissions.map((s) => s.assignmentId));
-    const mapTask = (a: any) => ({ id: a.id, isCompleted: submittedIds.has(a.id), title: a.title, description: a.description, img: a.img, attachments: a.img ? a.img.split(",").map((url: string) => ({ type: url.toLowerCase().endsWith(".pdf") ? "PDF" : "IMAGE", url })) : [], subject: a.lesson.subject.name, teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`, dueDate: a.dueDate, startDate: a.startDate });
+    const mapTask = (a: any) => ({ id: a.id, isCompleted: a.results?.length > 0, title: a.title, description: a.description, img: a.img, attachments: a.img ? a.img.split(",").map((url: string) => ({ type: url.toLowerCase().endsWith(".pdf") ? "PDF" : "IMAGE", url })) : [], subject: a.lesson.subject.name, teacher: `${a.lesson.teacher.name} ${a.lesson.teacher.surname}`, dueDate: a.dueDate, startDate: a.startDate });
     const mapResource = (r: any) => ({ id: r.id, title: r.title, url: r.url, subject: r.lesson.subject.name, teacher: `${r.lesson.teacher.name} ${r.lesson.teacher.surname}` });
 
     const mappedTasksDue = tasksDue.map(mapTask);

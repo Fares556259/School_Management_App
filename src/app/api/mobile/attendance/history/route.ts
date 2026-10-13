@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
+    const requestedDays = Number(searchParams.get("days") || 30);
+    const rangeDays = Number.isFinite(requestedDays) ? Math.min(180, Math.max(7, requestedDays)) : 30;
 
     if (!studentId) {
       return new NextResponse("Missing studentId", { status: 400 });
@@ -36,25 +38,39 @@ export async function GET(request: NextRequest) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
-    // Calculate history range (Last 180 days)
+    // The first mobile view is a 30-day summary. Older periods can be loaded
+    // explicitly without making every screen visit build half a year of data.
     const now = new Date();
-    const startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
     startDate.setHours(0, 0, 0, 0);
 
     // 1. Fetch timetable slots & bounded attendance records in parallel
     const [rawSlots, attendance] = await Promise.all([
       prisma.timetableSlot.findMany({
         where: { classId: student.classId, isDraft: false },
-        include: { subject: true },
+        select: {
+          id: true,
+          day: true,
+          startTime: true,
+          endTime: true,
+          subjectId: true,
+          subject: { select: { name: true } },
+        },
       }),
       prisma.attendance.findMany({
         where: {
           studentId,
           date: { gte: startDate },
         },
-        include: {
+        select: {
+          id: true,
+          date: true,
+          status: true,
+          score: true,
+          note: true,
+          lessonId: true,
           lesson: {
-            include: { subject: true },
+            select: { id: true, name: true, subjectId: true, subject: { select: { name: true } } },
           },
         },
         orderBy: { date: "desc" },
@@ -87,6 +103,13 @@ export async function GET(request: NextRequest) {
       attendanceMap[key].push(a);
     });
 
+    const slotsByDay = new Map<string, any[]>();
+    slots.forEach(slot => {
+      const list = slotsByDay.get(slot.day) || [];
+      list.push(slot);
+      slotsByDay.set(slot.day, list);
+    });
+
     const history: any[] = [];
     const DAY_NAMES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
@@ -101,7 +124,7 @@ export async function GET(request: NextRequest) {
 
       // Skip Sundays
       if (dayName !== "SUNDAY") {
-        const daySlots = slots.filter(s => s.day === dayName);
+        const daySlots = slotsByDay.get(dayName) || [];
         const dayRecords = attendanceMap[dateKey] || [];
         
         const sessions: any[] = [];
