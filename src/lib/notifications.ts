@@ -405,11 +405,11 @@ export async function createAnnouncementNotifications(noticeId: number) {
       data: parentIds.map((parentId) => ({
         schoolId: notice.schoolId,
         parentId,
-        type: "ANNOUNCEMENT",
+        type: `ANNOUNCEMENT:${notice.id}`,
         title: notice.title,
         message: notice.important 
-          ? `عاجل: ${notice.message.substring(0, 100)}...` 
-          : notice.message.substring(0, 150) + (notice.message.length > 150 ? "..." : ""),
+          ? `عاجل: ${notice.message}`
+          : notice.message,
         studentId: notice.targetStudentId || null,
       })),
     });
@@ -870,7 +870,7 @@ export async function createResourceNotification(resourceId: number) {
         schoolId: s.schoolId,
         parentId: s.parentId,
         studentId: s.id,
-        type: "ANNOUNCEMENT",
+        type: `RESOURCE:${resource.id}`,
         title: `📚 ملخص جديد: ${resource.title}`,
         message: `تمت إضافة مواد تعليمية جديدة في مادة ${resource.lesson.subject.name}.`,
       })),

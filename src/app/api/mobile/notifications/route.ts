@@ -49,15 +49,25 @@ export async function GET(request: NextRequest) {
 
     const formatted = notifications.map((n) => {
       const homeworkMatch = /^HOMEWORK:(\d+)$/.exec(n.type);
-      const normalizedType = homeworkMatch ? "HOMEWORK" : n.type;
+      const announcementMatch = /^ANNOUNCEMENT:(\d+)$/.exec(n.type);
+      const resourceMatch = /^RESOURCE:(\d+)$/.exec(n.type);
+      const normalizedType = homeworkMatch
+        ? "HOMEWORK"
+        : announcementMatch
+          ? "ANNOUNCEMENT"
+          : resourceMatch
+            ? "RESOURCE"
+            : n.type;
       let iconName = "Info";
       let iconColor = "#0055d4";
       if (normalizedType === "PAYMENT" || normalizedType === "REMINDER") { iconName = "AlertTriangle"; iconColor = "#ef4444"; }
-      else if (normalizedType === "ANNOUNCEMENT" || normalizedType === "HOMEWORK") { iconName = "GraduationCap"; iconColor = "#0055d4"; }
+      else if (normalizedType === "ANNOUNCEMENT" || normalizedType === "HOMEWORK" || normalizedType === "RESOURCE") { iconName = "GraduationCap"; iconColor = "#0055d4"; }
       return {
         id: n.id, 
         type: normalizedType,
         homeworkId: homeworkMatch ? Number(homeworkMatch[1]) : undefined,
+        noticeId: announcementMatch ? Number(announcementMatch[1]) : undefined,
+        resourceId: resourceMatch ? Number(resourceMatch[1]) : undefined,
         title: n.title || "Notification",
         student: n.student ? `${n.student.name} ${n.student.surname}` : "School",
         studentId: n.studentId,

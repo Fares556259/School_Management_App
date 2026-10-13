@@ -28,10 +28,20 @@ async function main() {
   replace(prisma.notification, "findMany", async (args: any) => {
     notificationReads++;
     assert.deepEqual(args.where, { parentId: "parent-a", schoolId: "school-a" });
-    return [{
-      id: 7, type: "MESSAGE", title: "School update", message: "Welcome", isRead: false,
-      studentId: null, createdAt: new Date("2026-10-04T08:00:00.000Z"), student: null,
-    }];
+    return [
+      {
+        id: 7, type: "MESSAGE", title: "School update", message: "Welcome", isRead: false,
+        studentId: null, createdAt: new Date("2026-10-04T08:00:00.000Z"), student: null,
+      },
+      {
+        id: 8, type: "ANNOUNCEMENT:42", title: "School closure", message: "Full announcement", isRead: false,
+        studentId: null, createdAt: new Date("2026-10-04T09:00:00.000Z"), student: null,
+      },
+      {
+        id: 9, type: "RESOURCE:55", title: "New worksheet", message: "Course material", isRead: false,
+        studentId: null, createdAt: new Date("2026-10-04T10:00:00.000Z"), student: null,
+      },
+    ];
   });
 
   let updatedWhere: any;
@@ -56,6 +66,10 @@ async function main() {
     const list = await listResponse.json();
     assert.equal(list[0].createdAt, "2026-10-04T08:00:00.000Z");
     assert.equal(list[0].student, "School");
+    assert.equal(list[1].type, "ANNOUNCEMENT");
+    assert.equal(list[1].noticeId, 42);
+    assert.equal(list[2].type, "RESOURCE");
+    assert.equal(list[2].resourceId, 55);
     assert.equal(notificationReads, 1, "Inbox should load before a child is selected");
 
     assert.equal((await GET(request("/api/mobile/notifications?studentId=other-child"))).status, 404);
