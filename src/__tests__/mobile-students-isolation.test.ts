@@ -2,17 +2,22 @@ import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
 import prisma from '../lib/prisma';
 import { generateToken } from '../lib/mobileAuth';
-import { GET, PATCH } from '../app/api/mobile/students/route';
+import { GET, PATCH, POST } from '../app/api/mobile/students/route';
 
 async function main() {
   const originalSecret = process.env.JWT_SECRET;
   process.env.JWT_SECRET = 'students-test-secret-at-least-32-characters';
   const originalFind = prisma.parent.findFirst;
   const originalUpdate = prisma.student.update;
+  const originalStudentFind = prisma.student.findFirst;
+  const originalUpdateMany = prisma.student.updateMany;
   let updateArgs: any;
+  const studentFindArgs: any[] = [];
+  let linkArgs: any;
   let denied = false;
   (prisma.parent as any).findFirst = async (args: any) => {
     assert.deepEqual(args.where, { id: 'parent-a', schoolId: 'school-a' });
+    if (args.select) return { id: 'parent-a' };
     assert.deepEqual(args.include.students.where, { schoolId: 'school-a' });
     return { students: [{ id: 'child-a' }] };
   };
@@ -21,7 +26,15 @@ async function main() {
     if (denied) throw { code: 'P2025' };
     return { id: 'child-a', name: 'Child' };
   };
-  const request = (role: 'parent' | 'teacher' | 'admin', method: 'GET' | 'PATCH', body?: any) => {
+  (prisma.student as any).findFirst = async (args: any) => {
+    studentFindArgs.push(args);
+    return { id: 'child-a', name: 'Child', surname: 'One', parentId: null, nationalId: 'STU12345', class: null };
+  };
+  (prisma.student as any).updateMany = async (args: any) => {
+    linkArgs = args;
+    return { count: 1 };
+  };
+  const request = (role: 'parent' | 'teacher' | 'admin', method: 'GET' | 'PATCH' | 'POST', body?: any) => {
     const token = generateToken({ userId: `${role}-a`, userType: role, schoolId: 'school-a' });
     return new NextRequest('https://example.com/api/mobile/students?parentId=parent-a', {
       method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}),
@@ -44,10 +57,19 @@ async function main() {
       assert.equal((await PATCH(request(role, 'PATCH', { id: 'child-from-other-school', img: 'test.png' }))).status, 403);
     }
     assert.equal((await PATCH(request('parent', 'PATCH', { id: 123 }))).status, 400);
-    console.log('Student isolation checks passed: authenticated reads, school-scoped children, atomic school/parent guards for edits and normal authorized updates.');
+    assert.equal((await POST(request('parent', 'POST', {}))).status, 400);
+    const linked = await POST(request('parent', 'POST', { studentId: '  STU12345  ' }));
+    assert.equal(linked.status, 200);
+    assert.deepEqual(studentFindArgs[0].where, { schoolId: 'school-a', nationalId: 'STU12345' });
+    assert.deepEqual(studentFindArgs[1].where, { id: 'child-a', schoolId: 'school-a', parentId: 'parent-a' });
+    assert.deepEqual(linkArgs.where, { id: 'child-a', schoolId: 'school-a', parentId: null });
+    assert.deepEqual(linkArgs.data, { parentId: 'parent-a' });
+    console.log('Student isolation checks passed: authenticated reads, school-scoped children, atomic school/parent guards, ID-only child linking, and authorized updates.');
   } finally {
     (prisma.parent as any).findFirst = originalFind;
     (prisma.student as any).update = originalUpdate;
+    (prisma.student as any).findFirst = originalStudentFind;
+    (prisma.student as any).updateMany = originalUpdateMany;
     if (originalSecret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = originalSecret;
     await prisma.$disconnect();
   }

@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
-import { getStudentLinkDisposition, normalizeDateOnly } from "@/lib/mobileStudentLink";
+import { getStudentLinkDisposition } from "@/lib/mobileStudentLink";
 
 export const dynamic = "force-dynamic";
 
@@ -64,14 +64,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const studentIdentifier =
       typeof body.studentId === "string" ? body.studentId.trim() : "";
-    const birthday =
-      typeof body.birthday === "string" ? normalizeDateOnly(body.birthday.trim()) : null;
 
-    if (!studentIdentifier || !birthday) {
+    if (!studentIdentifier) {
       return NextResponse.json(
         {
           success: false,
-          error: "Saisissez un identifiant élève et une date de naissance valides.",
+          code: "MISSING_STUDENT_NUMBER",
+          error: "Saisissez l'identifiant scolaire de l'élève.",
         },
         { status: 400 }
       );
@@ -97,15 +96,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const storedBirthday = student?.birthday
-      ? student.birthday.toISOString().slice(0, 10)
-      : null;
-    if (!student || storedBirthday !== birthday) {
+    if (!student) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Impossible de vérifier cet élève. Vérifiez les informations ou contactez l'établissement.",
+          code: "STUDENT_NOT_FOUND",
+          error: "Aucun élève ne correspond à cet identifiant dans votre établissement.",
         },
         { status: 404 }
       );
@@ -155,7 +151,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Mobile Student Link Error]", error);
     return NextResponse.json(
-      { success: false, error: "Impossible de rattacher l'élève pour le moment." },
+      { success: false, code: "LINK_FAILED", error: "Impossible de rattacher l'élève pour le moment." },
       { status: 500 }
     );
   }
