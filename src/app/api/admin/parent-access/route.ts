@@ -11,6 +11,9 @@ export async function GET(request: Request) {
   const admin = await getParentAccessAdmin();
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const url = new URL(request.url);
+  // Hobby permits daily cron only. Dashboard activity also retries due delivery jobs.
+  const pendingDelivery = flushAccessNotifications().catch(error => console.error('[Activation retry]', error));
+  try { waitUntil(pendingDelivery); } catch { await pendingDelivery; }
   if (url.searchParams.get('summary') === '1') return NextResponse.json({ pending: await prisma.parentAccessRequest.count({ where: { schoolId: admin.schoolId, status: 'PENDING' } }) }, { headers: { 'Cache-Control': 'private, no-store' } });
   const status = url.searchParams.get('status') || 'PENDING';
   if (!['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'REVOKED'].includes(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });

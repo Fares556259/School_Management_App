@@ -1,3 +1,5 @@
+import { waitUntil } from '@vercel/functions';
+import { flushAccessNotifications } from '@/lib/parentAccessNotifications';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authenticateMobileRequest } from '@/lib/mobileAuth';
@@ -19,6 +21,8 @@ export async function GET(request: Request) {
     },
   });
   if (!parent) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const delivery = flushAccessNotifications(userId).catch(error => console.error('[Activation retry]', error));
+  try { waitUntil(delivery); } catch { await delivery; }
   return NextResponse.json({
     accessStatus: parent.accessStatus, name: parent.name, surname: parent.surname, address: parent.address, phone: parent.phone, schoolName: parent.School.name,
     requests: parent.accessRequests.map(({ student, ...item }) => ({ ...item, reference: maskedStudentReference(student.nationalId) })),

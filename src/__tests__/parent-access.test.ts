@@ -31,6 +31,7 @@ async function main() {
     ] };
     return { id: 'parent-a', accessStatus: parentStatus };
   });
+  replace(prisma.parentAccessDelivery, 'findMany', async () => []);
   replace(prisma.parent, 'updateMany', async () => ({ count: 1 }));
   replace(prisma.mobileRateLimit, 'upsert', async () => ({ count: 1 }));
   try {
