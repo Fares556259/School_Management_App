@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { AlertCircle, ArrowLeft, ArrowRight, BellRing, Check, CheckCircle2, Clock3, GraduationCap, Loader2, Phone, RefreshCw, Search, ShieldCheck, Users, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, BellRing, Check, CheckCircle2, Clock3, GraduationCap, Loader2, MapPin, Phone, RefreshCw, Search, ShieldCheck, Users, X } from 'lucide-react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { parentAccessCopy } from '@/lib/parentAccessCopy';
 
@@ -72,6 +72,7 @@ export default function ParentAccessInbox() {
   const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50';
   const secondary = `${button} border border-ink-200 bg-white text-ink-700 hover:bg-ink-50`;
   const primary = `${button} bg-brand-600 text-white hover:bg-brand-700`;
+  const address = (value: string) => value.trim() && value.trim() !== 'Non renseignée' ? value.trim() : c.addressMissing;
   const person = (r: Entry) => `${r.parent.name} ${r.parent.surname}`;
   return <main dir={locale === 'ar' ? 'rtl' : 'ltr'} className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
     <header className="flex flex-wrap items-start justify-between gap-4">
@@ -106,6 +107,7 @@ export default function ParentAccessInbox() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold text-ink-900">{person(r)}</h2><span className={`rounded-full px-3 py-1 text-xs font-semibold ${tones[r.status]}`}>{label(r.status)}</span></div>
               <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-500"><span className="inline-flex items-center gap-2"><Phone size={14} /><bdi>{r.parent.phone}</bdi></span><span>{(c as Record<string, string>)[r.relation] || r.relation}</span><span>{date(r.createdAt)}</span></div>
+              <div className="mt-3 flex items-start gap-2 text-sm text-ink-600"><MapPin size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-400" /><dl className="min-w-0"><dt className="text-xs font-medium text-ink-500">{c.address}</dt><dd dir="auto" className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]">{address(r.parent.address)}</dd></dl></div>
               <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-ink-50 p-3 text-sm"><GraduationCap size={18} className="text-brand-600" /><span className="font-semibold text-ink-800">{r.student.name} {r.student.surname}</span><span className="rounded-lg border border-ink-200 bg-white px-2 py-1 text-xs font-medium">{r.student.class?.name || c.noClass}</span><bdi className="ms-auto font-mono text-xs text-ink-500">{r.student.nationalId}</bdi></div>
               {r.conflicting && r.status === 'PENDING' && <p className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-amber-800"><AlertCircle size={15} />{c.conflict}</p>}
               {r.reason && <p className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{r.reason}</p>}
@@ -120,7 +122,7 @@ export default function ParentAccessInbox() {
       <Dialog.Title className="pe-8 text-xl font-semibold text-ink-900">{details ? c.details : decision?.action === 'APPROVE' ? c.approveTitle : decision?.action === 'REVOKE' ? c.revokeTitle : c.rejectTitle}</Dialog.Title>
       <Dialog.Description className="mt-2 text-sm leading-6 text-ink-500">{details ? c.guide : decision?.action === 'APPROVE' ? c.approveBody : decision?.action === 'REVOKE' ? c.revokeBody : c.reason}</Dialog.Description>
       <Dialog.Close disabled={saving} aria-label={c.close} className="absolute end-4 top-4 grid h-9 w-9 place-items-center rounded-xl text-ink-500 hover:bg-ink-100"><X size={19} /></Dialog.Close>
-      {details ? <><dl className="mt-5 space-y-4">{[[c.parent, person(details)], [c.phone, details.parent.phone], [c.relationship, (c as Record<string, string>)[details.relation] || details.relation], [c.address, details.parent.address], [c.child, `${details.student.name} ${details.student.surname}`], [c.studentId, details.student.nationalId], [c.received, date(details.createdAt)]].map(([key, value]) => <div key={key}><dt className="text-xs font-medium text-ink-500">{key}</dt><dd className="mt-1 text-sm font-semibold text-ink-900">{value || '—'}</dd></div>)}</dl>
+      {details ? <><dl className="mt-5 space-y-4">{[[c.parent, person(details)], [c.phone, details.parent.phone], [c.relationship, (c as Record<string, string>)[details.relation] || details.relation], [c.address, address(details.parent.address)], [c.child, `${details.student.name} ${details.student.surname}`], [c.studentId, details.student.nationalId], [c.received, date(details.createdAt)]].map(([key, value]) => <div key={key}><dt className="text-xs font-medium text-ink-500">{key}</dt><dd dir="auto" className="mt-1 whitespace-pre-line break-words text-sm font-semibold text-ink-900 [overflow-wrap:anywhere]">{value || '—'}</dd></div>)}</dl>
         {details.conflicting && <p className="mt-5 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">{c.conflictHelp}</p>}
         <div className="mt-6 flex flex-wrap gap-3">{details.status === 'PENDING' && <><button className={primary} onClick={() => openDecision('APPROVE', [details])}>{c.approve}</button><button className={secondary} onClick={() => openDecision('REJECT', [details])}>{c.reject}</button></>}{details.status === 'APPROVED' && <button className={`${secondary} text-rose-700`} onClick={() => openDecision('REVOKE', [details])}>{c.revoke}</button>}</div>
       </> : decision ? <>
