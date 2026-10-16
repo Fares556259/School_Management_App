@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
           }
           const students: never[] = [];
           return { parent, students };
-        });
+        }, { maxWait: 10_000, timeout: 20_000 });
 
         return NextResponse.json({
           success: true,

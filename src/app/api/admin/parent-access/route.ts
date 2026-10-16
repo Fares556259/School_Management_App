@@ -7,6 +7,7 @@ import { invalidateTenantTags } from '@/lib/cache';
 import { waitUntil } from '@vercel/functions';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 export async function GET(request: Request) {
   const admin = await getParentAccessAdmin();
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -64,14 +65,24 @@ export async function POST(request: Request) {
     }
     if (body.action === 'APPROVE' && body.identityConfirmed !== true) return NextResponse.json({ code: 'IDENTITY_CONFIRMATION_REQUIRED' }, { status: 400 });
     if (body.action !== 'APPROVE' && (typeof body.reason !== 'string' || !body.reason.trim())) return NextResponse.json({ code: 'REASON_REQUIRED' }, { status: 400 });
-    const results = [];
-    for (const requestId of Array.from(new Set<string>(body.requestIds))) {
-      try {
-        results.push({ success: true, ...await reviewAccessRequest({ requestId, schoolId: admin.schoolId, adminId: admin.id, action: body.action, reason: body.reason, batch: body.requestIds.length > 1 }) });
-      } catch (error) {
-        if (!(error instanceof ParentAccessError)) console.error('[Parent access decision]', requestId, error);
-        results.push({ requestId, success: false, code: error instanceof ParentAccessError ? error.code : 'REVIEW_FAILED' });
+    const results: Array<{ requestId: string; success: boolean; code?: string; status?: string; parentId?: string }> = [];
+    const ids = Array.from(new Set<string>(body.requestIds));
+    const startedAt = Date.now();
+    // Three transactions fit the server's pool. Return unfinished requests rather than time out a large selection.
+    for (let offset = 0; offset < ids.length; offset += 3) {
+      if (Date.now() - startedAt > 30_000) {
+        results.push(...ids.slice(offset).map(requestId => ({ requestId, success: false, code: 'BATCH_RETRY' })));
+        break;
       }
+      const chunk = await Promise.all(ids.slice(offset, offset + 3).map(async requestId => {
+        try {
+          return { success: true, ...await reviewAccessRequest({ requestId, schoolId: admin.schoolId, adminId: admin.id, action: body.action, reason: body.reason, batch: ids.length > 1 }) };
+        } catch (error) {
+          if (!(error instanceof ParentAccessError)) console.error('[Parent access decision]', requestId, error);
+          return { requestId, success: false, code: error instanceof ParentAccessError ? error.code : 'REVIEW_FAILED' };
+        }
+      }));
+      results.push(...chunk);
     }
     if (results.some(result => result.success)) invalidateTenantTags(admin.schoolId, 'parents', 'students', 'dashboard');
     // Decisions are committed first; transient push failures remain in the outbox.

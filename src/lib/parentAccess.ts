@@ -95,5 +95,5 @@ export async function reviewAccessRequest(input: {
       title, message, eventType: 'PARENT_ACCESS',
     } });
     return { requestId: entry.id, status, parentId: entry.parentId };
-  });
+  }, { maxWait: 10_000, timeout: 20_000 });
 }
