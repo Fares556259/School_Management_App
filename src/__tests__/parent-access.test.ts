@@ -24,12 +24,12 @@ async function main() {
   const req = (path: string, method = 'GET', body?: any, authenticated = true) => new NextRequest(`https://example.com/api/mobile/${path}`, {
     method, headers: { ...(authenticated ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  let parentStatus: string | null = 'PENDING';
+  let parentStatus: string | null = 'PENDING'; let requestStatus = 'PENDING';
   replace(prisma.parent, 'findFirst', async (args: any) => {
     assert.equal(args.where.schoolId, 'school-a');
     if (!parentStatus) return null;
     if (args.select?.accessRequests) return { accessStatus: parentStatus, name: 'Test', phone: '20000000', School: { name: 'School' }, accessRequests: [
-      { id: 'request-a', status: 'PENDING', relation: 'guardian', reason: null, createdAt: new Date(), student: { nationalId: 'ID12345678' } },
+      { id: 'request-a', status: requestStatus, relation: 'guardian', reason: null, createdAt: new Date(), reviewedAt: requestStatus === 'APPROVED' ? new Date() : null, student: { id: 'student-a', nationalId: 'ID12345678', name: 'Meriem', surname: 'Test', img: '/student.jpg', class: { name: '2A' } } },
     ] };
     return { id: 'parent-a', accessStatus: parentStatus };
   });
@@ -57,6 +57,12 @@ async function main() {
     assert.equal(ownStatus.requests[0].reference, '••••5678');
     assert.equal('student' in ownStatus.requests[0], false);
     assert.equal(JSON.stringify(ownStatus).includes('ID12345678'), false);
+    parentStatus = 'ACTIVE'; requestStatus = 'APPROVED';
+    const approvedStatus = await (await accessStatus(req('parent/access'))).json();
+    assert.equal(approvedStatus.requests[0].status, 'APPROVED');
+    assert.deepEqual(approvedStatus.requests[0].child, { id: 'student-a', name: 'Meriem', surname: 'Test', className: '2A', img: '/student.jpg' });
+    assert.equal(approvedStatus.requests[0].studentId, 'student-a');
+    parentStatus = 'PENDING'; requestStatus = 'PENDING';
 
     // Anonymous identifier verification returns only a request token and a masked reference.
     replace(prisma.student, 'findMany', async () => [{ id: 'student-a', parentId: 'someone-else', schoolId: 'school-a', School: { status: 'ACTIVE', name: 'School' } }]);
@@ -188,7 +194,8 @@ async function main() {
 
     // Durable outbox: do not discard when no device; send to a registered device only once.
     let device: string | null = null; let outboxStatus = 'PENDING'; let sentBody: any;
-    replace(prisma.parentAccessDelivery, 'findMany', async () => outboxStatus === 'PENDING' ? [{ id: 'delivery-a', parentId: 'parent-a', title: 'Activated', message: 'Open app', eventType: 'PARENT_ACCESS', notificationId: 1, parent: { expoPushToken: device } }] : []);
+    replace(prisma.parentAccessDelivery, 'findMany', async () => outboxStatus === 'PENDING' ? [{ id: 'delivery-a', requestId: 'request-a', parentId: 'parent-a', title: 'Activated', message: 'Open app', eventType: 'PARENT_ACCESS', notificationId: 1, parent: { expoPushToken: device } }] : []);
+    replace(prisma.parentAccessRequest, 'findMany', async () => [{ id: 'request-a', status: 'APPROVED', studentId: 'student-a', reviewedAt: new Date('2026-10-16T10:00:00Z'), student: { nationalId: 'ID12345678', name: 'Meriem', surname: 'Test', img: null, class: { name: '2A' } } }]);
     replace(prisma.parentAccessDelivery, 'updateMany', async () => ({ count: 1 }));
     replace(prisma.parentAccessDelivery, 'update', async ({ data }: any) => { outboxStatus = data.status; return {}; });
     const oldFetch = globalThis.fetch; restores.push(() => { globalThis.fetch = oldFetch; });
@@ -196,6 +203,9 @@ async function main() {
     await flushAccessNotifications('parent-a'); assert.equal(outboxStatus, 'PENDING'); assert.equal(Boolean(sentBody), false);
     device = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]';
     await flushAccessNotifications('parent-a'); assert.equal(outboxStatus, 'SENT'); assert.equal(sentBody[0].data.type, 'PARENT_ACCESS');
+    assert.equal(sentBody[0].data.requestId, 'request-a'); assert.equal(sentBody[0].data.status, 'APPROVED');
+    assert.equal(sentBody[0].data.reference, '••••5678'); assert.equal(sentBody[0].data.studentId, 'student-a');
+    assert.equal(sentBody[0].data.child.name, 'Meriem'); assert.equal(sentBody[0].data.child.className, '2A');
     console.log('Parent approval checks passed: signup stays pending, protected APIs deny access, masked status, school/admin/child ownership, request deduplication, atomic decision guards, audit, localized notification outbox, mixed sibling decisions, redirect-free admin API, origin protection and persistent limits.');
   } finally { restores.reverse().forEach(restore => restore()); if (secret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = secret; await prisma.$disconnect(); }
 }

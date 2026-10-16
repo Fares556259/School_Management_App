@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     select: { accessStatus: true, name: true, surname: true, address: true, phone: true, School: { select: { name: true } },
       accessRequests: { where: { schoolId }, orderBy: { createdAt: 'desc' },
         select: { id: true, status: true, reason: true, relation: true, createdAt: true, reviewedAt: true,
-          student: { select: { nationalId: true } } } },
+          student: { select: { id: true, nationalId: true, name: true, surname: true, img: true, class: { select: { name: true } } } } } },
     },
   });
   if (!parent) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -25,7 +25,18 @@ export async function GET(request: Request) {
   try { waitUntil(delivery); } catch { await delivery; }
   return NextResponse.json({
     accessStatus: parent.accessStatus, name: parent.name, surname: parent.surname, address: parent.address, phone: parent.phone, schoolName: parent.School.name,
-    requests: parent.accessRequests.map(({ student, ...item }) => ({ ...item, reference: maskedStudentReference(student.nationalId) })),
+    requests: parent.accessRequests.map(({ student, ...item }) => ({
+      ...item,
+      reference: maskedStudentReference(student.nationalId),
+      studentId: item.status === 'APPROVED' ? student.id : undefined,
+      child: item.status === 'APPROVED' ? {
+        id: student.id,
+        name: student.name,
+        surname: student.surname,
+        className: student.class?.name || null,
+        img: student.img,
+      } : undefined,
+    })),
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 export async function PATCH(request: Request) {

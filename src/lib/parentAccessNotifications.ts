@@ -29,6 +29,17 @@ export async function flushAccessNotifications(parentId?: string) {
     orderBy: { createdAt: 'asc' }, take: 50,
     include: { parent: { select: { expoPushToken: true } } },
   });
+  const decisions = deliveries.length ? await prisma.parentAccessRequest.findMany({
+    where: { id: { in: deliveries.map(item => item.requestId) } },
+    select: {
+      id: true,
+      status: true,
+      studentId: true,
+      reviewedAt: true,
+      student: { select: { nationalId: true, name: true, surname: true, img: true, class: { select: { name: true } } } },
+    },
+  }) : [];
+  const decisionsById = new Map(decisions.map(decision => [decision.id, decision]));
   for (const item of deliveries) {
     if (!item.parent.expoPushToken) continue; // Keep it queued until permissions/device registration.
     const leased = await prisma.parentAccessDelivery.updateMany({
@@ -37,8 +48,26 @@ export async function flushAccessNotifications(parentId?: string) {
     });
     if (!leased.count) continue;
     try {
+      const decision = decisionsById.get(item.requestId);
+      const approved = decision?.status === 'APPROVED';
       const result = await sendDirectPushTokens([item.parent.expoPushToken], item.title, item.message, {
-        data: { type: item.eventType, id: item.notificationId, screen: 'ParentApproval' },
+        data: {
+          type: 'PARENT_ACCESS',
+          id: item.notificationId,
+          screen: 'ParentApproval',
+          requestId: item.requestId,
+          status: decision?.status,
+          reference: `••••${(decision?.student.nationalId || '').slice(-4)}`,
+          studentId: approved ? decision?.studentId : undefined,
+          child: approved ? {
+            id: decision?.studentId,
+            name: decision?.student.name,
+            surname: decision?.student.surname,
+            className: decision?.student.class?.name || null,
+            img: decision?.student.img,
+          } : undefined,
+          reviewedAt: decision?.reviewedAt?.toISOString(),
+        },
       });
       if (result.success) await prisma.parentAccessDelivery.update({ where: { id: item.id }, data: { status: 'SENT' } });
     } catch (error) {
