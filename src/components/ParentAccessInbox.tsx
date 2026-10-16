@@ -34,6 +34,13 @@ export default function ParentAccessInbox() {
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [sessionRequired, setSessionRequired] = useState(false);
+  const [slowSaving, setSlowSaving] = useState(false);
+  useEffect(() => {
+    if (!saving) { setSlowSaving(false); return; }
+    const timer = setTimeout(() => setSlowSaving(true), 4_000);
+    return () => clearTimeout(timer);
+  }, [saving]);
   const controller = useRef<AbortController | null>(null);
   const label = (s: string) => ({ PENDING: c.pending, APPROVED: c.approved, REJECTED: c.rejected, CANCELLED: c.cancelled, REVOKED: c.revoked }[s] || s);
   const date = (value: string) => new Intl.DateTimeFormat(locale === 'ar' ? 'ar-TN' : locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Tunis' }).format(new Date(value));
@@ -45,13 +52,14 @@ export default function ParentAccessInbox() {
     try {
       const params = new URLSearchParams({ status, classId, q: query, page: String(page) });
       const response = await fetch(`/api/admin/parent-access?${params}`, { signal: abort.signal, cache: 'no-store' });
+      if (response.redirected || response.status === 401) { setSessionRequired(true); throw new Error('session'); }
       if (!response.ok) throw new Error('load');
       const next: Inbox = await response.json();
-      setData(next); setError('');
+      setData(next); setError(''); setSessionRequired(false);
       setSelected(prev => prev.filter(id => next.requests.some(r => r.id === id && !r.conflicting && r.status === 'PENDING')));
-    } catch (e) { if (!abort.signal.aborted) setError(c.loadError); }
+    } catch (e) { if (!abort.signal.aborted) setError(e instanceof Error && e.message === 'session' ? c.sessionExpired : c.loadError); }
     finally { if (!abort.signal.aborted) setLoading(false); }
-  }, [status, classId, query, page, c.loadError]);
+  }, [status, classId, query, page, c.loadError, c.sessionExpired]);
   useEffect(() => { void load(); const timer = setInterval(() => { if (!document.hidden) void load(true); }, 30_000); return () => { clearInterval(timer); controller.current?.abort(); }; }, [load]);
   const openDecision = (action: Decision['action'], entries: Entry[]) => { setDetails(null); setDecision({ action, entries }); setReason(''); setConfirmed(false); setSaveError(''); };
   const save = async () => {
@@ -59,14 +67,18 @@ export default function ParentAccessInbox() {
     setSaving(true); setSaveError('');
     try {
       const response = await fetch('/api/admin/parent-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestIds: decision.entries.map(r => r.id), action: decision.action, identityConfirmed: confirmed, reason }) });
-      if (!response.ok) throw new Error('save');
+      if (response.redirected || response.status === 401) {
+        setSessionRequired(true); setSaveError(c.sessionExpired); return;
+      }
       const result = await response.json();
+      if (!response.ok) { setSaveError((c as Record<string, string>)[result.code] || c.error); return; }
+      setSessionRequired(false);
       const failed = result.results.filter((r: { success: boolean }) => !r.success);
       if (failed.length && decision.entries.length === 1) {
         setSaveError((c as Record<string, string>)[failed[0].code] || c.error); await load(true); return;
       }
       setNotice(failed.length ? c.partial : c.done); setDecision(null); setSelected([]); await load(true);
-    } catch { setSaveError(c.error); } finally { setSaving(false); }
+    } catch { setSaveError(c.unconfirmed); } finally { setSaving(false); }
   };
   const eligible = data?.requests.filter(r => !r.conflicting && r.status === 'PENDING') || [];
   const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50';
@@ -83,7 +95,7 @@ export default function ParentAccessInbox() {
       {[['PENDING', Clock3, 'text-amber-700 bg-amber-50'], ['APPROVED', CheckCircle2, 'text-emerald-700 bg-emerald-50'], ['REJECTED', Users, 'text-slate-600 bg-slate-100']].map(([key, Icon, tone]) => {
         const StatusIcon = Icon as typeof Clock3; const k = key as string;
         return <button key={k} onClick={() => { setStatus(k); setPage(1); setSelected([]); }} className={`ss-panel flex items-center justify-between gap-2 p-3 text-start transition sm:p-5 ${status === k ? 'ring-2 ring-brand-500' : 'hover:border-brand-200'}`} aria-pressed={status === k}>
-          <span><span className="block text-xs text-ink-500 sm:text-sm">{label(k)}</span><span className="mt-1 block text-2xl font-semibold text-ink-900 sm:text-3xl">{data?.counts[k] ?? '—'}</span></span><span className={`hidden h-11 w-11 place-items-center rounded-xl sm:grid ${tone}`}><StatusIcon size={20} /></span>
+          <span><span className="block text-xs text-ink-500 sm:text-sm">{label(k)}</span><span className="mt-1 block text-2xl font-semibold text-ink-900 sm:text-3xl">{data?.counts[k] ?? (data ? 0 : '—')}</span></span><span className={`hidden h-11 w-11 place-items-center rounded-xl sm:grid ${tone}`}><StatusIcon size={20} /></span>
         </button>;
       })}
     </section>
@@ -99,7 +111,7 @@ export default function ParentAccessInbox() {
         <label className="flex cursor-pointer items-center gap-3 text-sm text-ink-600"><input type="checkbox" className="h-4 w-4 accent-blue-600" checked={eligible.length > 0 && eligible.every(r => selected.includes(r.id))} onChange={e => setSelected(e.target.checked ? eligible.map(r => r.id) : [])} />{selected.length ? `${selected.length} ${c.selected}` : c.selectPage}</label>
         {selected.length > 0 && <button className={primary} onClick={() => openDecision('APPROVE', data.requests.filter(r => selected.includes(r.id)))}><Check size={17} />{c.batch} ({selected.length})</button>}
       </div>}
-      {error && <div role="alert" className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-4 text-sm text-rose-800"><span>{error}</span><button onClick={() => void load()} className={secondary}>{c.retry}</button></div>}
+      {error && <div role="alert" className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-4 text-sm text-rose-800"><span>{error}</span>{sessionRequired && <a href="/sign-in" target="_blank" rel="noopener noreferrer" className={secondary}>{c.signInAgain}</a>}<button onClick={() => void load()} className={secondary}>{c.retry}</button></div>}
       {loading ? <div aria-busy="true" className="space-y-4 p-5">{[1, 2, 3].map(n => <div key={n} className="h-32 animate-pulse rounded-2xl bg-ink-100" />)}</div> : !data?.requests.length && !error ? <div className="px-6 py-20 text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-brand-50 text-brand-600"><Users size={28} /></span><h2 className="mt-5 text-xl font-semibold text-ink-900">{!search && !classId && status === 'PENDING' ? c.empty : c.noResults}</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-ink-500">{!search && !classId && status === 'PENDING' ? c.emptyBody : c.noResultsBody}</p></div> : <div className="divide-y divide-ink-100">
         {data?.requests.map(r => <article key={r.id} className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
@@ -129,7 +141,8 @@ export default function ParentAccessInbox() {
         <div className="my-5 max-h-48 space-y-2 overflow-y-auto rounded-2xl bg-ink-50 p-4">{decision.entries.map(r => <div key={r.id} className="border-b border-ink-200 pb-2 last:border-0 last:pb-0"><p className="text-sm font-semibold text-ink-900">{person(r)}</p><p className="mt-1 text-xs text-ink-500">{r.student.name} {r.student.surname} · {r.student.class?.name || c.noClass}</p></div>)}</div>
         {decision.action === 'APPROVE' ? <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/60 p-4 text-sm leading-6 text-ink-800"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-blue-600" />{c.verified}</label> : <label className="block text-sm font-medium text-ink-800">{c.reason}<textarea value={reason} onChange={e => setReason(e.target.value)} maxLength={500} rows={4} placeholder={c.reasonPlaceholder} className="mt-2 w-full rounded-xl border border-ink-200 p-3 font-normal outline-none focus:border-brand-500" /></label>}
         <p className="mt-4 flex gap-2 text-xs leading-5 text-ink-500"><BellRing size={16} className="mt-0.5 shrink-0" />{c.notification}</p>
-        {saveError && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{saveError}</p>}
+        {slowSaving && saving && <p role="status" className="mt-4 text-sm leading-6 text-ink-500">{c.stillWorking}</p>}
+        {saveError && <div role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800"><p>{saveError}</p>{sessionRequired && <a href="/sign-in" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center font-semibold underline">{c.signInAgain}</a>}</div>}
         <div className="mt-6 flex justify-end gap-3"><button disabled={saving} className={secondary} onClick={() => setDecision(null)}>{c.cancel}</button><button disabled={saving || (decision.action === 'APPROVE' ? !confirmed : !reason.trim())} className={decision.action === 'APPROVE' ? primary : `${button} bg-rose-600 text-white hover:bg-rose-700`} onClick={() => void save()}>{saving && <Loader2 size={16} className="animate-spin" />}{saving ? c.working : decision.action === 'APPROVE' ? c.approve : decision.action === 'REVOKE' ? c.revoke : c.reject}</button></div>
       </> : null}
     </Dialog.Content></Dialog.Portal></Dialog.Root>

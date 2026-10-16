@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 import prisma from '../lib/prisma';
+import { middleware } from '../middleware';
+import { POST as adminDecision } from '../app/api/admin/parent-access/route';
 import { authenticateMobileRequest, generateToken, generateStudentClaimToken } from '../lib/mobileAuth';
 import { reviewAccessRequest, submitAccessRequest, ParentAccessError } from '../lib/parentAccess';
 import { getParentAccessAdmin } from '../lib/parentAccessAdmin';
@@ -128,6 +130,30 @@ async function main() {
     await assert.rejects(() => reviewAccessRequest({ requestId: 'request-a', schoolId: 'school-b', adminId: 'admin-a', action: 'APPROVE' }), (e: any) => e.code === 'NOT_FOUND');
     await review('REJECT', { reason: 'Please visit the school office' }); assert.equal(linkedTo, null); assert.equal(entry.reason, 'Please visit the school office');
 
+    // Mixed sibling decisions must keep the approved child and active account.
+    entry = makeEntry(); linkedTo = null;
+    await review('APPROVE');
+    const approvedFirstChild = structuredClone(entry);
+    entry = { ...makeEntry(), id: 'request-b', studentId: 'student-b' };
+    await reviewAccessRequest({ requestId: 'request-b', schoolId: 'school-a', adminId: 'admin-a', action: 'REJECT', reason: 'Please verify this child with the school' });
+    assert.equal(entry.status, 'REJECTED');
+    assert.equal(entry.reason, 'Please verify this child with the school');
+    assert.equal(approvedFirstChild.status, 'APPROVED');
+    assert.equal(linkedTo, 'parent-a', 'Rejecting child B must not unlink approved child A');
+    assert.equal(statusUpdates.at(-1), 'ACTIVE', 'Rejecting child B must not downgrade an active parent');
+
+    // The API owns authentication: middleware must not redirect writes to an HTML sign-in page.
+    const pass = await middleware(new NextRequest('https://example.com/api/admin/parent-access', { method: 'POST' }));
+    assert.equal(pass.headers.get('x-middleware-next'), '1');
+    assert.equal(pass.headers.has('location'), false);
+    for (const origin of ['https://attacker.example', 'http://example.com', 'null']) {
+      const denied = await adminDecision(new Request('https://example.com/api/admin/parent-access', {
+        method: 'POST', headers: { origin, 'Content-Type': 'application/json' }, body: '{}',
+      }));
+      assert.equal(denied.status, 403, 'Cross-origin writes remain forbidden');
+      assert.equal((await denied.json()).code, 'ORIGIN_FORBIDDEN');
+    }
+
     // Admin authorization requires an active server-side admin record.
     replace(prisma.admin, 'findFirst', async ({ where }: any) => { assert.equal(where.status, 'active'); return where.id === 'admin-a' ? { id: 'admin-a', schoolId: 'school-a' } : null; });
     assert.equal(await getParentAccessAdmin(async () => null), null);
@@ -170,7 +196,7 @@ async function main() {
     await flushAccessNotifications('parent-a'); assert.equal(outboxStatus, 'PENDING'); assert.equal(Boolean(sentBody), false);
     device = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]';
     await flushAccessNotifications('parent-a'); assert.equal(outboxStatus, 'SENT'); assert.equal(sentBody[0].data.type, 'PARENT_ACCESS');
-    console.log('Parent approval checks passed: signup stays pending, protected APIs deny access, masked status, school/admin/child ownership, request deduplication, atomic decision guards, audit, localized notification outbox and persistent limits.');
+    console.log('Parent approval checks passed: signup stays pending, protected APIs deny access, masked status, school/admin/child ownership, request deduplication, atomic decision guards, audit, localized notification outbox, mixed sibling decisions, redirect-free admin API, origin protection and persistent limits.');
   } finally { restores.reverse().forEach(restore => restore()); if (secret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = secret; await prisma.$disconnect(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -39,7 +39,9 @@ export async function reviewAccessRequest(input: {
   return prisma.$transaction(async tx => {
     const entry = await tx.parentAccessRequest.findFirst({
       where: { id: input.requestId, schoolId: input.schoolId },
-      include: { parent: true, student: true },
+      select: { id: true, parentId: true, studentId: true, status: true,
+        parent: { select: { schoolId: true, preferredLocale: true } },
+        student: { select: { schoolId: true, nationalId: true } } },
     });
     if (!entry || entry.parent.schoolId !== input.schoolId || entry.student.schoolId !== input.schoolId) throw new ParentAccessError('NOT_FOUND', 404);
     // Serialize decisions for one parent so a rejection cannot overwrite a concurrent activation.
@@ -70,11 +72,11 @@ export async function reviewAccessRequest(input: {
       if (input.action === 'REVOKE') await tx.student.updateMany({
         where: { id: entry.studentId, schoolId: input.schoolId, parentId: entry.parentId }, data: { parentId: null },
       });
-      const [children, pending] = await Promise.all([
-        tx.student.count({ where: { parentId: entry.parentId, schoolId: input.schoolId } }),
-        tx.parentAccessRequest.count({ where: { parentId: entry.parentId, schoolId: input.schoolId, status: 'PENDING' } }),
-      ]);
-      if (!children) await tx.parent.update({ where: { id: entry.parentId }, data: { accessStatus: pending ? 'PENDING' : 'REJECTED' } });
+      const children = await tx.student.count({ where: { parentId: entry.parentId, schoolId: input.schoolId } });
+      if (!children) {
+        const pending = await tx.parentAccessRequest.count({ where: { parentId: entry.parentId, schoolId: input.schoolId, status: 'PENDING' } });
+        await tx.parent.update({ where: { id: entry.parentId }, data: { accessStatus: pending ? 'PENDING' : 'REJECTED' } });
+      }
     }
     await tx.auditLog.create({ data: {
       schoolId: input.schoolId, performedBy: input.adminId, action: `PARENT_ACCESS_${input.action}`,

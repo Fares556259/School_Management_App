@@ -8,9 +8,18 @@ import { waitUntil } from '@vercel/functions';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+async function authenticateAdmin() {
+  try {
+    const admin = await getParentAccessAdmin();
+    return { admin, response: admin ? null : NextResponse.json({ code: 'ADMIN_SESSION_REQUIRED' }, { status: 401 }) };
+  } catch (error) {
+    console.error('[Parent access auth]', error);
+    return { admin: null, response: NextResponse.json({ code: 'AUTH_UNAVAILABLE' }, { status: 503 }) };
+  }
+}
 export async function GET(request: Request) {
-  const admin = await getParentAccessAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const { admin, response } = await authenticateAdmin();
+  if (!admin) return response!;
   const url = new URL(request.url);
   // Hobby permits daily cron only. Dashboard activity also retries due delivery jobs.
   const pendingDelivery = flushAccessNotifications().catch(error => console.error('[Activation retry]', error));
@@ -54,9 +63,11 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   const origin = request.headers.get('origin');
-  if (origin && new URL(origin).host !== new URL(request.url).host) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  const admin = await getParentAccessAdmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    if (origin && new URL(origin).origin !== new URL(request.url).origin) return NextResponse.json({ code: 'ORIGIN_FORBIDDEN' }, { status: 403 });
+  } catch { return NextResponse.json({ code: 'ORIGIN_FORBIDDEN' }, { status: 403 }); }
+  const { admin, response } = await authenticateAdmin();
+  if (!admin) return response!;
   try {
     const body = await request.json();
     if (!['APPROVE', 'REJECT', 'REVOKE'].includes(body.action) || !Array.isArray(body.requestIds) ||
