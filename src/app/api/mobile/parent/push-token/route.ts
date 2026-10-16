@@ -2,11 +2,13 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { flushAccessNotifications } from "@/lib/parentAccessNotifications";
+import { waitUntil } from "@vercel/functions";
 import { Expo } from "expo-server-sdk";
 import { parseStoredExpoPushTokens, storeExpoPushToken } from "@/lib/expoPushTokens";
 
 export async function POST(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 
@@ -54,6 +56,14 @@ export async function POST(request: NextRequest) {
       channelVersion,
       platform,
     });
+    if (pushToken) {
+      if (storedToken !== parent.expoPushToken) await prisma.parentAccessDelivery.updateMany({
+        where: { parentId: userId, schoolId, status: 'PENDING', attempts: { gte: 6 } },
+        data: { attempts: 0, nextAttemptAt: new Date() },
+      });
+      const pending = flushAccessNotifications(userId).catch(error => console.error('[Activation push registration]', error));
+      try { waitUntil(pending); } catch { await pending; }
+    }
     return NextResponse.json({ success: true, registeredDevices });
   } catch (error) {
     console.error("[PUSH-TOKEN-ERROR]", error);

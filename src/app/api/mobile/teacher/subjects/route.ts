@@ -6,7 +6,7 @@ import { getGradeSubjects } from "@/lib/subject-utils";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = authenticateMobileRequest(req);
+  const auth = await authenticateMobileRequest(req);
   if (auth.error) return auth.error;
   const { userId, userType } = auth.payload;
   if (userType !== "teacher") return NextResponse.json({ error: "Forbidden" }, { status: 403 });

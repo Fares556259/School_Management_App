@@ -144,6 +144,7 @@ export const ar = {
     }
   },
   "menu": {
+    "parentRequests": "طلبات الأولياء",
     "home": "الرئيسية",
     "expenses": "المصاريف",
     "incomes": "المداخيل",

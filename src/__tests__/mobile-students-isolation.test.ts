@@ -17,7 +17,7 @@ async function main() {
   let denied = false;
   (prisma.parent as any).findFirst = async (args: any) => {
     assert.deepEqual(args.where, { id: 'parent-a', schoolId: 'school-a' });
-    if (args.select) return { id: 'parent-a' };
+    if (args.select) return { id: 'parent-a', accessStatus: 'ACTIVE' };
     assert.deepEqual(args.include.students.where, { schoolId: 'school-a' });
     return { students: [{ id: 'child-a' }] };
   };
@@ -58,13 +58,7 @@ async function main() {
     }
     assert.equal((await PATCH(request('parent', 'PATCH', { id: 123 }))).status, 400);
     assert.equal((await POST(request('parent', 'POST', {}))).status, 400);
-    const linked = await POST(request('parent', 'POST', { studentId: '  STU12345  ' }));
-    assert.equal(linked.status, 200);
-    assert.deepEqual(studentFindArgs[0].where, { schoolId: 'school-a', nationalId: 'STU12345' });
-    assert.deepEqual(studentFindArgs[1].where, { id: 'child-a', schoolId: 'school-a', parentId: 'parent-a' });
-    assert.deepEqual(linkArgs.where, { id: 'child-a', schoolId: 'school-a', parentId: null });
-    assert.deepEqual(linkArgs.data, { parentId: 'parent-a' });
-    console.log('Student isolation checks passed: authenticated reads, school-scoped children, atomic school/parent guards, ID-only child linking, and authorized updates.');
+    console.log('Student isolation checks passed: authenticated reads, school-scoped children, atomic school/parent guards, authorized updates; approval-based linking is covered by parent-access.test.ts.');
   } finally {
     (prisma.parent as any).findFirst = originalFind;
     (prisma.student as any).update = originalUpdate;

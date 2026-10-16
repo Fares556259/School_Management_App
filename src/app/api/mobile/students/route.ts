@@ -1,13 +1,14 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
-import { getStudentLinkDisposition } from "@/lib/mobileStudentLink";
+import { submitAccessRequest } from "@/lib/parentAccess";
+import { checkPersistentRateLimit } from "@/lib/mobileRateLimit";
 
 export const dynamic = "force-dynamic";
 
 // Fetch all students for a given parent
 export async function GET(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 
@@ -52,113 +53,34 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
-
-  if (userType !== "parent") {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
-
+  if (userType !== "parent") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   try {
     const body = await request.json();
-    const studentIdentifier =
-      typeof body.studentId === "string" ? body.studentId.trim() : "";
-
-    if (!studentIdentifier) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "MISSING_STUDENT_NUMBER",
-          error: "Saisissez l'identifiant scolaire de l'élève.",
-        },
-        { status: 400 }
-      );
+    const nationalId = typeof body.studentId === 'string' ? body.studentId.trim() : '';
+    if (!nationalId || nationalId.length > 80) return NextResponse.json({ code: 'MISSING_STUDENT_NUMBER' }, { status: 400 });
+    if (body.approvalFlowVersion !== 1) return NextResponse.json({ success: false, code: 'APP_UPDATE_REQUIRED', error: 'Mettez à jour l’application pour demander l’accès à cet enfant.' }, { status: 426 });
+    const rate = await checkPersistentRateLimit(userId, 'child-access-request', 10);
+    if (!rate.success) return NextResponse.json({ code: 'RATE_LIMITED' }, { status: 429 });
+    const matches = await prisma.student.findMany({ where: { schoolId, nationalId }, select: { id: true } });
+    if (matches.length !== 1) return NextResponse.json({ success: false, code: 'STUDENT_NOT_FOUND' }, { status: 404 });
+    const relation = ['father', 'mother', 'guardian'].includes(body.relation) ? body.relation : 'guardian';
+    const result = await prisma.$transaction(tx => submitAccessRequest(tx, userId, schoolId, matches[0].id, relation));
+    if (result.pendingApproval) {
+      // A previously rejected account may submit a corrected request.
+      await prisma.parent.updateMany({ where: { id: userId, schoolId, accessStatus: 'REJECTED' }, data: { accessStatus: 'PENDING' } });
     }
-
-    const parent = await prisma.parent.findFirst({
-      where: { id: userId, schoolId },
-      select: { id: true },
-    });
-    if (!parent) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
-
-    // The identifier is resolved only inside the authenticated parent's school.
-    // Phone numbers are deliberately excluded from student lookup.
-    const student = await prisma.student.findFirst({
-      where: {
-        schoolId,
-        nationalId: studentIdentifier,
-      },
-      include: {
-        class: { include: { level: true } },
-      },
-    });
-
-    if (!student) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "STUDENT_NOT_FOUND",
-          error: "Aucun élève ne correspond à cet identifiant dans votre établissement.",
-        },
-        { status: 404 }
-      );
-    }
-
-    const disposition = getStudentLinkDisposition(student.parentId, userId);
-    if (disposition === "same-parent") {
-      return NextResponse.json({ success: true, alreadyLinked: true, student });
-    }
-
-    if (disposition === "other-parent") {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "STUDENT_ALREADY_LINKED",
-          error:
-            "Cet élève est déjà rattaché à un compte parent. Contactez l'établissement pour toute modification.",
-        },
-        { status: 409 }
-      );
-    }
-
-    // Atomic claim: a concurrent request cannot transfer an already linked child.
-    const linked = await prisma.student.updateMany({
-      where: { id: student.id, schoolId, parentId: null },
-      data: { parentId: userId },
-    });
-
-    if (linked.count !== 1) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "STUDENT_ALREADY_LINKED",
-          error:
-            "Cet élève est déjà rattaché à un compte parent. Contactez l'établissement pour toute modification.",
-        },
-        { status: 409 }
-      );
-    }
-
-    const linkedStudent = await prisma.student.findFirst({
-      where: { id: student.id, schoolId, parentId: userId },
-      include: { class: { include: { level: true } } },
-    });
-
-    return NextResponse.json({ success: true, alreadyLinked: false, student: linkedStudent });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
-    console.error("[Mobile Student Link Error]", error);
-    return NextResponse.json(
-      { success: false, code: "LINK_FAILED", error: "Impossible de rattacher l'élève pour le moment." },
-      { status: 500 }
-    );
+    console.error('[Child access request]', error);
+    return NextResponse.json({ success: false, code: 'REQUEST_FAILED' }, { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 

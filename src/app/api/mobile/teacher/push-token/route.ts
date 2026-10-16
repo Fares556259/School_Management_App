@@ -6,7 +6,7 @@ import { Expo } from "expo-server-sdk";
 import { parseStoredExpoPushTokens, storeExpoPushToken } from "@/lib/expoPushTokens";
 
 export async function POST(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 

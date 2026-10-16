@@ -1,3 +1,4 @@
+import { checkPersistentRateLimit } from "@/lib/mobileRateLimit";
 import prisma from "@/lib/prisma";
 import { checkRateLimit, generateStudentClaimToken } from "@/lib/mobileAuth";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,6 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Renseignez le matricule de l’élève." }, { status: 400 });
     }
 
+    const rate = await checkPersistentRateLimit(ip, "parent-student-lookup", 10);
+    if (!rate.success) return NextResponse.json({ success: false, error: "Trop de tentatives. Réessayez plus tard." }, { status: 429 });
     // The parent supplies only the matricule. Resolve its school server-side and
     // accept it only when it identifies exactly one student in an active school.
     // This prevents a matricule reused by two schools from linking the wrong child.
@@ -36,14 +39,6 @@ export async function POST(request: NextRequest) {
     if (!student) {
       return NextResponse.json({ success: false, error: "Matricule non reconnu. Vérifiez-le ou contactez l’établissement." }, { status: 404 });
     }
-    if (student.parentId) {
-      return NextResponse.json({
-        success: false,
-        code: "STUDENT_ALREADY_LINKED",
-        error: "Cet élève est déjà rattaché à un compte parent. Contactez l'établissement.",
-      }, { status: 409 });
-    }
-
     const suffix = nationalId.slice(-4);
     return NextResponse.json({
       success: true,

@@ -6,7 +6,7 @@ import { parseSchoolDay } from "@/lib/schoolDay";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
   if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });

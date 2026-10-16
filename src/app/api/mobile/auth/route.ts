@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { checkPersistentRateLimit } from "@/lib/mobileRateLimit";
+import { normalizeParentPhone, parentPhoneCandidates, submitAccessRequest } from "@/lib/parentAccess";
 import { randomUUID } from "crypto";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 import { 
@@ -94,14 +96,14 @@ export async function POST(request: NextRequest) {
     if (action === "signup") {
       const parentName = typeof body.parentName === "string" ? body.parentName.trim() : "";
       const parentSurname = typeof body.parentSurname === "string" ? body.parentSurname.trim() : "";
-      const cleanPhone = phone.trim().replace(/\s+/g, "");
-      const claimTokens = Array.isArray(body.claimTokens) ? body.claimTokens : [];
+      const cleanPhone = typeof phone === "string" ? normalizeParentPhone(phone) : "";
+      const claimTokens = Array.isArray(body.claimTokens) ? body.claimTokens.slice(0, 9) : [];
       const claims: Array<ReturnType<typeof verifyStudentClaimToken>> = claimTokens.map((value: unknown) =>
         typeof value === "string" ? verifyStudentClaimToken(value) : null
       );
 
-      if (!parentName || !parentSurname || !cleanPhone || !password || password.length < 8 ||
-          claims.length === 0 || claims.some((claim: unknown) => !claim)) {
+      if (!parentName || !parentSurname || !cleanPhone || typeof password !== "string" || password.length < 8 || Buffer.byteLength(password, "utf8") > 72 ||
+          claims.length === 0 || claims.length > 8 || !/^[0-9]{8,15}$/.test(cleanPhone) || claims.some((claim: unknown) => !claim)) {
         return NextResponse.json({
           success: false,
           error: "Informations d'inscription invalides ou expirées. Recommencez la vérification.",
@@ -115,16 +117,22 @@ export async function POST(request: NextRequest) {
       }
       const studentIds = Array.from(new Set(verifiedClaims.map(claim => claim.studentId)));
 
+      if (body.approvalFlowVersion !== 1) return NextResponse.json({ success: false, code: 'APP_UPDATE_REQUIRED', error: 'Mettez à jour l’application pour envoyer une demande à votre école.' }, { status: 426 });
+      const rate = await checkPersistentRateLimit(ip, 'parent-signup', 5);
+      if (!rate.success) return NextResponse.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429 });
+      const locale = ['fr', 'ar', 'en'].includes(body.locale) ? body.locale : 'fr';
+      const relation = ['father', 'mother', 'guardian'].includes(body.relation) ? body.relation : 'guardian';
+      const passwordHash = await bcrypt.hash(password, 12);
       try {
         const result = await prisma.$transaction(async tx => {
           const existingParent = await tx.parent.findFirst({
-            where: { OR: [{ phone: cleanPhone }, { username: cleanPhone }] },
+            where: { OR: parentPhoneCandidates(cleanPhone).flatMap(value => [{ phone: value }, { username: value }]) },
             select: { id: true },
           });
           if (existingParent) throw new Error("PARENT_EXISTS");
 
           const availableStudents = await tx.student.findMany({
-            where: { id: { in: studentIds }, schoolId: signupSchoolId, parentId: null },
+            where: { id: { in: studentIds }, schoolId: signupSchoolId },
             select: { id: true },
           });
           if (availableStudents.length !== studentIds.length) throw new Error("STUDENT_UNAVAILABLE");
@@ -136,26 +144,24 @@ export async function POST(request: NextRequest) {
               name: parentName,
               surname: parentSurname,
               phone: cleanPhone,
-              password: await bcrypt.hash(password, 12),
+              password: passwordHash,
+              accessStatus: "PENDING",
+              preferredLocale: locale,
               address: typeof body.address === "string" && body.address.trim() ? body.address.trim() : "Non renseignée",
               schoolId: signupSchoolId,
             },
           });
-          const linked = await tx.student.updateMany({
-            where: { id: { in: studentIds }, schoolId: signupSchoolId, parentId: null },
-            data: { parentId: parent.id },
-          });
-          if (linked.count !== studentIds.length) throw new Error("STUDENT_UNAVAILABLE");
-
-          const students = await tx.student.findMany({
-            where: { parentId: parent.id, schoolId: signupSchoolId },
-            include: { class: { include: { level: true } }, payments: true },
-          });
+          for (const studentId of studentIds) {
+            await submitAccessRequest(tx, parent.id, signupSchoolId, studentId, relation);
+          }
+          const students: never[] = [];
           return { parent, students };
         });
 
         return NextResponse.json({
           success: true,
+          accessStatus: "PENDING",
+          pendingApproval: true,
           token: generateToken({ userId: result.parent.id, userType: "parent", schoolId: signupSchoolId }),
           userId: result.parent.id,
           userType: "parent",
@@ -178,10 +184,15 @@ export async function POST(request: NextRequest) {
     let user: any = null;
     let userType: "parent" | "teacher" | "admin" = role === "teacher" ? "teacher" : role === "admin" ? "admin" : "parent";
 
+    if (action === 'signin') {
+      const rate = await checkPersistentRateLimit(ip, 'parent-signin', 10);
+      if (!rate.success) return NextResponse.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429 });
+    }
+    const loginPhone = userType === 'parent' ? normalizeParentPhone(phone) : phone.trim();
     if (userType === "parent") {
       user = await prisma.parent.findFirst({
         where: {
-          OR: [{ phone: phone.trim() }, { username: phone.trim() }],
+          OR: parentPhoneCandidates(loginPhone).flatMap(value => [{ phone: value }, { username: value }]),
         },
         orderBy: { id: "asc" },
         include: {
@@ -200,7 +211,7 @@ export async function POST(request: NextRequest) {
     } else if (userType === "teacher") {
       user = await prisma.teacher.findFirst({
         where: {
-          OR: [{ phone: phone.trim() }, { username: phone.trim() }],
+          OR: [{ phone: loginPhone }, { username: loginPhone }],
         },
         orderBy: { id: "asc" },
       });
@@ -336,6 +347,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (userType === 'parent' && user.accessStatus !== 'ACTIVE' && body.approvalFlowVersion !== 1) {
+      return NextResponse.json({ success: false, code: 'APP_UPDATE_REQUIRED', error: 'Mettez à jour l’application pour suivre l’approbation de votre compte.' }, { status: 426 });
+    }
+
     // ─── SUCCESS: ISSUE SIGNED JWT TOKEN & RETURN SESSION ──────────────────
     const token = generateToken({
       userId: user.id,
@@ -353,11 +368,12 @@ export async function POST(request: NextRequest) {
       schoolId: user.schoolId || "default_school",
       name: `${user.name} ${user.surname}`,
       img: user.img,
-      students: userType === "parent" ? user.students : [],
+      accessStatus: userType === "parent" ? user.accessStatus : "ACTIVE",
+      students: userType === "parent" && user.accessStatus === "ACTIVE" ? user.students : [],
     });
   } catch (error: any) {
     console.error("[Mobile Auth Error]", error);
-    return new NextResponse(JSON.stringify({ error: error.message }), {
+    return new NextResponse(JSON.stringify({ success: false, error: "Impossible de traiter la demande. Réessayez dans quelques instants." }), {
       status: 500,
     });
   }

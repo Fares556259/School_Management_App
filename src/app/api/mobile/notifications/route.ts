@@ -5,7 +5,7 @@ import { authenticateMobileRequest } from "@/lib/mobileAuth";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 
@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const where = {
       parentId: userId,
       schoolId,
+      ...(auth.payload.parentAccessStatus !== "ACTIVE" ? { type: "PARENT_ACCESS" } : {}),
       ...(studentId ? { OR: [{ studentId }, { studentId: null }] } : {}),
     };
 
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 
@@ -118,7 +119,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 

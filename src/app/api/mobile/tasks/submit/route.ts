@@ -17,7 +17,7 @@ function notifyTeacherInBackground(studentId: string, assignmentId: number) {
 
 // GET: Check if a student has completed a specific task
 export async function GET(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
 
 // POST: Mark a task as completed
 export async function POST(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
 

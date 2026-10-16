@@ -1,25 +1,25 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { verifyToken } from "@/lib/mobileAuth";
+import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const payload = verifyToken(authHeader);
-    if (!payload || !payload.schoolId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const { schoolId } = payload;
+    const auth = await authenticateMobileRequest(request);
+    if (auth.error) return auth.error;
+    const { schoolId, userId, userType } = auth.payload;
     const { searchParams } = new URL(request.url);
-    const classId = searchParams.get("classId");
     const studentId = searchParams.get("studentId");
+    const requestedClassId = searchParams.get("classId");
+    let classId: number | null = null;
+    if (userType === 'parent') {
+      if (!studentId) return NextResponse.json({ error: "Student required" }, { status: 400 });
+      const child = await prisma.student.findFirst({ where: { id: studentId, schoolId, parentId: userId }, select: { classId: true } });
+      if (!child) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      classId = child.classId;
+      if (requestedClassId && Number(requestedClassId) !== classId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } else if (requestedClassId && Number.isInteger(Number(requestedClassId))) classId = Number(requestedClassId);
 
     const institution = await prisma.institution.findUnique({
       where: { schoolId }
@@ -30,19 +30,9 @@ export async function GET(request: Request) {
     const notices = await prisma.notice.findMany({
       where: {
         schoolId, // MUST filter by schoolId to prevent data leaks across schools
-        OR: [
-          { classId: null }, // Global notices for this school
-          {
-            AND: [
-              { classId: classId ? parseInt(classId) : undefined },
-              {
-                OR: [
-                  { targetStudentId: null }, // Class-wide, no specific student target
-                  studentId ? { targetStudentId: studentId } : { targetStudentId: 'NONE' }, // Specific student target (match or hide if no ID)
-                ],
-              },
-            ],
-          },
+        AND: [
+          { OR: [{ classId: null }, ...(classId !== null ? [{ classId }] : [])] },
+          { OR: [{ targetStudentId: null }, ...(studentId ? [{ targetStudentId: studentId }] : [])] },
         ],
       },
       orderBy: { date: "desc" },

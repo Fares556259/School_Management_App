@@ -55,6 +55,7 @@ const labelToKey: Record<string, any> = {
   "Partial Payments": "partialPayments",
   "Profitability": "profitability",
   "Parents": "parents",
+  "Parent Requests": "parentRequests",
   "Subjects": "subjects",
   "Classes": "classes",
   "Lessons": "lessons",
@@ -105,6 +106,7 @@ const menuItems: MenuSection[] = [
     icon: Users,
     items: [
       { icon: Users, label: "Students", href: "/list/students", visible: ["admin", "teacher"] },
+      { icon: ClipboardList, label: "Parent Requests", href: "/admin/parent-requests", visible: ["admin"] },
       { icon: UsersRound, label: "Parents", href: "/list/parents", visible: ["admin", "teacher", "superuser"] },
       { icon: UserRound, label: "Teachers", href: "/list/teachers", visible: ["admin", "teacher"] },
       { icon: Contact, label: "Staff", href: "/list/staff", visible: ["admin", "superuser"] },
@@ -149,8 +151,23 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [parentRequestCount, setParentRequestCount] = useState(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
+
+  useEffect(() => {
+    if (role !== 'admin') return;
+    let current = true;
+    const refresh = async () => {
+      if (document.hidden) return;
+      try {
+        const response = await fetch('/api/admin/parent-access?summary=1', { cache: 'no-store' });
+        if (response.ok) { const data = await response.json(); if (current) setParentRequestCount(data.pending || 0); }
+      } catch { /* A failed badge refresh must not interrupt navigation. */ }
+    };
+    void refresh(); const timer = setInterval(() => void refresh(), 60_000);
+    return () => { current = false; clearInterval(timer); };
+  }, [role, pathname]);
 
   const academicYear = schoolConfig?.academicYear || "2024-2025";
   const currentTerm = schoolConfig?.currentSemester || 1;
@@ -299,7 +316,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                   <item.icon size={19} strokeWidth={1.75} className={isActive ? "text-white" : "text-ink-500 group-hover:text-ink-800"} />
                 </div>
                 <span className={`${mobile ? "block" : "hidden lg:block"} text-[14px] tracking-tight`}>
-                  {(t.menu as any)[labelToKey[item.label]] || item.label}
+                  {(t.menu as any)[labelToKey[item.label]] || item.label}{item.label === 'Parent Requests' && parentRequestCount > 0 && <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{parentRequestCount}</span>}
                 </span>
               </Link>
             );
@@ -382,7 +399,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                               <item.icon size={17} strokeWidth={1.75} />
                             </div>
                             <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
-                              {(t.menu as any)[labelToKey[item.label]] || item.label}
+                              {(t.menu as any)[labelToKey[item.label]] || item.label}{item.label === 'Parent Requests' && parentRequestCount > 0 && <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{parentRequestCount}</span>}
                             </span>
                           </button>
                         </form>
@@ -422,7 +439,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                           )}
                         </div>
                         <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
-                          {(t.menu as any)[labelToKey[item.label]] || item.label}
+                          {(t.menu as any)[labelToKey[item.label]] || item.label}{item.label === 'Parent Requests' && parentRequestCount > 0 && <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{parentRequestCount}</span>}
                         </span>
                       </Link>
                     );

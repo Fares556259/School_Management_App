@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = authenticateMobileRequest(request);
+    const auth = await authenticateMobileRequest(request);
     if (auth.error) return auth.error;
 
     const { userId, userType, schoolId } = auth.payload;

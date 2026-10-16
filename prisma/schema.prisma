@@ -70,6 +70,7 @@ model Student {
   nationalId    String?
 
   schoolId      String         @default("default_school")
+  accessRequests ParentAccessRequest[]
   attendance    Attendance[]
   grades        Grade[]
   notices       Notice[]
@@ -132,6 +133,10 @@ model Parent {
   img           String?
   password      String?
   expoPushToken String?
+  accessStatus  String         @default("ACTIVE")
+  preferredLocale String       @default("fr")
+  accessRequests ParentAccessRequest[]
+  accessDeliveries ParentAccessDelivery[]
   schoolId      String         @default("default_school")
   notifications Notification[]
   School        School         @relation(fields: [schoolId], references: [id])
@@ -822,3 +827,51 @@ model AIReminder {
   @@index([remindAt])
 }
 
+
+// Access requests never grant ownership until an administrator approves them.
+model ParentAccessRequest {
+  id          String   @id @default(cuid())
+  parentId    String
+  studentId   String
+  schoolId    String
+  relation    String
+  status      String   @default("PENDING")
+  reason      String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  parent      Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([schoolId, status, createdAt])
+  @@index([studentId, status])
+}
+
+// Durable push outbox: an in-app notification is committed with every decision.
+model ParentAccessDelivery {
+  id             String   @id @default(cuid())
+  parentId       String
+  schoolId       String
+  requestId      String
+  notificationId Int      @unique
+  title          String
+  message        String
+  eventType      String
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  nextAttemptAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  parent         Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([requestId, status])
+}
+
+model MobileRateLimit {
+  key       String   @id
+  count     Int      @default(1)
+  resetAt   DateTime
+  @@index([resetAt])
+}

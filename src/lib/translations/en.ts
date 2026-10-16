@@ -144,6 +144,7 @@ export const en = {
     }
   },
   "menu": {
+    "parentRequests": "Parent requests",
     "home": "Home",
     "expenses": "Expenses",
     "incomes": "Incomes",

@@ -1,3 +1,5 @@
+import { normalizeParentPhone, parentPhoneCandidates } from "@/lib/parentAccess";
+import { checkPersistentRateLimit } from "@/lib/mobileRateLimit";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/mobileAuth";
@@ -20,16 +22,16 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Phone number is required", { status: 400 });
     }
 
+    const rate = await checkPersistentRateLimit(ip, 'login-lookup', 10);
+    if (!rate.success) return NextResponse.json({ error: 'Trop de tentatives.' }, { status: 429 });
+    const lookupPhone = role === 'teacher' ? phone.trim() : normalizeParentPhone(phone);
     let user: any = null;
     let userType = role || "parent"; // Default to parent if role is missing
 
     if (userType === "parent") {
       user = await prisma.parent.findFirst({
         where: {
-          OR: [
-            { phone: phone.trim() },
-            { username: phone.trim() }
-          ]
+          OR: parentPhoneCandidates(lookupPhone).flatMap(value => [{ phone: value }, { username: value }])
         },
         orderBy: { id: 'asc' }
       });
@@ -37,8 +39,8 @@ export async function POST(request: NextRequest) {
       user = await prisma.teacher.findFirst({
         where: {
           OR: [
-            { phone: phone.trim() },
-            { username: phone.trim() }
+            { phone: lookupPhone },
+            { username: lookupPhone }
           ]
         },
         orderBy: { id: 'asc' }
@@ -63,8 +65,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       userType,
       schoolId: user.schoolId,
-      name: `${user.name} ${user.surname}`,
-      img: user.img,
+
     });
   } catch (error) {
     console.error("[Mobile Login Error]", error);

@@ -14,6 +14,7 @@ export interface MobileJWTPayload {
   userId: string;
   userType: "parent" | "teacher" | "admin";
   schoolId: string;
+  parentAccessStatus?: string;
   iat?: number;
   exp?: number;
 }
@@ -45,7 +46,7 @@ export function verifyToken(token: string): MobileJWTPayload | null {
 }
 
 export function generateStudentClaimToken(studentId: string, schoolId: string): string {
-  return jwt.sign({ purpose: "parent-signup", studentId, schoolId }, getJwtSecret(), { expiresIn: "10m" });
+  return jwt.sign({ purpose: "parent-signup", studentId, schoolId }, getJwtSecret(), { expiresIn: "2h" });
 }
 
 export function verifyStudentClaimToken(token: string): StudentClaimPayload | null {
@@ -124,12 +125,13 @@ export function verifyOTP(phone: string, inputCode: string): boolean {
 }
 
 // ─── 4. Reusable Auth Guard for Mobile Routes ─────────────────────────────────
-// Usage: const auth = authenticateMobileRequest(request);
+// Usage: const auth = await authenticateMobileRequest(request);
 //        if (auth.error) return auth.error;
 //        const { userId, userType, schoolId } = auth.payload;
-export function authenticateMobileRequest(
-  request: NextRequest | Request
-): { payload: MobileJWTPayload; error: null } | { payload: null; error: NextResponse } {
+export async function authenticateMobileRequest(
+  request: NextRequest | Request,
+  options: { allowPendingParent?: boolean } = {}
+): Promise<{ payload: MobileJWTPayload; error: null } | { payload: null; error: NextResponse }> {
   let authHeader = request.headers.get("Authorization");
   if (!authHeader && "url" in request) {
     try {
@@ -160,5 +162,22 @@ export function authenticateMobileRequest(
     };
   }
 
+  // Read current server-owned access on every request, including with an old JWT.
+  if (payload.userType === "parent") {
+    try {
+      const { default: prisma } = await import("./prisma");
+      const parent = await prisma.parent.findFirst({
+        where: { id: payload.userId, schoolId: payload.schoolId },
+        select: { accessStatus: true },
+      });
+      if (!parent) return { payload: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+      payload.parentAccessStatus = parent.accessStatus;
+      if (parent.accessStatus !== "ACTIVE" && !options.allowPendingParent) {
+        return { payload: null, error: NextResponse.json({ code: "PARENT_APPROVAL_REQUIRED", error: "School approval required" }, { status: 403 }) };
+      }
+    } catch {
+      return { payload: null, error: NextResponse.json({ error: "Access verification unavailable" }, { status: 503 }) };
+    }
+  }
   return { payload, error: null };
 }

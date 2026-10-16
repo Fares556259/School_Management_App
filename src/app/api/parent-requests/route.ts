@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
+import { getParentAccessAdmin } from "@/lib/parentAccessAdmin";
 import { createAuditLog } from "@/lib/audit";
 
 export async function GET() {
   try {
-    const schoolId = await getSchoolId();
+    const admin = await getParentAccessAdmin();
+    if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const schoolId = admin.schoolId;
 
     const requests = await prisma.parentRegistrationRequest.findMany({
       where: {
@@ -51,7 +54,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const schoolId = await getSchoolId();
+    const admin = await getParentAccessAdmin();
+    if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const schoolId = admin.schoolId;
     const body = await request.json();
     const { requestId, action } = body; // action: "APPROVE" | "REJECT"
 

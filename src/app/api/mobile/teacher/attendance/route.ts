@@ -5,7 +5,7 @@ import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { createAttendanceNotification, createAssignmentNotification, createResourceNotification, createRemarkNotification } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
   if (userType !== "teacher") return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });

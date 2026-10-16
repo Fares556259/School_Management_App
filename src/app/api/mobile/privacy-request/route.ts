@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { authenticateMobileRequest, checkRateLimit } from '@/lib/mobileAuth';
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
-  const auth = authenticateMobileRequest(request);
+  const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
   const limit = checkRateLimit(userId, 'privacy-request');
