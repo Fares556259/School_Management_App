@@ -44,11 +44,12 @@ const columns = [
 
 import ParentListClient from "./ParentListClient";
 
-const ParentListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const ParentListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;

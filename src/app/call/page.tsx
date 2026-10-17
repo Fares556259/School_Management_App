@@ -7,12 +7,13 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 interface CallPageProps {
-  searchParams: {
+  searchParams: Promise<{
     auth?: string;
-  };
+  }>;
 }
 
-export default function CallPage({ searchParams }: CallPageProps) {
+export default async function CallPage(props: CallPageProps) {
+  const searchParams = await props.searchParams;
   const token = searchParams.auth;
   const payload = token ? verifyCallToken(token) : null;
 

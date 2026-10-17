@@ -20,12 +20,13 @@ type ClassList = Class & { level: Level } & {
   lessons: { teacher: { id: string; name: string; surname: string; img: string | null } }[];
 };
 
-const ClassListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
-  const cookieLang = cookies().get("NEXT_LOCALE")?.value || "en";
+const ClassListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const cookieLang = (await cookies()).get("NEXT_LOCALE")?.value || "en";
   const lang = (cookieLang.startsWith("ar") ? "ar" : cookieLang.startsWith("fr") ? "fr" : "en") as Locale;
   const t = translations[lang] || translations.fr || translations.en;
 
@@ -308,50 +309,50 @@ const ClassListPage = async ({
   };
 
 
-    return (
-    <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
-      {/* TOP */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 border-b border-[#e5e7eb] pb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-white border border-[#e5e7eb] shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-center text-[#181d26]">
-            <DoorOpen size={20} strokeWidth={2.5} />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[11px] font-bold text-[#9297a0] tracking-widest uppercase mb-0.5">{t.classes.academics}</span>
-            <h1 className="text-[24px] font-semibold text-[#181d26] tracking-tight">{t.classes.pageTitle}</h1>
-          </div>
+  return (
+  <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
+    {/* TOP */}
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 border-b border-[#e5e7eb] pb-6">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-white border border-[#e5e7eb] shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-center text-[#181d26]">
+          <DoorOpen size={20} strokeWidth={2.5} />
         </div>
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-2 self-end">
-            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <Filter size={16} strokeWidth={2} />
-            </button>
-            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <ArrowUpDown size={16} strokeWidth={2} />
-            </button>
-            {role === "admin" && (
-              <CrudFormModal 
-                entity="class" 
-                mode="create" 
-                relatedData={classRelatedData} 
-                trigger={
-                  <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#000000] text-white rounded-lg px-4 h-9 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] ml-1 active:scale-95">
-                    <Plus size={16} strokeWidth={2.5} />
-                    <span className="font-medium text-[13px]">{t.classes.addClass}</span>
-                  </button>
-                }
-              />
-            )}
-          </div>
+        <div className="flex flex-col leading-tight">
+          <span className="text-[11px] font-bold text-[#9297a0] tracking-widest uppercase mb-0.5">{t.classes.academics}</span>
+          <h1 className="text-[24px] font-semibold text-[#181d26] tracking-tight">{t.classes.pageTitle}</h1>
         </div>
       </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={safeData} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={safeCount} />
+      <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+        <TableSearch />
+        <div className="flex items-center gap-2 self-end">
+          <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <Filter size={16} strokeWidth={2} />
+          </button>
+          <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <ArrowUpDown size={16} strokeWidth={2} />
+          </button>
+          {role === "admin" && (
+            <CrudFormModal
+              entity="class"
+              mode="create"
+              relatedData={classRelatedData}
+              trigger={
+                <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#000000] text-white rounded-lg px-4 h-9 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] ml-1 active:scale-95">
+                  <Plus size={16} strokeWidth={2.5} />
+                  <span className="font-medium text-[13px]">{t.classes.addClass}</span>
+                </button>
+              }
+            />
+          )}
+        </div>
+      </div>
     </div>
-  );
+    {/* LIST */}
+    <Table columns={columns} renderRow={renderRow} data={safeData} />
+    {/* PAGINATION */}
+    <Pagination page={p} count={safeCount} />
+  </div>
+);
 };
 
 export default ClassListPage;

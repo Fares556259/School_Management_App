@@ -62,10 +62,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       status: hasPassword ? "NEEDS_PASSWORD" : "NEEDS_SETUP",
-      userId: user.id,
-      userType,
-      schoolId: user.schoolId,
-
     });
   } catch (error) {
     console.error("[Mobile Login Error]", error);

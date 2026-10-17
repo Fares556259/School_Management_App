@@ -16,7 +16,7 @@ export default async function PartialPaymentsPage() {
 
   const schoolId = await getSchoolId();
   
-  const locale = (cookies().get("NEXT_LOCALE")?.value || "en") as Locale;
+  const locale = ((await cookies()).get("NEXT_LOCALE")?.value || "en") as Locale;
   const t = translations[locale] || translations.en;
 
   // Fetch all partial payments

@@ -130,10 +130,10 @@ export function verifyOTP(phone: string, inputCode: string): boolean {
 //        const { userId, userType, schoolId } = auth.payload;
 export async function authenticateMobileRequest(
   request: NextRequest | Request,
-  options: { allowPendingParent?: boolean } = {}
+  options: { allowPendingParent?: boolean; allowQueryToken?: boolean } = {}
 ): Promise<{ payload: MobileJWTPayload; error: null } | { payload: null; error: NextResponse }> {
   let authHeader = request.headers.get("Authorization");
-  if (!authHeader && "url" in request) {
+  if (!authHeader && options.allowQueryToken && "url" in request) {
     try {
       const url = new URL(request.url);
       const queryToken = url.searchParams.get("token");

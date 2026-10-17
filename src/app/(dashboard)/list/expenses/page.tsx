@@ -4,11 +4,12 @@ import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import ExpensesListClient from "./ExpensesListClient";
 
-const ExpenseListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const ExpenseListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, category } = safeSearchParams;

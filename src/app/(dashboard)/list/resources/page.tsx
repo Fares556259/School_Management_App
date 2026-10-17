@@ -24,11 +24,12 @@ type ResourceList = Resource & {
 };
 
 
-const ResourceListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const ResourceListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, ...queryParams } = safeSearchParams;
@@ -36,7 +37,7 @@ const ResourceListPage = async ({
 
   const schoolId = await getSchoolId();
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
   const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
   const t = translations[locale] || translations.en;

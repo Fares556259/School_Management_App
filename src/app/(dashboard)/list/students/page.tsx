@@ -54,11 +54,12 @@ const columns = [
   },
 ];
 
-const StudentListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const StudentListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const user = await getAuthenticatedUser();
   const userId = user?.id;
   const role = await getRole();

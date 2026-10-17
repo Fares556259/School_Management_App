@@ -9,11 +9,12 @@ import Link from "next/link";
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 import { GraduationCap } from "lucide-react";
 
-export default async function GradesPage({
-  searchParams,
-}: {
-  searchParams?: { classId?: string; term?: string };
-}) {
+export default async function GradesPage(
+  props: {
+    searchParams?: Promise<{ classId?: string; term?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   if (role !== "admin" && role !== "superuser") return <div>Unauthorized</div>;
 

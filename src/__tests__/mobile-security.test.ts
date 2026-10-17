@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import jwt from "jsonwebtoken";
-import { generateToken, verifyToken, generateAndStoreOTP, verifyOTP, generateStudentClaimToken, verifyStudentClaimToken } from "../lib/mobileAuth";
+import { authenticateMobileRequest, generateToken, verifyToken, generateAndStoreOTP, verifyOTP, generateStudentClaimToken, verifyStudentClaimToken } from "../lib/mobileAuth";
 import { GET as promote } from "../app/api/dev-promote/route";
 import { GET as upgrade } from "../app/api/upgrade-to-admin/route";
 import { POST as verifyStudent } from "../app/api/mobile/student/verify/route";
@@ -17,6 +17,8 @@ try {
   process.env.JWT_SECRET = "test-only-secret-with-more-than-32-characters";
   const token = generateToken({ userId: "test", userType: "admin", schoolId: "test-school" });
   assert.equal(verifyToken(token)?.schoolId, "test-school");
+  assert.equal((await authenticateMobileRequest(new Request(`http://localhost/private?token=${token}`))).error?.status, 401);
+  assert.equal((await authenticateMobileRequest(new Request(`http://localhost/print?token=${token}`), { allowQueryToken: true })).payload?.userId, "test");
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "superadmin", schoolId: "test-school" }, process.env.JWT_SECRET)), null);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "admin" }, process.env.JWT_SECRET)), null);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "admin", schoolId: "test-school" }, process.env.JWT_SECRET, { expiresIn: -1 })), null);

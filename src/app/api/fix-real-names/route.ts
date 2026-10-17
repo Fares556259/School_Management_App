@@ -1,23 +1,6 @@
-import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-
+// Retired: maintenance and diagnostic database access must never be exposed over HTTP.
 export async function GET() {
-  await prisma.parent.update({
-    where: { id: "parent1" },
-    data: { name: "Fares", surname: "Selmi" }
-  });
-  
-  await prisma.student.update({
-    where: { id: "student1" },
-    data: { name: "Amine", surname: "Selmi" }
-  });
-  
-  await prisma.student.update({
-    where: { id: "student2" },
-    data: { name: "Youssef", surname: "Selmi" }
-  });
-
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ error: "This endpoint has been removed." }, { status: 410 });
 }

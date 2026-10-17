@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
+import Link from "next/link";
 import {
   User,
   Phone,
@@ -17,7 +18,7 @@ import {
 } from "lucide-react";
 
 interface PageProps {
-  params: { classId: string };
+  params: Promise<{ classId: string }>;
 }
 
 interface ChildItem {
@@ -134,7 +135,8 @@ const translations = {
   },
 };
 
-export default function PublicParentJoinPage({ params }: PageProps) {
+export default function PublicParentJoinPage(props: PageProps) {
+  const params = use(props.params);
   const classIdParam = params?.classId;
 
   const [loading, setLoading] = useState(true);
@@ -308,12 +310,12 @@ export default function PublicParentJoinPage({ params }: PageProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-900">{t.invalidLink}</h2>
           <p className="text-sm text-slate-500">{error}</p>
-          <a
+          <Link
             href="/"
             className="inline-block px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors"
           >
             {t.backToHome}
-          </a>
+          </Link>
         </div>
       </div>
     );

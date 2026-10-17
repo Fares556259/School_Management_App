@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {
+  if (process.env.ENABLE_LEGACY_PARENT_JOIN !== "true") {
+    return NextResponse.json(
+      { error: "This registration route has been replaced by the verified SnapSchool parent application." },
+      { status: 410 }
+    );
+  }
   try {
     const body = await request.json();
     const {

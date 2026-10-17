@@ -5,6 +5,9 @@ import { getParentAccessAdmin } from "@/lib/parentAccessAdmin";
 import { createAuditLog } from "@/lib/audit";
 
 export async function GET() {
+  if (process.env.ENABLE_LEGACY_PARENT_JOIN !== "true") {
+    return NextResponse.json({ error: "Legacy parent requests are disabled." }, { status: 410 });
+  }
   try {
     const admin = await getParentAccessAdmin();
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -53,6 +56,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (process.env.ENABLE_LEGACY_PARENT_JOIN !== "true") {
+    return NextResponse.json({ error: "Legacy parent requests are disabled." }, { status: 410 });
+  }
   try {
     const admin = await getParentAccessAdmin();
     if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

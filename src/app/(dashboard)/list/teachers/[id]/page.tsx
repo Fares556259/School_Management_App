@@ -99,11 +99,17 @@ const formatTeacherBundle = (t: any, allExpenses: any[]): TeacherBundle => {
   };
 };
 
-const SingleTeacherPage = async ({
-  params: { id },
-}: {
-  params: { id: string };
-}) => {
+const SingleTeacherPage = async (
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) => {
+  const params = await props.params;
+
+  const {
+    id
+  } = params;
+
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const role = await getRole();

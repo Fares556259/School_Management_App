@@ -5,11 +5,12 @@ import { Prisma } from "@prisma/client";
 import ExamTimetableClient from "./ExamTimetableClient";
 import { getSchoolId } from "@/lib/school";
 
-const ExamListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const ExamListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { classId, teacherId, search } = safeSearchParams;

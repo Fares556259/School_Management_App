@@ -27,18 +27,19 @@ function parseSubjectName(name: string) {
 
 import { redirect } from "next/navigation";
 
-const SubjectListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const SubjectListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   redirect("/admin");
   const supabase = createClient();
   await supabase.auth.getSession();
   const role = await getRole();
   const schoolId = await getSchoolId();
 
-  const langCookie = cookies().get("NEXT_LOCALE")?.value || "en";
+  const langCookie = (await cookies()).get("NEXT_LOCALE")?.value || "en";
   const lang = (["en", "fr", "ar"].includes(langCookie) ? langCookie : "en") as Locale;
   const t = translations[lang];
 

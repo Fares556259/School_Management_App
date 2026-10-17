@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, type UnsafeUnwrappedCookies } from "next/headers";
 import { cache } from "react";
 
 export const createClient = () => {
@@ -12,7 +12,8 @@ export const createClient = () => {
   const safeUrl = url || 'https://placeholder.supabase.co';
   const safeKey = key || 'placeholder-key';
 
-  const cookieStore = cookies();
+  const cookieStore = (/* @next-codemod-ignore Await this API and update its callers; remove the temporary UnsafeUnwrappedCookies cast after repairing the migration. */
+  cookies() as unknown as UnsafeUnwrappedCookies);
   return createServerClient(
     safeUrl,
     safeKey,

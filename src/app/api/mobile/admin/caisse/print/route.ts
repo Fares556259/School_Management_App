@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await authenticateMobileRequest(request);
+    // This route is opened in the system browser, which cannot attach an
+    // Authorization header. Query-token authentication is isolated here.
+    const auth = await authenticateMobileRequest(request, { allowQueryToken: true });
     if (auth.error) {
       return new NextResponse(
         `<!DOCTYPE html>

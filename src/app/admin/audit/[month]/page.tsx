@@ -2,21 +2,13 @@ import React from 'react';
 import { getFinancialReportData, getAIFinancialReport } from '../../../(dashboard)/admin/actions';
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import nextDynamic from 'next/dynamic';
+import AuditView from './AuditView';
 
-const AuditView = nextDynamic(() => import('./AuditView'), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-[#F8FAFC] min-h-screen p-8 flex items-center justify-center">
-      <div className="w-full max-w-5xl h-[600px] bg-slate-100/70 animate-pulse rounded-2xl" />
-    </div>
-  ),
-});
-
-const AuditPage = async ({ params }: { params: { month: string } }) => {
+const AuditPage = async (props: { params: Promise<{ month: string }> }) => {
+    const params = await props.params;
     const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
 
     if (!userId) {
         return redirect("/sign-in");
@@ -24,7 +16,7 @@ const AuditPage = async ({ params }: { params: { month: string } }) => {
 
     // month will be like "April_2026"
     const monthLabel = decodeURIComponent(params.month).replace('_', ' ');
-    
+
     let report;
     let aiAnalysis = "";
     let error = null;

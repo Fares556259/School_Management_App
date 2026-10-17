@@ -5,11 +5,17 @@ import { notFound } from "next/navigation";
 import ClassTeachersTable from "@/components/ClassTeachersTable";
 import { getCachedTenantData } from "@/lib/cache";
 
-export default async function ClassTeachersPage({
-  params: { id },
-}: {
-  params: { id: string };
-}) {
+export default async function ClassTeachersPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
+
+  const {
+    id
+  } = params;
+
   const schoolId = await getSchoolId();
   const role = await getRole();
   const classId = parseInt(id, 10);
@@ -69,7 +75,7 @@ export default async function ClassTeachersPage({
     600
   ).catch(() => null);
 
-  const activeClass = cached || await fetchActiveClass();
+  const activeClass = cached || (await fetchActiveClass());
 
   if (!activeClass) {
     return notFound();
@@ -78,7 +84,7 @@ export default async function ClassTeachersPage({
   // Aggregate all unique teachers
   const teachersMap = new Map();
 
-  
+
 
   // Add lesson teachers
   activeClass.lessons.forEach(lesson => {

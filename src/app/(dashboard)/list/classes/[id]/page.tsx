@@ -5,11 +5,17 @@ import { notFound } from "next/navigation";
 import ClassStudentsTable from "@/components/ClassStudentsTable";
 import { getCachedTenantData } from "@/lib/cache";
 
-export default async function ClassStudentsPage({
-  params: { id },
-}: {
-  params: { id: string };
-}) {
+export default async function ClassStudentsPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
+
+  const {
+    id
+  } = params;
+
   const schoolId = await getSchoolId();
   const role = await getRole();
   const classId = parseInt(id, 10);
@@ -46,7 +52,7 @@ export default async function ClassStudentsPage({
     600
   ).catch(() => null);
 
-  const activeClass = cached || await fetchClass();
+  const activeClass = cached || (await fetchClass());
 
   if (!activeClass) return notFound();
 

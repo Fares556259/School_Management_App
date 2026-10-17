@@ -39,11 +39,12 @@ const columns = [
 
 const ITEMS_PER_PAGE = 10;
 
-const StaffListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const StaffListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 

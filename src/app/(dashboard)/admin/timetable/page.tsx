@@ -4,11 +4,7 @@ import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
 import TimetableClient from "./TimetableClient";
 
-const TimetablePage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const TimetablePage = async () => {
   const schoolId = await getSchoolId();
 
   // 1. Fetch classes for the resolved school

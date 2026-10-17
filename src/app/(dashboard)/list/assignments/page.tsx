@@ -33,11 +33,12 @@ function getTranslatedSubject(subjectStr: string, locale: string): string {
   return subjectStr;
 }
 
-const AssignmentListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const AssignmentListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, ...queryParams } = safeSearchParams;
@@ -45,7 +46,7 @@ const AssignmentListPage = async ({
 
   const schoolId = await getSchoolId();
 
-  const langCookie = cookies().get("NEXT_LOCALE")?.value || "en";
+  const langCookie = (await cookies()).get("NEXT_LOCALE")?.value || "en";
   const lang = (["en", "fr", "ar"].includes(langCookie) ? langCookie : "en") as Locale;
   const t = translations[lang] || translations.en;
 

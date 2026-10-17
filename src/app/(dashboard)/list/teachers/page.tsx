@@ -21,11 +21,12 @@ const columns = [
   { header: "Actions", accessor: "action" },
 ];
 
-const TeacherListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const TeacherListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const role = await getRole();

@@ -16,14 +16,15 @@ import OperationsFilters from "@/components/operations/OperationsFilters";
 
 type NoticeList = Notice & { class: Class | null };
 
-const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) => {
+const AnnouncementListPage = async (props: { searchParams?: Promise<{ [key: string]: string | undefined }> }) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, search, classId } = safeSearchParams;
   const p = page ? parseInt(page) : 1;
   const schoolId = await getSchoolId();
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
   const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
   const t = translations[locale] || translations.en;

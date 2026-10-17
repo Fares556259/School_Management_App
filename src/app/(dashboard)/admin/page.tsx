@@ -20,12 +20,13 @@ import React, { Suspense } from "react";
 // which instantly busts the cache so data is always fresh after any change.
 
 
-const AdminPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
-  const cookieStore = cookies();
+const AdminPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const cookieStore = await cookies();
   const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
   const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
   const t = translations[locale] || translations.en;
@@ -38,7 +39,7 @@ const AdminPage = async ({
   const schoolId = await getSchoolId();
 
   const now = new Date();
-  
+
   // DATE LOGIC
   let startDate: Date;
   let endDate: Date;

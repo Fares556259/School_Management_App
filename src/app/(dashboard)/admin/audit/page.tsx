@@ -25,12 +25,13 @@ const getColumns = (t: any) => [
   { header: t.auditLogPage.table.logTime, accessor: "timestamp", className: "hidden lg:table-cell whitespace-nowrap" },
 ];
 
-const AuditPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
-  const rawLocale = cookies().get("NEXT_LOCALE")?.value || "en";
+const AuditPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const rawLocale = (await cookies()).get("NEXT_LOCALE")?.value || "en";
   const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
   const t = translations[locale] || translations.en;
   const role = await getRole();

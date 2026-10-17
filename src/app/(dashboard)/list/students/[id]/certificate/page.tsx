@@ -8,12 +8,13 @@ import CertificatePageClient from "./CertificatePageClient";
 export const dynamic = "force-dynamic";
 
 interface CertificatePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default async function CertificatePage({ params }: CertificatePageProps) {
+export default async function CertificatePage(props: CertificatePageProps) {
+  const params = await props.params;
   const { id } = params;
   const user = await getAuthenticatedUser();
   if (!user) redirect('/sign-in');

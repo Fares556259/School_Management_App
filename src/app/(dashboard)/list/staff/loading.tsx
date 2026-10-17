@@ -3,8 +3,8 @@ import TableSkeleton from "@/components/TableSkeleton";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 
-export default function Loading() {
-  const cookieStore = cookies();
+export default async function Loading() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('NEXT_LOCALE')?.value || 'en') as Locale;
   const t = translations[locale];
 

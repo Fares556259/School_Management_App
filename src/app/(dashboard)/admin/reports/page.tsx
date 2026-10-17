@@ -7,7 +7,7 @@ import { translations, Locale } from "@/lib/translations";
 import { Mail, Send, Trash2, UserPlus, Users } from "lucide-react";
 
 export default async function ReportsManagementPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
   const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
   const t = translations[locale] || translations.en;

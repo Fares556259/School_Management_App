@@ -22,11 +22,17 @@ const formatStaffBundle = (staff: any, allExpenses: any[]): StaffBundle => {
   };
 };
 
-const SingleStaffPage = async ({
-  params: { id },
-}: {
-  params: { id: string };
-}) => {
+const SingleStaffPage = async (
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) => {
+  const params = await props.params;
+
+  const {
+    id
+  } = params;
+
   const role = await getRole();
   if (role !== "admin") redirect(`/${role || "sign-in"}`);
 

@@ -6,11 +6,12 @@ import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import IncomesListClient from "./IncomesListClient";
 
-const IncomeListPage = async ({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) => {
+const IncomeListPage = async (
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, search, from, to, category } = safeSearchParams;

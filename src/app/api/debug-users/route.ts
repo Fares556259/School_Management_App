@@ -1,13 +1,6 @@
-export const dynamic = "force-dynamic";
-import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+// Retired: maintenance and diagnostic database access must never be exposed over HTTP.
 export async function GET() {
-  const parents = await prisma.parent.findMany({ select: { name: true, surname: true, username: true } });
-  const admins = await prisma.admin.findMany({ select: { name: true, surname: true, username: true } });
-  
-  return NextResponse.json({
-    real_parents: parents.filter(p => !p.username.startsWith("parent")),
-    admins: admins
-  });
+  return NextResponse.json({ error: "This endpoint has been removed." }, { status: 410 });
 }

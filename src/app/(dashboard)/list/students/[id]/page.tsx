@@ -7,11 +7,17 @@ import StudentProfileClient, { StudentBundle } from "./StudentProfileClient";
 import { QuickStudentItem } from "./StudentQuickNav";
 import { StudentScheduleItem } from "./tabs/StudentScheduleTab";
 
-export default async function SingleStudentPage({
-  params: { id },
-}: {
-  params: { id: string };
-}) {
+export default async function SingleStudentPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
+
+  const {
+    id
+  } = params;
+
   const schoolId = await getSchoolId();
   const role = await getRole();
   const isAdmin = role === "admin";
