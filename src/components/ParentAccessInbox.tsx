@@ -39,24 +39,35 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
   }, [saving]);
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(false);
+  const dataCache = useRef(new Map<string, Inbox>([['PENDING|||1', initialData]]));
   const label = (s: string) => ({ PENDING: c.pending, APPROVED: c.approved, REJECTED: c.rejected, CANCELLED: c.cancelled, REVOKED: c.revoked }[s] || s);
   const date = (value: string) => new Intl.DateTimeFormat(locale === 'ar' ? 'ar-TN' : locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Tunis' }).format(new Date(value));
   useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 250); return () => clearTimeout(timer); }, [search]);
   const load = useCallback(async (quiet = false, includeMeta = false) => {
     controller.current?.abort();
     const abort = new AbortController(); controller.current = abort;
-    if (quiet) setRefreshing(true); else setLoading(true);
+    const key = `${status}|${classId}|${query}|${page}`;
+    const cached = dataCache.current.get(key);
+    if (!quiet && cached) {
+      setData(previous => ({ ...cached, counts: previous.counts, classes: previous.classes }));
+      setRefreshing(true);
+    } else if (quiet) setRefreshing(true);
+    else setLoading(true);
     try {
       const params = new URLSearchParams({ status, classId, q: query, page: String(page), meta: includeMeta ? '1' : '0' });
       const response = await fetch(`/api/admin/parent-access?${params}`, { signal: abort.signal, cache: 'no-store' });
       if (response.redirected || response.status === 401) { setSessionRequired(true); throw new Error('session'); }
       if (!response.ok) throw new Error('load');
       const next: Inbox = await response.json();
-      setData(previous => ({
-        ...next,
-        counts: Object.keys(next.counts).length ? next.counts : previous.counts,
-        classes: next.classes.length ? next.classes : previous.classes,
-      }));
+      setData(previous => {
+        const merged = {
+          ...next,
+          counts: Object.keys(next.counts).length ? next.counts : previous.counts,
+          classes: next.classes.length ? next.classes : previous.classes,
+        };
+        dataCache.current.set(key, merged);
+        return merged;
+      });
       setLastUpdatedAt(new Date(next.fetchedAt)); setError(''); setSessionRequired(false);
       setSelected(prev => prev.filter(id => next.requests.some(r => r.id === id && !r.conflicting && r.status === 'PENDING')));
     } catch (e) { if (!abort.signal.aborted) setError(e instanceof Error && e.message === 'session' ? c.sessionExpired : c.loadError); }
@@ -68,6 +79,19 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
     const timer = setInterval(() => { if (!document.hidden) void load(true, true); }, 30_000);
     return () => { clearInterval(timer); controller.current?.abort(); };
   }, [load]);
+  useEffect(() => {
+    const abort = new AbortController();
+    const timer = setTimeout(() => {
+      void Promise.all(['APPROVED', 'REJECTED'].map(async prefetchStatus => {
+        const params = new URLSearchParams({ status: prefetchStatus, classId: '', q: '', page: '1', meta: '0' });
+        const response = await fetch(`/api/admin/parent-access?${params}`, { signal: abort.signal, cache: 'no-store' });
+        if (!response.ok) return;
+        const next: Inbox = await response.json();
+        dataCache.current.set(`${prefetchStatus}|||1`, { ...next, counts: initialData.counts, classes: initialData.classes });
+      })).catch(() => undefined);
+    }, 300);
+    return () => { clearTimeout(timer); abort.abort(); };
+  }, [initialData]);
   const openDecision = (action: Decision['action'], entries: Entry[]) => { setDetails(null); setDecision({ action, entries }); setReason(''); setConfirmed(false); setSaveError(''); };
   const save = async () => {
     if (!decision || saving) return;
@@ -87,6 +111,7 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
       const succeeded = result.results.filter((item: { success: boolean }) => item.success);
       const succeededIds = new Set(succeeded.map((item: { requestId: string }) => item.requestId));
       const destination = decision.action === 'APPROVE' ? 'APPROVED' : decision.action === 'REJECT' ? 'REJECTED' : 'REVOKED';
+      dataCache.current.clear();
       setData(previous => {
         const counts = { ...previous.counts };
         decision.entries.forEach(entry => {
