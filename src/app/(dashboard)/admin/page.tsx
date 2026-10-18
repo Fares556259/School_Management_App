@@ -1,14 +1,10 @@
 import prisma from "@/lib/prisma";
-import { MONTHS } from "@/lib/dateUtils";
-import KpiStrip from "./components/KpiStrip";
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
 import FinancialKpiSection from "./components/FinancialKpiSection";
 import DateRangeFilter from "./components/DateRangeFilter";
-import PrintReportAction from "./components/PrintReportAction";
 import DashboardAppendage from "./components/DashboardAppendage";
 import DashboardSkeleton from "./components/DashboardSkeleton";
-import SnapAssistant from "./components/SnapAssistantLazy";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 import { getSchoolId } from "@/lib/school";
@@ -34,11 +30,21 @@ const AdminPage = async (
   const { 
     start: queryStart,
     end: queryEnd,
+    pendingMonth: queryPendingMonth,
+    pendingYear: queryPendingYear,
   } = searchParams || {};
 
   const schoolId = await getSchoolId();
 
   const now = new Date();
+  const parsedPendingMonth = Number(queryPendingMonth);
+  const parsedPendingYear = Number(queryPendingYear);
+  const pendingMonth = Number.isInteger(parsedPendingMonth) && parsedPendingMonth >= 1 && parsedPendingMonth <= 12
+    ? parsedPendingMonth
+    : now.getMonth() + 1;
+  const pendingYear = Number.isInteger(parsedPendingYear) && parsedPendingYear >= 2020 && parsedPendingYear <= 2100
+    ? parsedPendingYear
+    : now.getFullYear();
 
   // DATE LOGIC
   let startDate: Date;
@@ -195,19 +201,6 @@ const AdminPage = async (
   const prevExpense = (stats.prev_expense_general || 0);
   const prevBalance = prevIncome - prevExpense;
 
-  // 3. ENRICH CONTEXT FOR AI ASSISTANT (CONSOLIDATED CORE ONLY)
-  const dashboardContext = {
-     financials: {
-       income: currentIncome,
-       expense: currentExpense,
-       balance: currentBalance,
-       prevBalance,
-       month: t.months[startDate.getMonth()],
-       year: startDate.getFullYear()
-     }
-     // Note: Detailed census and unpaid lists moved to lazy-load inside SnapAssistant
-  };
-
   return (
     <div className="p-6 md:p-8 flex flex-col gap-8 bg-[#ffffff] min-h-screen">
       {/* 1. HEADER SECTION */}
@@ -217,8 +210,6 @@ const AdminPage = async (
           <p className="text-[#333840] text-[14px] font-normal max-w-[600px] leading-[1.25] mt-2">{t.adminDashboard.commandCenterDesc}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-           <PrintReportAction month={`${t.months[startDate.getMonth()]} ${startDate.getFullYear()}`} />
-           <div className="h-10 w-[1px] bg-slate-200 hidden md:block mx-2" />
            <DateRangeFilter activeStartDate={queryStart} activeEndDate={queryEnd} />
            <QuickActionBar />
         </div>
@@ -258,10 +249,10 @@ const AdminPage = async (
            currentExpense={currentExpense}
            prevIncome={prevIncome}
            schoolId={schoolId}
+           pendingMonth={pendingMonth}
+           pendingYear={pendingYear}
         />
       </Suspense>
-
-      <SnapAssistant context={dashboardContext} />
     </div>
   );
 };

@@ -19,6 +19,8 @@ interface DashboardAppendageProps {
   currentExpense: number;
   prevIncome: number;
   schoolId: string;
+  pendingMonth: number;
+  pendingYear: number;
 }
 
 export default async function DashboardAppendage({
@@ -29,7 +31,9 @@ export default async function DashboardAppendage({
   currentIncome,
   currentExpense,
   prevIncome,
-  schoolId
+  schoolId,
+  pendingMonth,
+  pendingYear,
 }: DashboardAppendageProps) {
   const t = translations[locale];
   const now = new Date();
@@ -37,12 +41,10 @@ export default async function DashboardAppendage({
   const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
   const isAllTime = durationDays > 365 || startDate.getFullYear() <= 2024;
 
-  // Active month & year for ActionCenter (Unpaid students & Unpaid employees):
-  // When in All-Time / default view, ALWAYS target the CURRENT MONTH WE ARE IN (e.g. Sept 2026).
-  // When user filtered on a specific range/month, target that specific month.
-  const midDate = new Date((startDate.getTime() + endDate.getTime()) / 2);
-  const activeMonth = isAllTime ? (now.getMonth() + 1) : (midDate.getMonth() + 1);
-  const activeYear = isAllTime ? now.getFullYear() : midDate.getFullYear();
+  // The action center has its own month filter so administrators can review
+  // outstanding balances without changing the dashboard reporting period.
+  const activeMonth = pendingMonth;
+  const activeYear = pendingYear;
 
   // HEAVY DATA FETCHING CONSOLIDATION (Phase 6 Restoration)
   const safeFetch = async <T extends unknown>(promise: Promise<T>, fallback: T): Promise<T> => {
@@ -126,7 +128,6 @@ export default async function DashboardAppendage({
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN pay.status = 'PENDING' THEN 2 ELSE 3 END,
           s.surname ASC
-        LIMIT 100
       `,
       prisma.$queryRaw`
         SELECT 
@@ -141,7 +142,6 @@ export default async function DashboardAppendage({
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           t.surname ASC
-        LIMIT 100
       `,
       prisma.$queryRaw`
         SELECT 
@@ -156,7 +156,6 @@ export default async function DashboardAppendage({
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           s.surname ASC
-        LIMIT 100
       `
     ]) as [any[], any[], any[]];
 
@@ -173,7 +172,7 @@ export default async function DashboardAppendage({
       safeFetch(prisma.auditLog.findMany({ take: 10, orderBy: { timestamp: 'desc' }, select: { action: true, description: true, performedBy: true, timestamp: true } }), []),
       60
     ),
-    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData', String(activeMonth), String(activeYear)], () => 
+    getCachedTenantData(schoolId, 'dashboard', ['uncollectedData-v2-all', String(activeMonth), String(activeYear)], () =>
       safeFetch(getUncollectedData(), { unpaidStudents: [], unpaidTeachers: [], unpaidStaff: [] }),
       120
     ),
@@ -363,6 +362,8 @@ export default async function DashboardAppendage({
           unpaidEmployees={unpaidEmployees}
           monthLabel={`${t.months[activeMonth - 1]} ${activeYear}`}
           englishMonthYear={`${MONTHS[activeMonth - 1]} ${activeYear}`}
+          activeMonth={activeMonth}
+          activeYear={activeYear}
         />
       </section>
     </>

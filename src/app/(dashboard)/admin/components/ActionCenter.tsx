@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   User,
   Calendar,
@@ -44,6 +45,8 @@ interface ActionCenterProps {
   unpaidFees: ActionItem[];
   monthLabel: string;
   englishMonthYear: string;
+  activeMonth: number;
+  activeYear: number;
 }
 
 /**
@@ -195,8 +198,27 @@ export default function ActionCenter({
   unpaidFees = [],
   monthLabel,
   englishMonthYear,
+  activeMonth,
+  activeYear,
 }: ActionCenterProps) {
   const { t } = useLanguage();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isMonthPending, startMonthTransition] = useTransition();
+
+  const selectedMonth = `${activeYear}-${String(activeMonth).padStart(2, "0")}`;
+
+  const handleMonthChange = (value: string) => {
+    const match = /^(\d{4})-(\d{2})$/.exec(value);
+    if (!match) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("pendingYear", String(Number(match[1])));
+    params.set("pendingMonth", String(Number(match[2])));
+    startMonthTransition(() => {
+      router.replace(`?${params.toString()}`, { scroll: false });
+    });
+  };
 
   // État local réactif pour mise à jour optimiste immédiate
   const [employees, setEmployees] = useState<ActionItem[]>(unpaidEmployees);
@@ -339,6 +361,33 @@ export default function ActionCenter({
 
   return (
     <div className="relative flex flex-col gap-6 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[20px] font-semibold text-[#181d26]">
+            {t.actionCenter.pendingPayments}
+          </h2>
+          <p className="text-[13px] text-[#5a5a5a] mt-1">
+            {t.actionCenter.pendingPaymentsDesc}
+          </p>
+        </div>
+        <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#41454d]">
+          <span>{t.actionCenter.selectMonth}</span>
+          <div className="relative">
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => handleMonthChange(event.target.value)}
+              disabled={isMonthPending}
+              aria-label={t.actionCenter.selectMonth}
+              className="h-10 min-w-[190px] rounded-[6px] border border-[#d8d8d8] bg-white px-3 pr-9 text-[14px] font-medium text-[#181d26] outline-none transition-colors focus:border-blue-600 disabled:cursor-wait disabled:opacity-60"
+            />
+            {isMonthPending && (
+              <span className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            )}
+          </div>
+        </label>
+      </div>
+
       {/* 1. Cartes de synthèse supérieures */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Rémunérations en attente */}

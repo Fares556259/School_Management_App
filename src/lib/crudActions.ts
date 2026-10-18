@@ -607,7 +607,36 @@ export const updateStudent = async (
 export const deleteStudent = async (id: string) => {
   try {
     const schoolId = await getSchoolId();
-    await prisma.student.delete({ where: { id } });
+    const student = await prisma.student.findFirst({
+      where: { id, schoolId },
+      select: { id: true, name: true, surname: true },
+    });
+
+    if (!student) {
+      return { success: false, error: "Student not found." };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.attendance.deleteMany({ where: { studentId: id, schoolId } });
+      await tx.grade.deleteMany({ where: { studentId: id, schoolId } });
+      await tx.result.deleteMany({ where: { studentId: id, schoolId } });
+      await tx.payment.deleteMany({ where: { studentId: id, schoolId } });
+      await tx.notification.deleteMany({ where: { studentId: id, schoolId } });
+
+      await tx.notice.updateMany({
+        where: { targetStudentId: id, schoolId },
+        data: { targetStudentId: null },
+      });
+
+      await tx.student.delete({ where: { id, schoolId } });
+    });
+
+    await createAuditLog({
+      action: "DELETE_STUDENT",
+      entityType: "Student",
+      entityId: id,
+      description: `Deleted student: ${student.name} ${student.surname}`,
+    });
     invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     return { success: true };

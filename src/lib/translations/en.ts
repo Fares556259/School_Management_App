@@ -298,6 +298,9 @@ export const en = {
     "comingSoon": "Coming Soon"
   },
   "actionCenter": {
+    "pendingPayments": "Pending payments",
+    "pendingPaymentsDesc": "Review and process every outstanding amount for the selected month.",
+    "selectMonth": "Month to review",
     "smsLocked": "Reminder sent (Locked for",
     "sendingReminders": "Sending Reminders...",
     "sendReminders": "Send Reminders (App Notifications)",

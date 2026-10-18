@@ -298,6 +298,9 @@ export const ar = {
     "comingSoon": "قريباً"
   },
   "actionCenter": {
+    "pendingPayments": "الدفوعات المعلقة",
+    "pendingPaymentsDesc": "راجع وعالج جميع المبالغ المستحقة للشهر المحدد.",
+    "selectMonth": "الشهر المطلوب",
     "smsLocked": "تم إرسال التذكير (مقفل لمدة",
     "sendingReminders": "جاري إرسال التذكيرات...",
     "sendReminders": "إرسال تذكيرات (إشعارات التطبيق)",

@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useCallback, useRef, useId } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import SearchableSelect from "./SearchableSelect";
 import MultiSelect from "./MultiSelect";
 import { StudentProfileDialog, StudentProfileSections } from "./StudentProfileDialog";
@@ -201,6 +202,7 @@ export default function CrudFormModal({
   onSuccess?: (values: any, mode: "create" | "update" | "delete", id?: string | number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const [savingStudent, setSavingStudent] = useState(false);
   const formId = useId();
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -433,18 +435,15 @@ export default function CrudFormModal({
     if (!id) return;
     setError("");
 
-    // Optimistic UI: Close modal instantly
-    setOpen(false);
-
-    if (onSuccess) onSuccess({}, "delete", id);
-
     const promise = new Promise(async (resolve, reject) => {
       startTransition(async () => {
         try {
           const result = await deleteFns[entity](id);
           if (result?.success) {
             resolve("Success");
-            setOpen(false); // Close instantly
+            if (onSuccess) onSuccess({}, "delete", id);
+            setOpen(false);
+            router.refresh();
           } else {
             setError(result?.error || t.toasts.deleteFailed);
             reject(result?.error || t.toasts.deleteFailed);
