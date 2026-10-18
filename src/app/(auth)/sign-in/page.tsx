@@ -48,8 +48,8 @@ export default function SignInPage() {
         return;
       }
 
-      const role = data.user?.user_metadata?.role as string | undefined;
-      const status = data.user?.user_metadata?.status as string | undefined;
+      const role = data.user?.app_metadata?.role as string | undefined;
+      const status = data.user?.app_metadata?.status as string | undefined;
 
       if (role === "superadmin") {
         window.location.href = "/superadmin";

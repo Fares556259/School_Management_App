@@ -34,8 +34,8 @@ export default function WaitingApprovalPage() {
   useEffect(() => {
     // 🚀 AUTO-REDIRECT IF ACTIVE
     if (isLoaded && user) {
-      const status = user.user_metadata?.status as string | undefined;
-      const role = user.user_metadata?.role as string | undefined;
+      const status = user.app_metadata?.status as string | undefined;
+      const role = user.app_metadata?.role as string | undefined;
       
       if (status === "active" || role === "superadmin") {
         router.push("/admin");

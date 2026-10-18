@@ -124,7 +124,7 @@ export default function Homepage() {
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
-      const role = data.session?.user.user_metadata?.role;
+      const role = data.session?.user.app_metadata?.role;
       const routes: Record<string, string> = {
         admin: "/admin",
         superadmin: "/superadmin",

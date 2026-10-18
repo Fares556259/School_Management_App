@@ -22,8 +22,8 @@ export async function signInAction(formData: FormData) {
     return { error: "Invalid email or password" };
   }
 
-  const role = data.user?.user_metadata?.role as string | undefined;
-  const status = data.user?.user_metadata?.status as string | undefined;
+  const role = data.user?.app_metadata?.role as string | undefined;
+  const status = data.user?.app_metadata?.status as string | undefined;
 
   // Smart redirect based on role
   if (role === "superadmin") {
@@ -57,8 +57,6 @@ export async function signUpAction(formData: FormData) {
       data: {
         firstName: name,
         lastName: surname,
-        role: "admin",
-        status: "pending",
       },
     },
   });

@@ -54,8 +54,11 @@ export async function provisionSchool(setupRequestId: string) {
             user_metadata: {
                 firstName: request.ownerName.split(' ')[0] || "Director",
                 lastName: request.ownerName.split(' ').slice(1).join(' ') || "",
+            },
+            app_metadata: {
                 role: "admin",
-                schoolId: schoolId
+                status: "active",
+                schoolId,
             }
         });
 
@@ -74,7 +77,12 @@ export async function provisionSchool(setupRequestId: string) {
             if (existingUser) {
                supabaseUserId = existingUser.id;
                await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, {
-                   user_metadata: { ...existingUser.user_metadata, role: "admin", schoolId: schoolId }
+                   app_metadata: {
+                     ...existingUser.app_metadata,
+                     role: "admin",
+                     status: "active",
+                     schoolId,
+                   }
                });
             } else {
                  return { success: false, error: "User exists but could not be retrieved from Supabase." };

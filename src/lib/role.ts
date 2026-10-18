@@ -7,8 +7,8 @@ export const getRole = cache(async () => {
 
   if (!user) return undefined;
 
-  // 1. USE USER METADATA (Fast Path)
-  const role = user.user_metadata?.role as string | undefined;
+  // app_metadata is server-owned; user_metadata is editable by the user.
+  const role = user.app_metadata?.role as string | undefined;
   if (role) return role;
 
   // 2. DATABASE FALLBACK (Final Safety Net)

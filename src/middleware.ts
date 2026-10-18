@@ -119,8 +119,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 2. LOGGED IN — read role & status from metadata ─────────────────────────
-  const role = user.user_metadata?.role as string | undefined;
-  const status = user.user_metadata?.status as string | undefined;
+  // Authorization claims must live in app_metadata. Supabase users can edit
+  // user_metadata themselves, so it is suitable for profile fields only.
+  const role = user.app_metadata?.role as string | undefined;
+  const status = user.app_metadata?.status as string | undefined;
 
   // Superadmin — always allow through + bounce away from auth/admin pages
   if (role === "superadmin") {

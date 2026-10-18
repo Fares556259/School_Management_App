@@ -207,7 +207,7 @@ export async function approveAdmin(adminId: string) {
 
     // 5. Update Supabase Auth Metadata so the user can access their dashboard
     await supabaseAdmin.auth.admin.updateUserById(adminId, {
-      user_metadata: {
+      app_metadata: {
         role: "admin",
         status: "active",
         schoolId: schoolId,

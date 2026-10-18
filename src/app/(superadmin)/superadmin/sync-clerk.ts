@@ -24,7 +24,7 @@ export async function syncClerkUsers() {
     // Collect all superadmin emails so we can exclude them from leads
     const superadminEmails = new Set<string>(
       users
-        .filter(u => (u.user_metadata?.role as string) === "superadmin" && u.email)
+        .filter(u => (u.app_metadata?.role as string) === "superadmin" && u.email)
         .map(u => u.email as string)
     );
 
@@ -39,7 +39,7 @@ export async function syncClerkUsers() {
       const email = user.email;
       if (!email) continue;
 
-      const meta = user.user_metadata || {};
+      const meta = user.app_metadata || {};
       const role = meta.role as string;
       const status = meta.status as string;
 

@@ -28,20 +28,20 @@ export async function POST(req: Request) {
     const email = user.email;
 
     // PROTECTION: Do not overwrite the role if they are already a superadmin
-    const currentRole = user.user_metadata?.role as string;
+    const currentRole = user.app_metadata?.role as string;
     if (currentRole === "superadmin") {
       return NextResponse.json({ success: true, message: "Superadmin profile detected. Skipping sync to prevent downgrade." });
     }
 
     // INTEL: Check if they are already active
-    const authStatus = user.user_metadata?.status as string;
+    const authStatus = user.app_metadata?.status as string;
     const dbAdminStatus = authStatus === "active" ? "active" : "pending";
     const dbLeadStatus = authStatus === "active" ? "ACTIVATED" : "PENDING";
 
     // AUTO-PROVISION if active
     if (authStatus === "active") {
       const { provisionSchool } = await import("@/app/(superadmin)/superadmin/actions");
-      const schoolId = user.user_metadata?.schoolId as string || "default_school";
+      const schoolId = user.app_metadata?.schoolId as string || "default_school";
       await provisionSchool(userId, schoolId, schoolName);
     } else {
       // Create or Update the Admin record (Standard flow)
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     // Update metadata to match (only lock to pending if not already active)
     if (authStatus !== "active") {
       await supabaseAdmin.auth.admin.updateUserById(userId, {
-        user_metadata: {
+        app_metadata: {
           status: "pending",
           role: "admin",
         },
