@@ -14,7 +14,7 @@ import { UserSex, type Prisma } from "@prisma/client";
 import { withUniqueStudentIdentifiers } from "./studentIdentifier";
 import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProfile";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
+import { generateTemporaryParentPassword } from "./temporaryPassword";
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -1572,7 +1572,7 @@ export const resetParentPassword = async (parentId: string) => {
 
     // The password changes on the same account. Student links and all related
     // school records remain untouched.
-    const temporaryPassword = `Ss-${randomBytes(7).toString("base64url")}`;
+    const temporaryPassword = generateTemporaryParentPassword();
     const passwordHash = await bcrypt.hash(temporaryPassword, 12);
     await prisma.parent.update({
       where: { id: parentId, schoolId },

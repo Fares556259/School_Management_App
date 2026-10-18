@@ -74,13 +74,13 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                 <h2 className="text-[20px] font-semibold text-ink-900 mb-2">Accès réinitialisé</h2>
                 <p className="text-[14px] text-[#5a5a5a]">
                   {parentId
-                    ? "Le compte parent et tous ses enfants associés restent inchangés. Communiquez ce mot de passe temporaire de manière sécurisée."
+                    ? "Le compte et les enfants associés restent inchangés. Communiquez ce code au parent après avoir vérifié son identité. Il pourra l’utiliser comme mot de passe."
                     : "The user can configure a new password on their next login."}
                 </p>
                 {temporaryPassword && (
                   <div className="mt-5 w-full rounded-control border border-brand-200 bg-brand-50 p-3">
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-brand-700">Mot de passe temporaire</p>
-                    <code className="block break-all text-[18px] font-bold tracking-wide text-ink-900">{temporaryPassword}</code>
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-brand-700">Code temporaire à 8 chiffres</p>
+                    <code className="block text-[22px] font-bold tracking-[0.18em] text-ink-900">{temporaryPassword}</code>
                     <button
                       type="button"
                       onClick={async () => {
@@ -118,7 +118,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                     <h2 className="text-[18px] font-semibold text-ink-900 mb-1.5">Réinitialiser l’accès ?</h2>
                     <p className="text-[14px] text-[#5a5a5a] leading-relaxed">
                       {parentId
-                        ? "Un mot de passe temporaire sera créé pour ce même compte. Les enfants et les données associées resteront liés."
+                        ? "Un code temporaire à 8 chiffres sera créé. Les enfants et toutes les données du compte resteront liés."
                         : "The existing password will be cleared for secure setup."}
                     </p>
                   </div>
@@ -138,7 +138,7 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                     className="flex-1 px-4 py-2.5 text-[14px] font-medium text-ink-600 bg-white border border-ink-200 hover:bg-ink-50 rounded-[8px] transition-all"
                     disabled={loading}
                   >
-                    Cancel
+                    Annuler
                   </button>
                   <button
                     type="button"
@@ -149,10 +149,10 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
                     {loading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-indigo-200 border-t-white rounded-full animate-spin" />
-                        Resetting...
+                        Création...
                       </>
                     ) : (
-                      "Yes, Reset Password"
+                      "Créer le code"
                     )}
                   </button>
                 </div>
