@@ -5,6 +5,7 @@ import { ParentAccessError, reviewAccessRequest } from '@/lib/parentAccess';
 import { flushAccessNotifications } from '@/lib/parentAccessNotifications';
 import { invalidateTenantTags } from '@/lib/cache';
 import { waitUntil } from '@vercel/functions';
+import { getParentAccessInboxData, isParentAccessStatus } from '@/lib/parentAccessInbox';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,45 +22,24 @@ export async function GET(request: Request) {
   const { admin, response } = await authenticateAdmin();
   if (!admin) return response!;
   const url = new URL(request.url);
-  // Hobby permits daily cron only. Dashboard activity also retries due delivery jobs.
-  const pendingDelivery = flushAccessNotifications().catch(error => console.error('[Activation retry]', error));
-  try { waitUntil(pendingDelivery); } catch { await pendingDelivery; }
   if (url.searchParams.get('summary') === '1') return NextResponse.json({ pending: await prisma.parentAccessRequest.count({ where: { schoolId: admin.schoolId, status: 'PENDING' } }) }, { headers: { 'Cache-Control': 'private, no-store' } });
   const status = url.searchParams.get('status') || 'PENDING';
-  if (!['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'REVOKED'].includes(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+  if (!isParentAccessStatus(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   const classId = Number(url.searchParams.get('classId')) || undefined;
   const search = (url.searchParams.get('q') || '').trim().slice(0, 100);
   const page = Math.max(1, Math.min(10000, Math.floor(Number(url.searchParams.get('page')) || 1)));
-  const where = { schoolId: admin.schoolId, status,
-    ...(classId ? { student: { classId, schoolId: admin.schoolId } } : {}),
-    ...(search ? { OR: [
-      { parent: { name: { contains: search, mode: 'insensitive' as const } } },
-      { parent: { surname: { contains: search, mode: 'insensitive' as const } } },
-      { parent: { phone: { contains: search } } },
-      { student: { name: { contains: search, mode: 'insensitive' as const } } },
-      { student: { surname: { contains: search, mode: 'insensitive' as const } } },
-      { student: { nationalId: { contains: search } } },
-    ] } : {}),
-  };
-  const [requests, total, counts, classes] = await Promise.all([
-    prisma.parentAccessRequest.findMany({ where, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 25, take: 25,
-      include: { parent: { select: { id: true, name: true, surname: true, phone: true, address: true } },
-        student: { select: { id: true, name: true, surname: true, nationalId: true, parentId: true, class: { select: { id: true, name: true } },
-          accessRequests: { where: { schoolId: admin.schoolId, status: 'PENDING' }, select: { id: true, parentId: true } } } } },
-    }),
-    prisma.parentAccessRequest.count({ where }),
-    prisma.parentAccessRequest.groupBy({ by: ['status'], where: { schoolId: admin.schoolId }, _count: true }),
-    prisma.class.findMany({ where: { schoolId: admin.schoolId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-  ]);
-  const reviewerIds = Array.from(new Set(requests.map(r => r.reviewedBy).filter((id): id is string => Boolean(id))));
-  const reviewers = await prisma.admin.findMany({ where: { id: { in: reviewerIds }, schoolId: admin.schoolId }, select: { id: true, name: true, surname: true } });
-  return NextResponse.json({ total, page, classes, counts: Object.fromEntries(counts.map(g => [g.status, g._count])),
-    requests: requests.map(({ student, ...r }) => ({ ...r,
-      reviewedByName: reviewers.find(a => a.id === r.reviewedBy)?.name || r.reviewedBy,
-      student: { ...student, accessRequests: undefined },
-      conflicting: Boolean((student.parentId && student.parentId !== r.parentId) || student.accessRequests.some(a => a.parentId !== r.parentId)),
-    })),
-  }, { headers: { 'Cache-Control': 'private, no-store' } });
+  const data = await getParentAccessInboxData(admin.schoolId, {
+    status,
+    classId,
+    search,
+    page,
+    includeMeta: url.searchParams.get('meta') !== '0',
+  });
+  if (url.searchParams.get('meta') !== '0') {
+    const deliveryRetry = flushAccessNotifications().catch(error => console.error('[Activation retry]', error));
+    try { waitUntil(deliveryRetry); } catch { void deliveryRetry; }
+  }
+  return NextResponse.json(data, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 export async function POST(request: Request) {
   const origin = request.headers.get('origin');

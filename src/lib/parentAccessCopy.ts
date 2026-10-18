@@ -2,7 +2,7 @@ export const parentAccessCopy = {
   en: {
     eyebrow: 'FAMILY ACCESS', title: 'Parent requests', intro: 'Meet your families. Review requests and give parents access to the right child.',
     pending: 'To review', approved: 'Approved', rejected: 'Declined', cancelled: 'Cancelled', revoked: 'Access removed',
-    allClasses: 'All classes', search: 'Find a parent, child, phone or student ID…', refresh: 'Refresh',
+    allClasses: 'All classes', search: 'Find a parent, child, phone or student ID…', refresh: 'Refresh', clearSearch: 'Clear search', syncing: 'Updating…', updated: 'Updated at',
     guideTitle: 'Verify the parent, then activate access', guide: 'Phone numbers are provided by parents and are not verified by SMS. Confirm identity and guardianship in person or using school records before approval.',
     empty: 'You’re all caught up', emptyBody: 'New requests from the mobile app will appear here. You can start with one class at a time.',
     noResults: 'No matching requests', noResultsBody: 'Try a different name, class or status.',
@@ -35,7 +35,7 @@ export const parentAccessCopy = {
   fr: {
     eyebrow: 'ACCÈS DES FAMILLES', title: 'Demandes des parents', intro: 'Accueillez les familles. Vérifiez les demandes et ouvrez l’accès au bon enfant.',
     pending: 'À traiter', approved: 'Approuvées', rejected: 'Refusées', cancelled: 'Annulées', revoked: 'Accès retiré',
-    allClasses: 'Toutes les classes', search: 'Parent, enfant, téléphone ou matricule…', refresh: 'Actualiser',
+    allClasses: 'Toutes les classes', search: 'Parent, enfant, téléphone ou matricule…', refresh: 'Actualiser', clearSearch: 'Effacer la recherche', syncing: 'Actualisation…', updated: 'Mis à jour à',
     guideTitle: 'Vérifiez le parent, puis activez son accès', guide: 'Les numéros sont déclarés par les parents et ne sont pas vérifiés par SMS. Confirmez l’identité et le lien avec l’enfant en personne ou à partir des dossiers de l’école.',
     empty: 'Toutes les demandes sont traitées', emptyBody: 'Les nouvelles demandes de l’application apparaîtront ici. Commencez par une classe à la fois.',
     noResults: 'Aucune demande correspondante', noResultsBody: 'Essayez un autre nom, une autre classe ou un autre statut.',
@@ -68,7 +68,7 @@ export const parentAccessCopy = {
   ar: {
     eyebrow: 'دخول العائلات', title: 'طلبات الأولياء', intro: 'راجع طلبات العائلات وامنح كل ولي صلاحية الوصول إلى بيانات طفله.',
     pending: 'للمراجعة', approved: 'مقبولة', rejected: 'مرفوضة', cancelled: 'ملغاة', revoked: 'تم سحب الوصول',
-    allClasses: 'كل الأقسام', search: 'اسم الولي أو الطفل أو الهاتف أو المعرّف…', refresh: 'تحديث',
+    allClasses: 'كل الأقسام', search: 'اسم الولي أو الطفل أو الهاتف أو المعرّف…', refresh: 'تحديث', clearSearch: 'مسح البحث', syncing: 'جارٍ التحديث…', updated: 'آخر تحديث',
     guideTitle: 'تحقّق من هوية الولي ثم فعّل حسابه', guide: 'أرقام الهاتف يقدّمها الأولياء ولم يتم التحقق منها برسالة قصيرة. تحقّق من الهوية والصلة بالطفل حضورياً أو بالاعتماد على ملفات المدرسة قبل الموافقة.',
     empty: 'تمت مراجعة جميع الطلبات', emptyBody: 'ستظهر هنا طلبات تطبيق الهاتف الجديدة. يمكنك البدء بقسم واحد في كل مرة.',
     noResults: 'لا توجد طلبات مطابقة', noResultsBody: 'جرّب اسماً أو قسماً أو حالة أخرى.',
