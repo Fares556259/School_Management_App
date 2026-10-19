@@ -443,7 +443,7 @@ export default function CrudFormModal({
             resolve("Success");
             if (onSuccess) onSuccess({}, "delete", id);
             setOpen(false);
-            router.refresh();
+            if (!onSuccess) router.refresh();
           } else {
             setError(result?.error || t.toasts.deleteFailed);
             reject(result?.error || t.toasts.deleteFailed);

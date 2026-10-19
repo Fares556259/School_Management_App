@@ -1,6 +1,7 @@
 "use server";
 
 import { getSchoolId } from "@/lib/school";
+import { getAuthenticatedUser } from "@/utils/supabase/server";
 import { DEFAULT_SUBJECTS } from "./subjectConstants";
 import { getAssignmentAccess, resolveAssignmentLesson } from "./assignmentLessons";
 
@@ -606,7 +607,10 @@ export const updateStudent = async (
 
 export const deleteStudent = async (id: string) => {
   try {
-    const schoolId = await getSchoolId();
+    const [schoolId, authenticatedUser] = await Promise.all([
+      getSchoolId(),
+      getAuthenticatedUser(),
+    ]);
     const student = await prisma.student.findFirst({
       where: { id, schoolId },
       select: { id: true, name: true, surname: true },
@@ -616,27 +620,28 @@ export const deleteStudent = async (id: string) => {
       return { success: false, error: "Student not found." };
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.attendance.deleteMany({ where: { studentId: id, schoolId } });
-      await tx.grade.deleteMany({ where: { studentId: id, schoolId } });
-      await tx.result.deleteMany({ where: { studentId: id, schoolId } });
-      await tx.payment.deleteMany({ where: { studentId: id, schoolId } });
-      await tx.notification.deleteMany({ where: { studentId: id, schoolId } });
-
-      await tx.notice.updateMany({
+    await prisma.$transaction([
+      prisma.attendance.deleteMany({ where: { studentId: id, schoolId } }),
+      prisma.grade.deleteMany({ where: { studentId: id, schoolId } }),
+      prisma.result.deleteMany({ where: { studentId: id, schoolId } }),
+      prisma.payment.deleteMany({ where: { studentId: id, schoolId } }),
+      prisma.notification.deleteMany({ where: { studentId: id, schoolId } }),
+      prisma.notice.updateMany({
         where: { targetStudentId: id, schoolId },
         data: { targetStudentId: null },
-      });
-
-      await tx.student.delete({ where: { id, schoolId } });
-    });
-
-    await createAuditLog({
-      action: "DELETE_STUDENT",
-      entityType: "Student",
-      entityId: id,
-      description: `Deleted student: ${student.name} ${student.surname}`,
-    });
+      }),
+      prisma.student.delete({ where: { id, schoolId } }),
+      prisma.auditLog.create({
+        data: {
+          action: "DELETE_STUDENT",
+          performedBy: authenticatedUser?.id || "system",
+          entityType: "Student",
+          entityId: id,
+          description: `Deleted student: ${student.name} ${student.surname}`,
+          schoolId,
+        },
+      }),
+    ]);
     invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     return { success: true };

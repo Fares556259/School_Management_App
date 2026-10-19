@@ -371,7 +371,16 @@ export default function StudentListClient({
             {role === "admin" && (
               <>
                 <CrudFormModal entity="student" mode="update" data={item} id={item.id} relatedData={relatedData} />
-                <CrudFormModal entity="student" mode="delete" id={item.id} />
+                <CrudFormModal
+                  entity="student"
+                  mode="delete"
+                  id={item.id}
+                  onSuccess={(_, mode, deletedId) => {
+                    if (mode === "delete" && deletedId) {
+                      setOptimisticData((prev) => prev.filter((student) => student.id !== deletedId));
+                    }
+                  }}
+                />
               </>
             )}
           </div>
