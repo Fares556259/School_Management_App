@@ -5,6 +5,14 @@ import { ToolContext } from "@/lib/telegram/tools/readTools";
 import { getCachedKnowledge, setCachedKnowledge } from "@/lib/telegram/agent";
 import { buildMobileHniaSystemInstruction } from "./hniaPrompt";
 import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegram/vision";
+import {
+  getAvailableModels,
+  getHniaModelTimeoutMs,
+  getMobileHniaModels,
+  isRetryableModelError,
+  markModelFailure,
+  markModelSuccess,
+} from "./modelRuntime";
 
 export interface MobileAgentInput {
   userMessage?: string;
@@ -18,6 +26,7 @@ export interface MobileAgentInput {
   onStatusUpdate?: (status: { step: string; tool?: string }) => void | Promise<void>;
   onTranscription?: (transcription: string) => void | Promise<void>;
   onTokenDelta?: (delta: string) => void | Promise<void>;
+  signal?: AbortSignal;
 }
 
 export interface ActionCardField {
@@ -206,18 +215,9 @@ export function buildActionCardMetadata(
   };
 }
 
-const CANDIDATE_MODELS = [
-  "gemini-3.5-flash-lite",
-  "gemini-flash-lite-latest",
-  "gemini-3.5-flash",
-  "gemini-3.8-flash",
-];
-
 const VOICE_CANDIDATE_MODELS = [
+  "gemini-3.5-transcribe",
   "gemini-3.5-flash-lite",
-  "gemini-flash-lite-latest",
-  "gemini-3.5-flash",
-  "gemini-3.8-flash",
 ];
 
 /**
@@ -312,7 +312,8 @@ export function cleanTelegramFormattingForMobile(text: string): string {
  */
 async function transcribeMobileAudio(
   base64Audio: string,
-  mimeType: string = "audio/m4a"
+  mimeType: string = "audio/m4a",
+  signal?: AbortSignal
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("Clé GEMINI_API_KEY manquante");
@@ -346,7 +347,9 @@ RULES:
 
   console.log(`[Mobile Voice] Starting transcription with ${base64Audio?.length || 0} base64 chars, mime: ${normalizedMime}`);
 
-  for (const modelName of VOICE_CANDIDATE_MODELS) {
+  const candidateModels = getAvailableModels(VOICE_CANDIDATE_MODELS);
+  for (let modelIndex = 0; modelIndex < candidateModels.length; modelIndex++) {
+    const modelName = candidateModels[modelIndex];
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
@@ -363,7 +366,7 @@ RULES:
           },
         },
         { text: prompt },
-      ]);
+      ], { timeout: getHniaModelTimeoutMs(), signal });
       let text = "";
       try {
         text = result.response.text().trim();
@@ -379,11 +382,15 @@ RULES:
           .trim();
       }
       if (text && !text.toUpperCase().includes("NO_SPEECH") && !text.toUpperCase().includes("EMPTY")) {
+        markModelSuccess(modelName);
         console.log(`[Mobile Voice] Successfully transcribed with ${modelName}: "${text.slice(0, 60)}"`);
         return text;
       }
     } catch (err: any) {
       console.warn(`[Mobile Voice] Failed with ${modelName}:`, err.message);
+      const retryable = isRetryableModelError(err);
+      if (retryable) markModelFailure(modelName);
+      if (!retryable || modelIndex === candidateModels.length - 1) break;
     }
   }
   return "";
@@ -457,6 +464,7 @@ export function generateSmartConversationTitle(userText: string, doc?: any): str
  * Main agent runner for SnapSchool Mobile app requests.
  */
 export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAgentResponse> {
+  const requestStartedAt = Date.now();
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return {
@@ -479,19 +487,26 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   }
 
   const [admin, transcriptionResult, conversationLookup] = await Promise.all([
-    prisma.admin.findUnique({
-      where: { id: input.adminId },
+    prisma.admin.findFirst({
+      where: { id: input.adminId, schoolId: input.schoolId },
       include: { School: true },
     }),
     input.audioBase64
-      ? transcribeMobileAudio(input.audioBase64, input.audioMimeType).catch((audioErr) => {
+      ? transcribeMobileAudio(input.audioBase64, input.audioMimeType, input.signal).catch((audioErr) => {
           console.error("[MobileAgent] Audio transcription error:", audioErr);
           return "";
         })
       : Promise.resolve(""),
     input.conversationId
-      ? prisma.aIConversation.findUnique({
-          where: { id: input.conversationId },
+      ? prisma.aIConversation.findFirst({
+          where: {
+            id: input.conversationId,
+            status: { not: "DELETED" },
+            OR: [
+              { adminId: input.adminId },
+              { telegramAccount: { adminId: input.adminId } },
+            ],
+          },
           include: {
             messages: {
               orderBy: { createdAt: "desc" },
@@ -1066,28 +1081,27 @@ Instructions :
   }
 
   // 7. Resolve school knowledge / teachings
-  let schoolTeachings = getCachedKnowledge(input.schoolId);
-  if (!schoolTeachings) {
-    schoolTeachings = await prisma.aIKnowledge.findMany({
+  const schoolTeachingsPromise = (async () => {
+    const cached = getCachedKnowledge(input.schoolId);
+    if (cached) return cached;
+    const teachings = await prisma.aIKnowledge.findMany({
       where: { schoolId: input.schoolId, isActive: true },
       orderBy: { createdAt: "desc" },
       take: 40,
     });
-    setCachedKnowledge(input.schoolId, schoolTeachings);
-  }
-
-  // 8. Build System Instruction (ultra-lean 2KB mobile version for sub-second responses)
-  // Fetch real class names to inject into system prompt (so Hnia uses real examples)
-  let realClassNames: string[] = [];
-  try {
-    const realClasses = await prisma.class.findMany({
-      where: { schoolId: input.schoolId },
-      select: { name: true },
-      orderBy: { name: 'asc' },
-      take: 15,
-    });
-    realClassNames = realClasses.map((c) => c.name);
-  } catch (_e) { /* non-critical */ }
+    setCachedKnowledge(input.schoolId, teachings);
+    return teachings;
+  })();
+  const realClassNamesPromise = prisma.class.findMany({
+    where: { schoolId: input.schoolId },
+    select: { name: true },
+    orderBy: { name: "asc" },
+    take: 15,
+  }).then((classes) => classes.map((item) => item.name)).catch(() => [] as string[]);
+  const [schoolTeachings, realClassNames] = await Promise.all([
+    schoolTeachingsPromise,
+    realClassNamesPromise,
+  ]);
 
   const systemInstruction = buildMobileHniaSystemInstruction({
     schoolName,
@@ -1135,10 +1149,15 @@ Instructions :
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const declarations = getMobileDeclarations(effectiveUserMessage);
+  const modelTimeoutMs = getHniaModelTimeoutMs();
+  const candidateModels = getAvailableModels(getMobileHniaModels());
 
   let executedToolResults: Map<string, any> = new Map();
 
-  for (const modelName of CANDIDATE_MODELS) {
+  for (let modelIndex = 0; modelIndex < candidateModels.length; modelIndex++) {
+    const modelName = candidateModels[modelIndex];
+    const modelStartedAt = Date.now();
+    let streamedAnyToken = false;
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
@@ -1167,12 +1186,16 @@ Instructions :
       const chat = model.startChat({ history: historyContents });
       await input.onStatusUpdate?.({ step: "Recherche en cours..." });
       
+      const requestOptions = { timeout: modelTimeoutMs, signal: input.signal };
       const sendMessage = async (parts: Parameters<typeof chat.sendMessage>[0]) => {
-        if (!input.onTokenDelta) return chat.sendMessage(parts);
-        const streamed = await chat.sendMessageStream(parts);
+        if (!input.onTokenDelta) return chat.sendMessage(parts, requestOptions);
+        const streamed = await chat.sendMessageStream(parts, requestOptions);
         for await (const chunk of streamed.stream) {
           const delta = chunk.text();
-          if (delta) await input.onTokenDelta(delta);
+          if (delta) {
+            streamedAnyToken = true;
+            await input.onTokenDelta(delta);
+          }
         }
         return { response: await streamed.response };
       };
@@ -1570,6 +1593,14 @@ Instructions :
         suggestions.push("Caisse du jour 💰", "Absences 📋", "Planning ⏰");
       }
 
+      markModelSuccess(modelName);
+      console.info("[MobileAgent] completed", {
+        model: modelName,
+        durationMs: Date.now() - requestStartedAt,
+        modelDurationMs: Date.now() - modelStartedAt,
+        toolCount: declarations.length,
+        executedTool: lastExecutedTool || null,
+      });
       return {
         success: true,
         conversationId,
@@ -1583,7 +1614,15 @@ Instructions :
         followUpSuggestions: suggestions,
       };
     } catch (modelErr: any) {
-      console.warn(`[MobileAgent] Model ${modelName} error:`, modelErr.message);
+      const retryable = isRetryableModelError(modelErr);
+      if (retryable) markModelFailure(modelName);
+      console.warn(`[MobileAgent] Model ${modelName} error`, {
+        message: modelErr?.message,
+        status: modelErr?.status,
+        retryable,
+        durationMs: Date.now() - modelStartedAt,
+      });
+      if (!retryable || streamedAnyToken || modelIndex === candidateModels.length - 1) break;
     }
   }
 

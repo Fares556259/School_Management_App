@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
       const responseStream = new TransformStream();
       const writer = responseStream.writable.getWriter();
       const encoder = new TextEncoder();
+      let tokenBuffer = "";
+      let tokenTimer: ReturnType<typeof setTimeout> | null = null;
 
       const sendEvent = async (event: string, data: any) => {
         try {
@@ -42,6 +44,12 @@ export async function POST(request: NextRequest) {
         } catch {
           // Stream might be closed by client
         }
+      };
+      const flushTokens = async () => {
+        if (!tokenBuffer) return;
+        const delta = tokenBuffer;
+        tokenBuffer = "";
+        await sendEvent("token", { delta });
       };
 
       // Run agent asynchronously in background of the stream
@@ -56,6 +64,7 @@ export async function POST(request: NextRequest) {
             audioMimeType: body.audioMimeType,
             imageBase64: body.imageBase64,
             imageMimeType: body.imageMimeType,
+            signal: request.signal,
             onStatusUpdate: async (status) => {
               await sendEvent("status", status);
             },
@@ -63,9 +72,21 @@ export async function POST(request: NextRequest) {
               await sendEvent("transcription", { transcription });
             },
             onTokenDelta: async (delta) => {
-              await sendEvent("token", { delta });
+              tokenBuffer += delta;
+              if (!tokenTimer) {
+                tokenTimer = setTimeout(() => {
+                  tokenTimer = null;
+                  void flushTokens();
+                }, 40);
+              }
             },
           });
+
+          if (tokenTimer) {
+            clearTimeout(tokenTimer);
+            tokenTimer = null;
+          }
+          await flushTokens();
 
           if (result.widget) {
             await sendEvent("widget", { widget: result.widget });
@@ -79,9 +100,10 @@ export async function POST(request: NextRequest) {
         } catch (err: any) {
           console.error("[Mobile Agent Chat Stream] Error:", err);
           await sendEvent("error", {
-            message: err.message || "Erreur de traitement de la demande",
+            error: err.message || "Erreur de traitement de la demande",
           });
         } finally {
+          if (tokenTimer) clearTimeout(tokenTimer);
           try {
             await writer.close();
           } catch {}
