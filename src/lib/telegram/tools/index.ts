@@ -1572,7 +1572,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   send_test_push: {
     name: "send_test_push",
     description: "Envoyer immédiatement une notification push de test sur le smartphone de l'administrateur (0-clic, direct).",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "send_test_push",
       description: "Envoyer instantanément une notification push de test sur le smartphone de l'administrateur pour vérifier que les notifications fonctionnent.",
@@ -2706,7 +2706,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   teach_hnia: {
     name: "teach_hnia",
     description: "Mémoriser et enregistrer une nouvelle consigne, fait, règle de fonctionnement, contact utile (chauffeur bus, etc.), tarif ou correction pour l'école.",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "teach_hnia",
       description: "Mémoriser une consigne, règle, contact ou fait enseigné par l'administrateur pour son école.",
@@ -2755,7 +2755,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   forget_hnia_teaching: {
     name: "forget_hnia_teaching",
     description: "Oublier ou supprimer une consigne ou règle précédemment apprise par Hnia.",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "forget_hnia_teaching",
       description: "Supprimer ou désactiver une consigne apprise par Hnia selon des mots-clés ou un identifiant.",
@@ -2780,7 +2780,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   schedule_reminder: {
     name: "schedule_reminder",
     description: "Programmer un rappel ou une alarme personnelle pour l'administrateur avec notification Telegram automatique (ex: 'fakarni baad 2 minutes bech ntfa9ed sallet', 'rappelle-moi dans 15 minutes', 'fakarni m3a 14h').",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "schedule_reminder",
       description: "Programmer un rappel ou une alarme qui notifiera automatiquement l'administrateur sur Telegram.",
@@ -2829,7 +2829,7 @@ Confirmer l'enregistrement de cette dépense ?`;
   cancel_reminder: {
     name: "cancel_reminder",
     description: "Annuler un rappel programmé existant.",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "cancel_reminder",
       description: "Annuler un rappel par mot-clé ou identifiant.",
@@ -2913,7 +2913,7 @@ Confirmer l'enregistrement de cette dépense ?`;
     name: "generate_school_wall_notice_pdf",
     description:
       "Générer et envoyer directement en pièce jointe PDF A4 haute résolution dans Telegram une affiche officielle prête à imprimer pour le mur de l'école (affiche murale, panneau d'affichage, communiqué à coller à l'entrée ou dans les couloirs). Par défaut, l'affiche est sobre et épurée : elle comporte l'en-tête de l'école, le Titre principal et le Texte descriptif complet, ainsi que la signature et le cachet officiel. Supporte le Français ('fr'), l'Arabe ('ar' avec calligraphie Amiri et alignement RTL) et l'Anglais ('en'). À déclencher dès que l'administrateur demande une affiche ou un document PDF à accrocher/coller au mur de l'école ('génère une affiche pour le mur', 'avis à coller au mur', 'affiche réunion parents', 'tableau d'affichage', 'affiche murale pdf', 'إعلان حائطي', 'wall notice pdf').",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "generate_school_wall_notice_pdf",
       description: "Générer et envoyer une affiche officielle A4 (PDF) prête à être imprimée et collée sur le mur ou le tableau d'affichage de l'école. Supporte Français, Arabe (Amiri RTL) et Anglais.",
@@ -2963,7 +2963,7 @@ Confirmer l'enregistrement de cette dépense ?`;
     name: "generate_word_document",
     description:
       "Générer et envoyer directement en pièce jointe Word (.docx) dans Telegram un document officiel modifiable avec en-tête d'établissement, pagination, typographie institutionnelle et signature. À déclencher quand l'administrateur demande un document Word, un fichier docx ou un texte éditable ('génère en Word', 'exporte en docx', 'lettre officielle Word').",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "generate_word_document",
       description: "Générer et envoyer un document Microsoft Word (.docx) officiel dans Telegram.",
@@ -3014,7 +3014,7 @@ Confirmer l'enregistrement de cette dépense ?`;
     name: "export_excel_report",
     description:
       "Générer et envoyer directement en pièce jointe Excel (.xlsx) dans Telegram un tableau professionnel et stylisé (avec totaux, formats monétaires DT, et mise en page exécutive). Types supportés : 'unpaid_students' (liste des impayés avec téléphones parents et restes dus), 'students_list' (effectif complet ou par classe), 'daily_cash' (caisse du jour détaillée). À déclencher dès que l'administrateur demande un fichier Excel, un export Excel, ou un tableau des impayés en Excel ('génère le fichier excel des impayés', 'donne-moi la liste des élèves en excel', 'exporte la caisse en excel').",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "export_excel_report",
       description: "Générer et envoyer un document Excel (.xlsx) professionnel directement dans Telegram.",
@@ -3053,7 +3053,7 @@ Confirmer l'enregistrement de cette dépense ?`;
     name: "modify_excel_spreadsheet",
     description:
       "Modifier directement un fichier Excel (.xlsx / .csv) envoyé par l'administrateur dans le chat Telegram et lui renvoyer instantanément le fichier Excel modifié et reformaté en document Telegram ! Permet d'ajouter des colonnes (ex: remise, commission, statut), de calculer des formules ou des pourcentages (ex: 'ajoute 10% de remise sur le prix'), d'ajouter une ligne de total, de renommer ou supprimer des colonnes. À utiliser dès que l'administrateur partage un tableau Excel et donne une consigne de modification ou de calcul.",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "modify_excel_spreadsheet",
       description: "Appliquer des transformations, calculs ou ajouts de colonnes sur le fichier Excel partagé dans Telegram et renvoyer le fichier .xlsx modifié.",
@@ -3165,7 +3165,7 @@ Confirmer l'enregistrement de cette dépense ?`;
     name: "write_timetable_to_excel",
     description:
       "Générer ou intégrer l'emploi du temps complet d'une classe (séances, matières, profs, horaires, salles) dans un fichier Excel (.xlsx) et l'envoyer immédiatement en pièce jointe téléchargeable dans Telegram. À utiliser dès que l'administrateur demande de mettre un emploi du temps sur un fichier Excel (ex: 'put timetable 1 A on it', 'intègre l'emploi du temps 1A sur Excel', 'génère le planning 1A en Excel').",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "write_timetable_to_excel",
       description:
@@ -3200,7 +3200,7 @@ Confirmer l'enregistrement de cette dépense ?`;
     name: "send_cached_excel",
     description:
       "Envoyer ou renvoyer immédiatement à l'administrateur le fichier Excel actuellement en mémoire ou en cours de travail dans la conversation Telegram (ex: 'where s the Planning.xlsx send it', 'send it', 'où est le fichier', 'renvoie-moi le fichier', 'where can I download it', 'télécharger', 'je ne le trouve pas').",
-    requiresConfirmation: false,
+    requiresConfirmation: true,
     declaration: {
       name: "send_cached_excel",
       description: "Envoyer ou renvoyer le fichier Excel en mémoire dans le chat Telegram.",

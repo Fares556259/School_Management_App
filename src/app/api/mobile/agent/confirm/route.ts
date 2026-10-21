@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
-import { confirmMobileAction } from "@/lib/agent/mobileAgent";
+import { confirmMobileAction } from "@/lib/agent/mobileConfirmation";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { toolCallId, action, updatedArgs } = body;
 
-    if (!toolCallId || !action || !["confirm", "cancel"].includes(action)) {
+    if (typeof toolCallId !== "string" || !toolCallId || toolCallId.length > 128 || !["confirm", "cancel"].includes(action) || (updatedArgs !== undefined && (!updatedArgs || typeof updatedArgs !== "object" || Array.isArray(updatedArgs)))) {
       return NextResponse.json(
         { success: false, error: "Paramètres manquants ou invalides (toolCallId et action requis)." },
         { status: 400 }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[Mobile Agent Confirm API] Error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Erreur interne" },
+      { success: false, error: "Erreur interne" },
       { status: 500 }
     );
   }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import prisma from "@/lib/prisma";
+import { buildActionCardMetadata } from "@/lib/agent/actionCards";
+import { isActionExpired } from "@/lib/agent/actionPolicy";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "60", 10);
+    const requestedLimit = Number(searchParams.get("limit") || 60);
+    const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 100)) : 60;
     const conversationIdParam = searchParams.get("conversationId");
 
     // Return list of all active conversation threads for multi-thread drawer
@@ -72,6 +75,7 @@ export async function GET(request: NextRequest) {
       conversation = await prisma.aIConversation.findFirst({
         where: {
           id: conversationIdParam,
+          status: { not: "DELETED" },
           OR: [
             { adminId: userId },
             { telegramAccount: { adminId: userId } },
@@ -83,8 +87,9 @@ export async function GET(request: NextRequest) {
             take: limit,
           },
           toolCalls: {
-            where: { status: "PENDING" },
+            where: { requiresConfirm: true },
             orderBy: { createdAt: "desc" },
+            take: 200,
           },
         },
       });
@@ -107,8 +112,9 @@ export async function GET(request: NextRequest) {
             take: limit,
           },
           toolCalls: {
-            where: { status: "PENDING" },
+            where: { requiresConfirm: true },
             orderBy: { createdAt: "desc" },
+            take: 200,
           },
         },
       });
@@ -124,6 +130,11 @@ export async function GET(request: NextRequest) {
     }
 
     const sortedMessages = [...(conversation.messages || [])].reverse();
+    const actionCards = new Map<string, any>(conversation.toolCalls.map((tc: any) => {
+      const status = tc.status === "PENDING" && isActionExpired(tc.createdAt) ? "EXPIRED" : tc.status;
+      const card = buildActionCardMetadata(tc.id, tc.toolName, tc.arguments || {}, "Vérifiez les détails puis confirmez cette action.");
+      return [tc.id, { ...card, status, reference: status === "EXECUTED" ? `ACT-${tc.id}` : undefined, resultMessage: tc.result?.message }];
+    }));
 
     return NextResponse.json({
       success: true,
@@ -161,14 +172,10 @@ export async function GET(request: NextRequest) {
           content,
           imageUri,
           createdAt: m.createdAt,
+          pendingConfirmation: m.toolCallId ? actionCards.get(m.toolCallId) || null : null,
         };
       }),
-      pendingConfirmations: conversation.toolCalls.map((tc: any) => ({
-        toolCallId: tc.id,
-        toolName: tc.toolName,
-        arguments: tc.arguments,
-        status: tc.status,
-      })),
+      pendingConfirmations: [...actionCards.values()].filter(card => card.status === "PENDING" || card.status === "EXECUTING"),
     });
   } catch (error: any) {
     console.error("[Mobile Agent History API] Error:", error);

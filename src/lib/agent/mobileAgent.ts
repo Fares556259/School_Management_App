@@ -1,3 +1,10 @@
+import { ActionCardData, buildActionCardMetadata } from "./actionCards";
+import { cleanTelegramFormattingForMobile } from "./mobileFormatting";
+import { requiresActionConfirmation } from "./actionPolicy";
+export type { ActionCardData, ActionCardField } from "./actionCards";
+export { buildActionCardMetadata } from "./actionCards";
+export { cleanTelegramFormattingForMobile } from "./mobileFormatting";
+export { confirmMobileAction } from "./mobileConfirmation";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 import { TOOLS, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
@@ -29,25 +36,6 @@ export interface MobileAgentInput {
   signal?: AbortSignal;
 }
 
-export interface ActionCardField {
-  label: string;
-  value: string;
-  icon?: string;
-}
-
-export interface ActionCardData {
-  toolCallId: string;
-  toolName: string;
-  actionTitle: string;
-  actionType: "expense" | "income" | "payment" | "student" | "class" | "attendance" | "announcement" | "generic";
-  confirmText: string;
-  fields: ActionCardField[];
-  status: "PENDING" | "EXECUTING" | "EXECUTED" | "REJECTED";
-  reference?: string;
-  resultMessage?: string;
-  arguments?: Record<string, any>;
-}
-
 export interface MobileAgentResponse {
   success: boolean;
   conversationId: string;
@@ -63,156 +51,6 @@ export interface MobileAgentResponse {
   } | null;
   followUpSuggestions?: string[];
   error?: string;
-}
-
-export function buildActionCardMetadata(
-  toolCallId: string,
-  toolName: string,
-  args: Record<string, any>,
-  confirmText: string
-): ActionCardData {
-  const today = new Date().toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-  if (toolName === "add_expense") {
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Ajouter une dépense",
-      actionType: "expense",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Montant", value: `${args.amount || 0} DT` },
-        { label: "Catégorie", value: args.category || "Général" },
-        { label: "Description", value: args.title || args.description || "Facture / Dépense" },
-        { label: "Date", value: args.date || today },
-      ],
-    };
-  }
-
-  if (toolName === "add_income") {
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Encaisser une recette",
-      actionType: "income",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Montant", value: `${args.amount || 0} DT` },
-        { label: "Description", value: args.title || args.description || "Recette du jour (Entrée caisse)" },
-        { label: "Catégorie", value: args.category || "Frais scolarité" },
-        { label: "Date", value: args.date || today },
-      ],
-    };
-  }
-
-  if (toolName === "record_payment" || toolName === "record_parent_payment") {
-    const studentOrParent = args.studentNameOrId || args.parentNameOrId || "Élève";
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Encaisser un paiement",
-      actionType: "payment",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Montant", value: `${args.amount || 0} DT` },
-        { label: "Bénéficiaire", value: studentOrParent },
-        { label: "Période", value: args.feePeriod || new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
-        { label: "Mode de règlement", value: args.paymentMethod || "Espèces" },
-      ],
-    };
-  }
-
-  if (toolName === "create_student") {
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Inscrire un nouvel élève",
-      actionType: "student",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Nom & Prénom", value: `${args.name || ""} ${args.surname || ""}`.trim() || "Nouvel élève" },
-        { label: "Classe", value: args.className || "Non assignée" },
-        { label: "Contact Parent", value: args.parentPhone || args.parentName || "Non renseigné" },
-        { label: "Frais mensuels", value: args.customTuition ? `${args.customTuition} DT` : "Standard" },
-      ],
-    };
-  }
-
-  if (toolName === "create_class") {
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Créer une nouvelle classe",
-      actionType: "class",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Nom de la classe", value: args.name || "Nouvelle classe" },
-        { label: "Niveau", value: args.levelNumber ? `Niveau ${args.levelNumber}` : "Standard" },
-        { label: "Capacité maximale", value: args.capacity ? `${args.capacity} élèves` : "30 élèves" },
-      ],
-    };
-  }
-
-  if (toolName === "mark_class_attendance") {
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Valider l'appel de classe",
-      actionType: "attendance",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Classe", value: args.className || "Classe" },
-        { label: "Date de l'appel", value: args.date || today },
-        { label: "Absents signalés", value: args.absentNames ? (Array.isArray(args.absentNames) ? args.absentNames.join(", ") : String(args.absentNames)) : "Aucun (Tous présents)" },
-      ],
-    };
-  }
-
-  if (toolName === "post_announcement" || toolName === "send_push_notification") {
-    return {
-      toolCallId,
-      toolName,
-      actionTitle: "Diffuser une annonce aux parents",
-      actionType: "announcement",
-      confirmText,
-      status: "PENDING",
-      arguments: args,
-      fields: [
-        { label: "Destinataires", value: args.className ? `Classe ${args.className}` : "Toute l'école" },
-        { label: "Titre de l'annonce", value: args.title || "Annonce" },
-        { label: "Contenu", value: args.message || args.content || "" },
-      ],
-    };
-  }
-
-  return {
-    toolCallId,
-    toolName,
-    actionTitle: `Confirmer l'action : ${toolName}`,
-    actionType: "generic",
-    confirmText,
-    status: "PENDING",
-    arguments: args,
-    fields: Object.entries(args)
-      .filter(([k]) => !k.startsWith("_") && k !== "schoolId" && k !== "adminId")
-      .map(([k, v]) => ({ label: k, value: String(v) })),
-  };
 }
 
 const VOICE_CANDIDATE_MODELS = [
@@ -271,41 +109,6 @@ function getMobileDeclarations(userMessage: string): any[] {
  * Strip Telegram-specific formatting (HTML tags, custom separators, code tags)
  * and convert to clean, mobile-optimized markdown.
  */
-export function cleanTelegramFormattingForMobile(text: string): string {
-  if (!text) return "";
-  let clean = text;
-  // Replace HTML entities
-  clean = clean
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-  // Strip separator bars
-  clean = clean.replace(/[━─═-]{4,}/g, "");
-  // Move colons outside bold tags so key-value splitting does not break formatting:
-  // e.g. <b>Montant :</b> -> <b>Montant</b> :
-  clean = clean.replace(/<b(?: [^>]*)?>([^<:]+)\s*:\s*<\/b>/gi, "<b>$1</b> :");
-  // Convert HTML bold to markdown bold
-  clean = clean.replace(/<\/?(?:b|strong)>/gi, "**");
-  // Fix markdown bold containing colons: **Montant :** -> **Montant** :
-  clean = clean.replace(/\*\*([^*\n:]+)\s*:\s*\*\*/g, "**$1** :");
-  // Convert HTML italic to markdown italic
-  clean = clean.replace(/<\/?(?:i|em)>/gi, "*");
-  // Convert <code>...</code> to markdown backticks `...`
-  clean = clean.replace(/<code>(.*?)<\/code>/gi, "`$1`");
-  clean = clean.replace(/<\/?code>/gi, "");
-  // Convert blockquote to markdown blockquote
-  clean = clean.replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, "> $1\n");
-  // Strip remaining HTML tags
-  clean = clean.replace(/<[^>]+>/g, "");
-  // Fix mismatched asterisks like *Word** -> **Word** or **Word* -> **Word**
-  clean = clean.replace(/(^|\s)\*([^*\s][^*]*?)\*\*(?=\s|$|[.,!?;:])/g, "$1**$2**");
-  clean = clean.replace(/(^|\s)\*\*([^*\s][^*]*?)\*(?=\s|$|[.,!?;:])/g, "$1**$2**");
-  // Clean redundant whitespace
-  clean = clean.replace(/\n{3,}/g, "\n\n").trim();
-  return clean;
-}
 
 /**
  * Transcribe mobile audio recording (m4a, aac, wav, ogg) using Gemini multimodal audio.
@@ -1253,13 +1056,13 @@ Instructions :
         await input.onStatusUpdate?.({ step: stepLabel, tool: toolName });
 
         // Action requires confirmation
-        if (toolDef.requiresConfirmation) {
+        if (functionCalls.some(c => TOOLS[c.name] && requiresActionConfirmation(c.name, TOOLS[c.name]))) {
           let pendingConfirmations: ActionCardData[] = [];
           for (const c of functionCalls) {
             const tName = c.name;
             const tArgs = (c.args || {}) as Record<string, any>;
             const tDef = TOOLS[tName];
-            if (tDef && tDef.requiresConfirmation) {
+            if (tDef && requiresActionConfirmation(tName, tDef)) {
               const toolCallRecord = await prisma.aIToolCall.create({
                 data: {
                   conversationId,
@@ -1277,6 +1080,10 @@ Instructions :
 
               const actionCard = buildActionCardMetadata(toolCallRecord.id, tName, tArgs, confirmText);
               pendingConfirmations.push(actionCard);
+              await prisma.aIMessage.create({ data: {
+                conversationId, role: "assistant", toolCallId: toolCallRecord.id,
+                content: `Veuillez vérifier et confirmer l'action ci-dessous :\n\n${confirmText}`,
+              } });
             }
           }
 
@@ -1293,15 +1100,6 @@ Instructions :
             ? `Veuillez vérifier et confirmer l'action ci-dessous :\n\n${summaryDesc}`
             : "Veuillez vérifier et confirmer l'action ci-dessous :";
 
-          // Save assistant message with confirmation request
-          await prisma.aIMessage.create({
-            data: {
-              conversationId,
-              role: "assistant",
-              content: finalReply,
-            },
-          });
-
           return {
             success: true,
             conversationId,
@@ -1310,7 +1108,6 @@ Instructions :
             analyzedDocument: analyzedDoc,
             imageUrl: uploadedImageUrl,
             pendingConfirmation,
-            executedTool: toolName,
             widget: detectedWidget,
             followUpSuggestions: [],
           };
@@ -1529,7 +1326,7 @@ Instructions :
               if (payload.parent_name && !toolArgs.parentName) toolArgs.parentName = payload.parent_name;
 
               const toolDef = TOOLS[toolName];
-              if (toolDef && toolDef.requiresConfirmation) {
+              if (toolDef && requiresActionConfirmation(toolName, toolDef)) {
                 const toolCallRecord = await prisma.aIToolCall.create({
                   data: {
                     conversationId,
@@ -1553,10 +1350,7 @@ Instructions :
                 };
 
                 // Strip the JSON block completely from the displayed message
-                const cleanedText = rawText.replace(jsonActionMatch[0], "").trim();
-                finalReply = cleanTelegramFormattingForMobile(
-                  cleanedText || `Veuillez vérifier et confirmer l'action ci-dessous :`
-                );
+                finalReply = "Veuillez vérifier les détails puis appuyer sur Confirmer pour exécuter cette action.";
               } else {
                 finalReply = cleanTelegramFormattingForMobile(rawText.replace(jsonActionMatch[0], "").trim() || rawText);
               }
@@ -1580,6 +1374,7 @@ Instructions :
           conversationId,
           role: "assistant",
           content: finalReply,
+          ...(pendingConfirmation && !Array.isArray(pendingConfirmation) ? { toolCallId: pendingConfirmation.toolCallId } : {}),
         },
       });
 
@@ -1632,215 +1427,4 @@ Instructions :
     message: "Désolée, une erreur temporaire est survenue. Veuillez réessayer dans quelques instants.",
     error: "AI_GENERATION_FAILED",
   };
-}
-
-/**
- * Confirm or cancel a pending action initiated from the mobile app.
- */
-export async function confirmMobileAction(params: {
-  toolCallId: string;
-  action: "confirm" | "cancel";
-  adminId: string;
-  schoolId: string;
-  updatedArgs?: Record<string, any>;
-}): Promise<{
-  success: boolean;
-  message: string;
-  result?: any;
-  actionResult?: {
-    reference: string;
-    summary: string;
-    timestamp: string;
-    status: "EXECUTED" | "REJECTED";
-  };
-}> {
-  const { toolCallId, action, adminId, schoolId, updatedArgs } = params;
-
-  const toolCall = await prisma.aIToolCall.findUnique({
-    where: { id: toolCallId },
-    include: {
-      conversation: {
-        include: {
-          admin: true,
-        },
-      },
-    },
-  });
-
-  if (!toolCall) {
-    return { success: false, message: "Action introuvable ou déjà expirée." };
-  }
-
-  // Ownership check
-  if (toolCall.conversation.adminId !== adminId || toolCall.conversation.admin?.schoolId !== schoolId) {
-    return { success: false, message: "Action non autorisée pour votre compte." };
-  }
-
-  // Idempotency check
-  if (toolCall.status === "EXECUTED") {
-    return { success: true, message: "Cette action a déjà été exécutée avec succès." };
-  }
-  if (toolCall.status === "REJECTED") {
-    return { success: true, message: "Cette action a déjà été annulée." };
-  }
-  if (toolCall.status === "EXECUTING") {
-    return { success: true, message: "Cette action est déjà en cours de traitement." };
-  }
-
-  // Atomically claim
-  const claimed = await prisma.aIToolCall.updateMany({
-    where: { id: toolCallId, status: "PENDING" },
-    data: { status: "EXECUTING" },
-  });
-
-  if (claimed.count === 0) {
-    return { success: true, message: "Cette action est déjà en cours ou a été traitée." };
-  }
-
-  if (action === "cancel") {
-    await prisma.aIToolCall.update({
-      where: { id: toolCallId },
-      data: { status: "REJECTED" },
-    });
-
-    if (toolCall.conversationId) {
-      await prisma.aIMessage.create({
-        data: {
-          conversationId: toolCall.conversationId,
-          role: "assistant",
-          content: `❌ L'action **${toolCall.toolName}** a été annulée.`,
-        },
-      });
-    }
-
-    const cancelRef = `ACT-${new Date().getFullYear()}-${String(Math.floor(1000 + Math.random() * 9000))}`;
-    return {
-      success: true,
-      message: "Action annulée avec succès.",
-      actionResult: {
-        reference: cancelRef,
-        summary: `Action ${toolCall.toolName} annulée`,
-        timestamp: new Date().toISOString(),
-        status: "REJECTED",
-      },
-    };
-  }
-
-  // Confirm
-  const tool = TOOLS[toolCall.toolName];
-  if (!tool) {
-    await prisma.aIToolCall.update({
-      where: { id: toolCallId },
-      data: { status: "FAILED", result: { error: "Outil introuvable" } },
-    });
-    return { success: false, message: "Outil introuvable dans le système." };
-  }
-
-  const adminName =
-    [toolCall.conversation.admin?.name, toolCall.conversation.admin?.surname].filter(Boolean).join(" ") ||
-    toolCall.conversation.admin?.username ||
-    "Admin";
-
-  const context: ToolContext = {
-    schoolId,
-    adminId,
-    adminName,
-    language: "fr",
-  };
-
-  try {
-    const rawArgs = (toolCall.arguments as Record<string, any>) || {};
-    const args = updatedArgs ? { ...rawArgs, ...updatedArgs } : { ...rawArgs };
-
-    // Normalize amount if provided as string or formatted (e.g. "7 DT", "7.5")
-    if (args.amount !== undefined) {
-      if (typeof args.amount === "string") {
-        const parsedNum = parseFloat(args.amount.replace(/[^0-9.]/g, ""));
-        if (!isNaN(parsedNum)) args.amount = parsedNum;
-      } else if (typeof args.amount === "number") {
-        args.amount = Math.abs(args.amount);
-      }
-    }
-
-    // Align title and description if one is provided
-    if (args.title && !args.description) {
-      args.description = args.title;
-    } else if (args.description && !args.title) {
-      args.title = args.description;
-    }
-
-    const executionResult = await tool.execute(args, context);
-
-    await prisma.aIToolCall.update({
-      where: { id: toolCallId },
-      data: {
-        status: "EXECUTED",
-        arguments: args,
-        result: executionResult,
-        confirmedAt: new Date(),
-        executedAt: new Date(),
-      },
-    });
-
-    const rawSuccessMsg =
-      executionResult?.message || `✅ Action **${toolCall.toolName}** exécutée avec succès !`;
-    const successMsg = cleanTelegramFormattingForMobile(rawSuccessMsg);
-
-    if (toolCall.conversationId) {
-      await prisma.aIMessage.create({
-        data: {
-          conversationId: toolCall.conversationId,
-          role: "assistant",
-          content: successMsg,
-        },
-      });
-    }
-
-    const prefixMap: Record<string, string> = {
-      add_expense: "EXP",
-      record_payment: "REC",
-      record_parent_payment: "REC",
-      create_student: "ELE",
-      create_class: "CLS",
-      mark_class_attendance: "APP",
-      post_announcement: "ANN",
-    };
-    const prefix = prefixMap[toolCall.toolName] || "ACT";
-    const reference = `${prefix}-${new Date().getFullYear()}-${String(Math.floor(1000 + Math.random() * 9000))}`;
-
-    return {
-      success: true,
-      message: successMsg,
-      result: executionResult,
-      actionResult: {
-        reference,
-        summary: executionResult?.summary || successMsg,
-        timestamp: new Date().toISOString(),
-        status: "EXECUTED",
-      },
-    };
-  } catch (err: any) {
-    console.error("[MobileAgent] Tool execution error:", err);
-    await prisma.aIToolCall.update({
-      where: { id: toolCallId },
-      data: { status: "FAILED", result: { error: err.message } },
-    });
-
-    const rawErrorMsg = `⚠️ Erreur lors de l'exécution de **${toolCall.toolName}** : ${err.message || "Erreur inconnue"}`;
-    const errorMsg = cleanTelegramFormattingForMobile(rawErrorMsg);
-    if (toolCall.conversationId) {
-      await prisma.aIMessage.create({
-        data: {
-          conversationId: toolCall.conversationId,
-          role: "assistant",
-          content: errorMsg,
-        },
-      });
-    }
-
-    return {
-      success: false,
-      message: errorMsg,
-    };
-  }
 }

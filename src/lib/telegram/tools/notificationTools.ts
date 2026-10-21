@@ -18,16 +18,17 @@ export async function getAdminPushTokens(context: ToolContext): Promise<string[]
   const tokens: string[] = [];
 
   // 1. Look up Admin phone and name
-  const admin = await prisma.admin.findUnique({
-    where: { id: context.adminId },
+  const admin = await prisma.admin.findFirst({
+    where: { id: context.adminId, schoolId: context.schoolId },
     select: { phone: true, name: true, surname: true },
   });
 
   // 2. Try to find Parent or Teacher with same phone in this school
-  if (admin?.phone) {
+  if (admin?.phone && admin.phone.replace(/\D/g, "").length >= 8) {
     const cleanPhone = admin.phone.replace(/\D/g, "");
     const parent = await prisma.parent.findFirst({
       where: {
+        schoolId: context.schoolId,
         OR: [
           { phone: admin.phone },
           { phone: { contains: cleanPhone.slice(-8) } },
@@ -40,6 +41,7 @@ export async function getAdminPushTokens(context: ToolContext): Promise<string[]
 
     const teacher = await prisma.teacher.findFirst({
       where: {
+        schoolId: context.schoolId,
         OR: [
           { phone: admin.phone },
           { phone: { contains: cleanPhone.slice(-8) } },
@@ -51,67 +53,12 @@ export async function getAdminPushTokens(context: ToolContext): Promise<string[]
     if (teacher?.expoPushToken) tokens.push(teacher.expoPushToken);
   }
 
-  // 3. Try finding by admin name
-  if (tokens.length === 0 && (admin?.name || context.adminName)) {
-    const rawSearch = (admin?.name || context.adminName || "").trim();
-    const firstWord = rawSearch.split(" ")[0].trim();
-    if (firstWord.length >= 3) {
-      const parent = await prisma.parent.findFirst({
-        where: {
-          schoolId: context.schoolId,
-          OR: [
-            { name: { contains: firstWord, mode: "insensitive" } },
-            { surname: { contains: firstWord, mode: "insensitive" } },
-          ],
-          expoPushToken: { not: null },
-        },
-        select: { expoPushToken: true },
-      });
-      if (parent?.expoPushToken) tokens.push(parent.expoPushToken);
-
-      const teacher = await prisma.teacher.findFirst({
-        where: {
-          schoolId: context.schoolId,
-          OR: [
-            { name: { contains: firstWord, mode: "insensitive" } },
-            { surname: { contains: firstWord, mode: "insensitive" } },
-          ],
-          expoPushToken: { not: null },
-        },
-        select: { expoPushToken: true },
-      });
-      if (teacher?.expoPushToken) tokens.push(teacher.expoPushToken);
-    }
-  }
-
-  // 4. Try any registered parent in the school
-  if (tokens.length === 0) {
-    const anyParent = await prisma.parent.findFirst({
-      where: { schoolId: context.schoolId, expoPushToken: { not: null } },
-      orderBy: { createdAt: "desc" },
-      select: { expoPushToken: true },
-    });
-    if (anyParent?.expoPushToken) tokens.push(anyParent.expoPushToken);
-  }
-
-  // 5. Fallback for test environments: token of user 'fares selmi' or 'hnia'
-  if (tokens.length === 0) {
-    const fallbackParent = await prisma.parent.findFirst({
-      where: {
-        name: { contains: "fares", mode: "insensitive" },
-        expoPushToken: { not: null },
-      },
-      select: { expoPushToken: true },
-    });
-    if (fallbackParent?.expoPushToken) tokens.push(fallbackParent.expoPushToken);
-  }
-
   return Array.from(new Set(tokens));
 }
 
 /**
  * Tool: send_test_push
- * Instantly fires a test push notification to the current administrator's phone (0-click).
+ * Sends a test only to accounts matching this administrator's phone in this school, after confirmation.
  */
 export async function sendTestPushTool(
   args: {
