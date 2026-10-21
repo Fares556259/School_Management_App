@@ -2,7 +2,7 @@ import type { ToolDefinition } from "@/lib/telegram/tools";
 
 // Only reviewed query tools may run while composing a reply. New tools fail closed.
 export const READ_ONLY_ACTIONS = new Set([
-  "get_students", "get_student_profile", "get_parents", "get_classes", "list_unassigned_students",
+  "query_school_records", "get_students", "get_student_profile", "get_parents", "get_classes", "list_unassigned_students",
   "get_teachers", "get_school_stats", "get_staff", "get_salary_details", "get_attendance",
   "get_student_attendance_history", "get_student_grades", "get_class_grade_sheet", "get_exams",
   "get_payments", "get_partial_payments", "get_financial_summary", "get_financial_anomalies",

@@ -1,3 +1,6 @@
+import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
+import { isVerificationFollowup, isNextPage, needsFreshSchoolData } from "./dataAccuracy";
+import { READ_ONLY_ACTIONS } from "./actionPolicy";
 import { ActionCardData, buildActionCardMetadata } from "./actionCards";
 import { cleanTelegramFormattingForMobile } from "./mobileFormatting";
 import { requiresActionConfirmation } from "./actionPolicy";
@@ -64,7 +67,7 @@ const VOICE_CANDIDATE_MODELS = [
  * - Focused school queries → relevant tools.
  * - Ambiguous queries / follow-ups (e.g. "Go", "Oui", "Fais-le") → top 16 universal tools so actions are never blocked.
  */
-function getMobileDeclarations(userMessage: string): any[] {
+export function getMobileDeclarations(userMessage: string): any[] {
   const msg = (userMessage || "").trim();
   const msgLower = msg.toLowerCase();
 
@@ -74,33 +77,6 @@ function getMobileDeclarations(userMessage: string): any[] {
   }
 
   const declarations = getPrunedGeminiDeclarations(msg);
-  if (declarations.length > 25) {
-    const UNIVERSAL_KEYS = new Set([
-      "get_school_stats",
-      "get_daily_caisse",
-      "get_financial_summary",
-      "get_payments",
-      "record_parent_payment",
-      "record_payment",
-      "add_expense",
-      "get_attendance",
-      "mark_class_attendance",
-      "get_student_profile",
-      "get_students",
-      "create_student",
-      "create_class",
-      "post_announcement",
-      "send_payment_reminders",
-      "get_class_timetable",
-      "get_teachers",
-      "get_staff",
-      "get_grades",
-      "get_payment_receipt",
-      "update_student",
-      "add_income"
-    ]);
-    return declarations.filter((d: any) => UNIVERSAL_KEYS.has(d.name));
-  }
 
   return declarations;
 }
@@ -572,315 +548,40 @@ Instructions :
     };
   }
 
-  // ── FAST-PATHS for instant response (< 100ms) on common school operations ──
-  const IMPAYES_REGEX = /(impayés?|non payé|reliquat|qui n'a pas payé|qui doit|شكون ما خلصش|dettes?)/i;
-  const CAISSE_REGEX = /(caiss[ez]?|caisse du jour|clôture de caisse|bilan de caisse|كاسة|point de caisse|bordereau.*caisse|journal de caisse|bordereau)/i;
-  const RECEIPT_REGEX = /(reçu|quittance|bulletin de paie|facture de scolarité|reçu de paiement)/i;
-  const ABSENCES_REGEX = /(absences? du jour|qui est absent|absents? aujourd'hui|شكون غايب|appel du jour)/i;
-  const STATS_REGEX = /(effectifs?|stats? école|statistiques? école)/i;
-  const REVENUE_REGEX = /(revenus?|chiffre d'affaires?|recettes? du mois|revenus? de ce mois|combien on a gagné|combien gagné|total des recettes|rentrées?)/i;
-
-  if (REVENUE_REGEX.test(msgLower)) {
-    await input.onStatusUpdate?.({ step: "Calcul des revenus du mois...", tool: "get_financial_summary" });
-    try {
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      const startOfCurrentMonth = new Date(currentYear, currentMonth - 1, 1);
-      const endOfCurrentMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-
-      const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-      const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-      const startOfPrevMonth = new Date(prevYear, prevMonth - 1, 1);
-      const endOfPrevMonth = new Date(prevYear, prevMonth, 0, 23, 59, 59);
-
-      const [currIncomes, prevIncomes, currExpenses] = await Promise.all([
-        prisma.payment.aggregate({
-          where: {
-            schoolId: context.schoolId,
-            month: currentMonth,
-            year: currentYear,
-            status: "PAID",
-            userType: "STUDENT",
-          },
-          _sum: { amount: true },
-          _count: { _all: true },
-        }),
-        prisma.payment.aggregate({
-          where: {
-            schoolId: context.schoolId,
-            month: prevMonth,
-            year: prevYear,
-            status: "PAID",
-            userType: "STUDENT",
-          },
-          _sum: { amount: true },
-        }),
-        prisma.expense.aggregate({
-          where: {
-            schoolId: context.schoolId,
-            date: { gte: startOfCurrentMonth, lte: endOfCurrentMonth },
-          },
-          _sum: { amount: true },
-        }),
-      ]);
-
-      const totalRevenue = currIncomes?._sum?.amount || 0;
-      const prevRevenue = prevIncomes?._sum?.amount || 0;
-      const totalExpenses = currExpenses?._sum?.amount || 0;
-      const netProfit = totalRevenue - totalExpenses;
-      const paymentsCount = currIncomes?._count?._all || 0;
-
-      const trendPercent =
-        prevRevenue > 0
-          ? Math.round(((totalRevenue - prevRevenue) / prevRevenue) * 1000) / 10
-          : 0;
-      const trendSymbol = trendPercent >= 0 ? `↑ +${trendPercent}%` : `↓ ${trendPercent}%`;
-
-      const monthName = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-      const prevMonthName = new Date(prevYear, prevMonth - 1, 1).toLocaleDateString("fr-FR", { month: "long" });
-
-      const cleanMsg =
-        `💰 **Revenus du mois (${monthName}) :**\n\n` +
-        `• **Recettes :** \`${totalRevenue} DT\` (${trendSymbol} vs ${prevMonthName})\n` +
-        `• **Dépenses :** \`${totalExpenses} DT\`\n` +
-        `• **Résultat net :** **\`${netProfit} DT\`**\n\n` +
-        `📊 *${paymentsCount} règlements enregistrés ce mois-ci.*`;
-
-      await prisma.aIMessage.create({
-        data: { conversationId, role: "assistant", content: cleanMsg },
-      });
-
-      await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-      await input.onTokenDelta?.(cleanMsg);
-
-      return {
-        success: true,
-        conversationId,
-        message: cleanMsg,
-        transcription,
-        analyzedDocument: analyzedDoc,
-        imageUrl: uploadedImageUrl,
-        executedTool: "get_financial_summary",
-        widget: {
-          type: "finance_summary",
-          data: {
-            period: monthName,
-            totalRevenue,
-            totalExpenses,
-            netProfit,
-            trendPercent,
-            paymentsCount,
-            comparisonText: `vs ${prevMonthName}`,
-          },
-        },
-        followUpSuggestions: ["Caisse du jour 💰", "Impayés du mois 💳", "Dépenses 💸"],
-      };
-    } catch (e) {
-      console.warn("[MobileAgent] Fast-path revenue error:", e);
+  // Only exact, unambiguous shortcuts may bypass model parsing. Scoped questions use native tool arguments.
+  let exactRead = getExactSchoolRead(effectiveUserMessage);
+  const verifying = isVerificationFollowup(effectiveUserMessage);
+  if (verifying || isNextPage(effectiveUserMessage)) {
+    const previous = await prisma.aIToolCall.findFirst({
+      where: { conversationId, status: "EXECUTED", requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (previous) {
+      const args = { ...((previous.arguments as Record<string, any>) || {}) };
+      if (isNextPage(effectiveUserMessage)) {
+        const result = previous.result as any;
+        if (result?.nextOffset === null || result?.hasMore === false) {
+          const message = "La liste vérifiée est déjà complète pour ce filtre. Dites-moi si vous souhaitez consulter une autre classe.";
+          await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message } });
+          return { success: true, conversationId, message };
+        }
+        if (typeof result?.nextOffset === "number") args.offset = result.nextOffset;
+        else exactRead = null;
+      }
+      if (verifying || typeof (previous.result as any)?.nextOffset === "number") exactRead = { name: previous.toolName, args };
+    } else if (verifying) {
+      const message = "Je n'ai pas de consultation vérifiable à reprendre dans cette discussion. Précisez la classe ou les données à vérifier, par exemple « élèves de la classe 1A ».";
+      await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message } });
+      return { success: true, conversationId, message };
     }
   }
-
-  if (IMPAYES_REGEX.test(msgLower)) {
-    await input.onStatusUpdate?.({ step: "Vérification des impayés...", tool: "get_payments" });
-    try {
-      const { getPaymentsTool } = await import("@/lib/telegram/tools/readTools");
-      const out = (await getPaymentsTool({ status: "UNPAID" }, context)) as any;
-      if (out?.formattedText || out?.records) {
-        const count = out.unpaidCount || (out.records ? out.records.length : 0);
-        const total = out.totalOutstanding ? ` pour un total de **\`${out.totalOutstanding} DT\`**` : "";
-        const list = (out.records || []).slice(0, 8).map((r: any) =>
-          `• **${r.studentName}** (${r.class}) — \`${r.dueAmount} DT\` *(${r.feePeriod || ""})*`
-        ).join("\n");
-        const cleanMsg = `💳 **Suivi des impayés :** ${count} élève(s)${total} :\n\n${list}${count > 8 ? `\n\n*... et ${count - 8} autre(s) élève(s).*` : ""}`;
-
-        await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: cleanMsg },
-        });
-
-        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        await input.onTokenDelta?.(cleanMsg);
-
-        const students = (out.records || []).map((r: any) => ({
-          studentId: r.studentId,
-          studentName: r.studentName,
-          className: r.class,
-          dueAmount: r.dueAmount,
-          parentName: r.parentName,
-          parentPhone: r.parentPhone,
-          feePeriod: r.feePeriod,
-          status: r.status,
-        }));
-
-        return {
-          success: true,
-          conversationId,
-          message: cleanMsg,
-          transcription,
-          analyzedDocument: analyzedDoc,
-          imageUrl: uploadedImageUrl,
-          executedTool: "get_payments",
-          widget: {
-            type: "unpaid_tuition",
-            data: {
-              totalOutstanding: out.totalOutstanding || 0,
-              unpaidCount: out.unpaidCount || (out.records ? out.records.length : 0),
-              students,
-            },
-          },
-          followUpSuggestions: ["Caisse du jour 💰", "Absences 📋", "Planning ⏰"],
-        };
-      }
-    } catch (e) {
-      console.warn("[MobileAgent] Fast-path impayes error:", e);
-    }
-  }
-
-  if (CAISSE_REGEX.test(msgLower)) {
-    await input.onStatusUpdate?.({ step: "Calcul de la caisse du jour...", tool: "get_daily_caisse" });
-    try {
-      const { getDailyCaisseTool } = await import("@/lib/telegram/tools/financeTools");
-      const out = (await getDailyCaisseTool({ date: "today" }, context)) as any;
-      if (out?.summary || out?.formattedText) {
-        const numIncomes = typeof out.summary?.totalIncomes === "number" ? out.summary.totalIncomes : parseFloat(String(out.summary?.totalIncomes || 0).replace(/[^0-9.-]/g, "")) || 0;
-        const numExpenses = typeof out.summary?.totalExpenses === "number" ? out.summary.totalExpenses : parseFloat(String(out.summary?.totalExpenses || 0).replace(/[^0-9.-]/g, "")) || 0;
-        const numNet = typeof out.summary?.netCashBalance === "number" ? out.summary.netCashBalance : parseFloat(String(out.summary?.netCashBalance || 0).replace(/[^0-9.-]/g, "")) || 0;
-
-        const cleanMsg = `💰 **Point de caisse d'aujourd'hui (${out.date || "ce jour"}) :**\n\n` +
-          `• **Recettes :** \`${numIncomes} DT\` (${out.summary?.paymentsCount || 0} règlements)\n` +
-          `• **Dépenses :** \`${numExpenses} DT\` (${out.summary?.expensesCount || 0} sorties)\n` +
-          `• **Solde net en caisse :** **\`${numNet} DT\`**` +
-          (out.summary?.absencesCount !== undefined ? `\n\n📋 **Absences du jour :** ${out.summary.absencesCount} élève(s)` : "");
-
-        await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: cleanMsg },
-        });
-
-        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        await input.onTokenDelta?.(cleanMsg);
-
-        return {
-          success: true,
-          conversationId,
-          message: cleanMsg,
-          transcription,
-          analyzedDocument: analyzedDoc,
-          imageUrl: uploadedImageUrl,
-          executedTool: "get_daily_caisse",
-          widget: {
-            type: "caisse",
-            data: {
-              date: out.date || new Date().toLocaleDateString("fr-FR"),
-              totalIncomes: numIncomes,
-              totalExpenses: numExpenses,
-              netCashBalance: numNet,
-              paymentsCount: out.summary?.paymentsCount || 0,
-              expensesCount: out.summary?.expensesCount || 0,
-            },
-          },
-          followUpSuggestions: ["Impayés du mois 💳", "Absences 📋", "Dépenses 💸"],
-        };
-      }
-    } catch (e) {
-      console.warn("[MobileAgent] Fast-path caisse error:", e);
-    }
-  }
-
-  if (RECEIPT_REGEX.test(msgLower) && !msgLower.includes("dépense") && !msgLower.includes("depense")) {
-    await input.onStatusUpdate?.({ step: "Génération de la quittance PDF...", tool: "get_payment_receipt" });
-    try {
-      const { getPaymentReceiptTool } = await import("@/lib/telegram/tools/documentTools");
-      const cleanTarget = effectiveUserMessage
-        .replace(/(génère|donne|crée|imprime|télécharge|telecharge|le|reçu|quittance|facture|de|paiement|pour|svp|merci|\bDT\b|\d+)/gi, " ")
-        .trim();
-      const out = (await getPaymentReceiptTool({ studentNameOrId: cleanTarget || effectiveUserMessage }, context)) as any;
-      if (out?.success && out?.data) {
-        const cleanMsg = cleanTelegramFormattingForMobile(out.message);
-        await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: cleanMsg },
-        });
-
-        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        await input.onTokenDelta?.(cleanMsg);
-
-        return {
-          success: true,
-          conversationId,
-          message: cleanMsg,
-          transcription,
-          analyzedDocument: analyzedDoc,
-          imageUrl: uploadedImageUrl,
-          executedTool: "get_payment_receipt",
-          widget: {
-            type: "pdf_receipt",
-            data: out.data,
-          },
-          followUpSuggestions: ["Caisse du jour 💰", "Impayés du mois 💳", "Absences 📋"],
-        };
-      }
-    } catch (e) {
-      console.warn("[MobileAgent] Fast-path receipt error:", e);
-    }
-  }
-
-  if (ABSENCES_REGEX.test(msgLower)) {
-    await input.onStatusUpdate?.({ step: "Consultation des absences du jour...", tool: "get_attendance" });
-    try {
-      const { getAttendanceTool } = await import("@/lib/telegram/tools/readTools");
-      const out = (await getAttendanceTool({}, context)) as any;
-      if (out?.formattedText) {
-        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
-        await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: cleanMsg },
-        });
-
-        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        await input.onTokenDelta?.(cleanMsg);
-
-        return {
-          success: true,
-          conversationId,
-          message: cleanMsg,
-          transcription,
-          analyzedDocument: analyzedDoc,
-          imageUrl: uploadedImageUrl,
-          executedTool: "get_attendance",
-          followUpSuggestions: ["Notifier les parents 📢", "Caisse du jour 💰", "Emploi du temps ⏰"],
-        };
-      }
-    } catch (e) {
-      console.warn("[MobileAgent] Fast-path absences error:", e);
-    }
-  }
-
-  if (STATS_REGEX.test(msgLower)) {
-    await input.onStatusUpdate?.({ step: "Calcul des statistiques scolaires...", tool: "get_school_stats" });
-    try {
-      const { getSchoolStatsTool } = await import("@/lib/telegram/tools/readTools");
-      const out = (await getSchoolStatsTool({}, context)) as any;
-      if (out?.formattedText) {
-        const cleanMsg = cleanTelegramFormattingForMobile(out.formattedText);
-        await prisma.aIMessage.create({
-          data: { conversationId, role: "assistant", content: cleanMsg },
-        });
-
-        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        await input.onTokenDelta?.(cleanMsg);
-
-        return {
-          success: true,
-          conversationId,
-          message: cleanMsg,
-          transcription,
-          analyzedDocument: analyzedDoc,
-          imageUrl: uploadedImageUrl,
-          executedTool: "get_school_stats",
-          followUpSuggestions: ["Caisse du jour 💰", "Absences 📋"],
-        };
-      }
-    } catch (e) {
-      console.warn("[MobileAgent] Fast-path stats error:", e);
-    }
+  if (exactRead) {
+    await input.onStatusUpdate?.({ step: verifying ? "Nouvelle vérification en base..." : "Consultation des données...", tool: exactRead.name });
+    const fresh = await executeFreshSchoolRead(exactRead.name, exactRead.args, context, conversationId);
+    const message = (verifying && fresh.success ? "**Nouvelle vérification en base effectuée.**\n\n" : "") + fresh.message;
+    await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message } });
+    await input.onTokenDelta?.(message);
+    return { success: true, conversationId, message, transcription, executedTool: exactRead.name, followUpSuggestions: [] };
   }
 
   // 7. Resolve school knowledge / teachings
@@ -995,7 +696,7 @@ Instructions :
         const streamed = await chat.sendMessageStream(parts, requestOptions);
         for await (const chunk of streamed.stream) {
           const delta = chunk.text();
-          if (delta) {
+          if (delta && !needsFreshSchoolData(effectiveUserMessage)) {
             streamedAnyToken = true;
             await input.onTokenDelta(delta);
           }
@@ -1006,6 +707,16 @@ Instructions :
       let candidate = response.response;
 
       let functionCalls = candidate.functionCalls();
+      if (needsFreshSchoolData(effectiveUserMessage) && !functionCalls?.length) {
+        const grounded = await sendMessage([{ text: "Cette question demande des données actuelles de l'école. Consulte obligatoirement un outil autorisé, en conservant la classe, les dates et les personnes demandées. Si le filtre est ambigu, demande une précision sans annoncer de chiffres." }]);
+        candidate = grounded.response;
+        functionCalls = candidate.functionCalls();
+        if (!functionCalls?.length) {
+          const message = "Je n'ai pas pu vérifier ces données en base. Précisez la classe, la personne ou la période à consulter pour obtenir un résultat vérifié.";
+          await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message } });
+          return { success: true, conversationId, message };
+        }
+      }
       let lastExecutedTool: string | undefined;
       let finalReply: string | undefined;
       let pendingConfirmation: MobileAgentResponse["pendingConfirmation"] = null;
@@ -1113,6 +824,16 @@ Instructions :
           };
         }
 
+        if (functionCalls.length > 1) {
+          if (functionCalls.length > 10) {
+            finalReply = "Cette demande comporte trop de consultations à la fois. Précisez les catégories prioritaires pour que je vérifie chaque résultat.";
+            break;
+          }
+          const results = await Promise.all(functionCalls.map(c => executeFreshSchoolRead(c.name, (c.args || {}) as Record<string, any>, context, conversationId)));
+          finalReply = results.map(result => result.message).join("\n\n---\n\n");
+          break;
+        }
+
         // Read-only or instant tool
         lastExecutedTool = toolName;
         let toolOutput: any;
@@ -1120,11 +841,8 @@ Instructions :
         if (executedToolResults.has(cacheKey)) {
           toolOutput = executedToolResults.get(cacheKey);
         } else {
-          try {
-            toolOutput = await toolDef.execute(toolArgs, context);
-          } catch (err: any) {
-            toolOutput = { error: true, message: err.message || "Erreur d'exécution" };
-          }
+          const fresh = await executeFreshSchoolRead(toolName, toolArgs, context, conversationId);
+          toolOutput = fresh.output;
           executedToolResults.set(cacheKey, toolOutput);
         }
 
@@ -1158,30 +876,13 @@ Instructions :
               unpaidStudentsCount: toolOutput.unpaidStudentsCount || 0,
             },
           };
-        } else if (toolName === "get_student_profile" && toolOutput?.student) {
-          const st = toolOutput.student;
-          detectedWidget = {
-            type: "student_card",
-            data: {
-              id: st.id,
-              name: `${st.name} ${st.surname}`.trim(),
-              className: st.class?.name || "Non assignée",
-              levelName: st.level?.name || "Standard",
-              parentName: st.parent ? `${st.parent.name} ${st.parent.surname}`.trim() : "Non renseigné",
-              parentPhone: st.parent?.phone || null,
-              attendanceRate: st.attendanceRate || "100%",
-              paymentStatus: st.paymentStatus || "PAID",
-              tuitionFee: st.tuitionFee || 0,
-              averageGrade: st.averageGrade,
-            },
-          };
         } else if ((toolName === "get_attendance" || toolName === "mark_class_attendance") && toolOutput) {
           detectedWidget = {
             type: "attendance_card",
             data: {
               date: toolOutput.date || new Date().toISOString().split("T")[0],
               className: toolOutput.className || "Toute l'école",
-              attendanceRate: toolOutput.summary?.attendanceRate || toolOutput.attendanceRate || "100%",
+              attendanceRate: toolOutput.summary?.attendanceRate || toolOutput.attendanceRate || "Non disponible",
               totalEnrolled: toolOutput.totalEnrolled || toolOutput.summary?.totalInscrits || 0,
               presentCount: toolOutput.summary?.presentCount ?? toolOutput.presentCount ?? 0,
               absentCount: toolOutput.summary?.absentCount ?? toolOutput.absentCount ?? 0,
@@ -1201,7 +902,7 @@ Instructions :
                   studentId: r.studentId || r.id,
                   studentName: r.studentName || `${r.name || ""} ${r.surname || ""}`.trim(),
                   className: r.class || r.className,
-                  dueAmount: r.dueAmount || r.tuitionFee || 0,
+                  dueAmount: r.dueAmount ?? r.tuitionFee ?? 0,
                   parentName: r.parentName,
                   parentPhone: r.parentPhone,
                   feePeriod: r.feePeriod,
@@ -1217,90 +918,12 @@ Instructions :
           };
         }
 
-        prisma.aIToolCall.create({
-          data: {
-            conversationId,
-            toolName,
-            arguments: toolArgs,
-            result: toolOutput,
-            status: toolOutput?.error ? "FAILED" : "EXECUTED",
-            executedAt: new Date(),
-          },
-        }).catch(() => null);
+        finalReply = formatSchoolRead(toolName, toolOutput);
+        break;
+      }
 
-        // Fast direct synthesis for Mobile (ZERO 2nd LLM round-trip)
-        if (toolName === "get_daily_caisse" && toolOutput?.summary) {
-          const s = toolOutput.summary;
-          finalReply = `💰 **Point de caisse du ${toolOutput.date || "jour"}**\n\n` +
-            `• **Recettes encaissées :** \`${s.totalIncomes}\` (${s.paymentsCount} règlements)\n` +
-            `• **Dépenses sorties :** \`${s.totalExpenses}\` (${s.expensesCount} dépenses)\n` +
-            `• **Solde net en caisse :** **\`${s.netCashBalance}\`**` +
-            (s.absencesCount !== undefined ? `\n\n📋 **Absences du jour :** ${s.absencesCount} élève(s) (${s.unexcusedAbsencesCount || 0} non justifié(s)).` : "");
-          break;
-        }
-
-        if ((toolName === "get_payments" || toolName === "get_financial_anomalies") && (toolOutput?.records || toolOutput?.unpaidStudents)) {
-          const records = toolOutput.records || toolOutput.unpaidStudents || [];
-          const count = toolOutput.unpaidCount || records.length;
-          const totalStr = toolOutput.totalOutstanding ? ` pour un total de **\`${toolOutput.totalOutstanding} DT\`**` : "";
-          const list = records.slice(0, 8).map((r: any) =>
-            `• **${r.studentName || r.name}** (${r.class || r.className}) — \`${r.dueAmount || r.tuitionFee} DT\` *(${r.feePeriod || ""})*`
-          ).join("\n");
-          finalReply = `💳 **Suivi des impayés :** ${count} élève(s)${totalStr} :\n\n${list}${count > 8 ? `\n\n*... et ${count - 8} autre(s) élève(s).*` : ""}`;
-          break;
-        }
-
-        if (toolName === "get_attendance" && toolOutput) {
-          finalReply = toolOutput.formattedText
-            ? cleanTelegramFormattingForMobile(toolOutput.formattedText)
-            : `📋 **Présences du jour :**\n\n• **Taux de présence :** ${toolOutput.attendanceRate || "100%"}\n• **Total absents :** ${toolOutput.totalAbsents || 0} élève(s)\n• **Retards :** ${toolOutput.totalLate || 0} élève(s)`;
-          break;
-        }
-
-        if (toolName === "get_student_profile" && toolOutput?.student) {
-          const st = toolOutput.student;
-          finalReply = `👤 **Fiche Élève : ${st.name} ${st.surname}**\n\n` +
-            `• **Classe :** ${st.class?.name || "Non assignée"}\n` +
-            `• **Statut :** \`${st.paymentStatus || "À jour"}\`\n` +
-            `• **Parent :** ${st.parent ? `${st.parent.name} ${st.parent.surname} (📞 ${st.parent.phone})` : "Non renseigné"}\n` +
-            `• **Moyenne :** ${st.averageGrade !== undefined ? `${st.averageGrade}/20` : "Non calculée"}`;
-          break;
-        }
-
-        if (toolName === "get_school_stats" && toolOutput) {
-          finalReply = toolOutput.formattedText
-            ? cleanTelegramFormattingForMobile(toolOutput.formattedText)
-            : `📊 **Statistiques de l'établissement :**\n\n• **Élèves inscrits :** ${toolOutput.totalStudents || 0}\n• **Enseignants :** ${toolOutput.totalTeachers || 0}\n• **Classes :** ${toolOutput.totalClasses || 0}`;
-          break;
-        }
-
-        if (toolOutput?.message && !toolOutput?.error) {
-          finalReply = cleanTelegramFormattingForMobile(toolOutput.message);
-          break;
-        }
-
-        if (toolOutput?.formattedText) {
-          finalReply = cleanTelegramFormattingForMobile(toolOutput.formattedText);
-          break;
-        }
-
-        // Synthesize via Gemini (fallback only if unformatted custom tool output)
-        await input.onStatusUpdate?.({ step: "Rédaction de la réponse..." });
-        
-        let toolResponse = await sendMessage([
-          {
-            text: `[DONNÉES SYSTÈME POUR ${toolName.toUpperCase()}] :\n${JSON.stringify(
-              toolOutput
-            )}\n\nPrésente ces données à l'administrateur sous forme claire et scannable optimisée pour l'écran mobile :
-- Utilise le format Markdown avec **gras**, listes à puces et tableaux si nécessaire.
-- Zéro jargon technique ou ID UUID.
-- Termine par un conseil Hnia si pertinent.`,
-          },
-        ]);
-        
-        response = toolResponse;
-        candidate = response.response;
-        functionCalls = candidate.functionCalls();
+    if (!finalReply && needsFreshSchoolData(effectiveUserMessage)) {
+        finalReply = "Je n’ai pas obtenu de données vérifiées pour cette demande. Précisez le filtre ou réessayez la consultation.";
       }
 
     if (!finalReply) {

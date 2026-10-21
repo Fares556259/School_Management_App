@@ -1,3 +1,4 @@
+import { schoolDate, schoolDayRange, schoolMonth, tuitionBalance, roundMoney } from "@/lib/agent/dataAccuracy";
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
@@ -22,10 +23,12 @@ export async function getStudentsTool(
     query?: string;
     className?: string;
     limit?: number;
+    offset?: number;
   },
   context: ToolContext
 ) {
-  const limit = Math.min(args.limit || 50, 100);
+  const limit = Math.max(1, Math.min(Number.isInteger(args.limit) ? args.limit! : 100, 100));
+  const offset = Math.max(0, Number.isInteger(args.offset) ? args.offset! : 0);
   const where: any = {
     schoolId: context.schoolId,
   };
@@ -35,12 +38,7 @@ export async function getStudentsTool(
     if (matched) {
       where.classId = matched.id;
     } else {
-      where.class = {
-        name: {
-          contains: args.className.trim(),
-          mode: "insensitive",
-        },
-      };
+      throw new Error(`Classe « ${args.className} » introuvable ou ambiguë. Précisez son nom exact.`);
     }
   }
 
@@ -50,6 +48,7 @@ export async function getStudentsTool(
     where.OR = [
       ...nameConds,
       { username: { contains: q, mode: "insensitive" } },
+      { phone: { contains: q, mode: "insensitive" } },
       {
         parent: {
           OR: nameConds,
@@ -63,12 +62,14 @@ export async function getStudentsTool(
     prisma.student.findMany({
       where,
       take: limit,
-      orderBy: { name: "asc" },
+      skip: offset,
+      orderBy: [{ name: "asc" }, { id: "asc" }],
       select: {
         id: true,
         name: true,
         surname: true,
         phone: true,
+        customTuition: true,
         class: {
           select: { id: true, name: true },
         },
@@ -99,18 +100,25 @@ export async function getStudentsTool(
         fullName: `${topCandidate.name} ${topCandidate.surname}`,
         class: topCandidate.class?.name || "Sans classe",
         parent: topCandidate.parent ? `${topCandidate.parent.name} ${topCandidate.parent.surname} (${topCandidate.parent.phone})` : null,
-        tuitionFee: `${topCandidate.level.tuitionFee} DT`,
+        tuitionFee: `${topCandidate.customTuition ?? topCandidate.level?.tuitionFee ?? 450} DT`,
       }
     : null;
 
   return {
     total: totalCount,
     returned: sortedStudents.length,
+    offset,
+    hasMore: offset + sortedStudents.length < totalCount,
+    nextOffset: offset + sortedStudents.length < totalCount ? offset + sortedStudents.length : null,
+    source: "school_database",
+    fetchedAt: new Date().toISOString(),
+    filters: { className: args.className || null, query: args.query || null },
+    formattedText: `**Élèves${args.className ? ` — classe ${args.className}` : ""} : ${totalCount} au total**\n\n` + sortedStudents.map((student,index) => `${offset+index+1}. **${student.name} ${student.surname}** — ${student.class?.name || "Sans classe"}`).join("\n") + `\n\n**${sortedStudents.length} affiché(s) sur ${totalCount}**${offset+sortedStudents.length<totalCount ? " — dites « page suivante » pour continuer." : " — liste complète pour ce filtre, vérifiée en base."}`,
     exactMatch,
     students: sortedStudents.map((s) => ({
       fullName: `${s.name} ${s.surname}`,
       class: s.class?.name || "Sans classe",
-      tuitionFee: `${s.level.tuitionFee} DT`,
+      tuitionFee: `${s.customTuition ?? s.level?.tuitionFee ?? 450} DT`,
       parent: s.parent ? `${s.parent.name} ${s.parent.surname} (${s.parent.phone})` : null,
     })),
   };
@@ -121,132 +129,47 @@ export async function getStudentsTool(
  * Query attendance for a specific date (or today), class, or status (e.g. absent).
  */
 export async function getAttendanceTool(
-  args: {
-    date?: string; // "YYYY-MM-DD"
-    className?: string;
-    status?: "ABSENT" | "PRESENT" | "LATE";
-  },
+  args: { date?: string; className?: string; status?: "ABSENT" | "PRESENT" | "LATE" },
   context: ToolContext
 ) {
-  // Parse date or default to today in school timezone
-  let targetDate = new Date();
-  if (args.date) {
-    const parsed = new Date(args.date);
-    if (!isNaN(parsed.getTime())) {
-      targetDate = parsed;
-    }
-  }
-
-  const startOfDay = new Date(targetDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(targetDate);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const where: any = {
-    schoolId: context.schoolId,
-    date: {
-      gte: startOfDay,
-      lte: endOfDay,
-    },
-  };
-
-  if (args.status) {
-    where.status = args.status;
-  }
-
-  let totalEnrolled: number | undefined;
-  let targetClass: any = null;
-
+  const date = args.date || schoolDate();
+  const day = schoolDayRange(date);
+  let targetClass = null;
   if (args.className) {
     targetClass = await resolveClassByName(context.schoolId, args.className);
-    if (targetClass) {
-      where.student = { classId: targetClass.id };
-      totalEnrolled = await prisma.student.count({
-        where: { schoolId: context.schoolId, classId: targetClass.id },
-      });
-    } else {
-      where.student = {
-        class: {
-          name: {
-            contains: args.className.trim(),
-            mode: "insensitive",
-          },
-        },
-      };
-    }
-  } else {
-    // No class filter — count ALL students for accurate school-wide attendance rate.
-    // (records have take:60 limit, so we can't use records.length as the total)
-    totalEnrolled = await prisma.student.count({
-      where: { schoolId: context.schoolId },
-    });
+    if (!targetClass) throw new Error(`Classe « ${args.className} » introuvable ou ambiguë.`);
   }
-
-  const records = await prisma.attendance.findMany({
-    where,
-    take: 60,
-    orderBy: { date: "desc" },
-    select: {
-      id: true,
-      status: true,
-      note: true,
-      date: true,
-      student: {
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          class: { select: { name: true } },
-          parent: { select: { phone: true, name: true } },
-        },
+  const where: any = { schoolId: context.schoolId, date: day, student: { schoolId: context.schoolId, ...(targetClass ? { classId: targetClass.id } : {}) } };
+  const [totalEnrolled, allStatuses, records] = await Promise.all([
+    prisma.student.count({ where: { schoolId: context.schoolId, ...(targetClass ? { classId: targetClass.id } : {}) } }),
+    prisma.attendance.groupBy({ by: ["studentId", "status"], where, _count: { _all: true } }),
+    prisma.attendance.findMany({
+      where: { ...where, ...(args.status ? { status: args.status } : { status: { in: ["ABSENT", "LATE"] } }) },
+      take: 100, orderBy: [{ date: "desc" }, { id: "asc" }],
+      select: { id: true, status: true, note: true, date: true,
+        student: { select: { id: true, name: true, surname: true, class: { select: { name: true } }, parent: { select: { phone: true, name: true } } } },
+        lesson: { select: { name: true, subject: { select: { name: true } } } },
       },
-      lesson: {
-        select: {
-          name: true,
-          subject: { select: { name: true } },
-        },
-      },
-    },
-  });
-
-  const absents = records.filter((r) => r.status === "ABSENT");
-  const lates = records.filter((r) => r.status === "LATE");
-  const presents = records.filter((r) => r.status === "PRESENT");
-
-  const absentCount = absents.length;
-  const lateCount = lates.length;
-  const presentCount =
-    totalEnrolled !== undefined ? Math.max(0, totalEnrolled - absentCount - lateCount) : presents.length;
-  const attendanceRate =
-    totalEnrolled && totalEnrolled > 0
-      ? `${Math.round((presentCount / totalEnrolled) * 100)}%`
-      : records.length > 0
-      ? `${Math.round(((records.length - absentCount) / records.length) * 100)}%`
-      : "100%";
-
-  return {
-    date: startOfDay.toISOString().split("T")[0],
-    className: targetClass?.name || args.className || "Toute l'école",
-    totalEnrolled: totalEnrolled !== undefined ? totalEnrolled : records.length,
-    summary: {
-      totalInscrits: totalEnrolled !== undefined ? totalEnrolled : records.length,
-      presentCount,
-      absentCount,
-      lateCount,
-      attendanceRate,
-    },
-    absentStudents: absents.map((r) => ({
-      name: `${r.student.name} ${r.student.surname}`,
-      class: r.student.class?.name || "N/A",
-      lesson: r.lesson?.name || r.lesson?.subject.name || "Séance",
-      parentPhone: r.student.parent?.phone || null,
-      note: r.note || null,
-    })),
-    lateStudents: lates.map((r) => ({
-      name: `${r.student.name} ${r.student.surname}`,
-      class: r.student.class?.name || "N/A",
-      note: r.note || null,
-    })),
+    }),
+  ]);
+  const students = new Map<string, string>();
+  const priority: Record<string,number> = { PRESENT: 1, LATE: 2, ABSENT: 3 };
+  for (const row of allStatuses) if ((priority[row.status] || 0) > (priority[students.get(row.studentId) || ""] || 0)) students.set(row.studentId,row.status);
+  const counts = { PRESENT: 0, ABSENT: 0, LATE: 0 };
+  for (const status of students.values()) counts[status as keyof typeof counts]++;
+  const unrecordedCount = Math.max(0,totalEnrolled-students.size);
+  const attendanceRate = students.size ? `${Math.round((counts.PRESENT+counts.LATE)/students.size*100)}%` : "Non disponible";
+  const mapStudent = (record: any) => ({ name: `${record.student.name} ${record.student.surname}`, class: record.student.class?.name || "Sans classe", lesson: record.lesson?.name || record.lesson?.subject?.name || "Séance", parentPhone: record.student.parent?.phone || null, note: record.note || null });
+  const detailsCount = allStatuses.filter(row => args.status ? row.status === args.status : row.status !== "PRESENT").reduce((sum,row)=>sum+row._count._all,0);
+  const formattedText = `**Présences — ${date}${targetClass ? ` · ${targetClass.name}` : ""}**\n\n` +
+    `• Élèves inscrits : **${totalEnrolled}**\n• Présents sans retard : **${counts.PRESENT}**\n• Absents signalés : **${counts.ABSENT}**\n• Retards signalés : **${counts.LATE}**\n• Sans appel enregistré : **${unrecordedCount}**\n• Présence parmi les élèves avec appel : **${attendanceRate}**\n\n` +
+    "Un élève est compté une seule fois, même avec plusieurs séances. Une absence dans une séance prime sur un retard ou une présence.\n" +
+    (records.length ? "\n"+records.map(record=>`• ${mapStudent(record).name} — ${record.status} (${mapStudent(record).lesson})`).join("\n") : "\nAucun détail correspondant.") +
+    (detailsCount>records.length ? `\n\n${records.length} enregistrements affichés sur ${detailsCount}. Les totaux incluent tous les appels.` : "");
+  return { date, className: targetClass?.name || "Toute l’école", totalEnrolled, source: "school_database", fetchedAt: new Date().toISOString(),
+    summary: { totalInscrits: totalEnrolled, presentCount: counts.PRESENT, absentCount: counts.ABSENT, lateCount: counts.LATE, unrecordedCount, attendanceRate },
+    absentStudents: records.filter(record=>record.status==="ABSENT").map(mapStudent), lateStudents: records.filter(record=>record.status==="LATE").map(mapStudent),
+    returned: records.length, totalRecords: detailsCount, hasMore: detailsCount>records.length, formattedText,
   };
 }
 
@@ -267,8 +190,7 @@ export async function getPaymentsTool(
   context: ToolContext
 ) {
   const now = new Date();
-  const month = args.month || now.getMonth() + 1;
-  const year = args.year || now.getFullYear();
+  const { month, year } = schoolMonth(args.month, args.year);
 
   // 1. Build filter for students
   const studentWhere: any = {
@@ -280,9 +202,7 @@ export async function getPaymentsTool(
     if (matched) {
       studentWhere.classId = matched.id;
     } else {
-      studentWhere.class = {
-        name: { contains: args.className.trim(), mode: "insensitive" },
-      };
+      throw new Error(`Classe « ${args.className} » introuvable ou ambiguë. Précisez son nom exact.`);
     }
   }
 
@@ -332,7 +252,7 @@ export async function getPaymentsTool(
         where: {
           month,
           year,
-          userType: "STUDENT",
+          userType: { equals: "STUDENT", mode: "insensitive" },
         },
         select: {
           id: true,
@@ -356,9 +276,9 @@ export async function getPaymentsTool(
   let totalOutstanding = 0;
 
   for (const s of students) {
-    const tuitionFee = s.customTuition || s.level?.tuitionFee || 450;
-    const payment = s.payments?.[0]; // One payment record per student/month/year
-
+    const payment = s.payments?.[0];
+    const balance = tuitionBalance(s, payment);
+    const tuitionFee = balance.fee;
     const baseInfo = {
       studentId: s.id,
       studentName: `${s.name} ${s.surname}`.trim(),
@@ -371,53 +291,17 @@ export async function getPaymentsTool(
       feePeriod: `${MONTHS[month - 1] || month} ${year}`,
     };
 
-    if (!payment) {
-      // 0 DT paid - Completely Unpaid!
-      unpaidStudents.push({
-        ...baseInfo,
-        status: "UNPAID",
-        paidAmount: 0,
-        dueAmount: tuitionFee,
-        paidAt: null,
-      });
-      totalOutstanding += tuitionFee;
-    } else if (payment.status === "PAID") {
-      paidStudents.push({
-        ...baseInfo,
-        paymentId: payment.id,
-        status: "PAID",
-        paidAmount: payment.amount,
-        dueAmount: 0,
-        paidAt: payment.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
-      });
-      totalCollected += payment.amount;
-    } else if (payment.status === "PARTIAL") {
-      const remaining = payment.deferredAmount || Math.max(0, tuitionFee - payment.amount);
-      partialStudents.push({
-        ...baseInfo,
-        paymentId: payment.id,
-        status: "PARTIAL",
-        paidAmount: payment.amount,
-        dueAmount: remaining,
-        paidAt: payment.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
-      });
-      totalCollected += payment.amount;
-      totalOutstanding += remaining;
-    } else {
-      // PENDING / OVERDUE
-      const remaining = payment.deferredAmount || payment.amount || tuitionFee;
-      unpaidStudents.push({
-        ...baseInfo,
-        paymentId: payment.id,
-        status: payment.status,
-        paidAmount: payment.amount || 0,
-        dueAmount: remaining,
-        paidAt: payment.paidAt ? payment.paidAt.toISOString().split("T")[0] : null,
-      });
-      totalOutstanding += remaining;
-    }
+    const row = { ...baseInfo, paymentId: payment?.id, paidAmount: balance.received, dueAmount: balance.due,
+      paidAt: payment?.paidAt ? payment.paidAt.toISOString().split("T")[0] : null };
+    if (balance.due === 0) paidStudents.push({ ...row, status: "PAID" });
+    else if (balance.received > 0) partialStudents.push({ ...row, status: "PARTIAL" });
+    else unpaidStudents.push({ ...row, status: payment?.status || "UNPAID" });
+    totalCollected += balance.received;
+    totalOutstanding += balance.due;
   }
 
+  totalCollected = roundMoney(totalCollected);
+  totalOutstanding = roundMoney(totalOutstanding);
   const requestedStatus = (args.status || "").toUpperCase();
   let returnRecords: any[] = [];
 
@@ -446,19 +330,11 @@ export async function getPaymentsTool(
     } else {
       const studentCards = students.map((s) => {
         const payment = s.payments?.[0];
-        const fee = s.customTuition || s.level?.tuitionFee || 450;
-        let statusBadge = "🔴 NON PAYÉ (0 DT)";
-        let paidAmt = 0;
-        let dueAmt = fee;
-        if (payment?.status === "PAID") {
-          statusBadge = "🟢 PAYÉ (Soldé)";
-          paidAmt = payment.amount;
-          dueAmt = 0;
-        } else if (payment?.status === "PARTIAL") {
-          paidAmt = payment.amount;
-          dueAmt = payment.deferredAmount || Math.max(0, fee - payment.amount);
-          statusBadge = `🟡 PARTIEL (Reste ${dueAmt} DT)`;
-        }
+        const fee = tuitionBalance(s).fee;
+        const balance = tuitionBalance(s,payment);
+        const paidAmt = balance.received;
+        const dueAmt = balance.due;
+        const statusBadge = dueAmt === 0 ? "🟢 À JOUR (Soldé)" : paidAmt > 0 ? `🟡 PARTIEL (Reste ${dueAmt} DT)` : "🔴 NON PAYÉ (0 DT)";
         const parentPhoneFormatted = s.parent?.phone ? `\n  └ 📞 +216 ${s.parent.phone.replace(/^\+?216\s*/, "")}` : "";
         const parentInfo = s.parent ? `👤 ${s.parent.name} ${s.parent.surname}${parentPhoneFormatted}` : "Non renseigné";
 
@@ -515,6 +391,11 @@ export async function getPaymentsTool(
   return {
     month,
     year,
+    totalOutstanding,
+    unpaidCount: totalOwingCount,
+    returned: returnRecords.length,
+    source: "school_database",
+    fetchedAt: new Date().toISOString(),
     feePeriod: `${MONTHS[month - 1] || month} ${year}`,
     feePeriodFrench: formatMonthFrench(`${MONTHS[month - 1] || month} ${year}`),
     totalStudents: students.length,
@@ -572,11 +453,9 @@ export async function getFinancialSummaryTool(
   context: ToolContext
 ) {
   const now = new Date();
-  const month = args.month || now.getMonth() + 1;
-  const year = args.year || now.getFullYear();
+  const { month, year } = schoolMonth(args.month, args.year);
 
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 1);
+  const { gte: startDate, lt: endDate } = schoolMonth(month,year).range;
 
   const [incomes, expenses, allStudents] = await Promise.all([
     prisma.income.aggregate({
@@ -616,23 +495,12 @@ export async function getFinancialSummaryTool(
   let unpaidTuition = 0;
   let unpaidStudentsCount = 0;
 
-  for (const s of allStudents) {
-    const fee = s.customTuition || s.level?.tuitionFee || 450;
-    const payment = s.payments?.[0];
-
-    if (!payment) {
-      unpaidTuition += fee;
-      unpaidStudentsCount++;
-    } else if (payment.status === "PARTIAL") {
-      const remaining = payment.deferredAmount || Math.max(0, fee - payment.amount);
-      unpaidTuition += remaining;
-      unpaidStudentsCount++;
-    } else if (payment.status === "PENDING" || payment.status === "OVERDUE") {
-      const remaining = payment.deferredAmount || payment.amount || fee;
-      unpaidTuition += remaining;
-      unpaidStudentsCount++;
-    }
+  for (const student of allStudents) {
+    const due = tuitionBalance(student,student.payments?.[0]).due;
+    unpaidTuition += due;
+    if (due > 0) unpaidStudentsCount++;
   }
+  unpaidTuition = roundMoney(unpaidTuition);
 
   // Top expense categories
   const expenseCategories = await prisma.expense.groupBy({
@@ -658,6 +526,9 @@ export async function getFinancialSummaryTool(
   return {
     period: `${month}/${year}`,
     periodFrench,
+    source: "school_database",
+    fetchedAt: new Date().toISOString(),
+    incomeCount: incomes._count.id,
     totalIncome,
     totalExpense,
     netProfit,
@@ -740,7 +611,6 @@ export async function getTeachersTool(
     prisma.teacher.count({ where }),
     prisma.teacher.findMany({
       where,
-      take: 100,
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -753,7 +623,7 @@ export async function getTeachersTool(
         subjects: { select: { id: true, name: true } },
         classes: { select: { id: true, name: true } },
         payments: {
-          where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: "TEACHER" },
+          where: { schoolId: context.schoolId, month: targetMonth, year: targetYear, userType: { equals: "TEACHER", mode: "insensitive" } },
           select: { id: true, amount: true, status: true, missedHours: true, paidAt: true, month: true, year: true },
         },
       },

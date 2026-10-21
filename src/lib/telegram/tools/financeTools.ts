@@ -1,3 +1,4 @@
+import { schoolDate, schoolDayRange, schoolMonth } from "@/lib/agent/dataAccuracy";
 import prisma from "@/lib/prisma";
 import { processPaymentReminders, sendMobileMessageToParents } from "@/lib/notifications";
 import { ToolContext } from "./readTools";
@@ -434,26 +435,14 @@ export async function getPartialPaymentsTool(
   let filtered = processed;
   let statusNote: string | undefined;
 
-  if (args.status && args.status !== "all") {
-    const matched = processed.filter((item) => item.dueStatus === args.status);
-    if (matched.length > 0) {
-      filtered = matched;
-    } else {
-      // In recovery management, admins colloquially say "en retard" for any unpaid tuition balance.
-      // If 0 dossiers have an exceeded promised calendar deadline (e.g. deadlines are unscheduled),
-      // do not hide the recovery queue! Return all active partial dossiers (Total: 547 DT) with an explanatory note.
-      filtered = processed;
-      if (args.status === "overdue") {
-        statusNote = "Aucune date promise n'est dépassée (0 reliquats au calendrier échu), mais voici l'ensemble des dossiers partiels en attente de recouvrement.";
-      }
-    }
-  }
+  if (args.status && args.status !== "all") filtered = processed.filter(item => item.dueStatus === args.status);
+  const filteredPending = filtered.reduce((sum,item)=>sum+item.remainingGap,0);
 
   let itemsText = "";
   if (filtered.length === 0) {
     itemsText = "<i>Aucun dossier de reliquat en attente.</i>";
   } else {
-    itemsText = filtered.slice(0, 30).map((item) => {
+    itemsText = filtered.map((item) => {
       const parentPhone = item.parentPhone ? ` • 📞 +216 ${item.parentPhone.replace(/^\+?216\s*/, "")}` : "";
       return `• 🟡 <b>${item.studentName}</b> (<code>${item.className}</code>) — Reste <code>${item.remainingGap} DT</code> (Payé <code>${item.paidAmount} DT</code> / <code>${item.totalTuition} DT</code>)\n  📅 ${item.feeMonth} │ ${item.statusBadge}${item.deferredUntil ? ` (Échéance : <code>${item.deferredUntil}</code>)` : ""}\n  👤 Tuteur : ${item.parentName || "N/A"}${parentPhone}`;
     }).join("\n\n");
@@ -461,7 +450,7 @@ export async function getPartialPaymentsTool(
 
   const formattedText = `🏛️ <b>SNAPSCHOOL │ DOSSIERS DE RECOUVREMENT (RELIQUATS)</b>
 ━━━━━━━━━━━━━━━━━━━━━━
-💰 <b>Total à recouvrer :</b> <code>${totalPending} DT</code> (<b>${filtered.length}</b> dossier(s))
+💰 <b>Total à recouvrer :</b> <code>${filteredPending} DT</code> (<b>${filtered.length}</b> dossier(s))
 ${overdueCount > 0 ? `❌ <b>Échus en retard :</b> <code>${overdueAmount} DT</code> (${overdueCount} dossier(s))\n` : ""}${thisMonthCount > 0 ? `⏳ <b>Échéance ce mois :</b> <code>${thisMonthAmount} DT</code> (${thisMonthCount} dossier(s))\n` : ""}${statusNote ? `\nℹ️ <i>${statusNote}</i>\n` : ""}
 ${itemsText}
 
@@ -479,7 +468,10 @@ ${itemsText}
     filterApplied: args.status || "all",
     count: filtered.length,
     statusNote,
-    items: filtered.slice(0, 30),
+    items: filtered,
+    totalOutstanding: filteredPending,
+    returned: filtered.length,
+    hasMore: false,
     formattedText,
   };
 }
@@ -720,16 +712,11 @@ export async function getIncomesTool(
   context: ToolContext
 ) {
   const now = new Date();
-  const month = args.month || now.getMonth() + 1;
-  const year = args.year || now.getFullYear();
+  const { month, year, range: monthRange } = schoolMonth(args.month,args.year);
 
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 1);
+  const { gte: startDate, lt: endDate } = monthRange;
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
+  const todayRange = schoolDayRange();
 
   const where: any = {
     schoolId: context.schoolId,
@@ -749,16 +736,7 @@ export async function getIncomesTool(
 
   let filterDateWhere: any;
   if (args.date) {
-    let target = new Date();
-    if (args.date !== "today") {
-      const p = new Date(args.date);
-      if (!isNaN(p.getTime())) target = p;
-    }
-    const s = new Date(target);
-    s.setHours(0, 0, 0, 0);
-    const e = new Date(target);
-    e.setHours(23, 59, 59, 999);
-    filterDateWhere = { ...where, date: { gte: s, lte: e } };
+    filterDateWhere = { ...where, date: schoolDayRange(args.date === "today" ? schoolDate() : args.date) };
   } else if (queryAllTime) {
     filterDateWhere = where;
   } else {
@@ -777,7 +755,7 @@ export async function getIncomesTool(
       _count: { id: true },
     }),
     prisma.income.aggregate({
-      where: { ...where, date: { gte: startOfToday, lte: endOfToday } },
+      where: { ...where, date: todayRange },
       _sum: { amount: true },
       _count: { id: true },
     }),
@@ -825,6 +803,7 @@ export async function getIncomesTool(
     summary: {
       todayTotal: `${todaySum._sum.amount || 0} DT`,
       selectedTotal: `${dateSum._sum.amount || 0} DT`,
+      selectedCount: dateSum._count.id || 0,
       currentMonthTotal: `${monthSum._sum.amount || 0} DT`,
       currentMonthCount: monthSum._count.id || 0,
       historicalTotal: `${schoolAllTimeSum._sum.amount || 0} DT`,
@@ -938,11 +917,9 @@ export async function getExpensesTool(
 ) {
   const now = new Date();
   const hasExplicitMonth = args.month !== undefined && args.month !== null;
-  const month = args.month || now.getMonth() + 1;
-  const year = args.year || now.getFullYear();
+  const { month, year, range: monthRange } = schoolMonth(args.month,args.year);
 
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 1);
+  const { gte: startDate, lt: endDate } = monthRange;
 
   const baseWhere: any = {
     schoolId: context.schoolId,
@@ -1055,31 +1032,16 @@ export async function getDailyCaisseTool(
   args: { date?: string },
   context: ToolContext
 ) {
-  let targetDate = new Date();
-  if (args.date) {
-    const dLower = args.date.toLowerCase().trim();
-    if (dLower === "today" || dLower === "aujourd'hui" || dLower === "lyoum") {
-      targetDate = new Date();
-    } else if (dLower === "yesterday" || dLower === "hier" || dLower === "bareh") {
-      targetDate = new Date(Date.now() - 86400000);
-    } else {
-      const parsed = new Date(args.date);
-      if (!isNaN(parsed.getTime())) {
-        targetDate = parsed;
-      }
-    }
-  }
-  const startOfDay = new Date(targetDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(targetDate);
-  endOfDay.setHours(23, 59, 59, 999);
-
+  const requested = (args.date || "today").toLowerCase().trim();
+  const date = ["today", "aujourd'hui", "lyoum"].includes(requested) ? schoolDate() : ["yesterday", "hier", "bareh"].includes(requested) ? schoolDate(new Date(Date.now()-86400000)) : requested;
+  const range = schoolDayRange(date);
+  const targetDate = range.gte;
   const [incomesToday, expensesToday, paymentsToday, absencesToday] = await Promise.all([
     // 1. Total income today
     prisma.income.findMany({
       where: {
         schoolId: context.schoolId,
-        date: { gte: startOfDay, lte: endOfDay },
+        date: range,
       },
       select: { id: true, title: true, amount: true, category: true },
     }),
@@ -1087,7 +1049,7 @@ export async function getDailyCaisseTool(
     prisma.expense.findMany({
       where: {
         schoolId: context.schoolId,
-        date: { gte: startOfDay, lte: endOfDay },
+        date: range,
       },
       select: { id: true, title: true, amount: true, category: true },
     }),
@@ -1095,8 +1057,9 @@ export async function getDailyCaisseTool(
     prisma.payment.findMany({
       where: {
         schoolId: context.schoolId,
-        paidAt: { gte: startOfDay, lte: endOfDay },
-        userType: "STUDENT",
+        paidAt: range,
+        userType: { equals: "STUDENT", mode: "insensitive" },
+        status: { in: ["PAID", "PARTIAL"] },
       },
       include: {
         student: {
@@ -1108,7 +1071,7 @@ export async function getDailyCaisseTool(
     prisma.attendance.findMany({
       where: {
         schoolId: context.schoolId,
-        date: { gte: startOfDay, lte: endOfDay },
+        date: range,
         status: "ABSENT",
       },
       include: {
@@ -1128,7 +1091,7 @@ export async function getDailyCaisseTool(
   );
 
   return {
-    date: targetDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+    date: targetDate.toLocaleDateString("fr-FR", { timeZone: "Africa/Tunis", weekday: "long", day: "numeric", month: "long", year: "numeric" }),
     summary: {
       totalIncomes: `${totalIncomes} DT`,
       totalExpenses: `${totalExpenses} DT`,

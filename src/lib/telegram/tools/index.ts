@@ -1,3 +1,4 @@
+import { querySchoolRecords, SCHOOL_RECORDS } from "./schoolRecords";
 import { FunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
@@ -191,6 +192,35 @@ export interface ToolDefinition {
 }
 
 export const TOOLS: Record<string, ToolDefinition> = {
+  query_school_records: {
+    name: "query_school_records",
+    description: "Lire les données actuelles de l'école dans toutes les catégories métier, avec filtres explicites, comptage complet et pagination. Jamais de SQL ni d'écriture.",
+    requiresConfirmation: false,
+    declaration: {
+      name: "query_school_records",
+      description: "Consultation en base : élèves, parents, personnel, classes, niveaux, matières, salles, cours, planning, examens, devoirs, ressources, notes, résultats, présences, paiements, recettes, dépenses, annonces, notifications, demandes parents, paramètres, périodes d'examens, consignes et audit. Les totaux portent sur TOUS les résultats filtrés, les lignes sont paginées. Pour les impayés de scolarité utiliser get_payments (inclut les élèves sans versement). Pour les recettes encaissées utiliser incomes/get_financial_summary, sans additionner les paiements aux recettes.",
+      parameters: {
+        type: SchemaType.OBJECT, required: ["entity"],
+        properties: {
+          entity: { type: SchemaType.STRING, format: "enum", enum: Object.keys(SCHOOL_RECORDS), description: "Catégorie métier exacte." },
+          query: { type: SchemaType.STRING, description: "Recherche de nom/titre/téléphone ou texte dans les champs de cette catégorie." },
+          className: { type: SchemaType.STRING, description: "Nom exact de classe, ex 1A." },
+          recordId: { type: SchemaType.STRING, description: "Identifiant exact d'un enregistrement connu." },
+          status: { type: SchemaType.STRING, description: "Filtre de statut, ex PENDING, APPROVED, REJECTED, PAID, PARTIAL, ABSENT, PRESENT, LATE." },
+          userType: { type: SchemaType.STRING, format: "enum", enum: ["STUDENT","TEACHER","STAFF"], description: "Pour payments uniquement : scolarité ou paie." },
+          month: { type: SchemaType.NUMBER, description: "Mois explicite (1–12). Pour les paiements : période due, pas date d'encaissement." },
+          year: { type: SchemaType.NUMBER, description: "Année explicite." },
+          dateFrom: { type: SchemaType.STRING, description: "Début inclus AAAA-MM-JJ (heure de Tunis)." },
+          dateTo: { type: SchemaType.STRING, description: "Fin incluse AAAA-MM-JJ (heure de Tunis)." },
+          term: { type: SchemaType.NUMBER, description: "Trimestre (1–3) pour notes/relevés." },
+          limit: { type: SchemaType.NUMBER, description: "Lignes par page (1–100). Le total reste complet." },
+          offset: { type: SchemaType.NUMBER, description: "Décalage de page, reprendre nextOffset pour continuer." },
+        },
+      },
+    },
+    execute: querySchoolRecords,
+  },
+
   // ── ACADEMIC SUITE ────────────────────────────────────────────────────────
   get_students: {
     name: "get_students",
@@ -204,7 +234,8 @@ export const TOOLS: Record<string, ToolDefinition> = {
         properties: {
           query: { type: SchemaType.STRING, description: "Nom, prénom ou téléphone." },
           className: { type: SchemaType.STRING, description: "Nom de la classe (ex: '8ème B')." },
-          limit: { type: SchemaType.NUMBER, description: "Nombre maximum d'élèves." },
+          limit: { type: SchemaType.NUMBER, description: "Nombre maximum d'élèves par page (100). Le total inclut tous les résultats." },
+          offset: { type: SchemaType.NUMBER, description: "Décalage de pagination : utiliser nextOffset pour la page suivante." },
         },
       },
     },
@@ -3599,6 +3630,7 @@ const SETTINGS_KEYS = /profil|paramètre|settings|école|school settings|tarif s
 
 // Universal tools always included regardless of intent
 const UNIVERSAL_TOOL_NAMES = new Set([
+  "query_school_records",
   "get_school_stats",
   "get_daily_caisse",
   "get_morning_briefing",

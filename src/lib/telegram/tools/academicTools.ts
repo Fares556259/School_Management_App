@@ -1,3 +1,4 @@
+import { tuitionBalance, roundMoney, schoolMonth } from "@/lib/agent/dataAccuracy";
 import prisma from "@/lib/prisma";
 import { MONTHS, getSchoolYearMonths, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
@@ -168,16 +169,16 @@ export async function getStudentProfileTool(
 
   // Fetch recent attendance, annual attendance, grades, and all student payments for tuition schedule
   const schoolYearMonths = getSchoolYearMonths();
-  const standardTuition = student.customTuition || student.level?.tuitionFee || 450;
+  const standardTuition = tuitionBalance(student).fee;
 
   const [attendances, yearAttendances, grades, payments] = await Promise.all([
     prisma.attendance.findMany({
       where: {
         studentId: student.id,
+        schoolId: context.schoolId,
         date: { gte: thirtyDaysAgo },
       },
       orderBy: { date: "desc" },
-      take: 10,
       select: {
         status: true,
         date: true,
@@ -188,6 +189,7 @@ export async function getStudentProfileTool(
     prisma.attendance.findMany({
       where: {
         studentId: student.id,
+        schoolId: context.schoolId,
         date: { gte: currentAcademicYearStart },
       },
       select: {
@@ -196,7 +198,7 @@ export async function getStudentProfileTool(
       },
     }),
     prisma.grade.findMany({
-      where: { studentId: student.id },
+      where: { studentId: student.id, schoolId: context.schoolId },
       orderBy: { createdAt: "desc" },
       take: 10,
       select: {
@@ -241,10 +243,11 @@ export async function getStudentProfileTool(
     const yearVal = parseInt(yStr);
 
     const payment = payments.find((p) => p.month === monthIdx && p.year === yearVal);
-    const amountPaid = payment?.amount || 0;
-    const isPaid = payment?.status === "PAID" || amountPaid >= standardTuition;
+    const balance = tuitionBalance(student,payment);
+    const amountPaid = balance.received;
+    const remainingDue = balance.due;
+    const isPaid = remainingDue === 0;
     const isPartial = !isPaid && amountPaid > 0;
-    const remainingDue = Math.max(0, standardTuition - amountPaid);
 
     let statusLabel = "NON PAYÉ ❌";
     if (isPaid) statusLabel = "SOLDÉ ✅";
@@ -263,7 +266,7 @@ export async function getStudentProfileTool(
   });
 
   const totalPaidThisYear = tuitionSchedule.reduce(
-    (sum, m) => sum + parseInt(m.amountPaid),
+    (sum, m) => roundMoney(sum + parseFloat(m.amountPaid)),
     0
   );
   const annualTuitionTotal = standardTuition * 10;
@@ -400,8 +403,7 @@ export async function getParentsTool(
   ]);
 
   const now = new Date();
-  const targetMonth = args.month || now.getMonth() + 1;
-  const targetYear = args.year || now.getFullYear();
+  const { month: targetMonth, year: targetYear } = schoolMonth(args.month,args.year);
   const targetMonthLabel = `${MONTHS[targetMonth - 1] || targetMonth} ${targetYear}`;
   const targetMonthLabelFrench = formatMonthFrench(targetMonthLabel);
 
@@ -414,33 +416,26 @@ export async function getParentsTool(
     const paidChildren: any[] = [];
 
     const childrenInfo = p.students.map((s) => {
-      const fee = s.customTuition || s.level?.tuitionFee || 450;
+      const fee = s.customTuition ?? s.level?.tuitionFee ?? 450;
       familyTotalMonthlyFees += fee;
 
       const currentMonthPayment = s.payments.find(
         (pay) => pay.month === targetMonth && pay.year === targetYear
       );
 
-      const currentPaid = currentMonthPayment?.amount || 0;
-      const isCurrentPaid = currentMonthPayment?.status === "PAID" || (currentPaid >= fee && currentPaid > 0);
-
-      let remainingForCurrentMonth = 0;
-      if (!isCurrentPaid) {
-        if (currentMonthPayment?.deferredAmount != null) {
-          remainingForCurrentMonth = currentMonthPayment.deferredAmount;
-        } else {
-          remainingForCurrentMonth = Math.max(0, fee - currentPaid);
-        }
-      }
+      const balance = tuitionBalance(s,currentMonthPayment);
+      const currentPaid = balance.received;
+      const isCurrentPaid = balance.due === 0;
+      const remainingForCurrentMonth = balance.due;
 
       // Past uncollected debt from other months (excluding targetMonth)
       const pastDeferredGap = s.payments
         .filter(
           (pay) =>
-            !(pay.month === targetMonth && pay.year === targetYear) &&
+            (pay.year < targetYear || (pay.year === targetYear && pay.month < targetMonth)) &&
             pay.status !== "PAID"
         )
-        .reduce((acc, pay) => acc + (pay.deferredAmount || 0), 0);
+        .reduce((acc, pay) => acc + tuitionBalance(s,pay).due, 0);
 
       const childTotalUnpaid = remainingForCurrentMonth + pastDeferredGap;
       familyTotalPaid += currentPaid;
@@ -524,7 +519,6 @@ export async function getParentsTool(
     formattedText = `🏛️ <b>SNAPSCHOOL │ PARENTS D'ÉLÈVES</b>\n━━━━━━━━━━━━━━━━━━━━━━\n<i>Aucun parent trouvé pour cette recherche.</i>`;
   } else {
     const list = mappedParents
-      .slice(0, 25)
       .map((p) => {
         const phoneFormatted = p.phone ? ` (📞 +216 ${p.phone.replace(/^\+?216\s*/, "")})` : "";
         const childrenNames = p.children.map((c) => c.name).join(", ");
@@ -542,6 +536,9 @@ export async function getParentsTool(
   return {
     total: totalCount,
     returned: mappedParents.length,
+    hasMore: mappedParents.length < totalCount,
+    source: "school_database",
+    fetchedAt: new Date().toISOString(),
     month: targetMonth,
     year: targetYear,
     monthLabel: targetMonthLabel,

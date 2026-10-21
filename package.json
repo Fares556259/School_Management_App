@@ -23,7 +23,8 @@
     "test:notifications": "node --import tsx src/__tests__/mobile-notifications.test.ts",
     "test:parent-access": "node --import tsx src/__tests__/parent-access.test.ts",
     "test:hnia-runtime": "node --import tsx src/__tests__/hnia-model-runtime.test.ts",
-    "test:hnia-confirmation": "node --import tsx src/__tests__/hnia-confirmation.test.ts"
+    "test:hnia-confirmation": "node --import tsx src/__tests__/hnia-confirmation.test.ts",
+    "test:hnia-data": "node --import tsx src/__tests__/hnia-data-accuracy.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"
