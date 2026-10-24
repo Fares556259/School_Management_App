@@ -23,8 +23,13 @@ export async function GET(request: NextRequest) {
     const yearParam = searchParams.get("year");
 
     const now = new Date();
-    const activeMonth = monthParam ? Math.min(12, Math.max(1, parseInt(monthParam, 10))) : now.getMonth() + 1;
-    const activeYear = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
+    const activeMonth = monthParam === null ? now.getMonth() + 1 : Number(monthParam);
+    const activeYear = yearParam === null ? now.getFullYear() : Number(yearParam);
+
+    if (!Number.isInteger(activeMonth) || activeMonth < 1 || activeMonth > 12 ||
+        !Number.isInteger(activeYear) || activeYear < 1 || activeYear > 9999) {
+      return NextResponse.json({ success: false, error: "Mois ou année invalide." }, { status: 400 });
+    }
 
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -81,13 +86,15 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return NextResponse.json({ success: true, students: formattedSearchResults });
+      return NextResponse.json({ success: true, students: formattedSearchResults }, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     // 2. Fetch Today's Incomes, Expenses, Month Aggregates, and ALL Unpaid Entities (Students, Teachers, Staff)
     const [
       todayIncomes,
       todayExpenses,
+      todayIncomeAgg,
+      todayExpenseAgg,
       monthIncomeAgg,
       monthExpenseAgg,
       unpaidStudentRows,
@@ -105,6 +112,12 @@ export async function GET(request: NextRequest) {
         where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
         orderBy: { date: "desc" },
         take: 50,
+      }),
+      prisma.income.aggregate({
+        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } }, _sum: { amount: true },
+      }),
+      prisma.expense.aggregate({
+        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } }, _sum: { amount: true },
       }),
       prisma.income.aggregate({
         where: { schoolId, date: { gte: startOfMonth, lte: endOfMonth } },
@@ -136,7 +149,6 @@ export async function GET(request: NextRequest) {
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 ELSE 2 END,
           s.surname ASC
-        LIMIT 100
       ` as Promise<any[]>,
       // Unpaid Teachers query
       prisma.$queryRaw`
@@ -158,7 +170,6 @@ export async function GET(request: NextRequest) {
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           t.surname ASC
-        LIMIT 100
       ` as Promise<any[]>,
       // Unpaid Staff query
       prisma.$queryRaw`
@@ -179,7 +190,6 @@ export async function GET(request: NextRequest) {
         ORDER BY 
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           s.surname ASC
-        LIMIT 100
       ` as Promise<any[]>,
       // Fetch distinct categories for dynamic creatable category lists
       prisma.expense.findMany({
@@ -194,8 +204,8 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const todayIncome = todayIncomes.reduce((acc, curr) => acc + curr.amount, 0);
-    const todayExpense = todayExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+    const todayIncome = todayIncomeAgg._sum.amount ?? 0;
+    const todayExpense = todayExpenseAgg._sum.amount ?? 0;
     const todayNet = todayIncome - todayExpense;
 
     const monthIncome = monthIncomeAgg._sum.amount || 0;
@@ -234,7 +244,7 @@ export async function GET(request: NextRequest) {
 
     // 4. Process Unpaid Students (Scolarités en souffrance)
     const unpaidStudents = unpaidStudentRows.map((r) => {
-      const fullFee = Number(r.tuitionFee) || 450;
+      const fullFee = Number(r.tuitionFee ?? 450);
       const isPartial = r.paymentStatus === "PARTIAL";
       const paidAmount = Number(r.paidAmount) || 0;
 
@@ -264,7 +274,7 @@ export async function GET(request: NextRequest) {
     const unpaidTeachers = unpaidTeacherRows.map((t) => {
       const rate = Number(t.hourlyRate) || 0;
       const monthlyHours = Number(t.hoursPerMonth) || 0;
-      const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (Number(t.salary) || 3000);
+      const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : Number(t.salary ?? 3000);
       const missedHours = Number(t.missedHours) || 0;
       const deduction = missedHours * (rate > 0 ? rate : 15);
       const isAdvance = t.paymentStatus === "PARTIAL";
@@ -295,7 +305,7 @@ export async function GET(request: NextRequest) {
 
     // 6. Process Unpaid Staff (Rémunérations Personnel)
     const unpaidStaff = unpaidStaffRows.map((s) => {
-      const baseSalary = Number(s.salary) || 1500;
+      const baseSalary = Number(s.salary ?? 1500);
       const missedHours = Number(s.missedHours) || 0;
       const isAdvance = s.paymentStatus === "PARTIAL";
       const advanceAmount = isAdvance ? (Number(s.paymentAmount) || 0) : 0;
@@ -369,7 +379,7 @@ export async function GET(request: NextRequest) {
       allUnpaid,
       expenseCategories,
       incomeCategories,
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error: any) {
     console.error("[Caisse API GET] Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -393,8 +403,12 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     const now = new Date();
-    const activeMonth = body.month || (now.getMonth() + 1);
-    const activeYear = body.year || now.getFullYear();
+    const activeMonth = body.month === undefined ? now.getMonth() + 1 : Number(body.month);
+    const activeYear = body.year === undefined ? now.getFullYear() : Number(body.year);
+    if (!Number.isInteger(activeMonth) || activeMonth < 1 || activeMonth > 12 ||
+        !Number.isInteger(activeYear) || activeYear < 1 || activeYear > 9999) {
+      return NextResponse.json({ success: false, error: "Mois ou année invalide." }, { status: 400 });
+    }
 
     const monthNamesFr = [
       "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",

@@ -86,6 +86,7 @@ async function main() {
   for (const value of ['slot-0','slot-80junk',-1,'bad']) await assert.rejects(service.resolveAssignmentLesson(tx,access,value),/Invalid lesson/);
   role='admin'; lessons=[];
   const actions=load('src/lib/crudActions.ts',{
+    '@/utils/supabase/server':{getAuthenticatedUser:async()=>({id:'admin-a'})}, 'bcryptjs':{}, './temporaryPassword':{},
     '@/lib/school':{getSchoolId:async()=>'school-a'}, './subjectConstants':{}, './assignmentLessons':service, './studentProfile':{}, './studentIdentifier':{},
     '@/lib/prisma':{__esModule:true,default:prisma}, 'next/cache':{revalidatePath:()=>{}},
     '@/lib/cache':{invalidateTenantTags:()=>{}}, '@/lib/audit':{createAuditLog:async()=>{}},

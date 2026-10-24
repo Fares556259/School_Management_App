@@ -60,9 +60,11 @@ async function main() {
     if (args.where.OR) assert.equal(args.where.OR[0].teacherId, 'teacher-a');
     return [];
   });
+  replace(prisma.teacher, 'findFirst', async () => ({id: 'teacher-a'}));
   replace(prisma.teacher, 'findUnique', async () => ({ schoolId: 'school-a', name: 'Teacher', surname: 'A' }));
   let adminProfileReads = 0;
   replace(prisma.admin, 'findFirst', async (args: any) => {
+    if (args.select?.id && !args.select?.name) return {id: 'admin-a'};
     adminProfileReads++;
     assert.deepEqual(args.where, { id: 'admin-a', schoolId: 'school-a', status: 'active' });
     return { id: 'admin-a', name: 'Admin', surname: 'A', username: 'admin', email: null, phone: null, img: null, School: { name: 'Synthetic school' } };

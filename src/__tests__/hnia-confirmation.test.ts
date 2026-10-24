@@ -80,6 +80,7 @@ async function main() {
     replace(prisma.aIConversation, 'update', async () => ({}));
     replace(prisma.aIKnowledge, 'findMany', async () => []);
     replace(prisma.class, 'findMany', async () => []);
+    replace(prisma.expense, 'findFirst', async () => null);
     let staged: any[] = [];
     replace(prisma.aIToolCall, 'create', async ({ data }: any) => { const row = { id: `staged-${staged.length}`, ...data }; staged.push(row); return row; });
     replace(TOOLS.get_students, 'execute', async () => { throw new Error('Batch read must wait until write proposals are shown'); });

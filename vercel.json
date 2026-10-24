@@ -16,5 +16,8 @@
       "path": "/api/cron/parent-access-notifications",
       "schedule": "0 7 * * *"
     }
+  ],
+  "regions": [
+    "dub1"
   ]
 }

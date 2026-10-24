@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { checkPersistentRateLimit } from "@/lib/mobileRateLimit";
 import { normalizeParentPhone, parentPhoneCandidates, submitAccessRequest } from "@/lib/parentAccess";
 import { randomUUID } from "crypto";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
 import { 
   generateToken, 
   checkRateLimit, 
@@ -46,8 +46,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Only signin action is supported for admin" }, { status: 400 });
       }
       
-      // Authenticate via Supabase Auth (admins use email + password)
-      const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+      // Isolate login state per request; password verification needs only the public key.
+      const loginClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
+        { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+      );
+      const { data: authData, error: authError } = await loginClient.auth.signInWithPassword({
         email: phone, // 'phone' field is reused for email input from mobile
         password,
       });

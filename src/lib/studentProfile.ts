@@ -7,7 +7,7 @@ export async function getStudentAdminSchool(): Promise<string> {
   const user = await getAuthenticatedUser();
   if (!user) throw new Error("Not authorized to manage students.");
   const schoolId = await getSchoolId();
-  const admin = await prisma.admin.findFirst({ where: { id: user.id, schoolId }, select: { id: true } });
+  const admin = await prisma.admin.findFirst({ where: { id: user.id, schoolId, status: "active", School: { status: "ACTIVE" } }, select: { id: true } });
   if (!admin) throw new Error("Not authorized to manage students.");
   return schoolId;
 }

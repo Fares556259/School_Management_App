@@ -47,6 +47,8 @@ async function main() {
   });
   const identifiers = load('src/lib/studentIdentifier.ts', {'@/lib/prisma': {__esModule:true,default:prisma}});
   const actions = load('src/lib/crudActions.ts', {
+    '@/utils/supabase/server':{getAuthenticatedUser:async()=>({id:'admin-a'})},
+    'bcryptjs':{}, './temporaryPassword':{},
     '@/lib/prisma': {__esModule:true,default:prisma}, '@/lib/school': {getSchoolId:async ()=>'school-a'},
     './subjectConstants':{}, './assignmentLessons':{}, './studentProfile':service, './studentIdentifier':identifiers,
     'next/cache':{revalidatePath:()=>{}}, '@/lib/cache':{invalidateTenantTags:()=>{}},
@@ -106,7 +108,7 @@ async function main() {
   const translations=Object.fromEntries(['fr','en','ar'].map(loc=>[loc,load(`src/lib/translations/${loc}.ts`,{})[loc]]));
   const language={useLanguage:()=>({locale,t:translations[locale]})};
   const presentation=load('src/components/StudentProfileDialog.tsx', {
-    '@radix-ui/react-dialog':{}, 'react/jsx-runtime':require('react/jsx-runtime'),
+    '@radix-ui/react-dialog':{}, 'next/navigation': {useRouter:()=>({refresh:()=>{}})}, 'react/jsx-runtime':require('react/jsx-runtime'),
     'lucide-react': require('lucide-react'), '@/lib/translations/LanguageContext':language,
   });
   const formActions: any = {};
@@ -116,7 +118,7 @@ async function main() {
   const modal=load('src/components/CrudFormModal.tsx', {
     react:{...React,useState:(initial:any)=>{const index=stateIndex++;return [index===0?true:typeof initial==='function'?initial():initial,(value:any)=>changes.push({index,value})];},
       useTransition:()=>[false,(run:any)=>run()],useEffect:()=>{},useRef:()=>({current:null}),useCallback:(fn:any)=>fn,useId:()=>'test-form'},
-    'react/jsx-runtime':require('react/jsx-runtime'), '@/utils/supabase/client':{},
+    'next/navigation': {useRouter:()=>({refresh:()=>{}})}, 'react/jsx-runtime':require('react/jsx-runtime'), '@/utils/supabase/client':{},
     'next/image':{__esModule:true,default:()=>null}, './SearchableSelect':{__esModule:true,default:({name,id,defaultValue}:any)=>React.createElement('input',{id,name,defaultValue})},
     './MultiSelect':{__esModule:true,default:()=>null},
     './StudentProfileDialog':{StudentProfileDialog:({children}:any)=>{form=children;return children;},StudentProfileSections:presentation.StudentProfileSections},

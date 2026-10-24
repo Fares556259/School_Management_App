@@ -13,8 +13,8 @@ async function main() {
   let created: any;
   let exists = true;
   (prisma.parent as any).findFirst = async (args: any) => {
-    assert.deepEqual(args.where, { id: 'privacy-test', schoolId: 'school-a' });
-    return exists ? { id: 'privacy-test' } : null;
+    assert.equal(args.where.id, 'privacy-test'); assert.equal(args.where.schoolId, 'school-a');
+    return exists ? { id: 'privacy-test', accessStatus: 'ACTIVE' } : null;
   };
   (prisma.auditLog as any).create = async (args: any) => { created = args.data; return { id: 42 }; };
   const token = generateToken({userId:'privacy-test',userType:'parent',schoolId:'school-a'});
@@ -29,10 +29,11 @@ async function main() {
     assert.equal(response.status,200);assert.equal((await response.json()).reference,42);
     assert.equal(created.schoolId,'school-a');assert.equal(created.entityId,'privacy-test');
     exists=false;
-    assert.equal((await POST(request({kind:'ACCOUNT_DELETION'}))).status,403);
+    assert.equal((await POST(request({kind:'ACCOUNT_DELETION'}))).status,401);
+    exists=true;
     assert.equal((await POST(request({kind:'ACCOUNT_DELETION',message:'x'.repeat(4001)}))).status,400);
     (prisma.admin as any).findFirst = async (args: any) => {
-      assert.deepEqual(args.where,{id:'privacy-admin',schoolId:'school-a'});
+      assert.equal(args.where.id,'privacy-admin');assert.equal(args.where.schoolId,'school-a');
       return {id:'privacy-admin'};
     };
     const adminToken = generateToken({userId:'privacy-admin',userType:'admin',schoolId:'school-a'});

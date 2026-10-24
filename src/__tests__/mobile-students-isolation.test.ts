@@ -11,12 +11,15 @@ async function main() {
   const originalUpdate = prisma.student.update;
   const originalStudentFind = prisma.student.findFirst;
   const originalUpdateMany = prisma.student.updateMany;
+  const oldAdmin = prisma.admin.findFirst, oldTeacher = prisma.teacher.findFirst;
+  (prisma.admin as any).findFirst = async () => ({id:'admin-a'});
+  (prisma.teacher as any).findFirst = async () => ({id:'teacher-a'});
   let updateArgs: any;
   const studentFindArgs: any[] = [];
   let linkArgs: any;
   let denied = false;
   (prisma.parent as any).findFirst = async (args: any) => {
-    assert.deepEqual(args.where, { id: 'parent-a', schoolId: 'school-a' });
+    assert.equal(args.where.id, 'parent-a'); assert.equal(args.where.schoolId, 'school-a');
     if (args.select) return { id: 'parent-a', accessStatus: 'ACTIVE' };
     assert.deepEqual(args.include.students.where, { schoolId: 'school-a' });
     return { students: [{ id: 'child-a' }] };
@@ -60,6 +63,7 @@ async function main() {
     assert.equal((await POST(request('parent', 'POST', {}))).status, 400);
     console.log('Student isolation checks passed: authenticated reads, school-scoped children, atomic school/parent guards, authorized updates; approval-based linking is covered by parent-access.test.ts.');
   } finally {
+    prisma.admin.findFirst = oldAdmin; prisma.teacher.findFirst = oldTeacher;
     (prisma.parent as any).findFirst = originalFind;
     (prisma.student as any).update = originalUpdate;
     (prisma.student as any).findFirst = originalStudentFind;

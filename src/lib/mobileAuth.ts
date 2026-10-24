@@ -167,7 +167,7 @@ export async function authenticateMobileRequest(
     try {
       const { default: prisma } = await import("./prisma");
       const parent = await prisma.parent.findFirst({
-        where: { id: payload.userId, schoolId: payload.schoolId },
+        where: { id: payload.userId, schoolId: payload.schoolId, School: { status: "ACTIVE" } },
         select: { accessStatus: true },
       });
       if (!parent) return { payload: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
@@ -175,6 +175,20 @@ export async function authenticateMobileRequest(
       if (parent.accessStatus !== "ACTIVE" && !options.allowPendingParent) {
         return { payload: null, error: NextResponse.json({ code: "PARENT_APPROVAL_REQUIRED", error: "School approval required" }, { status: 403 }) };
       }
+    } catch {
+      return { payload: null, error: NextResponse.json({ error: "Access verification unavailable" }, { status: 503 }) };
+    }
+  }
+  // A signed token is not a permanent grant. Deleted, disabled or transferred
+  // staff must lose access even while their previously issued JWT is valid.
+  if (payload.userType === "admin" || payload.userType === "teacher") {
+    try {
+      const { default: prisma } = await import("./prisma");
+      const where = { id: payload.userId, schoolId: payload.schoolId, School: { status: "ACTIVE" } };
+      const member = payload.userType === "admin"
+        ? await prisma.admin.findFirst({ where: { ...where, status: "active" }, select: { id: true } })
+        : await prisma.teacher.findFirst({ where, select: { id: true } });
+      if (!member) return { payload: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
     } catch {
       return { payload: null, error: NextResponse.json({ error: "Access verification unavailable" }, { status: 503 }) };
     }

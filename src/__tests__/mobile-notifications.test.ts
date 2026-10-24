@@ -24,6 +24,7 @@ async function main() {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) },
   });
 
+  replace(prisma.teacher, "findFirst", async () => ({id: "teacher-a"}));
   replace(prisma.parentAccessDelivery, "findMany", async () => []);
   replace(prisma.parentAccessDelivery, "updateMany", async () => ({ count: 1 }));
   let notificationReads = 0;
@@ -53,7 +54,7 @@ async function main() {
   replace(prisma.student, "findFirst", async () => null);
   let savedPushToken: string | null | undefined;
   replace(prisma.parent, "findFirst", async (args: any) => {
-    assert.deepEqual(args.where, { id: "parent-a", schoolId: "school-a" });
+    assert.equal(args.where.id, "parent-a"); assert.equal(args.where.schoolId, "school-a");
     return { id: "parent-a", expoPushToken: savedPushToken, accessStatus: 'ACTIVE' };
   });
   replace(prisma.parent, "update", async (args: any) => { savedPushToken = args.data.expoPushToken; return { id: "parent-a" }; });

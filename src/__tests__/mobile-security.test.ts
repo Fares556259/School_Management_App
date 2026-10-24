@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import jwt from "jsonwebtoken";
+import prisma from "../lib/prisma";
 import { authenticateMobileRequest, generateToken, verifyToken, generateAndStoreOTP, verifyOTP, generateStudentClaimToken, verifyStudentClaimToken } from "../lib/mobileAuth";
 import { GET as promote } from "../app/api/dev-promote/route";
 import { GET as upgrade } from "../app/api/upgrade-to-admin/route";
@@ -10,6 +11,8 @@ import { getStudentLinkDisposition, normalizeDateOnly } from "../lib/mobileStude
 
 async function main() {
 const originalSecret = process.env.JWT_SECRET;
+const originalAdminFind = prisma.admin.findFirst;
+(prisma.admin as any).findFirst = async () => ({id:"test"});
 try {
   delete process.env.JWT_SECRET;
   assert.throws(() => generateToken({ userId: "test", userType: "admin", schoolId: "test-school" }), /JWT_SECRET/);
@@ -72,6 +75,7 @@ try {
   assert.equal(normalizeDateOnly("2012-02-31"), null);
   console.log("Mobile security checks passed: secret enforcement, claims, expiry, OTP controls, secure registration, authenticated linking, ownership rules, and date validation.");
 } finally {
+  prisma.admin.findFirst = originalAdminFind;
   if (originalSecret === undefined) delete process.env.JWT_SECRET;
   else process.env.JWT_SECRET = originalSecret;
 }

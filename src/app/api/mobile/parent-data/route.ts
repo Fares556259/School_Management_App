@@ -15,32 +15,34 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const parent = await prisma.parent.findUnique({
-      where: { id: userId },
+    const parent = await prisma.parent.findFirst({
+      where: { id: userId, schoolId },
       include: {
         students: {
+          where: { schoolId },
           include: {
             class: {
               include: {
                 timetable: {
-                  include: { subject: true, teacher: true },
+                  where: { schoolId, isDraft: false },
+                  include: { subject: true, teacher: { select: { id: true, name: true, surname: true, img: true } } },
                 },
               },
             },
-            payments: { orderBy: { id: "desc" } },
-            results: { include: { exam: true, assignment: true } },
+            payments: { where: { schoolId }, orderBy: { id: "desc" } },
+            results: { where: { schoolId }, include: { exam: true, assignment: true } },
           },
         },
       },
     });
 
     if (!parent) {
-      return NextResponse.json([]);
+      return NextResponse.json([], { headers: { "Cache-Control": "private, no-store" } });
     }
 
-    return NextResponse.json(parent.students);
+    return NextResponse.json(parent.students, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error: any) {
     console.error("[Mobile Parent Data Error]", error);
-    return new NextResponse(JSON.stringify({ error: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new NextResponse(JSON.stringify({ error: "Unable to load family data" }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

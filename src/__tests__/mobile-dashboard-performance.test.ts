@@ -25,6 +25,10 @@ async function main() {
       return hold ? new Promise(resolve => pending.push(() => resolve(value))) : Promise.resolve(value);
     };
   };
+  const oldParentFind = prisma.parent.findFirst, oldAdminFind = prisma.admin.findFirst;
+  originals.push(() => { prisma.parent.findFirst = oldParentFind; prisma.admin.findFirst = oldAdminFind; });
+  (prisma.parent as any).findFirst = async () => ({ accessStatus: 'ACTIVE' });
+  (prisma.admin as any).findFirst = async () => ({ id: 'admin-a' });
   const scoped = (value: any) => (args: any) => { assert.equal(args.where.schoolId, 'school-a'); return value; };
   replace(prisma.admin, 'findUnique', args => { assert.equal(args.where.id, 'admin-a'); return { name: 'Admin', surname: 'A', username: 'a' }; });
   replace(prisma.school, 'findUnique', args => { assert.equal(args.where.id, 'school-a'); return { name: 'Synthetic school' }; });
@@ -57,6 +61,7 @@ async function main() {
     }
     assert.equal(calls, 0, 'Invalid and unauthorized requests must not query the database');
     const result = GET(request('?month=10&year=2026'));
+    await new Promise(resolve => setImmediate(resolve));
     assert.equal(calls, 15, 'Independent dashboard reads should all start before any settles');
     pending.forEach(resolve => resolve());
     const response = await result;

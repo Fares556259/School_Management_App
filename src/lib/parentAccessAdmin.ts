@@ -11,5 +11,5 @@ export async function getParentAccessAdmin(readUser?: () => Promise<{ id: string
     ]);
   } finally { if (timer) clearTimeout(timer); }
   if (!user) return null;
-  return prisma.admin.findFirst({ where: { id: user.id, status: 'active' }, select: { id: true, schoolId: true } });
+  return prisma.admin.findFirst({ where: { id: user.id, status: 'active', School: { status: 'ACTIVE' } }, select: { id: true, schoolId: true } });
 }

@@ -1,6 +1,5 @@
 "use server";
 
-import { getSchoolId } from "@/lib/school";
 import { getAuthenticatedUser } from "@/utils/supabase/server";
 import { DEFAULT_SUBJECTS } from "./subjectConstants";
 import { getAssignmentAccess, resolveAssignmentLesson } from "./assignmentLessons";
@@ -16,6 +15,23 @@ import { withUniqueStudentIdentifiers } from "./studentIdentifier";
 import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProfile";
 import bcrypt from "bcryptjs";
 import { generateTemporaryParentPassword } from "./temporaryPassword";
+
+// Runtime allowlists prevent caller-supplied tenant IDs and nested Prisma writes.
+function editableFields(data: any, keys: string[]): any {
+  return Object.fromEntries(keys.filter(key => data[key] !== undefined).map(key => [key, data[key]]));
+}
+async function requireSchoolRelation(model: 'class' | 'level' | 'teacher' | 'student' | 'parent' | 'subject' | 'room', id: any, schoolId: string) {
+  if (id === undefined || id === null || id === '') return;
+  const row = await (prisma[model] as any).findFirst({ where: { id, schoolId }, select: { id: true } });
+  if (!row) throw new Error('Related record not found in this school.');
+}
+
+async function requireSchoolRelations(model: 'class' | 'parent' | 'subject' | 'teacher' | 'room', values: any[], schoolId: string) {
+  const ids = Array.from(new Set(values.filter(id => id !== undefined && id !== null && id !== '')));
+  if (!ids.length) return;
+  const count = await (prisma[model] as any).count({ where: { id: { in: ids }, schoolId } });
+  if (count !== ids.length) throw new Error('Related records not found in this school.');
+}
 
 // ===================== TEACHER =====================
 export const createTeacher = async (data: {
@@ -36,7 +52,7 @@ export const createTeacher = async (data: {
   classes?: number[];
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const id = crypto.randomUUID();
 
     if (data.phone) {
@@ -83,8 +99,8 @@ export const createTeacher = async (data: {
         hourlyRate: data.hourlyRate || null,
         hoursPerMonth: data.hoursPerMonth || null,
         img: data.img || (data.sex === "FEMALE" ? "/avatars/teacher_female.jpg" : "/avatars/teacher_male.jpg"),
-        subjects: data.subjects ? { connect: data.subjects.map(sId => ({ id: sId })) } : undefined,
-        classes: data.classes ? { connect: data.classes.map(cId => ({ id: cId })) } : undefined,
+        subjects: data.subjects ? { connect: data.subjects.map(sId => ({ id: sId, schoolId })) } : undefined,
+        classes: data.classes ? { connect: data.classes.map(cId => ({ id: cId, schoolId })) } : undefined,
       },
     });
     await createAuditLog({
@@ -107,7 +123,7 @@ export const createTeacher = async (data: {
 
 export const bulkCreateTeachers = async (teachers: any[]) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     if (!teachers || teachers.length === 0) return { success: true };
 
     const teachersToCreate = teachers.map((t) => ({
@@ -167,7 +183,8 @@ export const updateTeacher = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    data = editableFields(data, ['code', 'username', 'name', 'surname', 'phone', 'address', 'bloodType', 'birthday', 'sex', 'salary', 'hourlyRate', 'hoursPerMonth', 'img', 'subjects', 'classes']);
     const cleanPhone = data.phone ? data.phone.replace(/[\s\-\.\+]/g, "").trim() : undefined;
 
     if (cleanPhone) {
@@ -208,14 +225,14 @@ export const updateTeacher = async (
     }
     
     if (data.subjects !== undefined) {
-      updateData.subjects = { set: data.subjects.map(sId => ({ id: sId })) };
+      updateData.subjects = { set: data.subjects.map(sId => ({ id: sId, schoolId })) };
     }
     if (data.classes !== undefined) {
-      updateData.classes = { set: data.classes.map(cId => ({ id: cId })) };
+      updateData.classes = { set: data.classes.map(cId => ({ id: cId, schoolId })) };
     }
 
     await prisma.teacher.update({
-      where: { id },
+      where: { id, schoolId },
       data: updateData,
     });
     await createAuditLog({
@@ -239,9 +256,9 @@ export const updateTeacher = async (
 
 export const deleteTeacher = async (id: string) => {
   try {
-    const schoolId = await getSchoolId();
-    const teacher = await prisma.teacher.findUnique({ where: { id } });
-    await prisma.teacher.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    const teacher = await prisma.teacher.findUnique({ where: { id, schoolId } });
+    await prisma.teacher.delete({ where: { id, schoolId } });
     await createAuditLog({
       action: "DELETE_TEACHER",
       entityType: "Teacher",
@@ -358,6 +375,10 @@ export const bulkCreateStudents = async (students: any[]) => {
   try {
     const schoolId = await getStudentAdminSchool();
     if (!students || students.length === 0) return { success: true };
+    await Promise.all([
+      requireSchoolRelations('class', students.filter(s => s.classId && s.classId !== 'null').map(s => Number(s.classId)), schoolId),
+      requireSchoolRelations('parent', students.map(s => s.parentId), schoolId),
+    ]);
 
     const normalizedIds = students.map(s => normalizeStudentNationalId(s.nationalId == null ? null : String(s.nationalId)) ?? null);
     const createdCount = await withUniqueStudentIdentifiers(schoolId,
@@ -608,7 +629,7 @@ export const updateStudent = async (
 export const deleteStudent = async (id: string) => {
   try {
     const [schoolId, authenticatedUser] = await Promise.all([
-      getSchoolId(),
+      getStudentAdminSchool(),
       getAuthenticatedUser(),
     ]);
     const student = await prisma.student.findFirst({
@@ -664,7 +685,7 @@ export const createStaff = async (data: {
   salary?: number;
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
 
     if (data.phone) {
       const cleanPhone = data.phone.replace(/[\s\-\.\+]/g, "").trim();
@@ -734,7 +755,8 @@ export const updateStaff = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    data = editableFields(data, ['username', 'name', 'surname', 'phone', 'address', 'bloodType', 'birthday', 'sex', 'role', 'salary']);
     const cleanPhone = data.phone ? data.phone.replace(/[\s\-\.\+]/g, "").trim() : undefined;
 
     if (cleanPhone) {
@@ -772,7 +794,7 @@ export const updateStaff = async (
     } else {
       delete updateData.birthday;
     }
-    await prisma.staff.update({ where: { id }, data: updateData });
+    await prisma.staff.update({ where: { id, schoolId }, data: updateData });
     invalidateTenantTags(schoolId, 'staff', 'dashboard');
     revalidatePath("/list/staff");
     revalidatePath(`/list/staff/${id}`);
@@ -787,9 +809,9 @@ export const updateStaff = async (
 
 export const deleteStaff = async (id: string) => {
   try {
-    const schoolId = await getSchoolId();
-    const staff = await prisma.staff.findUnique({ where: { id } });
-    await prisma.staff.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    const staff = await prisma.staff.findUnique({ where: { id, schoolId } });
+    await prisma.staff.delete({ where: { id, schoolId } });
     await createAuditLog({
       action: "DELETE_STAFF",
       entityType: "Staff",
@@ -815,7 +837,7 @@ export const createParent = async (data: {
   img?: string | null;
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const cleanPhone = data.phone.replace(/[\s\-\.\+]/g, "").trim();
 
     // 1. Global uniqueness check across ALL schools in database
@@ -886,7 +908,8 @@ export const updateParent = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    data = editableFields(data, ['username', 'name', 'surname', 'phone', 'address', 'sex', 'img']);
     const { sex, ...restData } = data as any;
 
     if (data.phone) {
@@ -922,7 +945,7 @@ export const updateParent = async (
       restData.img = sex === "FEMALE" ? "/avatars/parent_female.jpg" : "/avatars/parent_male.jpg";
     }
 
-    await prisma.parent.update({ where: { id }, data: restData });
+    await prisma.parent.update({ where: { id, schoolId }, data: restData });
     invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
@@ -936,8 +959,8 @@ export const updateParent = async (
 
 export const deleteParent = async (id: string) => {
   try {
-    const schoolId = await getSchoolId();
-    await prisma.parent.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    await prisma.parent.delete({ where: { id, schoolId } });
     invalidateTenantTags(schoolId, 'parents', 'students');
     revalidatePath("/list/parents");
     return { success: true };
@@ -955,7 +978,8 @@ export const createClass = async (data: {
   supervisorId?: string;
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    await requireSchoolRelation('teacher', data.supervisorId, schoolId);
     
     // Auto-infer levelId from name (e.g., "1A" -> Level 1, "تحضيري أ" -> Level 0)
     let levelNumber: number;
@@ -1011,7 +1035,9 @@ export const updateClass = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    await requireSchoolRelation('teacher', data.supervisorId, schoolId);
+    data = editableFields(data, ['name', 'capacity', 'levelId', 'supervisorId']);
     const updateData: any = { ...data };
     
     if (data.capacity !== undefined) {
@@ -1042,7 +1068,8 @@ export const updateClass = async (
       updateData.levelId = targetLevel.id;
     }
 
-    await prisma.class.update({ where: { id }, data: updateData });
+    await requireSchoolRelation('level', updateData.levelId, schoolId);
+    await prisma.class.update({ where: { id, schoolId }, data: updateData });
     revalidatePath("/list/classes");
     revalidatePath("/list/students");
     if (schoolId) {
@@ -1056,8 +1083,8 @@ export const updateClass = async (
 
 export const deleteClass = async (id: number) => {
   try {
-    const schoolId = await getSchoolId();
-    await prisma.class.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    await prisma.class.delete({ where: { id, schoolId } });
     revalidatePath("/list/classes");
     revalidatePath("/list/students");
     if (schoolId) {
@@ -1073,7 +1100,7 @@ export const deleteClass = async (id: number) => {
 // The student remains in the system and appears in the students list.
 export const removeStudentFromClass = async (studentId: string) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     // First verify the student belongs to this school (security check)
     const student = await prisma.student.findFirst({
       where: { id: studentId, schoolId },
@@ -1102,7 +1129,7 @@ export const removeStudentFromClass = async (studentId: string) => {
 
 export const assignStudentsToClass = async (classId: number, studentIds: string[]) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
 
     const targetClass = await prisma.class.findFirst({
       where: { id: classId, schoolId },
@@ -1153,7 +1180,7 @@ export const assignStudentsToClass = async (classId: number, studentIds: string[
 
 export const seedDefaultSubjects = async () => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     // Only seed if no subjects exist for this school
     const existing = await prisma.subject.count({ where: { schoolId } });
     if (existing > 0) return { success: true, seeded: false };
@@ -1171,7 +1198,7 @@ export const seedDefaultSubjects = async () => {
 
 export const createSubject = async (data: { name: string; domain?: string }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     await prisma.subject.create({
       data: {
         schoolId,
@@ -1191,7 +1218,8 @@ export const updateSubject = async (
   data: Partial<{ name: string; domain: string }>
 ) => {
   try {
-    await prisma.subject.update({ where: { id }, data });
+    const schoolId = await getStudentAdminSchool();
+    await prisma.subject.update({ where: { id, schoolId }, data: { name: data.name, domain: data.domain } });
     revalidatePath("/list/subjects");
     return { success: true };
   } catch (err: any) {
@@ -1201,7 +1229,8 @@ export const updateSubject = async (
 
 export const deleteSubject = async (id: number) => {
   try {
-    await prisma.subject.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    await prisma.subject.delete({ where: { id, schoolId } });
     revalidatePath("/list/subjects");
     return { success: true };
   } catch (err: any) {
@@ -1218,7 +1247,7 @@ export const createExpense = async (data: {
   img?: string;
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const expense = await prisma.expense.create({
       data: {
         schoolId,
@@ -1260,13 +1289,14 @@ export const updateExpense = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    data = editableFields(data, ['title', 'amount', 'category', 'date', 'img']);
     // Fetch old data for meaningful audit
-    const oldExpense = await prisma.expense.findUnique({ where: { id } });
+    const oldExpense = await prisma.expense.findUnique({ where: { id, schoolId } });
     
     const updateData: any = { ...data };
     if (data.date) updateData.date = new Date(data.date);
-    await prisma.expense.update({ where: { id }, data: updateData });
+    await prisma.expense.update({ where: { id, schoolId }, data: updateData });
 
     const changes = [];
     if (data.title && data.title !== oldExpense?.title) changes.push(`Title: "${oldExpense?.title}" → "${data.title}"`);
@@ -1295,9 +1325,9 @@ export const updateExpense = async (
 
 export const deleteExpense = async (id: number) => {
   try {
-    const schoolId = await getSchoolId();
-    const oldExpense = await prisma.expense.findUnique({ where: { id } });
-    await prisma.expense.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    const oldExpense = await prisma.expense.findUnique({ where: { id, schoolId } });
+    await prisma.expense.delete({ where: { id, schoolId } });
     await createAuditLog({
       action: "DELETE_EXPENSE",
       entityType: "Expense",
@@ -1326,7 +1356,7 @@ export const createIncome = async (data: {
   img?: string;
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const income = await prisma.income.create({
       data: {
         schoolId,
@@ -1368,13 +1398,14 @@ export const updateIncome = async (
   }>
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    data = editableFields(data, ['title', 'amount', 'category', 'date', 'img']);
     // Fetch old data for meaningful audit
-    const oldIncome = await prisma.income.findUnique({ where: { id } });
+    const oldIncome = await prisma.income.findUnique({ where: { id, schoolId } });
 
     const updateData: any = { ...data };
     if (data.date) updateData.date = new Date(data.date);
-    await prisma.income.update({ where: { id }, data: updateData });
+    await prisma.income.update({ where: { id, schoolId }, data: updateData });
 
     const changes = [];
     if (data.title && data.title !== oldIncome?.title) changes.push(`Title: "${oldIncome?.title}" → "${data.title}"`);
@@ -1403,9 +1434,9 @@ export const updateIncome = async (
 
 export const deleteIncome = async (id: number) => {
   try {
-    const schoolId = await getSchoolId();
-    const oldIncome = await prisma.income.findUnique({ where: { id } });
-    await prisma.income.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    const oldIncome = await prisma.income.findUnique({ where: { id, schoolId } });
+    await prisma.income.delete({ where: { id, schoolId } });
     await createAuditLog({
       action: "DELETE_INCOME",
       entityType: "Income",
@@ -1436,7 +1467,8 @@ export const createNotice = async (data: {
   pdfUrl?: string | null;
 }) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    await Promise.all([requireSchoolRelation('class', data.classId, schoolId), requireSchoolRelation('student', data.targetStudentId, schoolId)]);
     const notice = await prisma.notice.create({
       data: {
         schoolId,
@@ -1489,19 +1521,21 @@ export const updateNotice = async (
   }>
 ) => {
   try {
+    const schoolId = await getStudentAdminSchool();
+    data = editableFields(data, ['title', 'message', 'important', 'classId', 'targetStudentId', 'img', 'pdfUrl']);
     const { classId, targetStudentId, ...otherData } = data;
     
     await prisma.notice.update({
-      where: { id },
+      where: { id, schoolId },
       data: {
         ...otherData,
         class: classId 
-          ? { connect: { id: classId } } 
+          ? { connect: { id: classId, schoolId } }
           : classId === null 
             ? { disconnect: true } 
             : undefined,
         targetStudent: targetStudentId 
-          ? { connect: { id: targetStudentId } } 
+          ? { connect: { id: targetStudentId, schoolId } }
           : targetStudentId === null 
             ? { disconnect: true } 
             : undefined,
@@ -1515,7 +1549,6 @@ export const updateNotice = async (
       description: `Updated announcement: ${id}`,
     });
 
-    const schoolId = await getSchoolId();
     invalidateTenantTags(schoolId, 'institution');
     revalidatePath("/list/announcements");
     return { success: true };
@@ -1527,8 +1560,9 @@ export const updateNotice = async (
 
 export const deleteNotice = async (id: number) => {
   try {
-    const notice = await prisma.notice.findUnique({ where: { id } });
-    await prisma.notice.delete({ where: { id } });
+    const schoolId = await getStudentAdminSchool();
+    const notice = await prisma.notice.findUnique({ where: { id, schoolId } });
+    await prisma.notice.delete({ where: { id, schoolId } });
     
     await createAuditLog({
       action: "DELETE_NOTICE",
@@ -1537,7 +1571,6 @@ export const deleteNotice = async (id: number) => {
       description: `Removed announcement: ${notice?.title}`,
     });
 
-    const schoolId = await getSchoolId();
     invalidateTenantTags(schoolId, 'institution');
     revalidatePath("/list/announcements");
     return { success: true };
@@ -1549,7 +1582,12 @@ export const deleteNotice = async (id: number) => {
 // ===================== TIMETABLE =====================
 export const bulkUpdateTimetableSlots = async (classId: number, slots: any[], isDraft: boolean = false) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    await requireSchoolRelation('class', classId, schoolId);
+    await Promise.all([
+      requireSchoolRelations('subject', slots.filter(s => s.subjectId).map(s => Number(s.subjectId)), schoolId),
+      requireSchoolRelations('teacher', slots.filter(s => s.teacherId).map(s => String(s.teacherId)), schoolId),
+    ]);
     await prisma.$transaction(async (tx) => {
       // 1. Delete existing slots for this class
       await tx.timetableSlot.deleteMany({
@@ -1595,7 +1633,7 @@ export const bulkUpdateTimetableSlots = async (classId: number, slots: any[], is
 // ===================== SECURITY =====================
 export const resetParentPassword = async (parentId: string) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const existingParent = await prisma.parent.findFirst({
       where: { id: parentId, schoolId },
       select: { id: true, name: true, surname: true },
@@ -1636,10 +1674,11 @@ export const resetParentPassword = async (parentId: string) => {
 
 export const resetTeacherPassword = async (teacherId: string) => {
   try {
+    const schoolId = await getStudentAdminSchool();
     console.log(`[SECURITY] Initiating password reset for Teacher ID: ${teacherId}`);
 
     const teacher = await prisma.teacher.update({
-      where: { id: teacherId },
+      where: { id: teacherId, schoolId },
       data: { password: null }
     });
 
@@ -1664,7 +1703,7 @@ export const resetTeacherPassword = async (teacherId: string) => {
 // ===================== UNIFIED ENROLLMENT =====================
 export const enrollFamily = async (parentData: any, children: any[]) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const cleanPhone = parentData.phone ? parentData.phone.replace(/[\s\-\.\+]/g, "").trim() : "";
 
     const result = await prisma.$transaction(async (tx) => {
@@ -1728,9 +1767,10 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
         if (child.classId && child.classId !== "null" && child.classId !== "") {
           finalClassId = parseInt(child.classId);
           const targetClass = await tx.class.findUnique({
-            where: { id: finalClassId },
+            where: { id: finalClassId, schoolId },
             select: { levelId: true }
           });
+          if (!targetClass) throw new Error("Class not found in this school.");
           if (targetClass?.levelId) {
             finalLevelId = targetClass.levelId;
           }
@@ -1885,8 +1925,11 @@ export const updateAssignment = async (
 
 export const deleteAssignment = async (id: number) => {
   try {
-    const assignment = await prisma.assignment.findUnique({ where: { id } });
-    await prisma.assignment.delete({ where: { id } });
+    const access = await getAssignmentAccess();
+    const { schoolId } = access;
+    const scope = { id, schoolId, lesson: { schoolId, ...(access.teacherId ? { teacherId: access.teacherId } : {}) } };
+    const assignment = await prisma.assignment.findUnique({ where: scope });
+    await prisma.assignment.delete({ where: scope });
     
     await createAuditLog({
       action: "DELETE_ASSIGNMENT",
@@ -1895,7 +1938,6 @@ export const deleteAssignment = async (id: number) => {
       description: `Deleted assignment: ${assignment?.title}`,
     });
 
-    const schoolId = await getSchoolId();
     invalidateTenantTags(schoolId, 'assignments');
     revalidatePath("/list/assignments");
     return { success: true };
@@ -1959,9 +2001,11 @@ export const updateResource = async (id: number, data: ResourceInput) => {
 
 export const deleteResource = async (id: number) => {
   try {
-    const schoolId = await getSchoolId();
-    const resource = await prisma.resource.findUnique({ where: { id } });
-    await prisma.resource.delete({ where: { id } });
+    const access = await getAssignmentAccess();
+    const { schoolId } = access;
+    const scope = { id, schoolId, lesson: { schoolId, ...(access.teacherId ? { teacherId: access.teacherId } : {}) } };
+    const resource = await prisma.resource.findUnique({ where: scope });
+    await prisma.resource.delete({ where: scope });
     
     await createAuditLog({
       action: "DELETE_RESOURCE",
@@ -2004,11 +2048,11 @@ export const checkParentPhoneExists = async (
   excludeParentId?: string
 ): Promise<PhoneCheckResult> => {
   try {
+    const schoolId = await getStudentAdminSchool();
     if (!phone) return { exists: false };
     const cleanPhone = phone.replace(/[\s\-\.\+]/g, "").trim();
     if (cleanPhone.length < 6) return { exists: false };
 
-    const schoolId = await getSchoolId();
 
     // Global lookup across the ENTIRE database (all schools)
     const existing = await prisma.parent.findFirst({
@@ -2063,11 +2107,11 @@ export const checkTeacherPhoneExists = async (
   excludeTeacherId?: string
 ): Promise<PhoneCheckResult> => {
   try {
+    const schoolId = await getStudentAdminSchool();
     if (!phone) return { exists: false };
     const cleanPhone = phone.replace(/[\s\-\.\+]/g, "").trim();
     if (cleanPhone.length < 6) return { exists: false };
 
-    const schoolId = await getSchoolId();
 
     const existing = await prisma.teacher.findFirst({
       where: {
@@ -2120,11 +2164,11 @@ export const checkStaffPhoneExists = async (
   excludeStaffId?: string
 ): Promise<PhoneCheckResult> => {
   try {
+    const schoolId = await getStudentAdminSchool();
     if (!phone) return { exists: false };
     const cleanPhone = phone.replace(/[\s\-\.\+]/g, "").trim();
     if (cleanPhone.length < 6) return { exists: false };
 
-    const schoolId = await getSchoolId();
 
     const existing = await prisma.staff.findFirst({
       where: {
@@ -2173,7 +2217,8 @@ export const linkStudentToParent = async (
   parentId: string | null
 ) => {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    await requireSchoolRelation('parent', parentId, schoolId);
     await prisma.student.update({
       where: { id: studentId, schoolId },
       data: { parentId },
