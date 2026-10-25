@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import prisma from "@/lib/prisma";
 
 export interface CallTokenPayload {
   adminId: string;
@@ -11,11 +12,15 @@ export interface CallTokenPayload {
 }
 
 function getJwtSecret(): string {
-  return (
+  const secret =
+    process.env.CALL_SESSION_SECRET ||
     process.env.TELEGRAM_WEBHOOK_SECRET ||
     process.env.TELEGRAM_BOT_TOKEN ||
-    "snapschool_call_session_secret_2026"
-  );
+    process.env.CRON_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("Call session signing secret is not configured securely");
+  }
+  return secret;
 }
 
 /**
@@ -42,4 +47,19 @@ export function verifyCallToken(token: string): CallTokenPayload | null {
   } catch (err) {
     return null;
   }
+}
+
+export async function verifyActiveCallToken(token: string): Promise<CallTokenPayload | null> {
+  const payload = verifyCallToken(token);
+  if (!payload) return null;
+  const admin = await prisma.admin.findFirst({
+    where: {
+      id: payload.adminId,
+      schoolId: payload.schoolId,
+      status: "active",
+      School: { status: "ACTIVE" },
+    },
+    select: { id: true },
+  });
+  return admin ? payload : null;
 }

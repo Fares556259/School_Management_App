@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCallToken } from "@/lib/call/token";
+import { verifyActiveCallToken } from "@/lib/call/token";
 import { AccessToken } from "livekit-server-sdk";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Token de session manquant" }, { status: 401 });
     }
 
-    const payload = verifyCallToken(token);
+    const payload = await verifyActiveCallToken(token);
     if (!payload) {
       return NextResponse.json({ error: "Session d'appel invalide ou expirée" }, { status: 401 });
     }

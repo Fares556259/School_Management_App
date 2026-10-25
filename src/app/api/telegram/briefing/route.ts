@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendDailyBriefingsAll } from "@/lib/telegram/briefing";
 import { getRole } from "@/lib/role";
+import { hasValidBearerSecret } from "@/lib/requestSecrets";
 
 export const dynamic = "force-dynamic";
 
@@ -9,16 +10,11 @@ export const dynamic = "force-dynamic";
  * Schedule: Mon-Sat at 06:30 UTC (07:30 Tunisia Time)
  */
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
-
-  // Allow Vercel CRON or authenticated admin trigger
-  if (process.env.NODE_ENV === "production" && !isCron) {
-    const role = await getRole();
-    if (role !== "admin" && role !== "superadmin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const isCron = hasValidBearerSecret(req, process.env.CRON_SECRET);
+  // This dispatches across every linked school, so only the scheduler or a
+  // platform superadministrator may trigger it.
+  if (!isCron && (await getRole()) !== "superadmin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

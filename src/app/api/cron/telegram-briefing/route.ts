@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { runTelegramAgent } from "@/lib/telegram/agent";
+import { hasValidBearerSecret } from "@/lib/requestSecrets";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,8 +16,7 @@ export const maxDuration = 60;
  */
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!hasValidBearerSecret(request, process.env.CRON_SECRET)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 

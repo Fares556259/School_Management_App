@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 import { sendTelegramMessage } from "@/lib/telegram/telegram";
 import { formatTelegramMessage } from "@/lib/telegram/formatter";
+import { hasValidBearerSecret } from "@/lib/requestSecrets";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -23,10 +24,8 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleReflection(req: NextRequest) {
-  // 1. Cron Authentication (if CRON_SECRET configured)
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  // Cron authentication fails closed when configuration is missing.
+  if (!hasValidBearerSecret(req, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

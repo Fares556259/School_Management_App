@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma";
-import { authenticateMobileRequest, generateToken, verifyToken, generateAndStoreOTP, verifyOTP, generateStudentClaimToken, verifyStudentClaimToken } from "../lib/mobileAuth";
+import { authenticateMobileRequest, generateToken, verifyToken, generateAndStoreOTP, verifyOTP, generateStudentClaimToken, verifyStudentClaimToken, generateMobilePrintToken, verifyMobilePrintToken } from "../lib/mobileAuth";
 import { GET as promote } from "../app/api/dev-promote/route";
 import { GET as upgrade } from "../app/api/upgrade-to-admin/route";
 import { POST as verifyStudent } from "../app/api/mobile/student/verify/route";
@@ -21,7 +21,7 @@ try {
   const token = generateToken({ userId: "test", userType: "admin", schoolId: "test-school" });
   assert.equal(verifyToken(token)?.schoolId, "test-school");
   assert.equal((await authenticateMobileRequest(new Request(`http://localhost/private?token=${token}`))).error?.status, 401);
-  assert.equal((await authenticateMobileRequest(new Request(`http://localhost/print?token=${token}`), { allowQueryToken: true })).payload?.userId, "test");
+  assert.equal((await authenticateMobileRequest(new Request(`http://localhost/print?token=${token}`))).error?.status, 401);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "superadmin", schoolId: "test-school" }, process.env.JWT_SECRET)), null);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "admin" }, process.env.JWT_SECRET)), null);
   assert.equal(verifyToken(jwt.sign({ userId: "test", userType: "admin", schoolId: "test-school" }, process.env.JWT_SECRET, { expiresIn: -1 })), null);
@@ -31,6 +31,12 @@ try {
     { studentId: "student-a", schoolId: "school-a" }
   );
   assert.equal(verifyStudentClaimToken(`${claimToken}broken`), null);
+  const printToken = generateMobilePrintToken("test", "test-school");
+  assert.deepEqual(
+    { userId: verifyMobilePrintToken(printToken)?.userId, schoolId: verifyMobilePrintToken(printToken)?.schoolId },
+    { userId: "test", schoolId: "test-school" }
+  );
+  assert.equal(verifyMobilePrintToken(token), null);
   const code = generateAndStoreOTP("test-phone");
   assert.equal(verifyOTP("test-phone", code), true);
   assert.equal(verifyOTP("test-phone", code), false);

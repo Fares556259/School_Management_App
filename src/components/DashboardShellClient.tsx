@@ -29,7 +29,6 @@ const DashboardShellClient = ({
   // Silent background heartbeat to dispatch any pending reminders opportunistically
   useEffect(() => {
     const ping = () => {
-      fetch("/api/cron/dispatch-reminders", { method: "GET", keepalive: true }).catch(() => null);
     };
     ping();
     const interval = setInterval(ping, 30_000);

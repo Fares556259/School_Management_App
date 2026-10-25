@@ -25,6 +25,7 @@ import { flagConversationForLearning, markConversationPositive } from "@/lib/tel
 import { deliverDailyCashReport } from "@/lib/telegram/tools/documentTools";
 import { inspectExcelBuffer, storeUserExcelBuffer } from "@/lib/excel/excelEngine";
 import { waitUntil } from "@vercel/functions";
+import { hasValidHeaderSecret } from "@/lib/requestSecrets";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -58,11 +59,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Webhook Secret Validation (only enforced if TELEGRAM_WEBHOOK_SECRET is configured)
-    const secretHeader = req.headers.get("x-telegram-bot-api-secret-token");
-    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-
-    if (expectedSecret && secretHeader && secretHeader !== expectedSecret) {
+    // Webhook authentication is mandatory and fails closed.
+    if (!hasValidHeaderSecret(req, "x-telegram-bot-api-secret-token", process.env.TELEGRAM_WEBHOOK_SECRET)) {
       console.warn("[Telegram Webhook] Unauthorized request rejected (invalid secret).");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

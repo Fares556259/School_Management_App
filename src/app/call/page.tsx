@@ -1,6 +1,6 @@
 import React from "react";
 import Script from "next/script";
-import { verifyCallToken } from "@/lib/call/token";
+import { verifyActiveCallToken } from "@/lib/call/token";
 import CallRoomClient from "./CallRoomClient";
 import Link from "next/link";
 
@@ -15,7 +15,7 @@ interface CallPageProps {
 export default async function CallPage(props: CallPageProps) {
   const searchParams = await props.searchParams;
   const token = searchParams.auth;
-  const payload = token ? verifyCallToken(token) : null;
+  const payload = token ? await verifyActiveCallToken(token) : null;
 
   if (!token || !payload) {
     return (

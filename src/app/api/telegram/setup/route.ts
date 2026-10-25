@@ -4,6 +4,7 @@ import {
   getTelegramWebhookInfo,
   setTelegramBotCommands,
 } from "@/lib/telegram/telegram";
+import { getRole } from "@/lib/role";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   try {
+    if ((await getRole()) !== "superadmin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.snapschool.academy";
     const webhookUrl = `${appUrl}/api/telegram/webhook`;
     const secret = process.env.TELEGRAM_WEBHOOK_SECRET;

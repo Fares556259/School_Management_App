@@ -1,5 +1,6 @@
 import { processPaymentReminders } from "@/lib/notifications";
 import { NextRequest, NextResponse } from "next/server";
+import { hasValidBearerSecret } from "@/lib/requestSecrets";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +10,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   try {
-    // Basic security check (Optional: verify CRON_SECRET if added to .env)
-    const authHeader = request.headers.get("authorization");
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!hasValidBearerSecret(request, process.env.CRON_SECRET)) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 

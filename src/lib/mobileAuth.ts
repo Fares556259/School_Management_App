@@ -27,6 +27,14 @@ interface StudentClaimPayload {
   exp?: number;
 }
 
+interface MobilePrintTokenPayload {
+  purpose: "caisse-print";
+  userId: string;
+  schoolId: string;
+  iat?: number;
+  exp?: number;
+}
+
 // ─── 1. JWT Token Issuer & Verifier ──────────────────────────────────────────
 export function generateToken(payload: Omit<MobileJWTPayload, "iat" | "exp">): string {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: "30d" });
@@ -55,6 +63,21 @@ export function verifyStudentClaimToken(token: string): StudentClaimPayload | nu
     if (typeof payload === "string" || payload.purpose !== "parent-signup" ||
         typeof payload.studentId !== "string" || typeof payload.schoolId !== "string") return null;
     return payload as StudentClaimPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function generateMobilePrintToken(userId: string, schoolId: string): string {
+  return jwt.sign({ purpose: "caisse-print", userId, schoolId }, getJwtSecret(), { expiresIn: "5m" });
+}
+
+export function verifyMobilePrintToken(token: string): MobilePrintTokenPayload | null {
+  try {
+    const payload = jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] });
+    if (typeof payload === "string" || payload.purpose !== "caisse-print" ||
+        typeof payload.userId !== "string" || typeof payload.schoolId !== "string") return null;
+    return payload as MobilePrintTokenPayload;
   } catch {
     return null;
   }
@@ -130,16 +153,9 @@ export function verifyOTP(phone: string, inputCode: string): boolean {
 //        const { userId, userType, schoolId } = auth.payload;
 export async function authenticateMobileRequest(
   request: NextRequest | Request,
-  options: { allowPendingParent?: boolean; allowQueryToken?: boolean } = {}
+  options: { allowPendingParent?: boolean } = {}
 ): Promise<{ payload: MobileJWTPayload; error: null } | { payload: null; error: NextResponse }> {
-  let authHeader = request.headers.get("Authorization");
-  if (!authHeader && options.allowQueryToken && "url" in request) {
-    try {
-      const url = new URL(request.url);
-      const queryToken = url.searchParams.get("token");
-      if (queryToken) authHeader = queryToken;
-    } catch {}
-  }
+  const authHeader = request.headers.get("Authorization");
 
   if (!authHeader) {
     return {

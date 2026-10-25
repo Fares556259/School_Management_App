@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyCallToken } from "@/lib/call/token";
+import { verifyActiveCallToken } from "@/lib/call/token";
 import { TOOLS } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
 import prisma from "@/lib/prisma";
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Token manquant" }, { status: 401 });
     }
 
-    const payload = verifyCallToken(token);
+    const payload = await verifyActiveCallToken(token);
     if (!payload) {
       return NextResponse.json({ error: "Token invalide ou expiré" }, { status: 401 });
     }

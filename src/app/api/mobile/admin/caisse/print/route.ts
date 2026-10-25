@@ -1,16 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { authenticateMobileRequest, generateMobilePrintToken, verifyMobilePrintToken } from "@/lib/mobileAuth";
 import { generateDailyCashRegisterPdf } from "@/lib/pdf/receipts";
 
 export const dynamic = "force-dynamic";
 
+export async function POST(request: NextRequest) {
+  const auth = await authenticateMobileRequest(request);
+  if (auth.error) return auth.error;
+  if (auth.payload.userType !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+  const body = await request.json().catch(() => ({}));
+  const date = typeof body.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : undefined;
+  const printToken = generateMobilePrintToken(auth.payload.userId, auth.payload.schoolId);
+  const query = new URLSearchParams({ printToken });
+  if (date) query.set("date", date);
+  return NextResponse.json({
+    url: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.snapschool.academy"}/api/mobile/admin/caisse/print?${query}`,
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // This route is opened in the system browser, which cannot attach an
-    // Authorization header. Query-token authentication is isolated here.
-    const auth = await authenticateMobileRequest(request, { allowQueryToken: true });
-    if (auth.error) {
+    const { searchParams } = new URL(request.url);
+    const printTokenParam = searchParams.get("printToken") || "";
+    const printAccess = verifyMobilePrintToken(printTokenParam);
+    const activeAdmin = printAccess ? await prisma.admin.findFirst({
+      where: { id: printAccess.userId, schoolId: printAccess.schoolId, status: "active", School: { status: "ACTIVE" } },
+      select: { id: true },
+    }) : null;
+    if (!printAccess || !activeAdmin) {
       return new NextResponse(
         `<!DOCTYPE html>
         <html lang="fr">
@@ -24,14 +44,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { userType, schoolId } = auth.payload;
-    if (userType !== "admin") {
-      return new NextResponse("Accès réservé à la direction", { status: 403 });
-    }
-
-    const { searchParams } = new URL(request.url);
+    const schoolId = printAccess.schoolId;
     const dateParam = searchParams.get("date");
-    const tokenParam = searchParams.get("token") || "";
     const formatParam = searchParams.get("format");
 
     const targetDate = dateParam ? new Date(dateParam) : new Date();
@@ -316,7 +330,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const pdfDownloadUrl = `/api/mobile/admin/caisse/print?token=${encodeURIComponent(tokenParam)}&format=pdf${dateParam ? `&date=${encodeURIComponent(dateParam)}` : ""}`;
+    const pdfDownloadUrl = `/api/mobile/admin/caisse/print?printToken=${encodeURIComponent(printTokenParam)}&format=pdf${dateParam ? `&date=${encodeURIComponent(dateParam)}` : ""}`;
 
     const html = `<!DOCTYPE html>
 <html lang="fr">

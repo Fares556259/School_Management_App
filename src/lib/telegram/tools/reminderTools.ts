@@ -98,7 +98,7 @@ export function chainToNextRelayHop(nextHop: number) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-cron-relay": "true",
+      Authorization: `Bearer ${process.env.CRON_SECRET || ""}`,
     },
   }).catch((e) => {
     console.warn(`[Reminder Relay] Hop ${nextHop} fetch error (non-critical):`, e.message);
