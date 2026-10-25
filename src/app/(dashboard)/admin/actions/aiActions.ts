@@ -1,6 +1,15 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { getStudentAdminSchool } from "@/lib/studentProfile";
+import { getAuthenticatedUser } from "@/utils/supabase/server";
+
+async function getAdminAccess() {
+  const schoolId = await getStudentAdminSchool();
+  const user = await getAuthenticatedUser();
+  if (!user) throw new Error("Unauthorized");
+  return { schoolId, userId: user.id };
+}
 import { revalidatePath } from "next/cache";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCachedInsights, setCachedInsights, generateHash } from "@/lib/insightsCache";
@@ -10,14 +19,16 @@ import { getCachedInsights, setCachedInsights, generateHash } from "@/lib/insigh
  */
 export async function getAIUsageStats() {
   try {
+    const { schoolId, userId } = await getAdminAccess();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const admin = await prisma.admin.findFirst({
+      where: { id: userId, schoolId },
       select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true }
     });
 
-    if (!admin) return { usage: 0, quota: 10 };
+    if (!admin) return { usage: 0, quota: 0 };
 
     const lastReset = admin.lastAiUpdate ? new Date(admin.lastAiUpdate) : new Date(0);
     lastReset.setHours(0, 0, 0, 0);
@@ -38,7 +49,7 @@ export async function getAIUsageStats() {
     return { usage: admin.aiUsage || 0, quota: admin.aiQuota || 10 };
   } catch (error) {
     console.warn("⚠️ [AI-STATS] Defaulting AI quota due to connection pressure.");
-    return { usage: 0, quota: 10 };
+    return { usage: 0, quota: 0 };
   }
 }
 
@@ -52,31 +63,32 @@ export async function isAIQuotaReached() {
  */
 async function checkAndIncrementUsage() {
   try {
+    const { schoolId, userId } = await getAdminAccess();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const admin = await prisma.admin.findFirst({ 
+    const admin = await prisma.admin.findFirst({
+      where: { id: userId, schoolId },
       select: { id: true, aiUsage: true, aiQuota: true, lastAiUpdate: true } 
     });
 
-    if (!admin) return { allowed: true, quota: 10 };
+    if (!admin) return { allowed: false, quota: 0 };
 
     // QUOTA MANIPULATION DISABLED FOR NOW
     return { allowed: true, quota: 9999 };
   } catch (error) {
     console.error("❌ [AI-GUARD] Error in guard:", error);
-    return { allowed: true, quota: 10 }; 
+    return { allowed: false, quota: 0 };
   }
 }
 
 export async function toggleTestAIQuota() {
   try {
+    const { schoolId, userId } = await getAdminAccess();
     const current = await getAIUsageStats();
     const newUsage = current.usage >= current.quota ? 0 : current.quota;
 
-    const adminToUpdate = await prisma.admin.findUnique({ where: { id: "admin" } }) 
-      ? "admin" 
-      : (await prisma.admin.findFirst({ select: { id: true } }))?.id;
+    const adminToUpdate = (await prisma.admin.findFirst({ where: { id: userId, schoolId }, select: { id: true } }))?.id;
 
     if (!adminToUpdate) {
       console.error("[AI-TOGGLE] No Admin found to update");
@@ -415,6 +427,7 @@ function cleanAIJson(text: string): string {
 }
 
 export async function getFinancialInsights(data: any, locale = "fr") {
+  const { schoolId } = await getAdminAccess();
   const usage = await checkAndIncrementUsage();
   if (!usage.allowed) return { error: `DAILY_QUOTA_REACHED|${usage.quota}` };
 
@@ -427,7 +440,7 @@ export async function getFinancialInsights(data: any, locale = "fr") {
     unpaidCount: data.unpaidCount || 0,
     locale: locale // Include locale so caching works per-language
   };
-  const hash = generateHash(dataPayload);
+  const hash = schoolId + ":" + generateHash(dataPayload);
   const cached = getCachedInsights(hash);
 
   if (cached && cached.insights && !cached.isStale) {
@@ -511,12 +524,13 @@ export async function getFinancialInsights(data: any, locale = "fr") {
 export async function upsertConversation({ id, title, messages, month, year }: any) {
   if (!(prisma as any).conversation) return { success: false, error: "Conversation model not initialized" };
   try {
+    const { schoolId, userId } = await getAdminAccess();
     const data = { title, messages, month, year, updatedAt: new Date() };
     if (id && id !== "new") {
-      const conv = await (prisma as any).conversation.update({ where: { id }, data });
+      const conv = await (prisma as any).conversation.update({ where: { id, schoolId, userId }, data });
       return { success: true, conversation: conv };
     } else {
-      const conv = await (prisma as any).conversation.create({ data: { ...data, userId: "admin" } });
+      const conv = await (prisma as any).conversation.create({ data: { ...data, schoolId, userId } });
       revalidatePath("/list/assistant");
       return { success: true, conversation: conv };
     }
@@ -529,8 +543,9 @@ export async function upsertConversation({ id, title, messages, month, year }: a
 export async function getConversations(month: number, year: number) {
   if (!(prisma as any).conversation) return [];
   try {
+    const { schoolId, userId } = await getAdminAccess();
     return await (prisma as any).conversation.findMany({
-      where: { month, year },
+      where: { month, year, schoolId, userId },
       orderBy: { updatedAt: "desc" },
     });
   } catch (error) {
@@ -548,23 +563,25 @@ export async function getAIUsageStatsDirect() {
  */
 export async function getAIContext(month: number, year: number) {
   try {
+    const { schoolId } = await getAdminAccess();
+    if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 1 || year > 9999) throw new Error("Invalid period");
     const startDate = new Date(year, month - 1, 1);
     
     // FETCH SEQUENTIALLY to respect connection pool
-    const studentCensusData = await prisma.student.findMany({ 
+    const studentCensusData = await prisma.student.findMany({
+      where: { schoolId },
       select: { id: true, name: true, surname: true },
-      take: 500
     });
 
     const unpaidStudents = await prisma.$queryRaw<any[]>`
-      SELECT s.id, s.name, s.surname, l."tuitionFee"
+      SELECT s.id, s.name, s.surname, COALESCE(s."customTuition", l."tuitionFee", 450) as "tuitionFee"
       FROM "Student" s
       JOIN "Level" l ON s."levelId" = l.id
       LEFT JOIN "Payment" pay ON s.id = pay."studentId" 
         AND pay.month = ${month} 
         AND pay.year = ${year}
-      WHERE (pay.status IS NULL OR pay.status != 'PAID')
-      LIMIT 100
+      WHERE s."schoolId" = ${schoolId}
+        AND (pay.status IS NULL OR pay.status != 'PAID')
     `;
 
     return {
@@ -572,7 +589,7 @@ export async function getAIContext(month: number, year: number) {
       unpaidPayments: unpaidStudents.map(s => ({
         studentId: s.id,
         name: `${s.name} ${s.surname}`,
-        amount: s.tuitionFee || 450
+        amount: s.tuitionFee ?? 450
       }))
     };
   } catch (error) {
