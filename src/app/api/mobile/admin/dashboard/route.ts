@@ -42,14 +42,11 @@ export async function GET(request: NextRequest) {
     // identity, counts, finance and attendance in separate network stages.
     // Prisma's connection pool still bounds database concurrency.
     const [
-      admin, school,
-      studentCount, teacherCount, staffCount, classCount,
-      monthlyCollectedTuitionAgg,
-      expectedTuitionRows,
+      admin, school, dashboardStatsRows,
       unpaidStudentRows,
       unpaidTeacherRows,
       unpaidStaffRows,
-      todayAttendanceCount, todayAbsences, recentAbsenteesList, notices,
+      recentAbsenteesList, notices,
     ] = await Promise.all([
       prisma.admin.findUnique({
         where: { id: userId },
@@ -59,25 +56,22 @@ export async function GET(request: NextRequest) {
         where: { id: schoolId },
         select: { name: true },
       }),
-      prisma.student.count({ where: { schoolId } }),
-      prisma.teacher.count({ where: { schoolId } }),
-      prisma.staff.count({ where: { schoolId } }),
-      prisma.class.count({ where: { schoolId } }),
-      prisma.payment.aggregate({
-        where: {
-          schoolId,
-          userType: { equals: "student", mode: "insensitive" },
-          status: { in: ["PAID", "PARTIAL"] },
-          month: activeMonth,
-          year: activeYear,
-        },
-        _sum: { amount: true },
-      }),
       prisma.$queryRaw`
-        SELECT COALESCE(SUM(COALESCE(s."customTuition", l."tuitionFee", 450)), 0)::float as "expectedTotal"
-        FROM "Student" s
-        LEFT JOIN "Level" l ON s."levelId" = l.id
-        WHERE s."schoolId" = ${schoolId}
+        SELECT
+          (SELECT COUNT(*) FROM "Student" WHERE "schoolId" = ${schoolId})::int AS "studentCount",
+          (SELECT COUNT(*) FROM "Teacher" WHERE "schoolId" = ${schoolId})::int AS "teacherCount",
+          (SELECT COUNT(*) FROM "Staff" WHERE "schoolId" = ${schoolId})::int AS "staffCount",
+          (SELECT COUNT(*) FROM "Class" WHERE "schoolId" = ${schoolId})::int AS "classCount",
+          (SELECT COALESCE(SUM(amount), 0) FROM "Payment"
+            WHERE "schoolId" = ${schoolId} AND LOWER("userType") = 'student'
+              AND status IN ('PAID', 'PARTIAL') AND month = ${activeMonth} AND year = ${activeYear})::float AS "collectedTuition",
+          (SELECT COALESCE(SUM(COALESCE(s."customTuition", l."tuitionFee", 450)), 0)
+            FROM "Student" s LEFT JOIN "Level" l ON s."levelId" = l.id
+            WHERE s."schoolId" = ${schoolId})::float AS "expectedTuition",
+          (SELECT COUNT(*) FROM "Attendance"
+            WHERE "schoolId" = ${schoolId} AND date >= ${startOfDay} AND date <= ${endOfDay})::int AS "attendanceCount",
+          (SELECT COUNT(*) FROM "Attendance"
+            WHERE "schoolId" = ${schoolId} AND date >= ${startOfDay} AND date <= ${endOfDay} AND status = 'ABSENT')::int AS "absenceCount"
       ` as Promise<any[]>,
       // Unpaid Students query
       prisma.$queryRaw`
@@ -143,12 +137,6 @@ export async function GET(request: NextRequest) {
           CASE WHEN pay.status = 'PARTIAL' THEN 1 WHEN (pay."missedHours" IS NOT NULL AND pay."missedHours" > 0) THEN 2 ELSE 3 END,
           s.surname ASC
       ` as Promise<any[]>,
-      prisma.attendance.count({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
-      }),
-      prisma.attendance.count({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay }, status: "ABSENT" },
-      }),
       prisma.attendance.findMany({
         where: { schoolId, date: { gte: startOfDay, lte: endOfDay }, status: "ABSENT" },
         take: 4,
@@ -179,9 +167,16 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
+    const dashboardStats = dashboardStatsRows?.[0] || {};
+    const studentCount = Number(dashboardStats.studentCount) || 0;
+    const teacherCount = Number(dashboardStats.teacherCount) || 0;
+    const staffCount = Number(dashboardStats.staffCount) || 0;
+    const classCount = Number(dashboardStats.classCount) || 0;
+    const todayAttendanceCount = Number(dashboardStats.attendanceCount) || 0;
+    const todayAbsences = Number(dashboardStats.absenceCount) || 0;
     const adminName = admin ? ([admin.name, admin.surname].filter(Boolean).join(" ") || admin.username) : "Direction";
-    const collectedTuition = monthlyCollectedTuitionAgg._sum.amount || 0;
-    const expectedTuition = (expectedTuitionRows?.[0]?.expectedTotal as number) || (studentCount * 450);
+    const collectedTuition = Number(dashboardStats.collectedTuition) || 0;
+    const expectedTuition = Number(dashboardStats.expectedTuition) || (studentCount * 450);
     const collectionRate = expectedTuition > 0 ? Math.min(100, Math.round((collectedTuition / expectedTuition) * 100)) : 0;
     const remainingToCollect = Math.max(0, expectedTuition - collectedTuition);
 

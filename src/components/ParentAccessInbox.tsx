@@ -40,6 +40,8 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(false);
   const dataCache = useRef(new Map<string, Inbox>([['PENDING|||1', initialData]]));
+  const pendingCountRef = useRef(initialData.counts.PENDING || 0);
+  pendingCountRef.current = data.counts.PENDING || 0;
   const label = (s: string) => ({ PENDING: c.pending, APPROVED: c.approved, REJECTED: c.rejected, CANCELLED: c.cancelled, REVOKED: c.revoked }[s] || s);
   const date = (value: string) => new Intl.DateTimeFormat(locale === 'ar' ? 'ar-TN' : locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Tunis' }).format(new Date(value));
   useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 250); return () => clearTimeout(timer); }, [search]);
@@ -76,22 +78,28 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
   useEffect(() => {
     if (mounted.current) void load();
     else mounted.current = true;
-    const timer = setInterval(() => { if (!document.hidden) void load(true, true); }, 30_000);
-    return () => { clearInterval(timer); controller.current?.abort(); };
-  }, [load]);
-  useEffect(() => {
-    const abort = new AbortController();
-    const timer = setTimeout(() => {
-      void Promise.all(['APPROVED', 'REJECTED'].map(async prefetchStatus => {
-        const params = new URLSearchParams({ status: prefetchStatus, classId: '', q: '', page: '1', meta: '0' });
-        const response = await fetch(`/api/admin/parent-access?${params}`, { signal: abort.signal, cache: 'no-store' });
+
+    // Poll only the inexpensive pending counter. A full inbox refresh performs
+    // several joined queries and used to run every 30 seconds even while an
+    // administrator was reading an already processed tab.
+    const poll = async () => {
+      if (document.hidden || controller.current?.signal.aborted) return;
+      try {
+        const response = await fetch('/api/admin/parent-access?summary=1', { cache: 'no-store' });
         if (!response.ok) return;
-        const next: Inbox = await response.json();
-        dataCache.current.set(`${prefetchStatus}|||1`, { ...next, counts: initialData.counts, classes: initialData.classes });
-      })).catch(() => undefined);
-    }, 300);
-    return () => { clearTimeout(timer); abort.abort(); };
-  }, [initialData]);
+        const summary: { pending?: number } = await response.json();
+        if (!Number.isFinite(summary.pending)) return;
+        const pending = Number(summary.pending);
+        const changed = pending !== pendingCountRef.current;
+        if (changed && status === 'PENDING') void load(true, true);
+        else if (changed) setData(previous => ({ ...previous, counts: { ...previous.counts, PENDING: pending } }));
+      } catch {
+        // The visible data remains usable while a background poll is offline.
+      }
+    };
+    const timer = setInterval(() => void poll(), 60_000);
+    return () => { clearInterval(timer); controller.current?.abort(); };
+  }, [load, status]);
   const openDecision = (action: Decision['action'], entries: Entry[]) => { setDetails(null); setDecision({ action, entries }); setReason(''); setConfirmed(false); setSaveError(''); };
   const save = async () => {
     if (!decision || saving) return;
