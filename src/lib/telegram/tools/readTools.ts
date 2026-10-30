@@ -561,7 +561,7 @@ export async function getSchoolStatsTool(
     prisma.class.count({ where: { schoolId: context.schoolId } }),
   ]);
 
-  const formattedText = `🏛️ <b>SNAPSCHOOL │ EFFECTIFS DE L'ÉTABLISSEMENT</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Effectifs réels enregistrés en base de données :</b>\n\n• 👨‍🏫 <b>Enseignants :</b> <code>${teachers}</code>\n• 👨‍👩‍👧‍👦 <b>Parents d'élèves :</b> <code>${parents}</code>\n• 🎓 <b>Élèves inscrits :</b> <code>${students}</code>\n• 💼 <b>Personnel (Staff) :</b> <code>${staff}</code>\n• 🏫 <b>Classes actives :</b> <code>${classes}</code>\n\n━━━━━━━━━━━━━━━━━━━━━━\n<blockquote>💡 <b>Hnia :</b> Chiffres 100% synchronisés avec la base de données de l'école.</blockquote>`;
+  const formattedText = `🏛️ <b>SNAPSCHOOL │ EFFECTIFS DE L'ÉTABLISSEMENT</b>\n━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Effectifs réels enregistrés en base de données :</b>\n\n• 👨‍🏫 <b>Enseignants :</b> <code>${teachers}</code>\n• 👨‍👩‍👧‍👦 <b>Parents d'élèves :</b> <code>${parents}</code>\n• 🎓 <b>Élèves inscrits :</b> <code>${students}</code>\n• 💼 <b>Personnel (Staff) :</b> <code>${staff}</code>\n• 🏫 <b>Classes actives :</b> <code>${classes}</code>\n\n━━━━━━━━━━━━━━━━━━━━━━\n<blockquote>💡 <b>Hnia :</b> Effectifs consultés dans les dossiers de cet établissement.</blockquote>`;
 
   return {
     teachers,

@@ -85,11 +85,11 @@ async function main() {
     replace(prisma.aIToolCall, 'create', async ({ data }: any) => { const row = { id: `staged-${staged.length}`, ...data }; staged.push(row); return row; });
     replace(TOOLS.get_students, 'execute', async () => { throw new Error('Batch read must wait until write proposals are shown'); });
     replace(GoogleGenerativeAI.prototype, 'getGenerativeModel', () => ({ startChat: () => ({ sendMessage: async () => ({ response: {
-      functionCalls: () => [{ name: 'get_students', args: {} }, { name: 'add_expense', args: fresh().arguments }, { name: 'teach_hnia', args: { instruction: 'Rule' } }],
+      functionCalls: () => [{ name: 'get_expenses', args: {} }, { name: 'add_expense', args: fresh().arguments }, { name: 'teach_hnia', args: { instruction: 'Rule' } }],
       text: () => '',
     } }) }) }));
     const beforeGeneration = calls;
-    const proposal = await runMobileAgent({ adminId: 'admin-a', schoolId: 'school-a', userMessage: 'Prepare the requested changes' });
+    const proposal = await runMobileAgent({ adminId: 'admin-a', schoolId: 'school-a', userMessage: 'Prépare une dépense et enseigne une règle personnalisée' });
     assert.equal(proposal.success, true); assert.equal(calls, beforeGeneration);
     assert.equal(staged.length, 2); assert(staged.every(row => row.status === 'PENDING' && row.requiresConfirm));
     assert.equal((proposal.pendingConfirmation as any[]).length, 2);
@@ -97,6 +97,7 @@ async function main() {
     assert(written.some(message => message.toolCallId === staged[1].id));
 
     // History must return the exact completed card, never resurrect it as pending.
+    replace(prisma.aIToolCall, 'findMany', async () => []);
     replace(prisma.aIConversation, 'findFirst', async () => ({ id: 'conversation-a', messages: [{ id: 'm', role: 'assistant', content: 'Please confirm', toolCallId: 'proposal-a', createdAt: new Date() }], toolCalls: [{ ...fresh(), status: 'EXECUTED', result: { message: 'Saved' } }] }));
     const token = generateToken({ userId: 'admin-a', userType: 'admin', schoolId: 'school-a' });
     const historyRes = await history(new NextRequest('https://example.com/api/mobile/agent/history?limit=invalid', { headers: { Authorization: `Bearer ${token}` } }));

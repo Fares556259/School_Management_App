@@ -1,5 +1,7 @@
 import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
 import { buildReadPresentation } from './readPresentation';
+import { buildMobileImageMessage, explicitCurrencyAmounts, getPurchaseDraft } from './purchaseDraft';
+import { prepareConfirmedArguments } from './actionPolicy';
 import { isVerificationFollowup, isNextPage, needsFreshSchoolData } from "./dataAccuracy";
 import { READ_ONLY_ACTIONS } from "./actionPolicy";
 import { ActionCardData, buildActionCardMetadata } from "./actionCards";
@@ -383,74 +385,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       }
 
       if (analyzedDoc) {
-        const photoUrl = publicUrl || "";
-        const docDescriptor = `[DOCUMENT NUMÉRISÉ REÇU PAR PHOTO]
-- Type détecté : ${analyzedDoc.documentType}
-- Titre / Enseigne : ${analyzedDoc.title || analyzedDoc.merchant || "Non spécifié"}
-- Montant extrait : ${analyzedDoc.amount !== undefined ? `${analyzedDoc.amount} DT` : "Non spécifié"}
-- Date du document : ${analyzedDoc.date || "Non spécifiée"}
-- Catégorie : ${analyzedDoc.category || "Général"}
-- Personne concernée : ${analyzedDoc.studentName || analyzedDoc.parentName || analyzedDoc.personName || "Non spécifié"}
-${analyzedDoc.bankName ? `- Banque : ${analyzedDoc.bankName}\n` : ""}${analyzedDoc.chequeNumber ? `- N° Chèque : ${analyzedDoc.chequeNumber}\n` : ""}${analyzedDoc.className ? `- Classe : ${analyzedDoc.className}\n` : ""}${analyzedDoc.sessionName ? `- Séance : ${analyzedDoc.sessionName}\n` : ""}- Résumé visuel : ${analyzedDoc.summary}
-${photoUrl ? `- Justificatif (URL image) : ${photoUrl}` : ""}`;
-
-        if (!effectiveUserMessage || effectiveUserMessage.trim().length === 0) {
-          if (analyzedDoc.documentType === "EXPENSE_RECEIPT") {
-            effectiveUserMessage = `${docDescriptor}
-
-L'administrateur a envoyé la photo de ce ticket de caisse / reçu sans texte d'accompagnement.
-Agis directement :
-Appelle immédiatement l'outil 'add_expense' avec :
-- title: "${analyzedDoc.merchant || analyzedDoc.title || "Dépense"}"
-- amount: ${analyzedDoc.amount || 0}
-- category: "${analyzedDoc.category || "Général"}"
-- date: "${analyzedDoc.date || new Date().toISOString().split("T")[0]}"
-- img: "${photoUrl}"
-(Cela générera directement la carte interactive de confirmation d'enregistrement de la dépense).`;
-          } else if (analyzedDoc.documentType === "PAYMENT_RECEIPT") {
-            effectiveUserMessage = `${docDescriptor}
-
-L'administrateur a envoyé un reçu de paiement / virement bancaire pour des frais scolaires.
-${analyzedDoc.studentName ? `Élève identifié : ${analyzedDoc.studentName}.` : "Élève à identifier."}
-${analyzedDoc.amount ? `Montant : ${analyzedDoc.amount} DT.` : ""}
-Propose d'enregistrer le paiement de scolarité via 'record_payment' avec ce justificatif.`;
-          } else if (analyzedDoc.documentType === "BANK_CHEQUE") {
-            effectiveUserMessage = `${docDescriptor}
-
-L'administrateur a envoyé la photo d'un chèque bancaire pour le règlement de frais scolaires.
-- Banque : ${analyzedDoc.bankName || "Banque"}
-- Numéro de chèque : ${analyzedDoc.chequeNumber || "Non spécifié"}
-- Montant : ${analyzedDoc.amount ? `${analyzedDoc.amount} DT` : "À préciser"}
-${analyzedDoc.studentName ? `- Élève annoté : ${analyzedDoc.studentName}` : ""}
-${analyzedDoc.parentName ? `- Émetteur / Parent : ${analyzedDoc.parentName}` : ""}
-Propose d'enregistrer le paiement via 'record_payment'.`;
-          } else if (analyzedDoc.documentType === "ATTENDANCE_SHEET") {
-            effectiveUserMessage = `${docDescriptor}
-
-L'administrateur a envoyé la photo d'une feuille d'appel papier de classe.
-- Classe : "${analyzedDoc.className || "À préciser"}"
-- Séance : "${analyzedDoc.sessionName || "Séance du jour"}"
-Propose d'enregistrer l'appel via 'mark_class_attendance'.`;
-          } else if (analyzedDoc.documentType === "PROFILE_PHOTO") {
-            effectiveUserMessage = `${docDescriptor}
-
-L'administrateur a envoyé une photo de profil / identité.
-${analyzedDoc.personName ? `Propose d'attribuer cette photo à "${analyzedDoc.personName}" via 'update_person_photo'.` : `Demande à qui attribuer cette photo de profil.`}`;
-          } else {
-            effectiveUserMessage = `${docDescriptor}
-
-L'administrateur a envoyé cette photo : "${analyzedDoc.summary}".
-Présente brièvement ce qui a été détecté et demande ce qu'il souhaite faire.`;
-          }
-        } else {
-          effectiveUserMessage = `${docDescriptor}
-
-Message / Consigne de l'administrateur : "${effectiveUserMessage}"
-
-Instructions :
-- Applique directement la consigne de l'administrateur en utilisant les informations extraites de l'image (montant: ${analyzedDoc.amount || 0} DT, date: "${analyzedDoc.date || ""}", enseigne: "${analyzedDoc.merchant || analyzedDoc.title || ""}", justificatif: "${photoUrl}").
-- Si l'administrateur mentionne un achat, une dépense ou un reçu ("chrina", "acheté", "dépense", "reçu", "ajoute"), appelle directement 'add_expense' avec le montant et l'intitulé extraits !`;
-        }
+        effectiveUserMessage = buildMobileImageMessage(effectiveUserMessage, analyzedDoc, publicUrl || undefined);
       }
     } catch (imgErr) {
       console.error("[MobileAgent] Image analysis error:", imgErr);
@@ -552,6 +487,25 @@ Instructions :
     adminName,
     language: input.language || "fr",
   };
+
+  // Resolve explicit purchases before general chat/history can select an unrelated read.
+  // This path only creates a proposal; the expense tool runs exclusively in confirmMobileAction.
+  const purchaseDraft = getPurchaseDraft(originalUserText || transcription || '', analyzedDoc, uploadedImageUrl, Boolean(input.imageBase64));
+  if (purchaseDraft) {
+    if (purchaseDraft.clarification) {
+      await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: purchaseDraft.clarification } });
+      return { success: true, conversationId, message: purchaseDraft.clarification, imageUrl: uploadedImageUrl, transcription };
+    }
+    const args = prepareConfirmedArguments(TOOLS.add_expense, purchaseDraft.args);
+    const proposal = await prisma.aIToolCall.create({ data: {
+      conversationId, toolName: 'add_expense', arguments: args, status: 'PENDING', requiresConfirm: true,
+    } });
+    const card = buildActionCardMetadata(proposal.id, 'add_expense', args, 'Vérifiez les détails puis confirmez.');
+    const message = 'Dépense proposée. Vérifiez le montant et les détails, puis appuyez sur Confirmer. Aucune dépense enregistrée pour le moment.';
+    await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, toolCallId: proposal.id } });
+    return { success: true, conversationId, message, transcription, imageUrl: uploadedImageUrl,
+      pendingConfirmation: card, widget: { type: 'action_card', data: card }, followUpSuggestions: [] };
+  }
 
   // 6. Fast-path checks
   const msgLower = effectiveUserMessage.trim().toLowerCase();
@@ -689,7 +643,13 @@ Instructions :
   }));
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const declarations = getMobileDeclarations(effectiveUserMessage);
+  // Tool selection is based on the user's intent, never the vocabulary injected by vision.
+  const declarations = getMobileDeclarations(input.imageBase64 ? originalUserText || transcription || '' : effectiveUserMessage);
+  const permittedToolNames = new Set(declarations.map(tool => tool.name));
+  const typedAmounts = explicitCurrencyAmounts(originalUserText || transcription || '');
+  const proposalArgs = (name: string, args: Record<string, any>) => name === 'add_expense' && typedAmounts.length === 1
+    ? { ...args, amount: typedAmounts[0] } : args;
+  const mayProposeAction = declarations.some(tool => requiresActionConfirmation(tool.name, TOOLS[tool.name]));
   const modelTimeoutMs = getHniaModelTimeoutMs();
   const candidateModels = getAvailableModels(getMobileHniaModels());
 
@@ -733,7 +693,7 @@ Instructions :
         const streamed = await chat.sendMessageStream(parts, requestOptions);
         for await (const chunk of streamed.stream) {
           const delta = chunk.text();
-          if (delta && !needsFreshSchoolData(effectiveUserMessage)) {
+          if (delta && !mayProposeAction && !needsFreshSchoolData(effectiveUserMessage)) {
             streamedAnyToken = true;
             await input.onTokenDelta(delta);
           }
@@ -766,6 +726,10 @@ Instructions :
 
       while (functionCalls && functionCalls.length > 0 && iterations < MAX_TOOL_ITERATIONS) {
         iterations++;
+        if (functionCalls.some(call => !permittedToolNames.has(call.name))) {
+          finalReply = "Je n'ai pas pu relier cette réponse à votre demande. Précisez l'opération souhaitée. Aucune modification effectuée.";
+          break;
+        }
         const call = functionCalls[0];
         const toolName = call.name;
         const toolArgs = (call.args || {}) as Record<string, any>;
@@ -810,7 +774,7 @@ Instructions :
           let pendingConfirmations: ActionCardData[] = [];
           for (const c of functionCalls) {
             const tName = c.name;
-            const tArgs = (c.args || {}) as Record<string, any>;
+            const tArgs = proposalArgs(tName, (c.args || {}) as Record<string, any>);
             const tDef = TOOLS[tName];
             if (tDef && requiresActionConfirmation(tName, tDef)) {
               const toolCallRecord = await prisma.aIToolCall.create({
@@ -985,7 +949,7 @@ Instructions :
               const toolName = parsed.action;
               const payload = parsed.payload || {};
 
-              const toolArgs: Record<string, any> = { ...payload };
+              const toolArgs: Record<string, any> = proposalArgs(toolName, { ...payload });
               if (payload.first_name && !toolArgs.name) toolArgs.name = payload.first_name;
               if (payload.last_name && !toolArgs.surname) toolArgs.surname = payload.last_name;
               if (payload.class_name && !toolArgs.className) toolArgs.className = payload.class_name;
@@ -993,7 +957,7 @@ Instructions :
               if (payload.parent_name && !toolArgs.parentName) toolArgs.parentName = payload.parent_name;
 
               const toolDef = TOOLS[toolName];
-              if (toolDef && requiresActionConfirmation(toolName, toolDef)) {
+              if (toolDef && permittedToolNames.has(toolName) && requiresActionConfirmation(toolName, toolDef)) {
                 const toolCallRecord = await prisma.aIToolCall.create({
                   data: {
                     conversationId,
