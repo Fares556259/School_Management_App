@@ -8,6 +8,10 @@ import { hasValidBearerSecret, hasValidHeaderSecret } from "../lib/requestSecret
 import { generateCallToken, verifyCallToken } from "../lib/call/token";
 
 async function main() {
+  const nextConfig = fs.readFileSync(new URL("../../next.config.js", import.meta.url), "utf8");
+  assert.match(nextConfig, /frame-ancestors 'none'/);
+  assert.match(nextConfig, /X-Content-Type-Options/);
+  assert.doesNotMatch(nextConfig, /Access-Control-Allow-Origin[^\n]+\*/);
   assert.equal((await devReset()).status, 410);
   assert.equal((await legacyJoin()).status, 410);
   assert.equal((await legacyCallSession()).status, 410);
