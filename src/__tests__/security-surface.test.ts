@@ -11,6 +11,7 @@ async function main() {
   const nextConfig = fs.readFileSync(new URL("../../next.config.js", import.meta.url), "utf8");
   assert.match(nextConfig, /frame-ancestors 'none'/);
   assert.match(nextConfig, /X-Content-Type-Options/);
+  assert.match(nextConfig, /Access-Control-Allow-Origin[^\n]+https:\/\/www\.snapschool\.academy/);
   assert.doesNotMatch(nextConfig, /Access-Control-Allow-Origin[^\n]+\*/);
   assert.equal((await devReset()).status, 410);
   assert.equal((await legacyJoin()).status, 410);

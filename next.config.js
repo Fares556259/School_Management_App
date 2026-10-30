@@ -34,6 +34,7 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://www.snapschool.academy" },
           { key: "Content-Security-Policy", value: "base-uri 'self'; frame-ancestors 'none'; object-src 'none'" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
