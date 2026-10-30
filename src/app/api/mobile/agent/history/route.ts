@@ -3,6 +3,7 @@ import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import prisma from "@/lib/prisma";
 import { buildActionCardMetadata } from "@/lib/agent/actionCards";
 import { isActionExpired } from "@/lib/agent/actionPolicy";
+import { buildReadPresentation } from '@/lib/agent/readPresentation';
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     const auth = await authenticateMobileRequest(request);
     if (auth.error) return auth.error;
 
-    const { userId, userType } = auth.payload;
+    const { userId, userType, schoolId } = auth.payload;
     if (userType !== "admin") {
       return NextResponse.json(
         { success: false, error: "Accès réservé à la direction / administrateur." },
@@ -23,6 +24,8 @@ export async function GET(request: NextRequest) {
     const requestedLimit = Number(searchParams.get("limit") || 60);
     const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(requestedLimit, 100)) : 60;
     const conversationIdParam = searchParams.get("conversationId");
+    const search = (searchParams.get('search') || '').trim().slice(0, 120);
+    const messageFilter = search ? { content: { contains: search, mode: 'insensitive' as const } } : {};
 
     // Return list of all active conversation threads for multi-thread drawer
     if (searchParams.get("threads") === "true") {
@@ -38,6 +41,7 @@ export async function GET(request: NextRequest) {
         take: 100,
         include: {
           messages: {
+            where: messageFilter,
             orderBy: { createdAt: "desc" },
             take: 1,
           },
@@ -83,6 +87,7 @@ export async function GET(request: NextRequest) {
         },
         include: {
           messages: {
+            where: messageFilter,
             orderBy: { createdAt: "desc" },
             take: limit,
           },
@@ -95,6 +100,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    if (!conversation && conversationIdParam && search) return NextResponse.json({ success: false, error: 'Conversation introuvable.' }, { status: 404 });
     // Fallback: if no specific conversation requested or requested ID not found, load most recent active one
     if (!conversation) {
       conversation = await prisma.aIConversation.findFirst({
@@ -108,6 +114,7 @@ export async function GET(request: NextRequest) {
         orderBy: { updatedAt: "desc" },
         include: {
           messages: {
+            where: messageFilter,
             orderBy: { createdAt: "desc" },
             take: limit,
           },
@@ -130,10 +137,13 @@ export async function GET(request: NextRequest) {
     }
 
     const sortedMessages = [...(conversation.messages || [])].reverse();
-    const actionCards = new Map<string, any>(conversation.toolCalls.map((tc: any) => {
+    const visibleReadIds = sortedMessages.map((message: any) => message.toolCallId).filter(Boolean);
+    const visibleReads = visibleReadIds.length ? await prisma.aIToolCall.findMany({ where: { id: { in: visibleReadIds }, conversationId: conversation.id, requiresConfirm: false, status: 'EXECUTED' }, select: { id: true, toolName: true, arguments: true, result: true, executedAt: true } }) : [];
+    const readCalls = new Map<string, any>(visibleReads.map((tc: any) => [tc.id, tc]));
+    const actionCards = new Map<string, any>(conversation.toolCalls.filter((tc: any) => tc.requiresConfirm).map((tc: any) => {
       const status = tc.status === "PENDING" && isActionExpired(tc.createdAt) ? "EXPIRED" : tc.status;
       const card = buildActionCardMetadata(tc.id, tc.toolName, tc.arguments || {}, "Vérifiez les détails puis confirmez cette action.");
-      return [tc.id, { ...card, status, reference: status === "EXECUTED" ? `ACT-${tc.id}` : undefined, resultMessage: tc.result?.message }];
+      return [tc.id, { ...card, status, reference: status === "EXECUTED" ? `ACT-${tc.id}` : undefined, resultMessage: tc.result?.message, undoExpenseId: status === 'EXECUTED' && tc.toolName === 'add_expense' && Number.isInteger(tc.result?.data?.expenseId) ? tc.result.data.expenseId : undefined }];
     }));
 
     return NextResponse.json({
@@ -166,12 +176,15 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        const read = m.toolCallId ? readCalls.get(m.toolCallId) : null;
+        const presentation = read ? buildReadPresentation(read.toolName, read.arguments || {}, { ...read.result, fetchedAt: read.result?.fetchedAt || read.executedAt?.toISOString() }, { schoolId }, read.id) : {};
         return {
           id: m.id,
           role: m.role,
           content,
           imageUri,
           createdAt: m.createdAt,
+          ...presentation,
           pendingConfirmation: m.toolCallId ? actionCards.get(m.toolCallId) || null : null,
         };
       }),

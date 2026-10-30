@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest, checkRateLimit } from "@/lib/mobileAuth";
 import { runMobileAgent } from "@/lib/agent/mobileAgent";
+import { transcribeMobileAudio } from '@/lib/agent/mobileAgent';
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -25,6 +26,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    if (body.transcribeOnly === true) {
+      if (typeof body.audioBase64 !== 'string' || !body.audioBase64 || body.audioBase64.length > 12_000_000) return NextResponse.json({ success: false, error: 'Invalid audio' }, { status: 400 });
+      const transcription = await transcribeMobileAudio(body.audioBase64, body.audioMimeType, request.signal);
+      return NextResponse.json({ success: Boolean(transcription), transcription }, { headers: { 'Cache-Control': 'no-store' } });
+    }
     const wantsStream =
       body.stream === true ||
       request.headers.get("accept")?.includes("text/event-stream") ||
@@ -60,6 +66,10 @@ export async function POST(request: NextRequest) {
             adminId: userId,
             schoolId,
             conversationId: body.conversationId,
+            newConversation: body.newConversation === true,
+            nextReadPage: body.nextReadPage === true,
+            refreshReadId: typeof body.refreshReadId === 'string' ? body.refreshReadId : undefined,
+            language: ['fr', 'en', 'ar'].includes(body.language) ? body.language : 'fr',
             audioBase64: body.audioBase64,
             audioMimeType: body.audioMimeType,
             imageBase64: body.imageBase64,
@@ -125,6 +135,10 @@ export async function POST(request: NextRequest) {
       adminId: userId,
       schoolId,
       conversationId: body.conversationId,
+      newConversation: body.newConversation === true,
+      nextReadPage: body.nextReadPage === true,
+      refreshReadId: typeof body.refreshReadId === 'string' ? body.refreshReadId : undefined,
+      language: ['fr', 'en', 'ar'].includes(body.language) ? body.language : 'fr',
       audioBase64: body.audioBase64,
       audioMimeType: body.audioMimeType,
       imageBase64: body.imageBase64,

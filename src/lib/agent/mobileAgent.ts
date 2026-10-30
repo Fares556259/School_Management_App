@@ -1,4 +1,5 @@
 import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
+import { buildReadPresentation } from './readPresentation';
 import { isVerificationFollowup, isNextPage, needsFreshSchoolData } from "./dataAccuracy";
 import { READ_ONLY_ACTIONS } from "./actionPolicy";
 import { ActionCardData, buildActionCardMetadata } from "./actionCards";
@@ -29,6 +30,10 @@ export interface MobileAgentInput {
   adminId: string;
   schoolId: string;
   conversationId?: string;
+  newConversation?: boolean;
+  refreshReadId?: string;
+  nextReadPage?: boolean;
+  language?: string;
   audioBase64?: string;
   audioMimeType?: string;
   imageBase64?: string;
@@ -48,8 +53,9 @@ export interface MobileAgentResponse {
   imageUrl?: string;
   pendingConfirmation?: ActionCardData | ActionCardData[] | null;
   executedTool?: string;
+  evidence?: any;
   widget?: {
-    type: "caisse" | "unpaid_tuition" | "pdf_receipt" | "finance_summary" | "student_card" | "attendance_card" | "action_card";
+    type: "caisse" | "unpaid_tuition" | "pdf_receipt" | "finance_summary" | "student_card" | "attendance_card" | "action_card" | "school_records";
     data: any;
   } | null;
   followUpSuggestions?: string[];
@@ -89,7 +95,7 @@ export function getMobileDeclarations(userMessage: string): any[] {
 /**
  * Transcribe mobile audio recording (m4a, aac, wav, ogg) using Gemini multimodal audio.
  */
-async function transcribeMobileAudio(
+export async function transcribeMobileAudio(
   base64Audio: string,
   mimeType: string = "audio/m4a",
   signal?: AbortSignal
@@ -276,7 +282,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
           return "";
         })
       : Promise.resolve(""),
-    input.conversationId
+    input.newConversation ? Promise.resolve(null) : input.conversationId
       ? prisma.aIConversation.findFirst({
           where: {
             id: input.conversationId,
@@ -525,7 +531,7 @@ Instructions :
     schoolId: input.schoolId,
     adminId: input.adminId,
     adminName,
-    language: "fr",
+    language: input.language || "fr",
   };
 
   // 6. Fast-path checks
@@ -550,8 +556,19 @@ Instructions :
 
   // Only exact, unambiguous shortcuts may bypass model parsing. Scoped questions use native tool arguments.
   let exactRead = getExactSchoolRead(effectiveUserMessage);
+  if (input.refreshReadId) {
+    const previous = await prisma.aIToolCall.findFirst({ where: { id: input.refreshReadId, conversationId, status: 'EXECUTED', requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] } } });
+    if (!previous) return { success: false, conversationId, message: 'Cette consultation ne peut pas être actualisée.', error: 'READ_NOT_FOUND' };
+    if ((previous.result as any)?.scopeSchoolId && (previous.result as any).scopeSchoolId !== input.schoolId) return { success: false, conversationId, message: 'Cette consultation appartient à un autre établissement.', error: 'READ_NOT_FOUND' };
+    exactRead = { name: previous.toolName, args: (previous.arguments as Record<string, any>) || {} };
+    if (input.nextReadPage === true) {
+      const result = previous.result as any;
+      if (!Number.isInteger(result?.nextOffset) || result?.hasMore !== true) return { success: false, conversationId, message: 'Aucune page suivante pour cette consultation.', error: 'NO_NEXT_PAGE' };
+      exactRead.args = { ...exactRead.args, offset: result.nextOffset };
+    }
+  }
   const verifying = isVerificationFollowup(effectiveUserMessage);
-  if (verifying || isNextPage(effectiveUserMessage)) {
+  if (!input.refreshReadId && (verifying || isNextPage(effectiveUserMessage))) {
     const previous = await prisma.aIToolCall.findFirst({
       where: { conversationId, status: "EXECUTED", requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] } },
       orderBy: { createdAt: "desc" },
@@ -579,9 +596,10 @@ Instructions :
     await input.onStatusUpdate?.({ step: verifying ? "Nouvelle vérification en base..." : "Consultation des données...", tool: exactRead.name });
     const fresh = await executeFreshSchoolRead(exactRead.name, exactRead.args, context, conversationId);
     const message = (verifying && fresh.success ? "**Nouvelle vérification en base effectuée.**\n\n" : "") + fresh.message;
-    await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message } });
-    await input.onTokenDelta?.(message);
-    return { success: true, conversationId, message, transcription, executedTool: exactRead.name, followUpSuggestions: [] };
+    const presentation = buildReadPresentation(exactRead.name, exactRead.args, fresh.output, { schoolId: input.schoolId, schoolName }, fresh.toolCallId);
+    if (presentation.evidence?.total !== null && presentation.evidence?.total !== undefined) await input.onStatusUpdate?.({ step: `${presentation.evidence.total} résultat(s) vérifié(s)`, tool: exactRead.name });
+    await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message, toolCallId: fresh.toolCallId } });
+    return { success: true, conversationId, message, transcription, executedTool: exactRead.name, ...presentation, followUpSuggestions: [] };
   }
 
   // 7. Resolve school knowledge / teachings
@@ -612,7 +630,7 @@ Instructions :
     adminName,
     schoolTeachings,
     classNames: realClassNames,
-  });
+  }) + `\nLANGUE DE CETTE CONVERSATION : ${input.language === 'ar' ? 'arabe tunisien clair' : input.language === 'en' ? 'English' : 'français'}. Respecte ce choix même si le message mélange plusieurs langues. Les montants, dates et confirmations restent explicites et professionnels.`;
 
   // 9. Build History
   const rawTurns: { role: "user" | "model"; text: string }[] = [];
@@ -721,6 +739,8 @@ Instructions :
       let finalReply: string | undefined;
       let pendingConfirmation: MobileAgentResponse["pendingConfirmation"] = null;
       let detectedWidget: MobileAgentResponse["widget"] = null;
+      let evidence: any = null;
+      let readToolCallId: string | undefined;
 
       const MAX_TOOL_ITERATIONS = 5;
       let iterations = 0;
@@ -831,6 +851,7 @@ Instructions :
           }
           const results = await Promise.all(functionCalls.map(c => executeFreshSchoolRead(c.name, (c.args || {}) as Record<string, any>, context, conversationId)));
           finalReply = results.map(result => result.message).join("\n\n---\n\n");
+          evidence = { source: 'school_database', schoolId: input.schoolId, schoolName, reads: results.map((result, index) => buildReadPresentation(functionCalls![index].name, (functionCalls![index].args || {}) as any, result.output, { schoolId: input.schoolId, schoolName }, result.toolCallId).evidence).filter(Boolean), verified: results.every(result => result.success) };
           break;
         }
 
@@ -843,6 +864,11 @@ Instructions :
         } else {
           const fresh = await executeFreshSchoolRead(toolName, toolArgs, context, conversationId);
           toolOutput = fresh.output;
+          readToolCallId = fresh.toolCallId;
+          const presentation = buildReadPresentation(toolName, toolArgs, toolOutput, { schoolId: input.schoolId, schoolName }, fresh.toolCallId);
+          evidence = presentation.evidence;
+          if (presentation.widget) detectedWidget = presentation.widget as any;
+          if (fresh.success && evidence?.total !== null && evidence?.total !== undefined) await input.onStatusUpdate?.({ step: `${evidence.total} résultat(s) vérifié(s)`, tool: toolName });
           executedToolResults.set(cacheKey, toolOutput);
         }
 
@@ -871,7 +897,6 @@ Instructions :
               totalRevenue: toolOutput.totalIncome || 0,
               totalExpenses: toolOutput.totalExpense || 0,
               netProfit: toolOutput.netProfit || 0,
-              trendPercent: toolOutput.marginPercentage || 0,
               unpaidTuition: toolOutput.unpaidTuition || 0,
               unpaidStudentsCount: toolOutput.unpaidStudentsCount || 0,
             },
@@ -998,6 +1023,7 @@ Instructions :
           role: "assistant",
           content: finalReply,
           ...(pendingConfirmation && !Array.isArray(pendingConfirmation) ? { toolCallId: pendingConfirmation.toolCallId } : {}),
+          ...(readToolCallId ? { toolCallId: readToolCallId } : {}),
         },
       });
 
@@ -1028,6 +1054,7 @@ Instructions :
         imageUrl: uploadedImageUrl,
         pendingConfirmation: pendingConfirmation || null,
         executedTool: lastExecutedTool,
+        evidence,
         widget: detectedWidget,
         followUpSuggestions: suggestions,
       };

@@ -29,6 +29,7 @@ export async function confirmMobileAction(params: {
     message,
     actionStatus: status,
     result,
+    undoExpenseId: status === 'EXECUTED' && toolCall.toolName === 'add_expense' && Number.isInteger(result?.data?.expenseId) ? result.data.expenseId : undefined,
     actionResult: {
       reference: `ACT-${toolCall.id}`,
       summary: message,

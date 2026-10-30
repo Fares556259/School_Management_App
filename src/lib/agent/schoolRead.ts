@@ -52,8 +52,8 @@ export async function executeFreshSchoolRead(name:string,args:Record<string,any>
   catch { output={success:false,error:true,message:'La lecture des données a échoué. Je ne peux pas confirmer le résultat actuel.'}; }
   const failed=!output || output.error || output.success===false;
   const fetchedAt=new Date().toISOString();
-  if(output && typeof output==='object') output={...output,source:'school_database',fetchedAt};
+  if(output && typeof output==='object') output={...output,source:'school_database',fetchedAt,scopeSchoolId:context.schoolId};
   // Persist before replying so "U sure" can re-run the exact filters on the next turn.
-  await prisma.aIToolCall.create({data:{conversationId,toolName:name,arguments:args,result:output,status:failed?'FAILED':'EXECUTED',executedAt:new Date(),requiresConfirm:false}});
-  return {output,message:formatSchoolRead(name,output),fetchedAt,success:!failed};
+  const toolCall = await prisma.aIToolCall.create({data:{conversationId,toolName:name,arguments:args,result:output,status:failed?'FAILED':'EXECUTED',executedAt:new Date(),requiresConfirm:false}});
+  return {output,message:formatSchoolRead(name,output),fetchedAt,success:!failed,toolCallId:toolCall.id};
 }

@@ -106,6 +106,7 @@ export async function getStudentsTool(
 
   return {
     total: totalCount,
+    classId: where.classId || null,
     returned: sortedStudents.length,
     offset,
     hasMore: offset + sortedStudents.length < totalCount,
